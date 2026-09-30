@@ -188,7 +188,7 @@ func TestStateFollowsIDs(t *testing.T) {
 func TestStateIsDroppedWithTheElement(t *testing.T) {
 	show := true
 	r := Root(viewFunc(func(*Context) Element {
-		return Div().When(show, func(d *DivEl) { d.Child(Div().ID("x").OnClick(func() {})) })
+		return Div().When(show, func(d *DivEl) { d.Child(Div().ID("x").Size(Dp(10)).OnClick(func() {})) })
 	}))
 	h := uitest.New(r)
 	n := len(r.store.states)
@@ -284,4 +284,61 @@ func description(h *uitest.Harness, label string) string {
 
 func center(r image.Rectangle) (float32, float32) {
 	return float32(r.Min.X+r.Max.X) / 2, float32(r.Min.Y+r.Max.Y) / 2
+}
+
+func TestStickToBottom(t *testing.T) {
+	lines := 5
+	root := Root(viewFunc(func(*Context) Element {
+		list := Div().ID("log").H(Dp(100)).ScrollY().StickToBottom()
+		for i := range lines {
+			list.Child(Div().H(Dp(30)).Child(Text("line " + strconv.Itoa(i))))
+		}
+		return Div().Items(Start).Child(Div().W(Dp(200)).Child(list))
+	}))
+	h := uitest.New(root)
+	bottom := func() string { // the last line fully in view
+		last := ""
+		for i := range lines {
+			if y := labelY(h, "line "+strconv.Itoa(i)); y >= 0 && y+30 <= 110 {
+				last = "line " + strconv.Itoa(i)
+			}
+		}
+		return last
+	}
+	lines = 10
+	h.Frame()
+	if b := bottom(); b != "line 9" {
+		t.Fatalf("growing content: bottom shows %q, want line 9", b)
+	}
+	h.Scroll(50, 50, -120) // the user scrolls up to read
+	lines = 12
+	h.Frame()
+	if b := bottom(); b == "line 11" {
+		t.Fatal("followed new content although the user scrolled up")
+	}
+	h.Scroll(50, 50, 1000) // back to the end: following resumes
+	lines = 14
+	h.Frame()
+	h.Frame()
+	if b := bottom(); b != "line 13" {
+		t.Fatalf("after returning to the end, bottom shows %q, want line 13", b)
+	}
+}
+
+func TestScrollToEndOn(t *testing.T) {
+	version := 0
+	root := Root(viewFunc(func(*Context) Element {
+		list := Div().ID("log").H(Dp(100)).ScrollY().StickToBottom().ScrollToEndOn(version)
+		for i := range 10 + version {
+			list.Child(Div().H(Dp(30)).Child(Text("line " + strconv.Itoa(i))))
+		}
+		return Div().Items(Start).Child(Div().W(Dp(200)).Child(list))
+	}))
+	h := uitest.New(root)
+	h.Scroll(50, 50, -1000) // read from the top
+	version = 1             // e.g. the user sent a message
+	h.Frame()
+	if y := labelY(h, "line 10"); y < 0 || y > 100 {
+		t.Fatalf("did not jump to the new last line (at y=%d)", y)
+	}
 }

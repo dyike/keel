@@ -10,6 +10,7 @@
 | [widget](widget/) | 交互组件：`Button`、`Input`、`Checkbox` 等 | core、theme、layout |
 | [window](window/) | 窗口：`Open`、`Main`、快捷键、截图 | core、theme |
 | [el](el/) | GPUI 风格：视图 + 链式样式元素 + flexbox，新界面优先用它 | core、theme |
+| [markdown](markdown/) | Markdown 渲染，针对 AI 流式输出优化 | el、core、theme |
 
 依赖只往下走，下层不知道上层存在：
 

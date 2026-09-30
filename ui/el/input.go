@@ -22,7 +22,7 @@ func Input() *InputEl {
 	e.n.input = &inputSpec{}
 	// A bordered box by default; every part can be restyled. The border turns
 	// Primary while the box has focus.
-	e.Border(1, theme.Border).Rounded(6).Bg(theme.Surface).Px(10).Pt(8 + float32(theme.CJKNudge)).Pb(8 - float32(theme.CJKNudge))
+	e.Border(1, theme.Border).Rounded(6).Bg(theme.Surface).Px(10).Py(8)
 	return e
 }
 

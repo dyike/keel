@@ -34,13 +34,25 @@ type Node struct {
 	selected      *bool
 
 	// Layout results, in pixels. pos is relative to the parent's border box.
-	pos, size   image.Point
-	forceW      int // set by the parent: stretch or flex size; -1 none
-	forceH      int
-	contentH    int // scroll containers: height of the content
-	key         stateKey
-	textStyle   textStyle // resolved, inherited
-	measureMemo map[[4]int]image.Point
+	pos, size image.Point
+	forceW    int // set by the parent: stretch or flex size; -1 none
+	forceH    int
+	contentH  int // scroll containers: height of the content
+	key       stateKey
+	textStyle textStyle // resolved, inherited
+
+	// Set on subtrees returned by Context.Cache: they are reused across
+	// frames, so a layout with the same inputs can reuse the last result.
+	cached bool
+	memo   layoutMemo
+	reused bool // this frame's layout came from memo: skip placing children
+}
+
+type layoutMemo struct {
+	ok     bool
+	in     [4]int
+	parent textStyle
+	size   image.Point
 }
 
 func (n *Node) node() *Node { return n }
@@ -156,6 +168,16 @@ func (s *Styled[T]) Mb(v float32) *T { s.n.style.margin.Bottom = v; return s.sel
 // ScrollY clips the children and scrolls them vertically. The element needs a
 // definite height: set H, or let it Grow in a column.
 func (s *Styled[T]) ScrollY() *T { s.n.style.scrollY = true; return s.self }
+
+// StickToBottom keeps a ScrollY container scrolled to the end while content
+// grows, as long as the user has not scrolled away from the end: a chat that
+// follows a streaming answer but lets the user read back.
+func (s *Styled[T]) StickToBottom() *T { s.n.style.stickBottom = true; return s.self }
+
+// ScrollToEndOn scrolls a ScrollY container to the end whenever version
+// changes, and resumes StickToBottom: pass the number of messages so that
+// sending one jumps to it even after the user scrolled up to read.
+func (s *Styled[T]) ScrollToEndOn(version int) *T { s.n.style.endVersion = version; return s.self }
 
 // Absolute takes the element out of flow and places it by Top/Right/Bottom/Left
 // within its parent's padding box.

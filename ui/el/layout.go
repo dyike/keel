@@ -19,7 +19,9 @@ type engine struct {
 	gtx     core.C
 	m       unit.Metric
 	store   *store
-	scratch op.Ops // measuring passes record here and discard
+	scratch op.Ops          // measuring passes record here and discard
+	origin  image.Point     // absolute position of the node being painted's parent
+	visible image.Rectangle // absolute area that can show anything
 }
 
 func (e *engine) dp(v float32) int { return e.m.Dp(unit.Dp(v)) }
@@ -31,6 +33,15 @@ func (e *engine) edges(ed Edges) (l, t, r, b int) {
 // layout sizes n, given its parent's content box (inf when unbounded), and
 // sizes its descendants. Positions are set afterwards by place.
 func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
+	n.reused = false
+	if n.cached {
+		in := [4]int{availW, availH, n.forceW, n.forceH}
+		if m := &n.memo; m.ok && m.in == in && m.parent == parent {
+			n.size, n.reused = m.size, true
+			return
+		}
+		defer func() { n.memo = layoutMemo{true, in, parent, n.size} }()
+	}
 	s := &n.style
 	n.textStyle = s.text.inherit(parent)
 	w, h := s.w.px(e.m, availW), s.h.px(e.m, availH)
@@ -201,48 +212,56 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 		mainDef, crossDef = innerW, innerH
 	}
 
-	// Natural sizes.
-	for _, c := range kids {
-		c.forceW, c.forceH = -1, -1
-		e.layoutChild(c, n, limW, limH)
-	}
 	outer := func(c *Node) (int, int) {
 		ms, me, cs, ce := e.margins(c, row)
 		return mainOf(c.size, row) + ms + me, crossOf(c.size, row) + cs + ce
 	}
+	// Stretch up front when the cross size is known, so a child is laid out
+	// once, not measured and then laid out again at the stretched size.
+	preCross := func(c *Node) int {
+		if align == Stretch && crossDef >= 0 && c.crossAuto(row) {
+			_, _, cs, ce := e.margins(c, row)
+			return max(crossDef-cs-ce, 0)
+		}
+		return -1
+	}
+	// Grow means flex: 1 — growing children start from zero and share the free
+	// space, so each is laid out once, at its final size. That needs a known
+	// main size; without one, growing is meaningless and all are natural.
+	growing := func(c *Node) bool { return mainDef >= 0 && c.style.grow > 0 }
+
 	total := 0
+	var grow float32
 	for i, c := range kids {
-		m, _ := outer(c)
-		total += m
 		if i > 0 {
 			total += gap
 		}
+		if growing(c) {
+			grow += c.style.grow
+			ms, me, _, _ := e.margins(c, row)
+			total += ms + me
+			continue
+		}
+		c.setForce(-1, preCross(c), row)
+		e.layoutChild(c, n, limW, limH)
+		m, _ := outer(c)
+		total += m
 	}
-
-	// Grow into free space, or shrink to fit, when the main size is known.
-	if mainDef >= 0 && len(kids) > 0 {
+	if mainDef >= 0 {
 		free := mainDef - total
-		switch {
-		case free > 0:
-			var grow float32
+		if grow > 0 {
+			left := max(free, 0)
 			for _, c := range kids {
-				grow += c.style.grow
-			}
-			if grow > 0 {
-				left := free
-				for _, c := range kids {
-					if c.style.grow <= 0 {
-						continue
-					}
-					add := int(float32(free) * c.style.grow / grow)
-					left -= add
-					_, cross := c.force(row)
-					c.setForce(mainOf(c.size, row)+add, cross, row)
-					e.layoutChild(c, n, limW, limH)
+				if !growing(c) {
+					continue
 				}
-				total = mainDef - left
+				share := int(float32(max(free, 0)) * c.style.grow / grow)
+				left -= share
+				c.setForce(share, preCross(c), row)
+				e.layoutChild(c, n, limW, limH)
 			}
-		case free < 0:
+			total = mainDef - left
+		} else if free < 0 {
 			var weight float32
 			for _, c := range kids {
 				if c.style.shrink >= 0 {
@@ -298,6 +317,9 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 
 // place positions the children of n inside its final size, recursively.
 func (e *engine) place(n *Node) {
+	if n.reused {
+		return // children keep the positions of the frame that laid them out
+	}
 	s := &n.style
 	row := s.row
 	pl, pt, pr, pb := e.edges(s.pad)

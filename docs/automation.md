@@ -117,6 +117,8 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `row` | 表格中可见的行，名字是各列用竖线连起来 | `selected` |
 | `progressbar` | `widget.Progress` | `value` 是百分比 |
 | `dialog` | 打开的 `widget.Dialog` | 它里面的文字和按钮单独列出 |
+| `link` | Markdown 段落里的链接、`widget.Link` | `value` 是网址 |
+| `code` | Markdown 代码块 | 名字是语言；里面的代码文字和"复制"按钮单独列出 |
 
 元素列表只包含看得见的部分：滚出视野的表格行、页面内容不会列出，部分可见的元素按可见部分报告位置。要看更多行，先 `scroll`。
 

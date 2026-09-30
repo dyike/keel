@@ -13,6 +13,7 @@ github.com/dyike/keel
 │   ├── widget/           交互组件：Button、Input、Checkbox …（一个组件一个文件）
 │   ├── window/           窗口：Open、Main、快捷键、截图
 │   ├── el/               GPUI 风格：视图、链式样式元素、flexbox（新界面优先用它）
+│   ├── markdown/         Markdown 渲染，针对 AI 流式输出
 │   └── internal/         只给上面几个模块用：loop（帧锁）、uitest（测试工具）
 ├── native/
 │   ├── permission/       权限检查与申请
@@ -34,7 +35,7 @@ github.com/dyike/keel
 
 ```
 ui:
-  el ─────────────────┐
+  markdown ──► el ────┐
   window ─────────────┤
   widget ──► layout ──┼──► theme
      │         │      │

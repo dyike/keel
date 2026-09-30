@@ -59,6 +59,21 @@ func (h *Harness) Click(x, y float32) {
 	h.Frame()
 }
 
+// Drag presses at (x0, y0), moves to (x1, y1) and releases, then renders.
+func (h *Harness) Drag(x0, y0, x1, y1 float32) {
+	a, b := f32.Pt(x0, y0), f32.Pt(x1, y1)
+	h.Router.Queue(
+		pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: a},
+		pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: a},
+	)
+	h.Frame()
+	// Platforms report moves with a button held; the router makes them drags.
+	h.Router.Queue(pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: b})
+	h.Frame()
+	h.Router.Queue(pointer.Event{Kind: pointer.Release, Source: pointer.Mouse, Position: b})
+	h.Frame()
+}
+
 // Scroll turns the mouse wheel by dy (positive: down) at (x, y), then renders.
 func (h *Harness) Scroll(x, y, dy float32) {
 	p := f32.Pt(x, y)

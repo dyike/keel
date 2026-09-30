@@ -32,6 +32,7 @@ go test -race ./...
 | [ui/widget](ui/widget/) | 交互组件：`Button`、`Input`、`Checkbox` … |
 | [ui/window](ui/window/) | 窗口：`Open`、`Main`、快捷键、截图 |
 | [ui/el](ui/el/) | GPUI 风格：视图 + 链式样式元素 + flexbox，新界面优先用它 |
+| [ui/markdown](ui/markdown/) | Markdown 渲染，针对 AI 流式输出优化 |
 | [native/permission](native/permission/) | 检查、申请系统权限 |
 | [native/screen](native/screen/) | 显示器列表、截图 |
 | [native/input](native/input/) | 合成鼠标、键盘事件 |
@@ -48,6 +49,7 @@ go test -race ./...
 - [快速开始](docs/getting-started.md)
 - [架构](docs/architecture.md)：模块划分、依赖方向、线程规则
 - [元素与视图](docs/el.md)：GPUI 风格的写法
+- [Markdown](docs/markdown.md)：AI 流式输出的渲染
 - [窗口与应用](docs/app.md) · [组件与布局](docs/widgets.md) · [原生能力](docs/native.md)
 - [扩展指南](docs/extending.md)：新增组件、容器、原生能力的步骤
 - [测试](docs/testing.md) · [Agent 端到端测试](docs/automation.md) · [常见问题](docs/troubleshooting.md) · [设计决策](docs/decisions.md)

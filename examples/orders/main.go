@@ -114,7 +114,7 @@ func (d *desk) Render(cx *el.Context) el.Element {
 
 func tab(d *desk, i int, title string) el.Element {
 	active := d.tab == i
-	return el.Div().ID(title).Px(14).Pt(10).Pb(6).Role("tab").Selected(active).CursorPointer().
+	return el.Div().ID(title).Px(14).Py(8).Role("tab").Selected(active).CursorPointer().
 		TextColor(theme.Muted).
 		When(active, func(t *el.DivEl) {
 			t.TextColor(theme.Primary).Bold().Child(el.Div().Absolute().Left(0).Right(0).Bottom(0).H(el.Dp(2)).Bg(theme.Primary))
@@ -140,7 +140,7 @@ func button(label string, k kind, onClick func()) el.Element {
 	case danger:
 		bg, hover, fg = theme.Danger, theme.DangerHover, theme.OnColor
 	}
-	return el.Div().ID(label).Px(16).Pt(10).Pb(6).Rounded(6).Bg(bg).TextColor(fg).TextSize(14).
+	return el.Div().ID(label).Px(16).Py(8).Rounded(6).Bg(bg).TextColor(fg).TextSize(14).
 		CursorPointer().Hover(func(s *el.Style) { s.Bg(hover) }).
 		OnClick(onClick).Child(el.Text(label))
 }

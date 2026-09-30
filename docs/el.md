@@ -58,6 +58,8 @@ Render 每帧都会调用，要保持便宜：只根据状态搭树，不做 I/O
 el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) { v.refresh() }).OnSubmit(v.search)
 ```
 
+点击空白处会让输入框失去焦点。
+
 `Bind(&字符串)` 双向绑定：用户输入会写进变量，程序改了变量，下一帧输入框也跟着变。`Password()` 遮盖内容。
 
 ## 样式方法
@@ -67,10 +69,10 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 | 分类 | 方法 |
 | --- | --- |
 | 方向与对齐 | `Row()`、`Col()`（默认）、`Gap(dp)`、`Justify(Start/Center/End/SpaceBetween/SpaceAround)`、`Items(Start/Center/End/Stretch)`、`Center()` |
-| 伸缩 | `Grow()` 吃掉剩余空间；空间不够时按比例收缩，`NoShrink()` 禁止收缩 |
+| 伸缩 | `Grow()` 等于 CSS 的 `flex: 1`：初始尺寸按 0 算，分享剩余空间；其他元素空间不够时按比例收缩，`NoShrink()` 禁止收缩 |
 | 尺寸 | `W(l)`、`H(l)`、`Size(l)`、`MinW/MinH/MaxW/MaxH(l)`、`WFull()`、`HFull()`；长度用 `el.Dp(40)`、`el.Frac(0.5)`、`el.Full` |
 | 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`（外边距），单位 dp |
-| 滚动与定位 | `ScrollY()` 纵向滚动（需要确定的高度）；`Absolute()` + `Top/Right/Bottom/Left` 绝对定位，同时给左右会拉伸宽度 |
+| 滚动与定位 | `ScrollY()` 纵向滚动（需要确定的高度），`StickToBottom()` 跟随到底，`ScrollToEndOn(v)` 在 v 变化时跳到底部；`Absolute()` + `Top/Right/Bottom/Left` 绝对定位，同时给左右会拉伸宽度 |
 | 外观 | `Bg(c)`、`Border(dp, c)`、`Rounded(dp)`、`CursorPointer()`、`Hidden(b)` |
 | 文字（向下继承） | `TextColor(c)`、`TextSize(sp)`、`Bold()`、`MaxLines(n)` |
 | 状态变体 | `Hover(func(*el.Style))`、`Active(func(*el.Style))`：悬停、按下时的颜色变化 |
@@ -116,6 +118,23 @@ func (p *Page) Render(cx *el.Context) el.Element {
 
 `cx.Shortcut("mod+s", fn)` 在视图渲染期间绑定快捷键。
 
+### 缓存不变的部分
+
+长列表、聊天记录里大部分内容每帧都不变。`cx.Cache(key, build)` 在 key 不变时直接复用上一帧的元素和布局，`build` 不会被调用：
+
+```go
+for _, m := range v.msgs {
+    m := m
+    list.Child(cx.Cache(msgKey{m.id, m.version}, func() el.Element { return v.message(m) }))
+}
+```
+
+key 必须能比较，而且元素的样子只由 key 决定：外观会变时 key 也要变（比如带上版本号）。某一帧没用到的缓存项会被删掉。`ui/markdown` 就是这样缓存写完的块的。
+
+### 复制到剪贴板
+
+`el.WriteClipboard(text)` 在回调里调用，当前帧写入系统剪贴板。
+
 ## 做成可复用的组件
 
 组件就是返回 `el.Element` 的函数，参数是它需要的数据和回调：
@@ -155,6 +174,6 @@ func button(label string, onClick func()) el.Element {
 ## 已知限制
 
 - 布局是 flexbox 的子集：没有换行（wrap）、网格、`align-self`、横向滚动、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
-- 没有虚拟列表：`ScrollY` 里的子元素每帧都布局。几百行以上用 `el.Widget(widget.Table)`。
+- 没有虚拟列表：`ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行的表格用 `el.Widget(widget.Table)`。
 - 没有动画和过渡效果。
 - 键盘：`Input` 自带焦点；其他元素还不能获得焦点或处理按键，快捷键用 `cx.Shortcut`。

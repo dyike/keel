@@ -248,3 +248,28 @@ func refOf(snapshot, s string) string {
 	}
 	return ""
 }
+
+// TestChat streams Markdown answers like an AI assistant: the agent sends a
+// prompt, waits for the streamed answer, reads its code block and table, and
+// stops a second answer halfway.
+func TestChat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds and runs the example app")
+	}
+	call, _ := startServer(t, nil)
+	got := call("launch", map[string]any{"command": "go run ./examples/chat -delay 2ms", "dir": repoRoot()})
+	expect(t, got, `textbox "消息"`, `button "发送"`)
+	call("type", map[string]any{"text": "用 Go 写一个并发下载器", "ref": refOf(got, `textbox "消息"`)})
+	expect(t, call("press_key", map[string]any{"key": "enter"}), `"正在回答…"`, `button "停止"`)
+	got = call("wait_for", map[string]any{"text": "下载器完成", "timeout_ms": 30000})
+	expect(t, got, `table "" value="3 行"`, `row "8 | 5.6s | 推荐"`, `"在线"`, `button "发送"`)
+	// Following the stream scrolled the chat to the end; scroll up to the code.
+	call("scroll", map[string]any{"dy": -400})
+	expect(t, call("snapshot", nil), `code "go"`, "func Download")
+
+	call("type", map[string]any{"text": "对比一下缓存方案，列个表"})
+	call("press_key", map[string]any{"key": "enter"})
+	got = call("click", map[string]any{"text": "停止"})
+	got = call("wait_for", map[string]any{"text": "已停止", "timeout_ms": 10000})
+	expect(t, got, `button "发送"`)
+}

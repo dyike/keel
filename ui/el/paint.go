@@ -60,6 +60,15 @@ func (e *engine) paint(n *Node) {
 		return
 	}
 	gtx := e.gtx
+	// Skip what cannot be seen, e.g. the part of a long chat scrolled away.
+	// Absolute children may overflow their parent, so they are always painted.
+	abs := image.Rectangle{Min: e.origin.Add(n.pos), Max: e.origin.Add(n.pos).Add(n.size)}
+	if !n.style.absolute && !abs.Overlaps(e.visible) {
+		return
+	}
+	saved := e.origin
+	e.origin = abs.Min
+	defer func() { e.origin = saved }()
 	defer op.Offset(n.pos).Push(gtx.Ops).Pop()
 	st := n.style // a copy: hover and active variants change it for this frame only
 	var state *elemState
@@ -191,7 +200,7 @@ func (e *engine) paintBox(st Style, rect image.Rectangle, radius int) {
 
 func (e *engine) paintText(n *Node, inner image.Rectangle) {
 	gtx := e.gtx
-	defer op.Offset(inner.Min).Push(gtx.Ops).Pop()
+	defer op.Offset(inner.Min.Add(image.Pt(0, theme.Shift(e.m, n.textStyle.size)))).Push(gtx.Ops).Pop()
 	g := gtx
 	g.Constraints = layout.Constraints{Max: inner.Size()}
 	e.label(n, n.text).Layout(g)
@@ -240,7 +249,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		st.lastText = *spec.bind
 		ed.SetText(*spec.bind)
 	}
-	defer op.Offset(inner.Min).Push(gtx.Ops).Pop()
+	defer op.Offset(inner.Min.Add(image.Pt(0, theme.Shift(e.m, n.textStyle.size)))).Push(gtx.Ops).Pop()
 	g := gtx
 	g.Constraints = layout.Exact(inner.Size())
 	ts := n.textStyle
@@ -264,18 +273,29 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	viewport := image.Rect(bw, bw, n.size.X-bw, n.size.Y-bw)
 	total := n.contentH + pt + pb
 	maxScroll := max(total-viewport.Dy(), 0)
+	// Stick: if the view was at the end last frame, it stays at the end.
+	atEnd := !st.scrolled || st.scrollY >= st.scrollMax-e.dp(2)
+	if n.style.stickBottom && atEnd || st.scrolled && n.style.endVersion != st.version {
+		st.scrollY = maxScroll
+	}
+	st.version = n.style.endVersion
 	dist := st.scroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Vertical,
 		pointer.ScrollRange{}, pointer.ScrollRange{Min: -st.scrollY, Max: maxScroll - st.scrollY})
 	st.scrollY = min(max(st.scrollY+dist, 0), maxScroll)
+	st.scrollMax, st.scrolled = maxScroll, true
 
 	// The viewport is its own area with the scroll handler, so it is a node
 	// in the semantic tree and agents only see what shows through it.
 	stk := clip.Rect(viewport).Push(gtx.Ops)
 	st.scroll.Add(gtx.Ops)
 	off := op.Offset(image.Pt(0, -st.scrollY)).Push(gtx.Ops)
+	savedVis, savedOrigin := e.visible, e.origin
+	e.visible = e.visible.Intersect(viewport.Add(e.origin))
+	e.origin = e.origin.Add(image.Pt(0, -st.scrollY))
 	for _, c := range n.children {
 		e.paint(c.node())
 	}
+	e.visible, e.origin = savedVis, savedOrigin
 	off.Pop()
 	stk.Pop()
 

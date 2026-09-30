@@ -37,8 +37,11 @@ type elemState struct {
 	clickable     bool // registered a click area last frame
 	fresh         bool // created this frame: dispatch has not seen it yet
 
-	scroll  gesture.Scroll
-	scrollY int
+	scroll    gesture.Scroll
+	scrollY   int
+	scrollMax int  // maxScroll at the last frame, for StickToBottom
+	scrolled  bool // painted before: a first frame starts at the bottom
+	version   int  // ScrollToEndOn's value last frame
 
 	editor   widget.Editor
 	edInit   bool
@@ -72,11 +75,15 @@ func (s *store) sweep() {
 	}
 }
 
-// assignKeys gives every node its state key.
-func assignKeys(n *Node, key stateKey) {
+// assignKeys gives every node its state key, and keeps the state of every
+// element in the tree alive, painted or not (it may be scrolled out of view).
+func (s *store) assignKeys(n *Node, key stateKey) {
 	n.key = key
+	if st := s.states[key]; st != nil {
+		st.frame = s.frame
+	}
 	for i, c := range n.children {
 		cn := c.node()
-		assignKeys(cn, childKey(key, cn.id, i))
+		s.assignKeys(cn, childKey(key, cn.id, i))
 	}
 }

@@ -45,6 +45,17 @@ const Face font.Typeface = "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto
 // their glyphs otherwise sit high in buttons and fields. Tuned for macOS.
 const CJKNudge unit.Dp = 2
 
+// TextShift moves glyphs down by this fraction of the text size when they are
+// drawn. Gio places the first baseline one ascent below the top and ends the
+// box one descent below the last baseline; CJK system fonts have a large
+// descent, so text otherwise sits visibly high in its box (measured: 2px of
+// space above the ink and 17px below, for 15sp at 2×). 0.22 balances CJK and
+// Latin text. Used by ui/el and ui/markdown; ui/widget still uses CJKNudge.
+const TextShift = 0.22
+
+// Shift returns TextShift for a text size, in pixels.
+func Shift(m unit.Metric, size unit.Sp) int { return int(float32(m.Sp(size))*TextShift + 0.5) }
+
 // Material is the underlying Gio theme: text shaper and icons.
 var Material = newMaterial()
 
