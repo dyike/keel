@@ -13,8 +13,8 @@
 //
 // Streaming stays cheap and steady:
 //   - The source is split into top-level chunks at blank lines outside code
-//     fences. Each chunk is parsed once and kept; an append only reparses the
-//     chunks it changed, normally just the last one.
+//     and display-math fences. Each chunk is parsed once and kept; an append
+//     only reparses the chunks it changed, normally just the last one.
 //   - While streaming, unfinished inline syntax at the end (**bold, `code,
 //     ~~strike, [link](url) is closed provisionally, so text does not flash
 //     between raw markers and formatting as tokens arrive.
@@ -22,8 +22,8 @@
 //
 // Supported: paragraphs, headings, emphasis, strikethrough, inline code,
 // links, autolinks, fenced code with syntax highlighting and a copy button,
-// block quotes, ordered, unordered and task lists, GFM tables, rules. Images
-// show as their alt text.
+// block quotes, ordered, unordered and task lists, GFM tables, rules, and a
+// native subset of TeX mathematics. Images show as their alt text.
 package markdown
 
 import (
@@ -37,6 +37,7 @@ type Doc struct {
 	streaming bool
 	chunks    []chunk
 	onLink    func(url string)
+	selection documentSelection
 
 	parses int // chunks parsed so far, for tests
 }
@@ -64,7 +65,11 @@ func (d *Doc) Source() string { return d.src }
 func (d *Doc) Streaming() bool { return d.streaming }
 
 // SetSource replaces the document. Unchanged leading chunks keep their parse.
+// If the source changes, the selection is cleared; Append preserves it.
 func (d *Doc) SetSource(src string) {
+	if d.src != src {
+		d.selection.clear()
+	}
 	d.src = src
 	d.update()
 }
@@ -98,13 +103,16 @@ func (d *Doc) update() {
 			continue
 		}
 		next[i] = chunk{src: src, raw: raw, blocks: parse(src)}
+		if i < len(d.chunks) {
+			preserveCodeViews(d.chunks[i].blocks, next[i].blocks)
+		}
 		d.parses++
 	}
 	d.chunks = next
 }
 
 // split cuts Markdown into top-level chunks at blank lines outside code
-// fences. A blank line followed by an indented line does not split: that line
+// and display-math fences. A blank line followed by an indented line does not split: that line
 // continues a list item or an indented code block.
 func split(src string) []string {
 	var chunks []string
@@ -121,7 +129,9 @@ func split(src string) []string {
 				chunks = append(chunks, cur.String())
 				cur.Reset()
 			}
-			if m := fenceMarker(trim); m != "" {
+			if trim == "$$" {
+				fence = "$$"
+			} else if m := fenceMarker(trim); m != "" {
 				fence = m
 			}
 		} else if strings.HasPrefix(trim, fence) && strings.TrimLeft(trim, fence[:1]) == "" {
@@ -166,7 +176,7 @@ func heal(src string) string {
 		closers += "`"
 		tail += "`"
 	}
-	outside := stripCode(tail)
+	outside := stripMath(stripCode(tail))
 	if i := strings.LastIndex(outside, "]("); i >= 0 && !strings.Contains(outside[i:], ")") {
 		closers += ")"
 	}
@@ -193,6 +203,9 @@ func fenceOpen(src string) bool {
 		trim := strings.TrimSpace(line)
 		if open == "" {
 			open = fenceMarker(trim)
+			if trim == "$$" {
+				open = "$$"
+			}
 		} else if strings.HasPrefix(trim, open) && strings.TrimLeft(trim, open[:1]) == "" {
 			open = ""
 		}

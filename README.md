@@ -17,6 +17,7 @@ window.Main()
 go run ./examples/hello
 go run ./examples/multiwindow
 go run ./examples/hotkey
+go run ./examples/chat -sample=all
 go test -race ./...
 ```
 

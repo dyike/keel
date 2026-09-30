@@ -22,10 +22,11 @@ type Node struct {
 	id            string
 	children      []Element
 
-	text   string
-	isText bool
-	input  *inputSpec
-	widget core.Widget
+	text     string
+	isText   bool
+	input    *inputSpec
+	widget   core.Widget
+	decorate func(core.C, func())
 
 	onClick       func()
 	onDoubleClick func()
@@ -85,6 +86,39 @@ func (s *Styled[T]) Child(children ...Element) *T {
 		}
 	}
 	return s.self
+}
+
+// Decorate wraps painting with custom operations, e.g. a shared input area
+// around a subtree. gtx uses the element's coordinate system and exact size.
+// Call draw once to paint the element and its children. This does not run
+// during measurement, and must not change the element tree or its layout.
+func (s *Styled[T]) Decorate(fn func(gtx core.C, draw func())) *T {
+	s.n.decorate = fn
+	return s.self
+}
+
+// VisitWidgets visits widgets in tree order with their content bounds relative
+// to root, after layout. It includes widgets outside the viewport, skips hidden
+// elements, and reports layout coordinates before any ScrollY translations.
+func VisitWidgets(root Element, metric unit.Metric, visit func(core.Widget, image.Rectangle)) {
+	var walk func(*Node, image.Point)
+	walk = func(n *Node, origin image.Point) {
+		if n.style.hidden {
+			return
+		}
+		if n.widget != nil {
+			bw := metric.Dp(unit.Dp(n.style.borderWidth))
+			pad := n.style.pad
+			min := image.Pt(bw+metric.Dp(unit.Dp(pad.Left)), bw+metric.Dp(unit.Dp(pad.Top)))
+			max := n.size.Sub(image.Pt(bw+metric.Dp(unit.Dp(pad.Right)), bw+metric.Dp(unit.Dp(pad.Bottom))))
+			visit(n.widget, image.Rectangle{Min: min, Max: max}.Add(origin))
+		}
+		for _, c := range n.children {
+			cn := c.node()
+			walk(cn, origin.Add(cn.pos))
+		}
+	}
+	walk(root.node(), image.Point{})
 }
 
 // Children is Child for a slice, e.g. from Map.

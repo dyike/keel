@@ -7,7 +7,7 @@ GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回�
 
 | 文件 | 内容 |
 | --- | --- |
-| `element.go` | `Element`、`Node`、`Styled[T]` 的全部链式方法，`Div`、`Text`、`Widget`、`Map` |
+| `element.go` | `Element`、`Node`、`Styled[T]` 的全部链式方法，`Div`、`Text`、`Widget`、`Map`；`Decorate` 包裹绘制，`VisitWidgets` 读取布局后的部件坐标 |
 | `input.go` | `Input`、`TextArea` |
 | `style.go` | `Style`、长度（`Dp`、`Frac`、`Full`）、对齐常量 |
 | `layout.go` | flexbox 布局引擎 |

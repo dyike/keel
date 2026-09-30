@@ -9,7 +9,9 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	east "github.com/yuin/goldmark/extension/ast"
+	gmparser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
+	"github.com/yuin/goldmark/util"
 )
 
 // The intermediate form: what a chunk of Markdown shows, independent of how it
@@ -65,9 +67,11 @@ type span struct {
 	text                       string
 	bold, italic, code, strike bool
 	link                       string
+	math                       *mathExpr
+	display                    bool
 }
 
-var parser = goldmark.New(goldmark.WithExtensions(extension.GFM)).Parser()
+var parser = goldmark.New(goldmark.WithExtensions(extension.GFM), goldmark.WithParserOptions(gmparser.WithInlineParsers(util.Prioritized(mathInlineParser{}, 50)), gmparser.WithBlockParsers(util.Prioritized(mathBlockParser{}, 50)))).Parser()
 
 // parse turns one chunk of Markdown into blocks.
 func parse(src string) []block {
@@ -88,6 +92,14 @@ func blocks(parent ast.Node, src []byte) []block {
 
 func convert(n ast.Node, src []byte) (block, bool) {
 	switch n := n.(type) {
+	case *displayMath:
+		source := lines(n, src)
+		s := span{text: "$$\n" + source, display: true}
+		if n.closed {
+			s.text += "\n$$"
+			s.math = parseMath(source)
+		}
+		return block{kind: paragraph, spans: []span{s}}, true
 	case *ast.Paragraph, *ast.TextBlock:
 		return block{kind: paragraph, spans: inlines(n, src, span{})}, true
 	case *ast.Heading:
@@ -179,7 +191,7 @@ func inlines(n ast.Node, src []byte, style span) []span {
 		}
 		if k := len(out) - 1; k >= 0 {
 			last := &out[k]
-			if last.bold == s.bold && last.italic == s.italic && last.code == s.code && last.strike == s.strike && last.link == s.link {
+			if last.math == nil && s.math == nil && last.bold == s.bold && last.italic == s.italic && last.code == s.code && last.strike == s.strike && last.link == s.link {
 				last.text += s.text
 				return
 			}
@@ -190,6 +202,10 @@ func inlines(n ast.Node, src []byte, style span) []span {
 	walk = func(n ast.Node, st span) {
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			switch c := c.(type) {
+			case *mathInline:
+				s := st
+				s.text, s.math, s.display = c.raw, parseMath(c.source), c.display
+				add(s)
 			case *ast.Text:
 				s := st
 				s.text = string(c.Segment.Value(src))

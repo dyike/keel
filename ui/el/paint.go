@@ -70,6 +70,17 @@ func (e *engine) paint(n *Node) {
 	e.origin = abs.Min
 	defer func() { e.origin = saved }()
 	defer op.Offset(n.pos).Push(gtx.Ops).Pop()
+	if n.decorate != nil {
+		g := gtx
+		g.Constraints = layout.Exact(n.size)
+		n.decorate(g, func() { e.paintContent(n) })
+	} else {
+		e.paintContent(n)
+	}
+}
+
+func (e *engine) paintContent(n *Node) {
+	gtx := e.gtx
 	st := n.style // a copy: hover and active variants change it for this frame only
 	var state *elemState
 	if n.interactive() || n.style.scrollY || n.input != nil {

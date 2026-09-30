@@ -38,13 +38,15 @@ import (
 
 // run is a stretch of text in one style.
 type run struct {
-	text   string
-	font   font.Font
-	size   unit.Sp
-	color  color.NRGBA
-	bg     *color.NRGBA // e.g. inline code
-	strike bool
-	link   string
+	text    string
+	font    font.Font
+	size    unit.Sp
+	color   color.NRGBA
+	bg      *color.NRGBA // e.g. inline code
+	strike  bool
+	link    string
+	math    *mathExpr
+	display bool
 }
 
 // piece is the part of a run placed on one line.
@@ -100,9 +102,12 @@ type richText struct {
 
 	// Selection, in rune indexes into the text of the first textRuns runs
 	// (later runs, like a streaming caret, are decoration).
-	textRuns int
-	sel      [2]int // anchor, focus
-	dragging bool
+	textRuns       int
+	sel            [2]int // anchor, focus
+	dragging       bool
+	document       *documentSelection
+	decoration     bool
+	offset, length int // rune range in the document, excluding decorations
 }
 
 func (r *richText) link(i int) *gesture.Click {
@@ -125,7 +130,7 @@ func (r *richText) updateLinks(gtx layout.Context, fn func(url string)) {
 			if !ok {
 				break
 			}
-			if ev.Kind == gesture.KindClick && fn != nil && i < len(r.runs) {
+			if ev.Kind == gesture.KindClick && fn != nil && i < len(r.runs) && (r.document == nil || !r.document.moved) {
 				url := r.runs[i].link
 				core.Call(gtx, func() { fn(url) })
 			}
@@ -157,7 +162,13 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 			asc, desc = max(asc, p.ascent), max(desc, p.descent)
 		}
 		// Center the glyphs' logical box in the line; share one baseline.
-		baseline := y + (lineH-(asc+desc))/2 + asc
+		height := lineH
+		for _, p := range line {
+			if r.runs[p.run].math != nil {
+				height = max(height, asc+desc+gtx.Dp(2))
+			}
+		}
+		baseline := y + (height-(asc+desc))/2 + asc
 		pad := 0
 		switch r.align {
 		case text.Middle:
@@ -166,17 +177,35 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 			pad = maxW - lineW
 		}
 		for _, p := range line {
-			p.rect = image.Rect(p.rect.Min.X+pad, y, p.rect.Max.X+pad, y+lineH)
+			p.rect = image.Rect(p.rect.Min.X+pad, y, p.rect.Max.X+pad, y+height)
 			p.baseline = baseline
 			r.pieces = append(r.pieces, p)
 		}
 		width = max(width, lineW)
-		y += lineH
+		y += height
 		line, lineW = line[:0], 0
 	}
 
 	for i := 0; i < len(r.runs); i++ {
 		rn := r.runs[i]
+		if rn.math != nil {
+			b := layoutMath(gtx, shaper, rn.math, rn, rn.display)
+			if len(line) > 0 && (rn.display || lineW+b.w > maxW) {
+				flush()
+			}
+			x := lineW
+			if rn.display {
+				x = max(0, (maxW-b.w)/2)
+			}
+			count := utf8.RuneCountInString(rn.text)
+			line = append(line, piece{run: i, text: rn.text, rect: image.Rect(x, 0, x+b.w, 0), call: b.call, ascent: b.a, descent: b.d, start: pos, runes: count, glyphs: []glyphX{{adv: b.w, runes: count}}})
+			lineW = x + b.w
+			pos += count
+			if rn.display {
+				flush()
+			}
+			continue
+		}
 		content := rn.text
 		for content != "" {
 			if content[0] == '\n' {
@@ -270,8 +299,12 @@ func (r *richText) paint(gtx layout.Context) {
 	}
 	// The whole text takes pointer input for selecting; links sit on top.
 	area := clip.Rect(image.Rectangle{Max: r.size}).Push(ops)
-	event.Op(ops, r)
-	pointer.CursorText.Add(ops)
+	if r.document == nil && !r.decoration {
+		event.Op(ops, r)
+	}
+	if !r.decoration {
+		pointer.CursorText.Add(ops)
+	}
 	area.Pop()
 
 	// Links: a hit area and a semantic node per piece, so agents can click them.
@@ -292,12 +325,13 @@ func (r *richText) paint(gtx layout.Context) {
 }
 
 type lineResult struct {
-	call            op.CallOp
-	width           int
-	ascent, descent int // baseline below the piece's top; extent below the baseline
-	runes           int
-	newline         bool // ended at a hard line break
-	glyphs          []glyphX
+	call                  op.CallOp
+	width                 int
+	inkAscent, inkDescent int // visible glyph bounds relative to the baseline
+	ascent, descent       int // baseline below the piece's top; extent below the baseline
+	runes                 int
+	newline               bool // ended at a hard line break
+	glyphs                []glyphX
 }
 
 // shapeLine shapes as much of content as fits on one line of width maxW. With
@@ -351,6 +385,8 @@ func shapeLine(gtx layout.Context, shaper *text.Shaper, rn run, content string, 
 		res.runes += int(g.Runes)
 		res.glyphs = append(res.glyphs, glyphX{x: (g.X - firstX).Floor(), adv: g.Advance.Ceil(), runes: int(g.Runes)})
 		res.descent = max(res.descent, g.Descent.Ceil())
+		res.inkAscent = max(res.inkAscent, -g.Bounds.Min.Y.Floor())
+		res.inkDescent = max(res.inkDescent, g.Bounds.Max.Y.Ceil())
 		res.width = max(res.width, (g.X + g.Advance - firstX).Ceil())
 		if g.Flags&text.FlagParagraphBreak != 0 {
 			res.newline = true
@@ -378,6 +414,10 @@ func byteLen(s string, runes int) int {
 var SelectionBg = color.NRGBA{R: 0xb4, G: 0xd5, B: 0xfe, A: 0xff}
 
 func (r *richText) selRange() (int, int) {
+	if d := r.document; d != nil {
+		lo, hi := d.selRange()
+		return min(max(lo-r.offset, 0), r.length), min(max(hi-r.offset, 0), r.length)
+	}
 	return min(r.sel[0], r.sel[1]), max(r.sel[0], r.sel[1])
 }
 

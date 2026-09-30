@@ -6,6 +6,7 @@ package main
 
 import (
 	"flag"
+	"log"
 	"math/rand/v2"
 	"os/exec"
 	"strings"
@@ -26,10 +27,11 @@ type message struct {
 }
 
 type chat struct {
-	msgs   []*message
-	prompt string
-	stop   *atomic.Bool // set while an answer streams
-	delay  time.Duration
+	msgs    []*message
+	prompt  string
+	stop    *atomic.Bool // set while an answer streams
+	delay   time.Duration
+	preview bool // a complete startup sample opens at the top
 }
 
 func (c *chat) Render(cx *el.Context) el.Element {
@@ -39,9 +41,22 @@ func (c *chat) Render(cx *el.Context) el.Element {
 	}
 	// Follow a streaming answer; sending a message jumps to the end even if the
 	// user had scrolled up.
-	msgs := el.Div().ID("messages").Grow().ScrollY().StickToBottom().ScrollToEndOn(len(c.msgs)).Px(20).Py(16).Gap(18)
+	msgs := el.Div().ID("messages").Grow().ScrollY().
+		When(!c.preview, func(e *el.DivEl) { e.StickToBottom() }).
+		ScrollToEndOn(len(c.msgs)).Px(20).Py(16).Gap(18)
 	if len(c.msgs) == 0 {
-		msgs.Child(el.Text("问点什么，比如：用 Go 写一个并发下载器").TextColor(theme.Muted))
+		msgs.Child(el.Text("选择一个 Markdown 样例，或输入消息查看预设的流式回答。").TextColor(theme.Muted))
+		for _, s := range demoSamples {
+			msgs.Child(el.Div().Row().Name(s.title).Gap(12).Items(el.Center).P(8).Rounded(6).
+				CursorPointer().Hover(func(st *el.Style) { st.Bg(theme.SubtleHover) }).
+				OnClick(func() { c.prompt = s.title; c.send() }).Child(
+				el.Text(s.title).Bold().W(el.Dp(110)),
+				el.Text(s.description).TextSize(13).TextColor(theme.Muted).Grow(),
+			))
+		}
+		msgs.Child(el.Div().P(8).Rounded(6).CursorPointer().
+			Hover(func(st *el.Style) { st.Bg(theme.SubtleHover) }).
+			OnClick(func() { c.prompt = "全部样例"; c.send() }).Child(el.Text("查看全部样例")))
 	}
 	for i, m := range c.msgs {
 		msgs.Child(c.bubble(cx, i, m))
@@ -71,8 +86,8 @@ func (c *chat) bubble(cx *el.Context, i int, m *message) el.Element {
 	}
 	answer := el.Div().Grow().Pt(4).Gap(8).Child(m.doc.Render(cx))
 	if !m.doc.Streaming() {
-		// Copy the whole answer as Markdown; text inside a paragraph or code
-		// block can also be selected and copied with Cmd+C.
+		// Copy the whole answer as Markdown; dragging across its text blocks
+		// and Cmd/Ctrl+C copies the selected plain text.
 		src := m.doc.Source()
 		answer.Child(el.Div().Row().Child(
 			el.Div().ID("copy-answer").Px(8).Py(3).Rounded(4).TextSize(12).TextColor(theme.Muted).
@@ -104,7 +119,8 @@ func (c *chat) send() {
 		return
 	}
 	c.prompt = ""
-	doc := markdown.New("").OnLink(func(url string) { exec.Command("open", url).Start() })
+	c.preview = false
+	doc := newDocument("")
 	doc.SetStreaming(true)
 	c.msgs = append(c.msgs, &message{user: true, text: q}, &message{doc: doc})
 	stop := new(atomic.Bool)
@@ -128,11 +144,8 @@ func (c *chat) send() {
 	}()
 }
 
-func answerFor(q string) string {
-	if strings.Contains(q, "表") {
-		return tableAnswer
-	}
-	return downloaderAnswer
+func newDocument(src string) *markdown.Doc {
+	return markdown.New(src).OnLink(func(url string) { exec.Command("open", url).Start() })
 }
 
 const downloaderAnswer = "## 并发下载器\n\n" +
@@ -158,8 +171,17 @@ const tableAnswer = "三种方案对比：\n\n" +
 
 func main() {
 	delay := flag.Duration("delay", 15*time.Millisecond, "pause between streamed tokens")
+	sample := flag.String("sample", "", "show a complete sample immediately: all, selection, math, code-scroll, click-selection, references, images, table, downloader")
 	flag.Parse()
 	c := &chat{delay: *delay}
+	if *sample != "" {
+		src, ok := sourceFor(*sample)
+		if !ok {
+			log.Fatalf("unknown sample %q; run with -help for available names", *sample)
+		}
+		c.msgs = []*message{{doc: newDocument(src)}}
+		c.preview = true
+	}
 	window.Open(window.Options{Title: "AI 助手", Width: 720, Height: 640, Content: el.Root(c)})
 	window.Main()
 }

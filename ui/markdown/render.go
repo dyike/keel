@@ -24,7 +24,9 @@ import (
 
 // Colors and fonts of rendered Markdown. Change them before rendering.
 var (
-	CodeBg       = theme.RGB(0xf6f8fa)
+	CodeBg       = theme.RGB(0xf0f1f3)
+	CodeBorder   = theme.Border
+	CodeHover    = theme.SubtleHover
 	InlineCode   = theme.RGB(0x1f2328)
 	InlineCodeBg = theme.RGB(0xebeef1)
 	CodeStyle    = "github" // a chroma style name
@@ -52,11 +54,14 @@ func (d *Doc) Render(cx *el.Context) el.Element {
 		// A finished block looks the same until its code is copied: reuse
 		// its elements and layout across frames.
 		b := b
-		root.Child(cx.Cache(blockKey{b, copiedNow(b)}, func() el.Element { return d.block(b, false) }))
+		root.Child(cx.Cache(keyForBlock(b), func() el.Element { return d.block(b, false) }))
 	}
 	if d.streaming && (len(all) == 0 || !endsInText(all[len(all)-1])) {
 		root.Child(el.Text(caret).TextColor(theme.Primary))
 	}
+	root.Decorate(func(gtx core.C, draw func()) {
+		d.selection.paint(gtx, root, draw)
+	})
 	return root
 }
 
@@ -134,6 +139,13 @@ func (d *Doc) table(b *block) el.Element {
 			align = t.align[i]
 		}
 		r := st.cell(key, spans, bold, align, d.onLink)
+		r.separator = "\t"
+		if i == 0 {
+			r.separator = "\n"
+			if key == "h0" {
+				r.separator = "\n\n"
+			}
+		}
 		return el.Div().Grow().W(el.Dp(1)).Px(10).Py(8).Child(el.Widget(r))
 	}
 	grid := el.Div().Role("table").Value(strconv.Itoa(len(t.rows))+" 行").Border(1, theme.Border).Rounded(6)
@@ -180,43 +192,6 @@ func (t *tableView) cell(key string, spans []span, bold bool, align cellAlign, o
 	return r
 }
 
-// codeView keeps a code block's highlighted text and copy feedback.
-type codeView struct {
-	rich   *richBlock
-	copied time.Time
-}
-
-func (d *Doc) code(b *block) el.Element {
-	cv, _ := b.view.(*codeView)
-	if cv == nil {
-		cv = &codeView{rich: highlight(b.lang, b.code)}
-		b.view = cv
-	}
-	label := b.lang
-	if label == "" {
-		label = "代码"
-	}
-	copyText := "复制"
-	if time.Since(cv.copied) < 2*time.Second {
-		copyText = "已复制"
-	}
-	code := b.code
-	return el.Div().Role("code").Name(label).Bg(CodeBg).Border(1, theme.Border).Rounded(8).Child(
-		el.Div().Row().Items(el.Center).Px(12).Pt(6).Child(
-			el.Text(label).TextSize(12).TextColor(theme.Muted).Grow(),
-			el.Div().ID("copy").Px(8).Py(2).Rounded(4).TextSize(12).TextColor(theme.Muted).
-				CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
-				OnClick(func() {
-					el.WriteClipboard(code)
-					cv.copied = time.Now()
-					time.AfterFunc(2*time.Second, func() { core.Update(func() {}) }) // redraw to reset the label
-				}).
-				Child(el.Text(copyText)),
-		),
-		el.Div().Px(12).Pt(4).Pb(12).Child(el.Widget(cv.rich)),
-	)
-}
-
 // rich returns the paragraph's rich text, kept in the block across frames.
 // The streaming tail gets a caret appended.
 func (d *Doc) rich(b *block, spans []span, size unit.Sp, bold bool, c color.NRGBA, withCaret bool) *richBlock {
@@ -231,23 +206,25 @@ func (d *Doc) rich(b *block, spans []span, size unit.Sp, bold bool, c color.NRGB
 
 // richBlock draws styled runs with clickable links; see text.go.
 type richBlock struct {
-	measured [8]measurement // recent measurements by constraints, see Layout
-	nextSlot int
-	runs     []run
-	base     unit.Sp
-	lineH    float32 // line height as a multiple of the text size
-	plain    string
-	align    text.Alignment
-	caret    bool
-	links    bool
-	rt       richText
-	onLink   func(string)
+	measured   [8]measurement // recent measurements by constraints, see Layout
+	nextSlot   int
+	runs       []run
+	base       unit.Sp
+	lineH      float32 // line height as a multiple of the text size
+	plain      string
+	align      text.Alignment
+	caret      bool
+	links      bool
+	rt         richText
+	onLink     func(string)
+	separator  string // plain-text boundary before this block; default: blank line
+	decoration bool   // list markers are not part of selectable text
 }
 
 func newRich(spans []span, size unit.Sp, bold bool, c color.NRGBA, onLink func(string)) *richBlock {
 	r := &richBlock{plain: plain(spans), onLink: onLink, lineH: 1.6, base: size}
 	for _, s := range spans {
-		rn := run{text: s.text, size: size, color: c, font: font.Font{Typeface: theme.Face}, strike: s.strike}
+		rn := run{text: s.text, math: s.math, display: s.display, size: size, color: c, font: font.Font{Typeface: theme.Face}, strike: s.strike}
 		if s.bold || bold {
 			rn.font.Weight = font.Bold
 		}
@@ -283,7 +260,10 @@ func (r *richBlock) Layout(gtx core.C) core.D {
 		}
 	}
 	r.rt.updateLinks(gtx, r.onLink)
-	r.rt.updateSelection(gtx)
+	r.rt.decoration = r.decoration
+	if r.rt.document == nil && !r.decoration {
+		r.rt.updateSelection(gtx)
+	}
 	runs := r.runs
 	if r.caret {
 		size := theme.BodySize
@@ -348,13 +328,35 @@ func highlight(lang, code string) *richBlock {
 }
 
 type blockKey struct {
-	b      *block
-	copied bool
+	b     *block
+	state uint64
 }
 
-func copiedNow(b *block) bool {
-	cv, ok := b.view.(*codeView)
-	return ok && time.Since(cv.copied) < 2*time.Second
+func keyForBlock(b *block) blockKey {
+	k := blockKey{b: b, state: 14695981039346656037}
+	var visit func(*block)
+	visit = func(b *block) {
+		if cv, ok := b.view.(*codeView); ok {
+			var state uint64
+			if cv.wrap {
+				state |= 1
+			}
+			if time.Since(cv.copied) < 2*time.Second {
+				state |= 2
+			}
+			k.state = (k.state ^ state) * 1099511628211
+		}
+		for i := range b.children {
+			visit(&b.children[i])
+		}
+		for i := range b.items {
+			for j := range b.items[i].blocks {
+				visit(&b.items[i].blocks[j])
+			}
+		}
+	}
+	visit(b)
+	return k
 }
 
 type measurement struct {
@@ -374,6 +376,7 @@ func (l *listView) marker(i int, text string) *richBlock {
 	r := l.markers[i]
 	if r == nil {
 		r = newRich([]span{{text: text}}, theme.BodySize, false, theme.Muted, nil)
+		r.decoration = true
 		l.markers[i] = r
 	}
 	return r
