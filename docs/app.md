@@ -1,0 +1,89 @@
+# 窗口与应用
+
+`ui/window` 模块负责：打开、关闭、置前、窗口快捷键，以及不开窗口直接渲染成 PNG。
+
+## 打开窗口
+
+```go
+w := window.Open(window.Options{
+    Title:   "设置",
+    Width:   420,          // dp，0 表示 640
+    Height:  340,          // dp，0 表示 480
+    Content: page,         // core.Widget，通常是 layout.Column(...)
+    Shortcuts: map[string]func(){
+        "mod+s": save,
+        "esc":   func() { w.Close() },
+    },
+    OnClose: func() { log.Print("设置窗口已关闭") },
+})
+window.Main()
+```
+
+| 字段 | 说明 |
+| --- | --- |
+| `Title` | 窗口标题 |
+| `Width`、`Height` | 初始尺寸，单位 dp（在 2 倍屏上 1dp = 2 像素）。用户可以拖动改变 |
+| `Content` | 窗口内容。放进一个自带滚动条的根视图，四周留 24dp 边距，背景色 `theme.Bg` |
+| `Shortcuts` | 窗口获得焦点时生效的快捷键，写法见下文 |
+| `OnClose` | 窗口销毁后调用，在锁内运行，可以直接改组件 |
+
+`window.Open` 可以在 `window.Main()` 之前调用，也可以在任何回调里调用，用来运行时开新窗口。
+
+`window.Main()` 必须在 `main` goroutine 里调用，而且不会返回。最后一个窗口关闭时进程退出。
+
+## Window 的方法
+
+| 方法 | 说明 |
+| --- | --- |
+| `Close()` | 等同于用户点关闭按钮 |
+| `Raise()` | 把窗口置于最前 |
+| `Closed() bool` | 窗口是否已销毁。在回调或 `core.Update` 里调用 |
+
+`Close` 和 `Raise` 是异步的：调用立即返回，动作在当前回调结束后才执行。所以 `w.Close()` 之后马上读 `w.Closed()`，得到的仍是 `false`。它们这样设计是为了避免死锁，原因见[架构 · 不能在锁内等待主线程](architecture.md#不能在锁内等待主线程)。
+
+窗口关闭后不能重新打开。"同一时间只保留一个设置窗口"的写法：
+
+```go
+var settings *window.Window
+
+openSettings := func() {
+    if settings != nil && !settings.Closed() {
+        settings.Raise()
+        return
+    }
+    settings = window.Open(window.Options{Title: "设置", Content: settingsPage()})
+}
+```
+
+完整示例见 `examples/multiwindow`。
+
+## 窗口快捷键
+
+写法是 `修饰键+按键`，不区分大小写：
+
+| 修饰键 | 含义 |
+| --- | --- |
+| `mod` | macOS 上是 ⌘，Windows、Linux 上是 Ctrl。跨平台快捷键优先用它 |
+| `cmd` / `command` / `super` | ⌘ |
+| `ctrl` / `control` | Ctrl |
+| `shift` | Shift |
+| `alt` / `option` | Alt / ⌥ |
+
+按键可以是单个字符（`a`、`,`、`1`）、`f1`–`f12`，或 `esc`、`enter`、`space`、`tab`、`backspace`、`delete`、`up`、`down`、`left`、`right`。
+
+例子：`"mod+,"`、`"mod+shift+s"`、`"esc"`、`"f5"`。写错会在 `window.Open` 时 panic，因为这是写死在代码里的配置，应该在开发时就暴露出来。
+
+窗口快捷键只在该窗口有焦点时生效。要在其他应用在前台时也能触发，用 [`native/hotkey`](native.md#hotkey全局快捷键)。
+
+## 离屏截图
+
+```go
+err := window.Screenshot(content, 640, 480, "out.png")
+```
+
+用和窗口相同的根视图（背景、边距、滚动）把 `content` 渲染成 PNG，尺寸单位是 dp，输出图片按 2 倍缩放，上面的例子得到 1280×960 像素。不需要 `window.Main()`，也不会弹出窗口。用途：
+
+- 给文档、PR 配图；
+- 改样式后对比前后截图，确认没有意外变化（见[测试](testing.md#截图对比)）。
+
+截图只渲染一帧，看不到悬停、按下等交互状态。
