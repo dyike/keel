@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 
+	"gioui.org/io/semantic"
 	giolayout "gioui.org/layout"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -60,5 +61,6 @@ func (b *Btn) Layout(gtx C) D {
 	st.CornerRadius = 6
 	st.TextSize = 14
 	st.Inset = giolayout.Inset{Top: 8 + theme.CJKNudge, Bottom: 8 - theme.CJKNudge, Left: 16, Right: 16}
-	return st.Layout(gtx)
+	// Gio drops the clickable's node when disabled; this one stays either way.
+	return area(gtx, st.Layout, semantic.Button, semantic.LabelOp(b.text), semantic.EnabledOp(!b.disabled))
 }

@@ -50,6 +50,15 @@ func TestInputSubmit(t *testing.T) {
 - 解析类函数（快捷键字符串）：合法输入和每一种非法输入。
 - `native` 包：参数校验路径（不需要权限，也不会真的动鼠标）。
 
+## Agent 端到端测试
+
+`cmd/keel-mcp` 让 Agent 通过 MCP 驱动应用：读元素、点击、输入、滚动、截图。应用在内存里渲染，不弹窗口。用法见 [Agent 端到端测试](automation.md)。
+
+仓库里有两层相关测试，都随 `go test ./...` 运行：
+
+- `ui/window/automation_test.go`：进程内测试自动化模式本身，包括滚动、Tab 移动焦点、回调里关闭窗口、禁用和勾选状态的报告。
+- `cmd/keel-mcp/main_test.go`：以 MCP 客户端身份启动 `keel-mcp`，把 multiwindow 示例完整走一遍，并测试连接用户自己启动的应用（`attach`）。改了协议、工具或组件的语义信息后，它会第一个失败。
+
 ## 截图对比
 
 改了主题、间距、字体后，渲染前后截图，确认只有预期的地方变了：

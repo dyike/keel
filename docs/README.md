@@ -13,6 +13,7 @@ Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，原
 | 申请权限、截屏、模拟键鼠、全局快捷键 | [原生能力](native.md) |
 | 新增组件、容器或原生能力 | [扩展指南](extending.md) |
 | 写测试、做截图对比 | [测试](testing.md) |
+| 让 Agent 点击、输入、截图，跑端到端测试 | [Agent 端到端测试](automation.md) |
 | 中文显示方框、快捷键不生效等问题 | [常见问题](troubleshooting.md) |
 | 为什么选 Gio、为什么只有一把锁 | [设计决策](decisions.md) |
 

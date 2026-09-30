@@ -36,6 +36,8 @@ go test -race ./...
 | [native/input](native/input/) | 合成鼠标、键盘事件 |
 | [native/hotkey](native/hotkey/) | 全局快捷键 |
 
+另有工具 [cmd/keel-mcp](cmd/keel-mcp/)：MCP server，让 Agent 对应用做端到端测试（启动、读元素、点击、输入、滚动、截图），见 [Agent 端到端测试](docs/automation.md)。
+
 依赖只往下走、同层不互相引用，`ui` 和 `native` 互不依赖，由 `go test ./...` 里的边界测试保证。每个模块目录下有 README。总览见 [ui/README.md](ui/README.md) 和 [native/README.md](native/README.md)。
 
 ## 文档
@@ -46,4 +48,4 @@ go test -race ./...
 - [架构](docs/architecture.md)：模块划分、依赖方向、线程规则
 - [窗口与应用](docs/app.md) · [组件与布局](docs/widgets.md) · [原生能力](docs/native.md)
 - [扩展指南](docs/extending.md)：新增组件、容器、原生能力的步骤
-- [测试](docs/testing.md) · [常见问题](docs/troubleshooting.md) · [设计决策](docs/decisions.md)
+- [测试](docs/testing.md) · [Agent 端到端测试](docs/automation.md) · [常见问题](docs/troubleshooting.md) · [设计决策](docs/decisions.md)

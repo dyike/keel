@@ -20,6 +20,8 @@ github.com/dyike/keel
 │   ├── hotkey/           全局快捷键
 │   ├── internal/sys/     cgo 绑定，所有 Objective-C 代码只在这里
 │   └── native.go         共用的错误值
+├── cmd/
+│   └── keel-mcp/         MCP server：Agent 用它对应用做端到端测试
 ├── internal/deps/        模块边界检查
 ├── examples/
 └── docs/
@@ -48,6 +50,8 @@ native:
 1. **依赖只往下走。** 下层不知道上层存在：`core`、`theme` 不引用任何 Keel 模块；`layout` 不知道有 `widget`；`window` 只认 `core.Widget` 接口，不知道具体有哪些组件。
 2. **同层之间不互相引用。** `widget` 和 `window` 互不引用；四个 `native` 模块互不引用。
 3. **`ui` 和 `native` 互不引用。** 不需要窗口的程序（后台截图、全局快捷键）只引用需要的 `native/*`，不会带进 Gio。
+
+`cmd/keel-mcp` 不引用任何 Keel 包，也不引用 Gio：它只通过 socket 上的 JSON 协议驱动 `ui/window` 的自动化模式，见 [Agent 端到端测试](automation.md#原理)。
 
 这些规则由 `internal/deps` 的测试强制执行：它把每个模块允许依赖的包写成一张表，越界或者新增目录没登记，`go test ./...` 就失败。改架构时先改那张表，再改代码。
 
@@ -151,5 +155,6 @@ widget.Button("刷新", func() {
 ## 窗口生命周期
 
 - `window.Open` 立即返回；原生窗口在它自己的 goroutine 里异步创建。
+- `Close`、`Raise` 会等窗口画出第一帧后才真正执行。Gio v0.10.3 在 macOS 上有个 bug：原生窗口还没建好就被关闭，进程会崩溃。人手点不了这么快，Agent 可以，所以 Keel 在这里等一下。回归测试是 `ui/window/testdata/reopen`。
 - 关闭窗口（用户点关闭，或调用 `w.Close()`）后，`OnClose` 在锁内执行，`w.Closed()` 变成 `true`。关闭的窗口不能重新打开，需要时重新 `window.Open`。
 - 最后一个窗口关闭后，进程调用 `os.Exit(0)` 退出。`main` 里 `window.Main()` 之后的代码不会执行，要做清理放进 `OnClose`。

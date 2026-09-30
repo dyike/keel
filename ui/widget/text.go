@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"gioui.org/font"
+	"gioui.org/io/semantic"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 
@@ -36,5 +37,7 @@ func (l *Label) Layout(gtx C) D {
 	if l.bold {
 		lb.Font.Weight = font.Bold
 	}
-	return lb.Layout(gtx)
+	// Gio's label node spans the whole available height; this one has the
+	// text's real bounds, and the inner node becomes its child.
+	return area(gtx, lb.Layout, semantic.LabelOp(l.text))
 }

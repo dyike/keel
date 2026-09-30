@@ -3,6 +3,7 @@ package widget
 import (
 	"image"
 
+	"gioui.org/io/semantic"
 	giolayout "gioui.org/layout"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -33,6 +34,7 @@ func (c *Check) Layout(gtx C) D {
 		core.Call(gtx, func() { c.onChange(c.b.Value) })
 	}
 	return c.b.Layout(gtx, func(gtx C) D {
+		semantic.CheckBox.Add(gtx.Ops) // Bool already adds the checked state
 		icon, col := theme.Material.Icon.CheckBoxUnchecked, theme.Muted
 		if c.b.Value {
 			icon, col = theme.Material.Icon.CheckBoxChecked, theme.Primary

@@ -42,6 +42,10 @@ go func() {
 
 如果是自己新加的窗口方法：它在锁内调用了会等主线程的 Gio 方法（`Perform`、`Option`、`Run`），和另一个窗口形成循环等待。解决办法和原理见[架构 · 不能在锁内等待主线程](architecture.md#不能在锁内等待主线程)。`Raise`、`Close` 已经修复过这个问题。
 
+## 刚打开的窗口马上关闭时崩溃
+
+Gio v0.10.3 在 macOS 上，窗口还没完全创建就被关闭，会在 `cascadeTopLeftFromPoint` 处段错误。Keel 的 `Close`、`Raise` 已经会等到窗口画出第一帧再执行。如果你绕过 Keel，直接调用 Gio 的 `app.Window.Perform`，要自己等第一个 `FrameEvent`。
+
 ## 窗口快捷键没反应
 
 - 只有该窗口有焦点时才生效。

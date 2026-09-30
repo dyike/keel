@@ -24,6 +24,8 @@ var allowed = map[string][]string{
 	"native/screen":       {"native", "native/internal/sys"},
 	"native/input":        {"native", "native/internal/sys"},
 	"native/hotkey":       {"native", "native/internal/sys"},
+	// Talks to apps only through the automation protocol, never Keel's code.
+	"cmd/keel-mcp": {},
 }
 
 func TestModuleBoundaries(t *testing.T) {
@@ -39,8 +41,8 @@ func TestModuleBoundaries(t *testing.T) {
 				if rel := strings.TrimPrefix(dep, mod+"/"); !slices.Contains(ok, rel) {
 					t.Errorf("%s imports %s, which it is not allowed to depend on", pkg, rel)
 				}
-			case strings.HasPrefix(pkg, "native") && strings.HasPrefix(dep, "gioui.org"):
-				t.Errorf("%s imports %s: native modules must work without the GUI", pkg, dep)
+			case (strings.HasPrefix(pkg, "native") || strings.HasPrefix(pkg, "cmd/")) && strings.HasPrefix(dep, "gioui.org"):
+				t.Errorf("%s imports %s: it must work without the GUI", pkg, dep)
 			}
 		}
 	}

@@ -57,13 +57,20 @@ func (l *LinkText) Layout(gtx C) D {
 
 `C`、`D` 是 `core.C`、`core.D` 的别名，定义在 `ui/widget/doc.go`。
 
-必须遵守的五条：
+必须遵守的六条：
 
 1. **状态放在结构体里。** `widget.Clickable`、`widget.Editor`、`widget.Bool` 这些 Gio 状态对象必须跨帧存活。在 `Layout` 里新建它们，点击永远不会生效。
 2. **决定是否被 Column 拉满。** `Column` 会把子组件的最小宽度设成满宽。按钮这类"自身多宽就多宽"的组件，要在 `Layout` 开头把 `gtx.Constraints.Min` 清零。
 3. **先处理事件，再绘制。** 同一帧里，事件要在 `Layout` 画自己之前处理完，状态变化这一帧就能画出来。
 4. **用户回调一律走 `core.Call(gtx, fn)`。** 它负责让所有窗口重绘。直接调 `fn()`，修改了别处组件时，别处要等到下次有输入才会刷新。
 5. **颜色、字号从 `theme` 取，不写死。** 用户改了 `theme.Primary`，你的组件要跟着变。在 `Layout` 里读取，不要在构造函数里读好存下来。
+6. **声明语义信息，让 Agent 看得见。** Agent 测试靠 Gio 的语义树知道"页面上有什么"（见 [Agent 端到端测试](automation.md#原理)）。用 `ui/widget/semantics.go` 的 `area` 包住组件，声明角色、名字和状态：
+
+   ```go
+   return area(gtx, st.Layout, semantic.Button, semantic.LabelOp(b.text), semantic.EnabledOp(!b.disabled))
+   ```
+
+   Gio 自带控件产生的语义节点不一定可靠：禁用的按钮会丢节点，输入框没有名字和内容，文字节点的高度会撑满整个可滚动区域。所以 Keel 的组件都自己声明。角色目前只有 Gio 定义的几种（`Button`、`CheckBox`、`Editor` 等）；新角色（比如链接）用 `DescriptionOp` 标注，再在 `ui/window/automation.go` 的 `snapshot` 里识别。
 
 API 风格与现有组件保持一致：
 
@@ -87,7 +94,7 @@ func TestLinkClick(t *testing.T) {
 }
 ```
 
-然后在 [ui/widget/README.md](../ui/widget/README.md) 的文件表里加一行，更新 [组件与布局](widgets.md)，有必要的话在某个示例里用上它。
+再在 `ui/window/automation_test.go` 里确认 Agent 能看到它、状态正确。然后在 [ui/widget/README.md](../ui/widget/README.md) 的文件表里加一行，更新 [组件与布局](widgets.md)，有必要的话在某个示例里用上它。
 
 ## 新增容器
 
@@ -150,7 +157,7 @@ C 分配的内存由 Go 侧 `C.free` 释放。不要把 Go 指针交给 C 长期
 func ClipboardText() (string, error) { return "", native.ErrUnsupported }
 ```
 
-漏了这一步，Linux、Windows 就编译不过。用 `GOOS=linux go vet ./native/...` 检查。
+漏了这一步，Linux、Windows 就编译不过。用 `CGO_ENABLED=0 GOOS=linux go vet ./native/...` 检查。
 
 **第四步：公开包。** 新建 `native/clipboard/clipboard.go`，参数校验放在这一层，`sys` 层只做翻译：
 
@@ -185,7 +192,7 @@ func Text() (string, error) { return sys.ClipboardText() }
 ```sh
 gofmt -l .                          # 应无输出
 go vet ./...
-GOOS=linux go vet ./native/...      # 桩函数齐全
+CGO_ENABLED=0 GOOS=linux go vet ./native/... ./cmd/...   # 桩函数齐全
 go test -race ./...                 # 包括模块边界检查
 go run ./examples/hello -screenshot /tmp/after.png   # 改了样式时对比截图
 ```

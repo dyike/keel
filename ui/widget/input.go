@@ -1,6 +1,9 @@
 package widget
 
 import (
+	"strings"
+
+	"gioui.org/io/semantic"
 	giolayout "gioui.org/layout"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -71,6 +74,20 @@ func (f *Field) Layout(gtx C) D {
 }
 
 func (f *Field) box(gtx C) D {
+	name := f.label
+	if name == "" {
+		name = f.hint
+	}
+	value := f.editor.Text()
+	if f.editor.Mask != 0 {
+		value = strings.Repeat(string(f.editor.Mask), f.editor.Len())
+	}
+	// One textbox node carrying the label and current value; Gio's own editor
+	// node inside it has neither.
+	return area(gtx, f.frame, semantic.Editor, semantic.LabelOp(name), semantic.DescriptionOp(value))
+}
+
+func (f *Field) frame(gtx C) D {
 	border := theme.Border
 	if gtx.Focused(&f.editor) {
 		border = theme.Primary

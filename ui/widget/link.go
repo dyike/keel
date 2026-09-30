@@ -4,6 +4,7 @@ import (
 	"image"
 
 	"gioui.org/io/pointer"
+	"gioui.org/io/semantic"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 
@@ -30,6 +31,8 @@ func (l *LinkText) Layout(gtx C) D {
 	}
 	return l.click.Layout(gtx, func(gtx C) D {
 		pointer.CursorPointer.Add(gtx.Ops)
+		semantic.Button.Add(gtx.Ops)
+		linkDesc.Add(gtx.Ops)
 		lb := material.Label(theme.Material, theme.BodySize, l.text)
 		lb.Color = theme.Primary
 		return lb.Layout(gtx)
