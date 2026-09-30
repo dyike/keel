@@ -8,6 +8,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
 )
 
@@ -39,5 +40,5 @@ func (l *Label) Layout(gtx C) D {
 	}
 	// Gio's label node spans the whole available height; this one has the
 	// text's real bounds, and the inner node becomes its child.
-	return area(gtx, lb.Layout, semantic.LabelOp(l.text))
+	return core.Semantic(gtx, lb.Layout, semantic.LabelOp(l.text))
 }

@@ -7,6 +7,7 @@ import (
 
 	gioapp "gioui.org/app"
 	"gioui.org/io/system"
+	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
 
@@ -19,6 +20,9 @@ type Options struct {
 	Title         string
 	Width, Height int
 	Content       core.Widget
+	// Overlay is drawn over the whole window, above Content, e.g. a
+	// widget.Dialog. It should take no space while it has nothing to show.
+	Overlay core.Widget
 	// Shortcuts maps accelerators to callbacks while the window has focus, e.g.
 	// "mod+," (Cmd on macOS, Ctrl elsewhere), "ctrl+shift+s", "esc".
 	Shortcuts map[string]func()
@@ -139,6 +143,11 @@ func (w *Window) run() {
 func (w *Window) layout(gtx core.C) {
 	w.handleShortcuts(gtx)
 	w.root.Layout(gtx, w.opts.Content)
+	if w.opts.Overlay != nil {
+		o := gtx
+		o.Constraints = layout.Exact(gtx.Constraints.Max)
+		w.opts.Overlay.Layout(o)
+	}
 }
 
 func (w *Window) destroy() {

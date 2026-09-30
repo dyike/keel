@@ -1,6 +1,6 @@
 # ui/layout
 
-摆放组件：`Column`、`Row`、`Card`、`Grow`、`Divider`、`Space`，以及写组件时画圆角边框用的 `Frame`。
+摆放组件：`Column`、`Row`、`Card`、`Grow`、`Divider`、`Space`、`Form`（标签在左、字段在右的表单），以及写组件时画圆角边框用的 `Frame`。
 
 - **依赖**：`core`、`theme`。
 - **被谁依赖**：`widget`（输入框用 `Frame`）。

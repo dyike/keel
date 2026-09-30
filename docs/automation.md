@@ -107,8 +107,20 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `link` | `widget.Link` | |
 | `textbox` | `widget.Input`、`TextArea` | `value`；密码框的值是等长的 `•` |
 | `checkbox` | `widget.Checkbox` | `checked` / `unchecked` |
+| `radio` | `widget.RadioGroup` 的每个选项 | `checked` / `unchecked` |
+| `switch` | `widget.Switch` | `checked` / `unchecked` |
+| `select` | `widget.Select` | `value` 是当前选中项；点击后出现 `option` |
+| `option` | 展开的下拉选项 | `selected` |
+| `tab` | `widget.Tabs` 的标签 | `selected` |
+| `table` | `widget.Table` | `value` 是总行数，如 `36 行` |
+| `columnheader` | 表头，点击排序 | |
+| `row` | 表格中可见的行，名字是各列用竖线连起来 | `selected` |
+| `progressbar` | `widget.Progress` | `value` 是百分比 |
+| `dialog` | 打开的 `widget.Dialog` | 它里面的文字和按钮单独列出 |
 
-`ref` 只在下一次操作之前有效，因为每次操作都会重新编号。按文字定位（`text`）更稳：完全匹配优先于部分匹配，控件优先于普通文字。
+元素列表只包含看得见的部分：滚出视野的表格行、页面内容不会列出，部分可见的元素按可见部分报告位置。要看更多行，先 `scroll`。
+
+`ref` 只在下一次操作之前有效，因为每次操作都会重新编号。按文字定位（`text`）更稳：完全匹配优先于部分匹配，控件优先于普通文字；同分时取后画的那个，所以对话框、下拉框里的按钮优先于被它们盖住的同名元素。
 
 坐标只在没有更好的办法时使用。截图和坐标用同一套单位：截图上的一个像素就是一个 dp。
 

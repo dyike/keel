@@ -16,6 +16,7 @@ import (
 // Field is an editable text box with an optional label above it.
 type Field struct {
 	label, hint string
+	name        string // for agents when there is no label; see SetName
 	onChange    func(string)
 	onSubmit    func(string)
 	editor      widget.Editor
@@ -32,6 +33,10 @@ func Input(label string) *Field {
 
 // TextArea creates a multi-line field.
 func TextArea(label string) *Field { return &Field{label: label} }
+
+// SetName names the field for agents when it has no visible label; Form
+// calls it with the field's label.
+func (f *Field) SetName(name string) { f.name = name }
 
 func (f *Field) Hint(s string) *Field            { f.hint = s; return f }
 func (f *Field) Password() *Field                { f.editor.Mask = '•'; return f }
@@ -76,6 +81,9 @@ func (f *Field) Layout(gtx C) D {
 func (f *Field) box(gtx C) D {
 	name := f.label
 	if name == "" {
+		name = f.name
+	}
+	if name == "" {
 		name = f.hint
 	}
 	value := f.editor.Text()
@@ -84,7 +92,7 @@ func (f *Field) box(gtx C) D {
 	}
 	// One textbox node carrying the label and current value; Gio's own editor
 	// node inside it has neither.
-	return area(gtx, f.frame, semantic.Editor, semantic.LabelOp(name), semantic.DescriptionOp(value))
+	return core.Semantic(gtx, f.frame, semantic.Editor, semantic.LabelOp(name), semantic.DescriptionOp(value))
 }
 
 func (f *Field) frame(gtx C) D {

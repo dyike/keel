@@ -24,6 +24,7 @@ window.Main()
 | `Title` | 窗口标题 |
 | `Width`、`Height` | 初始尺寸，单位 dp（在 2 倍屏上 1dp = 2 像素）。用户可以拖动改变 |
 | `Content` | 窗口内容。放进一个自带滚动条的根视图，四周留 24dp 边距，背景色 `theme.Bg` |
+| `Overlay` | 盖在整个窗口上的一层，通常放 `widget.Dialog`。没东西显示时应该不占空间 |
 | `Shortcuts` | 窗口获得焦点时生效的快捷键，写法见下文 |
 | `OnClose` | 窗口销毁后调用，在锁内运行，可以直接改组件 |
 

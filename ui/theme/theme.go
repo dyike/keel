@@ -14,15 +14,20 @@ import (
 
 // Colors. Components read them at layout time.
 var (
-	Bg      = RGB(0xf5f6f8) // window background
-	Surface = RGB(0xffffff) // cards and fields
-	Border  = RGB(0xe3e5e8) // borders and dividers
-	Text    = RGB(0x1f2328) // body text
-	Muted   = RGB(0x6b7280) // secondary text, hints, unchecked icons
-	Primary = RGB(0x2563eb) // primary buttons, links, focus, checked icons
-	Danger  = RGB(0xdc2626) // danger buttons
-	Subtle  = RGB(0xeceef1) // secondary buttons
-	OnColor = RGB(0xffffff) // text on Primary and Danger
+	Bg           = RGB(0xf5f6f8) // window background
+	Surface      = RGB(0xffffff) // cards and fields
+	Border       = RGB(0xe3e5e8) // borders and dividers
+	Text         = RGB(0x1f2328) // body text
+	Muted        = RGB(0x6b7280) // secondary text, hints, unchecked icons
+	Primary      = RGB(0x2563eb) // primary buttons, links, focus, checked icons
+	PrimaryHover = RGB(0x1d4ed8)
+	DangerHover  = RGB(0xb91c1c)
+	SubtleHover  = RGB(0xe2e5e9)
+	Danger       = RGB(0xdc2626)        // danger buttons
+	Subtle       = RGB(0xeceef1)        // secondary buttons
+	OnColor      = RGB(0xffffff)        // text on Primary and Danger
+	Highlight    = RGB(0xdbeafe)        // selected rows and options
+	Scrim        = color.NRGBA{A: 0x66} // dims the window behind a dialog
 )
 
 // Text sizes.

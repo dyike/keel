@@ -1,0 +1,18 @@
+# ui/el
+
+GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回一棵链式样式搭起来的元素树；flexbox 布局；元素状态（悬停、滚动、输入框内容）按元素路径或 ID 自动保存；Agent 语义自动生成。
+
+- **依赖**：`core`、`theme`（以及内部的 `ui/internal/loop`）。不依赖 `layout`、`widget`、`window`。
+- **被谁依赖**：应用代码。`window` 通过 `FillsWindow` 接口认出 `el.Root`，不引用本包。
+
+| 文件 | 内容 |
+| --- | --- |
+| `element.go` | `Element`、`Node`、`Styled[T]` 的全部链式方法，`Div`、`Text`、`Widget`、`Map` |
+| `input.go` | `Input`、`TextArea` |
+| `style.go` | `Style`、长度（`Dp`、`Frac`、`Full`）、对齐常量 |
+| `layout.go` | flexbox 布局引擎 |
+| `paint.go` | 绘制、点击区域、滚动、输入框、语义信息 |
+| `state.go` | 元素状态存储与回收 |
+| `root.go` | `View`、`Context`、`Root`、`Embed`，每帧的执行顺序 |
+
+使用指南：[元素与视图](../../docs/el.md)。

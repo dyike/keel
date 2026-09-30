@@ -26,6 +26,7 @@ type element struct {
 	Name     string `json:"name"`
 	Value    string `json:"value"`
 	Checked  *bool  `json:"checked"`
+	Selected *bool  `json:"selected"`
 	Disabled bool   `json:"disabled"`
 	X        int    `json:"x"`
 	Y        int    `json:"y"`
@@ -234,8 +235,11 @@ func (a *appProcess) describe(s snapshot) string {
 	fmt.Fprintf(&b, "Window %s %q %d×%d\n", s.Window.ID, s.Window.Title, s.Window.Width, s.Window.Height)
 	for _, e := range s.Elements {
 		fmt.Fprintf(&b, "%s %s %q", e.Ref, e.Role, e.Name)
-		if e.Role == "textbox" {
+		if e.Role == "textbox" || e.Value != "" {
 			fmt.Fprintf(&b, " value=%q", e.Value)
+		}
+		if e.Selected != nil && *e.Selected {
+			b.WriteString(" selected")
 		}
 		if e.Checked != nil {
 			if *e.Checked {

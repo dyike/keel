@@ -33,12 +33,18 @@ func TestAutomationScroll(t *testing.T) {
 	for i := 1; i <= 40; i++ {
 		rows = append(rows, widget.Text(fmt.Sprintf("row %d", i)))
 	}
-	w := openTest(t, Options{Width: 300, Height: 200, Content: layout.Column(rows...)})
-	before := element(t, w, "row 1").Y
+	w := openTest(t, Options{Width: 300, Height: 600, Content: layout.Column(rows...)})
+	before := element(t, w, "row 12").Y
 	w.scroll(element(t, w, "row 1").center(), 300)
 	w.snapshot()
-	if after := element(t, w, "row 1").Y; after >= before-200 {
-		t.Fatalf("row 1 moved from y=%d to y=%d; expected about 300dp up", before, after)
+	if after := element(t, w, "row 12").Y; after > before-250 {
+		t.Fatalf("row 12 moved from y=%d to y=%d; expected about 300dp up", before, after)
+	}
+	// Scrolled out of view, so no longer listed: only visible elements are.
+	for _, e := range w.snapshot() {
+		if e.Name == "row 1" {
+			t.Fatalf("row 1 is scrolled out of view but still listed at %+v", e)
+		}
 	}
 }
 
@@ -95,5 +101,18 @@ func TestAutomationRedrawsRealWindows(t *testing.T) {
 	w.click(element(t, w, "silent").center())
 	if redraws == 0 {
 		t.Fatal("clicking a checkbox without OnChange did not invalidate real windows")
+	}
+}
+
+// The first request after launch may be a key press: the shadow has not
+// rendered yet, so no handler would receive it.
+func TestAutomationShortcutAsFirstRequest(t *testing.T) {
+	n := 0
+	w := openTest(t, Options{Content: widget.Text("x"), Shortcuts: map[string]func(){"mod+n": func() { n++ }}})
+	if err := w.press("mod+n"); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("shortcut fired %d times", n)
 	}
 }

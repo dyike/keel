@@ -4,7 +4,7 @@
 
 | 文件 | 内容 |
 | --- | --- |
-| `window.go` | `Open`、`Main`、`Options`、`Window` |
+| `window.go` | `Open`、`Main`、`Options`（含 `Overlay`）、`Window` |
 | `shortcut.go` | 快捷键解析与分发 |
 | `root.go` | 窗口根视图：背景、滚动、24dp 边距 |
 | `screenshot.go` | `Screenshot` 离屏渲染成 PNG |

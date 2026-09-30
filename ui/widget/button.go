@@ -62,5 +62,5 @@ func (b *Btn) Layout(gtx C) D {
 	st.TextSize = 14
 	st.Inset = giolayout.Inset{Top: 8 + theme.CJKNudge, Bottom: 8 - theme.CJKNudge, Left: 16, Right: 16}
 	// Gio drops the clickable's node when disabled; this one stays either way.
-	return area(gtx, st.Layout, semantic.Button, semantic.LabelOp(b.text), semantic.EnabledOp(!b.disabled))
+	return core.Semantic(gtx, st.Layout, semantic.Button, semantic.LabelOp(b.text), semantic.EnabledOp(!b.disabled))
 }

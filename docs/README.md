@@ -9,6 +9,7 @@ Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，原
 | 第一次跑起来，写出第一个窗口 | [快速开始](getting-started.md) |
 | 弄清模块怎么分、谁依赖谁、线程规则 | [架构](architecture.md)，以及每个模块目录下的 README |
 | 开窗口、窗口快捷键、离屏截图 | [窗口与应用](app.md) |
+| 用 GPUI 风格写界面：视图 + 链式样式 + flexbox | [元素与视图](el.md) |
 | 查某个组件或容器的 API | [组件与布局](widgets.md) |
 | 申请权限、截屏、模拟键鼠、全局快捷键 | [原生能力](native.md) |
 | 新增组件、容器或原生能力 | [扩展指南](extending.md) |
@@ -37,6 +38,20 @@ func main() {
         result,
     )})
     window.Main()
+}
+```
+
+新界面推荐用 `ui/el` 写，见[元素与视图](el.md)：
+
+```go
+type Counter struct{ n int }
+
+func (c *Counter) Render(cx *el.Context) el.Element {
+    return el.Div().P(24).Gap(12).Items(el.Start).Child(
+        el.Text(fmt.Sprintf("点了 %d 次", c.n)),
+        el.Div().Px(16).Py(8).Rounded(6).Bg(theme.Primary).TextColor(theme.OnColor).
+            OnClick(func() { c.n++ }).Child(el.Text("+1")),
+    )
 }
 ```
 

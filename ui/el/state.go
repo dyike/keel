@@ -1,0 +1,82 @@
+package el
+
+import (
+	"hash/fnv"
+	"strconv"
+
+	"gioui.org/gesture"
+	"gioui.org/widget"
+)
+
+// stateKey identifies an element across frames: a hash of its path from the
+// root, where each step is the element's ID or else its index among siblings.
+type stateKey uint64
+
+func childKey(parent stateKey, id string, index int) stateKey {
+	h := fnv.New64a()
+	var b [8]byte
+	for i := range b {
+		b[i] = byte(parent >> (8 * i))
+	}
+	h.Write(b[:])
+	if id != "" {
+		h.Write([]byte("#" + id))
+	} else {
+		h.Write([]byte(strconv.Itoa(index)))
+	}
+	return stateKey(h.Sum64())
+}
+
+// elemState is what an element keeps between frames.
+type elemState struct {
+	frame uint64 // last frame the element was painted in
+
+	click         gesture.Click
+	onClick       func()
+	onDoubleClick func()
+	clickable     bool // registered a click area last frame
+	fresh         bool // created this frame: dispatch has not seen it yet
+
+	scroll  gesture.Scroll
+	scrollY int
+
+	editor   widget.Editor
+	edInit   bool
+	lastText string // what Bind last synced, to spot program changes
+}
+
+// store holds element state for one root. Entries not painted in a frame are
+// dropped after it, so state never outlives its element by more than a frame.
+type store struct {
+	states map[stateKey]*elemState
+	frame  uint64
+}
+
+func newStore() *store { return &store{states: map[stateKey]*elemState{}} }
+
+func (s *store) get(k stateKey) *elemState {
+	st := s.states[k]
+	if st == nil {
+		st = &elemState{fresh: true}
+		s.states[k] = st
+	}
+	st.frame = s.frame
+	return st
+}
+
+func (s *store) sweep() {
+	for k, st := range s.states {
+		if st.frame != s.frame {
+			delete(s.states, k)
+		}
+	}
+}
+
+// assignKeys gives every node its state key.
+func assignKeys(n *Node, key stateKey) {
+	n.key = key
+	for i, c := range n.children {
+		cn := c.node()
+		assignKeys(cn, childKey(key, cn.id, i))
+	}
+}

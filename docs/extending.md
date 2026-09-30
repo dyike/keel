@@ -4,7 +4,9 @@
 
 | 你要加的东西 | 放在哪里 | 例子 |
 | --- | --- | --- |
-| 界面组件：有状态、能交互 | `ui/widget/` 新文件 | `select.go`、`list.go`、`switch.go` |
+| 应用里的界面、业务组件 | 不进库：用 `ui/el` 写成函数或视图，见[元素与视图](el.md#做成可复用的组件) | 订单卡片、工具栏 |
+| 通用的元素能力 | `ui/el` | 新的样式方法、布局特性、元素类型 |
+| 旧写法的界面组件 | `ui/widget/` 新文件（新组件优先考虑直接用 el 写） | `select.go`、`list.go`、`switch.go` |
 | 布局容器：只负责摆放子组件 | `ui/layout/` 新文件 | `grid.go`、`center.go` |
 | 颜色、字号等可调参数 | `ui/theme/theme.go` | 被两个以上组件用到的数值 |
 | 与窗口本身有关 | `ui/window/` | 窗口位置、置顶 |
@@ -64,13 +66,13 @@ func (l *LinkText) Layout(gtx C) D {
 3. **先处理事件，再绘制。** 同一帧里，事件要在 `Layout` 画自己之前处理完，状态变化这一帧就能画出来。
 4. **用户回调一律走 `core.Call(gtx, fn)`。** 它负责让所有窗口重绘。直接调 `fn()`，修改了别处组件时，别处要等到下次有输入才会刷新。
 5. **颜色、字号从 `theme` 取，不写死。** 用户改了 `theme.Primary`，你的组件要跟着变。在 `Layout` 里读取，不要在构造函数里读好存下来。
-6. **声明语义信息，让 Agent 看得见。** Agent 测试靠 Gio 的语义树知道"页面上有什么"（见 [Agent 端到端测试](automation.md#原理)）。用 `ui/widget/semantics.go` 的 `area` 包住组件，声明角色、名字和状态：
+6. **声明语义信息，让 Agent 看得见。** Agent 测试靠 Gio 的语义树知道"页面上有什么"（见 [Agent 端到端测试](automation.md#原理)）。用 `core.Semantic` 包住组件，声明角色、名字和状态：
 
    ```go
-   return area(gtx, st.Layout, semantic.Button, semantic.LabelOp(b.text), semantic.EnabledOp(!b.disabled))
+   return core.Semantic(gtx, st.Layout, semantic.Button, semantic.LabelOp(b.text), semantic.EnabledOp(!b.disabled))
    ```
 
-   Gio 自带控件产生的语义节点不一定可靠：禁用的按钮会丢节点，输入框没有名字和内容，文字节点的高度会撑满整个可滚动区域。所以 Keel 的组件都自己声明。角色目前只有 Gio 定义的几种（`Button`、`CheckBox`、`Editor` 等）；新角色（比如链接）用 `DescriptionOp` 标注，再在 `ui/window/automation.go` 的 `snapshot` 里识别。
+   Gio 自带控件产生的语义节点不一定可靠：禁用的按钮会丢节点，输入框没有名字和内容，文字节点的高度会撑满整个可滚动区域。所以 Keel 的组件都自己声明。角色目前只有 Gio 定义的几种（`Button`、`CheckBox`、`Editor` 等）；其他角色用 `core.Role("row")`、`core.Role("select", 当前值)` 标注；新增角色时在 `ui/window/automation.go` 的 `roleOf` 里登记，容器类角色（里面的元素要单独列出）加进 `containerRoles`。
 
 API 风格与现有组件保持一致：
 
@@ -80,6 +82,14 @@ API 风格与现有组件保持一致：
 - 程序调用 `SetXxx` 时不触发 `OnXxx` 回调，只有用户操作才触发。`Field.SetValue` 就是这样处理的，否则"监听变化再回写"会死循环。
 - 类型名不能和构造函数同名（Go 的限制），现有的做法是 `Btn`、`Field`、`Check`、`LinkText`。
 - 所有组件在 `widget` 一个包里，名字不能冲突。起名前在 `ui/widget/` 里搜一下。
+- 有名字的输入类组件实现 `SetName(string)`：`layout.Form` 会把左边的标签设成它对 Agent 的名字。
+
+写组件时踩过的坑，都和 Gio 的语义树、输入路由有关：
+
+- **不要在带语义信息的区域上直接登记事件处理者**（`event.Op`）。那个节点会从语义树里消失。给键盘焦点登记处理者时，放在组件内部另一个区域里，见 `table.go` 的 `body`。
+- **组件要在第一帧就登记好所有子区域的事件过滤。** Gio 会把这一帧没有处理者的区域从点击测试和语义树里去掉。`widget.Enum` 在第一帧会漏掉最后一个选项，`radio.go` 因此在布局后多调用一次 `Update`。
+- **需要键盘焦点的组件**：`gtx.Event(key.FocusFilter{Target: t}, ...)` 注册过滤，`event.Op(gtx.Ops, t)` 登记处理者，点击时 `gtx.Execute(key.FocusCmd{Tag: t})`，三步都要有。
+- **弹出层**（下拉选项）用 `op.Defer` 画在最上层；要"点外面关闭"，在弹出层下面铺一块窗口大小的透明可点击区域。
 
 最后加交互测试，放在 `ui/widget/link_test.go` 这样的同名测试文件里：
 

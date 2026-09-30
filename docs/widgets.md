@@ -1,6 +1,6 @@
 # 组件与布局
 
-组件在 `ui/widget`，容器在 `ui/layout`，颜色字号在 `ui/theme`。它们都实现 `ui/core` 里的同一个接口：
+组件在 `ui/widget`（文字、按钮、链接、输入框、复选框、表格、下拉选择、标签页、单选、开关、进度条、对话框），容器在 `ui/layout`（包括表单），颜色字号在 `ui/theme`。它们都实现 `ui/core` 里的同一个接口：
 
 ```go
 // package ui
@@ -94,6 +94,86 @@ agree := widget.Checkbox("同意条款", false).OnChange(func(v bool) { submit.S
 
 方法：`Value() bool`、`SetValue(bool)`（不触发 `OnChange`）。点击图标或文字都能切换。
 
+## 表格
+
+业务数据的主力组件。数据是字符串二维数组，列宽按权重分配。
+
+```go
+table := widget.Table(widget.Col("单号", 1), widget.Col("客户", 1.4), widget.Col("金额", 1)).
+    Height(300).
+    OnSelect(func(row int) { ... }).    // 点击或键盘选中一行
+    OnActivate(func(row int) { ... })   // 双击或回车
+table.SetRows([][]string{{"SO-1001", "华东物流", "300.00"}, ...})
+```
+
+| 操作 | 效果 |
+| --- | --- |
+| 点表头 | 按这一列升序排序，再点一次降序。数字按数值比较（支持千分位逗号），其余按字符串 |
+| 点行 | 选中，表格获得焦点（边框变蓝） |
+| ↑ ↓ PageUp PageDown Home End | 有焦点时移动选中行，自动滚动到可见 |
+| 双击 / 回车 | 调用 `OnActivate` |
+
+| 方法 | 说明 |
+| --- | --- |
+| `SetRows(rows)` | 替换数据，保留排序列。回调和 `Selected` 用的行号是这里传入的顺序，与显示顺序无关 |
+| `Selected()` / `SetSelected(i)` | 读取、设置选中行（-1 表示没有）；`SetSelected` 会滚动到该行，不触发 `OnSelect` |
+| `SortBy(col, desc)` | 程序排序；`col` 为 -1 恢复原顺序 |
+| `Row(i)`、`Len()`、`Rows()` | 读数据 |
+| `Height(dp)`、`Empty(text)` | 表体高度（默认 320）、无数据时的提示 |
+
+表体只布局可见的行，几千行也不会卡。筛选的做法是重新 `SetRows`，并自己维护"显示行号 → 原始数据"的映射，示例见 `examples/orders`。
+
+## 下拉选择
+
+```go
+status := widget.Select("状态", "待付款", "已付款", "已发货").OnChange(func(v string) { ... })
+status.SetValue("待付款")
+```
+
+点击展开，点选项或点外面收起，Esc 也能收起。方法：`Value()`、`Index()`、`SetValue(v)`（不触发 `OnChange`）、`SetOptions(...)`、`Hint(s)`。
+
+## 标签页
+
+```go
+tabs := widget.Tabs().Add("订单列表", listPage).Add("新建订单", formPage).OnChange(func(i int) { ... })
+tabs.SetCurrent(1) // 程序切换，不触发 OnChange
+```
+
+## 单选、开关
+
+```go
+pay := widget.RadioGroup("付款方式", "转账", "支票", "现金").Horizontal().OnChange(func(v string) { ... })
+urgent := widget.Switch("加急处理", false).OnChange(func(on bool) { ... })
+```
+
+单选组默认竖排，`Horizontal()` 横排。开关的文字也能点。两者都有 `Value()` / `SetValue()`，`SetValue` 不触发回调。
+
+## 进度条
+
+```go
+p := widget.Progress("导入进度")
+p.SetValue(0.4) // 0 到 1，右侧显示 40%
+```
+
+后台任务里更新进度要包进 `core.Update`。
+
+## 对话框
+
+模态对话框：窗口变暗，底下的内容点不到，直到按下对话框里的按钮。回车等于确定，Esc 等于取消。
+
+```go
+dlg := widget.Dialog()
+window.Open(window.Options{Content: page, Overlay: dlg}) // 对话框放在窗口的 Overlay 里
+
+widget.Button("删除", func() {
+    dlg.ConfirmDanger("删除订单", "确定删除 SO-1001？", "删除", func() { remove() })
+})
+dlg.Confirm("保存修改", "要保存吗？", onOK)   // 确定 + 取消
+dlg.Alert("导入完成", "共 120 条。", nil)     // 只有确定
+```
+
+`OnCancel(fn)` 设置取消时的回调，`IsOpen()`、`Close()` 查询和关闭。一个窗口放一个 `Dialog` 就够了，每次 `Confirm`/`Alert` 替换它的内容。
+
 ## 布局容器
 
 | 函数 | 说明 |
@@ -117,6 +197,21 @@ layout.Row(layout.Grow(layout.Space(0)), widget.Button("取消", c).Secondary(),
 
 `layout.Grow` 放在 `Column` 里没有意义：窗口的根视图可以滚动，纵向没有"剩余高度"。
 
+### 表单
+
+标签在左、字段在右，标签列按最长的标签对齐，适合录入：
+
+```go
+layout.Form(
+    layout.Field("客户", widget.Input("").Hint("客户名称")),
+    layout.Field("金额", widget.Input("").Hint("0.00")),
+    layout.Field("状态", widget.Select("", "待付款", "已付款")),
+    layout.Field("付款方式", widget.RadioGroup("", "转账", "现金").Horizontal()),
+)
+```
+
+放进表单的 `Input("")`、`Select("")` 不显示自己的标签，但 Agent 看到的名字是左边的标签（"客户"、"金额"），可以直接按名字操作。
+
 `layout.Frame(gtx, bg, border, radius, inset, w)` 不是容器，是写组件时用的绘制工具：画圆角、边框、背景，再把内容放进内边距里。输入框和卡片都用它。
 
 ## 主题
@@ -138,6 +233,8 @@ theme.Primary = theme.RGB(0x16a34a) // 换成绿色
 | `Danger` | `#dc2626` | 危险按钮 |
 | `Subtle` | `#eceef1` | 次要按钮底色 |
 | `OnColor` | `#ffffff` | 主按钮、危险按钮上的文字 |
+| `Highlight` | `#dbeafe` | 表格选中行、下拉选项 |
+| `Scrim` | 40% 黑 | 对话框后面的遮罩 |
 
 | 常量 | 值 | 说明 |
 | --- | --- | --- |

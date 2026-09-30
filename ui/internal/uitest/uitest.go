@@ -47,12 +47,24 @@ func (h *Harness) Frame() {
 	h.Router.Frame(&h.ops)
 }
 
-// Click presses and releases the primary button at (x, y), then renders.
+// Click moves the pointer to (x, y), presses and releases the primary
+// button, then renders. Some widgets (radio groups) need the hover.
 func (h *Harness) Click(x, y float32) {
 	p := f32.Pt(x, y)
 	h.Router.Queue(
+		pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: p},
 		pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: p},
 		pointer.Event{Kind: pointer.Release, Source: pointer.Mouse, Position: p},
+	)
+	h.Frame()
+}
+
+// Scroll turns the mouse wheel by dy (positive: down) at (x, y), then renders.
+func (h *Harness) Scroll(x, y, dy float32) {
+	p := f32.Pt(x, y)
+	h.Router.Queue(
+		pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: p},
+		pointer.Event{Kind: pointer.Scroll, Source: pointer.Mouse, Position: p, Scroll: f32.Pt(0, dy)},
 	)
 	h.Frame()
 }

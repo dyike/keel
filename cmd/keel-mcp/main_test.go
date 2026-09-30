@@ -190,3 +190,61 @@ func TestVisible(t *testing.T) {
 	expect(t, call("close_window", nil), "Closed.")
 	expect(t, call("close_window", nil), "last window")
 }
+
+// TestOrders walks the order desk example through every widget the way an
+// agent would: search, dropdown filter, sort, row selection with keys, detail
+// and confirm dialogs, a form, tabs and progress bars.
+func TestOrders(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds and runs the example app")
+	}
+	call, _ := startServer(t, nil)
+	got := call("launch", map[string]any{"command": "go run ./examples/orders", "dir": repoRoot()})
+	expect(t, got, `tab "订单列表" selected`, `table "" value="36 行"`, `columnheader "金额"`, `row "SO-1001 | 华东物流 | 待付款 | 300.00"`)
+
+	expect(t, call("type", map[string]any{"text": "华东", "ref": "e5"}), "显示 6 条")
+	expect(t, call("click", map[string]any{"text": "全部状态"}), `option "已发货"`)
+	expect(t, call("click", map[string]any{"text": "已发货"}), `select "请选择" value="已发货"`, "显示 3 条")
+	call("type", map[string]any{"text": "", "ref": "e5", "clear": true})
+	call("press_key", map[string]any{"key": "backspace"})
+	call("click", map[string]any{"text": "已发货"})
+	expect(t, call("click", map[string]any{"text": "全部状态"}), "显示 36 条")
+
+	call("click", map[string]any{"text": "金额"})
+	got = call("click", map[string]any{"text": "金额"}) // descending
+	expect(t, got, `row "SO-1022 | 成都餐饮 | 已完成 | 3177.00"`)
+	call("click", map[string]any{"text": "SO-1022"})
+	expect(t, call("press_key", map[string]any{"key": "down"}), `row "SO-1021 | 深圳电子 | 待付款 | 3040.00" selected`)
+	expect(t, call("press_key", map[string]any{"key": "enter"}), `dialog "SO-1021"`, "深圳电子 · 待付款")
+	call("click", map[string]any{"text": "确定"})
+
+	expect(t, call("click", map[string]any{"text": "删除所选"}), `dialog "删除订单"`, `button "删除"`)
+	if got := call("press_key", map[string]any{"key": "esc"}); strings.Contains(got, "dialog") {
+		t.Fatalf("Esc left the dialog open:\n%s", got)
+	}
+	call("click", map[string]any{"text": "删除所选"})
+	expect(t, call("click", map[string]any{"text": "删除"}), "共 35 条")
+
+	got = call("press_key", map[string]any{"key": "mod+n"})
+	expect(t, got, `tab "新建订单" selected`, `textbox "客户"`, `radio "转账" checked`, `switch "加急处理" unchecked`)
+	expect(t, call("click", map[string]any{"text": "保存订单"}), "请填写客户名称。")
+	call("type", map[string]any{"text": "西安机械", "ref": refOf(got, `textbox "客户"`)})
+	call("type", map[string]any{"text": "4200", "ref": refOf(got, `textbox "金额"`)})
+	call("click", map[string]any{"text": "待付款"})
+	call("click", map[string]any{"text": "已付款"})
+	call("click", map[string]any{"text": "现金"})
+	expect(t, call("click", map[string]any{"text": "加急处理"}), `switch "加急处理" checked`, `radio "现金" checked`)
+	expect(t, call("click", map[string]any{"text": "保存订单"}), `tab "订单列表" selected`, `row "SO-1037 | 西安机械 | 已付款 | 4200.00" selected`)
+
+	expect(t, call("click", map[string]any{"text": "统计"}), "订单 36 笔", `progressbar "待付款 8 笔" value="22%"`, `progressbar "已付款 10 笔" value="28%"`)
+}
+
+// refOf finds the ref of the first line containing s in a snapshot.
+func refOf(snapshot, s string) string {
+	for _, line := range strings.Split(snapshot, "\n") {
+		if strings.Contains(line, s) {
+			return strings.Fields(line)[0]
+		}
+	}
+	return ""
+}

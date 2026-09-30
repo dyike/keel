@@ -195,10 +195,11 @@ func (w *Window) render() {
 // Element is one node of a window's semantic tree, as reported to agents.
 type Element struct {
 	Ref      string `json:"ref"`
-	Role     string `json:"role"` // text, button, link, checkbox, textbox
+	Role     string `json:"role"` // see roleOf
 	Name     string `json:"name,omitempty"`
-	Value    string `json:"value,omitempty"` // textbox content
-	Checked  *bool  `json:"checked,omitempty"`
+	Value    string `json:"value,omitempty"`    // textbox content, select choice, progress
+	Checked  *bool  `json:"checked,omitempty"`  // checkbox, radio, switch
+	Selected *bool  `json:"selected,omitempty"` // tab, row, option
 	Disabled bool   `json:"disabled,omitempty"`
 	X        int    `json:"x"`
 	Y        int    `json:"y"`
@@ -217,59 +218,90 @@ func (w *Window) snapshot() []Element {
 	v := w.virt
 	nodes := v.router.AppendSemantics(nil)
 	var out []Element
-	var walk func(n input.SemanticNode, inControl bool)
-	walk = func(n input.SemanticNode, inControl bool) {
+	var walk func(n input.SemanticNode, inControl bool, visible image.Rectangle)
+	walk = func(n input.SemanticNode, inControl bool, visible image.Rectangle) {
 		d := n.Desc
-		role := ""
-		switch d.Class {
-		case semantic.Button:
-			role = "button"
-			if d.Description == "link" {
-				role = "link"
-			}
-		case semantic.CheckBox:
-			role = "checkbox"
-		case semantic.Editor:
-			if !inControl { // Gio's own editor node sits inside our textbox node
-				role = "textbox"
-			}
-		default:
-			if d.Label != "" && !inControl {
-				role = "text"
-			}
+		// Gio's bounds ignore scroll clipping: a row scrolled out of a table
+		// still reports where it would be. Keep only what can be seen.
+		b := d.Bounds.Intersect(visible)
+		if b.Empty() {
+			return
 		}
+		role, value := roleOf(d, inControl)
 		if role != "" {
-			e := Element{Role: role, Name: d.Label, Disabled: d.Disabled,
-				X: d.Bounds.Min.X, Y: d.Bounds.Min.Y, Width: d.Bounds.Dx(), Height: d.Bounds.Dy()}
+			e := Element{Role: role, Name: d.Label, Value: value, Disabled: d.Disabled,
+				X: b.Min.X, Y: b.Min.Y, Width: b.Dx(), Height: b.Dy()}
+			state := d.Selected
 			switch role {
-			case "textbox":
-				e.Value = d.Description
-			case "checkbox":
-				checked := d.Selected
-				e.Checked = &checked
+			case "checkbox", "radio", "switch":
+				e.Checked = &state
+			case "tab", "row", "option":
+				e.Selected = &state
 			}
-			if role != "text" && e.Name == "" {
+			if role != "text" && !containerRoles[role] && e.Name == "" {
 				e.Name = childText(n)
 			}
 			e.Ref = fmt.Sprintf("e%d", len(out)+1)
 			out = append(out, e)
 		}
+		// An element absorbs the nodes inside it (a button's label), except
+		// containers, whose children are elements of their own.
+		absorb := role != "" && !containerRoles[role]
+		if role != "" || !d.Bounds.Eq(nodes[0].Desc.Bounds) {
+			visible = b // an element or clip area bounds what is inside it
+		}
 		for _, c := range n.Children {
-			walk(c, inControl || role != "") // an element absorbs the nodes inside it
+			walk(c, inControl || absorb, visible)
 		}
 	}
 	if len(nodes) > 0 {
-		walk(nodes[0], false)
+		walk(nodes[0], false, image.Rectangle{Max: w.virt.getSize()})
 	}
 	v.refs = out
 	return out
+}
+
+var containerRoles = map[string]bool{"dialog": true, "table": true}
+
+// roleOf maps a semantic node to an element role and value. Gio's classes
+// give the common roles; core.Role descriptions ("row", "select:北京") the rest.
+func roleOf(d input.SemanticDesc, inControl bool) (role, value string) {
+	if inControl { // part of an element already listed, e.g. Gio's own node inside our button
+		return "", ""
+	}
+	custom, val, _ := strings.Cut(d.Description, ":")
+	switch d.Class {
+	case semantic.Button:
+		switch custom {
+		case "link", "tab", "columnheader", "select":
+			return custom, val
+		}
+		return "button", ""
+	case semantic.CheckBox:
+		return "checkbox", ""
+	case semantic.RadioButton:
+		return "radio", ""
+	case semantic.Switch:
+		return "switch", ""
+	case semantic.Editor:
+		return "textbox", d.Description
+	}
+	switch custom {
+	case "row", "option", "table", "progressbar", "dialog":
+		return custom, val
+	}
+	if d.Label != "" {
+		return "text", ""
+	}
+	return "", ""
 }
 
 func childText(n input.SemanticNode) string {
 	var parts []string
 	for _, c := range n.Children {
 		if c.Desc.Label != "" {
-			parts = append(parts, c.Desc.Label)
+			parts = append(parts, c.Desc.Label) // a labelled node speaks for what is inside it
+			continue
 		}
 		if t := childText(c); t != "" {
 			parts = append(parts, t)
@@ -301,7 +333,7 @@ func (w *Window) find(ref, text string) (Element, error) {
 		if s > 0 && e.Role != "text" {
 			s++
 		}
-		if s > score {
+		if s > 0 && s >= score { // on a tie, the later one is drawn on top (dialogs, popups)
 			best, score = e, s
 		}
 	}
@@ -312,6 +344,7 @@ func (w *Window) find(ref, text string) (Element, error) {
 }
 
 func (w *Window) click(p f32.Point) {
+	w.render() // input only reaches handlers registered by a frame
 	w.virt.router.Queue(
 		pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: p},
 		pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: p},
@@ -326,6 +359,7 @@ func (w *Window) click(p f32.Point) {
 var offscreen = pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: f32.Pt(-1e6, -1e6)}
 
 func (w *Window) scroll(p f32.Point, dy float32) {
+	w.render()
 	w.virt.router.Queue(
 		pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: p},
 		pointer.Event{Kind: pointer.Scroll, Source: pointer.Mouse, Position: p, Scroll: f32.Pt(0, dy)},
@@ -336,6 +370,7 @@ func (w *Window) scroll(p f32.Point, dy float32) {
 
 // typeText inserts s at the caret of the focused text box, replacing any selection.
 func (w *Window) typeText(s string) error {
+	w.render()
 	v := w.virt
 	st := v.router.EditorState()
 	v.router.Queue(key.EditEvent{Range: st.Selection.Range, Text: s})
@@ -353,6 +388,7 @@ func (w *Window) press(spec string) error {
 	if err != nil {
 		return err
 	}
+	w.render() // e.g. the first request after launch: no frame has registered shortcuts yet
 	v := w.virt
 	var ev gioevent.Event = key.Event{Name: sc.name, Modifiers: sc.mods, State: key.Press}
 	dir := key.FocusDirection(-1)

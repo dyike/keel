@@ -9,6 +9,14 @@
 | `link.go` | `Link` |
 | `input.go` | `Input`、`TextArea` |
 | `checkbox.go` | `Checkbox` |
+| `table.go` | `Table`、`Col`：排序、选中、键盘导航、只渲染可见行 |
+| `select.go` | `Select`：下拉选择 |
+| `tabs.go` | `Tabs` |
+| `radio.go` | `RadioGroup` |
+| `switch.go` | `Switch` |
+| `progress.go` | `Progress` |
+| `dialog.go` | `Dialog`：确认、提示，放在 `window.Options.Overlay` |
+| `draw.go` | 内部绘图小工具 |
 
 - **依赖**：`core`、`theme`、`layout`。
 - **被谁依赖**：应用代码。

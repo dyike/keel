@@ -18,6 +18,7 @@ var allowed = map[string][]string{
 	"ui/layout":           {"ui/core", "ui/theme", "ui/internal/loop"},
 	"ui/widget":           {"ui/core", "ui/theme", "ui/layout", "ui/internal/loop"},
 	"ui/window":           {"ui/core", "ui/theme", "ui/internal/loop"},
+	"ui/el":               {"ui/core", "ui/theme", "ui/internal/loop"},
 	"native":              {},
 	"native/internal/sys": {"native"},
 	"native/permission":   {"native", "native/internal/sys"},
