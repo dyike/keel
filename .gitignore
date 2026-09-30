@@ -1,0 +1,4 @@
+/work/
+*.test
+*.exe
+.DS_Store
