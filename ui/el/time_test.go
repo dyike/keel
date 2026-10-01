@@ -65,3 +65,22 @@ func TestReducedMotion(t *testing.T) {
 		t.Fatal("restore ignored")
 	}
 }
+
+func TestAfterCancellationDuringClickRerender(t *testing.T) {
+	now := time.Unix(1000, 0)
+	show := true
+	calls := 0
+	root := Root(viewFunc(func(cx *Context) Element {
+		if show {
+			cx.After(time.Second, func() { calls++ })
+		}
+		return Div().Name("cancel").OnClick(func() { show = false }).Child(Text("cancel"))
+	}))
+	h := uitest.NewFunc(func(gtx core.C) { gtx.Now = now; root.Layout(gtx) })
+	now = now.Add(time.Second)
+	h.Click(10, 10)
+	h.Frame()
+	if calls != 0 {
+		t.Fatal("omitted timer fired from discarded render")
+	}
+}

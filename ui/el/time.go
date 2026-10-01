@@ -64,11 +64,11 @@ func (cx *Context) After(d time.Duration, fn func()) {
 		timer = &viewTimer{due: cx.Now().Add(d), duration: d}
 		r.timers[k] = timer
 	}
-	timer.frame = r.store.frame
+	timer.frame = r.timerEpoch
 	timer.owner = cx.owner
 	timer.fn = fn
 }
-func (r *RootWidget) beginTimers() { r.timerCalls = map[timerCall]int{} }
+func (r *RootWidget) beginTimers() { r.timerEpoch++; r.timerCalls = map[timerCall]int{} }
 func (r *RootWidget) finishTimers(tree *Node) {
 	gtx := r.e.gtx
 	if !gtx.Enabled() {
@@ -91,7 +91,7 @@ func (r *RootWidget) finishTimers(tree *Node) {
 	// Collect before invoking callbacks so callbacks cannot mutate this iteration.
 	var due []func()
 	for k, timer := range r.timers {
-		if timer.frame != r.store.frame || timer.owner != "" && !ids[timer.owner] {
+		if timer.frame != r.timerEpoch || timer.owner != "" && !ids[timer.owner] {
 			delete(r.timers, k)
 			continue
 		}

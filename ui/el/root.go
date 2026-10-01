@@ -98,6 +98,7 @@ func (cx *Context) Shortcut(chord string, fn func()) {
 
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
+	timerEpoch   uint64
 	timers       map[timerKey]*viewTimer
 	timerCalls   map[timerCall]int
 	source       input.Source
