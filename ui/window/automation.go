@@ -244,7 +244,7 @@ func (w *Window) snapshot() []Element {
 			switch role {
 			case "checkbox", "radio", "switch":
 				e.Checked = &state
-			case "tab", "row", "option", "disclosure", "toggle", "tag":
+			case "tab", "row", "option", "disclosure", "toggle", "tag", "gridcell":
 				e.Selected = &state
 			}
 			if role != "text" && !containerRoles[role] && e.Name == "" {
@@ -270,7 +270,7 @@ func (w *Window) snapshot() []Element {
 	return out
 }
 
-var containerRoles = map[string]bool{"dialog": true, "menu": true, "alertdialog": true, "table": true, "code": true, "footnotes": true, "accordion": true, "alert": true, "group": true, "status": true, "tag": true}
+var containerRoles = map[string]bool{"dialog": true, "menu": true, "alertdialog": true, "grid": true, "radiogroup": true, "listbox": true, "list": true, "form": true, "combobox": true, "table": true, "code": true, "footnotes": true, "accordion": true, "alert": true, "group": true, "status": true, "tag": true}
 
 // roleOf maps a semantic node to an element role and value. Gio's classes
 // give the common roles; core.Role descriptions ("row", "select:北京") the rest.

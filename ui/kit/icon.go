@@ -27,6 +27,13 @@ const (
 	IconError
 	IconUser
 	IconInbox
+	IconDone // a plain check mark, e.g. inside a checkbox
+	IconChevronLeft
+	IconMinus
+	IconStar
+	IconStarOutline
+	IconCalendar
+	IconClock
 )
 
 // IconView wraps a Gio vector icon. Labels belong to its containing control.
@@ -49,6 +56,20 @@ func Icon(name IconName) *IconView {
 		data = icons.SocialPerson
 	case IconInbox:
 		data = icons.ContentInbox
+	case IconDone:
+		data = icons.ActionDone
+	case IconChevronLeft:
+		data = icons.NavigationChevronLeft
+	case IconMinus:
+		data = icons.ContentRemove
+	case IconStar:
+		data = icons.ToggleStar
+	case IconStarOutline:
+		data = icons.ToggleStarBorder
+	case IconCalendar:
+		data = icons.ActionDateRange
+	case IconClock:
+		data = icons.ActionSchedule
 	case IconClose:
 		data = icons.NavigationClose
 	case IconPlus:

@@ -2,21 +2,15 @@ package main
 
 import (
 	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/layout"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
 )
 
-func init() { registerSection("toggle", "controls", toggleGallery) }
-func toggleGallery() core.Widget {
-	feedback := widget.Muted("未固定")
-	var pin *widget.ToggleView = widget.Toggle("固定面板", false).Icon(widget.Icon(widget.IconCheck)).OnChange(func(v bool) {
-		if v {
-			feedback.SetText("已固定")
-		} else {
-			feedback.SetText("未固定")
-		}
+func init() {
+	registerSection("toggle", "controls", func() core.Widget {
+		pin, star := kit.Toggle("固定 Pin", false), kit.Toggle("收藏", true).Icon(kit.IconStar)
+		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().P(24).Row().Gap(8).Child(pin.Render(cx), star.Render(cx))
+		}))
 	})
-	disabled := widget.Toggle("禁用且选中", true)
-	disabled.SetDisabled(true)
-	return layout.Card(widget.Heading("状态按钮"), layout.Row(pin, widget.Toggle("Ghost", false).Ghost(), disabled), feedback)
 }

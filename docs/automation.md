@@ -130,6 +130,12 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `progressbar` | `widget.Progress` | `value` 是百分比或 indeterminate |
 | `dialog` | 打开的 `widget.Dialog`、`kit.Dialog`、`kit.Sheet`、`kit.Popover`、`kit.HoverCard` 的面板 | 它里面的文字和按钮单独列出 |
 | `alertdialog` | `kit.Dialog` 的 `ConfirmDanger` 和 `Persistent()` | 点遮罩不关闭，Esc 等于取消；里面的元素单独列出 |
+| `radiogroup` | `kit.RadioGroup` | 每个选项是 `radio`，单独列出 |
+| `listbox` | 打开的 `kit.Select` / `kit.Combobox` 列表 | 选项是 `option`，单独列出 |
+| `combobox` | `kit.Combobox` | `value` 为当前选择；里面的文本框和展开按钮单独列出 |
+| `grid` / `gridcell` | `kit.Calendar` | 每天是 `gridcell`，名字是日期，`selected` 表示已选或在范围内 |
+| `list` / `step` | `kit.Stepper` | 每一步 `value` 为 done / current / upcoming |
+| `form` | `kit.Form` | 行标签和控件单独列出，控件以行标签为名字 |
 | `tooltip` | `kit.WithTooltip` 的提示 | 名字是提示文字 |
 | `menu` | 打开的 `kit.Menu` | 菜单项单独列出 |
 | `menuitem` | 菜单项 | 有子菜单时 `value` 为 submenu；支持 `disabled` |

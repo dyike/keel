@@ -13,7 +13,7 @@ func TestPresetsAreComplete(t *testing.T) {
 		v := reflect.ValueOf(s)
 		for i := 0; i < v.NumField(); i++ {
 			f := v.Field(i)
-			if f.Kind() == reflect.String && f.String() == "" || f.Kind() == reflect.Func && f.IsNil() {
+			if f.Kind() == reflect.String && f.String() == "" || f.Kind() == reflect.Func && f.IsNil() || f.Kind() == reflect.Array && f.Index(0).String() == "" {
 				t.Errorf("%s: %s is empty", s.Lang, v.Type().Field(i).Name)
 			}
 		}

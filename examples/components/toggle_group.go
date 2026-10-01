@@ -2,15 +2,17 @@ package main
 
 import (
 	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/layout"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
 )
 
-func init() { registerSection("toggle_group", "controls", toggle_groupGallery) }
-func toggle_groupGallery() core.Widget {
-	align := widget.ToggleGroup("左", "中", "右").Size(widget.Small)
-	align.SetValue([]string{"中"})
-	format := widget.ToggleGroup("粗体", "斜体", "下划线").Multiple().Ghost()
-	format.SetValue([]string{"粗体", "下划线"})
-	return layout.Card(widget.Heading("单选与多选状态按钮组"), align, format, widget.Checkbox("禁用单选组", false).OnChange(align.SetDisabled))
+func init() {
+	registerSection("toggle_group", "controls", func() core.Widget {
+		align := kit.ToggleGroup("左对齐", "居中", "右对齐")
+		align.SetValue("居中")
+		style := kit.ToggleGroup("B", "I", "U").Multiple()
+		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().P(24).Gap(12).Items(el.Start).Child(align.Render(cx), style.Render(cx))
+		}))
+	})
 }

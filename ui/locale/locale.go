@@ -9,6 +9,7 @@ package locale
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/dyike/keel/ui/internal/loop"
 )
@@ -24,6 +25,18 @@ type Strings struct {
 	SelectHint, NoData                       string
 	Image, ImageLoading, ImageFailed         string
 	PlainText, WrapLines, NoWrapLines        string
+	Search, NoMatches                        string
+	Increase, Decrease                       string
+	PrevMonth, NextMonth                     string
+
+	// Weekdays are short day names starting with Sunday; FirstWeekday is the
+	// column a calendar starts with (time.Monday for Chinese).
+	Weekdays     [7]string
+	FirstWeekday time.Weekday
+	// Month titles a calendar page, e.g. "2026年10月" or "October 2026".
+	Month func(year int, month time.Month) string
+	// Date formats a day for a date field, e.g. "2026-10-01".
+	Date func(t time.Time) string
 
 	// Rows formats a row count, e.g. "36 行" or "36 rows".
 	Rows func(n int) string
@@ -48,7 +61,13 @@ func Chinese() Strings {
 		SelectHint: "请选择", NoData: "暂无数据",
 		Image: "图片", ImageLoading: "图片加载中", ImageFailed: "图片加载失败",
 		PlainText: "纯文本", WrapLines: "自动换行", NoWrapLines: "取消自动换行",
-		Rows: func(n int) string { return strconv.Itoa(n) + " 行" },
+		Search: "搜索", NoMatches: "无匹配项", Increase: "增加", Decrease: "减少",
+		PrevMonth: "上个月", NextMonth: "下个月",
+		Weekdays:     [7]string{"日", "一", "二", "三", "四", "五", "六"},
+		FirstWeekday: time.Monday,
+		Month:        func(y int, m time.Month) string { return strconv.Itoa(y) + "年" + strconv.Itoa(int(m)) + "月" },
+		Date:         func(t time.Time) string { return t.Format("2006-01-02") },
+		Rows:         func(n int) string { return strconv.Itoa(n) + " 行" },
 	}
 }
 
@@ -62,6 +81,12 @@ func English() Strings {
 		SelectHint: "Select…", NoData: "No data",
 		Image: "Image", ImageLoading: "Loading image", ImageFailed: "Image failed to load",
 		PlainText: "Plain text", WrapLines: "Wrap lines", NoWrapLines: "Don't wrap lines",
+		Search: "Search", NoMatches: "No matches", Increase: "Increase", Decrease: "Decrease",
+		PrevMonth: "Previous month", NextMonth: "Next month",
+		Weekdays:     [7]string{"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"},
+		FirstWeekday: time.Sunday,
+		Month:        func(y int, m time.Month) string { return m.String() + " " + strconv.Itoa(y) },
+		Date:         func(t time.Time) string { return t.Format("Jan 2, 2006") },
 		Rows: func(n int) string {
 			if n == 1 {
 				return "1 row"
@@ -89,6 +114,12 @@ func Revision() uint64 { return revision }
 func Apply(s Strings) {
 	if s.Rows == nil {
 		s.Rows = current.Rows
+	}
+	if s.Month == nil {
+		s.Month = current.Month
+	}
+	if s.Date == nil {
+		s.Date = current.Date
 	}
 	current = s
 	revision++

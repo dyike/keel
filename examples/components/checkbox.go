@@ -2,15 +2,31 @@ package main
 
 import (
 	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/layout"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
 )
 
-func init() { registerSection("checkbox", "controls", checkboxGallery) }
-func checkboxGallery() core.Widget {
-	mixed := widget.Checkbox("半选：点击后选中全部", false)
-	mixed.SetIndeterminate(true)
-	disabled := widget.Checkbox("禁用复选框", true)
-	disabled.SetDisabled(true)
-	return layout.Card(widget.Heading("复选框"), mixed, disabled, widget.Checkbox("禁用半选项", false).OnChange(mixed.SetDisabled))
+func init() {
+	registerSection("checkbox", "controls", func() core.Widget {
+		all, a, b := kit.Checkbox("全选 Select all", false), kit.Checkbox("订单 SO-1001", true), kit.Checkbox("订单 SO-1002", false)
+		sync := func() {
+			n := 0
+			for _, c := range []*kit.CheckboxView{a, b} {
+				if c.Value() {
+					n++
+				}
+			}
+			all.SetValue(n == 2)
+			all.SetMixed(n == 1)
+		}
+		a.OnChange(func(bool) { sync() })
+		b.OnChange(func(bool) { sync() })
+		all.OnChange(func(on bool) { a.SetValue(on); b.SetValue(on) })
+		sync()
+		off := kit.Checkbox("不可用", true)
+		off.SetDisabled(true)
+		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().P(24).Gap(10).Items(el.Start).Child(all.Render(cx), el.Div().Pl(24).Gap(8).Child(a.Render(cx), b.Render(cx)), off.Render(cx))
+		}))
+	})
 }

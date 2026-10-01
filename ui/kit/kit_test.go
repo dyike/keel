@@ -46,9 +46,13 @@ func node(h *uitest.Harness, name string) (input.SemanticNode, bool) {
 	ok := false
 	var walk func(input.SemanticNode)
 	walk = func(n input.SemanticNode) {
-		if n.Desc.Label == name {
+		if ok {
+			return
+		}
+		if n.Desc.Label == name { // the first, outermost match: the control, not its label text
 			found = n
 			ok = true
+			return
 		}
 		for _, c := range n.Children {
 			walk(c)
@@ -71,4 +75,50 @@ func click(t *testing.T, h *uitest.Harness, name string) {
 	}
 	p := n.Desc.Bounds.Min.Add(n.Desc.Bounds.Size().Div(2))
 	h.Click(float32(p.X), float32(p.Y))
+}
+
+// clickRole clicks the first element with role (role or role:value) and name.
+func clickRole(t *testing.T, h *uitest.Harness, role, name string) {
+	t.Helper()
+	var found image.Rectangle
+	var walk func(input.SemanticNode)
+	walk = func(n input.SemanticNode) {
+		d := n.Desc.Description
+		if found.Empty() && n.Desc.Label == name && (d == role || len(d) > len(role) && d[:len(role)+1] == role+":") {
+			found = n.Desc.Bounds
+		}
+		for _, c := range n.Children {
+			walk(c)
+		}
+	}
+	for _, n := range h.Router.AppendSemantics(nil) {
+		walk(n)
+	}
+	if found.Empty() {
+		t.Fatalf("missing %s %q", role, name)
+	}
+	h.Click(center(found))
+}
+
+// clickClass clicks the first element of a Gio semantic class (Button,
+// Editor, …) with name, skipping label text of the same name.
+func clickClass(t *testing.T, h *uitest.Harness, class, name string) {
+	t.Helper()
+	var found image.Rectangle
+	var walk func(input.SemanticNode)
+	walk = func(n input.SemanticNode) {
+		if found.Empty() && n.Desc.Label == name && n.Desc.Class.String() == class {
+			found = n.Desc.Bounds
+		}
+		for _, c := range n.Children {
+			walk(c)
+		}
+	}
+	for _, n := range h.Router.AppendSemantics(nil) {
+		walk(n)
+	}
+	if found.Empty() {
+		t.Fatalf("missing %s %q", class, name)
+	}
+	h.Click(center(found))
 }

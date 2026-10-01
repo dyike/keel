@@ -32,3 +32,20 @@
 | [Sheet](../../docs/kit/sheet.md) | 贴边滑入的模态面板 |
 | [Notifier](../../docs/kit/notifier.md) | 右上角通知栈 |
 | [CopyButton](../../docs/kit/copy_button.md) | 复制并显示反馈 |
+| [Checkbox](../../docs/kit/checkbox.md) | 复选框、半选 |
+| [Switch](../../docs/kit/switch.md) | 开关 |
+| [RadioGroup](../../docs/kit/radio_group.md) | 单选组 |
+| [Toggle](../../docs/kit/toggle.md) | 保持按下的按钮 |
+| [ToggleGroup](../../docs/kit/toggle_group.md) | 单选或多选按钮组 |
+| [Input / TextArea](../../docs/kit/input.md) | 文本框、前后缀、清空、错误 |
+| [Select](../../docs/kit/select.md) | 下拉选择、可搜索 |
+| [Combobox](../../docs/kit/combobox.md) | 可筛选输入 |
+| [Slider](../../docs/kit/slider.md) | 滑块 |
+| [NumberInput](../../docs/kit/number_input.md) | 数字输入 |
+| [OtpInput](../../docs/kit/otp_input.md) | 验证码分格输入 |
+| [TimeField](../../docs/kit/time_field.md) | 时间输入 |
+| [Calendar](../../docs/kit/calendar.md) | 日历、范围 |
+| [DatePicker](../../docs/kit/date_picker.md) | 日期字段 |
+| [Rating](../../docs/kit/rating.md) | 星级评分 |
+| [Stepper](../../docs/kit/stepper.md) | 步骤进度 |
+| [Form](../../docs/kit/form.md) | 表单与校验 |

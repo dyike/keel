@@ -247,6 +247,9 @@ func (e *engine) semantics(n *Node) []interface{ Add(*op.Ops) } {
 		ops = append(ops, semantic.Button, core.Role(role, n.value))
 	case "checkbox":
 		ops = append(ops, semantic.CheckBox)
+		if n.value != "" {
+			ops = append(ops, core.Role("checkbox", n.value)) // e.g. mixed
+		}
 	case "radio":
 		ops = append(ops, semantic.RadioButton)
 	case "switch":

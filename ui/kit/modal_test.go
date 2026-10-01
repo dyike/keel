@@ -206,3 +206,5 @@ func TestDropdownButtonPlainAndSplit(t *testing.T) {
 		t.Fatal("split arrow did not open the menu")
 	}
 }
+
+func uitest_page(fn viewFunc) *uitest.Harness { return uitest.New(el.Root(fn)) }

@@ -1,24 +1,28 @@
 package main
 
 import (
-	"fmt"
 	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/layout"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/theme"
 )
 
-func init() { registerSection("input", "inputs", inputGallery) }
-func inputGallery() core.Widget {
-	search := widget.Input("搜索").Hint("点击标签也能聚焦").Prefix(widget.Icon(widget.IconSearch)).Suffix(widget.Kbd("mod+k").Plain()).Clearable()
-	feedback := widget.Muted("尚未编辑")
-	search.OnChange(func(v string) { feedback.SetText(fmt.Sprintf("搜索内容：%q", v)) })
-	price := widget.Input("金额").Prefix(widget.Text("¥")).Suffix(widget.Muted("元")).Clearable()
-	price.SetValue("128.00")
-	ro := widget.Input("只读").Clearable()
-	ro.SetValue("无法清空")
-	ro.SetReadOnly(true)
-	locked := widget.Input("禁用").Clearable()
-	locked.SetValue("不会接收输入")
-	locked.SetDisabled(true)
-	return layout.Card(widget.Heading("输入框"), search, feedback, widget.Checkbox("禁用搜索", false).OnChange(search.SetDisabled), widget.Checkbox("搜索只读", false).OnChange(search.SetReadOnly), price, ro, locked)
+func init() {
+	registerSection("input", "inputs", func() core.Widget {
+		search := kit.Input("搜索").Placeholder("客户名称或单号 123").Clearable().Prefix(el.ViewFunc(func(cx *el.Context) el.Element {
+			return kit.Icon(kit.IconSearch).Size(16).Color(theme.Muted).Render(cx)
+		}))
+		price := kit.Input("单价").Placeholder("0.00").Filter("0123456789.").Suffix(el.ViewFunc(func(*el.Context) el.Element { return el.Text("元") }))
+		pass := kit.Input("密码").Password()
+		bad := kit.Input("邮箱 Email")
+		bad.SetValue("not-an-email")
+		bad.SetError("邮箱格式不正确")
+		note := kit.TextArea("备注").Placeholder("多行文字，回车换行").Rows(3)
+		off := kit.Input("只读")
+		off.SetValue("SO-1001")
+		off.SetReadOnly(true)
+		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().P(24).Gap(14).W(el.Dp(360)).Child(search.Render(cx), price.Render(cx), pass.Render(cx), bad.Render(cx), note.Render(cx), off.Render(cx))
+		}))
+	})
 }
