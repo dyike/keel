@@ -57,6 +57,7 @@ widget.Link("查看文档", openDocs)
 ```go
 photo := widget.Image("assets/photo.png", "产品正面照片")
 photo.OnClick = openDetail
+photo.SetDisabled(false) // 禁用时保留图片，关闭鼠标、键盘激活和焦点
 // 已解码像素可直接复用，无需异步加载。
 preview := &widget.ImageView{Asset: widget.ImageData(img), Alt: "预览"}
 ```

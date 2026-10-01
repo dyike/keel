@@ -451,3 +451,28 @@ func TestAutomationDisabledLink(t *testing.T) {
 		t.Fatal("link did not recover")
 	}
 }
+
+func TestAutomationDisabledImage(t *testing.T) {
+	n := 0
+	v := &widget.ImageView{Asset: widget.ImageData(image.NewNRGBA(image.Rect(0, 0, 120, 40))), Alt: "图片", OnClick: func() { n++ }}
+	w := openTest(t, Options{Content: v})
+	v.SetDisabled(true)
+	e := element(t, w, "图片")
+	if e.Role != "image" || !e.Disabled {
+		t.Fatalf("invalid image semantics: %+v", e)
+	}
+	w.click(e.center())
+	w.press("space")
+	if n != 0 {
+		t.Fatal("disabled image activated")
+	}
+	v.SetDisabled(false)
+	e = element(t, w, "图片")
+	if e.Disabled {
+		t.Fatal("image remained disabled")
+	}
+	w.click(e.center())
+	if n != 1 {
+		t.Fatal("image did not recover")
+	}
+}

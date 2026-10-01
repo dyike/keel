@@ -7,7 +7,7 @@
 | `text.go` | `Text`、`Heading`、`Muted`：换行、文字对齐、`For` 关联聚焦 |
 | `button.go`、`style.go` | `Button`：尺寸、图标、加载、禁用；共享尺寸和加载绘制 |
 | `link.go` | `Link`：支持 `SetDisabled` |
-| `image.go`、`image_load.go` | `Image`、`LoadImage`、`ImageData`：异步加载、缩放和失败占位 |
+| `image.go`、`image_load.go` | `Image`、`LoadImage`、`ImageData`：异步加载、缩放和失败占位；`SetDisabled` 禁用图片交互 |
 | `input.go` | `Input`、`TextArea`：前后缀、清空、禁用、标签聚焦、自动高度 |
 | `checkbox.go` | `Checkbox`：禁用、半选、回调和键盘操作 |
 | `table.go` | `Table`、`Col`：排序、选中、键盘导航、禁用、只渲染可见行 |

@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"gioui.org/io/key"
 	"gioui.org/layout"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/uitest"
@@ -99,5 +100,27 @@ func TestImageAsyncLoad(t *testing.T) {
 	}
 	if !asset.Ready() || asset.Error() != nil || asset.Size() != image.Pt(30, 10) || asset.Revision() != 2 {
 		t.Fatal("async completion not reflected in UI")
+	}
+}
+
+func TestImageDisabledRecovery(t *testing.T) {
+	n := 0
+	v := &ImageView{Asset: ImageData(image.NewNRGBA(image.Rect(0, 0, 120, 40))), Alt: "图片", OnClick: func() { n++ }}
+	h := uitest.NewFunc(func(gtx core.C) { gtx.Execute(key.FocusCmd{Tag: &v.click}); v.Layout(gtx) })
+	clickNamed(t, h, "图片")
+	v.SetDisabled(true)
+	h.Frame()
+	clickNamed(t, h, "图片")
+	h.Key(key.NameSpace, 0)
+	h.Key(key.NameReturn, 0)
+	if n != 1 || h.Router.Source().Focused(&v.click) {
+		t.Fatal("disabled image activated or focused")
+	}
+	v.SetDisabled(false)
+	h.Frame()
+	clickNamed(t, h, "图片")
+	h.Key(key.NameSpace, 0)
+	if n != 3 {
+		t.Fatalf("image did not recover: %d", n)
 	}
 }

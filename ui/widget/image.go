@@ -91,24 +91,37 @@ func (a *ImageAsset) Size() image.Point {
 // fit narrow containers. Loading/failure placeholders retain accessible alt
 // text. Optional click callbacks work with the keyboard as well as the mouse.
 type ImageView struct {
-	Asset   *ImageAsset
-	Alt     string
-	OnClick func()
-	click   gio.Clickable
+	Asset    *ImageAsset
+	Alt      string
+	OnClick  func()
+	click    gio.Clickable
+	disabled bool
 }
 
 func Image(source, alt string) *ImageView { return &ImageView{Asset: LoadImage(source, nil), Alt: alt} }
+
+// SetDisabled prevents pointer and keyboard activation without hiding the image.
+func (v *ImageView) SetDisabled(disabled bool) { v.disabled = disabled }
+
 func (v *ImageView) Layout(gtx C) D {
+	if v.disabled {
+		gtx = gtx.Disabled()
+	}
 	gtx.Constraints.Min = image.Point{}
 	for v.click.Clicked(gtx) {
 		core.Call(gtx, v.OnClick)
 	}
 	return core.Semantic(gtx, func(gtx C) D {
 		if v.OnClick != nil {
-			return v.click.Layout(gtx, func(gtx C) D { pointer.CursorPointer.Add(gtx.Ops); return v.paint(gtx) })
+			return v.click.Layout(gtx, func(gtx C) D {
+				if gtx.Enabled() {
+					pointer.CursorPointer.Add(gtx.Ops)
+				}
+				return v.paint(gtx)
+			})
 		}
 		return v.paint(gtx)
-	}, core.Role("image", v.status()), semantic.LabelOp(v.Alt))
+	}, core.Role("image", v.status()), semantic.LabelOp(v.Alt), semantic.EnabledOp(gtx.Enabled()))
 }
 func (v *ImageView) status() string {
 	if v.Asset == nil || !v.Asset.Ready() {

@@ -47,7 +47,7 @@ func gallery() core.Widget {
 		layout.Card(widget.Heading("滑块"), volume, feedback, temperature, fixed, widget.Checkbox("禁用音量调整", false).OnChange(volume.SetDisabled)),
 		layout.Card(widget.Heading("折叠面板"), sections),
 		layout.Card(widget.Heading("多项展开"), faq),
-		layout.Card(widget.Heading("图片"), photo, status),
+		layout.Card(widget.Heading("图片"), photo, status, widget.Checkbox("禁用图片点击", false).OnChange(photo.SetDisabled)),
 	)
 }
 func main() {
