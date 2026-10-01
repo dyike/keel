@@ -13,6 +13,9 @@ type inputSpec struct {
 	password    bool
 	onChange    func(string)
 	onSubmit    func(string)
+	maxLen      int
+	filter      string
+	readOnly    bool
 }
 
 // Input creates a single-line text box. Enter triggers OnSubmit.
@@ -46,6 +49,15 @@ func (e *InputEl) Password() *InputEl { e.n.input.password = true; return e }
 
 // OnChange runs after every edit by the user, with the new content.
 func (e *InputEl) OnChange(fn func(string)) *InputEl { e.n.input.onChange = fn; return e }
+
+// MaxLen limits the content to n runes; 0 means no limit.
+func (e *InputEl) MaxLen(n int) *InputEl { e.n.input.maxLen = n; return e }
+
+// Filter accepts only the runes in chars as typed or pasted input; "" accepts all.
+func (e *InputEl) Filter(chars string) *InputEl { e.n.input.filter = chars; return e }
+
+// ReadOnly lets the user select and copy but not edit.
+func (e *InputEl) ReadOnly(on bool) *InputEl { e.n.input.readOnly = on; return e }
 
 // OnSubmit runs when Enter is pressed in a single-line box.
 func (e *InputEl) OnSubmit(fn func(string)) *InputEl { e.n.input.onSubmit = fn; return e }

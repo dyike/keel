@@ -174,11 +174,18 @@ func (e *engine) paintContent(n *Node) {
 				// frame. dispatch asks from the next frame on; ask now so
 				// the element is clickable, and visible to agents, at once.
 				state.click.Update(gtx.Source)
+				if n.onDrag != nil {
+					state.drag.Update(gtx.Metric, gtx.Source, gesture.Both)
+				}
 				state.fresh = false
 			}
 			state.click.Add(gtx.Ops)
+			if n.onDrag != nil {
+				state.drag.Add(gtx.Ops)
+			}
 			if gtx.Enabled() {
 				state.onClick, state.onDoubleClick, state.clickable = n.onClick, n.onDoubleClick, true
+				state.onDrag, state.size = n.onDrag, n.size
 			}
 			if st.cursor != pointer.CursorDefault {
 				st.cursor.Add(gtx.Ops)
@@ -195,17 +202,19 @@ func (e *engine) paintContent(n *Node) {
 	case n.isText:
 		e.paintText(n, inner)
 	case n.input != nil:
-		if e.blockFocus {
+		saved := e.gtx
+		if e.blockFocus || n.effectiveDisabled {
 			e.gtx = e.gtx.Disabled()
 		}
 		if gtx.Enabled() {
 			state.keyFrame = e.store.frame
 		}
 		e.paintInput(n, state, inner)
+		e.gtx = saved
 	case n.widget != nil:
 		stk := op.Offset(inner.Min).Push(gtx.Ops)
 		g := gtx
-		if e.blockFocus {
+		if e.blockFocus || n.effectiveDisabled {
 			g = g.Disabled()
 		}
 		g.Constraints = layout.Exact(inner.Size())
@@ -303,6 +312,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	} else {
 		ed.Mask = 0
 	}
+	ed.MaxLen, ed.Filter, ed.ReadOnly = spec.maxLen, spec.filter, spec.readOnly
 	// User edits first, then program changes to the bound string.
 	for {
 		ev, ok := ed.Update(gtx)

@@ -2,6 +2,7 @@ package el
 
 import (
 	"hash/fnv"
+	"image"
 	"strconv"
 
 	"gioui.org/gesture"
@@ -48,8 +49,11 @@ type elemState struct {
 	click         gesture.Click
 	onClick       func()
 	onDoubleClick func()
-	clickable     bool // registered a click area last frame
-	fresh         bool // created this frame: dispatch has not seen it yet
+	drag          gesture.Drag
+	onDrag        func(DragEvent)
+	size          image.Point // painted size in px, for drag events
+	clickable     bool        // registered a click area last frame
+	fresh         bool        // created this frame: dispatch has not seen it yet
 
 	scroll        gesture.Scroll
 	scrollPending int

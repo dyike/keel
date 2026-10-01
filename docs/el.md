@@ -60,7 +60,7 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 
 点击空白处会让输入框失去焦点。
 
-`Bind(&字符串)` 双向绑定：用户输入会写进变量，程序改了变量，下一帧输入框也跟着变。`Password()` 遮盖内容。
+`Bind(&字符串)` 双向绑定：用户输入会写进变量，程序改了变量，下一帧输入框也跟着变。`Password()` 遮盖内容。`MaxLen(n)` 限制字符数，`Filter("0123456789")` 只接受这些字符（输入和粘贴都会过滤），`ReadOnly(true)` 允许选择复制但不能编辑。输入框位于 `Disabled(true)` 的子树里时不能编辑，`el.Widget` 嵌入的旧组件也一样。
 
 ## 样式方法
 
@@ -175,6 +175,16 @@ return el.Div().Hidden(!visible).Child(el.Text("已保存"))
 ```
 
 同类组件用自身稳定 ID 组成 key。不要在 `cx.Cache` 的构建函数里声明 `After`：缓存命中时不会执行构建函数，未再次声明的定时器会被取消。应把 After 放在每次执行的 Render 路径上，再单独缓存元素树。
+
+## 拖动
+
+```go
+el.Div().ID("track").W(el.Dp(240)).H(el.Dp(20)).OnDrag(func(e el.DragEvent) {
+    v.value = clamp(e.X / e.W) // 按下、移动、松开都会调用
+})
+```
+
+`DragEvent.Kind` 是 `DragStart`（按下）、`DragMove`（按住移动，指针移出元素也继续报告）、`DragEnd`（松开或取消）。`X`、`Y` 是相对元素左上角的 dp，`W`、`H` 是元素尺寸，所以 `X/W` 就是水平方向的比例。按下时会聚焦可聚焦的元素。禁用的元素收不到拖动。
 
 ## 浮层（E4 / E5）
 

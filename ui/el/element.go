@@ -36,6 +36,7 @@ type Node struct {
 
 	onClick       func()
 	onDoubleClick func()
+	onDrag        func(DragEvent)
 	role, name    string
 	value         string
 	selected      *bool
@@ -68,7 +69,7 @@ func (n *Node) isFocusable() bool {
 	return !n.effectiveDisabled && (n.focusable || !n.focusSet && n.onClick != nil)
 }
 func (n *Node) interactive() bool {
-	return n.focusable || n.onClick != nil || n.onDoubleClick != nil || n.hover != nil || n.active != nil || n.style.cursor != pointer.CursorDefault
+	return n.focusable || n.onClick != nil || n.onDoubleClick != nil || n.onDrag != nil || n.hover != nil || n.active != nil || n.style.cursor != pointer.CursorDefault
 }
 
 // Styled carries the builder methods every element shares. T is the element

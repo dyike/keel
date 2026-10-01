@@ -116,10 +116,11 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 		st.disabled = n.effectiveDisabled
 		st.focusable = n.isFocusable() && n.input == nil
 		st.onKey, st.keyParent = n.onKey, parent
-		st.onClick, st.onDoubleClick = n.onClick, n.onDoubleClick
+		st.onClick, st.onDoubleClick, st.onDrag = n.onClick, n.onDoubleClick, n.onDrag
 		if st.disabled {
 			st.pressedKey = ""
 			st.click = gesture.Click{}
+			st.drag = gesture.Drag{}
 			st.fresh = true
 			if r.e.gtx.Focused(st) || r.e.gtx.Focused(&st.editor) {
 				r.e.gtx.Execute(key.FocusCmd{})

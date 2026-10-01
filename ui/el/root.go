@@ -266,6 +266,29 @@ func (r *RootWidget) dispatch(gtx core.C) {
 				core.Call(gtx, func() { r.callbacks = true; st.onClick() })
 			}
 		}
+		for st.onDrag != nil {
+			ev, ok := st.drag.Update(gtx.Metric, gtx.Source, gesture.Both)
+			if !ok {
+				break
+			}
+			kind := DragMove
+			switch ev.Kind {
+			case pointer.Press:
+				kind = DragStart
+				if st.focusable {
+					focusTarget = st
+				}
+			case pointer.Release, pointer.Cancel:
+				kind = DragEnd
+			}
+			px := r.e.m.PxPerDp
+			if px == 0 {
+				px = 1
+			}
+			de := DragEvent{Kind: kind, X: ev.Position.X / px, Y: ev.Position.Y / px, W: float32(st.size.X) / px, H: float32(st.size.Y) / px}
+			fn := st.onDrag
+			core.Call(gtx, func() { r.callbacks = true; fn(de) })
+		}
 	}
 	if focusTarget != nil {
 		r.requestedFocus = focusTarget
