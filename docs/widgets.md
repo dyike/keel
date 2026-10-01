@@ -304,3 +304,4 @@ layout.Row(widget.Heading("新功能"), badge)
 ## 分组件功能与验证
 
 - [图标](widgets/icon.md)
+- [按钮](widgets/button.md)
