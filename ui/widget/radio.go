@@ -17,6 +17,7 @@ type RadioView struct {
 	label      string
 	options    []string
 	horizontal bool
+	disabled   bool
 	onChange   func(string)
 	enum       widget.Enum
 }
@@ -31,9 +32,13 @@ func (r *RadioView) OnChange(fn func(value string)) *RadioView { r.onChange = fn
 func (r *RadioView) Value() string                             { return r.enum.Value }
 
 // SetValue chooses v without calling OnChange.
-func (r *RadioView) SetValue(v string) { r.enum.Value = v }
+func (r *RadioView) SetValue(v string)  { r.enum.Value = v }
+func (r *RadioView) SetDisabled(v bool) { r.disabled = v }
 
 func (r *RadioView) Layout(gtx C) D {
+	if r.disabled {
+		gtx = gtx.Disabled()
+	}
 	gtx.Constraints.Min = image.Point{}
 	if r.enum.Update(gtx) && r.onChange != nil {
 		v := r.enum.Value
@@ -67,24 +72,30 @@ func (r *RadioView) Layout(gtx C) D {
 
 func (r *RadioView) option(gtx C, o string) D {
 	on := r.enum.Value == o
-	return r.enum.Layout(gtx, o, func(gtx C) D {
-		semantic.RadioButton.Add(gtx.Ops)
-		semantic.SelectedOp(on).Add(gtx.Ops)
-		icon, col := theme.Material.Icon.RadioUnchecked, theme.Muted
-		if on {
-			icon, col = theme.Material.Icon.RadioChecked, theme.Primary
-		}
-		return giolayout.Flex{Alignment: giolayout.Middle}.Layout(gtx,
-			giolayout.Rigid(func(gtx C) D {
-				gtx.Constraints.Min = image.Pt(gtx.Dp(22), gtx.Dp(22))
-				return icon.Layout(gtx, col)
-			}),
-			giolayout.Rigid(giolayout.Spacer{Width: 6}.Layout),
-			giolayout.Rigid(func(gtx C) D {
-				lb := material.Label(theme.Material, theme.BodySize, o)
-				lb.Color = theme.Text
-				return giolayout.Inset{Top: 2 * theme.CJKNudge}.Layout(gtx, lb.Layout)
-			}),
-		)
-	})
+	return core.Semantic(gtx, func(gtx C) D {
+		return r.enum.Layout(gtx, o, func(gtx C) D {
+			icon, col := theme.Material.Icon.RadioUnchecked, theme.Muted
+			if on {
+				icon, col = theme.Material.Icon.RadioChecked, theme.Primary
+			}
+			if !gtx.Enabled() {
+				col = theme.Muted
+			}
+			return giolayout.Flex{Alignment: giolayout.Middle}.Layout(gtx,
+				giolayout.Rigid(func(gtx C) D {
+					gtx.Constraints.Min = image.Pt(gtx.Dp(22), gtx.Dp(22))
+					return icon.Layout(gtx, col)
+				}),
+				giolayout.Rigid(giolayout.Spacer{Width: 6}.Layout),
+				giolayout.Rigid(func(gtx C) D {
+					lb := material.Label(theme.Material, theme.BodySize, o)
+					lb.Color = theme.Text
+					if !gtx.Enabled() {
+						lb.Color = theme.Muted
+					}
+					return giolayout.Inset{Top: 2 * theme.CJKNudge}.Layout(gtx, lb.Layout)
+				}),
+			)
+		})
+	}, semantic.RadioButton, semantic.LabelOp(o), semantic.SelectedOp(on), semantic.EnabledOp(gtx.Enabled()))
 }

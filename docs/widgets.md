@@ -159,6 +159,8 @@ urgent := widget.Switch("加急处理", false).OnChange(func(on bool) { ... })
 
 单选组默认竖排，`Horizontal()` 横排。开关的文字也能点。两者都有 `Value()` / `SetValue()`，`SetValue` 不触发回调。
 
+`RadioGroup` 提供 `Value`、静默的 `SetValue`、链式 `OnChange` 和 `SetDisabled`。禁用后鼠标、键盘和焦点均停用，Agent 将各选项报告为 `disabled`。验证：`go run ./examples/components -section radio`。
+
 ## 滑块
 
 ```go

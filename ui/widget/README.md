@@ -13,7 +13,7 @@
 | `table.go` | `Table`、`Col`：排序、选中、键盘导航、只渲染可见行 |
 | `select.go` | `Select`：下拉选择 |
 | `tabs.go` | `Tabs` |
-| `radio.go` | `RadioGroup` |
+| `radio.go` | `RadioGroup`：单选、静默赋值、回调与禁用 |
 | `switch.go` | `Switch`：尺寸、禁用、加载、键盘操作 |
 | `slider.go` | `Slider`：范围、步长、拖动和键盘调整 |
 | `accordion.go` | `Accordion`：单项 / 多项展开、标题键盘导航 |

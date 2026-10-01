@@ -237,3 +237,27 @@ func TestAutomationBadgeValues(t *testing.T) {
 		})
 	}
 }
+
+func TestAutomationDisabledRadio(t *testing.T) {
+	r := widget.RadioGroup("", "立即", "每天")
+	w := openTest(t, Options{Content: r})
+	r.SetDisabled(true)
+	e := element(t, w, "立即")
+	if e.Role != "radio" || !e.Disabled {
+		t.Fatalf("missing disabled radio: %+v", e)
+	}
+	w.click(e.center())
+	w.press("space")
+	if r.Value() != "" {
+		t.Fatal("disabled radio selected")
+	}
+	r.SetDisabled(false)
+	e = element(t, w, "立即")
+	if e.Disabled {
+		t.Fatal("radio remained disabled")
+	}
+	w.click(e.center())
+	if r.Value() != "立即" {
+		t.Fatal("radio did not recover")
+	}
+}
