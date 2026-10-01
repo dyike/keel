@@ -198,9 +198,9 @@ func (v *CalendarView) cell(d, today time.Time, cw, ch float32, move func(time.T
 			case key.NameDownArrow:
 				to = d.AddDate(0, 0, 7)
 			case key.NamePageUp:
-				to = d.AddDate(0, -1, 0)
+				to = calendarMonthDay(d, -1)
 			case key.NamePageDown:
-				to = d.AddDate(0, 1, 0)
+				to = calendarMonthDay(d, 1)
 			case key.NameHome:
 				to = d.AddDate(0, 0, -((int(d.Weekday()) - int(locale.Current().FirstWeekday) + 7) % 7))
 			case key.NameEnd:
@@ -218,4 +218,12 @@ func (v *CalendarView) cell(d, today time.Time, cw, ch float32, move func(time.T
 		}
 	}
 	return c
+}
+
+// calendarMonthDay keeps navigation within the destination month. AddDate on
+// Jan 31 otherwise normalizes February 31 into March.
+func calendarMonthDay(d time.Time, delta int) time.Time {
+	first := monthOf(d).AddDate(0, delta, 0)
+	last := first.AddDate(0, 1, -1).Day()
+	return first.AddDate(0, 0, min(d.Day(), last)-1)
 }
