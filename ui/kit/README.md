@@ -17,3 +17,4 @@
 | [DescriptionList](../../docs/kit/description_list.md) | 单列字段说明 |
 | [GroupBox](../../docs/kit/group_box.md) | 带标题的视图分组 |
 | [StatusBar](../../docs/kit/status_bar.md) | 状态与详情栏 |
+| [Marker](../../docs/kit/marker.md) | 状态圆点与文字 |
