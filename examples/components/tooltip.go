@@ -14,7 +14,7 @@ type tooltipGallery struct{ copy, save *kit.TooltipView }
 
 func newTooltipGallery() *tooltipGallery {
 	return &tooltipGallery{
-		copy: kit.WithTooltip(kit.Button("", nil).Icon(kit.IconCopy).Variant(kit.ButtonGhost), "复制 Copy（⌘C）"),
+		copy: kit.WithTooltip(kit.Button("", nil).Name("复制").Icon(kit.IconCopy).Variant(kit.ButtonGhost), "复制 Copy（⌘C）"),
 		save: kit.WithTooltip(kit.Button("保存", nil), "保存到本地，最多 30 个版本"),
 	}
 }

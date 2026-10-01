@@ -72,5 +72,11 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 - [Tooltip](kit/tooltip.md)：悬停或键盘聚焦时的简短提示。
 - [HoverCard](kit/hover_card.md)：悬停预览卡片。
 - [Menu](kit/menu.md)：命令菜单，支持子菜单和键盘导航。
+- [DropdownButton](kit/dropdown_button.md)：带菜单的按钮和分体按钮。
+- [Dialog](kit/dialog.md)：模态对话框和标准确认框。
+- [Sheet](kit/sheet.md)：贴边滑入的模态面板。
+- [Notifier](kit/notifier.md)：右上角通知栈。
+
+其他：[CopyButton](kit/copy_button.md)，复制到剪贴板并显示反馈。
 
 DangerText 用于 Alert/Tag 等表面上的危险状态文字；Danger 仍用于实心危险按钮。两套默认配色的状态文字对 Surface 均以 4.5:1 为最低对比度验收。

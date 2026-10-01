@@ -33,6 +33,7 @@ type Layer struct {
 	matchWidth                   bool
 	modal, centered, trap, scrim bool
 	edge                         bool // a Modal placed against a root edge
+	keepOnOutside                bool
 	dismiss                      func()
 }
 
@@ -55,6 +56,11 @@ func (l *Layer) MatchAnchorWidth() *Layer   { l.matchWidth = true; return l }
 func (l *Layer) Modal() *Layer              { l.modal = true; return l }
 func (l *Layer) TrapFocus() *Layer          { l.trap = true; return l }
 func (l *Layer) OnDismiss(fn func()) *Layer { l.dismiss = fn; return l }
+
+// KeepOnOutsidePress stops presses outside the layer from calling OnDismiss;
+// Esc still does. A destructive confirmation uses it so a stray click on the
+// scrim cannot cancel it. A modal layer still blocks the press.
+func (l *Layer) KeepOnOutsidePress() *Layer { l.keepOnOutside = true; return l }
 func (l *Layer) Scrim(on bool) *Layer       { l.scrim = on; return l }
 
 type overlayDecl struct {
@@ -217,7 +223,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 			}
 			p := ev.(pointer.Event).Position
 			pos := image.Pt(int(p.X), int(p.Y))
-			if !pos.In(st.bounds) && (d.layer.modal || !pos.In(st.anchor)) {
+			if !d.layer.keepOnOutside && !pos.In(st.bounds) && (d.layer.modal || !pos.In(st.anchor)) {
 				r.dismissLayer(st, d.layer)
 			}
 		}

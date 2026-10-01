@@ -27,3 +27,8 @@
 | [Tooltip](../../docs/kit/tooltip.md) | 悬停或聚焦时的提示 |
 | [HoverCard](../../docs/kit/hover_card.md) | 悬停预览卡片 |
 | [Menu](../../docs/kit/menu.md) | 命令菜单与子菜单 |
+| [DropdownButton](../../docs/kit/dropdown_button.md) | 带菜单的按钮、分体按钮 |
+| [Dialog](../../docs/kit/dialog.md) | 模态对话框、确认框 |
+| [Sheet](../../docs/kit/sheet.md) | 贴边滑入的模态面板 |
+| [Notifier](../../docs/kit/notifier.md) | 右上角通知栈 |
+| [CopyButton](../../docs/kit/copy_button.md) | 复制并显示反馈 |

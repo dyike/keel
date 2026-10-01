@@ -128,7 +128,8 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `image` | `widget.Image`、Markdown 图片 | `value` 是 loading / loaded / error，名字是替代文字 |
 | `footnotes` | Markdown 脚注 | 引用和返回链接单独列出 |
 | `progressbar` | `widget.Progress` | `value` 是百分比或 indeterminate |
-| `dialog` | 打开的 `widget.Dialog`、`kit.Popover`、`kit.HoverCard` 的面板 | 它里面的文字和按钮单独列出 |
+| `dialog` | 打开的 `widget.Dialog`、`kit.Dialog`、`kit.Sheet`、`kit.Popover`、`kit.HoverCard` 的面板 | 它里面的文字和按钮单独列出 |
+| `alertdialog` | `kit.Dialog` 的 `ConfirmDanger` 和 `Persistent()` | 点遮罩不关闭，Esc 等于取消；里面的元素单独列出 |
 | `tooltip` | `kit.WithTooltip` 的提示 | 名字是提示文字 |
 | `menu` | 打开的 `kit.Menu` | 菜单项单独列出 |
 | `menuitem` | 菜单项 | 有子菜单时 `value` 为 submenu；支持 `disabled` |
@@ -136,6 +137,8 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `code` | Markdown 代码块 | 名字是语言；里面的代码文字和"复制"按钮单独列出 |
 
 组件通过 `core.Role` 或 el 的 `Role` 声明的其他角色会原样列出，不需要在自动化代码里登记，只需补进上表。默认情况下，一个元素会吸收它内部的文字；如果子元素需要单独列出（对话框、菜单这类容器），把角色加入 `ui/window/automation.go` 的 `containerRoles`。
+
+自动化模式下（设置了 `KEEL_AUTOMATION`），应用启动时默认开启"减少动画"：Sheet 这类滑入的浮层直接出现在最终位置，Agent 读到的坐标就是点击的坐标。应用可以自己用 `theme.SetReducedMotion(false)` 改回。
 
 元素列表只包含看得见的部分：滚出视野的表格行、页面内容不会列出，部分可见的元素按可见部分报告位置。要看更多行，先 `scroll`。
 

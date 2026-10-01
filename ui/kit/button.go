@@ -20,7 +20,7 @@ const (
 
 // ButtonView is an action with pointer and keyboard activation.
 type ButtonView struct {
-	id                string
+	id, name          string
 	text              string
 	onClick           func()
 	variant           ButtonVariant
@@ -48,7 +48,10 @@ func (v *ButtonView) Size(dp float32) *ButtonView {
 }
 
 // ID names the button for el: cx.Focus, cx.Hovered and anchored layers.
-func (v *ButtonView) ID(id string) *ButtonView       { v.id = id; return v }
+func (v *ButtonView) ID(id string) *ButtonView { v.id = id; return v }
+
+// Name sets the accessible name; icon-only buttons need one.
+func (v *ButtonView) Name(s string) *ButtonView      { v.name = s; return v }
 func (v *ButtonView) Icon(name IconName) *ButtonView { v.icon = Icon(name); return v }
 func (v *ButtonView) Loading(on bool) *ButtonView    { v.SetLoading(on); return v }
 func (v *ButtonView) SetText(s string)               { v.text = s }
@@ -87,7 +90,11 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 	} else if v.height >= 40 {
 		font, iconSize, padding = 16, 20, 22
 	}
-	box := el.Div().ID(v.id).Role("button").Name(v.text).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(6).Items(el.Center).Justify(el.Center).
+	name := v.name
+	if name == "" {
+		name = v.text
+	}
+	box := el.Div().ID(v.id).Role("button").Name(name).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(6).Items(el.Center).Justify(el.Center).
 		Rounded(6).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
 		Disabled(v.disabled).
 		DisabledStyle(func(s *el.Style) { s.Bg(bg).TextColor(fg) }).

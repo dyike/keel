@@ -61,3 +61,13 @@ func TestFocusWithin(t *testing.T) {
 		t.Fatalf("focus within: wrap=%v other=%v", inside, outside)
 	}
 }
+
+func TestZeroSizeAnchor(t *testing.T) {
+	h := uitest.New(Root(ViewFunc(func(cx *Context) Element {
+		cx.Overlay("toasts", Anchored("corner", Div().Name("toasts").W(Dp(100)).H(Dp(40))).Placement(Bottom, End).Offset(0))
+		return Div().Child(Div().ID("corner").Absolute().Top(16).Right(16).Size(Dp(0)))
+	})))
+	if b := nodeBounds(h, "toasts"); b.Min != image.Pt(284, 16) {
+		t.Fatalf("toasts at %v, want (284,16)", b.Min)
+	}
+}

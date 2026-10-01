@@ -68,8 +68,9 @@ func (e *engine) paint(n *Node) {
 		return
 	}
 	if n.id != "" && e.anchors != nil {
-		b := abs.Intersect(e.visible)
-		if !b.Empty() {
+		// A zero-size element anchors at its position: a notification
+		// corner, the point a context menu opens at.
+		if !abs.Intersect(e.visible).Empty() || abs.Empty() && abs.Min.In(e.visible) {
 			if _, found := e.anchors[n.id]; !found {
 				e.anchors[n.id] = abs
 			}

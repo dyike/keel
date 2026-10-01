@@ -43,6 +43,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/dyike/keel/ui/internal/loop"
+	"github.com/dyike/keel/ui/theme"
 )
 
 var auto struct {
@@ -63,6 +64,11 @@ func init() {
 		auto.addr = filepath.Join(SocketDir(), fmt.Sprintf("%s-%d.sock", name, os.Getpid()))
 	default:
 		auto.addr = v
+	}
+	if auto.addr != "" {
+		// Agents act on what a snapshot reports, so nothing may still be
+		// sliding into place; the app can turn motion back on.
+		theme.ReducedMotion = true
 	}
 }
 
