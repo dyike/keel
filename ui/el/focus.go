@@ -43,6 +43,50 @@ func (s *Styled[T]) FocusStyle(fn func(*Style)) *T { s.n.focus = fn; return s.se
 
 func (s *Styled[T]) Disabled(v bool) *T               { s.n.disabled = v; return s.self }
 func (s *Styled[T]) DisabledStyle(fn func(*Style)) *T { s.n.disabledStyle = fn; return s.self }
+
+// FocusWithin reports whether the element with id, or anything inside it,
+// had focus in the last painted frame. Tooltips use it for keyboard focus.
+func (cx *Context) FocusWithin(id string) bool {
+	if id == "" {
+		return false
+	}
+	r := cx.root
+	var find func(*Node) *Node
+	find = func(n *Node) *Node {
+		if n == nil || n.style.hidden {
+			return nil
+		}
+		if n.id == id {
+			return n
+		}
+		for _, c := range n.children {
+			if f := find(c.node()); f != nil {
+				return f
+			}
+		}
+		return nil
+	}
+	n := find(r.mainTree)
+	for _, st := range r.layers {
+		if n == nil {
+			n = find(st.tree)
+		}
+	}
+	var focused func(*Node) bool
+	focused = func(n *Node) bool {
+		if st := r.store.states[n.key]; st != nil && !st.disabled && (r.source.Focused(st) || r.source.Focused(&st.editor)) {
+			return true
+		}
+		for _, c := range n.children {
+			if focused(c.node()) {
+				return true
+			}
+		}
+		return false
+	}
+	return n != nil && focused(n)
+}
+
 func (cx *Context) Focused(id string) bool {
 	if id == "" {
 		return false

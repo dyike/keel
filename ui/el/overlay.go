@@ -32,6 +32,7 @@ type Layer struct {
 	offset                       float32
 	matchWidth                   bool
 	modal, centered, trap, scrim bool
+	edge                         bool // a Modal placed against a root edge
 	dismiss                      func()
 }
 
@@ -41,13 +42,20 @@ func Anchored(anchorID string, content Element) *Layer {
 func Modal(content Element) *Layer {
 	return &Layer{content: content, modal: true, centered: true, trap: true, scrim: true}
 }
-func (l *Layer) Placement(side Side, align Align) *Layer { l.side, l.align = side, align; return l }
-func (l *Layer) Offset(dp float32) *Layer                { l.offset = dp; return l }
-func (l *Layer) MatchAnchorWidth() *Layer                { l.matchWidth = true; return l }
-func (l *Layer) Modal() *Layer                           { l.modal = true; return l }
-func (l *Layer) TrapFocus() *Layer                       { l.trap = true; return l }
-func (l *Layer) OnDismiss(fn func()) *Layer              { l.dismiss = fn; return l }
-func (l *Layer) Scrim(on bool) *Layer                    { l.scrim = on; return l }
+
+// Placement places an Anchored layer at side of its anchor. On a Modal it
+// places the content against that edge of the root instead of centering it,
+// e.g. a sheet: Modal(panel).Placement(Right, Start).
+func (l *Layer) Placement(side Side, align Align) *Layer {
+	l.side, l.align, l.edge = side, align, l.centered
+	return l
+}
+func (l *Layer) Offset(dp float32) *Layer   { l.offset = dp; return l }
+func (l *Layer) MatchAnchorWidth() *Layer   { l.matchWidth = true; return l }
+func (l *Layer) Modal() *Layer              { l.modal = true; return l }
+func (l *Layer) TrapFocus() *Layer          { l.trap = true; return l }
+func (l *Layer) OnDismiss(fn func()) *Layer { l.dismiss = fn; return l }
+func (l *Layer) Scrim(on bool) *Layer       { l.scrim = on; return l }
 
 type overlayDecl struct {
 	eligible bool
@@ -178,10 +186,11 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 	if !r.e.gtx.Enabled() {
 		return
 	}
-	// Only the previously painted top layer can receive Escape this frame.
+	// Escape goes to the topmost painted layer that handles dismissal, so a
+	// notification stack above a dialog does not swallow it.
 	for i := len(cx.layers) - 1; i >= 0; i-- {
 		d := cx.layers[i]
-		if !d.state.active {
+		if !d.state.active || d.layer.dismiss == nil {
 			continue
 		}
 		for {
@@ -286,7 +295,21 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 		}
 		r.e.layout(n, maxSize.X, maxSize.Y, base)
 		r.e.place(n)
-		if l.centered {
+		if l.edge {
+			n.pos = layerPosition(image.Rectangle{Max: maxSize}, n.size, maxSize, l.side, l.align, 0)
+			// Inside the root rectangle: Bottom/Right mean against that edge.
+			switch l.side {
+			case Bottom:
+				n.pos.Y = maxSize.Y - n.size.Y
+			case Top:
+				n.pos.Y = 0
+			case Left:
+				n.pos.X = 0
+			case Right:
+				n.pos.X = maxSize.X - n.size.X
+			}
+			n.pos = image.Pt(max(0, n.pos.X), max(0, n.pos.Y))
+		} else if l.centered {
 			n.pos = image.Pt(max(0, (maxSize.X-n.size.X)/2), max(0, (maxSize.Y-n.size.Y)/2))
 		} else {
 			n.pos = layerPosition(anchor, n.size, maxSize, l.side, l.align, r.e.dp(l.offset))
