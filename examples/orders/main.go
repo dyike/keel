@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/theme"
 	"github.com/dyike/keel/ui/widget"
 	"github.com/dyike/keel/ui/window"
@@ -37,7 +38,7 @@ type desk struct {
 
 	filter *widget.SelectBox
 	table  *widget.TableView
-	dlg    *widget.DialogBox
+	dlg    *kit.DialogView
 
 	// New order form.
 	customer, amount, formMsg string
@@ -47,7 +48,7 @@ type desk struct {
 }
 
 func newDesk() *desk {
-	d := &desk{dlg: widget.Dialog()}
+	d := &desk{dlg: kit.Dialog("")}
 	customers := []string{"华东物流", "北京百货", "深圳电子", "成都餐饮", "杭州茶业", "上海文具"}
 	for i := range 36 {
 		d.orders = append(d.orders, order{
@@ -109,6 +110,7 @@ func (d *desk) Render(cx *el.Context) el.Element {
 			el.Div().H(el.Dp(1)).Bg(theme.Border),
 		),
 		pages[d.tab](),
+		d.dlg.Render(cx),
 	)
 }
 
@@ -263,6 +265,6 @@ func main() {
 		}
 		return
 	}
-	window.Open(window.Options{Title: "订单管理", Width: 760, Height: 600, Content: root, Overlay: d.dlg})
+	window.Open(window.Options{Title: "订单管理", Width: 760, Height: 600, Content: root})
 	window.Main()
 }

@@ -18,7 +18,8 @@ import (
 )
 
 // DialogBox shows a modal message over the whole window: the window dims and
-// ignores clicks until a button is pressed. Enter confirms, Esc cancels.
+// ignores clicks until a button is pressed. New code uses kit.Dialog, which
+// needs no window.Options.Overlay. Enter confirms, Esc cancels.
 //
 // Put one in window.Options.Overlay, then call Confirm or Alert from any
 // callback:

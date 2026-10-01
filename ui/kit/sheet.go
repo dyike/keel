@@ -55,7 +55,7 @@ func (v *SheetView) close() {
 func (v *SheetView) Render(cx *el.Context) el.Element {
 	if !v.open {
 		v.openedAt = time.Time{}
-		return el.Div()
+		return el.Div().Hidden(true)
 	}
 	if v.openedAt.IsZero() {
 		v.openedAt = cx.Now()
@@ -89,5 +89,5 @@ func (v *SheetView) Render(cx *el.Context) el.Element {
 		})
 	}
 	cx.Overlay(autoID("sheet", v), el.Modal(panel).Placement(v.side, el.Start).OnDismiss(v.close))
-	return el.Div()
+	return el.Div().Hidden(true) // the layer is declared; nothing takes space here
 }

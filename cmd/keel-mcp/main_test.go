@@ -218,7 +218,7 @@ func TestOrders(t *testing.T) {
 	expect(t, call("press_key", map[string]any{"key": "enter"}), `dialog "SO-1021"`, "深圳电子 · 待付款")
 	call("click", map[string]any{"text": "确定"})
 
-	expect(t, call("click", map[string]any{"text": "删除所选"}), `dialog "删除订单"`, `button "删除"`)
+	expect(t, call("click", map[string]any{"text": "删除所选"}), `alertdialog "删除订单"`, `button "删除"`)
 	if got := call("press_key", map[string]any{"key": "esc"}); strings.Contains(got, "dialog") {
 		t.Fatalf("Esc left the dialog open:\n%s", got)
 	}

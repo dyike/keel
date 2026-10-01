@@ -106,7 +106,7 @@ func (v *DialogView) message(title, message, okText string, variant ButtonVarian
 func (v *DialogView) Render(cx *el.Context) el.Element {
 	if !v.open {
 		v.opened = false
-		return el.Div()
+		return el.Div().Hidden(true)
 	}
 	role := "dialog"
 	if v.alert {
@@ -135,5 +135,5 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 		cx.Focus(v.focus)
 	}
 	v.opened = true
-	return el.Div()
+	return el.Div().Hidden(true) // the layer is declared; nothing takes space here
 }
