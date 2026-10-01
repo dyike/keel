@@ -30,3 +30,5 @@ kit.Button("创建", func() {
 Agent：容器角色 `form`，行标签是 `text`，控件以行标签为名字。
 
 验证：`go run ./examples/components -section form`，加 `-theme dark` 检查深色。
+
+所有非 nil 校验函数都会执行，包括 Checkbox 等未实现 Validatable 的控件；Validatable 只决定是否显示控件内错误及聚焦能力。Required 将 Unicode 空白（含全角空格）视为空值。

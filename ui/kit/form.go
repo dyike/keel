@@ -3,6 +3,7 @@ package kit
 import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
+	"strings"
 )
 
 // Validatable is a control that can show a validation error and be focused:
@@ -56,14 +57,18 @@ func (v *FormView) Validate(cx *el.Context) bool {
 	ok := true
 	for _, f := range v.fields {
 		c, can := f.control.(Validatable)
-		if f.validate == nil || !can {
+		if f.validate == nil {
 			continue
 		}
 		msg := f.validate()
-		c.SetError(msg)
+		if can {
+			c.SetError(msg)
+		}
 		if msg != "" && ok {
 			ok = false
-			cx.Focus(c.FocusID())
+			if can {
+				cx.Focus(c.FocusID())
+			}
 		}
 	}
 	return ok
@@ -71,12 +76,10 @@ func (v *FormView) Validate(cx *el.Context) bool {
 
 // Required returns msg when s is empty or blank, else "".
 func Required(s, msg string) string {
-	for _, r := range s {
-		if r != ' ' && r != '\t' && r != '\n' {
-			return ""
-		}
+	if strings.TrimSpace(s) == "" {
+		return msg
 	}
-	return msg
+	return ""
 }
 
 func (v *FormView) Render(cx *el.Context) el.Element {
