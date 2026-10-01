@@ -128,7 +128,10 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `image` | `widget.Image`、Markdown 图片 | `value` 是 loading / loaded / error，名字是替代文字 |
 | `footnotes` | Markdown 脚注 | 引用和返回链接单独列出 |
 | `progressbar` | `widget.Progress` | `value` 是百分比或 indeterminate |
-| `dialog` | 打开的 `widget.Dialog` | 它里面的文字和按钮单独列出 |
+| `dialog` | 打开的 `widget.Dialog`、`kit.Popover`、`kit.HoverCard` 的面板 | 它里面的文字和按钮单独列出 |
+| `tooltip` | `kit.WithTooltip` 的提示 | 名字是提示文字 |
+| `menu` | 打开的 `kit.Menu` | 菜单项单独列出 |
+| `menuitem` | 菜单项 | 有子菜单时 `value` 为 submenu；支持 `disabled` |
 | `link` | Markdown 段落里的链接、`widget.Link` | `value` 是网址 |
 | `code` | Markdown 代码块 | 名字是语言；里面的代码文字和"复制"按钮单独列出 |
 

@@ -59,6 +59,12 @@ func (h *Harness) Click(x, y float32) {
 	h.Frame()
 }
 
+// Move moves the pointer to (x, y) without pressing, then renders.
+func (h *Harness) Move(x, y float32) {
+	h.Router.Queue(pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: f32.Pt(x, y)})
+	h.Frame()
+}
+
 // Drag presses at (x0, y0), moves to (x1, y1) and releases, then renders.
 func (h *Harness) Drag(x0, y0, x1, y1 float32) {
 	a, b := f32.Pt(x0, y0), f32.Pt(x1, y1)
