@@ -23,7 +23,7 @@
 | `kbd.go` | `Kbd` / `KbdView`：平台快捷键、尺寸、无边框样式 |
 | `badge.go` | `Badge`：数字、上限、圆点、图标、颜色和固定占位角标 |
 | `toggle.go` | `Toggle` / `ToggleView`：尺寸、图标、Ghost、选中、禁用与键盘 |
-| `toggle_group.go` | `ToggleGroup`：单选/多选、禁用项与方向键导航 |
+| `toggle_group.go` | `ToggleGroup`：单选/多选、Value/SetValue、禁用项与方向键导航 |
 | `draw.go` | 内部绘图小工具 |
 
 - **依赖**：`core`、`theme`、`layout`；输入框绘制共用内部的 `ui/internal/editorstyle`。

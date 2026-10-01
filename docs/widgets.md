@@ -326,4 +326,4 @@ layout.Row(widget.Heading("新功能"), badge)
 - [多行输入自动高度](widgets/textarea.md)
 - [标签关联](widgets/label.md)
 - [状态按钮](widgets/toggle.md)
-- [状态按钮组](widgets/toggle_group.md)
+- [状态按钮组](widgets/toggle_group.md)：统一使用 `Value() []string`、`SetValue([]string)`、`OnChange`、`SetDisabled`；兼容 `Values` / `SetValues`。

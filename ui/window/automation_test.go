@@ -368,3 +368,28 @@ func TestAutomationDisabledAccordionContent(t *testing.T) {
 		t.Fatal("accordion did not recover")
 	}
 }
+
+func TestAutomationDisabledToggleGroup(t *testing.T) {
+	g := widget.ToggleGroup("左", "右")
+	w := openTest(t, Options{Content: g})
+	g.SetDisabled(true)
+	for _, e := range w.snapshot() {
+		if e.Role == "toggle" && !e.Disabled {
+			t.Fatalf("missing disabled toggle group: %+v", e)
+		}
+	}
+	w.click(element(t, w, "右").center())
+	w.press("space")
+	if len(g.Value()) != 0 {
+		t.Fatal("disabled group selected")
+	}
+	g.SetDisabled(false)
+	e := element(t, w, "右")
+	if e.Disabled {
+		t.Fatal("group remained disabled")
+	}
+	w.click(e.center())
+	if len(g.Value()) != 1 || g.Value()[0] != "右" {
+		t.Fatal("group did not recover")
+	}
+}

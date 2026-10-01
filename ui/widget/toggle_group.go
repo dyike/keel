@@ -75,6 +75,12 @@ func (g *ToggleGroupView) Values() []string {
 	return out
 }
 
+// Value is the common value API; Values remains available for compatibility.
+func (g *ToggleGroupView) Value() []string { return g.Values() }
+
+// SetValue replaces the selection without calling OnChange.
+func (g *ToggleGroupView) SetValue(values []string) { g.SetValues(values...) }
+
 // SetValues ignores unknown values and updates silently. Single mode selects
 // the first matching item in display order.
 func (g *ToggleGroupView) SetValues(values ...string) {
