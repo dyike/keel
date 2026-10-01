@@ -124,12 +124,6 @@ func TestBadgeVisibilityAndChildInteraction(t *testing.T) {
 	if clicks != 2 {
 		t.Fatal("hidden badge blocked child")
 	}
-	var plain, hidden image.Point
-	uitest.NewFunc(func(gtx core.C) { plain = child.Layout(gtx).Size })
-	uitest.NewFunc(func(gtx core.C) { hidden = badge.Layout(gtx).Size })
-	if hidden != plain {
-		t.Fatalf("hidden badge reserves space: %v != %v", hidden, plain)
-	}
 	empty := Badge(-1)
 	var dims core.D
 	uitest.NewFunc(func(gtx core.C) { dims = empty.Layout(gtx) })
@@ -156,6 +150,34 @@ func TestBadgeVisibilityAndChildInteraction(t *testing.T) {
 				if bounds := namedBounds(h, name); !bounds.Empty() && !bounds.In(image.Rectangle{Max: dims.Size}) {
 					t.Fatalf("%s exceeds allocation %v: %v", name, dims.Size, bounds)
 				}
+			}
+		}
+	}
+}
+
+func TestBadgeChildLayoutStable(t *testing.T) {
+	for _, scale := range []float32{1, 2} {
+		for _, size := range []ComponentSize{Small, Medium, Large} {
+			for _, mode := range []string{"count", "dot", "icon"} {
+				t.Run(fmt.Sprintf("%s/%d/%gx", mode, size, scale), func(t *testing.T) {
+					b := Badge(0).Size(size).Child(Button("通知", nil))
+					if mode == "dot" {
+						b.Dot()
+					}
+					if mode == "icon" {
+						b.Icon(Icon(IconCheck))
+					}
+					var d core.D
+					h := uitest.NewFunc(func(gtx core.C) { gtx.Metric = unit.Metric{PxPerDp: scale, PxPerSp: scale}; d = b.Layout(gtx) })
+					want, bounds := d, namedBounds(h, "通知")
+					for _, count := range []int{1, 10, 150, 0} {
+						b.SetCount(count)
+						h.Frame()
+						if d != want || namedBounds(h, "通知") != bounds {
+							t.Fatalf("count %d changed layout: %v vs %v", count, d, want)
+						}
+					}
+				})
 			}
 		}
 	}

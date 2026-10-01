@@ -303,6 +303,8 @@ layout.Row(widget.Heading("新功能"), badge)
 
 ## 分组件功能与验证
 
+`Badge` 设置 `Child` 后始终为角标预留固定空间，计数变化不会改变布局。
+
 `Kbd(...)` 返回 `*KbdView`，`Toggle(...)` 返回 `*ToggleView`；组件构造函数与返回类型使用同一名称。
 
 - [图标](widgets/icon.md)

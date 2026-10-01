@@ -52,13 +52,50 @@ func (b *BadgeView) label() string {
 }
 func (b *BadgeView) Layout(gtx C) D {
 	gtx.Constraints.Min = image.Point{}
-	if b.count <= 0 {
-		if b.child != nil {
-			return b.child.Layout(gtx)
+	if b.child == nil {
+		if b.count <= 0 {
+			return D{}
 		}
-		return D{}
+		return b.layoutBadge(gtx)
 	}
+	// Decorations never change the child's allocation. Wider counts extend
+	// left over the child instead of moving its right edge or its siblings.
+	overhang := (b.height(gtx) + 1) / 2
+	pad := image.Pt(min(overhang, gtx.Constraints.Max.X), min(overhang, gtx.Constraints.Max.Y/2))
+	cg := gtx
+	cg.Constraints.Max = cg.Constraints.Max.Sub(image.Pt(pad.X, 2*pad.Y))
+	shift := op.Offset(image.Pt(0, pad.Y)).Push(gtx.Ops)
+	child := b.child.Layout(cg)
+	shift.Pop()
+	size := gtx.Constraints.Constrain(child.Size.Add(image.Pt(pad.X, 2*pad.Y)))
+	if b.count > 0 {
+		bg := gtx
+		bg.Constraints.Max = size
+		rec := op.Record(gtx.Ops)
+		badge := b.layoutBadge(bg)
+		call := rec.Stop()
+		shift := op.Offset(image.Pt(size.X-badge.Size.X, 0)).Push(gtx.Ops)
+		call.Add(gtx.Ops)
+		shift.Pop()
+	}
+	return D{Size: size, Baseline: child.Baseline + size.Y - pad.Y - child.Size.Y}
+}
+
+// height depends only on size and dot mode, never on the count or visibility.
+func (b *BadgeView) height(gtx C) int {
+	textSize, _, iconSize := b.size.metrics()
+	if b.dot {
+		return gtx.Dp(iconSize / 2)
+	}
+	probe := gtx
+	probe.Constraints = giolayout.Constraints{Max: image.Pt(1<<20, 1<<20)}
 	rec := op.Record(gtx.Ops)
+	d := material.Label(theme.Material, textSize-2, "0").Layout(probe)
+	rec.Stop() // Measurement only: do not replay its paint or semantics.
+	return d.Size.Y + gtx.Dp(4)
+}
+
+func (b *BadgeView) layoutBadge(gtx C) D {
 	bg, fg := theme.Danger, theme.OnColor
 	if b.background != nil {
 		bg = *b.background
@@ -68,7 +105,7 @@ func (b *BadgeView) Layout(gtx C) D {
 	}
 	textSize, _, iconSize := b.size.metrics()
 	textSize -= 2
-	badge := core.Semantic(gtx, func(gtx C) D {
+	return core.Semantic(gtx, func(gtx C) D {
 		return giolayout.Background{}.Layout(gtx, func(gtx C) D {
 			s := gtx.Constraints.Min
 			fillRounded(gtx, bg, s.X, s.Y, s.Y/2)
@@ -79,7 +116,10 @@ func (b *BadgeView) Layout(gtx C) D {
 				return D{Size: gtx.Constraints.Constrain(image.Pt(gtx.Dp(dp), gtx.Dp(dp)))}
 			}
 			if b.icon != nil {
-				return giolayout.UniformInset(2).Layout(gtx, func(gtx C) D { ic := *b.icon; ic.size = iconSize; ic.color = &fg; return ic.Layout(gtx) })
+				gtx.Constraints.Min.Y = min(b.height(gtx), gtx.Constraints.Max.Y)
+				return giolayout.Center.Layout(gtx, func(gtx C) D {
+					return giolayout.UniformInset(2).Layout(gtx, func(gtx C) D { ic := *b.icon; ic.size = iconSize; ic.color = &fg; return ic.Layout(gtx) })
+				})
 			}
 			return giolayout.Inset{Left: 6, Right: 6, Top: 2, Bottom: 2}.Layout(gtx, func(gtx C) D {
 				st := material.Label(theme.Material, textSize, b.label())
@@ -88,27 +128,6 @@ func (b *BadgeView) Layout(gtx C) D {
 			})
 		})
 	}, semantic.LabelOp(strconv.Itoa(b.count)))
-	call := rec.Stop()
-	if b.child == nil {
-		call.Add(gtx.Ops)
-		return badge
-	}
-	// Reserve the vertical overhang on both sides. Row centers the wrapper's
-	// bounds, so an asymmetric top inset would push the child below its peers.
-	pad := image.Pt((badge.Size.X+1)/2, (badge.Size.Y+1)/2)
-	cg := gtx
-	cg.Constraints.Max.X = max(0, cg.Constraints.Max.X-pad.X)
-	// Shrink the reserve as well when the parent's height is very small.
-	pad.Y = min(pad.Y, cg.Constraints.Max.Y/2)
-	cg.Constraints.Max.Y = max(0, cg.Constraints.Max.Y-2*pad.Y)
-	shift := op.Offset(image.Pt(0, pad.Y)).Push(gtx.Ops)
-	child := b.child.Layout(cg)
-	shift.Pop()
-	size := gtx.Constraints.Constrain(image.Pt(max(child.Size.X+pad.X, badge.Size.X), max(child.Size.Y+2*pad.Y, badge.Size.Y)))
-	shift = op.Offset(image.Pt(max(0, size.X-badge.Size.X), 0)).Push(gtx.Ops)
-	call.Add(gtx.Ops)
-	shift.Pop()
-	return D{Size: size, Baseline: child.Baseline + size.Y - pad.Y - child.Size.Y}
 }
 
 // Counts use the actual numeric glyph bounds. The general label's CJK/Latin
