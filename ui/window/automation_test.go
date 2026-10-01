@@ -393,3 +393,36 @@ func TestAutomationDisabledToggleGroup(t *testing.T) {
 		t.Fatal("group did not recover")
 	}
 }
+
+func TestAutomationDisabledFields(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		new  func(string) *widget.Field
+	}{{"Input", widget.Input}, {"TextArea", widget.TextArea}} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := tc.new("名称")
+			w := openTest(t, Options{Content: f})
+			f.SetDisabled(true)
+			e := element(t, w, "名称")
+			if !e.Disabled {
+				t.Fatalf("missing disabled field: %+v", e)
+			}
+			w.click(e.center())
+			w.typeText("禁止")
+			w.press("enter")
+			if f.Value() != "" {
+				t.Fatal("disabled field edited")
+			}
+			f.SetDisabled(false)
+			e = element(t, w, "名称")
+			if e.Disabled {
+				t.Fatal("field remained disabled")
+			}
+			w.click(e.center())
+			w.typeText("恢复")
+			if f.Value() != "恢复" {
+				t.Fatal("field did not recover")
+			}
+		})
+	}
+}

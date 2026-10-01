@@ -1,6 +1,8 @@
 package widget
 
 import (
+	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/uitest"
 	"reflect"
 	"testing"
@@ -40,5 +42,45 @@ func TestInputAdornmentsClearFocusAndReadOnly(t *testing.T) {
 	h.Type("y")
 	if f.Value() != "再试" {
 		t.Fatal("disabled field changed")
+	}
+}
+
+func TestFieldDisabledFocusAndRecovery(t *testing.T) {
+	for _, makeField := range []struct {
+		name string
+		new  func(string) *Field
+	}{{"Input", Input}, {"TextArea", TextArea}} {
+		t.Run(makeField.name, func(t *testing.T) {
+			changes, submits := 0, 0
+			f := makeField.new("名称").OnChange(func(string) { changes++ }).OnSubmit(func(string) { submits++ })
+			f.SetValue("原文")
+			h := uitest.NewFunc(func(gtx core.C) {
+				if f.disabled {
+					gtx.Execute(key.FocusCmd{Tag: &f.editor})
+				}
+				f.Layout(gtx)
+			})
+			if changes != 0 {
+				t.Fatal("setter notified")
+			}
+			clickNamed(t, h, "名称")
+			f.SetDisabled(true)
+			h.Frame()
+			clickNamed(t, h, "名称")
+			h.Type("禁止")
+			h.Key(key.NameDeleteBackward, 0)
+			h.Key(key.NameReturn, 0)
+			if f.Value() != "原文" || changes != 0 || submits != 0 || h.Router.Source().Focused(&f.editor) {
+				t.Fatal("disabled field edited, submitted or focused")
+			}
+			f.SetValue("")
+			f.SetDisabled(false)
+			h.Frame()
+			clickNamed(t, h, "名称")
+			h.Type("恢复")
+			if f.Value() != "恢复" || changes != 1 {
+				t.Fatalf("field did not recover: %q, callbacks %d", f.Value(), changes)
+			}
+		})
 	}
 }
