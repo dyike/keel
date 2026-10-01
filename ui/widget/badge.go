@@ -8,9 +8,11 @@ import (
 	"gioui.org/io/semantic"
 	giolayout "gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/text"
 	"gioui.org/widget/material"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
+	"golang.org/x/image/math/fixed"
 )
 
 // BadgeView displays a count or dot, optionally above a child's top right corner.
@@ -82,7 +84,7 @@ func (b *BadgeView) Layout(gtx C) D {
 			return giolayout.Inset{Left: 6, Right: 6, Top: 2, Bottom: 2}.Layout(gtx, func(gtx C) D {
 				st := material.Label(theme.Material, textSize, b.label())
 				st.Color = fg
-				return layoutLabel(gtx, st)
+				return layoutBadgeCount(gtx, st)
 			})
 		})
 	}, semantic.LabelOp(strconv.Itoa(b.count)))
@@ -91,17 +93,42 @@ func (b *BadgeView) Layout(gtx C) D {
 		call.Add(gtx.Ops)
 		return badge
 	}
-	// Reserve space for the overhang so a parent's clip cannot cut off the badge.
+	// Reserve the vertical overhang on both sides. Row centers the wrapper's
+	// bounds, so an asymmetric top inset would push the child below its peers.
 	pad := image.Pt((badge.Size.X+1)/2, (badge.Size.Y+1)/2)
 	cg := gtx
 	cg.Constraints.Max.X = max(0, cg.Constraints.Max.X-pad.X)
-	cg.Constraints.Max.Y = max(0, cg.Constraints.Max.Y-pad.Y)
+	// Shrink the reserve as well when the parent's height is very small.
+	pad.Y = min(pad.Y, cg.Constraints.Max.Y/2)
+	cg.Constraints.Max.Y = max(0, cg.Constraints.Max.Y-2*pad.Y)
 	shift := op.Offset(image.Pt(0, pad.Y)).Push(gtx.Ops)
 	child := b.child.Layout(cg)
 	shift.Pop()
-	size := gtx.Constraints.Constrain(image.Pt(max(child.Size.X+pad.X, badge.Size.X), max(child.Size.Y+pad.Y, badge.Size.Y)))
+	size := gtx.Constraints.Constrain(image.Pt(max(child.Size.X+pad.X, badge.Size.X), max(child.Size.Y+2*pad.Y, badge.Size.Y)))
 	shift = op.Offset(image.Pt(max(0, size.X-badge.Size.X), 0)).Push(gtx.Ops)
 	call.Add(gtx.Ops)
 	shift.Pop()
 	return D{Size: size, Baseline: child.Baseline + size.Y - pad.Y - child.Size.Y}
+}
+
+// Counts use the actual numeric glyph bounds. The general label's CJK/Latin
+// probe can have different ascent and descent from the face used for digits.
+func layoutBadgeCount(gtx C, st material.LabelStyle) D {
+	st.MaxLines = 1
+	rec := op.Record(gtx.Ops)
+	d := st.Layout(gtx)
+	call := rec.Stop()
+	st.Shaper.LayoutString(text.Parameters{Font: st.Font, PxPerEm: fixed.I(gtx.Sp(st.TextSize)), MaxWidth: gtx.Constraints.Max.X, MaxLines: 1}, st.Text)
+	var top, bottom int
+	for g, ok := st.Shaper.NextGlyph(); ok; g, ok = st.Shaper.NextGlyph() {
+		top = min(top, g.Bounds.Min.Y.Floor())
+		bottom = max(bottom, g.Bounds.Max.Y.Ceil())
+	}
+	baseline := d.Size.Y - d.Baseline
+	dy := (d.Size.Y - (2*baseline + top + bottom)) / 2
+	shift := op.Offset(image.Pt(0, dy)).Push(gtx.Ops)
+	call.Add(gtx.Ops)
+	shift.Pop()
+	d.Baseline -= dy
+	return d
 }
