@@ -10,7 +10,8 @@ github.com/dyike/keel
 │   ├── core/             地基：Widget 接口、回调、线程规则
 │   ├── theme/            颜色、字号、字体
 │   ├── layout/           摆放组件：Column、Row、Card …
-│   ├── widget/           交互组件：Button、Input、Checkbox …（一个组件一个文件）
+│   ├── kit/              基于 el 的新组件，M0 登记、M1 开始实现
+│   ├── widget/           旧组件（只修 bug）：Button、Input、Checkbox …（一个组件一个文件）
 │   ├── window/           窗口：Open、Main、快捷键、截图
 │   ├── el/               GPUI 风格：视图、链式样式元素、flexbox（新界面优先用它）
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
@@ -35,6 +36,7 @@ github.com/dyike/keel
 
 ```
 ui:
+  kit ───────► el、core、theme（不依赖 widget/layout/window）
   markdown ──► el ────┐
      │                │
      ▼                │
@@ -71,7 +73,8 @@ native:
 | `ui/core` | 所有界面模块都要遵守的接口和函数 | 任何具体组件、颜色 |
 | `ui/theme` | 可调的视觉参数 | 任何逻辑 |
 | `ui/layout` | 只摆放子组件的容器；`Frame` 绘制工具 | 用户回调 |
-| `ui/widget` | 有状态、能交互、会调用户回调的组件 | 窗口相关的东西 |
+| `ui/widget` | 旧组件的 bug 修复 | 新组件、新能力 |
+| `ui/kit` | 基于 el 的组件 | Gio 输入和浮层基础设施、窗口管理 |
 | `ui/window` | 与窗口绑定的东西：生命周期、快捷键、根视图、截图 | 具体组件 |
 | `ui/el` | 元素、样式、布局引擎、元素状态、视图 | 业务组件（它们在应用里写成函数或视图） |
 | `ui/internal/loop` | 跨窗口共享的可变状态：帧锁、更新队列 | 任何 Gio 类型 |
@@ -79,7 +82,7 @@ native:
 
 ### 什么时候新建模块
 
-先看它是不是现有模块的职责。是，就在那个模块里加文件：下拉框是交互组件，就是 `ui/widget/select.go`；网格是容器，就是 `ui/layout` 里的新文件。
+先看它是不是现有模块的职责。是，就在那个模块里加文件：新下拉框是 kit 组件，就是 `ui/kit/select.go`；网格是容器，就是 `ui/layout` 里的新文件。
 
 只有现有模块都装不下、而且它有自己清楚的职责时，才新建目录。例如剪贴板：不属于四个现有能力中的任何一个，也有只用它的场景，所以是新模块 `native/clipboard`。
 

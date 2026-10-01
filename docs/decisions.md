@@ -159,3 +159,26 @@ Gio 的好处：界面完全由 Go 绘制，组件只是普通 Go 结构体，�
 - **不做 HTML/CSS 渲染，也不内嵌 WebView。** 这是项目存在的理由。
 - **不模仿各平台原生控件外观。** 所有平台一套外观，维护成本最低。
 - **暂不实现 Windows、Linux 的 `native` 能力。** 当前只在 macOS 上用；接口已经按平台无关的方式设计，实现时只需要补 `sys_windows.go` 等文件。
+
+
+## 新组件基于 el，ui/widget 冻结
+
+**决定**：从 2026-10-01 起，`ui/widget` 只修 bug，不再增加组件或能力。新组件放在 `ui/kit`，基于 `ui/el` 实现。kit 直接依赖 `core`、`theme`、`el`，不依赖 `widget`、`layout`、`window`。这条决策取代前文“新组件放在 widget”和旧迁移顺序。
+
+**为什么**：焦点、键盘、禁用、定时与浮层需要由 el 统一提供。在 widget 中继续实现新组件，会在迁移时重复实现这些机制。
+
+**代价**：基础设施未完成前，相应的交互组件不能交付。过渡期两套组件并存，旧代码继续工作，新代码使用 kit。M0 只建立规则、模块边界和全局主题，组件从 M1 开始。
+
+| 阶段 | 工作与完成标准 |
+| --- | --- |
+| M0 | 组件规范、依赖登记、成功/警告/提示语义色、运行时浅深色切换；完成后 review |
+| M1 | Alert、Empty、Avatar、Tag 等展示组件；补焦点与按键、禁用、定时，再做 Spinner、Skeleton。焦点与按键接口完成后先 review，确认后继续依赖它们的组件 |
+| M2 | Popover、Tooltip、Menu、DropdownButton、Dialog、Sheet、Notification；订单示例的对话框改用 kit |
+| M3 | 迁移旧表单控件，再做 NumberInput、Combobox、Calendar、DatePicker、表单校验；订单示例的“新建订单”表单全部使用 kit |
+| M4 | 虚拟列表、Tree、kit 表格、Command，提取聊天消息组件；示例不再引用 ui/widget |
+| M5 | 应用外壳 |
+| M6 | 可视化；迁移完成后删除 ui/widget，并清理所有剩余依赖 |
+
+每个组件单独实现、验证、提交。提交前执行 `go build ./... && go vet ./ui/... && go test ./... -count=1`；不使用测试结果缓存，避免端到端测试启动的示例源码变化未被缓存检测到。具体要求见[kit 组件规范](kit.md)。
+
+暂不做代码编辑器、HTML 富文本、完整 TeX、局部主题覆盖、Kbd 动作绑定查询。这些能力需要各自的模型与接口，等有实际需求时单独决策。
