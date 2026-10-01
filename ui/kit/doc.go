@@ -1,3 +1,3 @@
-// Package kit will provide components built on ui/el.
-// M0 establishes its boundary; component implementations begin in M1.
+// Package kit provides components built on ui/el.
+// Views render element trees and resolve theme colors each frame.
 package kit

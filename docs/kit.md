@@ -36,3 +36,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 - `go build ./... && go vet ./ui/... && go test ./... -count=1` 全部通过，包括 `cmd/keel-mcp` 端到端测试。
 
 每个组件完成后单独提交，再开始下一个。迁移不删除仍有调用者的旧组件；所有组件和调用者迁完才删除 `ui/widget`。
+
+## 已实现组件
+
+- [Alert](kit/alert.md)：行内状态提示。
