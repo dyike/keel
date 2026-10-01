@@ -14,7 +14,7 @@ github.com/dyike/keel
 │   ├── window/           窗口：Open、Main、快捷键、截图
 │   ├── el/               GPUI 风格：视图、链式样式元素、flexbox（新界面优先用它）
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
-│   └── internal/         只给上面几个模块用：loop（帧锁）、uitest（测试工具）
+│   └── internal/         loop（帧锁）、editorstyle（共享输入绘制）、uitest（测试工具）
 ├── native/
 │   ├── permission/       权限检查与申请
 │   ├── screen/           显示器列表、截图
@@ -36,10 +36,14 @@ github.com/dyike/keel
 ```
 ui:
   markdown ──► el ────┐
-  window ─────────────┤
+     │                │
+     ▼                │
   widget ──► layout ──┼──► theme
+  window ─────────────┤
      │         │      │
      └─────────┴──────┴──► core
+
+  el、widget ──► internal/editorstyle
 
 native:
   permission ─┐
@@ -50,9 +54,11 @@ native:
 
 规则只有三条：
 
-1. **依赖只往下走。** 下层不知道上层存在：`core`、`theme` 不引用任何 Keel 模块；`layout` 不知道有 `widget`；`window` 只认 `core.Widget` 接口，不知道具体有哪些组件。
+1. **依赖只往下走。** 下层不知道上层存在：`core` 只依赖内部帧锁，`theme` 不引用任何 Keel 模块；`layout` 不知道有 `widget`；`window` 只认 `core.Widget` 接口，不知道具体有哪些组件。
 2. **同层之间不互相引用。** `widget` 和 `window` 互不引用；四个 `native` 模块互不引用。
 3. **`ui` 和 `native` 互不引用。** 不需要窗口的程序（后台截图、全局快捷键）只引用需要的 `native/*`，不会带进 Gio。
+
+`markdown` 复用 `el` 排版和 `widget` 图片组件，经 `widget` 间接依赖 `layout`。`el` 和 `widget` 共用 `internal/editorstyle` 的光标绘制；这个内部包只负责 Gio 输入绘制和字形测量，不依赖其他 Keel 模块。
 
 `cmd/keel-mcp` 不引用任何 Keel 包，也不引用 Gio：它只通过 socket 上的 JSON 协议驱动 `ui/window` 的自动化模式，见 [Agent 端到端测试](automation.md#原理)。
 
@@ -69,6 +75,7 @@ native:
 | `ui/window` | 与窗口绑定的东西：生命周期、快捷键、根视图、截图 | 具体组件 |
 | `ui/el` | 元素、样式、布局引擎、元素状态、视图 | 业务组件（它们在应用里写成函数或视图） |
 | `ui/internal/loop` | 跨窗口共享的可变状态：帧锁、更新队列 | 任何 Gio 类型 |
+| `ui/internal/editorstyle` | 两套输入框共用的光标绘制和字形测量 | 具体 Keel 组件、窗口和主题 |
 
 ### 什么时候新建模块
 

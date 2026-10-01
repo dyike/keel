@@ -2,7 +2,7 @@
 
 把 Markdown 渲染成 `ui/el` 元素，针对 AI 聊天的流式输出优化：普通文档只重新解析正在写的块；含脚注、引用定义或宏时共享整篇解析上下文，临时补全未闭合的语法，写完的块复用元素和布局。
 
-- **依赖**：`el`、`core`、`theme`、`widget`；第三方：goldmark（解析）、chroma（代码高亮）、Gio text.Shaper（字形排版）。
+- **依赖**：`el`、`core`、`theme`、`widget`，经这些模块间接依赖 `layout` 和 `ui/internal/editorstyle`；第三方：goldmark（解析）、chroma（代码高亮）、Gio text.Shaper（字形排版）。
 - **被谁依赖**：应用代码。
 
 | 文件 | 内容 |

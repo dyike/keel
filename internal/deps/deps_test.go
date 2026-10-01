@@ -13,19 +13,20 @@ const mod = "github.com/dyike/keel"
 // including indirect imports. Changing this table changes the architecture:
 // update the module READMEs and docs/architecture.md too.
 var allowed = map[string][]string{
-	"ui/core":             {"ui/internal/loop"},
-	"ui/theme":            {},
-	"ui/layout":           {"ui/core", "ui/theme", "ui/internal/loop"},
-	"ui/widget":           {"ui/core", "ui/theme", "ui/layout", "ui/internal/loop"},
-	"ui/window":           {"ui/core", "ui/theme", "ui/internal/loop"},
-	"ui/el":               {"ui/core", "ui/theme", "ui/internal/loop"},
-	"ui/markdown":         {"ui/el", "ui/core", "ui/theme", "ui/internal/loop"},
-	"native":              {},
-	"native/internal/sys": {"native"},
-	"native/permission":   {"native", "native/internal/sys"},
-	"native/screen":       {"native", "native/internal/sys"},
-	"native/input":        {"native", "native/internal/sys"},
-	"native/hotkey":       {"native", "native/internal/sys"},
+	"ui/core":                 {"ui/internal/loop"},
+	"ui/theme":                {},
+	"ui/layout":               {"ui/core", "ui/theme", "ui/internal/loop"},
+	"ui/widget":               {"ui/core", "ui/theme", "ui/layout", "ui/internal/loop", "ui/internal/editorstyle"},
+	"ui/window":               {"ui/core", "ui/theme", "ui/internal/loop"},
+	"ui/el":                   {"ui/core", "ui/theme", "ui/internal/loop", "ui/internal/editorstyle"},
+	"ui/markdown":             {"ui/el", "ui/core", "ui/theme", "ui/widget", "ui/layout", "ui/internal/loop", "ui/internal/editorstyle"},
+	"ui/internal/editorstyle": {},
+	"native":                  {},
+	"native/internal/sys":     {"native"},
+	"native/permission":       {"native", "native/internal/sys"},
+	"native/screen":           {"native", "native/internal/sys"},
+	"native/input":            {"native", "native/internal/sys"},
+	"native/hotkey":           {"native", "native/internal/sys"},
 	// Talks to apps only through the automation protocol, never Keel's code.
 	"cmd/keel-mcp": {},
 }

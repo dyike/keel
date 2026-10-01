@@ -26,7 +26,7 @@
 | `toggle_group.go` | `ToggleGroup`：单选/多选、禁用项与方向键导航 |
 | `draw.go` | 内部绘图小工具 |
 
-- **依赖**：`core`、`theme`、`layout`。
+- **依赖**：`core`、`theme`、`layout`；输入框绘制共用内部的 `ui/internal/editorstyle`。
 - **被谁依赖**：应用代码。
 
 新组件就是这个目录下的新文件，步骤见 [扩展指南 · 新增组件](../../docs/extending.md#新增组件)。API 详见 [组件与布局](../../docs/widgets.md)。
