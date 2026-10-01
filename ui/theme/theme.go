@@ -20,6 +20,7 @@ var (
 	Text         = RGB(0x1f2328) // body text
 	Muted        = RGB(0x6b7280) // secondary text, hints, unchecked icons
 	Primary      = RGB(0x2563eb) // primary buttons, links, focus, checked icons
+	DangerText   = RGB(0xb91c1c) // danger text on surfaces
 	PrimaryText  = RGB(0x1d4ed8) // text on selected surfaces
 	CodeBg       = RGB(0xf0f1f3)
 	CodeText     = RGB(0x1f2328)

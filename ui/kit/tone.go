@@ -39,7 +39,7 @@ func (t Tone) color() color.NRGBA {
 	case Warning:
 		return theme.Warning
 	case Danger:
-		return theme.Danger
+		return theme.DangerText
 	default:
 		return theme.Text
 	}

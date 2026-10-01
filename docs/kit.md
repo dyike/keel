@@ -55,3 +55,5 @@ Icon：矢量图标，默认颜色随主题切换。
 [Spinner](kit/spinner.md)：支持减少动画的不确定进度。
 
 [Skeleton](kit/skeleton.md)：占位、圆形和 Shimmer 扫光。
+
+DangerText 用于 Alert/Tag 等表面上的危险状态文字；Danger 仍用于实心危险按钮。两套默认配色的状态文字对 Surface 均以 4.5:1 为最低对比度验收。

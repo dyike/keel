@@ -68,3 +68,17 @@ func TestSelectedTextContrast(t *testing.T) {
 		}
 	}
 }
+
+func TestSemanticTextContrast(t *testing.T) {
+	for _, p := range []Palette{Light(), Dark()} {
+		for _, c := range []color.NRGBA{p.Success, p.Warning, p.Info, p.DangerText} {
+			a, b := luminance(c), luminance(p.Surface)
+			if a < b {
+				a, b = b, a
+			}
+			if ratio := (a + .05) / (b + .05); ratio < 4.5 {
+				t.Fatalf("semantic contrast %.2f", ratio)
+			}
+		}
+	}
+}
