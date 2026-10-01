@@ -60,6 +60,10 @@ func (v *VirtualListView) applyReveal(cx *el.Context) {
 		cx.After(revealKey{v.ID()}, 0, func() {})
 		return
 	}
+	if v.count == 0 {
+		v.reveal = -1
+		return
+	}
 	i := min(v.reveal, v.count-1)
 	cx.ScrollIntoView(v.ID(), float32(i)*v.rowH, float32(i+1)*v.rowH)
 	v.reveal = -1
@@ -71,6 +75,9 @@ func (v *VirtualListView) visible(cx *el.Context) (first, last int) {
 	if view == 0 {
 		view = v.height
 	}
+	// Clamp against the current row count, not the previous frame's content.
+	// Otherwise a shortened list retains an oversized leading spacer forever.
+	off = min(max(off, 0), max(0, float32(v.count)*v.rowH-view))
 	// Build a screen above and below as well: a wheel scroll is applied while
 	// painting, after this tree is built, and must not reveal blank space.
 	spare := int(view/v.rowH) + 1

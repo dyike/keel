@@ -17,3 +17,5 @@ logs := kit.VirtualList(len(lines), 24, func(cx *el.Context, i int) el.Element {
 Agent：只列出可视区里的行。
 
 验证：`go run ./examples/components -section virtual_list`，加 `-theme dark` 检查深色。
+
+数据量减少时按新内容高度收回滚动范围；列表清空后再次填充可正常显示。
