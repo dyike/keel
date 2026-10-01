@@ -159,9 +159,6 @@ func (t *TableView) Layout(gtx C) D {
 	if t.disabled {
 		gtx = gtx.Disabled()
 	}
-	if !gtx.Enabled() {
-		t.focused = false
-	}
 	gtx.Constraints.Min.X = gtx.Constraints.Max.X
 	t.handleKeys(gtx)
 	for i := range t.heads {

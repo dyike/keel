@@ -85,9 +85,6 @@ func (s *SelectBox) Layout(gtx C) D {
 	if s.disabled {
 		gtx = gtx.Disabled()
 	}
-	if !gtx.Enabled() {
-		s.open = false
-	}
 	for s.box.Clicked(gtx) {
 		s.open = !s.open
 	}
