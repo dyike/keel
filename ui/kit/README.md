@@ -15,3 +15,4 @@
 | [Avatar](../../docs/kit/avatar.md) | 固定尺寸头像和姓名回退 |
 | [Tag](../../docs/kit/tag.md) | 不可移除标签 |
 | [DescriptionList](../../docs/kit/description_list.md) | 单列字段说明 |
+| [GroupBox](../../docs/kit/group_box.md) | 带标题的视图分组 |

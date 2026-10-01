@@ -120,6 +120,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `empty` | kit 空状态（不可点击） | 名字是标题，说明文字单独列出 |
 | `tag` | kit 标签（不可点击） | 名字是文字，value 为语义级别 |
 | `descriptionlist` | kit 字段说明列表 | value 为条目数，字段名和值单独列出 |
+| `group` | kit 组件分组 | 名字为分组标题，保留子组件语义 |
 | `alert` | kit 行内提示（不可点击） | 名字是标题，value 为 neutral/info/success/warning/danger；正文单独列出 |
 | `badge` | 数字、圆点、图标角标（不可点击） | 名字为原始计数，`value` 为显示值、`dot` 或 `icon` |
 | `toggle` | 状态按钮 | `selected` 表示选中，支持 `disabled` |
