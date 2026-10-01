@@ -174,3 +174,5 @@ Agent ──MCP(stdio)──► keel-mcp ──JSON 行(unix socket)──► �
 ## 在 Go 测试里用
 
 `cmd/keel-mcp/main_test.go` 用 MCP 官方 SDK 的客户端启动 `keel-mcp`，把 multiwindow 示例完整走一遍（`TestEndToEnd`），并测试 `attach` 的连接、断开、重连和占用提示（`TestAttach`），也是写这类测试的样板。`ui/window/automation_test.go` 在进程内直接测试自动化模式（滚动、Tab 焦点、回调里关窗口）。两者都随 `go test ./...` 运行，不弹窗口。
+
+浮层内容按声明顺序列在主内容之后。有模态浮层时，快照省略主内容及其下方的浮层；关闭后恢复。底层通过内部 `el-inert` 语义标记跳过整个子树，该标记不会作为组件角色输出。

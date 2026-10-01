@@ -27,6 +27,10 @@ func sectionContent(name string, base core.Widget) (core.Widget, bool) {
 	if name == "all" {
 		content = append(content, base)
 	}
+	// Preserve FillsWindow for a standalone el.Root section.
+	if len(content) == 1 {
+		return content[0], true
+	}
 	if len(content) == 0 {
 		return nil, false
 	}

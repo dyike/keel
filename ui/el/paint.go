@@ -67,6 +67,14 @@ func (e *engine) paint(n *Node) {
 	if !n.style.absolute && !abs.Overlaps(e.visible) {
 		return
 	}
+	if n.id != "" && e.anchors != nil {
+		b := abs.Intersect(e.visible)
+		if !b.Empty() {
+			if _, found := e.anchors[n.id]; !found {
+				e.anchors[n.id] = abs
+			}
+		}
+	}
 	saved := e.origin
 	e.origin = abs.Min
 	defer func() { e.origin = saved }()
@@ -82,17 +90,17 @@ func (e *engine) paint(n *Node) {
 
 func (e *engine) paintContent(n *Node) {
 	savedGtx := e.gtx
-	if n.effectiveDisabled {
+	if n.effectiveDisabled || e.blockInput {
 		e.gtx = e.gtx.Disabled()
 	}
 	defer func() { e.gtx = savedGtx }()
 	gtx := e.gtx
 	st := n.style // a copy: hover and active variants change it for this frame only
 	var state *elemState
-	if n.interactive() || n.style.scrollY || n.input != nil {
+	if n.id != "" || n.interactive() || n.style.scrollY || n.input != nil {
 		state = e.store.get(n.key)
 	}
-	if state != nil && n.interactive() && !n.effectiveDisabled {
+	if state != nil && n.interactive() && !n.effectiveDisabled && !e.blockInput {
 		if n.hover != nil && state.click.Hovered() {
 			n.hover(&st)
 		}
@@ -134,18 +142,30 @@ func (e *engine) paintContent(n *Node) {
 	// Elements that take input or report semantics get their own clip area;
 	// others do not, so their children can overflow them.
 	sem := e.semantics(n)
-	if len(sem) > 0 || state != nil {
+	if state != nil && n.id != "" && !n.effectiveDisabled && !e.blockInput {
+		// Register above children so interactive descendants cannot hide hover.
+		defer func() {
+			hoverArea := clip.Rect(rect).Push(gtx.Ops)
+			gtx.Event(pointer.Filter{Target: &state.hoverTag, Kinds: pointer.Enter | pointer.Leave})
+			pass := pointer.PassOp{}.Push(gtx.Ops)
+			event.Op(gtx.Ops, &state.hoverTag)
+			pass.Pop()
+			hoverArea.Pop()
+		}()
+	}
+	if len(sem) > 0 || state != nil && (n.interactive() || n.style.scrollY || n.input != nil) {
 		defer clip.UniformRRect(rect, radius).Push(gtx.Ops).Pop()
+
 		for _, o := range sem {
 			o.Add(gtx.Ops)
 		}
-		if state != nil && n.isFocusable() && n.input == nil {
+		if state != nil && n.isFocusable() && n.input == nil && !e.blockFocus && !e.blockInput {
 			state.keyFrame = e.store.frame
 			// Register in paint order so Gio Tab order matches tree order.
 			gtx.Event(focusFilters(state)...)
 			event.Op(gtx.Ops, state)
 		}
-		if state != nil && n.interactive() && !n.effectiveDisabled {
+		if state != nil && n.interactive() && !n.effectiveDisabled && !e.blockInput {
 			if state.fresh {
 				// Gio drops areas whose handler asked for no events this
 				// frame. dispatch asks from the next frame on; ask now so
@@ -170,11 +190,17 @@ func (e *engine) paintContent(n *Node) {
 	case n.isText:
 		e.paintText(n, inner)
 	case n.input != nil:
+		if e.blockFocus {
+			e.gtx = e.gtx.Disabled()
+		}
 		state.keyFrame = e.store.frame
 		e.paintInput(n, state, inner)
 	case n.widget != nil:
 		stk := op.Offset(inner.Min).Push(gtx.Ops)
 		g := gtx
+		if e.blockFocus {
+			g = g.Disabled()
+		}
 		g.Constraints = layout.Exact(inner.Size())
 		n.widget.Layout(g)
 		stk.Pop()

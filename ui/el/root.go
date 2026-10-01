@@ -36,6 +36,7 @@ func (f ViewFunc) Render(cx *Context) Element { return f(cx) }
 
 // Context is passed to Render.
 type Context struct {
+	layers    []overlayDecl
 	shortcuts []viewShortcut
 	root      *RootWidget
 }
@@ -102,18 +103,24 @@ func (cx *Context) Shortcut(chord string, fn func()) {
 
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
-	timerEpoch   uint64
-	timers       map[any]*viewTimer
-	source       input.Source
-	callbacks    bool
-	bg           int // tag of the area under everything; see blur
-	view         View
-	fill         bool
-	store        *store
-	cache        elementCache
-	e            engine
-	focusID      string
-	focusPending bool
+	requestedFocus event.Tag
+	mainTree       *Node
+	layers         map[any]*layerState
+	activeLayers   []*layerState
+	layerSerial    uint64
+	measuring      bool
+	timerEpoch     uint64
+	timers         map[any]*viewTimer
+	source         input.Source
+	callbacks      bool
+	bg             int // tag of the area under everything; see blur
+	view           View
+	fill           bool
+	store          *store
+	cache          elementCache
+	e              engine
+	focusID        string
+	focusPending   bool
 }
 
 // Root makes v the whole content of a window: it fills the window, with the
@@ -134,6 +141,9 @@ func Embed(v View) *RootWidget {
 func (r *RootWidget) FillsWindow() bool { return r.fill }
 
 func (r *RootWidget) Layout(gtx core.C) core.D {
+	if !gtx.Enabled() && !r.measuring {
+		return r.measure(gtx)
+	}
 	st := r.store
 	st.frame++
 	e := &r.e
@@ -147,7 +157,12 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	tree := r.view.Render(&cx).node()
 	st.assignKeys(tree, 1)
 	r.prepareKeys(tree, nil, false)
+	r.mainTree = tree
+	r.prepareLayers(&cx)
 	r.callbacks = false
+	r.requestedFocus = nil
+	r.dispatchLayers(&cx)
+	r.dispatchHover(gtx)
 	r.blur(gtx)
 	r.dispatchKeys(gtx)
 	r.dispatch(gtx)
@@ -155,6 +170,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	if r.callbacks {
 		r.beginTimers()
 		cx.shortcuts = nil
+		cx.layers = nil
 		tree = r.view.Render(&cx).node()
 	}
 
@@ -172,6 +188,12 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 
 	st.assignKeys(tree, 1)
 	r.prepareKeys(tree, nil, false)
+	r.mainTree = tree
+	r.prepareLayers(&cx)
+	priorFocus := r.focusedTag()
+	if r.requestedFocus != nil {
+		priorFocus = r.requestedFocus
+	}
 	base := textStyle{color: &theme.Text, size: theme.BodySize}
 	max := gtx.Constraints.Max
 	if r.fill {
@@ -187,10 +209,20 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	// on empty space can take focus away from inputs and selected text.
 	area := clip.Rect{Max: max}.Push(gtx.Ops)
 	event.Op(gtx.Ops, &r.bg)
+	e.anchors = map[string]image.Rectangle{}
+	e.blockInput, e.blockFocus = false, false
+	for _, d := range cx.layers {
+		e.blockInput = e.blockInput || (d.eligible && d.layer.modal)
+		e.blockFocus = e.blockFocus || (d.eligible && d.layer.trap)
+	}
+	if e.blockInput {
+		core.Role("el-inert").Add(gtx.Ops)
+	}
 	e.paint(tree)
-	r.applyFocus(gtx, tree)
-	r.finishTimers()
 	area.Pop()
+	e.blockInput, e.blockFocus = false, false
+	r.paintLayers(&cx, base, priorFocus)
+	r.finishTimers()
 	flushClipboard(gtx) // from shortcuts and widget callbacks during this frame
 	st.sweep()
 	r.cache.sweep(st.frame)
@@ -205,7 +237,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 func (r *RootWidget) dispatch(gtx core.C) {
 	var focusTarget *elemState
 	for _, st := range r.store.states {
-		if !st.clickable || st.disabled || st.frame != r.store.frame {
+		if !st.clickable || st.disabled || st.blocked || st.frame != r.store.frame {
 			continue
 		}
 		for {
@@ -228,6 +260,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 		}
 	}
 	if focusTarget != nil {
+		r.requestedFocus = focusTarget
 		gtx.Execute(key.FocusCmd{Tag: focusTarget})
 	}
 }

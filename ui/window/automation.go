@@ -221,6 +221,9 @@ func (w *Window) snapshot() []Element {
 	var walk func(n input.SemanticNode, inControl bool, visible image.Rectangle)
 	walk = func(n input.SemanticNode, inControl bool, visible image.Rectangle) {
 		d := n.Desc
+		if d.Description == "el-inert" {
+			return
+		}
 		// Gio's bounds ignore scroll clipping: a row scrolled out of a table
 		// still reports where it would be. Keep only what can be seen.
 		b := d.Bounds.Intersect(visible)

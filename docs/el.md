@@ -176,6 +176,33 @@ return el.Div().Hidden(!visible).Child(el.Text("已保存"))
 
 同类组件用自身稳定 ID 组成 key。不要在 `cx.Cache` 的构建函数里声明 `After`：缓存命中时不会执行构建函数，未再次声明的定时器会被取消。应把 After 放在每次执行的 Render 路径上，再单独缓存元素树。
 
+## 浮层（E4 / E5）
+
+在 Render 中调用 `cx.Overlay(key, layer)` 声明浮层。key 必须可比较，并在当前 root 内唯一。打开状态由视图保存，打开期间每次 Render 都声明；某帧省略就关闭。不要在 Cache 的构建函数里声明浮层。后声明的浮层在上层，Esc 只请求关闭最上层。
+
+```go
+if v.open {
+    cx.Overlay("filters", el.Anchored("filter-button",
+        el.Div().W(el.Dp(280)).P(16).Bg(theme.Surface).Child(
+            el.Text("筛选条件"),
+            el.Input().ID("query").Bind(&v.query),
+        ),
+    ).Placement(el.Bottom, el.Start).OnDismiss(func() { v.open = false }))
+}
+```
+
+`Anchored(anchorID, content)` 使用本帧锚点位置，锚点可在主树或先声明的浮层中。Placement 的方向为 Bottom / Top / Left / Right，对齐为 Start / Center / End，默认 Bottom / Start；Offset 默认 4dp。指定方向放不下、对侧放得下时翻转，再将位置平移到 root 内；超出部分按 root 裁剪。MatchAnchorWidth 将最小宽度设为锚点宽度。锚点不存在或隐藏时不绘制，并调用一次 OnDismiss。
+
+非模态浮层之外、且不在锚点上的按下事件会请求关闭，并继续传给下面的元素。`.Modal()` 使锚定浮层拦截外部点击；`el.Modal(content)` 创建默认居中的模态浮层，自带遮罩和焦点约束，`.Scrim(false)` 只隐藏遮罩颜色，仍拦截输入。模态期间背景不响应悬停和点击，Agent 快照也不列出被遮挡的主树及下层浮层。
+
+`.TrapFocus()` 将 Tab / Shift+Tab 限制在浮层内，出现时聚焦第一个可聚焦元素；同帧 `cx.Focus(id)` 可指定浮层内的目标。关闭后恢复先前焦点，原目标已经移除时清除焦点。未开启焦点约束的非模态浮层不移动焦点。OnDismiss 在帧锁内执行，只通知调用方更新打开状态，不会替调用方保存 open。
+
+`cx.Hovered(id)` 查询最近处理的指针位置是否位于元素内，禁用或被模态层遮挡的元素返回 false。普通带 ID 的元素也可查询，不必添加点击回调。HoverCard 可组合锚点和卡片的 Hovered 结果。
+
+完整浮层能力要求 `el.Root`。`el.Embed` 使用嵌入时的最大约束，通过 `op.Defer` 延后绘制，属于尽力支持；其可用空间不一定等于窗口大小。浮层不跨窗口。测量过程不会触发关闭回调、取消已打开浮层或覆盖焦点恢复记录。
+
+验证：`go run ./examples/components -section overlay`，加 `-theme dark` 检查深色；切换浮层、打开模态、编辑输入框，并用 Tab / Shift+Tab / Esc 检查焦点。
+
 ## 做成可复用的组件
 
 组件就是返回 `el.Element` 的函数，参数是它需要的数据和回调：
@@ -217,3 +244,5 @@ func button(label string, onClick func()) el.Element {
 - 布局是 flexbox 的子集：没有换行（wrap）、网格、`align-self`、横向滚动、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
 - 没有虚拟列表：`ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行的表格用 `el.Widget(widget.Table)`。
 - 没有过渡动画的封装，需要自己用 `Now` / `Animating` 计算。
+- 浮层只在 `el.Root` 中完整支持，`el.Embed` 按嵌入约束尽力支持。
+- 浮层不支持跨窗口。

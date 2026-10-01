@@ -9,6 +9,7 @@ GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回�
 | --- | --- |
 | `element.go` | `Element`、`Node`、`Styled[T]` 的全部链式方法，`Div`、`Text`、`Widget`、`Map`；`Decorate` 包裹绘制，`VisitWidgets` 读取布局后的部件坐标 |
 | `time.go` | 帧时间、声明式定时器、显式 key 与减少动画 |
+| `overlay.go` | 声明式浮层、锚定定位、模态输入隔离、焦点约束与悬停查询 |
 | `focus.go` | 原生焦点顺序、程序焦点、按键冒泡与默认激活 |
 | `input.go` | `Input`、`TextArea` |
 | `style.go` | `Style`、长度（`Dp`、`Frac`、`Full`）、对齐常量 |

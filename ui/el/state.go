@@ -32,6 +32,9 @@ func childKey(parent stateKey, id string, index int) stateKey {
 
 // elemState is what an element keeps between frames.
 type elemState struct {
+	hoverTag   int
+	hovered    bool
+	blocked    bool
 	id         string
 	focusable  bool
 	disabled   bool

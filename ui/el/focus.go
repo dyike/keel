@@ -64,7 +64,7 @@ func (cx *Context) Focus(id string) { cx.root.focusID = id; cx.root.focusPending
 func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 	n.effectiveDisabled = disabled || n.disabled || n.style.hidden
 	st := r.store.states[n.key]
-	if n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() {
+	if n.id != "" || n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() {
 		st = r.store.get(n.key)
 	}
 	if st != nil {
@@ -125,7 +125,7 @@ func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
 }
 func (r *RootWidget) dispatchKeys(gtx core.C) {
 	for _, st := range r.store.states {
-		if !st.focusable || st.disabled || st.frame != r.store.frame || st.keyFrame+1 != r.store.frame {
+		if !st.focusable || st.disabled || st.blocked || st.frame != r.store.frame || st.keyFrame+1 != r.store.frame {
 			continue
 		}
 		for {
