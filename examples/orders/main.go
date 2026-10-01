@@ -41,10 +41,11 @@ type desk struct {
 	dlg    *kit.DialogView
 
 	// New order form.
-	customer, amount, formMsg string
-	newStatus                 *widget.SelectBox
-	pay                       *widget.RadioView
-	urgent                    *widget.SwitchView
+	customer, amount *kit.InputView
+	newStatus        *kit.SelectView
+	pay              *kit.RadioGroupView
+	urgent           *kit.SwitchView
+	form             *kit.FormView
 }
 
 func newDesk() *desk {
@@ -64,12 +65,24 @@ func newDesk() *desk {
 		o := d.orders[d.visible[r]]
 		d.dlg.Alert(o.id, fmt.Sprintf("%s · %s · ¥%.2f · %s付款", o.customer, o.status, o.amount, o.pay), nil)
 	})
-	d.newStatus = widget.Select("", statuses...)
-	d.newStatus.SetName("状态")
+	d.customer = kit.Input("").Placeholder("客户名称")
+	d.amount = kit.Input("").Placeholder("0.00").Filter("0123456789.")
+	d.newStatus = kit.Select("", statuses...)
 	d.newStatus.SetValue("待付款")
-	d.pay = widget.RadioGroup("", "转账", "支票", "现金").Horizontal()
+	d.pay = kit.RadioGroup("", "转账", "支票", "现金").Horizontal()
 	d.pay.SetValue("转账")
-	d.urgent = widget.Switch("加急处理", false)
+	d.urgent = kit.Switch("加急处理", false)
+	d.form = kit.Form().LabelWidth(64).
+		Field("客户", d.customer, func() string { return kit.Required(d.customer.Value(), "请填写客户名称。") }).
+		Field("金额", d.amount, func() string {
+			if amt, err := strconv.ParseFloat(strings.TrimSpace(d.amount.Value()), 64); err != nil || amt <= 0 {
+				return "金额必须是大于 0 的数字。"
+			}
+			return ""
+		}).
+		Field("状态", d.newStatus, nil).
+		Field("付款方式", d.pay, nil).
+		Field("选项", d.urgent, nil)
 	d.refresh()
 	return d
 }
@@ -102,7 +115,7 @@ func (d *desk) selected() (int, bool) {
 
 func (d *desk) Render(cx *el.Context) el.Element {
 	cx.Shortcut("mod+n", func() { d.tab = 1 })
-	pages := []func() el.Element{d.listPage, d.formPage, d.statsPage}
+	pages := []func() el.Element{d.listPage, func() el.Element { return d.formPage(cx) }, d.statsPage}
 	return el.Div().P(24).Gap(16).ScrollY().Child(
 		el.Text("订单管理").TextSize(22).Bold(),
 		el.Div().Child(
@@ -181,43 +194,24 @@ func (d *desk) remove() {
 	})
 }
 
-// field is one row of the form: a right-aligned label and its control.
-func field(label string, control el.Element) el.Element {
-	return el.Div().Row().Gap(12).Items(el.Center).Child(
-		el.Div().W(el.Dp(64)).Items(el.End).Child(el.Text(label).TextColor(theme.Muted)),
-		el.Div().Grow().Child(control),
+func (d *desk) formPage(cx *el.Context) el.Element {
+	return el.Div().Gap(16).Items(el.Start).Child(
+		el.Div().W(el.Dp(420)).Child(d.form.Render(cx)),
+		el.Div().Pl(76).Child(button("保存订单", primary, func() { d.save(cx) })),
 	)
 }
 
-func (d *desk) formPage() el.Element {
-	return el.Div().Gap(12).Child(
-		field("客户", el.Input().ID("customer").Name("客户").Placeholder("客户名称").Bind(&d.customer)),
-		field("金额", el.Input().ID("amount").Name("金额").Placeholder("0.00").Bind(&d.amount)),
-		field("状态", el.Widget(d.newStatus)),
-		field("付款方式", el.Widget(d.pay)),
-		field("选项", el.Widget(d.urgent)),
-		el.Div().Row().Gap(12).Items(el.Center).Child(
-			button("保存订单", primary, d.save),
-			el.Text(d.formMsg).TextColor(theme.Muted).TextSize(13),
-		),
-	)
-}
-
-func (d *desk) save() {
-	name := strings.TrimSpace(d.customer)
-	amt, err := strconv.ParseFloat(strings.TrimSpace(d.amount), 64)
-	switch {
-	case name == "":
-		d.formMsg = "请填写客户名称。"
-		return
-	case err != nil || amt <= 0:
-		d.formMsg = "金额必须是大于 0 的数字。"
+func (d *desk) save(cx *el.Context) {
+	if !d.form.Validate(cx) {
 		return
 	}
-	d.orders = append(d.orders, order{id: fmt.Sprintf("SO-%04d", d.nextID), customer: name, status: d.newStatus.Value(),
-		pay: d.pay.Value(), amount: amt, urgent: d.urgent.Value()})
+	amt, _ := strconv.ParseFloat(strings.TrimSpace(d.amount.Value()), 64)
+	d.orders = append(d.orders, order{id: fmt.Sprintf("SO-%04d", d.nextID), customer: strings.TrimSpace(d.customer.Value()),
+		status: d.newStatus.Value(), pay: d.pay.Value(), amount: amt, urgent: d.urgent.Value()})
 	d.nextID++
-	d.customer, d.amount, d.formMsg, d.query = "", "", "", ""
+	d.customer.SetValue("")
+	d.amount.SetValue("")
+	d.query = ""
 	d.filter.SetValue("全部状态")
 	d.refresh()
 	d.table.SortBy(-1, false)
