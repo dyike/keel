@@ -13,7 +13,7 @@ tags := kit.Combobox("标签", "紧急", "VIP").AllowCustom()
   - 设置了 `AllowCustom` 时，保留输入的文字；
   - 否则选第一个匹配项。
 - 没有设置 `AllowCustom` 时，离开输入框后文字如果不是选项，会恢复为上一次的选择。
-- 输入框获得焦点时方向键用来移动光标，选择请用鼠标或回车。
+- ↓ 打开列表并移动高亮，↑ 往回移动，回车选中高亮项。
 - `Value()` / `SetValue`、`SetOptions`、`SetDisabled`、`SetError`。需要 `el.Root`。
 
 Agent：容器角色 `combobox`，`value` 为当前选择；里面有 `textbox` 和展开按钮；列表是 `listbox` 和 `option`。

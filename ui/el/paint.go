@@ -1,6 +1,7 @@
 package el
 
 import (
+	"gioui.org/io/key"
 	"image"
 	"image/color"
 	"strings"
@@ -316,6 +317,29 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		ed.Mask = 0
 	}
 	ed.MaxLen, ed.Filter, ed.ReadOnly = spec.maxLen, spec.filter, spec.readOnly
+	// A single-line box has no use for ↑ ↓ PageUp PageDown beyond jumping to
+	// its ends, so OnKey takes them before the editor sees them.
+	if n.onKey != nil && !spec.multiline && gtx.Enabled() {
+		for {
+			ev, ok := gtx.Event(
+				key.Filter{Focus: ed, Name: key.NameUpArrow}, key.Filter{Focus: ed, Name: key.NameDownArrow},
+				key.Filter{Focus: ed, Name: key.NamePageUp}, key.Filter{Focus: ed, Name: key.NamePageDown},
+			)
+			if !ok {
+				break
+			}
+			ke, ok := ev.(key.Event)
+			if !ok {
+				continue
+			}
+			state := KeyPress
+			if ke.State == key.Release {
+				state = KeyRelease
+			}
+			fn, e := n.onKey, KeyEvent{Name: string(ke.Name), Modifiers: ke.Modifiers, State: state}
+			core.Call(gtx, func() { fn(e) })
+		}
+	}
 	// User edits first, then program changes to the bound string.
 	for {
 		ev, ok := ed.Update(gtx)

@@ -12,7 +12,8 @@ import (
 
 // SelectView picks one option from a list that opens under the field.
 // Enter, Space or ↓ opens it; in the list ↑ ↓ move, Enter chooses, Esc closes
-// and focus returns to the field. Searchable adds a filter box on top.
+// and focus returns to the field. Searchable adds a filter box on top; ↓
+// moves from it into the list.
 type SelectView struct {
 	name                    string // accessible name from a Form row when label is empty
 	label, hint, value, err string
@@ -157,6 +158,12 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 				if opts := v.visible(); len(opts) > 0 {
 					v.choose(opts[0])
 				}
+			}).
+			OnKey(func(e el.KeyEvent) bool {
+				if e.State == el.KeyPress && key.Name(e.Name) == key.NameDownArrow && len(v.visible()) > 0 {
+					cx.Focus(id + "/0") // from the search box into the list
+				}
+				return true
 			})))
 	}
 	items := el.Div().ScrollY().Items(el.Stretch)

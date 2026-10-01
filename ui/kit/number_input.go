@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"gioui.org/io/key"
 	"math"
 	"strconv"
 	"strings"
@@ -12,8 +13,8 @@ import (
 
 // NumberInputView edits a number with − and + buttons. Typing may pass
 // through out-of-range text; Enter or leaving the field clamps it to the
-// range and rounds it to the step. The arrow keys move the caret, as in any
-// text field, so use the buttons to step.
+// range and rounds it to the step. ↑ ↓ step like the buttons; PageUp and
+// PageDown move ten steps.
 type NumberInputView struct {
 	name              string // accessible name from a Form row when label is empty
 	label, text, err  string
@@ -119,7 +120,15 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 	}
 	field := el.Input().ID(v.FocusID()).Name(v.a11y()).Bind(&v.text).Filter("0123456789.-").
 		Border(0, theme.Border).Bg(theme.Surface).P(0).Grow().MinW(el.Dp(40)).
-		OnSubmit(func(string) { v.commit() })
+		OnSubmit(func(string) { v.commit() }).
+		OnKey(func(e el.KeyEvent) bool {
+			if e.State == el.KeyPress {
+				steps := map[key.Name]float64{key.NameUpArrow: 1, key.NameDownArrow: -1, key.NamePageUp: 10, key.NamePageDown: -10}
+				v.commit()
+				v.set(v.value + steps[key.Name(e.Name)]*v.step)
+			}
+			return true
+		})
 	box := el.Div().ID(id).WFull().Row().Items(el.Center).Gap(4).Px(4).Py(4).Rounded(6).Border(1, border).Bg(theme.Surface).
 		Disabled(v.disabled).Child(minus.Render(cx), field, plus.Render(cx))
 	if v.disabled {

@@ -2,6 +2,7 @@ package kit
 
 import (
 	"fmt"
+	"gioui.org/io/key"
 	"strconv"
 	"strings"
 	"time"
@@ -12,7 +13,8 @@ import (
 
 // TimeFieldView edits a time of day as HH:MM. It accepts 9:30, 0930 or 930;
 // Enter or leaving the field normalizes the text, and text that is not a
-// valid time reverts to the last value.
+// valid time reverts to the last value. ↑ ↓ change it by a minute,
+// PageUp and PageDown by an hour, wrapping around midnight.
 type TimeFieldView struct {
 	name              string // accessible name from a Form row when label is empty
 	label, text, err  string
@@ -97,7 +99,19 @@ func (v *TimeFieldView) Render(cx *el.Context) el.Element {
 	}
 	field := el.Input().ID(v.FocusID()).Name(v.a11y()).Placeholder("HH:MM").Bind(&v.text).
 		Filter("0123456789:").MaxLen(5).Border(0, theme.Border).Bg(theme.Surface).P(0).W(el.Dp(64)).
-		OnSubmit(func(string) { v.commit() })
+		OnSubmit(func(string) { v.commit() }).
+		OnKey(func(e el.KeyEvent) bool {
+			if e.State == el.KeyPress {
+				steps := map[key.Name]time.Duration{key.NameUpArrow: time.Minute, key.NameDownArrow: -time.Minute, key.NamePageUp: time.Hour, key.NamePageDown: -time.Hour}
+				v.commit()
+				old := v.value
+				v.SetValue(v.value + steps[key.Name(e.Name)])
+				if v.value != old && v.onChange != nil {
+					v.onChange(v.value)
+				}
+			}
+			return true
+		})
 	box := el.Div().ID(id).Row().Items(el.Center).Gap(8).Px(10).Py(8).Rounded(6).Border(1, border).Bg(theme.Surface).
 		Disabled(v.disabled).Child(Icon(IconClock).Size(16).Color(theme.Muted).Render(cx), field)
 	if v.disabled {

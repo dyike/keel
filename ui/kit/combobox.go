@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"gioui.org/io/key"
 	"strconv"
 	"strings"
 
@@ -12,19 +13,20 @@ import (
 // ComboboxView is a text field with a filtered list of suggestions. Typing
 // opens and filters the list; clicking an option takes it. Enter takes the
 // typed text if it is an option (or AllowCustom is set), else the first match. Esc or a click elsewhere closes the list.
-// Without AllowCustom, leaving the field with text that is not an option
-// restores the last choice. The arrow keys move the caret, as in any text
-// field; pick with the pointer or Enter.
+// ↓ opens the list and moves the highlight, ↑ moves it back, and Enter takes
+// the highlighted option. Without AllowCustom, leaving the field with text
+// that is not an option restores the last choice.
 type ComboboxView struct {
 	name                                 string // accessible name from a Form row when label is empty
 	label, placeholder, text, value, err string
 	options                              []string
 	open, allowCustom, disabled, focused bool
+	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
 }
 
 func Combobox(label string, options ...string) *ComboboxView {
-	return &ComboboxView{label: label, options: options}
+	return &ComboboxView{label: label, options: options, active: -1}
 }
 func (v *ComboboxView) Placeholder(s string) *ComboboxView           { v.placeholder = s; return v }
 func (v *ComboboxView) AllowCustom() *ComboboxView                   { v.allowCustom = true; return v }
@@ -57,7 +59,7 @@ func (v *ComboboxView) matches() []string {
 }
 
 func (v *ComboboxView) choose(s string) {
-	v.open, v.text = false, s
+	v.open, v.text, v.active = false, s, -1
 	if s == v.value {
 		return
 	}
@@ -103,8 +105,31 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 	}
 	field := el.Input().ID(v.FocusID()).Name(v.a11y()).Placeholder(v.placeholder).Bind(&v.text).
 		Border(0, theme.Border).Bg(theme.Surface).P(0).Grow().
-		OnChange(func(string) { v.open = true }).
+		OnChange(func(string) { v.open, v.active = true, 0 }).
+		OnKey(func(e el.KeyEvent) bool {
+			m := v.matches()
+			if e.State != el.KeyPress || len(m) == 0 {
+				return true
+			}
+			switch key.Name(e.Name) {
+			case key.NameDownArrow:
+				if !v.open {
+					v.open, v.active = true, 0
+				} else {
+					v.active = (v.active + 1) % len(m)
+				}
+			case key.NameUpArrow:
+				if v.open {
+					v.active = (v.active - 1 + len(m)) % len(m)
+				}
+			}
+			return true
+		}).
 		OnSubmit(func(string) {
+			if m := v.matches(); v.open && v.active >= 0 && v.active < len(m) {
+				v.choose(m[v.active])
+				return
+			}
 			t := strings.TrimSpace(v.text)
 			if m := v.matches(); !v.offered(t) && !v.allowCustom && len(m) > 0 {
 				v.choose(m[0])
@@ -131,12 +156,16 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 		}
 		for i, o := range m {
 			o := o
-			list.Child(el.Div().ID(id+"/"+strconv.Itoa(i)).Role("option").Name(o).Selected(o == v.value).
+			row := el.Div().ID(id + "/" + strconv.Itoa(i)).Role("option").Name(o).Selected(o == v.value)
+			if i == v.active {
+				row.Bg(theme.Subtle)
+			}
+			list.Child(row.
 				Mx(4).Px(8).H(el.Dp(30)).Row().Items(el.Center).Rounded(4).CursorPointer().Focusable(false).
 				Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(o) }).
 				Child(el.Text(o).Grow().MaxLines(1), checkMark(cx, o == v.value)))
 		}
-		cx.Overlay(id, el.Anchored(id, list).MatchAnchorWidth().OnDismiss(func() { v.settle() }))
+		cx.Overlay(id, el.Anchored(id, list).MatchAnchorWidth().OnDismiss(func() { v.settle(); v.active = -1 }))
 	}
 	return labelled(v.label, box, v.err)
 }

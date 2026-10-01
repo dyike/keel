@@ -1,6 +1,7 @@
 package el
 
 import (
+	"gioui.org/io/key"
 	"testing"
 
 	"github.com/dyike/keel/ui/internal/uitest"
@@ -60,5 +61,29 @@ func TestInputMaxLenFilterReadOnly(t *testing.T) {
 	h.Type("x")
 	if b != "keep" {
 		t.Fatalf("read-only input %q", b)
+	}
+}
+
+func TestSingleLineInputOnKeyTakesArrows(t *testing.T) {
+	var keys []string
+	text := "ab"
+	h := uitest.New(Embed(ViewFunc(func(cx *Context) Element {
+		return Div().Child(Input().ID("in").Name("in").W(Dp(200)).Bind(&text).OnKey(func(e KeyEvent) bool {
+			if e.State == KeyPress {
+				keys = append(keys, e.Name)
+			}
+			return true
+		}))
+	})))
+	h.Click(center(nodeBounds(h, "in")))
+	for _, k := range []key.Name{key.NameUpArrow, key.NameDownArrow, key.NamePageDown} {
+		h.Key(k, 0)
+	}
+	h.Type("c") // other keys still edit
+	if len(keys) != 3 || keys[0] != string(key.NameUpArrow) {
+		t.Fatalf("keys %v", keys)
+	}
+	if text != "abc" && text != "cab" && text != "acb" {
+		t.Fatalf("typing broken: %q", text)
 	}
 }

@@ -8,7 +8,7 @@ city := kit.Select("城市", cities...).Searchable()
 ```
 
 - 点击、Enter、Space 或 ↓ 打开列表。列表中 ↑ ↓ 移动（首尾循环），Home / End 跳到首尾，Enter 选中，Esc 关闭；关闭后焦点回到下拉框。
-- `Searchable()` 在列表顶部加搜索框，打开时焦点在搜索框里，回车选第一个匹配项。搜索框里方向键用于移动光标，要用方向键选择时，先按 Tab 进入列表。
+- `Searchable()` 在列表顶部加搜索框，打开时焦点在搜索框里，回车选第一个匹配项。在搜索框里按 ↓ 进入列表。
 - `Hint(s)` 是未选择时显示的文字，默认用 locale 的"请选择"。
 - `Value()` / `SetValue`、`SetOptions`（原选择不在新选项里时清空）、`SetDisabled`、`SetError`。需要 `el.Root`。
 
