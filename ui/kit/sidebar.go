@@ -5,6 +5,7 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
+	"strconv"
 )
 
 // SidebarItem is one destination in a Sidebar. IDs must be unique.
@@ -85,12 +86,12 @@ func (v *SidebarView) choose(id string) {
 
 func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []string) el.Element {
 	on := it.ID == v.selected
-	fg := theme.Text
+	fg := theme.Muted
 	if on {
 		fg = theme.PrimaryText
 	}
 	row := el.Div().ID(base + "/" + it.ID).Role("link").Name(it.Label).Selected(on).
-		Row().Items(el.Center).Gap(10).H(el.Dp(34)).Px(10).Rounded(6).CursorPointer().TextColor(fg).
+		Row().Items(el.Center).Gap(10).H(el.Dp(36)).Px(10).Rounded(8).CursorPointer().TextColor(theme.Text).TextSize(14).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnClick(func() { v.choose(it.ID) }).
 		OnKey(func(e el.KeyEvent) bool {
@@ -109,16 +110,22 @@ func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []st
 			}
 			return ok
 		}).
-		Child(Icon(it.Icon).Size(18).Color(fg).Render(cx))
+		Child(Icon(it.Icon).Size(16).Color(fg).Render(cx))
 	if on {
-		row.Bg(theme.Highlight)
+		row.Bg(theme.Subtle).Bold()
 	} else {
 		row.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 	}
 	if !v.collapsed {
 		row.Child(el.Text(it.Label).Grow().MaxLines(1))
 		if it.Badge > 0 {
-			row.Child(Badge(it.Badge).Tone(ToneInfo).Render(cx))
+			count := strconv.Itoa(it.Badge)
+			if it.Badge > 99 {
+				count = "99+"
+			}
+			row.Child(el.Div().Role("badge").Name(strconv.Itoa(it.Badge)).Value(count).
+				MinW(el.Dp(24)).H(el.Dp(20)).Center().NoShrink().Rounded(5).
+				TextSize(11).TextColor(theme.Muted).Child(el.Text(count)))
 		}
 		return row
 	}
@@ -144,17 +151,17 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 		width = 56
 	}
 	ids := v.ids()
-	nav := el.Div().Role("navigation").Name(text.Menu).W(el.Dp(width)).NoShrink().Bg(theme.Surface).
-		Px(8).Py(12).Gap(2).Items(el.Stretch)
+	nav := el.Div().Role("navigation").Name(text.Menu).W(el.Dp(width)).NoShrink().Bg(theme.Bg).
+		Px(12).Py(16).Gap(4).Items(el.Stretch)
 	for i, s := range v.sections {
 		if s.title != "" && !v.collapsed {
-			top := float32(8)
+			top := float32(18)
 			if i == 0 {
 				top = 0
 			}
-			nav.Child(el.Div().Px(10).Pt(top).Pb(4).Child(el.Text(s.title).TextSize(12).TextColor(theme.Muted)))
+			nav.Child(el.Div().Px(10).Pt(top).Pb(6).Child(el.Text(s.title).TextSize(12).TextColor(theme.Muted)))
 		} else if i > 0 {
-			nav.Child(el.Div().H(el.Dp(1)).My(6).Bg(theme.Border))
+			nav.Child(el.Div().H(el.Dp(1)).Mx(10).My(10).Bg(theme.Border))
 		}
 		for _, it := range s.items {
 			nav.Child(v.item(cx, base, it, ids))
@@ -164,7 +171,16 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 	if v.collapsed {
 		name, icon = text.ExpandSidebar, IconChevronRight
 	}
-	nav.Child(el.Div().Grow(), el.Div().Items(el.Start).Child(
-		Button("", func() { v.collapsed = !v.collapsed }).Name(name).Icon(icon).Variant(ButtonGhost).Size(28).Render(cx)))
+	if v.collapsed {
+		nav.Px(8)
+	}
+	label := name
+	if v.collapsed {
+		label = ""
+	}
+	nav.Child(el.Div().Grow().MinH(el.Dp(24)),
+		el.Div().H(el.Dp(1)).Mx(8).Bg(theme.Border),
+		el.Div().Pt(8).Items(el.Stretch).Child(
+			Button(label, func() { v.collapsed = !v.collapsed }).Name(name).Icon(icon).Variant(ButtonGhost).Size(28).Render(cx)))
 	return el.Div().Row().Items(el.Stretch).Child(nav, el.Div().W(el.Dp(1)).Bg(theme.Border))
 }
