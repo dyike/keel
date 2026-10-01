@@ -43,6 +43,12 @@ go run ./examples/components -section input
 
 像素回归在 `ui/internal/editorstyle/selection_test.go`，光标和输入法回归在 `caret_test.go`。在 TextArea 示例点击“填入多行”后全选，检查每行选区，再选中滚动；在 Input 示例检查数字和中文。
 
+## 自动高度设为四行，第四行却被裁掉
+
+Gio 的 `LineHeightScale` 为 0 时会使用默认的 1.2 倍行高。若视口按 `行数 × 已测行高` 计算，再仅设置 `LineHeight`，文字排版仍会额外乘 1.2，最后一行便放不下。
+
+`Field.AutoHeight` 使用测量后的行高，并显式设置 `LineHeightScale = 1`，使排版和视口采用同一行距。回归不能只比较输入框是否变高，还要检查四行的 `Editor.Regions` 是否全部落在视口内，覆盖空行和 1× / 2×；对应测试是 `TestTextAreaAutoHeightFitsEveryVisibleLine`。超过最大行数后应滚动，不能截断内容。
+
 ## 链接时出现 -lobjc 警告
 
 ```

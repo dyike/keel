@@ -1,11 +1,41 @@
 package widget
 
 import (
-	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/internal/uitest"
+	"fmt"
+	"image"
 	"strings"
 	"testing"
+
+	"gioui.org/unit"
+	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/internal/uitest"
 )
+
+func TestTextAreaAutoHeightFitsEveryVisibleLine(t *testing.T) {
+	for _, scale := range []float32{1, 2} {
+		for _, src := range []string{"第一行\n第二行\n第三行\n第四行", "第一行\n\n第三行\n第四行"} {
+			t.Run(fmt.Sprintf("%q/%gx", src, scale), func(t *testing.T) {
+				area := TextArea("").AutoHeight(1, 4)
+				area.SetValue(src)
+				var dims core.D
+				uitest.NewFunc(func(gtx core.C) {
+					gtx.Metric = unit.Metric{PxPerDp: scale, PxPerSp: scale}
+					dims = area.Layout(gtx)
+				})
+				regions := area.editor.Regions(0, area.editor.Len(), nil)
+				viewport := image.Rect(0, 0, dims.Size.X-int(20*scale), dims.Size.Y-int(16*scale))
+				if len(regions) != 4 {
+					t.Fatalf("four-line viewport exposes %d lines", len(regions))
+				}
+				for _, region := range regions {
+					if region.Bounds.Min.Y < 0 || region.Bounds.Max.Y > viewport.Max.Y {
+						t.Fatalf("line %v is clipped by viewport %v", region.Bounds, viewport)
+					}
+				}
+			})
+		}
+	}
+}
 
 func TestTextAreaAutoHeight(t *testing.T) {
 	area := TextArea("").AutoHeight(1, 3)

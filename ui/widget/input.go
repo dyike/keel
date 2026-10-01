@@ -246,6 +246,9 @@ func (f *Field) edit(gtx C) D {
 			scale = 1
 		}
 		ed.LineHeight = unit.Sp(float32(line) / scale)
+		// This is the measured baseline spacing used by the viewport limits;
+		// Gio's default 1.2 multiplier would clip the last requested line.
+		ed.LineHeightScale = 1
 	}
 	if f.disabled {
 		ed.Color = theme.Muted
