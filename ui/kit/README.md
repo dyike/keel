@@ -11,3 +11,4 @@
 | 组件 | 说明 |
 | --- | --- |
 | [Alert](../../docs/kit/alert.md) | 行内状态提示，支持浅深色 |
+| [Empty](../../docs/kit/empty.md) | 空状态说明 |
