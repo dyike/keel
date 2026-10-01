@@ -45,3 +45,4 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 - [Tag](kit/tag.md)：不可移除标签。
 - [DescriptionList](kit/description_list.md)：字段说明列表。
 - [GroupBox](kit/group_box.md)：带标题的视图分组。
+- [StatusBar](kit/status_bar.md)：状态与详情栏。
