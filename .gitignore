@@ -1,5 +1,5 @@
 /work/
 *.test
 *.exe
-TODO.md
+/TODO.md
 .DS_Store
