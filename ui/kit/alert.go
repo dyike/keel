@@ -10,6 +10,7 @@ type AlertView struct {
 	title, description string
 	tone               Tone
 	hidden             bool
+	disabled           bool
 	onClose            func()
 }
 
@@ -35,10 +36,11 @@ func (v *AlertView) SetKind(t Tone) {
 func (v *AlertView) SetTitle(s string)            { v.title = s }
 func (v *AlertView) SetDescription(s string)      { v.description = s }
 func (v *AlertView) OnClose(fn func()) *AlertView { v.onClose = fn; return v }
+func (v *AlertView) SetDisabled(b bool)           { v.disabled = b }
 func (v *AlertView) Visible() bool                { return !v.hidden }
 func (v *AlertView) SetVisible(b bool)            { v.hidden = !b }
 func (v *AlertView) close() {
-	if v.hidden {
+	if v.hidden || v.disabled {
 		return
 	}
 	v.hidden = true
@@ -67,5 +69,5 @@ func (v *AlertView) Render(cx *el.Context) el.Element {
 	if v.onClose != nil {
 		body.Child(el.Div().ID("close").Name("关闭 " + v.title).Focusable().P(4).OnClick(v.close).Child(Icon(IconClose).Render(cx)))
 	}
-	return el.Div().W(el.Full).Role("alert").Name(v.title).Value(v.tone.name()).Row().Items(el.Stretch).Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Child(el.Div().W(el.Dp(4)).NoShrink().Bg(v.tone.color()), body)
+	return el.Div().Disabled(v.disabled).W(el.Full).Role("alert").Name(v.title).Value(v.tone.name()).Row().Items(el.Stretch).Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Child(el.Div().W(el.Dp(4)).NoShrink().Bg(v.tone.color()), body)
 }

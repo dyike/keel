@@ -63,3 +63,20 @@ func TestAlertKindsAndDescriptionHeight(t *testing.T) {
 		}
 	}
 }
+
+func TestAlertDisabledRestore(t *testing.T) {
+	n := 0
+	v := Alert("提示").OnClose(func() { n++ })
+	v.SetDisabled(true)
+	h := renderView(v, 220, 1)
+	click(t, h, "关闭 提示")
+	if !v.Visible() || n != 0 {
+		t.Fatal("disabled closed")
+	}
+	v.SetDisabled(false)
+	h.Frame()
+	click(t, h, "关闭 提示")
+	if v.Visible() || n != 1 {
+		t.Fatal("enabled failed")
+	}
+}
