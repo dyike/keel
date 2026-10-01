@@ -18,3 +18,13 @@ func TestStatusBarWrapsAndUpdates(t *testing.T) {
 		}
 	}
 }
+
+func TestStatusBarFixedHeight(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		h := renderView(StatusBar("很长很长的左侧文字需要截断", "右侧"), 160, scale)
+		n, ok := semanticNode(h, "status:右侧")
+		if !ok || n.Desc.Bounds.Dy() != 24*scale {
+			t.Fatalf("status bar height %v", n.Desc.Bounds)
+		}
+	}
+}

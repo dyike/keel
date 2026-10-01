@@ -1,12 +1,7 @@
 # StatusBar
 
-并排显示主状态和详情，由父布局决定放置位置，不自动固定到窗口底部。
+`kit.StatusBar().Left(el.Text("就绪")).Right(el.Text("第 12 行"))` 创建固定 24dp 状态栏，顶部 1dp 边框，默认 12sp Muted 文本。左右内容分组，中间空间由 Grow 撑开，长文本限制单行。父视图决定状态栏位置。
 
-```go
-bar := kit.StatusBar("连接正常", "共 123 条记录")
-return bar.Render(cx)
-```
+Left/Right 替换各自的元素组。旧构造函数中的两段文字及 SetStatus/SetDetail 保留为兼容入口。Agent 角色 status，子元素单独列出；组件本身无键盘操作，传入控件保留交互。溢出菜单留到 M5。
 
-构造函数返回 `*StatusBarView`。`SetStatus`、`SetDetail` 更新文字；两栏平均分配可用宽度，长文案在各自栏内换行。颜色跟随主题，无操作按钮、键盘行为或自动播报。
-
-Agent 角色 status，名字为主状态，value 为详情。验证：`go run ./examples/components -section status-bar -theme dark`，支持 light。
+验证：`go run ./examples/components -section status-bar -theme dark`，省略 theme 查看浅色。

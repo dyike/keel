@@ -13,5 +13,5 @@ func init() {
 type statusBarGallery struct{}
 
 func (statusBarGallery) Render(cx *el.Context) el.Element {
-	return el.Div().W(el.Full).Gap(16).Child(kit.StatusBar("连接正常 Connected", "共 123 条记录").Render(cx), el.Div().W(el.Dp(180)).Child(kit.StatusBar("离线，等待重新连接", "3 个任务待发送").Render(cx)))
+	return el.Div().W(el.Full).Gap(16).Child(kit.StatusBar().Left(el.Text("连接正常 Connected")).Right(el.Text("共 123 条记录")).Render(cx), el.Div().W(el.Dp(180)).Child(kit.StatusBar("离线，等待重新连接", "3 个任务待发送").Render(cx)))
 }
