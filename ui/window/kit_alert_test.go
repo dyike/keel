@@ -1,8 +1,13 @@
 package window
 
 import (
+	"bytes"
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/theme"
+	"image/color"
+	"image/png"
 	"testing"
 )
 
@@ -35,5 +40,40 @@ func TestKitAlertKeyboardDismiss(t *testing.T) {
 	}
 	if a.Visible() || n != 1 {
 		t.Fatal("keyboard close failed")
+	}
+}
+
+func TestAlertColorsFollowRuntimePalette(t *testing.T) {
+	old := theme.Current()
+	defer core.Update(func() { theme.Apply(old) })
+	v := kit.Alert("提示").Description("说明")
+	w := openTest(t, Options{Width: 260, Height: 150, Content: el.Embed(v)})
+	for _, p := range []theme.Palette{theme.Light(), theme.Dark()} {
+		core.Update(func() { theme.Apply(p) })
+		for _, sample := range []struct {
+			tone  kit.Tone
+			color color.NRGBA
+		}{{kit.Info, p.Info}, {kit.Success, p.Success}, {kit.Warning, p.Warning}, {kit.Danger, p.DangerText}} {
+			v.Tone(sample.tone)
+			data, err := w.screenshot()
+			if err != nil {
+				t.Fatal(err)
+			}
+			im, err := png.Decode(bytes.NewReader(data))
+			if err != nil {
+				t.Fatal(err)
+			}
+			count := 0
+			for y := 0; y < im.Bounds().Dy(); y++ {
+				for x := 0; x < im.Bounds().Dx(); x++ {
+					if color.NRGBAModel.Convert(im.At(x, y)) == sample.color {
+						count++
+					}
+				}
+			}
+			if count < 30 {
+				t.Fatalf("missing runtime tone %v", sample.tone)
+			}
+		}
 	}
 }
