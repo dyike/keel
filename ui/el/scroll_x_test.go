@@ -107,3 +107,37 @@ func TestScrollXNestedAndReadOnly(t *testing.T) {
 		t.Fatalf("vertical parent did not receive wheel: %g", y)
 	}
 }
+
+func TestScrollXStretchesNarrowColumns(t *testing.T) {
+	child := Div().MinW(Dp(120)).H(Dp(20))
+	box := Div().W(Dp(300)).ScrollX().Child(child)
+	render(t, Div().Items(Start).Child(box))
+	if child.n.size.X != 300 || box.n.contentW != 300 {
+		t.Fatalf("child %v content %d", child.n.size, box.n.contentW)
+	}
+	child.MinW(Dp(500))
+	render(t, Div().Items(Start).Child(box))
+	if child.n.size.X != 500 || box.n.contentW != 500 {
+		t.Fatal("wide child shrank")
+	}
+}
+
+func TestFlexRedistributesMinimumSizes(t *testing.T) {
+	for _, row := range []bool{true, false} {
+		a, b := Div().Flex(1), Div().Flex(2)
+		box := Div().W(Dp(100)).H(Dp(100))
+		if row {
+			box.Row()
+			a.MinW(Dp(40))
+			b.MinW(Dp(40))
+		} else {
+			a.MinH(Dp(40))
+			b.MinH(Dp(40))
+		}
+		box.Child(a, b)
+		render(t, Div().Items(Start).Child(box))
+		if mainOf(a.n.size, row) != 40 || mainOf(b.n.size, row) != 60 {
+			t.Fatalf("row %v: %v %v", row, a.n.size, b.n.size)
+		}
+	}
+}

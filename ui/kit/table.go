@@ -51,7 +51,8 @@ const minColumn = 40
 // to reverse); drag a header's right edge to resize the column. Click a row,
 // or use ↑ ↓ Home End PageUp PageDown once the table has focus, to select it;
 // double-click or press Enter to activate it. Only rows near the viewport are
-// built, so tables with many thousands of rows stay fast.
+// built, so tables with many thousands of rows stay fast. Columns wider than
+// the viewport scroll horizontally together with the header.
 //
 // Row indexes in callbacks, Value and SetValue are positions in the data given
 // to SetRows, whatever the sort order.
@@ -281,7 +282,11 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 		v.list.ScrollTo(cx, v.position(v.selected))
 		v.reveal = false
 	}
-	head := el.Div().Row().Items(el.Stretch).Bg(theme.Subtle)
+	head := el.Div().Row().NoShrink().Items(el.Stretch).Bg(theme.Subtle)
+	var minWidth float32
+	for _, col := range v.cols {
+		minWidth += max(col.width, minColumn)
+	}
 	for c := range v.cols {
 		head.Child(v.header(cx, c))
 	}
@@ -296,7 +301,10 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 	if v.loading {
 		body.Child(el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Child(Spinner().Render(cx)))
 	}
-	return el.Div().ID(autoID("table", v)).Role("table").Value(locale.Current().Rows(len(v.rows))).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
+	content := el.Div().MinW(el.Dp(minWidth)).Items(el.Stretch).
+		When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
+		Child(head, el.Div().H(el.Dp(1)).NoShrink().Bg(theme.Border), body)
+	return el.Div().ID(autoID("table", v)).ScrollX().Role("table").Value(locale.Current().Rows(len(v.rows))).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
@@ -312,5 +320,5 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 			}
 			return ok
 		}).
-		Child(head, el.Div().H(el.Dp(1)).Bg(theme.Border), body)
+		Child(content)
 }

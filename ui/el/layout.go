@@ -77,6 +77,7 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 	}
 
 	flex := func(innerW, innerH, limW, limH int) image.Point {
+		viewportW := innerW
 		if s.scrollX {
 			innerW, limW = -1, inf
 		}
@@ -84,6 +85,11 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 			innerH, limH = -1, inf
 		}
 		c := e.flex(n, innerW, innerH, limW, limH)
+		// A column scrolls its intrinsic width but still stretches narrow
+		// content across the viewport (e.g. flexible table columns).
+		if s.scrollX && !s.row && viewportW >= 0 && c.X < viewportW {
+			c = e.flex(n, viewportW, innerH, limW, limH)
+		}
 		n.contentW, n.contentH = c.X, c.Y
 		return c
 	}
@@ -277,17 +283,49 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 	if mainDef >= 0 {
 		free := mainDef - total
 		if grow > 0 {
-			left := max(free, 0)
+			// Freeze children whose proportional share is below their minimum,
+			// then distribute the remainder among the other growing children.
+			// Clamping only after distribution would overflow the parent.
+			space := max(free, 0)
+			frozen := make(map[*Node]int)
+			for {
+				changed := false
+				for _, c := range kids {
+					if !growing(c) {
+						continue
+					}
+					if _, ok := frozen[c]; ok {
+						continue
+					}
+					mn := c.style.minH.px(e.m, limH)
+					if row {
+						mn = c.style.minW.px(e.m, limW)
+					}
+					if grow > 0 && float32(space)*c.style.grow/grow < float32(mn) {
+						frozen[c] = mn
+						space = max(space-mn, 0)
+						grow -= c.style.grow
+						changed = true
+					}
+				}
+				if !changed {
+					break
+				}
+			}
 			for _, c := range kids {
 				if !growing(c) {
 					continue
 				}
-				share := int(float32(max(free, 0)) * c.style.grow / grow)
-				left -= share
+				share, ok := frozen[c]
+				if !ok && grow > 0 {
+					share = int(float32(space) * c.style.grow / grow)
+				}
 				c.setForce(share, preCross(c), row)
 				e.layoutChild(c, n, limW, limH)
+				m, _ := outer(c)
+				ms, me, _, _ := e.margins(c, row)
+				total += m - ms - me
 			}
-			total = mainDef - left
 		} else if free < 0 {
 			var weight float32
 			for _, c := range kids {
