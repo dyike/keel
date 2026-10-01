@@ -22,3 +22,44 @@ func TestAlertWrapsAndRetainsStatus(t *testing.T) {
 		}
 	}
 }
+
+func TestAlertDismissAndRestore(t *testing.T) {
+	calls := 0
+	a := Alert("失败").Danger().Description("网络不可用").OnClose(func() { calls++ })
+	h := renderView(a, 240, 1)
+	click(t, h, "关闭 失败")
+	h.Frame()
+	if a.Visible() || calls != 1 {
+		t.Fatal("dismiss failed")
+	}
+	a.SetVisible(true)
+	h.Frame()
+	if _, ok := node(h, "失败"); !ok || calls != 1 {
+		t.Fatal("restore invoked callback or stayed hidden")
+	}
+	a.SetVisible(false)
+	h.Frame()
+	if calls != 1 {
+		t.Fatal("program visibility invoked callback")
+	}
+}
+func TestAlertKindsAndDescriptionHeight(t *testing.T) {
+	for _, k := range []Tone{Info, Success, Warning, Danger} {
+		a := Alert("标题").Tone(k)
+		h := renderView(a, 240, 1)
+		if _, ok := semanticNode(h, "alert:"+k.name()); !ok {
+			t.Fatal(k)
+		}
+		if _, ok := node(h, "关闭 标题"); ok {
+			t.Fatal("unexpected close")
+		}
+		n, _ := semanticNode(h, "alert:"+k.name())
+		before := n.Desc.Bounds.Dy()
+		a.Description("说明")
+		h.Frame()
+		n, _ = semanticNode(h, "alert:"+k.name())
+		if n.Desc.Bounds.Dy() <= before {
+			t.Fatal("description did not add height")
+		}
+	}
+}

@@ -22,3 +22,18 @@ func TestKitAlertSnapshot(t *testing.T) {
 		t.Fatal("stale alert")
 	}
 }
+
+func TestKitAlertKeyboardDismiss(t *testing.T) {
+	n := 0
+	a := kit.Alert("提示").OnClose(func() { n++ })
+	w := openTest(t, Options{Content: el.Embed(a)})
+	if err := w.press("tab"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.press("enter"); err != nil {
+		t.Fatal(err)
+	}
+	if a.Visible() || n != 1 {
+		t.Fatal("keyboard close failed")
+	}
+}

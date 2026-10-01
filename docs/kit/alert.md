@@ -1,16 +1,7 @@
 # Alert
 
-行内显示状态及说明，不抢占焦点。当前为纯展示版本，关闭按钮在 el 焦点、禁用接口 review 后增加。
+`kit.Alert("保存失败").Danger().Description("网络不可用").OnClose(fn)` 显示行内提示。默认 Info，支持 Success、Warning、Danger；SetKind、SetTitle、SetDescription 可程序更新，Tone 保留为兼容入口。
 
-```go
-notice := kit.Alert("保存成功", "订单 SO-123 已保存").Tone(kit.Success)
-// 在 Render 中组合：
-return notice.Render(cx)
-// 单独作为窗口内容：el.Embed(notice)
-```
+左侧等级条和图标随主题取色，标题加粗，描述为 13sp Muted。只有设置 OnClose 才显示关闭按钮；点击或 Tab 聚焦后 Space/Enter 关闭，先隐藏再回调。Visible 查询状态，SetVisible 恢复或隐藏时不调用回调。
 
-`Alert(title, description)` 返回 `*AlertView`，默认 Info。链式 `Tone` 支持 Neutral、Info、Success、Warning、Danger；`SetTitle`、`SetDescription` 修改文字。空标题或正文不生成对应文本，窄容器自动换行。颜色在 Render 时读取 theme，支持运行时切换；没有点击、键盘或值回调。
-
-Agent 的角色是 `alert`，名字是标题，value 是语义级别，正文作为子文本保留。
-
-验证：`go run ./examples/components -section alert -theme light`，再用 `-theme dark` 检查深色；单元测试覆盖窄容器、混排、1×/2×、连续帧和更新，窗口测试覆盖角色与正文。
+Agent 容器角色 alert，名字为标题，value 为等级。描述和关闭按钮单独可读。窄容器文字换行。运行 `go run ./examples/components -section alert -theme dark`；省略 theme 查看浅色。
