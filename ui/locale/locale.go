@@ -36,6 +36,7 @@ type Strings struct {
 	PrevSlide, NextSlide                     string
 	DockLeft, DockRight, DockBottom          string
 	SearchSettings                           string
+	Minimize, Maximize, Restore              string
 	// Total formats an item count for a pager, e.g. "共 36 条".
 	Total func(n int) string
 
@@ -78,6 +79,7 @@ func Chinese() Strings {
 		More: "更多", Resize: "调整大小", CollapseSidebar: "收起侧栏", ExpandSidebar: "展开侧栏",
 		PrevSlide: "上一张", NextSlide: "下一张",
 		DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", SearchSettings: "搜索设置",
+		Minimize: "最小化", Maximize: "最大化", Restore: "还原",
 		Total:        func(n int) string { return "共 " + strconv.Itoa(n) + " 条" },
 		Weekdays:     [7]string{"日", "一", "二", "三", "四", "五", "六"},
 		FirstWeekday: time.Monday,
@@ -104,6 +106,7 @@ func English() Strings {
 		More: "More", Resize: "Resize", CollapseSidebar: "Collapse sidebar", ExpandSidebar: "Expand sidebar",
 		PrevSlide: "Previous slide", NextSlide: "Next slide",
 		DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", SearchSettings: "Search settings",
+		Minimize: "Minimize", Maximize: "Maximize", Restore: "Restore",
 		Total: func(n int) string {
 			if n == 1 {
 				return "1 item"

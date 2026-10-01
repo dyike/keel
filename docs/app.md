@@ -27,6 +27,7 @@ window.Main()
 | `Overlay` | 盖在整个窗口上的一层，通常放 `widget.Dialog`。没东西显示时应该不占空间 |
 | `Shortcuts` | 窗口获得焦点时生效的快捷键，写法见下文 |
 | `OnClose` | 窗口销毁后调用，在锁内运行，可以直接改组件 |
+| `Frameless` | 隐藏系统标题栏，内容从窗口最上沿开始，由应用自己画标题栏，通常用 [kit.TitleBar](kit/title_bar.md) |
 
 `window.Open` 可以在 `window.Main()` 之前调用，也可以在任何回调里调用，用来运行时开新窗口。
 
@@ -38,6 +39,10 @@ window.Main()
 | --- | --- |
 | `Close()` | 等同于用户点关闭按钮 |
 | `Raise()` | 把窗口置于最前 |
+| `Minimize()` | 最小化到 Dock 或任务栏 |
+| `ToggleMaximize()` | 最大化（macOS 上是缩放），已最大化时还原 |
+| `Maximized()` | 当前是否最大化，在 UI 代码里读取 |
+| `Frameless()` | 是否无边框窗口 |
 | `Closed() bool` | 窗口是否已销毁。在回调或 `core.Update` 里调用 |
 
 `Close` 和 `Raise` 是异步的：调用立即返回，动作在当前回调结束后才执行。所以 `w.Close()` 之后马上读 `w.Closed()`，得到的仍是 `false`。它们这样设计是为了避免死锁，原因见[架构 · 不能在锁内等待主线程](architecture.md#不能在锁内等待主线程)。

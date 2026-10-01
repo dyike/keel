@@ -27,6 +27,9 @@ type Options struct {
 	// "mod+," (Cmd on macOS, Ctrl elsewhere), "ctrl+shift+s", "esc".
 	Shortcuts map[string]func()
 	OnClose   func()
+	// Frameless hides the system title bar so the content can draw its own,
+	// e.g. a kit.TitleBar; the content then starts at the window's top edge.
+	Frameless bool
 }
 
 type Window struct {
@@ -36,6 +39,7 @@ type Window struct {
 	shortcuts []shortcut
 	root      root
 	closed    bool          // guarded by the frame lock
+	maximized bool          // guarded by the frame lock; from the platform's config
 	shown     chan struct{} // closed at the first frame or at destruction
 }
 
@@ -48,7 +52,7 @@ func Open(o Options) *Window {
 		return w
 	}
 	w.win = new(gioapp.Window)
-	w.win.Option(gioapp.Title(o.Title), gioapp.Size(unit.Dp(w.opts.Width), unit.Dp(w.opts.Height)))
+	w.win.Option(gioapp.Title(o.Title), gioapp.Size(unit.Dp(w.opts.Width), unit.Dp(w.opts.Height)), gioapp.Decorated(!o.Frameless))
 	loop.Register(w, w.win.Invalidate)
 	if automating() {
 		openVirtual(w, false) // shadow of the real window, driven by agents
@@ -86,6 +90,29 @@ func (w *Window) Close() { w.perform(system.ActionClose) }
 
 // Raise brings the window to the front.
 func (w *Window) Raise() { w.perform(system.ActionRaise) }
+
+// Minimize hides the window in the Dock or taskbar.
+func (w *Window) Minimize() { w.perform(system.ActionMinimize) }
+
+// ToggleMaximize maximizes the window (zooms it on macOS), or restores it
+// when it is maximized.
+func (w *Window) ToggleMaximize() {
+	if w.win == nil { // headless: track the state so tests and agents see it
+		w.maximized = !w.maximized
+		return
+	}
+	if w.maximized {
+		w.perform(system.ActionUnmaximize)
+	} else {
+		w.perform(system.ActionMaximize)
+	}
+}
+
+// Maximized reports whether the window is maximized. Call it from UI code.
+func (w *Window) Maximized() bool { return w.maximized }
+
+// Frameless reports whether the window draws its own title bar.
+func (w *Window) Frameless() bool { return w.opts.Frameless }
 
 // perform must not block: callers hold the frame lock, while Gio's Perform
 // waits for the main thread, which may be waiting for another window's frame,
@@ -125,6 +152,13 @@ func (w *Window) run() {
 			w.markShown()
 			w.destroy()
 			return
+		case gioapp.ConfigEvent:
+			loop.Lock()
+			if m := e.Config.Mode == gioapp.Maximized; m != w.maximized {
+				w.maximized = m
+				w.win.Invalidate() // title bars show maximize or restore
+			}
+			loop.Unlock()
 		case gioapp.FrameEvent:
 			gtx := gioapp.NewContext(&ops, e)
 			if w.virt != nil { // keep the shadow the same size as the window
@@ -141,6 +175,7 @@ func (w *Window) run() {
 }
 
 func (w *Window) layout(gtx core.C) {
+	defer core.SetCurrentWindow(w)()
 	w.handleShortcuts(gtx)
 	w.root.Layout(gtx, w.opts.Content)
 	if w.opts.Overlay != nil {

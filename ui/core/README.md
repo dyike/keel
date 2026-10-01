@@ -9,6 +9,7 @@
 | `Update(fn)` | 从任意 goroutine 修改界面：`fn` 在下一帧执行 |
 | `Call(gtx, fn)` | 给写组件的人用：执行用户回调并让所有窗口重绘 |
 | `Semantic(gtx, w, ops...)`、`Role(...)` | 给写组件的人用：声明组件的角色、名字、状态，让 Agent 看得见 |
+| `WindowControls`、`CurrentWindow()` | 组件拿到所在窗口的最小化、最大化、关闭能力，自定义标题栏用。`ui/window` 在布局期间登记当前窗口 |
 
 - **依赖**：只依赖 Gio，以及内部的 `ui/internal/loop`。
 - **被谁依赖**：`layout`、`widget`、`window`。

@@ -71,3 +71,4 @@
 | [Dock](../../docs/kit/dock.md) | 可停靠面板与布局保存 |
 | [Settings](../../docs/kit/settings.md) | 设置页 |
 | [Carousel](../../docs/kit/carousel.md) | 轮播 |
+| [TitleBar](../../docs/kit/title_bar.md) | 无边框窗口的标题栏 |
