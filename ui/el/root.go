@@ -29,6 +29,11 @@ type View interface {
 	Render(cx *Context) Element
 }
 
+// ViewFunc adapts a render function to a View.
+type ViewFunc func(*Context) Element
+
+func (f ViewFunc) Render(cx *Context) Element { return f(cx) }
+
 // Context is passed to Render.
 type Context struct {
 	shortcuts []viewShortcut

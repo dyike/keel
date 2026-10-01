@@ -116,6 +116,8 @@ func (p *Page) Render(cx *el.Context) el.Element {
 }
 ```
 
+`el.ViewFunc(func(cx *el.Context) el.Element { … })` 将函数适配成 View，适合传给 kit 的内容插槽。插槽持有 View，每帧调用 Render；主题色在函数内读取，不要在构造视图时保存 Element。
+
 `cx.Shortcut("mod+s", fn)` 在视图渲染期间绑定快捷键。
 
 ### 缓存不变的部分

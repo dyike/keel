@@ -8,7 +8,7 @@ import (
 func TestGroupBoxRetainsChildren(t *testing.T) {
 	child := Tag("原文")
 	children := []el.View{child, nil}
-	v := GroupBox("分组 123", children...)
+	v := GroupBox("分组 123").Child(children...)
 	children[0] = nil
 	for _, scale := range []int{1, 2} {
 		h := renderView(v, 160, scale)
@@ -29,7 +29,7 @@ func TestGroupBoxRetainsChildren(t *testing.T) {
 }
 
 func TestGroupBoxDescriptionAndElements(t *testing.T) {
-	v := GroupBox("设置").Description("通知说明").Child(el.Text("内容"))
+	v := GroupBox("设置").Description("通知说明").Child(el.ViewFunc(func(cx *el.Context) el.Element { return el.Text("内容") }))
 	h := renderView(v, 220, 1)
 	if _, ok := node(h, "通知说明"); !ok {
 		t.Fatal("missing description")

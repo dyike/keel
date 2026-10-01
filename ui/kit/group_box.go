@@ -9,18 +9,13 @@ import (
 type GroupBoxView struct {
 	title       string
 	description string
-	elements    []el.Element
 	children    []el.View
 }
 
-func GroupBox(title string, children ...el.View) *GroupBoxView {
-	v := &GroupBoxView{title: title}
-	v.SetChildren(children...)
-	return v
-}
+func GroupBox(title string) *GroupBoxView                  { return &GroupBoxView{title: title} }
 func (v *GroupBoxView) Description(s string) *GroupBoxView { v.description = s; return v }
-func (v *GroupBoxView) Child(els ...el.Element) *GroupBoxView {
-	v.elements = append(v.elements, els...)
+func (v *GroupBoxView) Child(views ...el.View) *GroupBoxView {
+	v.children = append(v.children, views...)
 	return v
 }
 func (v *GroupBoxView) SetTitle(s string) { v.title = s }
@@ -36,11 +31,6 @@ func (v *GroupBoxView) Render(cx *el.Context) el.Element {
 		box.Child(el.Text(v.description).TextColor(theme.Muted))
 	}
 	content := el.Div().P(16).Gap(12).Rounded(6).Border(1, theme.Border).Bg(theme.Surface)
-	for _, e := range v.elements {
-		if e != nil {
-			content.Child(e)
-		}
-	}
 	for _, child := range v.children {
 		if child != nil {
 			content.Child(child.Render(cx))

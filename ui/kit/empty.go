@@ -9,13 +9,13 @@ import (
 type EmptyView struct {
 	title, description string
 	icon               IconName
-	action             el.Element
+	action             el.View
 }
 
 func Empty(title string) *EmptyView                  { return &EmptyView{title: title, icon: IconInbox} }
 func (v *EmptyView) Description(s string) *EmptyView { v.description = s; return v }
 func (v *EmptyView) Icon(i IconName) *EmptyView      { v.icon = i; return v }
-func (v *EmptyView) Action(e el.Element) *EmptyView  { v.action = e; return v }
+func (v *EmptyView) Action(e el.View) *EmptyView     { v.action = e; return v }
 func (v *EmptyView) SetTitle(s string)               { v.title = s }
 func (v *EmptyView) SetDescription(s string)         { v.description = s }
 func (v *EmptyView) Render(cx *el.Context) el.Element {
@@ -28,7 +28,7 @@ func (v *EmptyView) Render(cx *el.Context) el.Element {
 		box.Child(el.Text(v.description).TextColor(theme.Muted))
 	}
 	if v.action != nil {
-		box.Child(v.action)
+		box.Child(v.action.Render(cx))
 	}
 	return box
 }

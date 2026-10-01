@@ -16,6 +16,6 @@ GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回�
 | `paint.go` | 绘制、点击区域、滚动、输入框、语义信息 |
 | `viewport.go` | 绘制坐标、可视区域与最近滚动容器的程序滚动 |
 | `state.go` | 元素状态存储与回收 |
-| `root.go` | `View`、`Context`、`Root`、`Embed`，每帧的执行顺序 |
+| `root.go` | `View`、`ViewFunc`、`Context`、`Root`、`Embed`，每帧的执行顺序 |
 
 使用指南：[元素与视图](../../docs/el.md)。

@@ -7,7 +7,7 @@ import (
 )
 
 func TestKitStatusBarSnapshot(t *testing.T) {
-	w := openTest(t, Options{Content: el.Embed(kit.StatusBar().Left(el.Text("连接正常")).Right(el.Text("3 个任务")))})
+	w := openTest(t, Options{Content: el.Embed(kit.StatusBar().Left(el.ViewFunc(func(cx *el.Context) el.Element { return el.Text("连接正常") })).Right(el.ViewFunc(func(cx *el.Context) el.Element { return el.Text("3 个任务") })))})
 	element(t, w, "连接正常")
 	element(t, w, "3 个任务")
 	found := false

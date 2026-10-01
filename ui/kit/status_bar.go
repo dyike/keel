@@ -7,29 +7,29 @@ import (
 
 // StatusBarView is a single-line 24dp status strip; its parent places it.
 type StatusBarView struct {
-	left, right []el.Element
+	left, right []el.View
 }
 
 func StatusBar() *StatusBarView { return &StatusBarView{} }
-func (v *StatusBarView) Left(els ...el.Element) *StatusBarView {
-	v.left = append([]el.Element(nil), els...)
+func (v *StatusBarView) Left(views ...el.View) *StatusBarView {
+	v.left = append([]el.View(nil), views...)
 	return v
 }
-func (v *StatusBarView) Right(els ...el.Element) *StatusBarView {
-	v.right = append([]el.Element(nil), els...)
+func (v *StatusBarView) Right(views ...el.View) *StatusBarView {
+	v.right = append([]el.View(nil), views...)
 	return v
 }
-func (v *StatusBarView) Render(*el.Context) el.Element {
+func (v *StatusBarView) Render(cx *el.Context) el.Element {
 	left := el.Div().Row().Grow().Gap(8).MaxLines(1).Items(el.Center)
 	right := el.Div().Row().Gap(8).MaxLines(1).Items(el.Center)
 	for _, e := range v.left {
 		if e != nil {
-			left.Child(e)
+			left.Child(e.Render(cx))
 		}
 	}
 	for _, e := range v.right {
 		if e != nil {
-			right.Child(e)
+			right.Child(e.Render(cx))
 		}
 	}
 	return el.Div().W(el.Full).H(el.Dp(24)).Role("status").TextSize(12).TextColor(theme.Muted).Bg(theme.Surface).Child(

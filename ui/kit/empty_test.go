@@ -25,7 +25,9 @@ func TestEmptyContentAndConstraints(t *testing.T) {
 
 func TestEmptyAction(t *testing.T) {
 	calls := 0
-	v := Empty("空").Action(el.Div().Name("创建").OnClick(func() { calls++ }).Child(el.Text("创建")))
+	v := Empty("空").Action(el.ViewFunc(func(cx *el.Context) el.Element {
+		return el.Div().Name("创建").OnClick(func() { calls++ }).Child(el.Text("创建"))
+	}))
 	h := renderView(v, 240, 1)
 	click(t, h, "创建")
 	if calls != 1 {
