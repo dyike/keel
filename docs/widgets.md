@@ -134,6 +134,8 @@ table.SetRows([][]string{{"SO-1001", "华东物流", "300.00"}, ...})
 
 表体只布局可见的行，几千行也不会卡。筛选的做法是重新 `SetRows`，并自己维护"显示行号 → 原始数据"的映射，示例见 `examples/orders`。
 
+`Table.SetDisabled` 禁用行选择、表头排序和键盘激活；表格、行及表头的 Agent 状态都为 `disabled`。保留 `Selected` / `SetSelected` 和 `OnSelect`。验证：`go run ./examples/components -section table`。
+
 ## 下拉选择
 
 ```go

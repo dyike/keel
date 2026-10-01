@@ -314,3 +314,30 @@ func TestAutomationDisabledTabs(t *testing.T) {
 		t.Fatal("tab did not recover")
 	}
 }
+
+func TestAutomationDisabledTable(t *testing.T) {
+	tb := widget.Table(widget.Col("列", 1)).Height(120)
+	tb.SetRows([][]string{{"甲"}, {"乙"}})
+	w := openTest(t, Options{Content: tb})
+	tb.SetDisabled(true)
+	for _, e := range w.snapshot() {
+		if (e.Role == "table" || e.Role == "row" || e.Role == "columnheader") && !e.Disabled {
+			t.Fatalf("missing disabled table state: %+v", e)
+		}
+	}
+	w.click(element(t, w, "甲").center())
+	w.press("down")
+	w.press("enter")
+	if tb.Selected() != -1 {
+		t.Fatal("disabled table selected")
+	}
+	tb.SetDisabled(false)
+	e := element(t, w, "乙")
+	if e.Disabled {
+		t.Fatal("table remained disabled")
+	}
+	w.click(e.center())
+	if tb.Selected() != 1 {
+		t.Fatal("table did not recover")
+	}
+}

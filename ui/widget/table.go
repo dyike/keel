@@ -51,11 +51,12 @@ type TableView struct {
 	onSelect   func(row int)
 	onActivate func(row int)
 
-	list    widget.List
-	reveal0 bool // scroll the selection into view at the next layout
-	heads   []widget.Clickable
-	clicks  []widget.Clickable // per row index
-	focused bool
+	list     widget.List
+	reveal0  bool // scroll the selection into view at the next layout
+	heads    []widget.Clickable
+	clicks   []widget.Clickable // per row index
+	focused  bool
+	disabled bool
 }
 
 // Table creates an empty table with the given columns, 320dp tall.
@@ -97,6 +98,12 @@ func (t *TableView) Row(i int) []string {
 
 // Selected returns the selected row index, or -1.
 func (t *TableView) Selected() int { return t.selected }
+func (t *TableView) SetDisabled(v bool) {
+	t.disabled = v
+	if v {
+		t.focused = false
+	}
+}
 
 // SetSelected selects row i (-1 clears) and scrolls it into view, without
 // calling OnSelect.
@@ -149,6 +156,12 @@ func (t *TableView) resort() {
 }
 
 func (t *TableView) Layout(gtx C) D {
+	if t.disabled {
+		gtx = gtx.Disabled()
+	}
+	if !gtx.Enabled() {
+		t.focused = false
+	}
 	gtx.Constraints.Min.X = gtx.Constraints.Max.X
 	t.handleKeys(gtx)
 	for i := range t.heads {
@@ -189,7 +202,7 @@ func (t *TableView) Layout(gtx C) D {
 				giolayout.Rigid(t.body),
 			)
 		})
-	}, core.Role("table", summary))
+	}, core.Role("table", summary), semantic.EnabledOp(gtx.Enabled()))
 }
 
 // handleKeys moves the selection with the keyboard while the table has focus.
@@ -297,7 +310,7 @@ func (t *TableView) header(gtx C) D {
 						lb.Color, lb.Font.Weight, lb.MaxLines = theme.Muted, font.Bold, 1
 						return lb.Layout(gtx)
 					})
-				}, semantic.Button, semantic.LabelOp(c.Title), core.Role("columnheader"))
+				}, semantic.Button, semantic.LabelOp(c.Title), core.Role("columnheader"), semantic.EnabledOp(gtx.Enabled()))
 			})
 		})
 	}
@@ -340,6 +353,9 @@ func (t *TableView) body(gtx C) D {
 						return cellInset.Layout(gtx, func(gtx C) D {
 							lb := material.Label(theme.Material, theme.BodySize, text)
 							lb.Color, lb.MaxLines = theme.Text, 1
+							if !gtx.Enabled() {
+								lb.Color = theme.Muted
+							}
 							return lb.Layout(gtx)
 						})
 					})
@@ -353,7 +369,7 @@ func (t *TableView) body(gtx C) D {
 				}
 				content.Add(gtx.Ops)
 				return d
-			}, core.Role("row"), semantic.LabelOp(strings.Join(row, " | ")), semantic.SelectedOp(selected))
+			}, core.Role("row"), semantic.LabelOp(strings.Join(row, " | ")), semantic.SelectedOp(selected), semantic.EnabledOp(gtx.Enabled()))
 		})
 	})
 }
