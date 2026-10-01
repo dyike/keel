@@ -426,3 +426,28 @@ func TestAutomationDisabledFields(t *testing.T) {
 		})
 	}
 }
+
+func TestAutomationDisabledLink(t *testing.T) {
+	n := 0
+	l := widget.Link("文档", func() { n++ })
+	w := openTest(t, Options{Content: l})
+	l.SetDisabled(true)
+	e := element(t, w, "文档")
+	if e.Role != "link" || !e.Disabled {
+		t.Fatalf("invalid link semantics: %+v", e)
+	}
+	w.click(e.center())
+	w.press("space")
+	if n != 0 {
+		t.Fatal("disabled link activated")
+	}
+	l.SetDisabled(false)
+	e = element(t, w, "文档")
+	if e.Disabled {
+		t.Fatal("link remained disabled")
+	}
+	w.click(e.center())
+	if n != 1 {
+		t.Fatal("link did not recover")
+	}
+}

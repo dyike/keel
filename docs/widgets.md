@@ -50,7 +50,7 @@ widget.Button("删除", onDelete).Danger()                 // 红底
 widget.Link("查看文档", openDocs)
 ```
 
-主色文字，鼠标悬停显示手形光标。方法：`SetText(s)`。
+主色文字，鼠标悬停显示手形光标。方法：`SetText(s)`、`SetDisabled(bool)`。禁用后变灰，不能获得焦点或通过鼠标、键盘激活；解除禁用后恢复。
 
 ## 图片
 
