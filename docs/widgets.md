@@ -152,6 +152,8 @@ tabs := widget.Tabs().Add("订单列表", listPage).Add("新建订单", formPage
 tabs.SetCurrent(1) // 程序切换，不触发 OnChange
 ```
 
+`Tabs.SetDisabled` 同时禁用标题和当前页内控件。保留 `Current` / `SetCurrent`；程序切换页面不触发 `OnChange`。验证：`go run ./examples/components -section tabs`。
+
 ## 单选、开关
 
 ```go

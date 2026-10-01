@@ -289,3 +289,28 @@ func TestAutomationDisabledSelect(t *testing.T) {
 		t.Fatal("select did not recover")
 	}
 }
+
+func TestAutomationDisabledTabs(t *testing.T) {
+	tabs := widget.Tabs().Add("概览", widget.Text("内容")).Add("设置", widget.Text("设置内容"))
+	w := openTest(t, Options{Content: tabs})
+	tabs.SetDisabled(true)
+	e := element(t, w, "设置")
+	if e.Role != "tab" || !e.Disabled {
+		t.Fatalf("missing disabled tab: %+v", e)
+	}
+	w.click(e.center())
+	w.press("space")
+	w.press("enter")
+	if tabs.Current() != 0 {
+		t.Fatal("disabled tab activated")
+	}
+	tabs.SetDisabled(false)
+	e = element(t, w, "设置")
+	if e.Disabled {
+		t.Fatal("tab remained disabled")
+	}
+	w.click(e.center())
+	if tabs.Current() != 1 {
+		t.Fatal("tab did not recover")
+	}
+}

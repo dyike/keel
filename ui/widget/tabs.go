@@ -22,6 +22,7 @@ type TabsView struct {
 	titles   []string
 	pages    []core.Widget
 	current  int
+	disabled bool
 	clicks   []widget.Clickable
 	onChange func(index int)
 }
@@ -39,6 +40,7 @@ func (t *TabsView) Add(title string, page core.Widget) *TabsView {
 
 func (t *TabsView) OnChange(fn func(index int)) *TabsView { t.onChange = fn; return t }
 func (t *TabsView) Current() int                          { return t.current }
+func (t *TabsView) SetDisabled(v bool)                    { t.disabled = v }
 
 // SetCurrent shows page i without calling OnChange.
 func (t *TabsView) SetCurrent(i int) {
@@ -48,6 +50,9 @@ func (t *TabsView) SetCurrent(i int) {
 }
 
 func (t *TabsView) Layout(gtx C) D {
+	if t.disabled {
+		gtx = gtx.Disabled()
+	}
 	gtx.Constraints.Min.X = gtx.Constraints.Max.X
 	for i := range t.clicks {
 		for t.clicks[i].Clicked(gtx) {
@@ -96,6 +101,6 @@ func (t *TabsView) head(gtx C, i int, title string) D {
 				paint.FillShape(gtx.Ops, theme.Primary, clip.Rect(r).Op())
 			}
 			return d
-		}, semantic.Button, core.Role("tab"), semantic.LabelOp(title), semantic.SelectedOp(active))
+		}, semantic.Button, core.Role("tab"), semantic.LabelOp(title), semantic.SelectedOp(active), semantic.EnabledOp(gtx.Enabled()))
 	})
 }

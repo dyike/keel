@@ -12,7 +12,7 @@
 | `checkbox.go` | `Checkbox`：禁用、半选、回调和键盘操作 |
 | `table.go` | `Table`、`Col`：排序、选中、键盘导航、只渲染可见行 |
 | `select.go` | `Select`：下拉选择、禁用与恢复 |
-| `tabs.go` | `Tabs` |
+| `tabs.go` | `Tabs`：页面切换、静默赋值与禁用 |
 | `radio.go` | `RadioGroup`：单选、静默赋值、回调与禁用 |
 | `switch.go` | `Switch`：尺寸、禁用、加载、键盘操作 |
 | `slider.go` | `Slider`：范围、步长、拖动和键盘调整 |
