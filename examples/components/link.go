@@ -2,13 +2,18 @@ package main
 
 import (
 	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/layout"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/theme"
 )
 
-func init() { registerSection("link", "controls", linkGallery) }
-func linkGallery() core.Widget {
-	status := widget.Text("尚未点击")
-	link := widget.Link("查看文档", func() { status.SetText("已点击链接") })
-	return layout.Card(widget.Heading("链接"), link, status, widget.Checkbox("禁用链接", false).OnChange(link.SetDisabled))
+func init() {
+	registerSection("link", "controls", func() core.Widget {
+		msg := "点击链接，或 Tab 聚焦后按回车"
+		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().P(24).Gap(8).Items(el.Start).Child(
+				kit.Link("查看订单详情 Details", func() { msg = "已打开详情" }).Render(cx),
+				el.Text(msg).TextColor(theme.Muted))
+		}))
+	})
 }

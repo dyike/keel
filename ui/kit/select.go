@@ -109,8 +109,11 @@ func (v *SelectView) choose(s string) {
 func (v *SelectView) Render(cx *el.Context) el.Element {
 	id := v.FocusID()
 	name := v.a11y()
-	if name == "" {
+	if name == "" { // name an unlabelled select after the hint it shows
 		name = v.hint
+		if name == "" {
+			name = locale.Current().SelectHint
+		}
 	}
 	shown, color := v.value, theme.Text
 	if shown == "" {

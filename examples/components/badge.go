@@ -2,14 +2,20 @@ package main
 
 import (
 	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/layout"
-	"github.com/dyike/keel/ui/theme"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
 )
 
-func init() { registerSection("badge", "controls", badgeGallery) }
-func badgeGallery() core.Widget {
-	badge := widget.Badge(9)
-	badge.Child(widget.Button("通知", func() { badge.SetCount(0) }).Secondary())
-	return layout.Card(widget.Heading("数字、圆点和图标角标"), layout.Row(badge, widget.Button("增加未读", func() { badge.SetCount(badge.Count() + 1) }).Secondary(), widget.Badge(120).Size(widget.Large)), layout.Row(widget.Badge(1).Dot().Child(widget.Text("在线")), widget.Badge(1).Icon(widget.Icon(widget.IconCheck)).Color(theme.Primary, theme.OnColor).Child(widget.Text("已验证"))))
+func init() {
+	registerSection("badge", "controls", func() core.Widget {
+		unread := kit.Badge(9)
+		unread.Child(kit.Button("通知", func() { unread.SetValue(0) }).Variant(kit.ButtonSecondary))
+		online := kit.Badge(1).Dot().Tone(kit.ToneSuccess).Child(kit.Avatar("张三"))
+		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().P(24).Row().Gap(24).Items(el.Center).Child(
+				unread.Render(cx),
+				kit.Button("增加未读", func() { unread.SetValue(unread.Value() + 1) }).Variant(kit.ButtonGhost).Render(cx),
+				kit.Badge(120).Render(cx), online.Render(cx))
+		}))
+	})
 }

@@ -16,16 +16,13 @@ var demoSections []demoSection
 func registerSection(name, category string, build func() core.Widget) {
 	demoSections = append(demoSections, demoSection{name, category, build})
 }
-func sectionContent(name string, base core.Widget) (core.Widget, bool) {
+func sectionContent(name string) (core.Widget, bool) {
 	sort.Slice(demoSections, func(i, j int) bool { return demoSections[i].name < demoSections[j].name })
 	var content []core.Widget
 	for _, s := range demoSections {
 		if name == "all" || s.name == name || s.category == name {
 			content = append(content, s.build())
 		}
-	}
-	if name == "all" {
-		content = append(content, base)
 	}
 	// Preserve FillsWindow for a standalone el.Root section.
 	if len(content) == 1 {

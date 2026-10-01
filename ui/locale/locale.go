@@ -28,6 +28,11 @@ type Strings struct {
 	Search, NoMatches                        string
 	Increase, Decrease                       string
 	PrevMonth, NextMonth                     string
+	PrevPage, NextPage                       string
+	Commands, SearchCommands                 string
+	Latest, Uploading                        string
+	// Total formats an item count for a pager, e.g. "共 36 条".
+	Total func(n int) string
 
 	// Weekdays are short day names starting with Sunday; FirstWeekday is the
 	// column a calendar starts with (time.Monday for Chinese).
@@ -62,7 +67,10 @@ func Chinese() Strings {
 		Image: "图片", ImageLoading: "图片加载中", ImageFailed: "图片加载失败",
 		PlainText: "纯文本", WrapLines: "自动换行", NoWrapLines: "取消自动换行",
 		Search: "搜索", NoMatches: "无匹配项", Increase: "增加", Decrease: "减少",
-		PrevMonth: "上个月", NextMonth: "下个月",
+		PrevMonth: "上个月", NextMonth: "下个月", PrevPage: "上一页", NextPage: "下一页",
+		Commands: "命令面板", SearchCommands: "搜索命令…",
+		Latest: "回到最新", Uploading: "上传中",
+		Total:        func(n int) string { return "共 " + strconv.Itoa(n) + " 条" },
 		Weekdays:     [7]string{"日", "一", "二", "三", "四", "五", "六"},
 		FirstWeekday: time.Monday,
 		Month:        func(y int, m time.Month) string { return strconv.Itoa(y) + "年" + strconv.Itoa(int(m)) + "月" },
@@ -82,7 +90,15 @@ func English() Strings {
 		Image: "Image", ImageLoading: "Loading image", ImageFailed: "Image failed to load",
 		PlainText: "Plain text", WrapLines: "Wrap lines", NoWrapLines: "Don't wrap lines",
 		Search: "Search", NoMatches: "No matches", Increase: "Increase", Decrease: "Decrease",
-		PrevMonth: "Previous month", NextMonth: "Next month",
+		PrevMonth: "Previous month", NextMonth: "Next month", PrevPage: "Previous page", NextPage: "Next page",
+		Commands: "Command palette", SearchCommands: "Type a command…",
+		Latest: "Jump to latest", Uploading: "Uploading",
+		Total: func(n int) string {
+			if n == 1 {
+				return "1 item"
+			}
+			return strconv.Itoa(n) + " items"
+		},
 		Weekdays:     [7]string{"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"},
 		FirstWeekday: time.Sunday,
 		Month:        func(y int, m time.Month) string { return m.String() + " " + strconv.Itoa(y) },
@@ -117,6 +133,9 @@ func Apply(s Strings) {
 	}
 	if s.Month == nil {
 		s.Month = current.Month
+	}
+	if s.Total == nil {
+		s.Total = current.Total
 	}
 	if s.Date == nil {
 		s.Date = current.Date

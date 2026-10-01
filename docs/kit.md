@@ -78,6 +78,15 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 - [Slider](kit/slider.md)、[Rating](kit/rating.md)、[Stepper](kit/stepper.md)：数值、评分、步骤。
 - [Form](kit/form.md)：两列表单与统一校验。
 
+数据与长内容：
+
+- [VirtualList](kit/virtual_list.md)、[List](kit/list.md)、[Tree](kit/tree.md)：只构建可见行的列表和树。
+- [Table](kit/table.md)、[Pagination](kit/pagination.md)：表格与分页。
+- [Command](kit/command.md)：命令面板。
+- [Message](kit/message.md)、[Bubble](kit/bubble.md)、[MessageScroller](kit/message_scroller.md)、[Attachment](kit/attachment.md)：对话界面。
+
+基础组件：[Tabs](kit/tabs.md)、[Accordion](kit/accordion.md)、[Badge](kit/badge.md)、[Progress](kit/progress.md)、[Link](kit/link.md)、[Image](kit/image.md)。
+
 浮层组件（需要 `el.Root`）：
 
 - [Popover](kit/popover.md)：触发元素旁的非模态面板。

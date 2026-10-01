@@ -17,7 +17,6 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/theme"
-	"github.com/dyike/keel/ui/widget"
 	"github.com/dyike/keel/ui/window"
 )
 
@@ -36,8 +35,8 @@ type desk struct {
 	query   string
 	visible []int // table row → index into orders
 
-	filter *widget.SelectBox
-	table  *widget.TableView
+	filter *kit.SelectView
+	table  *kit.TableView
 	dlg    *kit.DialogView
 
 	// New order form.
@@ -58,9 +57,9 @@ func newDesk() *desk {
 		})
 	}
 	d.nextID = 1001 + len(d.orders)
-	d.filter = widget.Select("", append([]string{"全部状态"}, statuses...)...).OnChange(func(string) { d.refresh() })
+	d.filter = kit.Select("", append([]string{"全部状态"}, statuses...)...).OnChange(func(string) { d.refresh() })
 	d.filter.SetValue("全部状态")
-	d.table = widget.Table(widget.Col("单号", 1), widget.Col("客户", 1.4), widget.Col("状态", 1), widget.Col("金额", 1)).
+	d.table = kit.Table(kit.Col("单号"), kit.Col("客户").Flex(1.4), kit.Col("状态"), kit.Col("金额").Numeric()).
 		Height(300).OnActivate(func(r int) {
 		o := d.orders[d.visible[r]]
 		d.dlg.Alert(o.id, fmt.Sprintf("%s · %s · ¥%.2f · %s付款", o.customer, o.status, o.amount, o.pay), nil)
@@ -107,7 +106,7 @@ func (d *desk) refresh() {
 }
 
 func (d *desk) selected() (int, bool) {
-	if r := d.table.Selected(); r >= 0 && r < len(d.visible) {
+	if r := d.table.Value(); r >= 0 && r < len(d.visible) {
 		return d.visible[r], true
 	}
 	return 0, false
@@ -115,7 +114,7 @@ func (d *desk) selected() (int, bool) {
 
 func (d *desk) Render(cx *el.Context) el.Element {
 	cx.Shortcut("mod+n", func() { d.tab = 1 })
-	pages := []func() el.Element{d.listPage, func() el.Element { return d.formPage(cx) }, d.statsPage}
+	pages := []func() el.Element{func() el.Element { return d.listPage(cx) }, func() el.Element { return d.formPage(cx) }, d.statsPage}
 	return el.Div().P(24).Gap(16).ScrollY().Child(
 		el.Text("订单管理").TextSize(22).Bold(),
 		el.Div().Child(
@@ -160,14 +159,14 @@ func button(label string, k kind, onClick func()) el.Element {
 		OnClick(onClick).Child(el.Text(label))
 }
 
-func (d *desk) listPage() el.Element {
+func (d *desk) listPage(cx *el.Context) el.Element {
 	shown := fmt.Sprintf("共 %d 条，显示 %d 条", len(d.orders), d.table.Len())
 	return el.Div().Gap(12).Child(
 		el.Div().Row().Gap(8).Child(
 			el.Input().ID("q").Placeholder("搜索客户或单号").Bind(&d.query).OnChange(func(string) { d.refresh() }).Grow(),
-			el.Widget(d.filter).W(el.Dp(140)),
+			el.Div().W(el.Dp(140)).Child(d.filter.Render(cx)),
 		),
-		el.Widget(d.table),
+		d.table.Render(cx),
 		el.Div().Row().Gap(8).Items(el.Center).Child(
 			el.Text(shown).TextColor(theme.Muted).TextSize(13).Grow(),
 			button("标记已发货", secondary, func() {
@@ -189,7 +188,7 @@ func (d *desk) remove() {
 	}
 	d.dlg.ConfirmDanger("删除订单", fmt.Sprintf("确定删除 %s（%s）？", d.orders[i].id, d.orders[i].customer), "删除", func() {
 		d.orders = append(d.orders[:i], d.orders[i+1:]...)
-		d.table.SetSelected(-1)
+		d.table.SetValue(-1)
 		d.refresh()
 	})
 }
@@ -215,7 +214,7 @@ func (d *desk) save(cx *el.Context) {
 	d.filter.SetValue("全部状态")
 	d.refresh()
 	d.table.SortBy(-1, false)
-	d.table.SetSelected(d.table.Len() - 1)
+	d.table.SetValue(d.table.Len() - 1)
 	d.tab = 0
 }
 

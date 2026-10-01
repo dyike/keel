@@ -136,6 +136,11 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `grid` / `gridcell` | `kit.Calendar` | 每天是 `gridcell`，名字是日期，`selected` 表示已选或在范围内 |
 | `list` / `step` | `kit.Stepper` | 每一步 `value` 为 done / current / upcoming |
 | `form` | `kit.Form` | 行标签和控件单独列出，控件以行标签为名字 |
+| `tree` / `treeitem` | `kit.Tree` | 节点 `value` 为 expanded / collapsed，`selected` 表示选中 |
+| `tablist` / `tabpanel` | `kit.Tabs` | 标签是 `tab`；面板以标签标题为名 |
+| `navigation` | `kit.Pagination` | `value` 为"当前页/总页数" |
+| `log` / `article` | `kit.MessageScroller` / `kit.Message` | 消息以作者为名，内容单独列出 |
+| `attachment` | `kit.Attachment` | 名字是文件名，`value` 为上传进度或 error |
 | `tooltip` | `kit.WithTooltip` 的提示 | 名字是提示文字 |
 | `menu` | 打开的 `kit.Menu` | 菜单项单独列出 |
 | `menuitem` | 菜单项 | 有子菜单时 `value` 为 submenu；支持 `disabled` |

@@ -44,3 +44,19 @@ func (t Tone) color() color.NRGBA {
 		return theme.Text
 	}
 }
+
+// solid is the fill for badges and bars, under OnColor text.
+func (t Tone) solid() color.NRGBA {
+	switch t {
+	case ToneInfo:
+		return theme.Primary
+	case ToneSuccess:
+		return theme.Success
+	case ToneWarning:
+		return theme.Warning
+	case ToneDanger:
+		return theme.Danger
+	default:
+		return theme.Muted
+	}
+}

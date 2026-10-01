@@ -15,23 +15,40 @@ import (
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/markdown"
 	"github.com/dyike/keel/ui/theme"
 	"github.com/dyike/keel/ui/window"
 )
 
 type message struct {
-	user bool
-	text string        // user messages
-	doc  *markdown.Doc // assistant messages
+	user   bool
+	text   string        // user messages
+	doc    *markdown.Doc // assistant messages
+	copier *kit.CopyButtonView
+}
+
+// copy is the answer's copy button, kept so its 已复制 feedback survives frames.
+func (m *message) copy(src string) *kit.CopyButtonView {
+	if m.copier == nil {
+		m.copier = kit.CopyButton(func() string { return src })
+	}
+	return m.copier
 }
 
 type chat struct {
-	msgs    []*message
-	prompt  string
-	stop    *atomic.Bool // set while an answer streams
-	delay   time.Duration
-	preview bool // a complete startup sample opens at the top
+	msgs     []*message
+	prompt   string
+	stop     *atomic.Bool // set while an answer streams
+	delay    time.Duration
+	preview  bool // a complete startup sample opens at the top
+	scroller *kit.MessageScrollerView
+}
+
+func newChat(delay time.Duration) *chat {
+	c := &chat{delay: delay}
+	c.scroller = kit.MessageScroller(c.items)
+	return c
 }
 
 func (c *chat) Render(cx *el.Context) el.Element {
@@ -39,76 +56,63 @@ func (c *chat) Render(cx *el.Context) el.Element {
 	if c.stop != nil {
 		status = "正在回答…"
 	}
-	// Follow a streaming answer; sending a message jumps to the end even if the
-	// user had scrolled up.
-	msgs := el.Div().ID("messages").Grow().ScrollY().
-		When(!c.preview, func(e *el.DivEl) { e.StickToBottom() }).
-		ScrollToEndOn(len(c.msgs)).Px(20).Py(16).Gap(18)
-	if len(c.msgs) == 0 {
-		msgs.Child(el.Text("选择一个 Markdown 样例，或输入消息查看预设的流式回答。").TextColor(theme.Muted))
-		for _, s := range demoSamples {
-			msgs.Child(el.Div().Row().Name(s.title).Gap(12).Items(el.Center).P(8).Rounded(6).
-				CursorPointer().Hover(func(st *el.Style) { st.Bg(theme.SubtleHover) }).
-				OnClick(func() { c.prompt = s.title; c.send() }).Child(
-				el.Text(s.title).Bold().W(el.Dp(110)),
-				el.Text(s.description).TextSize(13).TextColor(theme.Muted).Grow(),
-			))
-		}
-		msgs.Child(el.Div().P(8).Rounded(6).CursorPointer().
-			Hover(func(st *el.Style) { st.Bg(theme.SubtleHover) }).
-			OnClick(func() { c.prompt = "全部样例"; c.send() }).Child(el.Text("查看全部样例")))
-	}
-	for i, m := range c.msgs {
-		msgs.Child(c.bubble(cx, i, m))
-	}
+	c.scroller.SetFollow(!c.preview)
 	return el.Div().Child(
 		el.Div().Row().Items(el.Center).Px(20).Py(12).Bg(theme.Surface).Child(
 			el.Text("AI 助手").Bold().Grow(),
 			el.Text(status).TextSize(13).TextColor(theme.Muted),
 		),
 		el.Div().H(el.Dp(1)).Bg(theme.Border),
-		msgs,
+		c.scroller.Render(cx),
 		el.Div().H(el.Dp(1)).Bg(theme.Border),
 		el.Div().Row().Gap(8).Items(el.Center).P(12).Bg(theme.Surface).Child(
 			el.Input().ID("prompt").Name("消息").Placeholder("输入消息，回车发送").Bind(&c.prompt).
 				OnSubmit(func(string) { c.send() }).Grow(),
-			c.action(),
+			c.action(cx),
 		),
 	)
 }
 
-func (c *chat) bubble(cx *el.Context, i int, m *message) el.Element {
-	if m.user {
-		return el.Div().Row().Justify(el.End).Child(
-			el.Div().MaxW(el.Frac(0.75)).Bg(theme.Primary).TextColor(theme.OnColor).Rounded(12).Px(14).Py(10).
-				Child(el.Text(m.text)),
-		)
+// items lists the conversation for the scroller, or sample prompts before it starts.
+func (c *chat) items(cx *el.Context) []el.Element {
+	if len(c.msgs) == 0 {
+		out := []el.Element{el.Text("选择一个 Markdown 样例，或输入消息查看预设的流式回答。").TextColor(theme.Muted)}
+		for _, s := range demoSamples {
+			out = append(out, el.Div().Row().Name(s.title).Gap(12).Items(el.Center).P(8).Rounded(6).
+				CursorPointer().Hover(func(st *el.Style) { st.Bg(theme.SubtleHover) }).
+				OnClick(func() { c.prompt = s.title; c.send() }).Child(
+				el.Text(s.title).Bold().W(el.Dp(110)),
+				el.Text(s.description).TextSize(13).TextColor(theme.Muted).Grow(),
+			))
+		}
+		return append(out, el.Div().P(8).Rounded(6).CursorPointer().
+			Hover(func(st *el.Style) { st.Bg(theme.SubtleHover) }).
+			OnClick(func() { c.prompt = "全部样例"; c.send() }).Child(el.Text("查看全部样例")))
 	}
-	answer := el.Div().Grow().Pt(4).Gap(8).Child(m.doc.Render(cx))
-	if !m.doc.Streaming() {
-		// Copy the whole answer as Markdown; dragging across its text blocks
-		// and Cmd/Ctrl+C copies the selected plain text.
-		src := m.doc.Source()
-		answer.Child(el.Div().Row().Child(
-			el.Div().ID("copy-answer").Px(8).Py(3).Rounded(4).TextSize(12).TextColor(theme.Muted).
-				CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
-				OnClick(func() { el.WriteClipboard(src) }).Child(el.Text("复制全文")),
-		))
+	var out []el.Element
+	for _, m := range c.msgs {
+		if m.user {
+			text := m.text
+			out = append(out, kit.Message("我", el.ViewFunc(func(*el.Context) el.Element { return el.Text(text) })).User().Render(cx))
+			continue
+		}
+		msg := kit.Message("AI", m.doc)
+		if !m.doc.Streaming() {
+			// Copy the whole answer as Markdown; dragging across its text
+			// blocks and Cmd/Ctrl+C copies the selected plain text.
+			src := m.doc.Source()
+			msg.Actions(m.copy(src))
+		}
+		out = append(out, msg.Render(cx))
 	}
-	return el.Div().Row().Gap(10).Items(el.Start).Child(
-		el.Div().Size(el.Dp(28)).Rounded(14).Bg(theme.Subtle).Center().NoShrink().
-			Child(el.Text("AI").TextSize(11).Bold().TextColor(theme.Muted)),
-		answer,
-	)
+	return out
 }
 
-func (c *chat) action() el.Element {
-	label, bg, hover, fn := "发送", theme.Primary, theme.PrimaryHover, c.send
+func (c *chat) action(cx *el.Context) el.Element {
 	if c.stop != nil {
-		label, bg, hover, fn = "停止", theme.Danger, theme.DangerHover, func() { c.stop.Store(true) }
+		return kit.Button("停止", func() { c.stop.Store(true) }).Variant(kit.ButtonDanger).Render(cx)
 	}
-	return el.Div().ID(label).Px(16).Py(8).Rounded(6).Bg(bg).TextColor(theme.OnColor).TextSize(14).
-		CursorPointer().Hover(func(s *el.Style) { s.Bg(hover) }).OnClick(fn).Child(el.Text(label))
+	return kit.Button("发送", c.send).Render(cx)
 }
 
 // send posts the prompt and streams an answer from a goroutine, the way a
@@ -123,6 +127,7 @@ func (c *chat) send() {
 	doc := newDocument("")
 	doc.SetStreaming(true)
 	c.msgs = append(c.msgs, &message{user: true, text: q}, &message{doc: doc})
+	c.scroller.ScrollToEnd() // sending jumps to the end even if the user had scrolled up
 	stop := new(atomic.Bool)
 	c.stop = stop
 	answer := answerFor(q)
@@ -173,7 +178,7 @@ func main() {
 	delay := flag.Duration("delay", 15*time.Millisecond, "pause between streamed tokens")
 	sample := flag.String("sample", "", "show a complete sample immediately: all, selection, math, code-scroll, click-selection, references, images, table, downloader")
 	flag.Parse()
-	c := &chat{delay: *delay}
+	c := newChat(*delay)
 	if *sample != "" {
 		src, ok := sourceFor(*sample)
 		if !ok {

@@ -1,0 +1,104 @@
+package kit
+
+import (
+	"strconv"
+
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
+	"github.com/dyike/keel/ui/theme"
+)
+
+// PaginationView pages through total items, pageSize at a time. Pages are
+// numbered from 1; long ranges show the first, the last and the pages around
+// the current one, with … between.
+type PaginationView struct {
+	total, size, page int
+	onChange          func(page int)
+}
+
+func Pagination(total, pageSize int) *PaginationView {
+	return &PaginationView{total: max(total, 0), size: max(pageSize, 1), page: 1}
+}
+func (v *PaginationView) OnChange(fn func(page int)) *PaginationView { v.onChange = fn; return v }
+
+// Value is the current page, from 1.
+func (v *PaginationView) Value() int { return v.page }
+
+// SetValue goes to page p (clamped) without calling OnChange.
+func (v *PaginationView) SetValue(p int) { v.page = min(max(p, 1), v.Pages()) }
+
+// SetTotal changes the item count, keeping the page in range.
+func (v *PaginationView) SetTotal(n int) { v.total = max(n, 0); v.SetValue(v.page) }
+
+// Pages is the number of pages, at least 1.
+func (v *PaginationView) Pages() int { return max(1, (v.total+v.size-1)/v.size) }
+
+// Bounds returns the item range [start, end) of the current page.
+func (v *PaginationView) Bounds() (start, end int) {
+	start = (v.page - 1) * v.size
+	return start, min(start+v.size, v.total)
+}
+
+func (v *PaginationView) goTo(p int) {
+	p = min(max(p, 1), v.Pages())
+	if p == v.page {
+		return
+	}
+	v.page = p
+	if v.onChange != nil {
+		v.onChange(p)
+	}
+}
+
+// numbers lists the pages to show; 0 stands for a gap.
+func (v *PaginationView) numbers() []int {
+	n := v.Pages()
+	if n <= 7 {
+		out := make([]int, n)
+		for i := range out {
+			out[i] = i + 1
+		}
+		return out
+	}
+	lo, hi := max(2, v.page-1), min(n-1, v.page+1)
+	if v.page <= 3 {
+		lo, hi = 2, 4
+	}
+	if v.page >= n-2 {
+		lo, hi = n-3, n-1
+	}
+	out := []int{1}
+	if lo > 2 {
+		out = append(out, 0)
+	}
+	for p := lo; p <= hi; p++ {
+		out = append(out, p)
+	}
+	if hi < n-1 {
+		out = append(out, 0)
+	}
+	return append(out, n)
+}
+
+func (v *PaginationView) Render(cx *el.Context) el.Element {
+	text := locale.Current()
+	prev := Button("", func() { v.goTo(v.page - 1) }).Name(text.PrevPage).Icon(IconChevronLeft).Variant(ButtonGhost).Size(28)
+	next := Button("", func() { v.goTo(v.page + 1) }).Name(text.NextPage).Icon(IconChevronRight).Variant(ButtonGhost).Size(28)
+	prev.SetDisabled(v.page <= 1)
+	next.SetDisabled(v.page >= v.Pages())
+	row := el.Div().Role("navigation").Value(strconv.Itoa(v.page)+"/"+strconv.Itoa(v.Pages())).
+		Row().Items(el.Center).Gap(4).Child(el.Text(text.Total(v.total)).TextColor(theme.Muted).TextSize(13), el.Div().W(el.Dp(4)), prev.Render(cx))
+	for _, p := range v.numbers() {
+		if p == 0 {
+			row.Child(el.Text("…").TextColor(theme.Muted).Px(4))
+			continue
+		}
+		p := p
+		variant := ButtonGhost
+		if p == v.page {
+			variant = ButtonPrimary
+		}
+		row.Child(Button(strconv.Itoa(p), func() { v.goTo(p) }).Variant(variant).Size(28).Render(cx))
+	}
+	return row.Child(next.Render(cx))
+}

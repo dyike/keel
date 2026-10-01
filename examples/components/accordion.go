@@ -2,13 +2,22 @@ package main
 
 import (
 	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/layout"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
 )
 
-func init() { registerSection("accordion", "controls", accordionGallery) }
-func accordionGallery() core.Widget {
-	a := widget.Accordion().Multiple().Add("个人资料", widget.Input("名称")).Add("通知设置", widget.Switch("接收通知", true))
-	a.SetValue([]int{0})
-	return layout.Card(widget.Heading("折叠面板"), a, widget.Checkbox("禁用折叠面板", false).OnChange(a.SetDisabled))
+func init() {
+	registerSection("accordion", "controls", func() core.Widget {
+		txt := func(s string) el.View { return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) }) }
+		name := kit.Input("显示名称").Placeholder("收起后保留输入内容")
+		one := kit.Accordion().Add("个人资料", name).Add("通知设置", kit.Switch("接收通知", true)).Add("暂不可用", txt("禁用项目"))
+		one.SetValue(0)
+		one.SetItemDisabled(2, true)
+		faq := kit.Accordion().Multiple().
+			Add("如何用键盘操作？", txt("Tab 聚焦标题，↑ ↓ 切换标题，Enter 或空格展开，Home / End 跳到首尾。")).
+			Add("可以同时展开吗？ Multiple", txt("这个面板启用了 Multiple，可以同时展开两项。"))
+		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().P(24).Gap(16).W(el.Dp(480)).Child(one.Render(cx), faq.Render(cx))
+		}))
+	})
 }
