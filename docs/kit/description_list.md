@@ -1,12 +1,7 @@
 # DescriptionList
 
-按顺序显示字段名和值。M1 使用上下排列的单列布局，长文字自然换行；多列布局等待 el grid 能力。
+`kit.DescriptionList().Item("订单号", "SO-1001").ItemElement("状态", element).LabelWidth(96)` 按行显示标签和值，默认标签列 96dp，值列占剩余宽度并换行，顶部对齐。窄容器允许标签列收缩。
 
-```go
-info := kit.DescriptionList(kit.Description{Label: "订单号", Text: "SO-123"})
-return info.Render(cx)
-```
+纯文本条目向 Agent 暴露一个 text，名字为“标签：值”。ItemElement 保留传入元素的语义和交互，标签单独可读。SetItems 替换全部文本条目；构造函数的 Description 参数是兼容入口。
 
-构造函数返回 `*DescriptionListView`。`SetItems(items...)` 替换条目并复制切片；空列表无条目，空值仍显示字段名。颜色跟随主题，无交互或键盘行为。
-
-Agent 角色 descriptionlist，value 为条目数，每个字段名和值可单独读取。验证：`go run ./examples/components -section description-list -theme dark`，支持 light。
+组件本身无键盘操作。验证：`go run ./examples/components -section description-list -theme dark`，省略 theme 查看浅色。

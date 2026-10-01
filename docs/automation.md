@@ -118,7 +118,6 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `slider` | `widget.Slider` | `value` 是当前数值；点击轨道或聚焦后按方向键调整 |
 | `accordion` | `widget.Accordion` | 标题和展开内容单独列出 |
 | `tag` | kit 标签（不可点击） | 名字是文字，value 为语义级别 |
-| `descriptionlist` | kit 字段说明列表 | value 为条目数，字段名和值单独列出 |
 | `group` | kit 组件分组 | 名字为分组标题，保留子组件语义 |
 | `status` | kit 状态栏 | 名字为主状态，value 为详情 |
 | `marker` | kit 状态圆点和文字 | 名字为状态文字，value 为语义级别 |

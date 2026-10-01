@@ -8,6 +8,6 @@ import (
 
 func init() {
 	registerSection("description-list", "controls", func() core.Widget {
-		return el.Embed(kit.DescriptionList(kit.Description{Label: "订单号", Text: "SO-123"}, kit.Description{Label: "客户", Text: "张三 / Ada Lovelace"}, kit.Description{Label: "备注", Text: "中英文 mixed description；值为空时仍保留字段名。"}, kit.Description{Label: "附加信息"}))
+		return el.Embed(kit.DescriptionList().Item("订单号", "SO-123").Item("客户", "张三 / Ada Lovelace").Item("备注", "中英文 mixed description；长值可以换行。").ItemElement("操作", el.Div().OnClick(func() {}).Child(el.Text("查看订单"))))
 	})
 }

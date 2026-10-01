@@ -8,15 +8,13 @@ import (
 
 func TestKitDescriptionListSnapshot(t *testing.T) {
 	w := openTest(t, Options{Content: el.Embed(kit.DescriptionList(kit.Description{Label: "客户", Text: "张三"}))})
-	found := false
+	e := element(t, w, "客户：张三")
+	if e.Role != "text" {
+		t.Fatal(e)
+	}
 	for _, e := range w.snapshot() {
-		if e.Role == "descriptionlist" && e.Value == "1" {
-			found = true
+		if e.Name == "客户" || e.Name == "张三" {
+			t.Fatal("field duplicated")
 		}
 	}
-	if !found {
-		t.Fatal("missing list")
-	}
-	element(t, w, "客户")
-	element(t, w, "张三")
 }
