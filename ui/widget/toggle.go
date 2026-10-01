@@ -59,7 +59,7 @@ func (t *ToggleView) Layout(gtx C) D {
 		bg = theme.Subtle
 	}
 	if t.on {
-		bg, fg, border = theme.Highlight, theme.Primary, theme.Primary
+		bg, fg, border = theme.Highlight, theme.PrimaryText, theme.Primary
 	}
 	if gtx.Focused(&t.click) {
 		border = theme.Primary

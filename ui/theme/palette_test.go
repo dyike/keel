@@ -2,6 +2,8 @@ package theme
 
 import (
 	"github.com/dyike/keel/ui/internal/loop"
+	"image/color"
+	"math"
 	"testing"
 )
 
@@ -42,5 +44,27 @@ func TestApplyPaletteAndInvalidateAllWindows(t *testing.T) {
 	custom.Success = RGB(0)
 	if Success != RGB(0xabcdef) || Dark().Success == Success {
 		t.Fatal("palette does not have value semantics")
+	}
+}
+
+func luminance(c color.NRGBA) float64 {
+	linear := func(v uint8) float64 {
+		x := float64(v) / 255
+		if x <= .04045 {
+			return x / 12.92
+		}
+		return math.Pow((x+.055)/1.055, 2.4)
+	}
+	return .2126*linear(c.R) + .7152*linear(c.G) + .0722*linear(c.B)
+}
+func TestSelectedTextContrast(t *testing.T) {
+	for _, p := range []Palette{Light(), Dark()} {
+		a, b := luminance(p.PrimaryText), luminance(p.Highlight)
+		if a < b {
+			a, b = b, a
+		}
+		if c := (a + .05) / (b + .05); c < 4.5 {
+			t.Fatalf("contrast %.2f", c)
+		}
 	}
 }

@@ -34,6 +34,7 @@ import (
 // Doc is a Markdown document, rendered as an el element. Change it only under
 // the UI lock: from callbacks, or from other goroutines through core.Update.
 type Doc struct {
+	palette       paletteKey
 	src           string
 	streaming     bool
 	chunks        []chunk

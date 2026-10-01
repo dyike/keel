@@ -51,7 +51,7 @@ func (v *TagView) Render(*el.Context) el.Element {
 		name = "default"
 	}
 	if v.primary {
-		c = theme.Primary
+		c = theme.PrimaryText
 		name = "primary"
 	}
 	return el.Div().Role("tag").Name(v.text).Value(name).Px(8).Py(4).Rounded(12).Bg(tint(c, 24)).Child(el.Text(v.text).TextSize(float32(theme.SmallSize)).TextColor(c))

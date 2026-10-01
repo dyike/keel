@@ -24,12 +24,12 @@ import (
 
 // Colors and fonts of rendered Markdown. Change them before rendering.
 var (
-	CodeBg       = theme.RGB(0xf0f1f3)
-	CodeBorder   = theme.Border
-	CodeHover    = theme.SubtleHover
-	InlineCode   = theme.RGB(0x1f2328)
-	InlineCodeBg = theme.RGB(0xebeef1)
-	CodeStyle    = "github" // a chroma style name
+	CodeBg       color.NRGBA
+	CodeBorder   color.NRGBA
+	CodeHover    color.NRGBA
+	InlineCode   color.NRGBA
+	InlineCodeBg color.NRGBA
+	CodeStyle    = "" // a chroma style name
 	MonoFace     = font.Typeface("Menlo, SF Mono, Go Mono, PingFang SC, " + string(theme.Face))
 	caret        = "▍"
 )
@@ -38,6 +38,7 @@ var headingSizes = [...]unit.Sp{0, 24, 20, 17, 15, 15, 15}
 
 // Render draws the document. Put it in a view's tree like any element.
 func (d *Doc) Render(cx *el.Context) el.Element {
+	d.refreshPalette()
 	root := el.Div().Gap(12)
 	var all []*block
 	for i := range d.chunks {
@@ -263,8 +264,9 @@ func newRich(spans []span, size unit.Sp, bold bool, c color.NRGBA, onLink func(s
 		}
 		if s.code {
 			rn.font.Typeface = MonoFace
-			rn.color = InlineCode
-			rn.bg = &InlineCodeBg
+			rn.color = followColor(InlineCode, theme.CodeText)
+			bg := followColor(InlineCodeBg, theme.CodeBg)
+			rn.bg = &bg
 			rn.size = size * 0.92
 		}
 		if s.link != "" {
@@ -336,8 +338,8 @@ func highlight(lang, code string) *richBlock {
 	if lexer == nil {
 		lexer = lexers.Fallback
 	}
-	style := styles.Get(CodeStyle)
-	base := run{size: theme.BodySize * 0.9, color: theme.Text, font: font.Font{Typeface: MonoFace}}
+	style := styles.Get(codeStyle())
+	base := run{size: theme.BodySize * 0.9, color: theme.CodeText, font: font.Font{Typeface: MonoFace}}
 	it, err := chroma.Coalesce(lexer).Tokenise(nil, code)
 	if err != nil {
 		base.text = code
@@ -363,12 +365,13 @@ func highlight(lang, code string) *richBlock {
 }
 
 type blockKey struct {
-	b     *block
-	state uint64
+	palette paletteKey
+	b       *block
+	state   uint64
 }
 
 func keyForBlock(b *block) blockKey {
-	k := blockKey{b: b, state: 14695981039346656037}
+	k := blockKey{b: b, state: 14695981039346656037, palette: currentPaletteKey()}
 	var visit func(*block)
 	visit = func(b *block) {
 		switch view := b.view.(type) {

@@ -67,7 +67,7 @@ func (d *Doc) code(b *block) el.Element {
 	if cv.wrap {
 		wrapLabel = "取消自动换行"
 	}
-	return el.Div().Role("code").Name(label).Bg(CodeBg).Border(1, CodeBorder).Rounded(14).Child(
+	return el.Div().Role("code").Name(label).Bg(followColor(CodeBg, theme.CodeBg)).Border(1, followColor(CodeBorder, theme.Border)).Rounded(14).Child(
 		el.Div().Row().Items(el.Center).Gap(6).Px(14).Pt(8).Pb(4).Child(
 			iconElement(codeIcon, 18, theme.Text),
 			el.Widget(core.Func(func(gtx core.C) core.D {
@@ -117,9 +117,9 @@ func codeAction(id, label string, icon *widget.Icon, selected bool, click func()
 	}
 	button := el.Div().ID(id).Name(label).Size(el.Dp(32)).Rounded(8).Center().NoShrink().
 		Selected(selected).CursorPointer().OnClick(click).
-		Hover(func(s *el.Style) { hovered = true; s.Bg(CodeHover) }).Child(iconElement(icon, 18, color))
+		Hover(func(s *el.Style) { hovered = true; s.Bg(followColor(CodeHover, theme.SubtleHover)) }).Child(iconElement(icon, 18, color))
 	if selected {
-		button.Bg(CodeHover)
+		button.Bg(followColor(CodeHover, theme.SubtleHover))
 	}
 	return button.Decorate(func(gtx core.C, draw func()) {
 		hovered = false

@@ -49,3 +49,5 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 - [Marker](kit/marker.md)：纯图形标记。
 
 Icon：矢量图标，默认颜色随主题切换。
+
+主题文本使用场景：选中底色 Highlight 上使用 PrimaryText；Primary 保留为按钮背景和描边。Markdown 默认使用 CodeBg/CodeText，旧包级颜色变量的零值表示跟随主题，CodeStyle 为空时按背景自动选择 github/github-dark。
