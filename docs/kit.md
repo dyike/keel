@@ -43,6 +43,8 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 
 ## 已实现组件
 
+- [Kbd](kit/kbd.md)：继承字号的快捷键键帽，支持平台格式和 Plain。
+
 - [Button](kit/button.md)：操作按钮，支持焦点、禁用、图标和固定尺寸的加载状态。
 
 - [Alert](kit/alert.md)：行内状态提示。

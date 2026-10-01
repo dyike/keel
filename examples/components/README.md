@@ -25,3 +25,5 @@ M1 展示组件可用 `-section icon|alert|empty|avatar|tag|description_list|gro
 `-section overlay` 使用 el.Root 验证 E4/E5：非模态点击穿透、模态遮罩、Tab 循环、Esc 关闭与焦点恢复。
 
 `-section button` 使用 kit.Button，覆盖四种 Variant、28/32/40dp、加载时尺寸保持、禁用、窄容器以及鼠标和键盘操作。
+
+`-section kbd` 使用 kit.Kbd，覆盖父元素字号继承、Plain、平台快捷键符号和窄容器。
