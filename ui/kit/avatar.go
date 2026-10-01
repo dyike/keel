@@ -27,9 +27,9 @@ type AvatarView struct {
 type AvatarStatus string
 
 const (
-	Online  AvatarStatus = "online"
-	Busy    AvatarStatus = "busy"
-	Offline AvatarStatus = "offline"
+	AvatarOnline  AvatarStatus = "online"
+	AvatarBusy    AvatarStatus = "busy"
+	AvatarOffline AvatarStatus = "offline"
 )
 
 func (v *AvatarView) Status(s AvatarStatus) *AvatarView { v.status = s; return v }
@@ -88,9 +88,9 @@ func (v *AvatarView) Render(*el.Context) el.Element {
 	if v.status != "" {
 		c := theme.Muted
 		switch v.status {
-		case Online:
+		case AvatarOnline:
 			c = theme.Success
-		case Busy:
+		case AvatarBusy:
 			c = theme.Warning
 		}
 		d := v.size * .22

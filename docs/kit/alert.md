@@ -1,6 +1,6 @@
 # Alert
 
-`kit.Alert("保存失败").Tone(kit.Danger).Description("网络不可用").OnClose(fn)` 显示行内提示。默认 Info；Tone 支持 Neutral、Info、Success、Warning、Danger。SetTone、SetTitle、SetDescription 可程序更新。
+`kit.Alert("保存失败").Tone(kit.ToneDanger).Description("网络不可用").OnClose(fn)` 显示行内提示。默认 ToneInfo；Tone 支持 ToneNeutral、ToneInfo、ToneSuccess、ToneWarning、ToneDanger。SetTone、SetTitle、SetDescription 可程序更新。
 
 左侧等级条和图标随主题取色，标题加粗，描述为 13sp Muted。只有设置 OnClose 才显示关闭按钮；点击或 Tab 聚焦后 Space/Enter 关闭，先隐藏再回调。Visible 查询状态，SetVisible 恢复或隐藏时不调用回调。
 

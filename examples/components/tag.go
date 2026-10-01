@@ -20,7 +20,7 @@ type tagGallery struct {
 func (v *tagGallery) Render(cx *el.Context) el.Element {
 	v.interactive.OnRemove(func() { v.removed = true })
 	root := el.Div().Gap(16).Items(el.Start).Child(
-		el.Div().Row().Gap(8).Child(kit.Tag("默认 123").Render(cx), kit.Tag("主要").Tone(kit.Info).Render(cx), kit.Tag("完成").Tone(kit.Success).Render(cx), kit.Tag("待检查").Tone(kit.Warning).Render(cx)),
+		el.Div().Row().Gap(8).Child(kit.Tag("默认 123").Render(cx), kit.Tag("主要").Tone(kit.ToneInfo).Render(cx), kit.Tag("完成").Tone(kit.ToneSuccess).Render(cx), kit.Tag("待检查").Tone(kit.ToneWarning).Render(cx)),
 	)
 	if !v.removed {
 		root.Child(v.interactive.Render(cx))

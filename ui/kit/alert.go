@@ -14,13 +14,13 @@ type AlertView struct {
 	onClose            func()
 }
 
-// Alert creates an inline message with an Info tone.
-func Alert(title string) *AlertView                  { return &AlertView{title: title, tone: Info} }
+// Alert creates an inline message with an ToneInfo tone.
+func Alert(title string) *AlertView                  { return &AlertView{title: title, tone: ToneInfo} }
 func (v *AlertView) Description(s string) *AlertView { v.description = s; return v }
 func (v *AlertView) Tone(t Tone) *AlertView          { v.SetTone(t); return v }
 func (v *AlertView) SetTone(t Tone) {
-	if t > Danger {
-		t = Info
+	if t > ToneDanger {
+		t = ToneInfo
 	}
 	v.tone = t
 }
@@ -45,11 +45,11 @@ func (v *AlertView) Render(cx *el.Context) el.Element {
 	}
 	name := IconInfo
 	switch v.tone {
-	case Success:
+	case ToneSuccess:
 		name = IconCheck
-	case Warning:
+	case ToneWarning:
 		name = IconWarning
-	case Danger:
+	case ToneDanger:
 		name = IconError
 	}
 	text := el.Div().Grow().Gap(6).Child(el.Text(v.title).Bold().TextColor(v.tone.color()))

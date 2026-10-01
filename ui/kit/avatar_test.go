@@ -38,7 +38,7 @@ func TestAvatarStatusDoesNotChangeBounds(t *testing.T) {
 	a := Avatar("张三").Size(24)
 	h := renderView(a, 100, 1)
 	before := bounds(h, "张三")
-	for _, status := range []AvatarStatus{Online, Busy, Offline, ""} {
+	for _, status := range []AvatarStatus{AvatarOnline, AvatarBusy, AvatarOffline, ""} {
 		a.Status(status)
 		h.Frame()
 		n, ok := node(h, "张三")

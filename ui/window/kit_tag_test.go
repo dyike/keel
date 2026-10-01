@@ -7,7 +7,7 @@ import (
 )
 
 func TestKitTagSnapshot(t *testing.T) {
-	w := openTest(t, Options{Content: el.Embed(kit.Tag("已完成").Tone(kit.Success))})
+	w := openTest(t, Options{Content: el.Embed(kit.Tag("已完成").Tone(kit.ToneSuccess))})
 	if e := element(t, w, "已完成"); e.Role != "tag" || e.Value != "success" {
 		t.Fatalf("invalid tag: %+v", e)
 	}

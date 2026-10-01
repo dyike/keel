@@ -4,7 +4,7 @@ import "testing"
 
 func TestAlertWrapsAndRetainsStatus(t *testing.T) {
 	for _, scale := range []int{1, 2} {
-		a := Alert("保存 123").Description("中英文 Mixed description that wraps in a narrow container. 多行提示内容。").Tone(Success)
+		a := Alert("保存 123").Description("中英文 Mixed description that wraps in a narrow container. 多行提示内容。").Tone(ToneSuccess)
 		h := renderView(a, 160, scale)
 		for i := 0; i < 3; i++ {
 			h.Frame()
@@ -15,7 +15,7 @@ func TestAlertWrapsAndRetainsStatus(t *testing.T) {
 		}
 		a.SetTitle("更新")
 		a.SetDescription("")
-		a.SetTone(Warning)
+		a.SetTone(ToneWarning)
 		h.Frame()
 		if n, ok = semanticNode(h, "alert:warning"); !ok || n.Desc.Label != "更新" {
 			t.Fatal("updated alert not rendered")
@@ -25,7 +25,7 @@ func TestAlertWrapsAndRetainsStatus(t *testing.T) {
 
 func TestAlertDismissAndRestore(t *testing.T) {
 	calls := 0
-	a := Alert("失败").Tone(Danger).Description("网络不可用").OnClose(func() { calls++ })
+	a := Alert("失败").Tone(ToneDanger).Description("网络不可用").OnClose(func() { calls++ })
 	h := renderView(a, 240, 1)
 	click(t, h, "关闭 失败")
 	h.Frame()
@@ -44,7 +44,7 @@ func TestAlertDismissAndRestore(t *testing.T) {
 	}
 }
 func TestAlertKindsAndDescriptionHeight(t *testing.T) {
-	for _, k := range []Tone{Neutral, Info, Success, Warning, Danger} {
+	for _, k := range []Tone{ToneNeutral, ToneInfo, ToneSuccess, ToneWarning, ToneDanger} {
 		a := Alert("标题").Tone(k)
 		h := renderView(a, 240, 1)
 		if _, ok := semanticNode(h, "alert:"+k.name()); !ok {

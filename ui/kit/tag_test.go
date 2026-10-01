@@ -4,14 +4,14 @@ import "testing"
 
 func TestTagWrapsAndUpdates(t *testing.T) {
 	for _, scale := range []int{1, 2} {
-		v := Tag("Release 123 中文长标签需要换行").Tone(Info)
+		v := Tag("Release 123 中文长标签需要换行").Tone(ToneInfo)
 		h := renderView(v, 90, scale)
 		n, ok := semanticNode(h, "tag:info")
 		if !ok || n.Desc.Bounds.Dx() > 90*scale || n.Desc.Bounds.Dy() < 30*scale {
 			t.Fatalf("tag did not wrap: %+v", n)
 		}
 		v.SetText("完成")
-		v.Tone(Success)
+		v.Tone(ToneSuccess)
 		h.Frame()
 		if n, ok = semanticNode(h, "tag:success"); !ok || n.Desc.Label != "完成" {
 			t.Fatal("tag did not update")
@@ -20,7 +20,7 @@ func TestTagWrapsAndUpdates(t *testing.T) {
 }
 
 func TestTagToneNames(t *testing.T) {
-	for c, name := range map[Tone]string{Neutral: "neutral", Info: "info", Success: "success", Warning: "warning", Danger: "danger"} {
+	for c, name := range map[Tone]string{ToneNeutral: "neutral", ToneInfo: "info", ToneSuccess: "success", ToneWarning: "warning", ToneDanger: "danger"} {
 		h := renderView(Tag("标签").Tone(c), 120, 1)
 		if _, ok := semanticNode(h, "tag:"+name); !ok {
 			t.Fatal(name)

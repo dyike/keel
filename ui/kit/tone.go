@@ -9,22 +9,22 @@ import (
 type Tone uint8
 
 const (
-	Neutral Tone = iota
-	Info
-	Success
-	Warning
-	Danger
+	ToneNeutral Tone = iota
+	ToneInfo
+	ToneSuccess
+	ToneWarning
+	ToneDanger
 )
 
 func (t Tone) name() string {
 	switch t {
-	case Info:
+	case ToneInfo:
 		return "info"
-	case Success:
+	case ToneSuccess:
 		return "success"
-	case Warning:
+	case ToneWarning:
 		return "warning"
-	case Danger:
+	case ToneDanger:
 		return "danger"
 	default:
 		return "neutral"
@@ -32,13 +32,13 @@ func (t Tone) name() string {
 }
 func (t Tone) color() color.NRGBA {
 	switch t {
-	case Info:
+	case ToneInfo:
 		return theme.Info
-	case Success:
+	case ToneSuccess:
 		return theme.Success
-	case Warning:
+	case ToneWarning:
 		return theme.Warning
-	case Danger:
+	case ToneDanger:
 		return theme.DangerText
 	default:
 		return theme.Text

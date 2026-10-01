@@ -12,7 +12,7 @@ import (
 )
 
 func TestKitAlertSnapshot(t *testing.T) {
-	a := kit.Alert("保存成功").Description("订单 SO-123 已保存").Tone(kit.Success)
+	a := kit.Alert("保存成功").Description("订单 SO-123 已保存").Tone(kit.ToneSuccess)
 	w := openTest(t, Options{Content: el.Embed(a)})
 	e := element(t, w, "保存成功")
 	if e.Role != "alert" || e.Value != "success" {
@@ -22,7 +22,7 @@ func TestKitAlertSnapshot(t *testing.T) {
 		t.Fatal("missing description")
 	}
 	a.SetTitle("保存失败")
-	a.Tone(kit.Danger)
+	a.Tone(kit.ToneDanger)
 	if e := element(t, w, "保存失败"); e.Value != "danger" {
 		t.Fatal("stale alert")
 	}
@@ -53,7 +53,7 @@ func TestAlertColorsFollowRuntimePalette(t *testing.T) {
 		for _, sample := range []struct {
 			tone  kit.Tone
 			color color.NRGBA
-		}{{kit.Info, p.Info}, {kit.Success, p.Success}, {kit.Warning, p.Warning}, {kit.Danger, p.DangerText}} {
+		}{{kit.ToneInfo, p.Info}, {kit.ToneSuccess, p.Success}, {kit.ToneWarning, p.Warning}, {kit.ToneDanger, p.DangerText}} {
 			v.Tone(sample.tone)
 			data, err := w.screenshot()
 			if err != nil {
