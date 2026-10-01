@@ -292,7 +292,8 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	st.version = n.style.endVersion
 	dist := st.scroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Vertical,
 		pointer.ScrollRange{}, pointer.ScrollRange{Min: -st.scrollY, Max: maxScroll - st.scrollY})
-	st.scrollY = min(max(st.scrollY+dist, 0), maxScroll)
+	st.scrollY = min(max(st.scrollY+dist+st.scrollPending, 0), maxScroll)
+	st.scrollPending = 0
 	st.scrollMax, st.scrolled = maxScroll, true
 
 	// The viewport is its own area with the scroll handler, so it is a node
@@ -303,9 +304,11 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	savedVis, savedOrigin := e.visible, e.origin
 	e.visible = e.visible.Intersect(viewport.Add(e.origin))
 	e.origin = e.origin.Add(image.Pt(0, -st.scrollY))
+	e.scrollParents = append(e.scrollParents, st)
 	for _, c := range n.children {
 		e.paint(c.node())
 	}
+	e.scrollParents = e.scrollParents[:len(e.scrollParents)-1]
 	e.visible, e.origin = savedVis, savedOrigin
 	off.Pop()
 	stk.Pop()

@@ -2,6 +2,7 @@ package window
 
 import (
 	"fmt"
+	"image"
 	"testing"
 
 	"github.com/dyike/keel/ui/core"
@@ -9,6 +10,20 @@ import (
 	"github.com/dyike/keel/ui/layout"
 	"github.com/dyike/keel/ui/widget"
 )
+
+func TestAutomationImageRoleAndClick(t *testing.T) {
+	clicked := false
+	v := &widget.ImageView{Asset: widget.ImageData(image.NewNRGBA(image.Rect(0, 0, 120, 40))), Alt: "产品图", OnClick: func() { clicked = true }}
+	w := openTest(t, Options{Content: v})
+	e := element(t, w, "产品图")
+	if e.Role != "image" || e.Value != "loaded" {
+		t.Fatalf("image lost accessible role/state: %+v", e)
+	}
+	w.click(e.center())
+	if !clicked {
+		t.Fatal("image click not delivered")
+	}
+}
 
 // openTest opens a virtual window as automation mode would, without a socket.
 func openTest(t *testing.T, o Options) *Window {
@@ -114,5 +129,39 @@ func TestAutomationShortcutAsFirstRequest(t *testing.T) {
 	}
 	if n != 1 {
 		t.Fatalf("shortcut fired %d times", n)
+	}
+}
+
+func TestAutomationSliderAndAccordion(t *testing.T) {
+	s := widget.Slider("volume", 0, 100).Step(5)
+	a := widget.Accordion().Add("details", widget.Text("inside"))
+	w := openTest(t, Options{Content: layout.Column(s, a)})
+	e := element(t, w, "volume")
+	if e.Role != "slider" || e.Value != "0" {
+		t.Fatalf("slider semantics: %+v", e)
+	}
+	if err := w.press("tab"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.press("right"); err != nil {
+		t.Fatal(err)
+	}
+	if s.Value() != 5 || element(t, w, "volume").Value != "5" {
+		t.Fatal("Tab did not focus slider or value is stale")
+	}
+	if err := w.press("tab"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.press("enter"); err != nil {
+		t.Fatal(err)
+	}
+	e = element(t, w, "details")
+	if e.Role != "disclosure" || e.Value != "expanded" || !a.IsOpen(0) {
+		t.Fatalf("accordion semantics/keyboard: %+v", e)
+	}
+	element(t, w, "inside")
+	a.SetDisabled(true)
+	if !element(t, w, "details").Disabled {
+		t.Fatal("disabled header not exposed")
 	}
 }

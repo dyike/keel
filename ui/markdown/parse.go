@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -27,10 +28,13 @@ const (
 	list
 	table
 	rule
+	footnoteList
+	footnoteItem
 )
 
 type block struct {
 	kind     blockKind
+	anchor   string
 	level    int    // heading
 	spans    []span // paragraph, heading
 	lang     string // codeBlock
@@ -69,41 +73,53 @@ type span struct {
 	link                       string
 	math                       *mathExpr
 	display                    bool
+	anchor                     string
+	superscript                bool
+	imageURL                   string
+	imageAlt                   string
 }
 
-var parser = goldmark.New(goldmark.WithExtensions(extension.GFM), goldmark.WithParserOptions(gmparser.WithInlineParsers(util.Prioritized(mathInlineParser{}, 50)), gmparser.WithBlockParsers(util.Prioritized(mathBlockParser{}, 50)))).Parser()
+var parser = goldmark.New(goldmark.WithExtensions(extension.GFM, extension.Footnote), goldmark.WithParserOptions(gmparser.WithInlineParsers(util.Prioritized(mathInlineParser{}, 50)), gmparser.WithBlockParsers(util.Prioritized(mathBlockParser{}, 50)))).Parser()
 
 // parse turns one chunk of Markdown into blocks.
 func parse(src string) []block {
 	source := []byte(src)
 	doc := parser.Parse(text.NewReader(source))
-	return blocks(doc, source)
+	return blocks(doc, source, mathMacros{})
 }
 
-func blocks(parent ast.Node, src []byte) []block {
+func blocks(parent ast.Node, src []byte, macros mathMacros) []block {
 	var out []block
 	for n := parent.FirstChild(); n != nil; n = n.NextSibling() {
-		if b, ok := convert(n, src); ok {
+		if b, ok := convert(n, src, macros); ok {
 			out = append(out, b)
 		}
 	}
 	return out
 }
 
-func convert(n ast.Node, src []byte) (block, bool) {
+func convert(n ast.Node, src []byte, macros mathMacros) (block, bool) {
 	switch n := n.(type) {
+	case *east.FootnoteList:
+		return block{kind: footnoteList, children: blocks(n, src, macros)}, true
+	case *east.Footnote:
+		children := blocks(n, src, macros)
+		anchorFirst(children, footnoteID(n.Index))
+		return block{kind: footnoteItem, level: n.Index, children: children}, true
+	case *east.FootnoteBacklink:
+		return block{kind: paragraph, spans: []span{backlinkSpan(n)}}, true
 	case *displayMath:
 		source := lines(n, src)
 		s := span{text: "$$\n" + source, display: true}
 		if n.closed {
 			s.text += "\n$$"
-			s.math = parseMath(source)
+			s.math = parseMathIn(source, macros)
 		}
 		return block{kind: paragraph, spans: []span{s}}, true
 	case *ast.Paragraph, *ast.TextBlock:
-		return block{kind: paragraph, spans: inlines(n, src, span{})}, true
+		return block{kind: paragraph, spans: inlines(n, src, span{}, macros)}, true
 	case *ast.Heading:
-		return block{kind: heading, level: n.Level, spans: inlines(n, src, span{})}, true
+		return block{kind: heading, level: n.Level, spans: inlines(n, src, span{}, macros)}, true
 	case *ast.FencedCodeBlock:
 		lang := ""
 		if n.Info != nil {
@@ -113,11 +129,11 @@ func convert(n ast.Node, src []byte) (block, bool) {
 	case *ast.CodeBlock:
 		return block{kind: codeBlock, code: lines(n, src)}, true
 	case *ast.Blockquote:
-		return block{kind: quote, children: blocks(n, src)}, true
+		return block{kind: quote, children: blocks(n, src, macros)}, true
 	case *ast.List:
 		b := block{kind: list, ordered: n.IsOrdered(), start: n.Start}
 		for it := n.FirstChild(); it != nil; it = it.NextSibling() {
-			item := listItem{blocks: blocks(it, src)}
+			item := listItem{blocks: blocks(it, src, macros)}
 			item.task = taskState(it)
 			b.items = append(b.items, item)
 		}
@@ -127,7 +143,7 @@ func convert(n ast.Node, src []byte) (block, bool) {
 	case *ast.HTMLBlock:
 		return block{kind: codeBlock, lang: "html", code: lines(n, src)}, true
 	case *east.Table:
-		return block{kind: table, tbl: tableOf(n, src)}, true
+		return block{kind: table, tbl: tableOf(n, src, macros)}, true
 	}
 	return block{}, false
 }
@@ -155,7 +171,7 @@ func taskState(item ast.Node) *bool {
 	return nil
 }
 
-func tableOf(t *east.Table, src []byte) *tableData {
+func tableOf(t *east.Table, src []byte, macros mathMacros) *tableData {
 	d := &tableData{}
 	for _, a := range t.Alignments {
 		switch a {
@@ -170,7 +186,7 @@ func tableOf(t *east.Table, src []byte) *tableData {
 	for r := t.FirstChild(); r != nil; r = r.NextSibling() {
 		var cells [][]span
 		for c := r.FirstChild(); c != nil; c = c.NextSibling() {
-			cells = append(cells, inlines(c, src, span{}))
+			cells = append(cells, inlines(c, src, span{}, macros))
 		}
 		if _, ok := r.(*east.TableHeader); ok {
 			d.header = cells
@@ -183,7 +199,7 @@ func tableOf(t *east.Table, src []byte) *tableData {
 
 // inlines flattens inline content into styled spans, merging neighbours with
 // the same style.
-func inlines(n ast.Node, src []byte, style span) []span {
+func inlines(n ast.Node, src []byte, style span, macros mathMacros) []span {
 	var out []span
 	add := func(s span) {
 		if s.text == "" {
@@ -191,7 +207,7 @@ func inlines(n ast.Node, src []byte, style span) []span {
 		}
 		if k := len(out) - 1; k >= 0 {
 			last := &out[k]
-			if last.math == nil && s.math == nil && last.bold == s.bold && last.italic == s.italic && last.code == s.code && last.strike == s.strike && last.link == s.link {
+			if last.imageURL == "" && s.imageURL == "" && last.anchor == "" && s.anchor == "" && last.superscript == s.superscript && last.math == nil && s.math == nil && last.bold == s.bold && last.italic == s.italic && last.code == s.code && last.strike == s.strike && last.link == s.link {
 				last.text += s.text
 				return
 			}
@@ -202,9 +218,13 @@ func inlines(n ast.Node, src []byte, style span) []span {
 	walk = func(n ast.Node, st span) {
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			switch c := c.(type) {
+			case *east.FootnoteLink:
+				add(span{text: "[" + strconv.Itoa(c.Index) + "]", link: footnoteID(c.Index), anchor: footnoteRefID(c.Index, c.RefIndex), superscript: true})
+			case *east.FootnoteBacklink:
+				add(backlinkSpan(c))
 			case *mathInline:
 				s := st
-				s.text, s.math, s.display = c.raw, parseMath(c.source), c.display
+				s.text, s.math, s.display = c.raw, parseMathIn(c.source, macros), c.display
 				add(s)
 			case *ast.Text:
 				s := st
@@ -259,14 +279,19 @@ func inlines(n ast.Node, src []byte, style span) []span {
 				add(s)
 			case *ast.Image:
 				s := st
-				s.link = string(c.Destination)
+				s.imageURL = string(c.Destination)
 				var alt strings.Builder
-				for t := c.FirstChild(); t != nil; t = t.NextSibling() {
-					if tt, ok := t.(*ast.Text); ok {
+				ast.Walk(c, func(t ast.Node, entering bool) (ast.WalkStatus, error) {
+					if tt, ok := t.(*ast.Text); entering && ok {
 						alt.Write(tt.Segment.Value(src))
 					}
+					return ast.WalkContinue, nil
+				})
+				s.imageAlt = alt.String()
+				s.text = "［图片：" + s.imageAlt + "］"
+				if s.imageAlt == "" {
+					s.text = "［图片］"
 				}
-				s.text = "［图片：" + alt.String() + "］"
 				add(s)
 			case *east.TaskCheckBox:
 				// drawn as the list marker instead

@@ -223,3 +223,40 @@ func TestSelectionIsScopedToOneDocument(t *testing.T) {
 		t.Fatal("the first document retained selection after focus changed")
 	}
 }
+
+func TestWheelDuringAndAfterSelection(t *testing.T) {
+	d := New("开头可选文字\n\n" + strings.Repeat("正文段落\n\n", 20) + "末尾")
+	h := uitest.New(el.Root(scrollingDocView{d}))
+	x, y := textPoint(t, h, d, "开头可选文字", 1)
+	h.Router.Queue(pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: f32.Pt(x, y)})
+	h.Frame()
+	h.Router.Queue(pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: f32.Pt(x+30, y)})
+	h.Frame()
+	if !d.selection.moved {
+		t.Fatal("test did not grab a selection drag")
+	}
+	h.Scroll(100, 60, 40)
+	if d.selection.pointerRoot != image.Pt(100, 60) {
+		t.Fatalf("pointer moved with scrolling content: %v", d.selection.pointerRoot)
+	}
+	if d.selection.parts[0].r.plain != "开头可选文字" {
+		t.Fatal("lost selection document")
+	}
+	var bounds image.Rectangle
+	walk(h.Router.AppendSemantics(nil)[0], func(n input.SemanticNode) {
+		if n.Desc.Label == "开头可选文字" {
+			bounds = n.Desc.Bounds
+		}
+	})
+	if !bounds.Empty() && bounds.Min.Y >= int(y) {
+		t.Fatal("wheel did not scroll during selection")
+	}
+	h.Router.Queue(pointer.Event{Kind: pointer.Release, Source: pointer.Mouse, Position: f32.Pt(100, 60)})
+	h.Frame()
+	selected := d.selection.selectedText()
+	h.Scroll(100, 60, 1000)
+	textPoint(t, h, d, "末尾", 1)
+	if d.selection.selectedText() != selected {
+		t.Fatal("scroll after release changed selection")
+	}
+}

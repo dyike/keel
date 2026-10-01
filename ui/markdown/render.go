@@ -45,8 +45,15 @@ func (d *Doc) Render(cx *el.Context) el.Element {
 			all = append(all, &d.chunks[i].blocks[j])
 		}
 	}
+	tailIndex := len(all) - 1
+	if tailIndex >= 0 && all[tailIndex].kind == footnoteList {
+		tailIndex--
+	}
 	for i, b := range all {
-		tail := d.streaming && i == len(all)-1
+		if d.streaming && b.kind == footnoteList && (tailIndex < 0 || !endsInText(all[tailIndex])) {
+			root.Child(el.Text(caret).TextColor(theme.Primary))
+		}
+		tail := d.streaming && i == tailIndex
 		if tail {
 			root.Child(d.block(b, true)) // changes with every token: rebuild
 			continue
@@ -56,11 +63,12 @@ func (d *Doc) Render(cx *el.Context) el.Element {
 		b := b
 		root.Child(cx.Cache(keyForBlock(b), func() el.Element { return d.block(b, false) }))
 	}
-	if d.streaming && (len(all) == 0 || !endsInText(all[len(all)-1])) {
+	if d.streaming && (len(all) == 0 || all[len(all)-1].kind != footnoteList && !endsInText(all[len(all)-1])) {
 		root.Child(el.Text(caret).TextColor(theme.Primary))
 	}
 	root.Decorate(func(gtx core.C, draw func()) {
-		d.selection.paint(gtx, root, draw)
+		d.navigate(cx, root, gtx)
+		d.selection.paint(gtx, cx, root, draw)
 	})
 	return root
 }
@@ -70,6 +78,18 @@ func endsInText(b *block) bool { return b.kind == paragraph || b.kind == heading
 
 func (d *Doc) block(b *block, last bool) el.Element {
 	switch b.kind {
+	case footnoteList:
+		footer := el.Div().Role("footnotes").Gap(8).Pt(8).Child(el.Div().H(el.Dp(1)).Bg(theme.Border))
+		for i := range b.children {
+			footer.Child(d.block(&b.children[i], false))
+		}
+		return footer
+	case footnoteItem:
+		content := el.Div().Grow().Gap(8)
+		for i := range b.children {
+			content.Child(d.block(&b.children[i], false))
+		}
+		return el.Div().Row().Gap(6).Child(el.Text(strconv.Itoa(b.level)+".").W(el.Dp(22)).TextColor(theme.Muted), content)
 	case paragraph:
 		return el.Widget(d.rich(b, b.spans, theme.BodySize, false, theme.Text, last))
 	case heading:
@@ -138,7 +158,8 @@ func (d *Doc) table(b *block) el.Element {
 		if i < len(t.align) {
 			align = t.align[i]
 		}
-		r := st.cell(key, spans, bold, align, d.onLink)
+		r := st.cell(key, spans, bold, align, d.followLink)
+		d.bindImages(r, spans)
 		r.separator = "\t"
 		if i == 0 {
 			r.separator = "\n"
@@ -197,34 +218,43 @@ func (t *tableView) cell(key string, spans []span, bold bool, align cellAlign, o
 func (d *Doc) rich(b *block, spans []span, size unit.Sp, bold bool, c color.NRGBA, withCaret bool) *richBlock {
 	r, _ := b.view.(*richBlock)
 	if r == nil {
-		r = newRich(spans, size, bold, c, d.onLink)
+		r = newRich(spans, size, bold, c, d.followLink)
 		b.view = r
+		d.bindImages(r, spans)
 	}
+	r.anchor = b.anchor
 	r.caret = withCaret
 	return r
 }
 
 // richBlock draws styled runs with clickable links; see text.go.
 type richBlock struct {
-	measured   [8]measurement // recent measurements by constraints, see Layout
-	nextSlot   int
-	runs       []run
-	base       unit.Sp
-	lineH      float32 // line height as a multiple of the text size
-	plain      string
-	align      text.Alignment
-	caret      bool
-	links      bool
-	rt         richText
-	onLink     func(string)
-	separator  string // plain-text boundary before this block; default: blank line
-	decoration bool   // list markers are not part of selectable text
+	measured      [8]measurement // recent measurements by constraints, see Layout
+	nextSlot      int
+	runs          []run
+	base          unit.Sp
+	lineH         float32 // line height as a multiple of the text size
+	plain         string
+	align         text.Alignment
+	caret         bool
+	links         bool
+	rt            richText
+	onLink        func(string)
+	imageRevision uint64
+	anchor        string // internal navigation destination
+	separator     string // plain-text boundary before this block; default: blank line
+	code          bool   // triple-click selects a source line in code
+	decoration    bool   // list markers are not part of selectable text
 }
 
 func newRich(spans []span, size unit.Sp, bold bool, c color.NRGBA, onLink func(string)) *richBlock {
 	r := &richBlock{plain: plain(spans), onLink: onLink, lineH: 1.6, base: size}
 	for _, s := range spans {
-		rn := run{text: s.text, math: s.math, display: s.display, size: size, color: c, font: font.Font{Typeface: theme.Face}, strike: s.strike}
+		rn := run{text: s.text, math: s.math, display: s.display, size: size, color: c, font: font.Font{Typeface: theme.Face}, strike: s.strike, anchor: s.anchor}
+		if s.superscript {
+			rn.size = size * 0.75
+			rn.rise = size * 0.3
+		}
 		if s.bold || bold {
 			rn.font.Weight = font.Bold
 		}
@@ -248,6 +278,11 @@ func newRich(spans []span, size unit.Sp, bold bool, c color.NRGBA, onLink func(s
 }
 
 func (r *richBlock) Layout(gtx core.C) core.D {
+	revision := r.imagesRevision()
+	if revision != r.imageRevision {
+		r.imageRevision = revision
+		clear(r.measured[:])
+	}
 	// el measures an element by laying it out with input disabled, often
 	// several times a frame, then paints it. Laying out rich text is costly
 	// and a block's text does not change, so a repeated measurement returns
@@ -275,7 +310,7 @@ func (r *richBlock) Layout(gtx core.C) core.D {
 	r.rt.runs, r.rt.base, r.rt.lineH, r.rt.align = runs, r.base, r.lineH, r.align
 	r.rt.textRuns = len(r.runs) // not the caret
 	sem := []interface{ Add(*op.Ops) }{semantic.LabelOp(r.plain)}
-	if r.links {
+	if r.links || r.imagesRevision() > 0 {
 		// A container, so agents see each link inside it on its own.
 		sem = append(sem, core.Role("paragraph"))
 	}
@@ -293,7 +328,7 @@ func (r *richBlock) Layout(gtx core.C) core.D {
 func highlight(lang, code string) *richBlock {
 	// Tabs render as a narrow space in proportional-width shaping; expand them.
 	code = strings.ReplaceAll(code, "\t", "    ")
-	r := &richBlock{plain: code, lineH: 1.45, base: theme.BodySize * 0.9}
+	r := &richBlock{plain: code, code: true, lineH: 1.45, base: theme.BodySize * 0.9}
 	lexer := lexers.Get(lang)
 	if lexer == nil && lang == "" {
 		lexer = lexers.Analyse(code)
@@ -336,6 +371,16 @@ func keyForBlock(b *block) blockKey {
 	k := blockKey{b: b, state: 14695981039346656037}
 	var visit func(*block)
 	visit = func(b *block) {
+		switch view := b.view.(type) {
+		case *richBlock:
+			k.state = (k.state ^ view.imagesRevision()) * 1099511628211
+		case *tableView:
+			var revision uint64
+			for _, r := range view.cells {
+				revision += r.imagesRevision()
+			}
+			k.state = (k.state ^ revision) * 1099511628211
+		}
 		if cv, ok := b.view.(*codeView); ok {
 			var state uint64
 			if cv.wrap {

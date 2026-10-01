@@ -90,17 +90,7 @@ type mathReader struct {
 	bad      bool
 }
 
-func parseMath(src string) *mathExpr {
-	if len(src) > 16384 {
-		return nil
-	}
-	p := mathReader{src: []rune(src)}
-	n := p.row(0)
-	if p.bad || p.i != len(p.src) {
-		return nil
-	}
-	return n
-}
+func parseMath(src string) *mathExpr { return parseMathIn(src, mathMacros{}) }
 func (p *mathReader) spaces() {
 	for p.i < len(p.src) && unicode.IsSpace(p.src[p.i]) {
 		p.i++
@@ -252,13 +242,11 @@ func (p *mathReader) atom() *mathExpr {
 		return &mathExpr{kind: "text", value: p.groupText()}
 	case "mathbf", "mathit":
 		return &mathExpr{kind: cmd, children: []*mathExpr{p.arg()}}
-	case "left", "right":
-		p.spaces()
-		if p.i < len(p.src) && p.src[p.i] == '.' {
-			p.i++
-			return &mathExpr{kind: "row"}
-		}
-		return p.atom()
+	case "left":
+		return p.delimited()
+	case "right", "end":
+		p.bad = true
+		return &mathExpr{}
 	case ",", ":", ";", " ", "quad", "qquad":
 		return &mathExpr{kind: "space", value: cmd}
 	case "!":
@@ -281,47 +269,6 @@ func (p *mathReader) atom() *mathExpr {
 	}
 	p.bad = true
 	return &mathExpr{}
-}
-
-func (p *mathReader) matrix(env string) *mathExpr {
-	if !strings.Contains(" matrix pmatrix bmatrix Bmatrix vmatrix Vmatrix cases aligned ", " "+env+" ") {
-		p.bad = true
-		return &mathExpr{}
-	}
-	end := "\\end{" + env + "}"
-	rest := string(p.src[p.i:])
-	at := strings.Index(rest, end)
-	if at < 0 {
-		p.bad = true
-		return &mathExpr{}
-	}
-	body := rest[:at]
-	// Nested environments need a full TeX parser; retain their source instead.
-	if strings.Contains(body, "\\begin") {
-		p.bad = true
-		return &mathExpr{}
-	}
-	p.i += utf8.RuneCountInString(rest[:at+len(end)])
-	n := &mathExpr{kind: "matrix", value: env}
-	for _, line := range strings.Split(body, "\\\\") {
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-		row := &mathExpr{kind: "row"}
-		for _, cell := range strings.Split(line, "&") {
-			x := parseMath(cell)
-			if x == nil {
-				p.bad = true
-				x = &mathExpr{}
-			}
-			row.children = append(row.children, x)
-		}
-		n.children = append(n.children, row)
-	}
-	if len(n.children) == 0 {
-		p.bad = true
-	}
-	return n
 }
 
 var mathSymbols = map[string]string{

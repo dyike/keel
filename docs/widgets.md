@@ -1,6 +1,6 @@
 # 组件与布局
 
-组件在 `ui/widget`（文字、按钮、链接、输入框、复选框、表格、下拉选择、标签页、单选、开关、进度条、对话框），容器在 `ui/layout`（包括表单），颜色字号在 `ui/theme`。它们都实现 `ui/core` 里的同一个接口：
+组件在 `ui/widget`（文字、按钮、链接、输入框、复选框、表格、下拉选择、标签页、单选、开关、进度条、对话框、图片、滑块、折叠面板），容器在 `ui/layout`（包括表单），颜色字号在 `ui/theme`。它们都实现 `ui/core` 里的同一个接口：
 
 ```go
 // package ui
@@ -51,6 +51,17 @@ widget.Link("查看文档", openDocs)
 ```
 
 主色文字，鼠标悬停显示手形光标。方法：`SetText(s)`。
+
+## 图片
+
+```go
+photo := widget.Image("assets/photo.png", "产品正面照片")
+photo.OnClick = openDetail
+// 已解码像素可直接复用，无需异步加载。
+preview := &widget.ImageView{Asset: widget.ImageData(img), Alt: "预览"}
+```
+
+支持本地路径、file URL、HTTP(S)、data URL，解码 PNG、JPEG、GIF 首帧和 WebP。图片按原始宽高比缩小到可用宽度，加载中或失败时显示替代文字。多个 `ImageView` 可以共享同一个 `LoadImage(source, loader)` 返回的资源；`loader` 为 nil 时使用默认加载器，也可传入带鉴权或自定义路径解析的加载函数。资源的 `Ready()`、`Error()`、`Size()` 和 `Revision()` 在 UI 锁下读取。加载完成通过 `core.Update` 通知窗口。
 
 ## 输入框
 
@@ -147,6 +158,29 @@ urgent := widget.Switch("加急处理", false).OnChange(func(on bool) { ... })
 ```
 
 单选组默认竖排，`Horizontal()` 横排。开关的文字也能点。两者都有 `Value()` / `SetValue()`，`SetValue` 不触发回调。
+
+## 滑块
+
+```go
+volume := widget.Slider("音量", 0, 100).Step(5).OnChange(func(v float32) { ... })
+volume.SetValue(40)
+```
+
+点击轨道或拖动滑块选值；获得焦点后，方向键调整一步，PageUp / PageDown 调整十步，Home / End 跳到范围两端。步长相对最小值对齐，仍可选到最大值。省略 `Step` 时连续拖动，键盘每步为范围的 1%。支持 `Value()`、`SetValue(v)`、`SetRange(min, max)` 和 `SetDisabled(bool)`，程序设置不触发回调。当前版本为水平单值滑块。
+
+## 折叠面板
+
+```go
+sections := widget.Accordion().
+    Add("个人资料", nameInput).
+    Add("通知设置", notificationSettings).
+    OnChange(func(openIndices []int) { ... })
+sections.SetOpen(0, true)
+```
+
+默认同一时间只能展开一项，构造时调用 `Multiple()` 可同时展开多项。`SetOpen(index, bool)` 不触发回调，`IsOpen(index)` 和 `OpenIndices()` 查询状态。收起时保留子组件的值，隐藏的控件不参与焦点导航。标题支持 Tab、Enter / 空格，↑ ↓ 跳到相邻可用标题，Home / End 跳到首尾；`SetItemDisabled(index, bool)` 和 `SetDisabled(bool)` 禁止展开操作，已展开内容继续可见。
+
+运行 `go run ./examples/components` 检查滑块、折叠面板和图片交互。这两种控件参考 [GPUI Slider](https://gpui-kit.com/component/slider/) 和 [Accordion](https://gpui-kit.com/docs/components/accordion) 的常用交互，API 沿用 Keel 的构造函数和链式配置约定。
 
 ## 进度条
 

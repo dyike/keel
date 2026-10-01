@@ -7,6 +7,7 @@
 | `text.go` | `Text`、`Heading`、`Muted` |
 | `button.go` | `Button` |
 | `link.go` | `Link` |
+| `image.go`、`image_load.go` | `Image`、`LoadImage`、`ImageData`：异步加载、缩放和失败占位 |
 | `input.go` | `Input`、`TextArea` |
 | `checkbox.go` | `Checkbox` |
 | `table.go` | `Table`、`Col`：排序、选中、键盘导航、只渲染可见行 |
@@ -14,6 +15,8 @@
 | `tabs.go` | `Tabs` |
 | `radio.go` | `RadioGroup` |
 | `switch.go` | `Switch` |
+| `slider.go` | `Slider`：范围、步长、拖动和键盘调整 |
+| `accordion.go` | `Accordion`：单项 / 多项展开、标题键盘导航 |
 | `progress.go` | `Progress` |
 | `dialog.go` | `Dialog`：确认、提示，放在 `window.Options.Overlay` |
 | `draw.go` | 内部绘图小工具 |

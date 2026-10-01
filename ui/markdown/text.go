@@ -34,6 +34,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/dyike/keel/ui/core"
+	widgets "github.com/dyike/keel/ui/widget"
 )
 
 // run is a stretch of text in one style.
@@ -47,6 +48,9 @@ type run struct {
 	link    string
 	math    *mathExpr
 	display bool
+	anchor  string
+	rise    unit.Sp
+	image   *widgets.ImageView
 }
 
 // piece is the part of a run placed on one line.
@@ -164,7 +168,7 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 		// Center the glyphs' logical box in the line; share one baseline.
 		height := lineH
 		for _, p := range line {
-			if r.runs[p.run].math != nil {
+			if r.runs[p.run].math != nil || r.runs[p.run].image != nil {
 				height = max(height, asc+desc+gtx.Dp(2))
 			}
 		}
@@ -188,6 +192,27 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 
 	for i := 0; i < len(r.runs); i++ {
 		rn := r.runs[i]
+		if rn.image != nil {
+			// Images keep their aspect ratio, break as one unit, and use alt
+			// text as their atomic range in document selection.
+			natural := rn.image.Asset.Size().X
+			if natural == 0 {
+				natural = 260
+			}
+			if lineW > 0 && gtx.Dp(unit.Dp(natural)) > maxW-lineW {
+				flush()
+			}
+			g := gtx
+			g.Constraints = layout.Constraints{Max: image.Pt(maxW-lineW, codeWidth)}
+			m := op.Record(gtx.Ops)
+			dims := rn.image.Layout(g)
+			call := m.Stop()
+			count := utf8.RuneCountInString(rn.text)
+			line = append(line, piece{run: i, text: rn.text, rect: image.Rect(lineW, 0, lineW+dims.Size.X, 0), call: call, ascent: dims.Size.Y, start: pos, runes: count, glyphs: []glyphX{{adv: dims.Size.X, runes: count}}})
+			lineW += dims.Size.X
+			pos += count
+			continue
+		}
 		if rn.math != nil {
 			b := layoutMath(gtx, shaper, rn.math, rn, rn.display)
 			if len(line) > 0 && (rn.display || lineW+b.w > maxW) {
@@ -239,7 +264,7 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 			if shown != "" {
 				count := utf8.RuneCountInString(shown)
 				line = append(line, piece{run: i, text: shown, rect: image.Rect(lineW, 0, lineW+res.width, 0),
-					call: res.call, ascent: res.ascent, descent: res.descent, start: pos, runes: count, glyphs: res.glyphs})
+					call: res.call, ascent: res.ascent + gtx.Sp(rn.rise), descent: max(0, res.descent-gtx.Sp(rn.rise)), start: pos, runes: count, glyphs: res.glyphs})
 				lineW += res.width
 			}
 			pos += utf8.RuneCountInString(content[:n])

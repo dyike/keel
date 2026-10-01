@@ -154,6 +154,8 @@ func layoutMath(gtx layout.Context, shaper *text.Shaper, n *mathExpr, rn run, di
 			d = max(d, dy+sub.d)
 		}
 		return mathCompose(gtx, x+max(sup.w, sub.w), a, d, parts, nil)
+	case "delimited":
+		return encloseMath(gtx, child(n.children[0]), n.value, em)
 	case "matrix":
 		return layoutMatrix(gtx, shaper, n, rn, display)
 	case "mathbf", "mathit":

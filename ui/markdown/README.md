@@ -1,8 +1,8 @@
 # ui/markdown
 
-把 Markdown 渲染成 `ui/el` 元素，针对 AI 聊天的流式输出优化：只重新解析正在写的块，临时补全未闭合的语法，写完的块复用元素和布局。
+把 Markdown 渲染成 `ui/el` 元素，针对 AI 聊天的流式输出优化：普通文档只重新解析正在写的块；含脚注、引用定义或宏时共享整篇解析上下文，临时补全未闭合的语法，写完的块复用元素和布局。
 
-- **依赖**：`el`、`core`、`theme`；第三方：goldmark（解析）、chroma（代码高亮）、Gio text.Shaper（字形排版）。
+- **依赖**：`el`、`core`、`theme`、`widget`；第三方：goldmark（解析）、chroma（代码高亮）、Gio text.Shaper（字形排版）。
 - **被谁依赖**：应用代码。
 
 | 文件 | 内容 |
@@ -12,8 +12,13 @@
 | `render.go` | 中间结构 → el 元素；富文本、代码高亮、块缓存 |
 | `code.go` | 代码卡片、语言与操作图标、悬停提示、换行切换和横向滚动 |
 | `math_parse.go` | 数学分隔符与常用 TeX 子集解析、源码回退 |
+| `math_macros.go`、`math_structures.go` | 文档宏、嵌套矩阵与配对分隔符 |
+| `math_delimiters.go` | 自动伸缩分隔符绘制 |
+| `references.go` | 文档级解析、脚注跳转与返回 |
+| `images.go` | 异步图片资源共享与布局缓存失效 |
 | `math_layout.go` | 公式盒子排版、分式根号、上下标和矩阵 |
 | `text.go` | 富文本排版、字形坐标、装饰、链接和选区绘制 |
-| `selection.go` | 文档坐标、跨块选区、整篇选中和纯文本复制 |
+| `selection.go` | 文档坐标、跨块选区、边缘自动滚动、整篇选中和纯文本复制 |
+| `selection_units.go` | Unicode 选词、三击选段、公式与代码行边界 |
 
 使用和设计：[Markdown](../../docs/markdown.md)。

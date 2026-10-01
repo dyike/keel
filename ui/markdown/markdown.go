@@ -27,17 +27,23 @@
 package markdown
 
 import (
+	widgets "github.com/dyike/keel/ui/widget"
 	"strings"
 )
 
 // Doc is a Markdown document, rendered as an el element. Change it only under
 // the UI lock: from callbacks, or from other goroutines through core.Update.
 type Doc struct {
-	src       string
-	streaming bool
-	chunks    []chunk
-	onLink    func(url string)
-	selection documentSelection
+	src           string
+	streaming     bool
+	chunks        []chunk
+	onLink        func(url string)
+	selection     documentSelection
+	contextual    bool
+	parsedContext string
+	pendingAnchor string
+	images        map[string]*widgets.ImageAsset
+	imageLoader   widgets.ImageLoader
 
 	parses int // chunks parsed so far, for tests
 }
@@ -91,6 +97,15 @@ func (d *Doc) SetStreaming(on bool) {
 }
 
 func (d *Doc) update() {
+	if strings.Contains(d.src, "]:") || strings.Contains(d.src, "[^") || hasMathMacros(d.src) {
+		d.updateContextual()
+		return
+	}
+	if d.contextual {
+		d.chunks = nil
+		d.contextual = false
+		d.parsedContext = ""
+	}
 	raws := split(d.src)
 	next := make([]chunk, len(raws))
 	for i, raw := range raws {

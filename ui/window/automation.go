@@ -235,7 +235,7 @@ func (w *Window) snapshot() []Element {
 			switch role {
 			case "checkbox", "radio", "switch":
 				e.Checked = &state
-			case "tab", "row", "option":
+			case "tab", "row", "option", "disclosure":
 				e.Selected = &state
 			}
 			if role != "text" && !containerRoles[role] && e.Name == "" {
@@ -261,7 +261,7 @@ func (w *Window) snapshot() []Element {
 	return out
 }
 
-var containerRoles = map[string]bool{"dialog": true, "table": true, "code": true}
+var containerRoles = map[string]bool{"dialog": true, "table": true, "code": true, "footnotes": true, "accordion": true}
 
 // roleOf maps a semantic node to an element role and value. Gio's classes
 // give the common roles; core.Role descriptions ("row", "select:北京") the rest.
@@ -273,7 +273,7 @@ func roleOf(d input.SemanticDesc, inControl bool) (role, value string) {
 	switch d.Class {
 	case semantic.Button:
 		switch custom {
-		case "link", "tab", "columnheader", "select":
+		case "link", "tab", "columnheader", "select", "image", "disclosure":
 			return custom, val
 		}
 		return "button", ""
@@ -287,7 +287,7 @@ func roleOf(d input.SemanticDesc, inControl bool) (role, value string) {
 		return "textbox", d.Description
 	}
 	switch custom {
-	case "row", "option", "table", "progressbar", "dialog", "code":
+	case "row", "option", "table", "progressbar", "dialog", "code", "image", "footnotes", "accordion", "slider":
 		return custom, val
 	case "paragraph": // text with links: listed as text, its links after it
 		return "text", ""

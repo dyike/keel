@@ -54,6 +54,7 @@ func (d *Doc) code(b *block) el.Element {
 		b.view = cv
 	}
 	cv.body.view = cv
+	cv.rich.anchor = b.anchor
 	label := b.lang
 	if label == "" || label == "text" || label == "txt" || label == "plaintext" {
 		label = "纯文本"

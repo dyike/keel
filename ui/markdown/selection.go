@@ -4,12 +4,14 @@ import (
 	"image"
 	"io"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"gioui.org/io/clipboard"
 	"gioui.org/io/event"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 
 	"github.com/dyike/keel/ui/core"
@@ -20,13 +22,22 @@ import (
 // one Doc. Bounds are in the document's coordinate system, including text
 // outside the viewport, so selection also works in a scrolling chat.
 type documentSelection struct {
-	parts    []selectionPart
-	text     []rune
-	sel      [2]int // anchor, focus
-	dragging bool
-	moved    bool // suppress link activation after a selection drag
-	pointer  pointer.ID
-	press    image.Point
+	parts       []selectionPart
+	text        []rune
+	sel         [2]int // anchor, focus
+	dragging    bool
+	moved       bool // suppress link activation after a selection drag
+	pointer     pointer.ID
+	press       image.Point
+	dragged     bool
+	clickAt     time.Duration
+	clickPoint  image.Point
+	clicks      int
+	mode        int
+	anchor      [2]int
+	pointerRoot image.Point
+	lastScroll  time.Time
+	origin      image.Point
 }
 
 type selectionPart struct {
@@ -37,9 +48,22 @@ type selectionPart struct {
 	end     int
 }
 
-func (s *documentSelection) paint(gtx core.C, root el.Element, draw func()) {
+func (s *documentSelection) paint(gtx core.C, cx *el.Context, root el.Element, draw func()) {
+	origin, viewport := cx.PaintGeometry()
+	inputOrigin := s.origin
+	movedOrigin := origin != inputOrigin
+	s.origin = origin
 	s.collect(root, gtx)
-	s.update(gtx)
+	s.update(gtx, inputOrigin)
+	if s.dragging && s.dragged {
+		pt := s.pointerRoot.Sub(origin)
+		if movedOrigin {
+			s.extend(pt)
+		}
+		s.autoScroll(gtx, cx, viewport)
+	} else {
+		s.lastScroll = time.Time{}
+	}
 	// Keep the area open around children: it receives their presses as an
 	// ancestor, including presses on links. A drag then grabs the pointer to
 	// cancel link clicks and retain input outside the document's bounds.
@@ -105,7 +129,7 @@ func (s *documentSelection) collect(root el.Element, gtx core.C) {
 	s.sel[0], s.sel[1] = min(s.sel[0], pos), min(s.sel[1], pos)
 }
 
-func (s *documentSelection) update(gtx core.C) {
+func (s *documentSelection) update(gtx core.C, inputOrigin image.Point) {
 	for {
 		ev, ok := gtx.Event(
 			pointer.Filter{Target: s, Kinds: pointer.Press | pointer.Drag | pointer.Release | pointer.Cancel},
@@ -118,31 +142,56 @@ func (s *documentSelection) update(gtx core.C) {
 		}
 		switch e := ev.(type) {
 		case pointer.Event:
-			pt := e.Position.Round()
+			// Events use the previous frame's transform, while ancestors may
+			// already have scrolled this frame. Convert through root coordinates.
+			pt := e.Position.Round().Add(inputOrigin).Sub(s.origin)
 			switch e.Kind {
 			case pointer.Press:
 				if !e.Buttons.Contain(pointer.ButtonPrimary) || s.dragging || !s.contains(pt) {
 					break
 				}
 				i := s.hit(pt)
+				rootPoint := pt.Add(s.origin)
+				delta := rootPoint.Sub(s.clickPoint)
+				elapsed := e.Time - s.clickAt
+				if s.clicks > 0 && elapsed >= 0 && elapsed < 400*time.Millisecond && delta.X*delta.X+delta.Y*delta.Y <= gtx.Dp(4)*gtx.Dp(4) {
+					s.clicks = s.clicks%3 + 1
+				} else {
+					s.clicks = 1
+				}
+				s.clickAt, s.clickPoint = e.Time, rootPoint
+				s.pointerRoot = rootPoint
+				s.dragged = false
+				s.mode = s.clicks
 				s.sel = [2]int{i, i}
-				s.dragging, s.moved = true, false
+				if s.mode > 1 {
+					s.sel = s.unitRange(s.character(pt), s.mode)
+				}
+				s.anchor = s.sel
+				s.dragging, s.moved = true, s.mode > 1
 				s.pointer, s.press = e.PointerID, pt
 				gtx.Execute(key.FocusCmd{Tag: s})
 			case pointer.Drag:
 				if !s.dragging || e.PointerID != s.pointer {
 					break
 				}
-				s.sel[1] = s.hit(pt)
+				s.pointerRoot = pt.Add(s.origin)
+				s.extend(pt)
 				dist := pt.Sub(s.press)
-				if !s.moved && (s.sel[0] != s.sel[1] || dist.X*dist.X+dist.Y*dist.Y > 9) {
+				if !s.dragged && (s.sel[0] != s.sel[1] || dist.X*dist.X+dist.Y*dist.Y > 9) {
+					s.dragged = true
 					s.moved = true
 					gtx.Execute(pointer.GrabCmd{Tag: s, ID: e.PointerID})
 				}
 			case pointer.Release:
 				if s.dragging && e.PointerID == s.pointer {
-					s.sel[1] = s.hit(pt)
+					if s.moved && s.mode == 1 {
+						s.extend(pt)
+					}
 					s.dragging = false
+					if s.dragged {
+						s.clicks = 0
+					}
 				}
 			case pointer.Cancel:
 				s.dragging = false
@@ -172,6 +221,8 @@ func (s *documentSelection) update(gtx core.C) {
 func (s *documentSelection) clear() {
 	s.sel = [2]int{}
 	s.dragging, s.moved = false, false
+	s.clicks = 0
+	s.lastScroll = time.Time{}
 }
 
 func (s *documentSelection) selRange() (int, int) {
@@ -217,4 +268,52 @@ func (s *documentSelection) hit(pt image.Point) int {
 	}
 	p := s.parts[nearest]
 	return p.start + min(p.r.rt.hit(pt.Sub(p.rect.Min)), p.end-p.start)
+}
+
+// Recompute endpoints in content coordinates even when only the viewport
+// moved. Word/paragraph drags expand in whole units in either direction.
+func (s *documentSelection) extend(pt image.Point) {
+	i := s.hit(pt)
+	if s.mode <= 1 {
+		s.sel[1] = i
+		return
+	}
+	unit := s.unitRange(s.character(pt), s.mode)
+	if unit[0] < s.anchor[0] {
+		s.sel = [2]int{s.anchor[1], unit[0]}
+	} else {
+		s.sel = [2]int{s.anchor[0], max(s.anchor[1], unit[1])}
+	}
+}
+
+func (s *documentSelection) autoScroll(gtx core.C, cx *el.Context, viewport image.Rectangle) {
+	if viewport.Empty() {
+		return
+	}
+	zone := min(gtx.Dp(24), viewport.Dy()/4)
+	y := s.pointerRoot.Y
+	speed := 0
+	if y < viewport.Min.Y+zone {
+		speed = -min(gtx.Dp(600), gtx.Dp(120)+(viewport.Min.Y+zone-y)*12)
+	}
+	if y > viewport.Max.Y-zone {
+		speed = min(gtx.Dp(600), gtx.Dp(120)+(y-viewport.Max.Y+zone)*12)
+	}
+	if speed == 0 {
+		s.lastScroll = time.Time{}
+		return
+	}
+	dt := time.Second / 60
+	if !s.lastScroll.IsZero() {
+		dt = min(gtx.Now.Sub(s.lastScroll), 50*time.Millisecond)
+	}
+	s.lastScroll = gtx.Now
+	delta := int(float64(speed) * dt.Seconds())
+	if delta == 0 {
+		gtx.Execute(op.InvalidateCmd{At: gtx.Now.Add(time.Second / 60)})
+		return
+	}
+	if cx.ScrollBy(delta) != 0 {
+		gtx.Execute(op.InvalidateCmd{At: gtx.Now.Add(time.Second / 60)})
+	}
 }

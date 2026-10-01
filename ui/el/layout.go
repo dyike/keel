@@ -16,12 +16,13 @@ const inf = 1 << 24
 
 // engine lays out and paints one element tree for one frame.
 type engine struct {
-	gtx     core.C
-	m       unit.Metric
-	store   *store
-	scratch op.Ops          // measuring passes record here and discard
-	origin  image.Point     // absolute position of the node being painted's parent
-	visible image.Rectangle // absolute area that can show anything
+	gtx           core.C
+	m             unit.Metric
+	store         *store
+	scrollParents []*elemState
+	scratch       op.Ops          // measuring passes record here and discard
+	origin        image.Point     // absolute position of the node being painted's parent
+	visible       image.Rectangle // absolute area that can show anything
 }
 
 func (e *engine) dp(v float32) int { return e.m.Dp(unit.Dp(v)) }

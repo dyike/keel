@@ -20,6 +20,24 @@ $$
 A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}
 $$
 
+宏定义在同篇文档的后续公式中生效：$\newcommand{\square}[1]{#1^2}\square{x}$，下一段继续使用。
+
+$$
+\left(\frac{\square{x}+1}{\sqrt{x}}\right)^2 + \left\langle x_i, y_i \right\rangle
+$$
+
+嵌套矩阵的内层分隔符不应拆开外层单元格：
+
+$$
+B = \begin{pmatrix} 1 & \begin{bmatrix}a & b\\c & d\end{bmatrix} \\ \frac12 & 4\end{pmatrix}
+$$
+
+只显示左侧伸缩大括号：
+
+$$
+f(x)=\left\{\begin{matrix}x^2 & x>0\\0 & x\leq0\end{matrix}\right.
+$$
+
 对照：行内代码 `$x_i$` 和下面代码块里的美元符号应保持原样。
 
 ```text
