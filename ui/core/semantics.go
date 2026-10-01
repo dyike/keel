@@ -27,7 +27,7 @@ func Semantic(gtx C, w func(gtx C) D, ops ...interface{ Add(*op.Ops) }) D {
 // Role marks a node's role for agents, optionally with a value. Automation
 // reads it as "role" or "role:value" from the node's description. Roles:
 // link, tab, columnheader, select, disclosure, toggle (clickable); image, row, option,
-// table, progressbar, slider, dialog, code, footnotes, accordion, badge, alert, tag, descriptionlist, group, status, marker (others).
+// table, progressbar, slider, dialog, code, footnotes, accordion, badge, avatar, alert, tag, descriptionlist, group, status, marker (others).
 func Role(role string, value ...string) semantic.DescriptionOp {
 	if len(value) > 0 && value[0] != "" {
 		return semantic.DescriptionOp(role + ":" + value[0])

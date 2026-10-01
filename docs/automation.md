@@ -175,3 +175,5 @@ Agent ──MCP(stdio)──► keel-mcp ──JSON 行(unix socket)──► �
 ## 在 Go 测试里用
 
 `cmd/keel-mcp/main_test.go` 用 MCP 官方 SDK 的客户端启动 `keel-mcp`，把 multiwindow 示例完整走一遍（`TestEndToEnd`），并测试 `attach` 的连接、断开、重连和占用提示（`TestAttach`），也是写这类测试的样板。`ui/window/automation_test.go` 在进程内直接测试自动化模式（滚动、Tab 焦点、回调里关窗口）。两者都随 `go test ./...` 运行，不弹窗口。
+
+| `avatar` | kit 头像 | 名字为人名，value 为 online/busy/offline；无状态为空 |

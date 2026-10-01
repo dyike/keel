@@ -1,7 +1,9 @@
 package kit
 
 import (
+	"hash/fnv"
 	"image"
+	"image/color"
 	"strings"
 	"unicode"
 
@@ -19,10 +21,26 @@ type AvatarView struct {
 	size     float32
 	pixels   paint.ImageOp
 	hasImage bool
+	status   AvatarStatus
 }
 
-func Avatar(name string) *AvatarView      { return &AvatarView{name: name, size: 40} }
-func (v *AvatarView) SetName(name string) { v.name = name }
+const (
+	Small  = 24
+	Medium = 40
+	Large  = 56
+)
+
+type AvatarStatus string
+
+const (
+	Online  AvatarStatus = "online"
+	Busy    AvatarStatus = "busy"
+	Offline AvatarStatus = "offline"
+)
+
+func (v *AvatarView) Status(s AvatarStatus) *AvatarView { v.status = s; return v }
+func Avatar(name string) *AvatarView                    { return &AvatarView{name: name, size: 40} }
+func (v *AvatarView) SetName(name string)               { v.name = name }
 
 // Size accepts a diameter in dp, clamped to 16..256. Invalid values are ignored.
 func (v *AvatarView) Size(dp float32) *AvatarView {
@@ -49,10 +67,10 @@ func avatarInitials(name string) string {
 		return "?"
 	}
 	first := []rune(words[0])
-	if len(words) == 1 {
+	if len(words) == 1 || unicode.Is(unicode.Han, first[0]) {
 		return string(unicode.ToUpper(first[0]))
 	}
-	last := []rune(words[len(words)-1])
+	last := []rune(words[1])
 	return string([]rune{unicode.ToUpper(first[0]), unicode.ToUpper(last[0])})
 }
 func (v *AvatarView) Render(*el.Context) el.Element {
@@ -60,14 +78,29 @@ func (v *AvatarView) Render(*el.Context) el.Element {
 	if label == "" {
 		label = "Avatar"
 	}
-	box := el.Div().Size(el.Dp(v.size)).Rounded(v.size / 2).Bg(theme.Subtle).Role("image").Name(label).Center()
+	hash := fnv.New32a()
+	_, _ = hash.Write([]byte(v.name))
+	colors := []color.NRGBA{theme.Subtle, theme.Highlight, theme.Surface}
+	bg := colors[hash.Sum32()%uint32(len(colors))]
+	box := el.Div().Size(el.Dp(v.size)).Rounded(v.size / 2).Bg(bg).Role("avatar").Name(label).Value(string(v.status)).Center()
 	if v.hasImage {
 		pixels := v.pixels
-		box.Value("loaded").Child(el.Widget(core.Func(func(gtx core.C) core.D {
+		box.Child(el.Widget(core.Func(func(gtx core.C) core.D {
 			return (widget.Image{Src: pixels, Fit: widget.Cover, Position: layout.Center, Scale: 1}).Layout(gtx)
 		})).Size(el.Dp(v.size)))
 	} else {
-		box.Value("initials").Child(el.Text(avatarInitials(v.name)).TextSize(v.size * .36).TextColor(theme.Text).MaxLines(1))
+		box.Child(el.Text(avatarInitials(v.name)).TextSize(v.size * .36).TextColor(theme.Text).MaxLines(1))
+	}
+	if v.status != "" {
+		c := theme.Muted
+		switch v.status {
+		case Online:
+			c = theme.Success
+		case Busy:
+			c = theme.Warning
+		}
+		d := v.size * .22
+		box.Child(el.Div().Absolute().Right(v.size*.14).Bottom(v.size*.14).Size(el.Dp(d)).Rounded(d/2).Border(1, theme.Surface).Bg(c))
 	}
 	return box
 }

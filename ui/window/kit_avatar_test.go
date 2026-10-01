@@ -7,8 +7,8 @@ import (
 )
 
 func TestKitAvatarSnapshot(t *testing.T) {
-	w := openTest(t, Options{Content: el.Embed(kit.Avatar("Ada Lovelace"))})
-	if e := element(t, w, "Ada Lovelace"); e.Role != "image" || e.Value != "initials" {
+	w := openTest(t, Options{Content: el.Embed(kit.Avatar("Ada Lovelace").Status(kit.Online))})
+	if e := element(t, w, "Ada Lovelace"); e.Role != "avatar" || e.Value != "online" {
 		t.Fatalf("invalid avatar: %+v", e)
 	}
 }
