@@ -20,3 +20,5 @@
 | [Marker](../../docs/kit/marker.md) | 纯图形标记 |
 
 Icon：矢量图标，默认颜色随主题切换。
+
+[Spinner](../../docs/kit/spinner.md)：支持减少动画的不确定进度。
