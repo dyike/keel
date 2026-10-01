@@ -106,7 +106,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `button` | `widget.Button` | `disabled` |
 | `link` | `widget.Link` | |
 | `textbox` | `widget.Input`、`TextArea` | `value`；密码框的值是等长的 `•` |
-| `checkbox` | `widget.Checkbox` | `checked` / `unchecked` |
+| `checkbox` | `widget.Checkbox` | `checked` / `unchecked`；半选时 `value` 为 mixed |
 | `radio` | `widget.RadioGroup` 的每个选项 | `checked` / `unchecked` |
 | `switch` | `widget.Switch` | `checked` / `unchecked` |
 | `select` | `widget.Select` | `value` 是当前选中项；点击后出现 `option` |

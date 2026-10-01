@@ -278,7 +278,7 @@ func roleOf(d input.SemanticDesc, inControl bool) (role, value string) {
 		}
 		return "button", ""
 	case semantic.CheckBox:
-		return "checkbox", ""
+		return "checkbox", val
 	case semantic.RadioButton:
 		return "radio", ""
 	case semantic.Switch:

@@ -9,7 +9,7 @@
 | `link.go` | `Link` |
 | `image.go`、`image_load.go` | `Image`、`LoadImage`、`ImageData`：异步加载、缩放和失败占位 |
 | `input.go` | `Input`、`TextArea` |
-| `checkbox.go` | `Checkbox` |
+| `checkbox.go` | `Checkbox`：禁用、半选、回调和键盘操作 |
 | `table.go` | `Table`、`Col`：排序、选中、键盘导航、只渲染可见行 |
 | `select.go` | `Select`：下拉选择 |
 | `tabs.go` | `Tabs` |
