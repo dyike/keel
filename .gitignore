@@ -3,3 +3,11 @@
 *.exe
 /TODO.md
 .DS_Store
+# binaries from `go build ./examples/...` or ./cmd/... in the repo root
+/components
+/hello
+/hotkey
+/multiwindow
+/orders
+/chat
+/keel-mcp
