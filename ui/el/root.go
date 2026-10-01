@@ -31,8 +31,9 @@ type View interface {
 
 // Context is passed to Render.
 type Context struct {
-	shortcuts []viewShortcut
-	root      *RootWidget
+	scope, owner string
+	shortcuts    []viewShortcut
+	root         *RootWidget
 }
 
 // Cache returns the element built for key, calling build only when key was
@@ -97,6 +98,8 @@ func (cx *Context) Shortcut(chord string, fn func()) {
 
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
+	timers       map[timerKey]*viewTimer
+	timerCalls   map[timerCall]int
 	source       input.Source
 	callbacks    bool
 	bg           int // tag of the area under everything; see blur
@@ -135,6 +138,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	if gtx.Enabled() {
 		r.source = gtx.Source
 	}
+	r.beginTimers()
 	cx := Context{root: r}
 	tree := r.view.Render(&cx).node()
 	st.assignKeys(tree, 1)
@@ -145,6 +149,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	r.dispatch(gtx)
 	flushClipboard(gtx)
 	if r.callbacks {
+		r.beginTimers()
 		cx.shortcuts = nil
 		tree = r.view.Render(&cx).node()
 	}
@@ -180,6 +185,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	event.Op(gtx.Ops, &r.bg)
 	e.paint(tree)
 	r.applyFocus(gtx, tree)
+	r.finishTimers(tree)
 	area.Pop()
 	flushClipboard(gtx) // from shortcuts and widget callbacks during this frame
 	st.sweep()

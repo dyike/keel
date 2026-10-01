@@ -202,3 +202,19 @@ el.Div().ID("save").Focusable().
 
 
 `cx.Focused(id)` 读取当前焦点，查询支持普通元素和输入框。`Disabled(true)` 自上而下禁止子树的点击、悬停和按键，释放当前焦点，禁止程序聚焦，并将 Agent 语义标记为 disabled；解除禁用后可重新聚焦。`DisabledStyle(func(*el.Style))` 设置禁用外观，默认文字为 Muted。显式禁用与测量时没有输入源分开处理，连续测量不会清空交互状态。Focus 保留为 FocusStyle 的兼容别名。
+
+## 时间与减少动画（E3）
+
+`cx.Now()` 返回本帧时间；动画只从它计算相位。`cx.Animating()` 请求下一帧，不创建 goroutine。`el.ReducedMotion()` 查询应用偏好；`theme.SetReducedMotion(true)` 在帧锁内切换。当前没有原生系统偏好桥接，默认 false。
+
+`cx.After(duration, callback)` 是声明式的一次性定时器：存活期间每次 Render 都声明，触发后不会自动重启；某帧不再声明即取消。重新声明或修改 duration 创建新的计时周期。回调在帧锁内、完成当前树绘制后运行，并请求重绘。
+
+重复组件需要稳定身份，使用 `cx.Scope(id)` 绑定返回树中的元素 ID；该节点隐藏或移除时自动取消。不同组件不要共享 ID。同一 scope 中按调用位置识别定时器，同一调用位置循环声明时按顺序区分，因此动态列表应给每项独立 Scope。
+
+```go
+scope := cx.Scope("notice")
+scope.After(3*time.Second, func() { visible = false })
+return el.Div().ID("notice").Hidden(!visible).Child(el.Text("已保存"))
+```
+
+没有 Scope 的 After 属于当前 root，停止声明时取消。Scope 用于定时器归属；全局快捷键仍在原始 cx 上注册。
