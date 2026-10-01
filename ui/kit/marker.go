@@ -1,19 +1,63 @@
 package kit
 
 import (
+	"gioui.org/f32"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
+	"image/color"
 )
 
-// MarkerView pairs a fixed-size colored dot with a readable status label.
+type MarkerShape uint8
+
+const (
+	MarkerDot MarkerShape = iota
+	MarkerSquare
+	MarkerDiamond
+)
+
+// MarkerView is decoration only; callers supply their own adjacent Text.
 type MarkerView struct {
-	label string
-	tone  Tone
+	shape MarkerShape
+	size  float32
+	color *color.NRGBA
 }
 
-func Marker(label string) *MarkerView         { return &MarkerView{label: label, tone: Info} }
-func (v *MarkerView) SetLabel(s string)       { v.label = s }
-func (v *MarkerView) Tone(t Tone) *MarkerView { v.tone = t; return v }
+func Marker(shape MarkerShape) *MarkerView            { return &MarkerView{shape: shape, size: 8} }
+func (v *MarkerView) Color(c color.NRGBA) *MarkerView { v.color = &c; return v }
+func (v *MarkerView) Size(dp float32) *MarkerView {
+	if dp > 0 {
+		v.size = dp
+	}
+	return v
+}
 func (v *MarkerView) Render(*el.Context) el.Element {
-	return el.Div().W(el.Full).Role("marker").Name(v.label).Value(v.tone.name()).Row().Gap(8).Items(el.Center).Child(el.Div().Size(el.Dp(8)).NoShrink().Rounded(4).Bg(v.tone.color()), el.Text(v.label).Grow().TextColor(theme.Text))
+	c := theme.Text
+	if v.color != nil {
+		c = *v.color
+	}
+	return el.Widget(core.Func(func(gtx core.C) core.D {
+		s := gtx.Constraints.Min
+		var shape clip.Op
+		switch v.shape {
+		case MarkerSquare:
+			shape = clip.Rect{Max: s}.Op()
+		case MarkerDiamond:
+			var p clip.Path
+			p.Begin(gtx.Ops)
+			w, h := float32(s.X), float32(s.Y)
+			p.MoveTo(f32.Pt(w/2, 0))
+			p.LineTo(f32.Pt(w, h/2))
+			p.LineTo(f32.Pt(w/2, h))
+			p.LineTo(f32.Pt(0, h/2))
+			p.Close()
+			shape = clip.Outline{Path: p.End()}.Op()
+		default:
+			shape = clip.Ellipse{Max: s}.Op(gtx.Ops)
+		}
+		paint.FillShape(gtx.Ops, c, shape)
+		return core.D{Size: s}
+	})).Size(el.Dp(v.size))
 }

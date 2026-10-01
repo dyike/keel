@@ -6,9 +6,11 @@ import (
 	"testing"
 )
 
-func TestKitMarkerSnapshot(t *testing.T) {
-	w := openTest(t, Options{Content: el.Embed(kit.Marker("在线").Tone(kit.Success))})
-	if e := element(t, w, "在线"); e.Role != "marker" || e.Value != "success" {
-		t.Fatalf("invalid marker: %+v", e)
+func TestKitMarkerHasNoSemantics(t *testing.T) {
+	w := openTest(t, Options{Content: el.Embed(kit.Marker(kit.MarkerDiamond))})
+	for _, e := range w.snapshot() {
+		if e.Role != "" {
+			t.Fatalf("decorative marker exposed: %+v", e)
+		}
 	}
 }

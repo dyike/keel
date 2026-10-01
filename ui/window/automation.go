@@ -287,7 +287,7 @@ func roleOf(d input.SemanticDesc, inControl bool) (role, value string) {
 		return "textbox", d.Description
 	}
 	switch custom {
-	case "row", "option", "table", "progressbar", "dialog", "code", "image", "avatar", "footnotes", "accordion", "slider", "badge", "alert", "tag", "group", "status", "marker":
+	case "row", "option", "table", "progressbar", "dialog", "code", "image", "avatar", "footnotes", "accordion", "slider", "badge", "alert", "tag", "group", "status":
 		return custom, val
 	case "paragraph": // text with links: listed as text, its links after it
 		return "text", ""
