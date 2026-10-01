@@ -30,6 +30,8 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 
 组件文档包含用途、最小用法、公开 API、键盘操作（适用时）、语义、边界和验证入口；测试验证用户可观察行为，不复制实现算法。
 
+`ui/kit/conventions_test.go` 自动检查其中可以机器判断的部分：每个组件都有文档、同名示例 section 和 `ui/window` 中的 Agent 测试；枚举常量带类型名前缀；kit 和 el 的公开 API 没有兼容入口或别名。新增的 Agent 角色不需要在自动化代码里登记，只有需要单独列出子元素的容器角色才加入 `containerRoles`。
+
 提交前逐项检查：
 
 - `uitest` 驱动布局与交互；纯展示组件检查尺寸、约束、状态和颜色。

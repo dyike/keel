@@ -28,9 +28,9 @@ func Semantic(gtx C, w func(gtx C) D, ops ...interface{ Add(*op.Ops) }) D {
 // The internal el-inert marker hides a background subtree from Agent snapshots
 // while a modal el layer is active; it is not exposed as a component role. Automation
 // reads it as "role" or "role:value" from the node's description. A button may
-// carry "button:loading" while its action is unavailable. Roles:
-// link, tab, columnheader, select, disclosure, toggle (clickable); image, row, option,
-// table, progressbar, slider, dialog, code, footnotes, accordion, badge, avatar, alert, tag, group, status (others).
+// carry "button:loading" while its action is unavailable. On a semantic.Button,
+// automation keeps only link, tab, columnheader, select, image, disclosure and
+// toggle; any other role is reported as given.
 func Role(role string, value ...string) semantic.DescriptionOp {
 	if len(value) > 0 && value[0] != "" {
 		return semantic.DescriptionOp(role + ":" + value[0])
