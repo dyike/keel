@@ -4,14 +4,17 @@ import (
 	"image"
 	"strings"
 
+	"gioui.org/font"
 	"gioui.org/io/event"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	giolayout "gioui.org/layout"
-
+	"gioui.org/text"
+	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"golang.org/x/image/math/fixed"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/editorstyle"
@@ -32,6 +35,7 @@ type Field struct {
 	prefix, suffix         core.Widget
 	labelClick, clearClick widget.Clickable
 	clearIcon              *IconView
+	autoMin, autoMax       int
 }
 
 // Input creates a single-line field; Enter triggers OnSubmit. label may be empty.
@@ -61,6 +65,15 @@ func (f *Field) SetDisabled(v bool)              { f.disabled = v }
 func (f *Field) Prefix(w core.Widget) *Field     { f.prefix = w; return f }
 func (f *Field) Suffix(w core.Widget) *Field     { f.suffix = w; return f }
 func (f *Field) Clearable() *Field               { f.clearable = true; return f }
+
+// AutoHeight grows a TextArea with its content, scrolling after maxLines.
+// It changes the viewport height, never truncates text. Single-line inputs
+// ignore this setting. Bounds are normalized to 1 <= minLines <= maxLines.
+func (f *Field) AutoHeight(minLines, maxLines int) *Field {
+	f.autoMin = max(1, minLines)
+	f.autoMax = max(f.autoMin, maxLines)
+	return f
+}
 
 // Focus is also used by labels and custom application controls.
 func (f *Field) Focus(gtx C) {
@@ -207,6 +220,33 @@ func (f *Field) edit(gtx C) D {
 	ed.TextSize = theme.BodySize
 	ed.Color = theme.Text
 	ed.HintColor = theme.Muted
+	if !f.editor.SingleLine && f.autoMin > 0 {
+		// Counting newlines misses soft wraps; native editor layout determines
+		// content height, with measured font metrics defining the viewport bounds.
+		shaper := theme.Material.Shaper
+		shaper.LayoutString(text.Parameters{Font: font.Font{Typeface: theme.Material.Face}, PxPerEm: fixed.I(gtx.Sp(theme.BodySize)), MaxWidth: 1 << 20}, "国Ag")
+		line := 1
+		for {
+			g, ok := shaper.NextGlyph()
+			if !ok {
+				break
+			}
+			line = max(line, g.Ascent.Ceil()+g.Descent.Ceil())
+		}
+		height := func(lines, limit int) int {
+			if lines > limit/line {
+				return limit
+			}
+			return lines * line
+		}
+		gtx.Constraints.Max.Y = height(f.autoMax, gtx.Constraints.Max.Y)
+		gtx.Constraints.Min.Y = height(f.autoMin, gtx.Constraints.Max.Y)
+		scale := gtx.Metric.PxPerSp
+		if scale == 0 {
+			scale = 1
+		}
+		ed.LineHeight = unit.Sp(float32(line) / scale)
+	}
 	if f.disabled {
 		ed.Color = theme.Muted
 	}
