@@ -1,14 +1,5 @@
 # Tag
 
-显示分类或状态的标签，当前版本不可移除、不可选择，不占键盘焦点。
+`kit.Tag("紧急").Color(kit.TagDanger)` 显示染色胶囊标签。Color 支持 TagDefault、TagPrimary、TagSuccess、TagWarning、TagDanger，背景由当前主题 Surface 与等级色混合。Tone 是旧版兼容入口，SetText 更新文案。
 
-```go
-label := kit.Tag("已完成").Tone(kit.Success)
-return label.Render(cx)
-```
-
-`Tag(text)` 返回 `*TagView`；`SetText` 更新内容；链式 `Tone` 使用 Neutral（默认）、Info、Success、Warning、Danger。文字在窄容器里换行；主题色在 Render 读取。普通内容长度可以改变标签尺寸，它不是固定占位角标。
-
-Agent 角色 `tag`，名字为文字，value 为语义级别。后续移除操作须等待 el 焦点和禁用接口 review。
-
-验证：`go run ./examples/components -section tag -theme dark`，支持 light；测试覆盖混排、窄宽、缩放和语义更新。
+Agent 角色 tag，名字是文字，value 为颜色名。纯展示版本不响应键盘。多个标签的自动换行依赖后续 wrap，M1 示例只展示单行组合。验证：`go run ./examples/components -section tag -theme dark`，省略 theme 查看浅色。

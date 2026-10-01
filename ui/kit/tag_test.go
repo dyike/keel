@@ -18,3 +18,12 @@ func TestTagWrapsAndUpdates(t *testing.T) {
 		}
 	}
 }
+
+func TestTagColorNames(t *testing.T) {
+	for c, name := range map[TagColor]string{TagDefault: "default", TagPrimary: "primary", TagSuccess: "success", TagWarning: "warning", TagDanger: "danger"} {
+		h := renderView(Tag("标签").Color(c), 120, 1)
+		if _, ok := semanticNode(h, "tag:"+name); !ok {
+			t.Fatal(name)
+		}
+	}
+}

@@ -18,7 +18,7 @@ func TestGroupBoxRetainsChildren(t *testing.T) {
 		}
 		child.SetText("更新")
 		h.Frame()
-		if n, ok = semanticNode(h, "tag:neutral"); !ok || n.Desc.Label != "更新" {
+		if n, ok = semanticNode(h, "tag:default"); !ok || n.Desc.Label != "更新" {
 			t.Fatal("child was not retained")
 		}
 	}
