@@ -77,13 +77,15 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 	}
 
 	flex := func(innerW, innerH, limW, limH int) image.Point {
-		if s.scrollY {
-			// Children get unbounded height; the element keeps its own.
-			c := e.flex(n, innerW, -1, limW, inf)
-			n.contentH = c.Y
-			return c
+		if s.scrollX {
+			innerW, limW = -1, inf
 		}
-		return e.flex(n, innerW, innerH, limW, limH)
+		if s.scrollY {
+			innerH, limH = -1, inf
+		}
+		c := e.flex(n, innerW, innerH, limW, limH)
+		n.contentW, n.contentH = c.X, c.Y
+		return c
 	}
 	box := !n.isText && n.input == nil && n.widget == nil
 	var content image.Point
@@ -99,7 +101,11 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 	}
 	autoW, autoH := w < 0, h < 0
 	if autoW {
-		w = e.clampW(n, content.X+boxX, availW)
+		w = content.X + boxX
+		if s.scrollX {
+			w = min(w, availW)
+		}
+		w = e.clampW(n, w, availW)
 	}
 	if autoH {
 		h = e.clampH(n, content.Y+boxY, availH)
@@ -347,6 +353,9 @@ func (e *engine) place(n *Node) {
 	bw := e.dp(s.borderWidth)
 	origin := image.Pt(bw+pl, bw+pt)
 	inner := image.Pt(max(n.size.X-pl-pr-2*bw, 0), max(n.size.Y-pt-pb-2*bw, 0))
+	if s.scrollX {
+		inner.X = n.contentW
+	}
 	if s.scrollY {
 		inner.Y = n.contentH
 	}

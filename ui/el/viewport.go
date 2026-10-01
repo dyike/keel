@@ -70,9 +70,42 @@ func (cx *Context) ScrollIntoView(id string, top, bottom float32) {
 
 func (cx *Context) scrollElem(id string) *elemState {
 	for _, st := range cx.root.store.states {
-		if st.id == id && st.scrolled {
+		if st.id == id && (st.scrolled || st.scrolledX) {
 			return st
 		}
 	}
 	return nil
+}
+
+// ScrollStateX is ScrollState for the horizontal axis; values are in dp.
+func (cx *Context) ScrollStateX(id string) (offset, viewport, content float32) {
+	st := cx.scrollElem(id)
+	if st == nil {
+		return
+	}
+	px := cx.root.e.m.PxPerDp
+	if px == 0 {
+		px = 1
+	}
+	return float32(st.scrollX+st.scrollPendingX) / px, float32(st.scrollViewX) / px, float32(st.scrollContentX) / px
+}
+
+// ScrollIntoViewX minimally reveals [left, right] in a ScrollX content box.
+func (cx *Context) ScrollIntoViewX(id string, left, right float32) {
+	st := cx.scrollElem(id)
+	if st == nil {
+		return
+	}
+	px := cx.root.e.m.PxPerDp
+	if px == 0 {
+		px = 1
+	}
+	x := st.scrollX + st.scrollPendingX
+	l, r := int(left*px), int(right*px+0.5)
+	switch {
+	case l < x:
+		st.scrollPendingX += l - x
+	case r > x+st.scrollViewX:
+		st.scrollPendingX += min(r-(x+st.scrollViewX), l-x)
+	}
 }

@@ -76,7 +76,7 @@ type Style struct {
 	grow, shrink            float32
 	justify, align          Align
 	alignSet                bool
-	scrollY                 bool
+	scrollX, scrollY        bool
 	stickBottom             bool
 	endVersion, keepVersion int // ScrollToEndOn; jumps to the end when it changes
 	absolute                bool

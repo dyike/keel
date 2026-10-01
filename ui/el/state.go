@@ -55,15 +55,18 @@ type elemState struct {
 	clickable     bool        // registered a click area last frame
 	fresh         bool        // created this frame: dispatch has not seen it yet
 
-	scroll        gesture.Scroll
-	scrollPending int
-	scrollY       int
-	scrollMax     int // maxScroll at the last frame, for StickToBottom
-	scrollView    int // viewport and content height at the last frame, for ScrollState
-	scrollContent int
-	scrolled      bool // painted before: a first frame starts at the bottom
-	version       int  // ScrollToEndOn's value last frame
-	keepVersion   int  // KeepBottomOn's value last frame
+	scrollHorizontal                                                 gesture.Scroll
+	scrollX, scrollPendingX, scrollMaxX, scrollViewX, scrollContentX int
+	scrolledX                                                        bool
+	scroll                                                           gesture.Scroll
+	scrollPending                                                    int
+	scrollY                                                          int
+	scrollMax                                                        int // maxScroll at the last frame, for StickToBottom
+	scrollView                                                       int // viewport and content height at the last frame, for ScrollState
+	scrollContent                                                    int
+	scrolled                                                         bool // painted before: a first frame starts at the bottom
+	version                                                          int  // ScrollToEndOn's value last frame
+	keepVersion                                                      int  // KeepBottomOn's value last frame
 
 	editor   widget.Editor
 	caret    editorstyle.Caret

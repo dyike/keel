@@ -18,3 +18,5 @@ go run ./examples/components -section chart -screenshot /tmp/keel-chart.png
 另有几个验证 el 基础能力的 section：`theme`（运行时切换浅深色）、`focus`（Tab / Shift+Tab、子树禁用）、`time`（定时关闭与取消）、`overlay`（非模态点击穿透、模态遮罩、Esc 关闭与焦点恢复）。
 
 组件的交互测试在 `ui/kit/*_test.go`，Agent 快照测试在 `ui/window/kit_*_test.go`。
+
+`-section scrollable` 验证 el 横向滚动、宽内容裁剪和程序定位。

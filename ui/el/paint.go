@@ -99,7 +99,7 @@ func (e *engine) paintContent(n *Node) {
 	gtx := e.gtx
 	st := n.style // a copy: hover and active variants change it for this frame only
 	var state *elemState
-	if n.id != "" || n.interactive() || n.style.scrollY || n.input != nil {
+	if n.id != "" || n.interactive() || (n.style.scrollY || n.style.scrollX) || n.input != nil {
 		state = e.store.get(n.key)
 	}
 	if state != nil && n.interactive() && !n.effectiveDisabled && !e.blockInput {
@@ -155,7 +155,7 @@ func (e *engine) paintContent(n *Node) {
 			hoverArea.Pop()
 		}()
 	}
-	if len(sem) > 0 || state != nil && (n.interactive() || n.style.scrollY || n.input != nil) {
+	if len(sem) > 0 || state != nil && (n.interactive() || (n.style.scrollY || n.style.scrollX) || n.input != nil) {
 		defer clip.UniformRRect(rect, radius).Push(gtx.Ops).Pop()
 
 		for _, o := range sem {
@@ -221,7 +221,7 @@ func (e *engine) paintContent(n *Node) {
 		g.Constraints = layout.Exact(inner.Size())
 		n.widget.Layout(g)
 		stk.Pop()
-	case st.scrollY:
+	case st.scrollY || st.scrollX:
 		e.paintScroll(n, state, inner)
 	default:
 		for _, c := range n.children {
@@ -394,50 +394,82 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		st = &copy
 	}
 	bw := e.dp(n.style.borderWidth)
-	_, pt, _, pb := e.edges(n.style.pad)
+	pl, pt, pr, pb := e.edges(n.style.pad)
 	viewport := image.Rect(bw, bw, n.size.X-bw, n.size.Y-bw)
+	totalX := n.contentW + pl + pr
+	maxX := max(totalX-viewport.Dx(), 0)
+	if n.style.scrollX {
+		dx := st.scrollHorizontal.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Horizontal,
+			pointer.ScrollRange{Min: -st.scrollX, Max: maxX - st.scrollX}, pointer.ScrollRange{})
+		st.scrollX = min(max(st.scrollX+dx+st.scrollPendingX, 0), maxX)
+		st.scrollPendingX = 0
+		st.scrollMaxX, st.scrollViewX, st.scrollContentX, st.scrolledX = maxX, viewport.Dx(), totalX, true
+	} else {
+		st.scrollX = 0
+	}
 	total := n.contentH + pt + pb
 	maxScroll := max(total-viewport.Dy(), 0)
-	// Stick: if the view was at the end last frame, it stays at the end.
-	atEnd := !st.scrolled || st.scrollY >= st.scrollMax-e.dp(2)
-	if n.style.stickBottom && atEnd || st.scrolled && n.style.endVersion != st.version {
-		st.scrollY = maxScroll
+	if n.style.scrollY {
+		// Stick: if the view was at the end last frame, it stays at the end.
+		atEnd := !st.scrolled || st.scrollY >= st.scrollMax-e.dp(2)
+		if n.style.stickBottom && atEnd || st.scrolled && n.style.endVersion != st.version {
+			st.scrollY = maxScroll
+		}
+		st.version = n.style.endVersion
+		if st.scrolled && n.style.keepVersion != st.keepVersion {
+			st.scrollY = max(maxScroll-(st.scrollMax-st.scrollY), 0) // same distance from the bottom as last frame
+		}
+		st.keepVersion = n.style.keepVersion
+		dist := st.scroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Vertical,
+			pointer.ScrollRange{}, pointer.ScrollRange{Min: -st.scrollY, Max: maxScroll - st.scrollY})
+		st.scrollY = min(max(st.scrollY+dist+st.scrollPending, 0), maxScroll)
+		st.scrollPending = 0
+		st.scrollMax, st.scrolled = maxScroll, true
+		st.scrollView, st.scrollContent = viewport.Dy(), total
+	} else {
+		st.scrollY = 0
 	}
-	st.version = n.style.endVersion
-	if st.scrolled && n.style.keepVersion != st.keepVersion {
-		st.scrollY = max(maxScroll-(st.scrollMax-st.scrollY), 0) // same distance from the bottom as last frame
-	}
-	st.keepVersion = n.style.keepVersion
-	dist := st.scroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Vertical,
-		pointer.ScrollRange{}, pointer.ScrollRange{Min: -st.scrollY, Max: maxScroll - st.scrollY})
-	st.scrollY = min(max(st.scrollY+dist+st.scrollPending, 0), maxScroll)
-	st.scrollPending = 0
-	st.scrollMax, st.scrolled = maxScroll, true
-	st.scrollView, st.scrollContent = viewport.Dy(), total
 
 	// The viewport is its own area with the scroll handler, so it is a node
 	// in the semantic tree and agents only see what shows through it.
 	stk := clip.Rect(viewport).Push(gtx.Ops)
-	st.scroll.Add(gtx.Ops)
-	off := op.Offset(image.Pt(0, -st.scrollY)).Push(gtx.Ops)
+	if n.style.scrollY {
+		st.scroll.Add(gtx.Ops)
+	}
+	if n.style.scrollX {
+		st.scrollHorizontal.Add(gtx.Ops)
+	}
+	off := op.Offset(image.Pt(-st.scrollX, -st.scrollY)).Push(gtx.Ops)
 	savedVis, savedOrigin := e.visible, e.origin
 	e.visible = e.visible.Intersect(viewport.Add(e.origin))
-	e.origin = e.origin.Add(image.Pt(0, -st.scrollY))
-	e.scrollParents = append(e.scrollParents, st)
+	e.origin = e.origin.Add(image.Pt(-st.scrollX, -st.scrollY))
+	if n.style.scrollY {
+		e.scrollParents = append(e.scrollParents, st)
+	}
 	for _, c := range n.children {
 		e.paint(c.node())
 	}
-	e.scrollParents = e.scrollParents[:len(e.scrollParents)-1]
+	if n.style.scrollY {
+		e.scrollParents = e.scrollParents[:len(e.scrollParents)-1]
+	}
 	e.visible, e.origin = savedVis, savedOrigin
 	off.Pop()
 	stk.Pop()
 
-	if maxScroll > 0 { // a thin indicator along the right edge
+	if n.style.scrollY && maxScroll > 0 { // a thin indicator along the right edge
 		view := viewport.Dy()
-		thumb := max(view*view/total, e.dp(24))
+		thumb := min(view, max(view*view/total, e.dp(24)))
 		y := viewport.Min.Y + (view-thumb)*st.scrollY/maxScroll
 		x := viewport.Max.X - e.dp(5)
 		r := image.Rect(x, y, x+e.dp(3), y+thumb)
 		paint.FillShape(gtx.Ops, color.NRGBA{A: 0x55}, clip.UniformRRect(r, e.dp(1.5)).Op(gtx.Ops))
 	}
+	if n.style.scrollX && maxX > 0 {
+		view := viewport.Dx()
+		thumb := min(view, max(view*view/totalX, e.dp(24)))
+		x := viewport.Min.X + (view-thumb)*st.scrollX/maxX
+		y := viewport.Max.Y - e.dp(5)
+		paint.FillShape(gtx.Ops, theme.Muted, clip.UniformRRect(image.Rect(x, y, x+thumb, y+e.dp(3)), e.dp(1.5)).Op(gtx.Ops))
+	}
+
 }

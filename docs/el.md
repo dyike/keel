@@ -72,7 +72,7 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 | 伸缩 | `Grow()` 等于 CSS 的 `flex: 1`：初始尺寸按 0 算，分享剩余空间；其他元素空间不够时按比例收缩，`NoShrink()` 禁止收缩 |
 | 尺寸 | `W(l)`、`H(l)`、`Size(l)`、`MinW/MinH/MaxW/MaxH(l)`、`WFull()`、`HFull()`；长度用 `el.Dp(40)`、`el.Frac(0.5)`、`el.Full` |
 | 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`（外边距），单位 dp |
-| 滚动与定位 | `ScrollY()` 纵向滚动（需要确定的高度），`StickToBottom()` 跟随到底，`ScrollToEndOn(v)` 在 v 变化时跳到底部；`Absolute()` + `Top/Right/Bottom/Left` 绝对定位，同时给左右会拉伸宽度 |
+| 滚动与定位 | `ScrollX()` 横向滚动（需要约束宽度）、`ScrollY()` 纵向滚动（需要确定的高度），`StickToBottom()` 跟随到底，`ScrollToEndOn(v)` 在 v 变化时跳到底部；`Absolute()` + `Top/Right/Bottom/Left` 绝对定位，同时给左右会拉伸宽度 |
 | 外观 | `Bg(c)`、`Border(dp, c)`、`Rounded(dp)`、`CursorPointer()`、`Hidden(b)` |
 | 文字（向下继承） | `TextColor(c)`、`TextSize(sp)`、`Bold()`、`MaxLines(n)` |
 | 状态变体 | `Hover(func(*el.Style))`、`Active(func(*el.Style))`：悬停、按下时的颜色变化 |
@@ -178,6 +178,8 @@ return el.Div().Hidden(!visible).Child(el.Text("已保存"))
 
 ## 滚动状态与锚定
 
+`ScrollX()` 让子内容横向延展并裁剪到视口，可与 `ScrollY()` 组合。支持水平滚轮和触控板水平手势；横纵轴分别消费对应滚动量。`cx.ScrollStateX(id)` 返回偏移、视口宽度、内容宽度（dp）；`cx.ScrollIntoViewX(id, left, right)` 最小滚动以显示目标区间。滚动条目前是位置指示器，拖动交互另项实现。示例：`go run ./examples/components -section scrollable`。
+
 `cx.ScrollState(id)` 返回带 ID 的 `ScrollY` 元素上一帧的滚动偏移、可视高度、内容高度，单位 dp；第一次绘制之前三个值都是 0。虚拟列表用它决定构建哪些行。`cx.ScrollIntoView(id, top, bottom)` 以最小的滚动量让内容中 `[top, bottom]` 这一段可见，在下一次绘制时生效。
 
 `KeepBottomOn(version)`：`version` 变化的那一帧，保持到底部的距离不变，在上方插入内容（比如加载更早的聊天记录）时画面不会跳动。在插入内容的同一个回调里递增 version，用法和 `ScrollToEndOn` 一样。
@@ -264,7 +266,7 @@ func button(label string, onClick func()) el.Element {
 
 ## 已知限制
 
-- 布局是 flexbox 的子集：没有换行（wrap）、网格、`align-self`、横向滚动、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
+- 布局是 flexbox 的子集：没有换行（wrap）、网格、`align-self`、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
 - `ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行以上用 `kit.VirtualList` 或 `kit.Table`，只布局可见行。
 - 没有过渡动画的封装，需要自己用 `Now` / `Animating` 计算。
 - 浮层只在 `el.Root` 中完整支持，`el.Embed` 按嵌入约束尽力支持。

@@ -45,6 +45,7 @@ type Node struct {
 	pos, size image.Point
 	forceW    int // set by the parent: stretch or flex size; -1 none
 	forceH    int
+	contentW  int // scroll containers: width of the content
 	contentH  int // scroll containers: height of the content
 	key       stateKey
 	textStyle textStyle // resolved, inherited
@@ -216,6 +217,10 @@ func (s *Styled[T]) Mb(v float32) *T { s.n.style.margin.Bottom = v; return s.sel
 // ScrollY clips the children and scrolls them vertically. The element needs a
 // definite height: set H, or let it Grow in a column.
 func (s *Styled[T]) ScrollY() *T { s.n.style.scrollY = true; return s.self }
+
+// ScrollX clips and scrolls children horizontally. Set W or constrain the
+// width through the parent. ScrollX and ScrollY can be combined.
+func (s *Styled[T]) ScrollX() *T { s.n.style.scrollX = true; return s.self }
 
 // StickToBottom keeps a ScrollY container scrolled to the end while content
 // grows, as long as the user has not scrolled away from the end: a chat that
