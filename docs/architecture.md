@@ -10,13 +10,11 @@ github.com/dyike/keel
 │   ├── core/             地基：Widget 接口、回调、线程规则
 │   ├── theme/            颜色、字号、字体
 │   ├── locale/           框架自己显示的文字：确定、复制、关闭……
-│   ├── layout/           摆放组件：Column、Row、Card …
-│   ├── kit/              基于 el 的新组件，M0 登记、M1 开始实现
-│   ├── widget/           旧组件（只修 bug）：Button、Input、Checkbox …（一个组件一个文件）
+│   ├── el/               GPUI 风格：视图、链式样式元素、flexbox
+│   ├── kit/              组件：Button、Input、Table、Dialog、Chart …（一个组件一个文件）
 │   ├── window/           窗口：Open、Main、快捷键、截图
-│   ├── el/               GPUI 风格：视图、链式样式元素、flexbox（新界面优先用它）
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
-│   └── internal/         loop（帧锁）、editorstyle（共享输入绘制）、uitest（测试工具）
+│   └── internal/         loop（帧锁）、editorstyle（输入绘制）、imageload（图片加载）、uitest（测试工具）
 ├── native/
 │   ├── permission/       权限检查与申请
 │   ├── screen/           显示器列表、截图
@@ -37,18 +35,14 @@ github.com/dyike/keel
 
 ```
 ui:
-  kit ───────► el、core、theme（不依赖 widget/layout/window）
-  markdown ──► el ────┐
-     │                │
-     ▼                │
-  widget ──► layout ──┼──► theme
-  window ─────────────┤
-     │         │      │
-     └─────────┴──────┴──► core
+  kit ───────► el ──┐
+  markdown ──► el   ├──► theme、locale
+  window ───────────┤
+                    └──► core
 
   theme、locale ──► internal/loop（切换主题或语言时通知所有窗口重绘）
-  el、kit、widget、markdown ──► locale（框架文字）
-  el、widget ──► internal/editorstyle
+  el ──► internal/editorstyle（输入框绘制）
+  markdown ──► internal/imageload（图片解码与占位）
 
 native:
   permission ─┐
@@ -59,11 +53,11 @@ native:
 
 规则只有三条：
 
-1. **依赖只往下走。** 下层不知道上层存在：`core` 只依赖内部帧锁，`theme` 仅引用内部帧循环以通知主题重绘；`layout` 不知道有 `widget`；`window` 只认 `core.Widget` 接口，不知道具体有哪些组件。
-2. **同层之间不互相引用。** `widget` 和 `window` 互不引用；四个 `native` 模块互不引用。
+1. **依赖只往下走。** 下层不知道上层存在：`core` 只依赖内部帧锁，`theme` 仅引用内部帧循环以通知主题重绘；`el` 不知道有 `kit`；`window` 只认 `core.Widget` 接口，不知道具体有哪些组件。
+2. **同层之间不互相引用。** `kit`、`markdown` 和 `window` 互不引用；四个 `native` 模块互不引用。
 3. **`ui` 和 `native` 互不引用。** 不需要窗口的程序（后台截图、全局快捷键）只引用需要的 `native/*`，不会带进 Gio。
 
-`markdown` 复用 `el` 排版和 `widget` 图片组件，经 `widget` 间接依赖 `layout`。`el` 和 `widget` 共用 `internal/editorstyle` 的光标绘制；这个内部包只负责 Gio 输入绘制和字形测量，不依赖其他 Keel 模块。
+`markdown` 用 `el` 排版，图片走 `internal/imageload`（加载、解码限制、占位）。`el` 的输入框用 `internal/editorstyle` 绘制光标和选区；这个内部包只负责 Gio 输入绘制和字形测量，不依赖其他 Keel 模块。
 
 `cmd/keel-mcp` 不引用任何 Keel 包，也不引用 Gio：它只通过 socket 上的 JSON 协议驱动 `ui/window` 的自动化模式，见 [Agent 端到端测试](automation.md#原理)。
 
@@ -76,17 +70,16 @@ native:
 | `ui/core` | 所有界面模块都要遵守的接口和函数 | 任何具体组件、颜色 |
 | `ui/theme` | 视觉参数、全局调色板切换与重绘通知 | 组件、局部主题作用域 |
 | `ui/locale` | 框架自己显示或报告给 Agent 的文字，运行时切换语言 | 应用自己的文案、翻译系统 |
-| `ui/layout` | 只摆放子组件的容器；`Frame` 绘制工具 | 用户回调 |
-| `ui/widget` | 旧组件的 bug 修复 | 新组件、新能力 |
 | `ui/kit` | 基于 el 的组件 | Gio 输入和浮层基础设施、窗口管理 |
 | `ui/window` | 与窗口绑定的东西：生命周期、快捷键、根视图、截图 | 具体组件 |
 | `ui/el` | 元素、样式、布局引擎、元素状态、视图 | 业务组件（它们在应用里写成函数或视图） |
 | `ui/internal/loop` | 跨窗口共享的可变状态：帧锁、更新队列 | 任何 Gio 类型 |
-| `ui/internal/editorstyle` | 两套输入框共用的光标绘制和字形测量 | 具体 Keel 组件、窗口和主题 |
+| `ui/internal/editorstyle` | 输入框的光标、选区绘制和字形测量 | 具体 Keel 组件、窗口和主题 |
+| `ui/internal/imageload` | 图片来源解析、异步加载、尺寸限制、加载中和失败占位 | 组件外观、点击等交互 |
 
 ### 什么时候新建模块
 
-先看它是不是现有模块的职责。是，就在那个模块里加文件：新下拉框是 kit 组件，就是 `ui/kit/select.go`；网格是容器，就是 `ui/layout` 里的新文件。
+先看它是不是现有模块的职责。是，就在那个模块里加文件：新下拉框是 kit 组件，就是 `ui/kit/select.go`；新的布局能力（比如换行）属于 el，就是 `ui/el/layout.go` 里的改动。
 
 只有现有模块都装不下、而且它有自己清楚的职责时，才新建目录。例如剪贴板：不属于四个现有能力中的任何一个，也有只用它的场景，所以是新模块 `native/clipboard`。
 
@@ -118,7 +111,7 @@ e.Frame(ops)                 // 提交给 GPU，在锁外执行
 
 | 代码在哪里运行 | 能否直接改组件 | 做法 |
 | --- | --- | --- |
-| 按钮、输入框、复选框的回调 | 能 | 直接调 `SetText` 等 |
+| 按钮、输入框、复选框的回调 | 能 | 直接改字段、调 `SetValue` 等 |
 | `window.Options.Shortcuts` 的回调 | 能 | 直接改 |
 | `window.Options.OnClose` | 能 | 直接改 |
 | 你启动的 goroutine、`time.AfterFunc` | 不能 | `core.Update(func() { ... })` |
@@ -130,16 +123,16 @@ e.Frame(ops)                 // 提交给 GPU，在锁外执行
 后台任务的写法：
 
 ```go
-widget.Button("刷新", func() {
-    status.SetText("加载中…")
+kit.Button("刷新", func() {
+    v.status = "加载中…"
     go func() {
         data, err := fetch()           // 耗时操作在锁外
         core.Update(func() {             // 结果回到界面
             if err != nil {
-                status.SetText(err.Error())
+                v.status = err.Error()
                 return
             }
-            status.SetText(data)
+            v.status = data
         })
     }()
 })

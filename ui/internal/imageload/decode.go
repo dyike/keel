@@ -1,4 +1,4 @@
-package widget
+package imageload
 
 import (
 	"bytes"
@@ -21,9 +21,9 @@ import (
 const maxImageBytes = 16 << 20
 const maxImagePixels = 32_000_000
 
-// DecodeImage reads PNG, JPEG, GIF (first frame) and WebP. Size limits apply to
+// Decode reads PNG, JPEG, GIF (first frame) and WebP. Size limits apply to
 // encoded input and decoded dimensions, before allocating a pixel buffer.
-func DecodeImage(ctx context.Context, source string) (image.Image, error) {
+func Decode(ctx context.Context, source string) (image.Image, error) {
 	var reader io.ReadCloser
 	switch {
 	case strings.HasPrefix(source, "data:"):

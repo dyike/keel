@@ -15,7 +15,7 @@ import (
 // glyph probes used to measure CJK line height may spell Chinese directly.
 func TestNoHardcodedFrameworkText(t *testing.T) {
 	probes := map[string]bool{"国": true, "国Ag": true}
-	for _, dir := range []string{"ui/core", "ui/el", "ui/kit", "ui/layout", "ui/widget", "ui/window", "ui/markdown", "ui/internal/editorstyle"} {
+	for _, dir := range []string{"ui/core", "ui/el", "ui/kit", "ui/window", "ui/markdown", "ui/internal/editorstyle", "ui/internal/imageload"} {
 		files, _ := filepath.Glob(filepath.Join("..", "..", dir, "*.go"))
 		for _, f := range files {
 			if strings.HasSuffix(f, "_test.go") {

@@ -6,24 +6,10 @@ import (
 	"testing"
 
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/loop"
-	"github.com/dyike/keel/ui/layout"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/kit"
 )
-
-func TestAutomationImageRoleAndClick(t *testing.T) {
-	clicked := false
-	v := &widget.ImageView{Asset: widget.ImageData(image.NewNRGBA(image.Rect(0, 0, 120, 40))), Alt: "产品图", OnClick: func() { clicked = true }}
-	w := openTest(t, Options{Content: v})
-	e := element(t, w, "产品图")
-	if e.Role != "image" || e.Value != "loaded" {
-		t.Fatalf("image lost accessible role/state: %+v", e)
-	}
-	w.click(e.center())
-	if !clicked {
-		t.Fatal("image click not delivered")
-	}
-}
 
 // openTest opens a virtual window as automation mode would, without a socket.
 func openTest(t *testing.T, o Options) *Window {
@@ -43,12 +29,41 @@ func element(t *testing.T, w *Window, name string) Element {
 	return e
 }
 
-func TestAutomationScroll(t *testing.T) {
-	var rows []core.Widget
-	for i := 1; i <= 40; i++ {
-		rows = append(rows, widget.Text(fmt.Sprintf("row %d", i)))
+// views stacks views in an el.Embed, which the window pads and scrolls.
+func views(vs ...el.View) core.Widget {
+	return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+		box := el.Div().Gap(8).Items(el.Start)
+		for _, v := range vs {
+			box.Child(v.Render(cx))
+		}
+		return box
+	}))
+}
+
+func text(s string) el.View {
+	return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) })
+}
+
+func TestAutomationImageRoleAndClick(t *testing.T) {
+	clicked := false
+	img := kit.Image(image.NewNRGBA(image.Rect(0, 0, 120, 40)), "产品图").OnClick(func() { clicked = true })
+	w := openTest(t, Options{Content: views(img)})
+	e := element(t, w, "产品图")
+	if e.Role != "image" || e.Value != "loaded" {
+		t.Fatalf("image lost accessible role/state: %+v", e)
 	}
-	w := openTest(t, Options{Width: 300, Height: 600, Content: layout.Column(rows...)})
+	w.click(e.center())
+	if !clicked {
+		t.Fatal("image click not delivered")
+	}
+}
+
+func TestAutomationScroll(t *testing.T) {
+	var rows []el.View
+	for i := 1; i <= 40; i++ {
+		rows = append(rows, text(fmt.Sprintf("row %d", i)))
+	}
+	w := openTest(t, Options{Width: 300, Height: 600, Content: views(rows...)})
 	before := element(t, w, "row 12").Y
 	w.scroll(element(t, w, "row 1").center(), 300)
 	w.snapshot()
@@ -64,8 +79,8 @@ func TestAutomationScroll(t *testing.T) {
 }
 
 func TestAutomationTabMovesFocus(t *testing.T) {
-	a, b := widget.Input("a"), widget.Input("b")
-	w := openTest(t, Options{Content: layout.Column(a, b)})
+	a, b := kit.Input("a"), kit.Input("b")
+	w := openTest(t, Options{Content: views(a, b)})
 	w.click(element(t, w, "a").center())
 	if err := w.press("tab"); err != nil {
 		t.Fatal(err)
@@ -73,6 +88,7 @@ func TestAutomationTabMovesFocus(t *testing.T) {
 	if err := w.typeText("x"); err != nil {
 		t.Fatal(err)
 	}
+	w.snapshot()
 	if a.Value() != "" || b.Value() != "x" {
 		t.Fatalf("a=%q b=%q; Tab should have moved focus to b", a.Value(), b.Value())
 	}
@@ -82,25 +98,31 @@ func TestAutomationCloseFromCallback(t *testing.T) {
 	var w *Window
 	closed := false
 	w = openTest(t, Options{
-		Content: widget.Button("close", func() { w.Close() }),
+		Content: views(kit.Button("close", func() { w.Close() })),
 		OnClose: func() { closed = true },
 	})
-	other := openTest(t, Options{Content: widget.Text("stay")}) // keeps the process alive
+	other := openTest(t, Options{Content: views(text("stay"))}) // keeps the process alive
 	w.click(element(t, w, "close").center())
 	if !closed || !w.Closed() || other.Closed() {
 		t.Fatalf("closed=%t w.Closed=%t other.Closed=%t", closed, w.Closed(), other.Closed())
 	}
 }
 
-func TestAutomationDisabledAndChecked(t *testing.T) {
-	b := widget.Button("save", nil)
+func TestAutomationDisabledCheckedAndMixed(t *testing.T) {
+	b := kit.Button("save", nil)
 	b.SetDisabled(true)
-	w := openTest(t, Options{Content: layout.Column(b, widget.Checkbox("agree", true))})
+	all := kit.Checkbox("全部项目", false)
+	all.SetMixed(true)
+	all.SetDisabled(true)
+	w := openTest(t, Options{Content: views(b, kit.Checkbox("agree", true), all)})
 	if e := element(t, w, "save"); !e.Disabled {
 		t.Errorf("disabled button reported enabled: %+v", e)
 	}
 	if e := element(t, w, "agree"); e.Checked == nil || !*e.Checked {
 		t.Errorf("checked box reported %+v", e)
+	}
+	if e := element(t, w, "全部项目"); e.Role != "checkbox" || e.Value != "mixed" || !e.Disabled {
+		t.Errorf("missing mixed/disabled state: %+v", e)
 	}
 }
 
@@ -111,7 +133,7 @@ func TestAutomationRedrawsRealWindows(t *testing.T) {
 	key := new(int)
 	loop.Register(key, func() { redraws++ })
 	defer loop.Unregister(key)
-	w := openTest(t, Options{Content: widget.Checkbox("silent", false)})
+	w := openTest(t, Options{Content: views(kit.Checkbox("silent", false))})
 	redraws = 0
 	w.click(element(t, w, "silent").center())
 	if redraws == 0 {
@@ -123,356 +145,11 @@ func TestAutomationRedrawsRealWindows(t *testing.T) {
 // rendered yet, so no handler would receive it.
 func TestAutomationShortcutAsFirstRequest(t *testing.T) {
 	n := 0
-	w := openTest(t, Options{Content: widget.Text("x"), Shortcuts: map[string]func(){"mod+n": func() { n++ }}})
+	w := openTest(t, Options{Content: views(text("x")), Shortcuts: map[string]func(){"mod+n": func() { n++ }}})
 	if err := w.press("mod+n"); err != nil {
 		t.Fatal(err)
 	}
 	if n != 1 {
 		t.Fatalf("shortcut fired %d times", n)
-	}
-}
-
-func TestAutomationSliderAndAccordion(t *testing.T) {
-	s := widget.Slider("volume", 0, 100).Step(5)
-	a := widget.Accordion().Add("details", widget.Text("inside"))
-	w := openTest(t, Options{Content: layout.Column(s, a)})
-	e := element(t, w, "volume")
-	if e.Role != "slider" || e.Value != "0" {
-		t.Fatalf("slider semantics: %+v", e)
-	}
-	if err := w.press("tab"); err != nil {
-		t.Fatal(err)
-	}
-	if err := w.press("right"); err != nil {
-		t.Fatal(err)
-	}
-	if s.Value() != 5 || element(t, w, "volume").Value != "5" {
-		t.Fatal("Tab did not focus slider or value is stale")
-	}
-	if err := w.press("tab"); err != nil {
-		t.Fatal(err)
-	}
-	if err := w.press("enter"); err != nil {
-		t.Fatal(err)
-	}
-	e = element(t, w, "details")
-	if e.Role != "disclosure" || e.Value != "expanded" || !a.IsOpen(0) {
-		t.Fatalf("accordion semantics/keyboard: %+v", e)
-	}
-	element(t, w, "inside")
-	a.SetDisabled(true)
-	if !element(t, w, "details").Disabled {
-		t.Fatal("disabled header not exposed")
-	}
-}
-
-func TestAutomationToggleState(t *testing.T) {
-	toggle := widget.Toggle("固定工具栏", false)
-	w := openTest(t, Options{Content: toggle})
-	e := element(t, w, "固定工具栏")
-	if e.Role != "toggle" || e.Selected == nil || *e.Selected {
-		t.Fatalf("wrong toggle semantics: %+v", e)
-	}
-	w.click(e.center())
-	e = element(t, w, "固定工具栏")
-	if e.Selected == nil || !*e.Selected {
-		t.Fatal("selected state missing")
-	}
-	if err := w.press("tab"); err != nil {
-		t.Fatal(err)
-	}
-	if err := w.press("space"); err != nil {
-		t.Fatal(err)
-	}
-	e = element(t, w, "固定工具栏")
-	if e.Selected == nil || *e.Selected {
-		t.Fatal("tab/space failed")
-	}
-	toggle.SetDisabled(true)
-	e = element(t, w, "固定工具栏")
-	if !e.Disabled {
-		t.Fatal("disabled state missing")
-	}
-}
-
-func TestAutomationExtendedControlStates(t *testing.T) {
-	check := widget.Checkbox("全部项目", false)
-	check.SetIndeterminate(true)
-	check.SetDisabled(true)
-	button := widget.Button("上传", nil)
-	button.SetLoading(true)
-	progress := widget.Progress("处理中")
-	progress.SetIndeterminate(true)
-	group := widget.ToggleGroup("单选一", "单选二")
-	group.SetDisabled(true)
-	w := openTest(t, Options{Height: 600, Content: layout.Column(check, button, progress, group)})
-	e := element(t, w, "全部项目")
-	if e.Role != "checkbox" || e.Value != "mixed" || !e.Disabled {
-		t.Fatalf("mixed checkbox missing state: %+v", e)
-	}
-	if e = element(t, w, "上传"); !e.Disabled {
-		t.Fatal("loading button not disabled")
-	}
-	if e = element(t, w, "处理中"); e.Value != "indeterminate" {
-		t.Fatal("progress has fabricated percentage")
-	}
-	if e = element(t, w, "单选一"); !e.Disabled {
-		t.Fatal("group disabled state not propagated")
-	}
-}
-
-func TestAutomationBadgeValues(t *testing.T) {
-	for _, tc := range []struct {
-		name, value string
-		b           *widget.BadgeView
-	}{
-		{"150", "99+", widget.Badge(150)}, {"3", "3", widget.Badge(3)}, {"1", "dot", widget.Badge(1).Dot()}, {"2", "icon", widget.Badge(2).Icon(widget.Icon(widget.IconCheck))},
-	} {
-		t.Run(tc.value, func(t *testing.T) {
-			w := openTest(t, Options{Content: tc.b})
-			e := element(t, w, tc.name)
-			if e.Role != "badge" || e.Value != tc.value {
-				t.Fatalf("unexpected badge: %+v", e)
-			}
-		})
-	}
-}
-
-func TestAutomationDisabledRadio(t *testing.T) {
-	r := widget.RadioGroup("", "立即", "每天")
-	w := openTest(t, Options{Content: r})
-	r.SetDisabled(true)
-	e := element(t, w, "立即")
-	if e.Role != "radio" || !e.Disabled {
-		t.Fatalf("missing disabled radio: %+v", e)
-	}
-	w.click(e.center())
-	w.press("space")
-	if r.Value() != "" {
-		t.Fatal("disabled radio selected")
-	}
-	r.SetDisabled(false)
-	e = element(t, w, "立即")
-	if e.Disabled {
-		t.Fatal("radio remained disabled")
-	}
-	w.click(e.center())
-	if r.Value() != "立即" {
-		t.Fatal("radio did not recover")
-	}
-}
-
-func TestAutomationDisabledSelect(t *testing.T) {
-	s := widget.Select("状态", "甲", "乙")
-	w := openTest(t, Options{Content: s})
-	s.SetDisabled(true)
-	e := element(t, w, "状态")
-	if e.Role != "select" || !e.Disabled {
-		t.Fatalf("missing disabled select: %+v", e)
-	}
-	w.click(e.center())
-	w.press("space")
-	w.press("enter")
-	for _, e := range w.snapshot() {
-		if e.Role == "option" {
-			t.Fatal("disabled select opened")
-		}
-	}
-	s.SetDisabled(false)
-	e = element(t, w, "状态")
-	if e.Disabled {
-		t.Fatal("select remained disabled")
-	}
-	w.click(e.center())
-	w.click(element(t, w, "乙").center())
-	if s.Value() != "乙" {
-		t.Fatal("select did not recover")
-	}
-}
-
-func TestAutomationDisabledTabs(t *testing.T) {
-	tabs := widget.Tabs().Add("概览", widget.Text("内容")).Add("设置", widget.Text("设置内容"))
-	w := openTest(t, Options{Content: tabs})
-	tabs.SetDisabled(true)
-	e := element(t, w, "设置")
-	if e.Role != "tab" || !e.Disabled {
-		t.Fatalf("missing disabled tab: %+v", e)
-	}
-	w.click(e.center())
-	w.press("space")
-	w.press("enter")
-	if tabs.Current() != 0 {
-		t.Fatal("disabled tab activated")
-	}
-	tabs.SetDisabled(false)
-	e = element(t, w, "设置")
-	if e.Disabled {
-		t.Fatal("tab remained disabled")
-	}
-	w.click(e.center())
-	if tabs.Current() != 1 {
-		t.Fatal("tab did not recover")
-	}
-}
-
-func TestAutomationDisabledTable(t *testing.T) {
-	tb := widget.Table(widget.Col("列", 1)).Height(120)
-	tb.SetRows([][]string{{"甲"}, {"乙"}})
-	w := openTest(t, Options{Content: tb})
-	tb.SetDisabled(true)
-	for _, e := range w.snapshot() {
-		if (e.Role == "table" || e.Role == "row" || e.Role == "columnheader") && !e.Disabled {
-			t.Fatalf("missing disabled table state: %+v", e)
-		}
-	}
-	w.click(element(t, w, "甲").center())
-	w.press("down")
-	w.press("enter")
-	if tb.Selected() != -1 {
-		t.Fatal("disabled table selected")
-	}
-	tb.SetDisabled(false)
-	e := element(t, w, "乙")
-	if e.Disabled {
-		t.Fatal("table remained disabled")
-	}
-	w.click(e.center())
-	if tb.Selected() != 1 {
-		t.Fatal("table did not recover")
-	}
-}
-
-func TestAutomationDisabledAccordionContent(t *testing.T) {
-	f := widget.Input("名称")
-	a := widget.Accordion().Add("详情", f)
-	a.SetValue([]int{0})
-	w := openTest(t, Options{Content: a})
-	a.SetDisabled(true)
-	for _, e := range w.snapshot() {
-		if (e.Role == "accordion" || e.Role == "disclosure" || e.Role == "textbox") && !e.Disabled {
-			t.Fatalf("missing disabled accordion state: %+v", e)
-		}
-	}
-	w.click(element(t, w, "详情").center())
-	w.press("space")
-	if !a.IsOpen(0) {
-		t.Fatal("disabled accordion toggled")
-	}
-	a.SetDisabled(false)
-	e := element(t, w, "详情")
-	if e.Disabled {
-		t.Fatal("accordion remained disabled")
-	}
-	w.click(e.center())
-	if a.IsOpen(0) {
-		t.Fatal("accordion did not recover")
-	}
-}
-
-func TestAutomationDisabledToggleGroup(t *testing.T) {
-	g := widget.ToggleGroup("左", "右")
-	w := openTest(t, Options{Content: g})
-	g.SetDisabled(true)
-	for _, e := range w.snapshot() {
-		if e.Role == "toggle" && !e.Disabled {
-			t.Fatalf("missing disabled toggle group: %+v", e)
-		}
-	}
-	w.click(element(t, w, "右").center())
-	w.press("space")
-	if len(g.Value()) != 0 {
-		t.Fatal("disabled group selected")
-	}
-	g.SetDisabled(false)
-	e := element(t, w, "右")
-	if e.Disabled {
-		t.Fatal("group remained disabled")
-	}
-	w.click(e.center())
-	if len(g.Value()) != 1 || g.Value()[0] != "右" {
-		t.Fatal("group did not recover")
-	}
-}
-
-func TestAutomationDisabledFields(t *testing.T) {
-	for _, tc := range []struct {
-		name string
-		new  func(string) *widget.Field
-	}{{"Input", widget.Input}, {"TextArea", widget.TextArea}} {
-		t.Run(tc.name, func(t *testing.T) {
-			f := tc.new("名称")
-			w := openTest(t, Options{Content: f})
-			f.SetDisabled(true)
-			e := element(t, w, "名称")
-			if !e.Disabled {
-				t.Fatalf("missing disabled field: %+v", e)
-			}
-			w.click(e.center())
-			w.typeText("禁止")
-			w.press("enter")
-			if f.Value() != "" {
-				t.Fatal("disabled field edited")
-			}
-			f.SetDisabled(false)
-			e = element(t, w, "名称")
-			if e.Disabled {
-				t.Fatal("field remained disabled")
-			}
-			w.click(e.center())
-			w.typeText("恢复")
-			if f.Value() != "恢复" {
-				t.Fatal("field did not recover")
-			}
-		})
-	}
-}
-
-func TestAutomationDisabledLink(t *testing.T) {
-	n := 0
-	l := widget.Link("文档", func() { n++ })
-	w := openTest(t, Options{Content: l})
-	l.SetDisabled(true)
-	e := element(t, w, "文档")
-	if e.Role != "link" || !e.Disabled {
-		t.Fatalf("invalid link semantics: %+v", e)
-	}
-	w.click(e.center())
-	w.press("space")
-	if n != 0 {
-		t.Fatal("disabled link activated")
-	}
-	l.SetDisabled(false)
-	e = element(t, w, "文档")
-	if e.Disabled {
-		t.Fatal("link remained disabled")
-	}
-	w.click(e.center())
-	if n != 1 {
-		t.Fatal("link did not recover")
-	}
-}
-
-func TestAutomationDisabledImage(t *testing.T) {
-	n := 0
-	v := &widget.ImageView{Asset: widget.ImageData(image.NewNRGBA(image.Rect(0, 0, 120, 40))), Alt: "图片", OnClick: func() { n++ }}
-	w := openTest(t, Options{Content: v})
-	v.SetDisabled(true)
-	e := element(t, w, "图片")
-	if e.Role != "image" || !e.Disabled {
-		t.Fatalf("invalid image semantics: %+v", e)
-	}
-	w.click(e.center())
-	w.press("space")
-	if n != 0 {
-		t.Fatal("disabled image activated")
-	}
-	v.SetDisabled(false)
-	e = element(t, w, "图片")
-	if e.Disabled {
-		t.Fatal("image remained disabled")
-	}
-	w.click(e.center())
-	if n != 1 {
-		t.Fatal("image did not recover")
 	}
 }

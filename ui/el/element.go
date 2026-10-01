@@ -324,8 +324,7 @@ func Text(s string) *TextEl {
 	return t
 }
 
-// WidgetEl wraps any core.Widget, such as a ui/widget component that has no
-// element version yet.
+// WidgetEl wraps any core.Widget, such as Gio code wrapped in core.Func.
 type WidgetEl struct{ Styled[WidgetEl] }
 
 // Widget embeds w. It is laid out with the element's box as its constraints.

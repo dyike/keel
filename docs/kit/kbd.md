@@ -12,7 +12,7 @@ el.Div().Row().Items(el.Center).TextSize(16).Child(
 
 `Kbd(shortcut string)` 返回 `*KbdView`。唯一配置项 `Plain()` 隐藏边框并保留间距；不提供 Size，调用方通过父元素 TextSize 设置字号。默认边框 1dp、圆角 4dp、水平内边距 6dp、垂直内边距 3dp。窄容器中保持单行并截断。
 
-格式化由 `core.ShortcutLabel(s, goos string) string` 提供，kit 和旧 widget 共用。语法同 core.ParseShortcut；mod 在 macOS 显示为 Command，在 Windows / Linux 显示为 Ctrl。无法解析的文案原样显示，便于使用自定义键名。该函数只格式化，不查询动作绑定。
+格式化由 `core.ShortcutLabel(s, goos string) string` 提供，kit 和窗口快捷键共用。语法同 core.ParseShortcut；mod 在 macOS 显示为 Command，在 Windows / Linux 显示为 Ctrl。无法解析的文案原样显示，便于使用自定义键名。该函数只格式化，不查询动作绑定。
 
 Agent 角色为 text，name 为传入的原始 shortcut；屏幕上显示平台对应的符号，不额外生成重复快照节点。
 

@@ -34,7 +34,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/dyike/keel/ui/core"
-	widgets "github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/internal/imageload"
 )
 
 // run is a stretch of text in one style.
@@ -50,7 +50,7 @@ type run struct {
 	display bool
 	anchor  string
 	rise    unit.Sp
-	image   *widgets.ImageView
+	image   *imageload.View
 }
 
 // piece is the part of a run placed on one line.

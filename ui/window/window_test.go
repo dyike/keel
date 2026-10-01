@@ -6,13 +6,14 @@ import (
 	"gioui.org/io/key"
 
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/kit"
 )
 
 func TestShortcutFires(t *testing.T) {
 	n := 0
-	w := newWindow(Options{Content: widget.Text("x"), Shortcuts: map[string]func(){"mod+,": func() { n++ }}})
+	w := newWindow(Options{Content: views(text("x")), Shortcuts: map[string]func(){"mod+,": func() { n++ }}})
 	h := uitest.NewFunc(w.layout)
 	h.Key(",", key.ModShortcut)
 	if n != 1 {
@@ -22,7 +23,7 @@ func TestShortcutFires(t *testing.T) {
 
 func TestClickInsideRootInset(t *testing.T) {
 	n := 0
-	w := newWindow(Options{Content: widget.Button("go", func() { n++ })})
+	w := newWindow(Options{Content: views(kit.Button("go", func() { n++ }))})
 	h := uitest.NewFunc(w.layout)
 	h.Click(40, 40) // content starts 24dp in
 	if n != 1 {
@@ -31,11 +32,11 @@ func TestClickInsideRootInset(t *testing.T) {
 }
 
 func TestUpdateAppliesOnNextFrame(t *testing.T) {
-	label := widget.Text("old")
-	h := uitest.New(label)
-	core.Update(func() { label.SetText("new") })
+	label := "old"
+	h := uitest.New(el.Embed(el.ViewFunc(func(*el.Context) el.Element { return el.Text(label) })))
+	core.Update(func() { label = "new" })
 	h.Frame()
-	if label.Text() != "new" {
+	if label != "new" {
 		t.Fatal("update did not run")
 	}
 }

@@ -8,7 +8,7 @@ Gio 自带的 Go 字体没有中文，中文靠系统字体回退。自动回退
 
 ## 按钮里的中文偏上
 
-字体的逻辑行框包含 ascent/descent 和留白，可见字形不一定在行框中央。`ui/widget` 的普通标签通过 `layoutLabel` 测量代表字形后调整绘制基线；数字角标按实际数字字形居中。先区分是容器位置错误，还是字形在容器内偏移，再改对应层。不要把某张截图测得的像素差直接加到所有组件上。
+字体的逻辑行框包含 ascent/descent 和留白，可见字形不一定在行框中央。el 的文字按代表字形测量后调整绘制基线；数字角标按实际数字字形居中。先区分是容器位置错误，还是字形在容器内偏移，再改对应层。不要把某张截图测得的像素差直接加到所有组件上。
 
 ## 输入框光标比文字向下伸出
 
@@ -18,7 +18,7 @@ Gio 默认按字体的 ascent/descent 画光标，某些中文字体的 descent 
 
 这是逻辑行框和可见字形混用的问题。一次 2× 中文渲染中，字形占第 2–28 像素，Gio 默认选区占第 0–44 像素。只修光标高度不能修正选区；只移动文字又会让文字脱离点击、选词和输入法使用的坐标。
 
-修复入口是 [`ui/internal/editorstyle`](../ui/internal/editorstyle/README.md)，`widget.Input`、`widget.TextArea`、`el.Input`、`el.TextArea` 都调用它。处理顺序：
+修复入口是 [`ui/internal/editorstyle`](../ui/internal/editorstyle/README.md)，`el.Input`、`el.TextArea`（以及基于它们的 `kit.Input`、`kit.TextArea`）都调用它。处理顺序：
 
 1. 调用者先消费 `Editor.Update`，再用原编辑器完成排版，记录绘制操作。原生选区设为透明。
 2. 用 `Editor.Regions` 获取已经考虑换行、双向文本和滚动的选区范围。横向范围直接沿用；每个区域的基线是 `Bounds.Max.Y - Baseline`。
@@ -36,7 +36,7 @@ Gio 默认按字体的 ascent/descent 画光标，某些中文字体的 descent 
 回归入口：
 
 ```sh
-go test ./ui/internal/editorstyle ./ui/widget ./ui/el -count=1
+go test ./ui/internal/editorstyle ./ui/el ./ui/kit -count=1
 go run ./examples/components -section textarea
 go run ./examples/components -section input
 ```

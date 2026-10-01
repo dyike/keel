@@ -32,38 +32,45 @@ package main
 import (
     "strings"
 
-    "github.com/dyike/keel/ui/layout"
-    "github.com/dyike/keel/ui/widget"
+    "github.com/dyike/keel/ui/el"
+    "github.com/dyike/keel/ui/kit"
+    "github.com/dyike/keel/ui/theme"
     "github.com/dyike/keel/ui/window"
 )
 
-func main() {
-    name := widget.Input("你的名字").Hint("例如：小明")
-    result := widget.Text("等待输入")
+type hello struct {
+    name   *kit.InputView
+    result string
+}
 
-    greet := func() {
-        if v := strings.TrimSpace(name.Value()); v != "" {
-            result.SetText("你好，" + v + "！")
-        }
+func (h *hello) greet() {
+    if v := strings.TrimSpace(h.name.Value()); v != "" {
+        h.result = "你好，" + v + "！"
     }
-    name.OnSubmit(func(string) { greet() }) // 回车也触发
+}
 
-    window.Open(window.Options{
-        Title: "Hello", Width: 480, Height: 320,
-        Content: layout.Column(
-            widget.Heading("第一个窗口"),
-            layout.Card(name, widget.Button("打招呼", greet), result),
-        ),
-    })
+func (h *hello) Render(cx *el.Context) el.Element {
+    return el.Div().P(24).Gap(12).Child(
+        el.Text("第一个窗口").TextSize(22).Bold(),
+        h.name.Render(cx),
+        el.Div().Row().Child(kit.Button("打招呼", h.greet).Render(cx)),
+        el.Text(h.result).TextColor(theme.Muted),
+    )
+}
+
+func main() {
+    h := &hello{name: kit.Input("你的名字").Placeholder("例如：小明"), result: "等待输入"}
+    h.name.OnSubmit(func(string) { h.greet() }) // 回车也触发
+    window.Open(window.Options{Title: "Hello", Width: 480, Height: 320, Content: el.Root(h)})
     window.Main()
 }
 ```
 
 这段代码的结构就是所有 Keel 程序的结构：
 
-1. **先创建组件，拿到它们的指针。** `name`、`result` 是持有状态的对象，回调里通过它们读值、改值。
-2. **用容器把组件拼成一棵树。** `layout.Column`、`layout.Card`、`layout.Row` 只负责摆放。
-3. **`window.Open` 把树放进窗口，`window.Main` 进入事件循环。** `window.Main` 不会返回；最后一个窗口关闭时进程退出。
+1. **视图是一个 struct，保存状态。** 输入框这类有状态的 kit 组件创建一次，存在字段里；`result` 是普通字段。
+2. **`Render` 按当前状态搭元素树。** 每帧调用，用 `el.Div` 排版，组件通过 `Render(cx)` 放进树里。回调只改字段。
+3. **`window.Open` 把 `el.Root(view)` 放进窗口，`window.Main` 进入事件循环。** `window.Main` 不会返回；最后一个窗口关闭时进程退出。
 
 界面不需要手动刷新。回调执行完，所有窗口会自动重绘。
 
@@ -79,6 +86,6 @@ go mod tidy
 
 ## 下一步
 
-- 组件的完整 API：[组件与布局](widgets.md)
+- 写法：[元素与视图](el.md)；组件：[kit 组件](kit.md)
 - 后台任务怎么更新界面：[架构 · 线程规则](architecture.md#线程规则)
 - 多窗口和快捷键：[窗口与应用](app.md)

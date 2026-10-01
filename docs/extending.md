@@ -6,118 +6,67 @@
 | --- | --- | --- |
 | 应用里的界面、业务组件 | 不进库：用 `ui/el` 写成函数或视图，见[元素与视图](el.md#做成可复用的组件) | 订单卡片、工具栏 |
 | 通用的元素能力 | `ui/el` | 新的样式方法、布局特性、元素类型 |
-| 旧写法的界面组件 | `ui/widget/` 新文件（新组件优先考虑直接用 el 写） | `select.go`、`list.go`、`switch.go` |
-| 布局容器：只负责摆放子组件 | `ui/layout/` 新文件 | `grid.go`、`center.go` |
+| 通用组件 | `ui/kit/` 新文件 | `select.go`、`chart.go`、`dock.go` |
 | 颜色、字号等可调参数 | `ui/theme/theme.go` | 被两个以上组件用到的数值 |
 | 与窗口本身有关 | `ui/window/` | 窗口位置、置顶 |
 | 系统能力，不开窗口也有用 | `native/` 下新模块 | `native/clipboard`、`native/notify`、`native/tray` |
-| 只有一个页面用到的布局片段 | 不进库，业务代码里用 `core.Func` | 用到第二次再考虑挪进来 |
+| 只有一个页面用到的界面片段 | 不进库，业务代码里写成返回 `el.Element` 的函数 | 用到第二次再考虑挪进来 |
 
 ## 新增组件
 
-以仓库里的 `widget.Link`（可点击的文字）为例，完整代码在 `ui/widget/link.go`：
+通用组件放在 `ui/kit`，一个组件一个文件，用 `ui/el` 写成视图。完整规范和验收清单在 [kit 组件规范](kit.md)，这里只走一遍骨架。以一个计数器为例（kit 已有 `NumberInput`，这里只为说明结构）：
 
 ```go
-package widget
-
-import (
-    "image"
-
-    "gioui.org/io/pointer"
-    "gioui.org/widget"
-    "gioui.org/widget/material"
-
-    "github.com/dyike/keel/ui/core"
-    "github.com/dyike/keel/ui/theme"
-)
-
-// LinkText is clickable text in the primary color.
-type LinkText struct {
-    text    string
-    onClick func()
-    click   widget.Clickable // ① 交互状态存在结构体里，跨帧保留
+// CounterView shows a number between − and + buttons.
+type CounterView struct {
+    value    int
+    disabled bool
+    onChange func(int)
 }
 
-// Link creates clickable text.
-func Link(text string, onClick func()) *LinkText { return &LinkText{text: text, onClick: onClick} }
+func Counter(value int) *CounterView { return &CounterView{value: value} }
 
-func (l *LinkText) SetText(s string) { l.text = s }
-
-func (l *LinkText) Layout(gtx C) D {
-    gtx.Constraints.Min = image.Point{} // ② 不被 Column 拉满
-    for l.click.Clicked(gtx) {          // ③ 先处理事件
-        core.Call(gtx, l.onClick)       // ④ 用户回调一律走 core.Call
-    }
-    return l.click.Layout(gtx, func(gtx C) D {
-        pointer.CursorPointer.Add(gtx.Ops)
-        lb := material.Label(theme.Material, theme.BodySize, l.text)
-        lb.Color = theme.Primary        // ⑤ 颜色、字号从 theme 取
-        return lb.Layout(gtx)
-    })
+func (v *CounterView) Value() int         { return v.value }
+func (v *CounterView) SetValue(n int)     { v.value = n } // 程序赋值不触发回调
+func (v *CounterView) SetDisabled(d bool) { v.disabled = d }
+func (v *CounterView) OnChange(fn func(int)) *CounterView {
+    v.onChange = fn
+    return v
 }
-```
 
-`C`、`D` 是 `core.C`、`core.D` 的别名，定义在 `ui/widget/doc.go`。
-
-必须遵守的六条：
-
-1. **状态放在结构体里。** `widget.Clickable`、`widget.Editor`、`widget.Bool` 这些 Gio 状态对象必须跨帧存活。在 `Layout` 里新建它们，点击永远不会生效。
-2. **决定是否被 Column 拉满。** `Column` 会把子组件的最小宽度设成满宽。按钮这类"自身多宽就多宽"的组件，要在 `Layout` 开头把 `gtx.Constraints.Min` 清零。
-3. **先处理事件，再绘制。** 同一帧里，事件要在 `Layout` 画自己之前处理完，状态变化这一帧就能画出来。
-4. **用户回调一律走 `core.Call(gtx, fn)`。** 它负责让所有窗口重绘。直接调 `fn()`，修改了别处组件时，别处要等到下次有输入才会刷新。
-5. **颜色、字号从 `theme` 取，不写死。** 用户改了 `theme.Primary`，你的组件要跟着变。在 `Layout` 里读取，不要在构造函数里读好存下来。
-6. **声明语义信息，让 Agent 看得见。** Agent 测试靠 Gio 的语义树知道"页面上有什么"（见 [Agent 端到端测试](automation.md#原理)）。用 `core.Semantic` 包住组件，声明角色、名字和状态：
-
-   ```go
-   return core.Semantic(gtx, st.Layout, semantic.Button, semantic.LabelOp(b.text), semantic.EnabledOp(!b.disabled))
-   ```
-
-   Gio 自带控件产生的语义节点不一定可靠：禁用的按钮会丢节点，输入框没有名字和内容，文字节点的高度会撑满整个可滚动区域。所以 Keel 的组件都自己声明。角色目前只有 Gio 定义的几种（`Button`、`CheckBox`、`Editor` 等）；其他角色用 `core.Role("row")`、`core.Role("select", 当前值)` 标注；新增角色时在 `ui/window/automation.go` 的 `roleOf` 里登记，容器类角色（里面的元素要单独列出）加进 `containerRoles`。
-
-API 风格与现有组件保持一致：
-
-- 构造函数返回指针，名字就是组件名：`widget.Link(...)`。
-- 创建时的配置用链式方法，返回自身：`.Hint(s)`、`.Secondary()`、`.OnChange(fn)`。
-- 运行时修改用 `SetXxx`，读取用 `Xxx()` 或 `Value()`。
-- 程序调用 `SetXxx` 时不触发 `OnXxx` 回调，只有用户操作才触发。`Field.SetValue` 就是这样处理的，否则"监听变化再回写"会死循环。
-- 类型名不能和构造函数同名（Go 的限制），现有的做法是 `Btn`、`Field`、`Check`、`LinkText`。
-- 所有组件在 `widget` 一个包里，名字不能冲突。起名前在 `ui/widget/` 里搜一下。
-- 有名字的输入类组件实现 `SetName(string)`：`layout.Form` 会把左边的标签设成它对 Agent 的名字。
-
-写组件时踩过的坑，都和 Gio 的语义树、输入路由有关：
-
-- **不要在带语义信息的区域上直接登记事件处理者**（`event.Op`）。那个节点会从语义树里消失。给键盘焦点登记处理者时，放在组件内部另一个区域里，见 `table.go` 的 `body`。
-- **组件要在第一帧就登记好所有子区域的事件过滤。** Gio 会把这一帧没有处理者的区域从点击测试和语义树里去掉。`widget.Enum` 在第一帧会漏掉最后一个选项，`radio.go` 因此在布局后多调用一次 `Update`。
-- **需要键盘焦点的组件**：`gtx.Event(key.FocusFilter{Target: t}, ...)` 注册过滤，`event.Op(gtx.Ops, t)` 登记处理者，点击时 `gtx.Execute(key.FocusCmd{Tag: t})`，三步都要有。
-- **弹出层**（下拉选项）用 `op.Defer` 画在最上层；要"点外面关闭"，在弹出层下面铺一块窗口大小的透明可点击区域。
-
-最后加交互测试，放在 `ui/widget/link_test.go` 这样的同名测试文件里：
-
-```go
-func TestLinkClick(t *testing.T) {
-    n := 0
-    h := uitest.New(Link("文档", func() { n++ }))
-    h.Click(5, 5)
-    if n != 1 {
-        t.Fatalf("clicked %d times", n)
+func (v *CounterView) set(n int) {
+    v.value = n
+    if v.onChange != nil {
+        v.onChange(n) // 只有用户操作触发
     }
 }
-```
 
-再在 `ui/window/automation_test.go` 里确认 Agent 能看到它、状态正确。然后在 [ui/widget/README.md](../ui/widget/README.md) 的文件表里加一行，更新 [组件与布局](widgets.md)，有必要的话在某个示例里用上它。
-
-## 新增容器
-
-容器只摆放子组件，不调用户回调。最简单的容器可以直接用 `core.Func` 写，放在 `ui/layout/` 下：
-
-```go
-// Pad adds equal padding around w.
-func Pad(dp unit.Dp, w core.Widget) core.Widget {
-    return core.Func(func(gtx C) D { return layout.UniformInset(dp).Layout(gtx, w.Layout) })
+func (v *CounterView) Render(cx *el.Context) el.Element {
+    minus := Button("−", func() { v.set(v.value - 1) }).Variant(ButtonSecondary)
+    plus := Button("+", func() { v.set(v.value + 1) }).Variant(ButtonSecondary)
+    minus.SetDisabled(v.disabled)
+    plus.SetDisabled(v.disabled)
+    return el.Div().Row().Gap(8).Items(el.Center).Child(
+        minus.Render(cx),
+        el.Text(strconv.Itoa(v.value)).TextColor(theme.Text), // 颜色在 Render 时读取
+        plus.Render(cx),
+    )
 }
 ```
 
-复杂一点的容器参考 `Column` 的实现：用结构体保存子组件列表，在 `Layout` 里转成 Gio 的 `layout.Flex`。需要圆角背景时调用 `Frame`。注意 `ui/layout` 包内部引用的 `layout.` 是 Gio 的 `gioui.org/layout`。
+要点：
+
+1. **构造函数 `Xxx(...)` 返回 `*XxxView`。** 业务状态存在结构体里；悬停、按下、焦点这类交互状态由 el 按元素位置保存，不用声明。
+2. **有值的组件提供 `Value`、`SetValue`、`OnChange`、`SetDisabled`。** 程序赋值不触发回调。
+3. **颜色和框架文字在 Render 时从 `theme`、`locale` 读取**，不在构造时保存，也不写死中文。
+4. **el 缺的能力先加到 el**（焦点、定时、浮层、拖动），不在组件里直接写 Gio 输入路由。
+
+然后补齐配套文件，`ui/kit/conventions_test.go` 会检查缺了哪个：
+
+- `ui/kit/counter_test.go`：用 `page(v)`、`click(t, h, "名字")` 等辅助函数（在 `kit_test.go`）走真实输入路由；
+- `ui/window/kit_*_test.go`：Agent 快照里角色、名字、值、状态正确；需要单独列出子元素的容器角色加入 `containerRoles`，并补进 [Agent 端到端测试](automation.md#元素)的表；
+- `docs/kit/counter.md`，并在 [kit.md](kit.md) 的索引和 `ui/kit/README.md` 的表里登记；
+- `examples/components/counter.go`，注册 `-section counter`。
 
 ## 新增原生能力
 

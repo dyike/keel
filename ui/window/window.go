@@ -20,8 +20,9 @@ type Options struct {
 	Title         string
 	Width, Height int
 	Content       core.Widget
-	// Overlay is drawn over the whole window, above Content, e.g. a
-	// widget.Dialog. It should take no space while it has nothing to show.
+	// Overlay is drawn over the whole window, above Content, for hand-written
+	// Gio content; el views declare overlays with cx.Overlay instead. It should
+	// take no space while it has nothing to show.
 	Overlay core.Widget
 	// Shortcuts maps accelerators to callbacks while the window has focus, e.g.
 	// "mod+," (Cmd on macOS, Ctrl elsewhere), "ctrl+shift+s", "esc".

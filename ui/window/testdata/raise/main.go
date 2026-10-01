@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/window"
 )
 
@@ -17,9 +17,9 @@ func main() {
 	var second *window.Window
 	step := func(d time.Duration, fn func()) { time.AfterFunc(d, func() { core.Update(fn) }) }
 
-	main := window.Open(window.Options{Title: "main", Width: 300, Height: 200, Content: widget.Text("main")})
+	main := window.Open(window.Options{Title: "main", Width: 300, Height: 200, Content: label("main")})
 	step(1*time.Second, func() {
-		second = window.Open(window.Options{Title: "second", Width: 300, Height: 200, Content: widget.Text("second")})
+		second = window.Open(window.Options{Title: "second", Width: 300, Height: 200, Content: label("second")})
 	})
 	step(2*time.Second, func() { main.Raise() })   // focus moves: second window gets frames
 	step(3*time.Second, func() { second.Raise() }) // the reported case: Raise from UI code
@@ -30,4 +30,8 @@ func main() {
 		main.Close()
 	})
 	window.Main()
+}
+
+func label(s string) *el.RootWidget {
+	return el.Embed(el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) }))
 }

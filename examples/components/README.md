@@ -1,29 +1,20 @@
-# 组件交互示例
+# 组件示例
 
 ```sh
-go run ./examples/components
+go run ./examples/components                    # 全部组件，从上到下排列
+go run ./examples/components -section select    # 单个组件，名字与 docs/kit/<名字>.md 一致
+go run ./examples/components -section inputs    # 一类：controls、inputs、overlays、data
+go run ./examples/components -theme dark        # 深色
 ```
 
-- 滑块：点击轨道，拖出左右边界，按方向键和 PageUp / PageDown 调整；Home / End 跳到两端。温度滑块使用 0.5 步长，音量使用 5 步长；勾选禁用后不再响应。
-- 折叠面板：个人资料和通知设置互斥展开。在输入框填写内容，收起再打开，内容仍保留。禁用标题不响应点击。
-- 键盘：Tab 聚焦标题，Enter / 空格切换展开，↑ ↓ 在可用标题间移动，Home / End 跳到首尾。收起内容里的输入框不应再获得焦点。
-- 多项展开：打开下面两个问题，确认可以同时显示答案。
-- 图片：点击色块图片，下方文字变为“已点击图片”。异步加载和失败占位见 `examples/chat -sample=images`。
+每个 kit 组件对应一个 `<名字>.go`，用 `registerSection` 注册同名 section，展示常用状态、边界和浅深色。`ui/kit/conventions_test.go` 检查每个组件都有示例。
 
 生成截图：
 
 ```sh
-go run ./examples/components -screenshot /tmp/keel-components.png
+go run ./examples/components -section chart -screenshot /tmp/keel-chart.png
 ```
 
-交互回归测试在 `ui/widget/slider_test.go`、`accordion_test.go`、`image_test.go`，自动化角色和键盘焦点测试在 `ui/window/automation_test.go`。
+另有几个验证 el 基础能力的 section：`theme`（运行时切换浅深色）、`focus`（Tab / Shift+Tab、子树禁用）、`time`（定时关闭与取消）、`overlay`（非模态点击穿透、模态遮罩、Esc 关闭与焦点恢复）。
 
-主题验证：`go run ./examples/components -section theme`，点击“浅色”“深色”来回切换；可用 `-theme dark` 指定启动配色，并与 `-screenshot /tmp/keel-theme.png` 组合检查截图。
-
-M1 展示组件可用 `-section icon|alert|empty|avatar|tag|description_list|group_box|status_bar|marker|spinner|skeleton` 分别运行（任选一个值），加 `-theme dark` 检查深色。`-section focus` 验证 Tab / Shift+Tab、Space / Enter 激活、祖先按键冒泡、程序聚焦输入框和子树禁用。`-section time` 验证定时关闭与提前取消。Spinner/Skeleton 示例可切换减少动画。
-
-`-section overlay` 使用 el.Root 验证 E4/E5：非模态点击穿透、模态遮罩、Tab 循环、Esc 关闭与焦点恢复。
-
-`-section button` 使用 kit.Button，覆盖四种 Variant、28/32/40dp、加载时尺寸保持、禁用、窄容器以及鼠标和键盘操作。
-
-`-section kbd` 使用 kit.Kbd，覆盖父元素字号继承、Plain、平台快捷键符号和窄容器。
+组件的交互测试在 `ui/kit/*_test.go`，Agent 快照测试在 `ui/window/kit_*_test.go`。

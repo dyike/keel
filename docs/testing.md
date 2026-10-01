@@ -9,8 +9,8 @@
 ```go
 func TestInputSubmit(t *testing.T) {
     var got string
-    f := Input("").OnSubmit(func(s string) { got = s })   // 在 package widget 里
-    h := uitest.New(f)   // 布局一帧
+    f := Input("").OnSubmit(func(s string) { got = s })   // 在 package kit 里
+    h := uitest.New(el.Root(f)) // 布局一帧
     h.Click(20, 10)      // 点击获得焦点
     h.Type("你好")        // 输入文字
     h.Key("⏎", 0)        // 回车
@@ -37,7 +37,7 @@ func TestInputSubmit(t *testing.T) {
 
 `internal/deps` 检查每个模块只引用了允许的包（见[架构 · 模块](architecture.md#模块)）：
 
-- 下层模块引用了上层（比如 `layout` 引用 `widget`），同层互相引用，或者 `native/*` 引用了 `ui`、Gio，测试失败；
+- 下层模块引用了上层（比如 `el` 引用 `kit`），同层互相引用，或者 `native/*` 引用了 `ui`、Gio，测试失败；
 - 新增了模块目录却没在允许表里登记，测试失败。
 
 它随 `go test ./...` 一起运行。

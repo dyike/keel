@@ -45,4 +45,4 @@ go run ./examples/chat -delay=80ms
 go test ./examples/chat -count=1
 ```
 
-测试检查关键词路由、全部样例的覆盖范围、同块引用链接对照和 PNG 文件有效性。渲染器的选择与复制回归测试在 `ui/markdown/selection_test.go` 和 `ui/markdown/selection_units_test.go`，代码块的换行、横向滚动、滚动后的选择和流式状态测试在 `ui/markdown/code_test.go`；公式解析、基线、行高、流式回退和源码复制测试在 `ui/markdown/math_test.go` 和 `math_extensions_test.go`；脚注与引用测试在 `references_test.go`，图片加载与布局测试在 `images_test.go`、`ui/widget/image_test.go`。
+测试检查关键词路由、全部样例的覆盖范围、同块引用链接对照和 PNG 文件有效性。渲染器的选择与复制回归测试在 `ui/markdown/selection_test.go` 和 `ui/markdown/selection_units_test.go`，代码块的换行、横向滚动、滚动后的选择和流式状态测试在 `ui/markdown/code_test.go`；公式解析、基线、行高、流式回退和源码复制测试在 `ui/markdown/math_test.go` 和 `math_extensions_test.go`；脚注与引用测试在 `references_test.go`，图片加载与布局测试在 `images_test.go`、`ui/internal/imageload/decode_test.go`。

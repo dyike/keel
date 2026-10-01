@@ -102,21 +102,21 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 
 | 角色 | 来自 | 额外信息 |
 | --- | --- | --- |
-| `text` | `widget.Text`、`Heading`、`Muted`、`kit.Kbd` | |
-| `button` | `kit.Button`、`widget.Button` | `disabled`；kit 加载时 `value: loading` |
-| `link` | `widget.Link` | |
-| `textbox` | `widget.Input`、`TextArea` | `value`；密码框的值是等长的 `•` |
-| `checkbox` | `widget.Checkbox` | `checked` / `unchecked`；半选时 `value` 为 mixed |
-| `radio` | `widget.RadioGroup` 的每个选项 | `checked` / `unchecked` |
-| `switch` | `widget.Switch` | `checked` / `unchecked` |
-| `select` | `widget.Select` | `value` 是当前选中项；点击后出现 `option` |
+| `text` | `el.Text`、`kit.Kbd` | |
+| `button` | `kit.Button`、带 `OnClick` 的 `el.Div` | `disabled`；kit 加载时 `value: loading` |
+| `link` | `kit.Link` | |
+| `textbox` | `kit.Input`、`kit.TextArea`、`el.Input` | `value`；密码框的值是等长的 `•` |
+| `checkbox` | `kit.Checkbox` | `checked` / `unchecked`；半选时 `value` 为 mixed |
+| `radio` | `kit.RadioGroup` 的每个选项 | `checked` / `unchecked` |
+| `switch` | `kit.Switch` | `checked` / `unchecked` |
+| `select` | `kit.Select` | `value` 是当前选中项；点击后出现 `option` |
 | `option` | 展开的下拉选项 | `selected` |
-| `tab` | `widget.Tabs` 的标签 | `selected` |
-| `table` | `widget.Table` | `value` 是总行数，如 `36 行` |
+| `tab` | `kit.Tabs` 的标签 | `selected` |
+| `table` | `kit.Table` | `value` 是总行数，如 `36 行` |
 | `columnheader` | 表头，点击排序 | |
 | `row` | 表格中可见的行，名字是各列用竖线连起来 | `selected` |
-| `slider` | `widget.Slider` | `value` 是当前数值；点击轨道或聚焦后按方向键调整 |
-| `accordion` | `widget.Accordion` | 标题和展开内容单独列出 |
+| `slider` | `kit.Slider` | `value` 是当前数值；点击轨道或聚焦后按方向键调整 |
+| `accordion` | `kit.Accordion` | 标题和展开内容单独列出 |
 | `tag` | kit 标签容器 | value 为 neutral/info/success/warning/danger，selected 为选择状态；选择和移除按钮分别列出 |
 | `group` | kit 组件分组 | 名字为分组标题，保留子组件语义 |
 | `status` | kit 状态栏 | 左右内容作为子元素分别列出 |
@@ -125,10 +125,10 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `toggle` | 状态按钮 | `selected` 表示选中，支持 `disabled` |
 | `disclosure` | 折叠面板标题 | `value` 是 expanded / collapsed，支持 `disabled` |
 | `avatar` | kit 头像 | 名字为人名，value 为 online/busy/offline，无状态为空 |
-| `image` | `widget.Image`、Markdown 图片 | `value` 是 loading / loaded / error，名字是替代文字 |
+| `image` | `kit.Image`、Markdown 图片 | `value` 是 loading / loaded / error，名字是替代文字 |
 | `footnotes` | Markdown 脚注 | 引用和返回链接单独列出 |
-| `progressbar` | `widget.Progress` | `value` 是百分比或 indeterminate |
-| `dialog` | 打开的 `widget.Dialog`、`kit.Dialog`、`kit.Sheet`、`kit.Popover`、`kit.HoverCard` 的面板 | 它里面的文字和按钮单独列出 |
+| `progressbar` | `kit.Progress` | `value` 是百分比或 indeterminate |
+| `dialog` | 打开的 `kit.Dialog`、`kit.Sheet`、`kit.Popover`、`kit.HoverCard` 的面板 | 它里面的文字和按钮单独列出 |
 | `alertdialog` | `kit.Dialog` 的 `ConfirmDanger` 和 `Persistent()` | 点遮罩不关闭，Esc 等于取消；里面的元素单独列出 |
 | `radiogroup` | `kit.RadioGroup` | 每个选项是 `radio`，单独列出 |
 | `listbox` | 打开的 `kit.Select` / `kit.Combobox` 列表 | 选项是 `option`，单独列出 |
@@ -149,7 +149,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `tooltip` | `kit.WithTooltip` 的提示 | 名字是提示文字 |
 | `menu` | 打开的 `kit.Menu` | 菜单项单独列出 |
 | `menuitem` | 菜单项 | 有子菜单时 `value` 为 submenu；支持 `disabled` |
-| `link` | Markdown 段落里的链接、`widget.Link` | `value` 是网址 |
+| `link` | Markdown 段落里的链接 | `value` 是网址 |
 | `code` | Markdown 代码块 | 名字是语言；里面的代码文字和"复制"按钮单独列出 |
 
 组件通过 `core.Role` 或 el 的 `Role` 声明的其他角色会原样列出，不需要在自动化代码里登记，只需补进上表。默认情况下，一个元素会吸收它内部的文字；如果子元素需要单独列出（对话框、菜单这类容器），把角色加入 `ui/window/automation.go` 的 `containerRoles`。
@@ -178,7 +178,7 @@ Agent ──MCP(stdio)──► keel-mcp ──JSON 行(unix socket)──► �
 - 可见模式下，真实窗口照常显示，你的鼠标键盘走真实窗口原来的路径，完全不受影响。两边共享同一批组件对象，所以 Agent 通过影子窗口点了按钮，回调执行、状态改变，真实窗口立刻重绘；你在真实窗口里输入的内容，影子窗口下一次渲染时也能看到。影子窗口的尺寸跟随真实窗口，你拖动窗口改变大小，Agent 读到的坐标也跟着变。
 - 无界面模式（`KEEL_HEADLESS=1`）下没有真实窗口，`window.Main` 不进入系统事件循环，只在 socket 上处理请求。
 - 组件、回调、窗口快捷键、`core.Update`、帧锁，走的都是和真实窗口完全相同的代码。
-- "页面有什么"来自 Gio 每帧生成的语义树：每个组件声明自己的角色、名字、状态，路由器算出它在窗口里的绝对位置。Keel 的组件在 `ui/widget/semantics.go` 的 `area` 里声明这些信息。
+- "页面有什么"来自 Gio 每帧生成的语义树：每个组件声明自己的角色、名字、状态，路由器算出它在窗口里的绝对位置。el 元素在绘制时声明这些信息，自己写的 Gio 代码用 `core.Semantic` 声明。
 - 点击、输入、滚动被转换成 Gio 的指针和键盘事件，送进这个窗口的路由器，然后渲染到画面稳定为止：回调改了状态要再画一帧才能看到，最多画 10 帧。
 
 应用侧协议写在 `ui/window/automation_server.go` 的文件注释里。`keel-mcp` 不引用任何 Keel 包，只说这个协议；想用别的语言写测试客户端，照着协议发 JSON 即可。
@@ -193,7 +193,7 @@ Agent ──MCP(stdio)──► keel-mcp ──JSON 行(unix socket)──► �
 - **时间只在请求时前进。** 应用只在收到请求时渲染。后台 goroutine 的 `core.Update` 在下一次请求时生效；要等它，用 `wait_for`。
 - **不支持悬停、拖拽、右键、双击。** 现有组件用不到，需要时在 `ui/window/automation.go` 里加。
 - **不报告焦点位置。** `type` 不带 `ref` 时输入到当前有焦点的输入框；没有焦点会报错。
-- **自己用 `core.Func` 写的布局对 Agent 不可见**，除非在里面加 Gio 的 `semantic` 操作。新组件的做法见[扩展指南](extending.md#新增组件)。
+- **自己用 `core.Func` 写的布局对 Agent 不可见**，除非用 `core.Semantic` 声明。用 el 写就不需要，见[扩展指南](extending.md#新增组件)。
 
 ## 在 Go 测试里用
 

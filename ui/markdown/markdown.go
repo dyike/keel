@@ -27,7 +27,7 @@
 package markdown
 
 import (
-	widgets "github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/internal/imageload"
 	"strings"
 )
 
@@ -43,8 +43,8 @@ type Doc struct {
 	contextual    bool
 	parsedContext string
 	pendingAnchor string
-	images        map[string]*widgets.ImageAsset
-	imageLoader   widgets.ImageLoader
+	images        map[string]*imageload.Asset
+	imageLoader   imageload.Loader
 
 	parses int // chunks parsed so far, for tests
 }

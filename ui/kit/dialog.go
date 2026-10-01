@@ -14,7 +14,7 @@ import (
 //	edit := kit.Dialog("编辑订单").Body(form).Footer(cancel, save)
 //	edit.SetValue(true)
 //
-// or reuse one instance for standard messages, like widget.Dialog:
+// or reuse one instance for standard messages:
 //
 //	dlg := kit.Dialog("")
 //	dlg.ConfirmDanger("删除订单", "确定删除？", "删除", remove)

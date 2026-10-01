@@ -2,7 +2,7 @@
 
 GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回一棵链式样式搭起来的元素树；flexbox 布局；元素状态（悬停、滚动、输入框内容）按元素路径或 ID 自动保存；Agent 语义自动生成。
 
-- **依赖**：`core`、`theme`，以及内部的 `ui/internal/loop` 和 `ui/internal/editorstyle`。不依赖 `layout`、`widget`、`window`。
+- **依赖**：`core`、`theme`，以及内部的 `ui/internal/loop` 和 `ui/internal/editorstyle`。不依赖 `kit`、`window`。
 - **被谁依赖**：应用代码。`window` 通过 `FillsWindow` 接口认出 `el.Root`，不引用本包。
 
 | 文件 | 内容 |

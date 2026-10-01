@@ -183,11 +183,21 @@ Gio 的好处：界面完全由 Go 绘制，组件只是普通 Go 结构体，�
 
 暂不做代码编辑器、HTML 富文本、完整 TeX、局部主题覆盖、Kbd 动作绑定查询。这些能力需要各自的模型与接口，等有实际需求时单独决策。
 
+## 删除 ui/widget 和 ui/layout
+
+**决定**：M6 完成后删除 `ui/widget` 和 `ui/layout`，Keel 只保留一套组件 `ui/kit`。这条决策取代前文"有状态组件 + 容器"和"旧的 ui/layout + ui/widget 保留"。
+
+**为什么**：kit 已覆盖旧组件的全部功能，示例和测试都已迁移。两套组件并存，焦点、禁用、浮层、语义要维护两份，文档也要讲两种写法。
+
+**怎么做**：Markdown 用到的图片加载、解码限制和占位移到 `ui/internal/imageload`，Markdown 公开 `ImageLoader` 和 `DecodeImage`。`window.Options.Content` 和 `Overlay` 仍接受任意 `core.Widget`，自己写的 Gio 代码照常可用。
+
+**代价**：没有兼容层。使用旧组件的代码按 [kit 组件](kit.md) 改写：`widget.Xxx` 一般对应 `kit.Xxx`，`layout.Column` / `Row` / `Card` 改用 `el.Div`。
+
 ## 框架文字集中到 ui/locale
 
 **决定**：Keel 自己显示或报告给 Agent 的文字（确定、取消、复制、关闭、请选择、"36 行"等）全部放进 `ui/locale`。默认中文，提供英文预设，`locale.Apply` 在运行时切换，所有窗口重绘，`cx.Cache` 自动失效，做法与 `theme` 一致。
 
-**为什么**：kit、widget、markdown 里一共写死了二十多处中文。应用切换到英文界面时，这些框架文字没法跟着换。组件越多，以后改的成本越高，所以趁 kit 还在早期集中处理。
+**为什么**：kit、当时的 widget 和 markdown 里一共写死了二十多处中文。应用切换到英文界面时，这些框架文字没法跟着换。组件越多，以后改的成本越高，所以趁 kit 还在早期集中处理。
 
 **范围**：只管框架文字。应用自己的文案由应用负责，Keel 不做翻译系统；`Current().Lang` 告诉应用当前是什么语言，切换后界面会重新渲染。
 

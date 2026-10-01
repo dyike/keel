@@ -19,17 +19,17 @@ window.Open(window.Options{Title: "计数", Content: el.Root(&Counter{})})
 window.Main()
 ```
 
-和 `ui/widget` + `ui/layout` 的写法比：
+和直接写 Gio 比：
 
-| | widget + layout | el |
+| | Gio | el |
 | --- | --- | --- |
 | 交互状态 | 每个组件自己声明 `widget.Clickable` 等字段 | 框架按元素位置（或 `ID`）自动保存，不用声明 |
-| 布局 | `layout.Column`/`Row` 和少量参数 | flexbox：内外边距、间距、伸缩、对齐、百分比尺寸、滚动、绝对定位 |
-| 样式 | 组件内部写死，靠 theme 变量 | 每个元素都能链式设置，悬停、按下有样式变体 |
-| 事件结果 | 回调后下一帧才画出 | 先处理事件再渲染，同一帧就画出 |
-| Agent 语义 | 组件作者手动声明 | 自动：有 `OnClick` 的是按钮，文字是文本，`Input` 是输入框 |
+| 布局 | 层层嵌套 `layout.Flex{}.Layout(gtx, layout.Rigid(...))` | flexbox：内外边距、间距、伸缩、对齐、百分比尺寸、滚动、绝对定位 |
+| 样式 | 每次绘制手写 | 每个元素都能链式设置，悬停、按下有样式变体 |
+| 事件结果 | 处理顺序取决于布局顺序 | 先处理事件再渲染，同一帧就画出 |
+| Agent 语义 | 手动声明 | 自动：有 `OnClick` 的是按钮，文字是文本，`Input` 是输入框 |
 
-两套写法可以混用，见下文"和 ui/widget 混用"。新界面优先用 `el`。
+现成组件在 [ui/kit](kit.md)，它们都是 el 视图。
 
 ## 一帧里发生了什么
 
@@ -50,7 +50,7 @@ Render 每帧都会调用，要保持便宜：只根据状态搭树，不做 I/O
 | `el.Div()` | 盒子，唯一能有子元素的元素。默认子元素从上到下排列 |
 | `el.Text(s)` | 文字，按可用宽度自动换行 |
 | `el.Input()` / `el.TextArea()` | 输入框，带默认边框样式，获得焦点时边框变蓝 |
-| `el.Widget(w)` | 嵌入任意 `core.Widget`，比如 `widget.Table` |
+| `el.Widget(w)` | 嵌入任意 `core.Widget`，比如用 `core.Func` 包起来的一段 Gio 布局 |
 
 输入框：
 
@@ -60,7 +60,7 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 
 点击空白处会让输入框失去焦点。
 
-`Bind(&字符串)` 双向绑定：用户输入会写进变量，程序改了变量，下一帧输入框也跟着变。`Password()` 遮盖内容。`MaxLen(n)` 限制字符数，`Filter("0123456789")` 只接受这些字符（输入和粘贴都会过滤），`ReadOnly(true)` 允许选择复制但不能编辑。单行输入框设置 `OnKey` 后，↑ ↓ PageUp PageDown 先交给它处理，编辑器不再收到这几个键（单行框里它们本来只能把光标移到开头或结尾）；带 Shift 等修饰键的组合仍归编辑器，用来扩展选区。返回值不影响结果，这几个键总是被拿走。输入框位于 `Disabled(true)` 的子树里时不能编辑，`el.Widget` 嵌入的旧组件也一样。
+`Bind(&字符串)` 双向绑定：用户输入会写进变量，程序改了变量，下一帧输入框也跟着变。`Password()` 遮盖内容。`MaxLen(n)` 限制字符数，`Filter("0123456789")` 只接受这些字符（输入和粘贴都会过滤），`ReadOnly(true)` 允许选择复制但不能编辑。单行输入框设置 `OnKey` 后，↑ ↓ PageUp PageDown 先交给它处理，编辑器不再收到这几个键（单行框里它们本来只能把光标移到开头或结尾）；带 Shift 等修饰键的组合仍归编辑器，用来扩展选区。返回值不影响结果，这几个键总是被拿走。输入框位于 `Disabled(true)` 的子树里时不能编辑，`el.Widget` 嵌入的 Gio 代码也一样。
 
 ## 样式方法
 
@@ -242,12 +242,11 @@ func button(label string, onClick func()) el.Element {
 
 需要自己的状态、而且状态要跨帧保存的组件，写成视图（struct + Render）。
 
-## 和 ui/widget 混用
+## 放进窗口和嵌入 Gio
 
-- **在 el 里用旧组件**：`el.Widget(table)` 嵌入。表格、下拉框、单选、开关现在就是这样用的，见 `examples/orders`。
-- **在旧布局里用 el**：`el.Embed(view)` 得到一个按内容定尺寸的 `core.Widget`。
-- **整个窗口用 el**：`window.Options{Content: el.Root(view)}`。`Root` 占满窗口，窗口不再加边距和外层滚动；页面要滚动时，给根 `Div` 加 `ScrollY()`。
-- **对话框**：`widget.Dialog` 照旧放在 `window.Options.Overlay`。
+- **整个窗口用 el**：`window.Options{Content: el.Root(view)}`。`Root` 占满窗口，窗口不再加边距和外层滚动；页面要滚动时，给根 `Div` 加 `ScrollY()`。浮层（对话框、菜单）用 `cx.Overlay` 声明，不需要 `window.Options.Overlay`。
+- **在 el 里放 Gio 代码**：`el.Widget(w)` 嵌入任意 `core.Widget`，比如用 `core.Func` 包起来的一段 Gio 布局。
+- **把 el 放进 Gio 布局**：`el.Embed(view)` 得到一个按内容定尺寸的 `core.Widget`。
 
 ## Agent 能看到什么
 
@@ -266,7 +265,7 @@ func button(label string, onClick func()) el.Element {
 ## 已知限制
 
 - 布局是 flexbox 的子集：没有换行（wrap）、网格、`align-self`、横向滚动、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
-- 没有虚拟列表：`ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行的表格用 `el.Widget(widget.Table)`。
+- `ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行以上用 `kit.VirtualList` 或 `kit.Table`，只布局可见行。
 - 没有过渡动画的封装，需要自己用 `Now` / `Animating` 计算。
 - 浮层只在 `el.Root` 中完整支持，`el.Embed` 按嵌入约束尽力支持。
 - 浮层不支持跨窗口。

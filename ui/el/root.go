@@ -131,8 +131,8 @@ func Root(v View) *RootWidget {
 	return &RootWidget{view: v, fill: true, store: newStore(), cache: elementCache{entries: map[any]*cacheEntry{}}}
 }
 
-// Embed renders v as an ordinary widget sized to its content, e.g. inside a
-// ui/layout.Column during migration.
+// Embed renders v as an ordinary widget sized to its content, e.g. inside
+// hand-written Gio layout or a window that pads and scrolls its content.
 func Embed(v View) *RootWidget {
 	return &RootWidget{view: v, store: newStore(), cache: elementCache{entries: map[any]*cacheEntry{}}}
 }

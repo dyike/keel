@@ -59,7 +59,7 @@ const CJKNudge unit.Dp = 2
 // box one descent below the last baseline; CJK system fonts have a large
 // descent, so text otherwise sits visibly high in its box (measured: 2px of
 // space above the ink and 17px below, for 15sp at 2×). 0.22 balances CJK and
-// Latin text. Used by ui/el and ui/markdown; ui/widget still uses CJKNudge.
+// Latin text. Used by ui/el and ui/markdown.
 const TextShift = 0.22
 
 // Shift returns TextShift for a text size, in pixels.

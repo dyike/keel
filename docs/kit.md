@@ -1,12 +1,12 @@
 # kit 组件规范
 
-新组件放在 `ui/kit`，用 `ui/el` 组织元素、布局和交互。`ui/widget` 只修 bug。M0 建立规范；组件从 M1 开始，焦点与按键接口须经 review 后才能继续扩展。迁移顺序见[设计决策](decisions.md#新组件基于-eluiwidget-冻结)。
+组件放在 `ui/kit`，用 `ui/el` 组织元素、布局和交互。演进过程见[设计决策](decisions.md#新组件基于-eluiwidget-冻结)。
 
 ## 模块与 API
 
 kit 的枚举常量一律以类型名作前缀，去掉类型名中的 Name / Shape / Status / Variant 后缀：ToneNeutral / ToneInfo / ToneSuccess / ToneWarning / ToneDanger，AvatarOnline / AvatarBusy / AvatarOffline，ButtonPrimary / ButtonSecondary / ButtonGhost / ButtonDanger；IconCheck、MarkerDot 沿用现有命名。不保留旧名称的兼容别名。el 是底层布局库，el.Bottom、el.Start 等布局短名不受这条规则限制。
 
-kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`layout`、`window`。el 缺少的基础能力先在 el 中实现，不在各组件里复制 Gio 输入路由、定时或浮层机制。依赖测试按传递依赖登记 `internal/loop` 和 `internal/editorstyle`，它们不是 kit 的直接依赖。
+kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `window`。el 缺少的基础能力先在 el 中实现，不在各组件里复制 Gio 输入路由、定时或浮层机制。依赖测试按传递依赖登记 `internal/loop` 和 `internal/editorstyle`，它们不是 kit 的直接依赖。
 
 构造函数 `Xxx(...)` 返回 `*XxxView`。组件以 `Render(*el.Context) el.Element` 接入 el，实例保留业务状态，Render 根据当前状态生成元素树。动态列表使用稳定 ID，不用数组位置代表可移动项目。
 
@@ -43,7 +43,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 - 公开 API、组件文档、README、示例同时更新。
 - `go build ./... && go vet ./ui/... && go test ./... -count=1` 全部通过，包括 `cmd/keel-mcp` 端到端测试。
 
-每个组件完成后单独提交，再开始下一个。迁移不删除仍有调用者的旧组件；所有组件和调用者迁完才删除 `ui/widget`。
+每个组件完成后单独提交，再开始下一个。
 
 ## 已实现组件
 

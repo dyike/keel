@@ -22,9 +22,27 @@ theme.Apply(p)
 
 `cx.Cache` 随 Apply 自动失效；应用自己的渲染缓存需将 `theme.Revision()` 纳入键。Render 时重新读取颜色；已构造的静态元素、自定义固定颜色和 Markdown 独立配色不会被自动重写。没有局部主题作用域，也不自动跟随系统外观。
 
-兼容直接修改颜色变量的旧写法，但它不会同步 Material、刷新缓存或请求重绘；运行时请用 Apply。
+直接修改颜色变量不会同步 Material、刷新缓存或请求重绘；运行时请用 Apply。
 
 - 依赖：Gio 和 `ui/internal/loop`（仅通知全局重绘）。
-- 被依赖：`el`、`kit`、`layout`、`widget`、`window`、`markdown`。
+- 被依赖：`el`、`kit`、`window`、`markdown`。
 
-验证入口：`go run ./examples/components -section theme -theme dark`。颜色列表见[组件与布局 · 主题](../../docs/widgets.md#主题)。
+验证入口：`go run ./examples/components -section theme -theme dark`。
+
+| 颜色 | 浅色默认值 | 用在哪里 |
+| --- | --- | --- |
+| `Bg` | `#f5f6f8` | 窗口背景 |
+| `Surface` | `#ffffff` | 卡片、输入框底色 |
+| `Border` | `#e3e5e8` | 边框、分隔线 |
+| `Text` / `Muted` | `#1f2328` / `#6b7280` | 正文 / 次要文字、占位文字 |
+| `Primary` / `PrimaryHover` / `PrimaryText` | `#2563eb` / `#1d4ed8` / `#1d4ed8` | 主按钮、焦点边框 / 悬停 / 链接等蓝色文字 |
+| `Danger` / `DangerHover` / `DangerText` | `#dc2626` / `#b91c1c` / `#b91c1c` | 危险按钮 / 悬停 / 错误文字 |
+| `Success` / `Warning` / `Info` | `#15803d` / `#a16207` / `#0369a1` | 状态正文、图标 |
+| `Subtle` / `SubtleHover` | `#eceef1` / `#e2e5e9` | 次要按钮、悬停底色 |
+| `OnColor` | `#ffffff` | 实心主色、危险色背景上的文字 |
+| `Highlight` | `#dbeafe` | 选中行、选中项 |
+| `Scrim` | 40% 黑 | 模态浮层后面的遮罩 |
+| `CodeBg` / `CodeText` | `#f0f1f3` / `#1f2328` | 代码块 |
+| `Chart` | 8 个分类色 | 图表系列颜色，按顺序使用；浅色和深色各一套，均通过色觉缺陷校验 |
+
+字号常量 `BodySize` / `SmallSize` / `HeadingSize` 为 15 / 13 / 22 sp；`Face` 是字体优先级（苹方 → 冬青黑体 → 微软雅黑 → Noto Sans CJK → Go），逐字形回退。`Material` 是底层的 Gio `material.Theme`，提供字形排版器，自己写 Gio 代码时用它。

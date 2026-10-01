@@ -12,7 +12,7 @@
 | `automation_server.go` | 自动化协议：`KEEL_AUTOMATION` socket 上的 JSON 请求 |
 | `testdata/raise` | 真实窗口死锁回归测试 |
 
-- **依赖**：`core`、`theme`。不依赖 `widget` 和 `layout`：窗口只认 `core.Widget` 接口。
+- **依赖**：`core`、`theme`。不依赖 `el`、`kit`：窗口只认 `core.Widget` 接口。
 - **被谁依赖**：应用代码。`cmd/keel-mcp` 通过 socket 协议驱动它，不引用它的代码。
 
 设置环境变量 `KEEL_AUTOMATION=1`（或 socket 路径）启动应用时，每个窗口会多一个影子窗口，供 Agent 操作；真实窗口照常显示，Agent 的操作会实时反映在屏幕上。再加 `KEEL_HEADLESS=1` 则不显示窗口，见 [Agent 端到端测试](../../docs/automation.md)。
