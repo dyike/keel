@@ -22,6 +22,7 @@
 | `icon.go` | `Icon`、`VectorIcon`：矢量图标、尺寸与颜色 |
 | `kbd.go` | `Kbd`：平台快捷键、尺寸、无边框样式 |
 | `badge.go` | `Badge`：数字、上限、圆点、图标、颜色和角标 |
+| `toggle.go` | `Toggle`：尺寸、图标、Ghost、选中、禁用与键盘 |
 | `draw.go` | 内部绘图小工具 |
 
 - **依赖**：`core`、`theme`、`layout`。

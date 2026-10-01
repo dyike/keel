@@ -165,3 +165,32 @@ func TestAutomationSliderAndAccordion(t *testing.T) {
 		t.Fatal("disabled header not exposed")
 	}
 }
+
+func TestAutomationToggleState(t *testing.T) {
+	toggle := widget.Toggle("固定工具栏", false)
+	w := openTest(t, Options{Content: toggle})
+	e := element(t, w, "固定工具栏")
+	if e.Role != "toggle" || e.Selected == nil || *e.Selected {
+		t.Fatalf("wrong toggle semantics: %+v", e)
+	}
+	w.click(e.center())
+	e = element(t, w, "固定工具栏")
+	if e.Selected == nil || !*e.Selected {
+		t.Fatal("selected state missing")
+	}
+	if err := w.press("tab"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.press("space"); err != nil {
+		t.Fatal(err)
+	}
+	e = element(t, w, "固定工具栏")
+	if e.Selected == nil || *e.Selected {
+		t.Fatal("tab/space failed")
+	}
+	toggle.SetDisabled(true)
+	e = element(t, w, "固定工具栏")
+	if !e.Disabled {
+		t.Fatal("disabled state missing")
+	}
+}

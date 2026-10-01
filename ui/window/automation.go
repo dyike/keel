@@ -235,7 +235,7 @@ func (w *Window) snapshot() []Element {
 			switch role {
 			case "checkbox", "radio", "switch":
 				e.Checked = &state
-			case "tab", "row", "option", "disclosure":
+			case "tab", "row", "option", "disclosure", "toggle":
 				e.Selected = &state
 			}
 			if role != "text" && !containerRoles[role] && e.Name == "" {
@@ -273,7 +273,7 @@ func roleOf(d input.SemanticDesc, inControl bool) (role, value string) {
 	switch d.Class {
 	case semantic.Button:
 		switch custom {
-		case "link", "tab", "columnheader", "select", "image", "disclosure":
+		case "link", "tab", "columnheader", "select", "image", "disclosure", "toggle":
 			return custom, val
 		}
 		return "button", ""
