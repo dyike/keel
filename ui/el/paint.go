@@ -266,7 +266,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	ts := n.textStyle
 	me := material.Editor(theme.Material, ed, spec.placeholder)
 	me.TextSize, me.Color, me.HintColor = ts.size, *ts.color, theme.Muted
-	me.Layout(g)
+	st.caret.Layout(g, me, theme.Material.Shaper)
 	// Keep the value in the semantic tree for agents.
 	value := ed.Text()
 	if spec.password {

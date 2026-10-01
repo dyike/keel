@@ -6,6 +6,8 @@ import (
 
 	"gioui.org/gesture"
 	"gioui.org/widget"
+
+	"github.com/dyike/keel/ui/internal/editorstyle"
 )
 
 // stateKey identifies an element across frames: a hash of its path from the
@@ -45,6 +47,7 @@ type elemState struct {
 	version       int  // ScrollToEndOn's value last frame
 
 	editor   widget.Editor
+	caret    editorstyle.Caret
 	edInit   bool
 	lastText string // what Bind last synced, to spot program changes
 }

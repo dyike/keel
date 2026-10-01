@@ -9,6 +9,7 @@ import (
 	"gioui.org/widget/material"
 
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/internal/editorstyle"
 	"github.com/dyike/keel/ui/layout"
 	"github.com/dyike/keel/ui/theme"
 )
@@ -20,6 +21,7 @@ type Field struct {
 	onChange    func(string)
 	onSubmit    func(string)
 	editor      widget.Editor
+	caret       editorstyle.Caret
 	last        string // content OnChange last saw, so SetValue stays silent
 }
 
@@ -110,6 +112,6 @@ func (f *Field) frame(gtx C) D {
 		ed.TextSize = theme.BodySize
 		ed.Color = theme.Text
 		ed.HintColor = theme.Muted
-		return ed.Layout(gtx)
+		return f.caret.Layout(gtx, ed, theme.Material.Shaper)
 	})
 }

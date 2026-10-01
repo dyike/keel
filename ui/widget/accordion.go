@@ -127,7 +127,7 @@ func (a *AccordionView) Layout(gtx C) D {
 			children = append(children, giolayout.Rigid(func(gtx C) D { return a.header(gtx, v) }))
 			if v.open && v.body != nil {
 				children = append(children, giolayout.Rigid(func(gtx C) D {
-					return giolayout.Inset{Top: 4, Bottom: 14, Left: 12, Right: 12}.Layout(gtx, v.body.Layout)
+					return giolayout.Inset{Top: 8, Bottom: 8, Left: 12, Right: 12}.Layout(gtx, v.body.Layout)
 				}))
 			}
 			children = append(children, giolayout.Rigid(layout.Divider().Layout))
@@ -157,7 +157,7 @@ func (a *AccordionView) header(gtx C, v *accordionItem) D {
 			if gtx.Focused(&v.click) && !disabled {
 				border = theme.Primary
 			}
-			return layout.Frame(gtx, bg, border, 4, giolayout.Inset{Top: 10 + theme.CJKNudge, Bottom: 10 - theme.CJKNudge, Left: 12, Right: 12}, func(gtx C) D {
+			return layout.Frame(gtx, bg, border, 4, giolayout.Inset{Top: 10, Bottom: 10, Left: 12, Right: 12}, func(gtx C) D {
 				return giolayout.Flex{Alignment: giolayout.Middle}.Layout(gtx,
 					giolayout.Flexed(1, func(gtx C) D {
 						lb := material.Label(theme.Material, theme.BodySize, v.title)
@@ -165,7 +165,7 @@ func (a *AccordionView) header(gtx C, v *accordionItem) D {
 						if disabled {
 							lb.Color = theme.Muted
 						}
-						return lb.Layout(gtx)
+						return layoutLabel(gtx, lb)
 					}),
 					giolayout.Rigid(func(gtx C) D {
 						size := image.Pt(gtx.Dp(24), gtx.Dp(18))
