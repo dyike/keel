@@ -1,5 +1,5 @@
 // Package theme holds the colors, text sizes and fonts every UI module reads.
-// Change the variables before opening the first window.
+// Apply changes the global palette under the UI frame lock.
 package theme
 
 import (
@@ -23,6 +23,9 @@ var (
 	PrimaryHover = RGB(0x1d4ed8)
 	DangerHover  = RGB(0xb91c1c)
 	SubtleHover  = RGB(0xe2e5e9)
+	Success      = RGB(0x15803d)        // positive status
+	Warning      = RGB(0xa16207)        // caution status
+	Info         = RGB(0x0369a1)        // informational status
 	Danger       = RGB(0xdc2626)        // danger buttons
 	Subtle       = RGB(0xeceef1)        // secondary buttons
 	OnColor      = RGB(0xffffff)        // text on Primary and Danger

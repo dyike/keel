@@ -259,10 +259,11 @@ layout.Form(
 
 ## 主题
 
-在打开第一个窗口前修改：
+开窗前或 UI 回调中应用完整调色板：
 
 ```go
-theme.Primary = theme.RGB(0x16a34a) // 换成绿色
+theme.Apply(theme.Dark()) // 切换深色并重绘所有窗口
+// 后台 goroutine 使用 core.Update(func() { theme.Apply(theme.Light()) })
 ```
 
 | `theme` 的变量 | 默认值 | 用在哪里 |
@@ -273,6 +274,9 @@ theme.Primary = theme.RGB(0x16a34a) // 换成绿色
 | `Text` | `#1f2328` | 正文 |
 | `Muted` | `#6b7280` | 次要文字、占位文字、未勾选图标 |
 | `Primary` | `#2563eb` | 主按钮、链接、焦点边框、已勾选图标 |
+| `Success` | `#15803d` | 成功正文、图标 |
+| `Warning` | `#a16207` | 警告正文、图标 |
+| `Info` | `#0369a1` | 提示正文、图标 |
 | `Danger` | `#dc2626` | 危险按钮 |
 | `Subtle` | `#eceef1` | 次要按钮底色 |
 | `OnColor` | `#ffffff` | 主按钮、危险按钮上的文字 |
@@ -284,6 +288,8 @@ theme.Primary = theme.RGB(0x16a34a) // 换成绿色
 | `BodySize` / `SmallSize` / `HeadingSize` | 15 / 13 / 22 sp | 字号 |
 | `FontFace` | `PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, Noto Sans SC, Go` | 字体优先级，逐字形回退 |
 | `CJKNudge` | 2dp | 按钮、输入框里文字下移的量，见[常见问题](troubleshooting.md#按钮里的中文偏上) |
+
+完整 API、线程规则和缓存约定见 [theme README](../ui/theme/README.md)。预设可通过 `Light()`、`Dark()` 获取副本，当前颜色用 `Current()` 读取。
 
 `theme.Material` 是底层的 Gio `material.Theme`，提供字形排版器和图标。写自定义组件时用它创建 `material.Label` 等。
 

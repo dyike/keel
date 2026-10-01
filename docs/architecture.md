@@ -45,6 +45,7 @@ ui:
      │         │      │
      └─────────┴──────┴──► core
 
+  theme ──► internal/loop（主题切换通知所有窗口重绘）
   el、widget ──► internal/editorstyle
 
 native:
@@ -56,7 +57,7 @@ native:
 
 规则只有三条：
 
-1. **依赖只往下走。** 下层不知道上层存在：`core` 只依赖内部帧锁，`theme` 不引用任何 Keel 模块；`layout` 不知道有 `widget`；`window` 只认 `core.Widget` 接口，不知道具体有哪些组件。
+1. **依赖只往下走。** 下层不知道上层存在：`core` 只依赖内部帧锁，`theme` 仅引用内部帧循环以通知主题重绘；`layout` 不知道有 `widget`；`window` 只认 `core.Widget` 接口，不知道具体有哪些组件。
 2. **同层之间不互相引用。** `widget` 和 `window` 互不引用；四个 `native` 模块互不引用。
 3. **`ui` 和 `native` 互不引用。** 不需要窗口的程序（后台截图、全局快捷键）只引用需要的 `native/*`，不会带进 Gio。
 
@@ -71,7 +72,7 @@ native:
 | 模块 | 放什么 | 不放什么 |
 | --- | --- | --- |
 | `ui/core` | 所有界面模块都要遵守的接口和函数 | 任何具体组件、颜色 |
-| `ui/theme` | 可调的视觉参数 | 任何逻辑 |
+| `ui/theme` | 视觉参数、全局调色板切换与重绘通知 | 组件、局部主题作用域 |
 | `ui/layout` | 只摆放子组件的容器；`Frame` 绘制工具 | 用户回调 |
 | `ui/widget` | 旧组件的 bug 修复 | 新组件、新能力 |
 | `ui/kit` | 基于 el 的组件 | Gio 输入和浮层基础设施、窗口管理 |

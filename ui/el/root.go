@@ -40,9 +40,13 @@ type Context struct {
 // chat history, a rendered document) costs little per frame. key must be
 // comparable and change whenever the element would look different; the
 // element must not depend on anything else. Entries unused for a frame are
-// dropped.
+// dropped. Applying a theme also rebuilds cached elements.
 func (cx *Context) Cache(key any, build func() Element) Element {
-	c := cx.root.cache
+	c := &cx.root.cache
+	if c.themeRevision != theme.Revision() {
+		clear(c.entries)
+		c.themeRevision = theme.Revision()
+	}
 	if e, ok := c.entries[key]; ok {
 		e.frame = cx.root.store.frame
 		return e.el
@@ -56,7 +60,10 @@ func (cx *Context) Cache(key any, build func() Element) Element {
 	return el
 }
 
-type elementCache struct{ entries map[any]*cacheEntry }
+type elementCache struct {
+	entries       map[any]*cacheEntry
+	themeRevision uint64
+}
 
 type cacheEntry struct {
 	el    Element
@@ -102,13 +109,13 @@ type RootWidget struct {
 //
 //	window.Open(window.Options{Title: "Orders", Content: el.Root(&Orders{})})
 func Root(v View) *RootWidget {
-	return &RootWidget{view: v, fill: true, store: newStore(), cache: elementCache{map[any]*cacheEntry{}}}
+	return &RootWidget{view: v, fill: true, store: newStore(), cache: elementCache{entries: map[any]*cacheEntry{}}}
 }
 
 // Embed renders v as an ordinary widget sized to its content, e.g. inside a
 // ui/layout.Column during migration.
 func Embed(v View) *RootWidget {
-	return &RootWidget{view: v, store: newStore(), cache: elementCache{map[any]*cacheEntry{}}}
+	return &RootWidget{view: v, store: newStore(), cache: elementCache{entries: map[any]*cacheEntry{}}}
 }
 
 // FillsWindow tells ui/window to give the root the whole window.

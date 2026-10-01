@@ -1,0 +1,67 @@
+package theme
+
+import (
+	"image/color"
+
+	"gioui.org/widget/material"
+	"github.com/dyike/keel/ui/internal/loop"
+)
+
+// Palette contains every global color token. Start from Light or Dark when
+// customizing: Apply replaces all colors, including zero (transparent) values.
+type Palette struct {
+	Bg, Surface, Border, Text, Muted               color.NRGBA
+	Primary, PrimaryHover, Danger, DangerHover     color.NRGBA
+	Success, Warning, Info                         color.NRGBA
+	Subtle, SubtleHover, OnColor, Highlight, Scrim color.NRGBA
+}
+
+// Light returns an independent copy of the default light palette.
+func Light() Palette {
+	return Palette{
+		Bg: RGB(0xf5f6f8), Surface: RGB(0xffffff), Border: RGB(0xe3e5e8),
+		Text: RGB(0x1f2328), Muted: RGB(0x6b7280), Primary: RGB(0x2563eb), PrimaryHover: RGB(0x1d4ed8),
+		Danger: RGB(0xdc2626), DangerHover: RGB(0xb91c1c), Success: RGB(0x15803d), Warning: RGB(0xa16207), Info: RGB(0x0369a1),
+		Subtle: RGB(0xeceef1), SubtleHover: RGB(0xe2e5e9), OnColor: RGB(0xffffff), Highlight: RGB(0xdbeafe), Scrim: color.NRGBA{A: 0x66},
+	}
+}
+
+// Dark returns an independent copy of the dark palette.
+func Dark() Palette {
+	return Palette{
+		Bg: RGB(0x111827), Surface: RGB(0x1f2937), Border: RGB(0x4b5563),
+		Text: RGB(0xf3f4f6), Muted: RGB(0x9ca3af), Primary: RGB(0x2563eb), PrimaryHover: RGB(0x1d4ed8),
+		Danger: RGB(0xdc2626), DangerHover: RGB(0xb91c1c), Success: RGB(0x4ade80), Warning: RGB(0xfacc15), Info: RGB(0x7dd3fc),
+		Subtle: RGB(0x374151), SubtleHover: RGB(0x4b5563), OnColor: RGB(0xffffff), Highlight: RGB(0x1e3a5f), Scrim: color.NRGBA{A: 0x99},
+	}
+}
+
+// Current returns a copy of the current colors. Read it under the UI lock,
+// like the public color variables, or before opening the first window.
+func Current() Palette {
+	return Palette{Bg: Bg, Surface: Surface, Border: Border, Text: Text, Muted: Muted,
+		Primary: Primary, PrimaryHover: PrimaryHover, Danger: Danger, DangerHover: DangerHover,
+		Success: Success, Warning: Warning, Info: Info, Subtle: Subtle, SubtleHover: SubtleHover,
+		OnColor: OnColor, Highlight: Highlight, Scrim: Scrim}
+}
+
+var revision uint64
+
+// Revision changes whenever Apply replaces the palette. Use it in custom
+// render cache keys. Read under the UI lock, like Current.
+func Revision() uint64 { return revision }
+
+// Apply synchronously replaces the global palette and redraws every window.
+// Call before opening windows or from a UI callback under the frame lock.
+// Other goroutines must use core.Update(func() { theme.Apply(p) }). Apply
+// never acquires the frame lock itself, so callbacks cannot deadlock on it.
+// Fonts, the text shaper and the Material pointer remain unchanged.
+func Apply(p Palette) {
+	Bg, Surface, Border, Text, Muted = p.Bg, p.Surface, p.Border, p.Text, p.Muted
+	Primary, PrimaryHover, Danger, DangerHover = p.Primary, p.PrimaryHover, p.Danger, p.DangerHover
+	Success, Warning, Info = p.Success, p.Warning, p.Info
+	Subtle, SubtleHover, OnColor, Highlight, Scrim = p.Subtle, p.SubtleHover, p.OnColor, p.Highlight, p.Scrim
+	Material.Palette = material.Palette{Fg: Text, Bg: Surface, ContrastBg: Primary, ContrastFg: OnColor}
+	revision++
+	loop.InvalidateAll()
+}

@@ -1,6 +1,6 @@
 // Package loop owns the state shared by every window: one lock that serializes
 // rendering and callbacks, a queue of updates from other goroutines, and the
-// windows to redraw. Only ui/core and ui/window use it.
+// windows to redraw. UI infrastructure uses it; theme only requests redraws.
 package loop
 
 import "sync"

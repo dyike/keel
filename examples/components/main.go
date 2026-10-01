@@ -9,6 +9,7 @@ import (
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/layout"
+	"github.com/dyike/keel/ui/theme"
 	"github.com/dyike/keel/ui/widget"
 	"github.com/dyike/keel/ui/window"
 )
@@ -53,7 +54,16 @@ func gallery() core.Widget {
 func main() {
 	section := flag.String("section", "all", "component name, controls, inputs, or all")
 	screenshot := flag.String("screenshot", "", "render a PNG and exit")
+	palette := flag.String("theme", "light", "light or dark palette")
 	flag.Parse()
+	switch *palette {
+	case "light":
+		theme.Apply(theme.Light())
+	case "dark":
+		theme.Apply(theme.Dark())
+	default:
+		log.Fatalf("unknown theme %q", *palette)
+	}
 	content, ok := sectionContent(*section, gallery())
 	if !ok {
 		log.Fatalf("unknown section %q", *section)

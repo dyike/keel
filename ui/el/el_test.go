@@ -11,6 +11,7 @@ import (
 	"gioui.org/io/key"
 
 	"github.com/dyike/keel/ui/internal/uitest"
+	"github.com/dyike/keel/ui/theme"
 )
 
 // viewFunc adapts a function to View.
@@ -340,5 +341,35 @@ func TestScrollToEndOn(t *testing.T) {
 	h.Frame()
 	if y := labelY(h, "line 10"); y < 0 || y > 100 {
 		t.Fatalf("did not jump to the new last line (at y=%d)", y)
+	}
+}
+
+func TestThemeSwitchRebuildsCachedElements(t *testing.T) {
+	original := theme.Current()
+	defer theme.Apply(original)
+	builds := 0
+	var cached Element
+	root := Root(viewFunc(func(cx *Context) Element {
+		cached = cx.Cache("card", func() Element {
+			builds++
+			return Div().Bg(theme.Surface).Child(Text("主题内容"))
+		})
+		return Div().Child(cached)
+	}))
+	h := uitest.New(root)
+	h.Frame()
+	if builds != 1 {
+		t.Fatal("cache missed without theme change")
+	}
+	for i, palette := range []theme.Palette{theme.Dark(), theme.Light()} {
+		theme.Apply(palette)
+		h.Frame()
+		if builds != i+2 || *cached.node().style.bg != palette.Surface {
+			t.Fatal("cached element kept old theme")
+		}
+		h.Frame()
+		if builds != i+2 {
+			t.Fatal("cache did not stabilize after theme change")
+		}
 	}
 }

@@ -17,3 +17,5 @@ go run ./examples/components -screenshot /tmp/keel-components.png
 ```
 
 交互回归测试在 `ui/widget/slider_test.go`、`accordion_test.go`、`image_test.go`，自动化角色和键盘焦点测试在 `ui/window/automation_test.go`。
+
+主题验证：`go run ./examples/components -section theme`，点击“浅色”“深色”来回切换；可用 `-theme dark` 指定启动配色，并与 `-screenshot /tmp/keel-theme.png` 组合检查截图。

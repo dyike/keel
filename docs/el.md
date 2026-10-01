@@ -177,3 +177,6 @@ func button(label string, onClick func()) el.Element {
 - 没有虚拟列表：`ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行的表格用 `el.Widget(widget.Table)`。
 - 没有动画和过渡效果。
 - 键盘：`Input` 自带焦点；其他元素还不能获得焦点或处理按键，快捷键用 `cx.Shortcut`。
+
+
+主题切换时 `theme.Apply` 会使 `cx.Cache` 的元素在下次访问时重建。自建缓存需要包含 `theme.Revision()`；主题色应在 Render 或缓存构建函数内读取，固定颜色不会自动转换。
