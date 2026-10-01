@@ -11,7 +11,7 @@
 | `input.go` | `Input`、`TextArea`：前后缀、清空、禁用、标签聚焦、自动高度 |
 | `checkbox.go` | `Checkbox`：禁用、半选、回调和键盘操作 |
 | `table.go` | `Table`、`Col`：排序、选中、键盘导航、只渲染可见行 |
-| `select.go` | `Select`：下拉选择 |
+| `select.go` | `Select`：下拉选择、禁用与恢复 |
 | `tabs.go` | `Tabs` |
 | `radio.go` | `RadioGroup`：单选、静默赋值、回调与禁用 |
 | `switch.go` | `Switch`：尺寸、禁用、加载、键盘操作 |

@@ -23,6 +23,7 @@ type SelectBox struct {
 	options           []string
 	index             int
 	open              bool
+	disabled          bool
 	onChange          func(string)
 
 	box     widget.Clickable
@@ -39,6 +40,12 @@ func Select(label string, options ...string) *SelectBox {
 
 func (s *SelectBox) Hint(h string) *SelectBox                  { s.hint = h; return s }
 func (s *SelectBox) OnChange(fn func(value string)) *SelectBox { s.onChange = fn; return s }
+func (s *SelectBox) SetDisabled(v bool) {
+	s.disabled = v
+	if v {
+		s.open = false
+	}
+}
 
 // SetName names the dropdown for agents when it has no visible label; Form
 // calls it with the field's label.
@@ -75,6 +82,12 @@ func (s *SelectBox) SetValue(v string) {
 }
 
 func (s *SelectBox) Layout(gtx C) D {
+	if s.disabled {
+		gtx = gtx.Disabled()
+	}
+	if !gtx.Enabled() {
+		s.open = false
+	}
 	for s.box.Clicked(gtx) {
 		s.open = !s.open
 	}
@@ -126,7 +139,7 @@ func (s *SelectBox) field(gtx C) D {
 	}
 	d := s.box.Layout(gtx, func(gtx C) D {
 		pointer.CursorPointer.Add(gtx.Ops)
-		return core.Semantic(gtx, s.closed, semantic.Button, semantic.LabelOp(name), core.Role("select", s.Value()))
+		return core.Semantic(gtx, s.closed, semantic.Button, semantic.LabelOp(name), core.Role("select", s.Value()), semantic.EnabledOp(gtx.Enabled()))
 	})
 	if s.open {
 		m := op.Record(gtx.Ops)
@@ -146,6 +159,9 @@ func (s *SelectBox) closed(gtx C) D {
 	return layout.Frame(gtx, theme.Surface, border, 6, in, func(gtx C) D {
 		gtx.Constraints.Min.X = gtx.Constraints.Max.X
 		text, col := s.Value(), theme.Text
+		if !gtx.Enabled() {
+			col = theme.Muted
+		}
 		if text == "" {
 			text, col = s.hint, theme.Muted
 		}

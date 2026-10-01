@@ -261,3 +261,31 @@ func TestAutomationDisabledRadio(t *testing.T) {
 		t.Fatal("radio did not recover")
 	}
 }
+
+func TestAutomationDisabledSelect(t *testing.T) {
+	s := widget.Select("状态", "甲", "乙")
+	w := openTest(t, Options{Content: s})
+	s.SetDisabled(true)
+	e := element(t, w, "状态")
+	if e.Role != "select" || !e.Disabled {
+		t.Fatalf("missing disabled select: %+v", e)
+	}
+	w.click(e.center())
+	w.press("space")
+	w.press("enter")
+	for _, e := range w.snapshot() {
+		if e.Role == "option" {
+			t.Fatal("disabled select opened")
+		}
+	}
+	s.SetDisabled(false)
+	e = element(t, w, "状态")
+	if e.Disabled {
+		t.Fatal("select remained disabled")
+	}
+	w.click(e.center())
+	w.click(element(t, w, "乙").center())
+	if s.Value() != "乙" {
+		t.Fatal("select did not recover")
+	}
+}

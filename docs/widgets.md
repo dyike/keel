@@ -143,6 +143,8 @@ status.SetValue("待付款")
 
 点击展开，点选项或点外面收起，Esc 也能收起。方法：`Value()`、`Index()`、`SetValue(v)`（不触发 `OnChange`）、`SetOptions(...)`、`Hint(s)`。
 
+`Select.SetDisabled(true)` 会关闭下拉菜单，禁用鼠标、键盘和焦点；解除禁用后恢复。`SetValue` 不触发回调。验证：`go run ./examples/components -section select`。
+
 ## 标签页
 
 ```go
