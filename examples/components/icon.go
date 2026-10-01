@@ -2,12 +2,20 @@ package main
 
 import (
 	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/layout"
-	"github.com/dyike/keel/ui/theme"
-	"github.com/dyike/keel/ui/widget"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
 )
 
-func init() { registerSection("icon", "controls", iconGallery) }
-func iconGallery() core.Widget {
-	return layout.Card(widget.Heading("矢量图标"), layout.Row(widget.Icon(widget.IconCheck), widget.Icon(widget.IconClose), widget.Icon(widget.IconPlus), widget.Icon(widget.IconSearch), widget.Icon(widget.IconCopy), widget.Icon(widget.IconChevronDown), widget.Icon(widget.IconChevronRight)), layout.Row(widget.Icon(widget.IconSearch).Size(12), widget.Icon(widget.IconSearch).Size(24).Color(theme.Primary), widget.Icon(widget.IconSearch).Size(36).Color(theme.Danger)))
+func init() {
+	registerSection("icon", "controls", func() core.Widget { return el.Embed(iconGallery{}) })
+}
+
+type iconGallery struct{}
+
+func (iconGallery) Render(cx *el.Context) el.Element {
+	r := el.Div().Row().Gap(16)
+	for n := kit.IconCheck; n <= kit.IconInbox; n++ {
+		r.Child(kit.Icon(n).Size(24).Render(cx))
+	}
+	return r
 }
