@@ -16,11 +16,7 @@ type DescriptionListView struct {
 	labelWidth float32
 }
 
-func DescriptionList(items ...Description) *DescriptionListView {
-	v := &DescriptionListView{labelWidth: 96}
-	v.SetItems(items...)
-	return v
-}
+func DescriptionList() *DescriptionListView { return &DescriptionListView{labelWidth: 96} }
 func (v *DescriptionListView) SetItems(items ...Description) {
 	v.items = nil
 	for _, i := range items {

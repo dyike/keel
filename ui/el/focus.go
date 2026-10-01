@@ -26,9 +26,9 @@ const allKeyModifiers = key.ModCtrl | key.ModCommand | key.ModShift | key.ModAlt
 
 // Focusable adds the element to the native Tab order and focuses it on press.
 // Input and TextArea already manage their native editor focus.
-func (s *Styled[T]) Focusable(enabled ...bool) *T {
+func (s *Styled[T]) Focusable(on bool) *T {
 	s.n.focusSet = true
-	s.n.focusable = len(enabled) == 0 || enabled[0]
+	s.n.focusable = on
 	return s.self
 }
 
@@ -41,8 +41,6 @@ func (s *Styled[T]) OnKey(fn func(KeyEvent) bool) *T { s.n.onKey = fn; return s.
 // The default focus style is a 2dp Primary border inside the element bounds.
 func (s *Styled[T]) FocusStyle(fn func(*Style)) *T { s.n.focus = fn; return s.self }
 
-// Focus is a compatibility alias for FocusStyle.
-func (s *Styled[T]) Focus(fn func(*Style)) *T         { return s.FocusStyle(fn) }
 func (s *Styled[T]) Disabled(v bool) *T               { s.n.disabled = v; return s.self }
 func (s *Styled[T]) DisabledStyle(fn func(*Style)) *T { s.n.disabledStyle = fn; return s.self }
 func (cx *Context) Focused(id string) bool {

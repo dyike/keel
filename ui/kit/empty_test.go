@@ -6,7 +6,7 @@ import (
 )
 
 func TestEmptyContentAndConstraints(t *testing.T) {
-	v := Empty("暂无结果 0", "尝试其他关键词 Search again，或者调整筛选条件。")
+	v := Empty("暂无结果 0").Description("尝试其他关键词 Search again，或者调整筛选条件。")
 	for _, scale := range []int{1, 2} {
 		h := renderView(v, 140, scale)
 		n, ok := node(h, "暂无结果 0")

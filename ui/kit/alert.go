@@ -14,21 +14,12 @@ type AlertView struct {
 	onClose            func()
 }
 
-// Alert accepts an optional description for compatibility with the first kit draft.
-func Alert(title string, description ...string) *AlertView {
-	v := &AlertView{title: title, tone: Info}
-	if len(description) > 0 {
-		v.description = description[0]
-	}
-	return v
-}
+// Alert creates an inline message with an Info tone.
+func Alert(title string) *AlertView                  { return &AlertView{title: title, tone: Info} }
 func (v *AlertView) Description(s string) *AlertView { v.description = s; return v }
-func (v *AlertView) Tone(t Tone) *AlertView          { v.SetKind(t); return v }
-func (v *AlertView) Success() *AlertView             { return v.Tone(Success) }
-func (v *AlertView) Warning() *AlertView             { return v.Tone(Warning) }
-func (v *AlertView) Danger() *AlertView              { return v.Tone(Danger) }
-func (v *AlertView) SetKind(t Tone) {
-	if t < Info || t > Danger {
+func (v *AlertView) Tone(t Tone) *AlertView          { v.SetTone(t); return v }
+func (v *AlertView) SetTone(t Tone) {
+	if t > Danger {
 		t = Info
 	}
 	v.tone = t
@@ -67,7 +58,7 @@ func (v *AlertView) Render(cx *el.Context) el.Element {
 	}
 	body := el.Div().Row().Grow().P(12).Gap(8).Items(el.Start).Child(Icon(name).Color(v.tone.color()).Render(cx), text)
 	if v.onClose != nil {
-		body.Child(el.Div().ID("close").Name("关闭 " + v.title).Focusable().P(4).OnClick(v.close).Child(Icon(IconClose).Render(cx)))
+		body.Child(el.Div().ID("close").Name("关闭 " + v.title).Focusable(true).P(4).OnClick(v.close).Child(Icon(IconClose).Render(cx)))
 	}
 	return el.Div().Disabled(v.disabled).W(el.Full).Role("alert").Name(v.title).Value(v.tone.name()).Row().Items(el.Stretch).Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Child(el.Div().W(el.Dp(4)).NoShrink().Bg(v.tone.color()), body)
 }

@@ -12,7 +12,7 @@ import (
 )
 
 func TestKitAlertSnapshot(t *testing.T) {
-	a := kit.Alert("保存成功", "订单 SO-123 已保存").Tone(kit.Success)
+	a := kit.Alert("保存成功").Description("订单 SO-123 已保存").Tone(kit.Success)
 	w := openTest(t, Options{Content: el.Embed(a)})
 	e := element(t, w, "保存成功")
 	if e.Role != "alert" || e.Value != "success" {

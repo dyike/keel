@@ -15,9 +15,9 @@ type focusTestView struct {
 
 func (v *focusTestView) Render(cx *el.Context) el.Element {
 	return el.Div().Gap(8).Child(
-		el.Div().ID("first").Name("first").Focusable().P(12).OnClick(func() { v.first++ }).Child(el.Text("first")),
-		el.Div().Focusable().Hidden(true).Child(el.Text("hidden")),
-		el.Div().ID("second").Name("second").Focusable().P(12).OnClick(func() { v.second++ }).Child(el.Text("second")),
+		el.Div().ID("first").Name("first").Focusable(true).P(12).OnClick(func() { v.first++ }).Child(el.Text("first")),
+		el.Div().Focusable(true).Hidden(true).Child(el.Text("hidden")),
+		el.Div().ID("second").Name("second").Focusable(true).P(12).OnClick(func() { v.second++ }).Child(el.Text("second")),
 		el.Input().ID("editor").Name("editor").Bind(&v.text),
 	)
 }
@@ -51,9 +51,9 @@ type focusColorView struct{}
 
 func (focusColorView) Render(cx *el.Context) el.Element {
 	return el.Div().Child(cx.Cache("focus-color", func() el.Element {
-		return el.Div().ID("color").Name("color").Focusable().P(12).
-			TextColor(color.NRGBA{B: 255, A: 255}).Focus(func(s *el.Style) { s.TextColor(color.NRGBA{R: 255, A: 255}) }).Child(el.Text("MMMM"))
-	}), el.Div().Name("other").Focusable().P(12).Child(el.Text("other")))
+		return el.Div().ID("color").Name("color").Focusable(true).P(12).
+			TextColor(color.NRGBA{B: 255, A: 255}).FocusStyle(func(s *el.Style) { s.TextColor(color.NRGBA{R: 255, A: 255}) }).Child(el.Text("MMMM"))
+	}), el.Div().Name("other").Focusable(true).P(12).Child(el.Text("other")))
 }
 func TestFocusTextColorRestoresCachedTree(t *testing.T) {
 	w := openTest(t, Options{Width: 200, Height: 120, Content: el.Root(focusColorView{})})

@@ -7,7 +7,7 @@ import (
 )
 
 func TestKitDescriptionListSnapshot(t *testing.T) {
-	w := openTest(t, Options{Content: el.Embed(kit.DescriptionList(kit.Description{Label: "客户", Text: "张三"}))})
+	w := openTest(t, Options{Content: el.Embed(kit.DescriptionList().Item("客户", "张三"))})
 	e := element(t, w, "客户：张三")
 	if e.Role != "text" {
 		t.Fatal(e)

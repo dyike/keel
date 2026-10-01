@@ -8,6 +8,6 @@ import (
 
 func init() {
 	registerSection("group-box", "controls", func() core.Widget {
-		return el.Embed(kit.GroupBox("账户信息 Account 123", kit.DescriptionList(kit.Description{Label: "姓名", Text: "张三 / Ada"}), kit.Tag("已验证").Tone(kit.Success)).Description("账户资料与通知设置").Child(el.Text("可在这里放任意 el 内容")))
+		return el.Embed(kit.GroupBox("账户信息 Account 123", kit.DescriptionList().Item("姓名", "张三 / Ada"), kit.Tag("已验证").Tone(kit.Success)).Description("账户资料与通知设置").Child(el.Text("可在这里放任意 el 内容")))
 	})
 }

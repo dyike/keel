@@ -12,13 +12,7 @@ type EmptyView struct {
 	action             el.Element
 }
 
-func Empty(title string, description ...string) *EmptyView {
-	v := &EmptyView{title: title, icon: IconInbox}
-	if len(description) > 0 {
-		v.description = description[0]
-	}
-	return v
-}
+func Empty(title string) *EmptyView                  { return &EmptyView{title: title, icon: IconInbox} }
 func (v *EmptyView) Description(s string) *EmptyView { v.description = s; return v }
 func (v *EmptyView) Icon(i IconName) *EmptyView      { v.icon = i; return v }
 func (v *EmptyView) Action(e el.Element) *EmptyView  { v.action = e; return v }

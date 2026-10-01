@@ -4,7 +4,8 @@ import "testing"
 
 func TestDescriptionListCopiesAndWraps(t *testing.T) {
 	items := []Description{{"订单 123", "SO-123 中英文 mixed long content"}, {"客户", "张三"}}
-	v := DescriptionList(items...)
+	v := DescriptionList()
+	v.SetItems(items...)
 	items[0].Text = "changed"
 	if v.items[0].Text == "changed" {
 		t.Fatal("aliased items")

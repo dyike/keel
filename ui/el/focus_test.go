@@ -14,9 +14,9 @@ import (
 
 func TestFocusableKeyboardAndTabOrder(t *testing.T) {
 	calls := 0
-	first := Div().ID("first").Focusable().OnClick(func() { calls++ }).P(10).Child(Text("first"))
-	hidden := Div().Focusable().Hidden(true).Child(Text("hidden"))
-	second := Div().ID("second").Focusable().P(10).Child(Text("second"))
+	first := Div().ID("first").Focusable(true).OnClick(func() { calls++ }).P(10).Child(Text("first"))
+	hidden := Div().Focusable(true).Hidden(true).Child(Text("hidden"))
+	second := Div().ID("second").Focusable(true).P(10).Child(Text("second"))
 	request := true
 	root := Root(viewFunc(func(cx *Context) Element {
 		if request {
@@ -58,7 +58,7 @@ func TestFocusableKeyboardAndTabOrder(t *testing.T) {
 func TestKeyBubblingAndHandledActivation(t *testing.T) {
 	var got []string
 	clicks := 0
-	child := Div().ID("child").Focusable().OnClick(func() { clicks++ }).OnKey(func(e KeyEvent) bool {
+	child := Div().ID("child").Focusable(true).OnClick(func() { clicks++ }).OnKey(func(e KeyEvent) bool {
 		if e.State == KeyPress {
 			got = append(got, "child")
 		}
@@ -100,7 +100,7 @@ func TestFocusableRemovalAndMissingTarget(t *testing.T) {
 		}
 		box := Div()
 		if show {
-			box.Child(Div().ID("target").Focusable().OnClick(func() { calls++ }).Child(Text("target")))
+			box.Child(Div().ID("target").Focusable(true).OnClick(func() { calls++ }).Child(Text("target")))
 		}
 		return box
 	}))
@@ -125,7 +125,7 @@ func TestFocusableRemovalAndMissingTarget(t *testing.T) {
 
 func TestFocusStyleDoesNotChangeDimensions(t *testing.T) {
 	focused := false
-	button := Div().ID("button").Focusable().P(8).Focus(func(s *Style) { s.BorderColor(rgb(0x00ff00)) }).Child(Text("Mixed 中文123"))
+	button := Div().ID("button").Focusable(true).P(8).FocusStyle(func(s *Style) { s.BorderColor(rgb(0x00ff00)) }).Child(Text("Mixed 中文123"))
 	root := Root(viewFunc(func(cx *Context) Element {
 		if focused {
 			cx.Focus("button")
@@ -146,7 +146,7 @@ func TestProgramFocusInputAndNativeTabCoexist(t *testing.T) {
 	text := ""
 	request := true
 	input := Input().ID("input").Bind(&text)
-	button := Div().ID("button").Focusable().Child(Text("button"))
+	button := Div().ID("button").Focusable(true).Child(Text("button"))
 	root := Root(viewFunc(func(cx *Context) Element {
 		if request {
 			cx.Focus("input")
@@ -175,8 +175,8 @@ func TestFocusChangeCancelsHeldActivation(t *testing.T) {
 			target = ""
 		}
 		return Div().Child(
-			Div().ID("a").Focusable().OnClick(func() { calls++ }).Child(Text("a")),
-			Div().ID("b").Focusable().OnClick(func() { calls++ }).Child(Text("b")),
+			Div().ID("a").Focusable(true).OnClick(func() { calls++ }).Child(Text("a")),
+			Div().ID("b").Focusable(true).OnClick(func() { calls++ }).Child(Text("b")),
 		)
 	}))
 	h := uitest.New(root)

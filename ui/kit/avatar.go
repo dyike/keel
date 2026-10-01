@@ -24,12 +24,6 @@ type AvatarView struct {
 	status   AvatarStatus
 }
 
-const (
-	Small  = 24
-	Medium = 40
-	Large  = 56
-)
-
 type AvatarStatus string
 
 const (

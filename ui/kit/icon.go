@@ -32,7 +32,7 @@ const (
 // IconView wraps a Gio vector icon. Labels belong to its containing control.
 type IconView struct {
 	icon  *giowidget.Icon
-	size  unit.Dp
+	size  float32
 	color *color.NRGBA
 }
 
@@ -71,7 +71,7 @@ func Icon(name IconName) *IconView {
 
 // VectorIcon supports custom Gio icons, including icons decoded by widget.NewIcon.
 func VectorIcon(icon *giowidget.Icon) *IconView { return &IconView{icon: icon, size: 18} }
-func (i *IconView) Size(dp unit.Dp) *IconView {
+func (i *IconView) Size(dp float32) *IconView {
 	if dp > 0 {
 		i.size = dp
 	}
@@ -87,8 +87,8 @@ func (i *IconView) Render(*el.Context) el.Element {
 		if i.icon == nil {
 			return core.D{}
 		}
-		size := gtx.Constraints.Constrain(image.Pt(gtx.Dp(i.size), gtx.Dp(i.size)))
+		size := gtx.Constraints.Constrain(image.Pt(gtx.Dp(unit.Dp(i.size)), gtx.Dp(unit.Dp(i.size))))
 		gtx.Constraints.Min, gtx.Constraints.Max = size, size
 		return i.icon.Layout(gtx, c)
-	})).Size(el.Dp(float32(i.size)))
+	})).Size(el.Dp(i.size))
 }

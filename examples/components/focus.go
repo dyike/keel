@@ -20,7 +20,7 @@ type focusGallery struct {
 
 func (v *focusGallery) Render(cx *el.Context) el.Element {
 	button := func(id, label string, fn func()) el.Element {
-		return el.Div().ID(id).Focusable().Name(label).P(12).Rounded(6).Bg(theme.Surface).
+		return el.Div().ID(id).Focusable(true).Name(label).P(12).Rounded(6).Bg(theme.Surface).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary).TextColor(theme.Primary) }).
 			OnClick(fn).Child(el.Text(label))
 	}

@@ -184,13 +184,13 @@ func button(label string, onClick func()) el.Element {
 ## 焦点、按键与禁用（E1 / E2）
 
 ```go
-el.Div().ID("save").Focusable().
+el.Div().ID("save").Focusable(true).
     OnClick(save).
     FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
     Child(el.Text("保存"))
 ```
 
-`Focusable()` 让元素接受点击焦点，并按绘制顺序参与 Tab / Shift+Tab 导航，与 `Input`、`TextArea` 共用原生焦点顺序。隐藏、移除和完全滚出绘制区域的节点不参与导航。带 OnClick 的元素默认可聚焦；Focusable(false) 显式退出 Tab 顺序。
+`Focusable(true)` 让元素接受点击焦点，并按绘制顺序参与 Tab / Shift+Tab 导航，与 `Input`、`TextArea` 共用原生焦点顺序。隐藏、移除和完全滚出绘制区域的节点不参与导航。带 OnClick 的元素默认可聚焦；Focusable(false) 显式退出 Tab 顺序。
 
 聚焦元素收到无修饰键的 Space / Enter 时，在匹配的按键释放事件中调用一次 `OnClick`；失去焦点后不保留待激活按键。`OnKey(func(el.KeyEvent) bool)` 接收按下和释放事件，从聚焦元素向有处理器的祖先冒泡。返回 `true` 会停止冒泡并取消默认激活。`KeyEvent` 是 el 自己的结构体，包含 string 类型的 Name、KeyPress/KeyRelease 状态和 key.Modifiers。Tab 保留原生导航行为；全局快捷键继续使用 `cx.Shortcut`。
 
@@ -201,7 +201,7 @@ el.Div().ID("save").Focusable().
 当前 `OnKey` 冒泡源是显式 `Focusable` 元素；输入框编辑按键仍由 Gio editor 处理，不通过这条冒泡链。焦点陷阱留给浮层阶段。可运行 `go run ./examples/components -section focus` 验证接口。
 
 
-`cx.Focused(id)` 读取当前焦点，查询支持普通元素和输入框。`Disabled(true)` 自上而下禁止子树的点击、悬停和按键，释放当前焦点，禁止程序聚焦，并将 Agent 语义标记为 disabled；解除禁用后可重新聚焦。`DisabledStyle(func(*el.Style))` 设置禁用外观，默认文字为 Muted。显式禁用与测量时没有输入源分开处理，连续测量不会清空交互状态。Focus 保留为 FocusStyle 的兼容别名。
+`cx.Focused(id)` 读取当前焦点，查询支持普通元素和输入框。`Disabled(true)` 自上而下禁止子树的点击、悬停和按键，释放当前焦点，禁止程序聚焦，并将 Agent 语义标记为 disabled；解除禁用后可重新聚焦。`DisabledStyle(func(*el.Style))` 设置禁用外观，默认文字为 Muted。显式禁用与测量时没有输入源分开处理，连续测量不会清空交互状态。
 
 ## 时间与减少动画（E3）
 

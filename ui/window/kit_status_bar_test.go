@@ -7,8 +7,16 @@ import (
 )
 
 func TestKitStatusBarSnapshot(t *testing.T) {
-	w := openTest(t, Options{Content: el.Embed(kit.StatusBar("连接正常", "3 个任务"))})
-	if e := element(t, w, "连接正常"); e.Role != "status" || e.Value != "3 个任务" {
-		t.Fatalf("invalid status: %+v", e)
+	w := openTest(t, Options{Content: el.Embed(kit.StatusBar().Left(el.Text("连接正常")).Right(el.Text("3 个任务")))})
+	element(t, w, "连接正常")
+	element(t, w, "3 个任务")
+	found := false
+	for _, e := range w.snapshot() {
+		if e.Role == "status" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("missing status container")
 	}
 }
