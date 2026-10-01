@@ -62,6 +62,25 @@ func (a *AccordionView) OpenIndices() []int {
 	return open
 }
 
+// Value returns the open indices in display order, in a fresh slice.
+func (a *AccordionView) Value() []int { return a.OpenIndices() }
+
+// SetValue replaces the open set silently. Single mode uses the first valid index.
+func (a *AccordionView) SetValue(indices []int) {
+	for _, item := range a.items {
+		item.open = false
+	}
+	for _, i := range indices {
+		if i < 0 || i >= len(a.items) {
+			continue
+		}
+		a.items[i].open = true
+		if !a.multiple {
+			break
+		}
+	}
+}
+
 // SetOpen does not notify OnChange. In single mode opening one closes others.
 func (a *AccordionView) SetOpen(i int, open bool) {
 	if i < 0 || i >= len(a.items) {
@@ -75,6 +94,9 @@ func (a *AccordionView) SetOpen(i int, open bool) {
 	a.items[i].open = open
 }
 func (a *AccordionView) Layout(gtx C) D {
+	if a.disabled {
+		gtx = gtx.Disabled()
+	}
 	for i, v := range a.items {
 		g := gtx
 		if a.disabled || v.disabled {
@@ -133,10 +155,10 @@ func (a *AccordionView) Layout(gtx C) D {
 			children = append(children, giolayout.Rigid(layout.Divider().Layout))
 		}
 		return giolayout.Flex{Axis: giolayout.Vertical}.Layout(gtx, children...)
-	}, core.Role("accordion"))
+	}, core.Role("accordion"), semantic.EnabledOp(gtx.Enabled()))
 }
 func (a *AccordionView) header(gtx C, v *accordionItem) D {
-	disabled := a.disabled || v.disabled
+	disabled := a.disabled || v.disabled || !gtx.Enabled()
 	if disabled {
 		gtx = gtx.Disabled()
 	}

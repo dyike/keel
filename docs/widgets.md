@@ -186,7 +186,7 @@ sections := widget.Accordion().
 sections.SetOpen(0, true)
 ```
 
-默认同一时间只能展开一项，构造时调用 `Multiple()` 可同时展开多项。`SetOpen(index, bool)` 不触发回调，`IsOpen(index)` 和 `OpenIndices()` 查询状态。收起时保留子组件的值，隐藏的控件不参与焦点导航。标题支持 Tab、Enter / 空格，↑ ↓ 跳到相邻可用标题，Home / End 跳到首尾；`SetItemDisabled(index, bool)` 和 `SetDisabled(bool)` 禁止展开操作，已展开内容继续可见。
+默认同一时间只能展开一项，构造时调用 `Multiple()` 可同时展开多项。`SetOpen(index, bool)` 不触发回调，`IsOpen(index)` 和 `OpenIndices()` 查询状态。收起时保留子组件的值，隐藏的控件不参与焦点导航。标题支持 Tab、Enter / 空格，↑ ↓ 跳到相邻可用标题，Home / End 跳到首尾；`SetItemDisabled(index, bool)` 和 `SetDisabled(bool)` 禁止展开操作，已展开内容继续可见，整体禁用时内容里的控件也停止交互。`Value()` 返回展开序号的新切片，`SetValue([]int)` 静默替换展开集合；单选模式取首个有效序号，原有 `SetOpen` / `OpenIndices` 保留。验证：`go run ./examples/components -section accordion`。
 
 运行 `go run ./examples/components` 检查滑块、折叠面板和图片交互。这两种控件参考 [GPUI Slider](https://gpui-kit.com/component/slider/) 和 [Accordion](https://gpui-kit.com/docs/components/accordion) 的常用交互，API 沿用 Keel 的构造函数和链式配置约定。
 

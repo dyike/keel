@@ -341,3 +341,30 @@ func TestAutomationDisabledTable(t *testing.T) {
 		t.Fatal("table did not recover")
 	}
 }
+
+func TestAutomationDisabledAccordionContent(t *testing.T) {
+	f := widget.Input("名称")
+	a := widget.Accordion().Add("详情", f)
+	a.SetValue([]int{0})
+	w := openTest(t, Options{Content: a})
+	a.SetDisabled(true)
+	for _, e := range w.snapshot() {
+		if (e.Role == "accordion" || e.Role == "disclosure" || e.Role == "textbox") && !e.Disabled {
+			t.Fatalf("missing disabled accordion state: %+v", e)
+		}
+	}
+	w.click(element(t, w, "详情").center())
+	w.press("space")
+	if !a.IsOpen(0) {
+		t.Fatal("disabled accordion toggled")
+	}
+	a.SetDisabled(false)
+	e := element(t, w, "详情")
+	if e.Disabled {
+		t.Fatal("accordion remained disabled")
+	}
+	w.click(e.center())
+	if a.IsOpen(0) {
+		t.Fatal("accordion did not recover")
+	}
+}
