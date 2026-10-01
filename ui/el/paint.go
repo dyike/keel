@@ -404,11 +404,16 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		st.scrollY = maxScroll
 	}
 	st.version = n.style.endVersion
+	if st.scrolled && n.style.keepVersion != st.keepVersion {
+		st.scrollY = max(maxScroll-(st.scrollMax-st.scrollY), 0) // same distance from the bottom as last frame
+	}
+	st.keepVersion = n.style.keepVersion
 	dist := st.scroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Vertical,
 		pointer.ScrollRange{}, pointer.ScrollRange{Min: -st.scrollY, Max: maxScroll - st.scrollY})
 	st.scrollY = min(max(st.scrollY+dist+st.scrollPending, 0), maxScroll)
 	st.scrollPending = 0
 	st.scrollMax, st.scrolled = maxScroll, true
+	st.scrollView, st.scrollContent = viewport.Dy(), total
 
 	// The viewport is its own area with the scroll handler, so it is a node
 	// in the semantic tree and agents only see what shows through it.

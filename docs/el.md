@@ -176,6 +176,14 @@ return el.Div().Hidden(!visible).Child(el.Text("已保存"))
 
 同类组件用自身稳定 ID 组成 key。不要在 `cx.Cache` 的构建函数里声明 `After`：缓存命中时不会执行构建函数，未再次声明的定时器会被取消。应把 After 放在每次执行的 Render 路径上，再单独缓存元素树。
 
+## 滚动状态与锚定
+
+`cx.ScrollState(id)` 返回带 ID 的 `ScrollY` 元素上一帧的滚动偏移、可视高度、内容高度，单位 dp；第一次绘制之前三个值都是 0。虚拟列表用它决定构建哪些行。`cx.ScrollIntoView(id, top, bottom)` 以最小的滚动量让内容中 `[top, bottom]` 这一段可见，在下一次绘制时生效。
+
+`KeepBottomOn(version)`：`version` 变化的那一帧，保持到底部的距离不变，在上方插入内容（比如加载更早的聊天记录）时画面不会跳动。在插入内容的同一个回调里递增 version，用法和 `ScrollToEndOn` 一样。
+
+`Flex(w)` 和 `Grow` 一样占用剩余空间，但按权重分配：`Flex(2)` 分到的是 `Flex(1)` 或 `Grow` 的两倍。
+
 ## 拖动
 
 ```go

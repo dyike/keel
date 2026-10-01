@@ -68,26 +68,26 @@ const (
 // shared by all elements (see Styled); Hover and Active take a func that
 // changes a Style, whose methods mirror the element ones.
 type Style struct {
-	row                 bool // lay children out left to right; default top to bottom
-	w, h, minW, minH    Length
-	maxW, maxH          Length
-	pad, margin         Edges
-	gap                 float32
-	grow, shrink        float32
-	justify, align      Align
-	alignSet            bool
-	scrollY             bool
-	stickBottom         bool
-	endVersion          int // ScrollToEndOn; jumps to the end when it changes
-	absolute            bool
-	top, right, bottom  *float32
-	left                *float32
-	bg                  *color.NRGBA
-	borderWidth, radius float32
-	borderColor         color.NRGBA
-	cursor              pointer.Cursor
-	hidden              bool
-	text                textStyle
+	row                     bool // lay children out left to right; default top to bottom
+	w, h, minW, minH        Length
+	maxW, maxH              Length
+	pad, margin             Edges
+	gap                     float32
+	grow, shrink            float32
+	justify, align          Align
+	alignSet                bool
+	scrollY                 bool
+	stickBottom             bool
+	endVersion, keepVersion int // ScrollToEndOn; jumps to the end when it changes
+	absolute                bool
+	top, right, bottom      *float32
+	left                    *float32
+	bg                      *color.NRGBA
+	borderWidth, radius     float32
+	borderColor             color.NRGBA
+	cursor                  pointer.Cursor
+	hidden                  bool
+	text                    textStyle
 }
 
 // textStyle is inherited by descendants unless they set their own.

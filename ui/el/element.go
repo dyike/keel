@@ -169,6 +169,10 @@ func (s *Styled[T]) Center() *T {
 // Grow lets the element take free space along its parent's main axis.
 func (s *Styled[T]) Grow() *T { s.n.style.grow = 1; return s.self }
 
+// Flex grows like Grow, taking free space in proportion to w: a child with
+// Flex(2) gets twice the share of one with Flex(1) or Grow.
+func (s *Styled[T]) Flex(w float32) *T { s.n.style.grow = max(w, 0); return s.self }
+
 // NoShrink keeps the element from shrinking below its content size.
 func (s *Styled[T]) NoShrink() *T { s.n.style.shrink = -1; return s.self }
 
@@ -222,6 +226,11 @@ func (s *Styled[T]) StickToBottom() *T { s.n.style.stickBottom = true; return s.
 // changes, and resumes StickToBottom: pass the number of messages so that
 // sending one jumps to it even after the user scrolled up to read.
 func (s *Styled[T]) ScrollToEndOn(version int) *T { s.n.style.endVersion = version; return s.self }
+
+// KeepBottomOn keeps the distance from the bottom of a ScrollY element when
+// version changes, so content inserted above (older chat history) does not
+// move what is on screen. Bump version in the same callback that inserts.
+func (s *Styled[T]) KeepBottomOn(version int) *T { s.n.style.keepVersion = version; return s.self }
 
 // Absolute takes the element out of flow and places it by Top/Right/Bottom/Left
 // within its parent's padding box.
