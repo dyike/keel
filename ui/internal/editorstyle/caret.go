@@ -3,6 +3,8 @@ package editorstyle
 
 import (
 	"image"
+	"image/color"
+	"strings"
 	"time"
 
 	"gioui.org/font"
@@ -11,23 +13,27 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"golang.org/x/image/math/fixed"
 )
 
-// Caret retains blink and font measurements for one editor.
+// Caret retains blink, caret and selection ink measurements for one editor.
 type Caret struct {
-	font               font.Font
-	pixels             int
-	shaper             *text.Shaper
-	top, bottom        int
-	focused            bool
-	start, end, length int
-	blink              time.Time
-	bounds             image.Rectangle
+	font                          font.Font
+	pixels                        int
+	shaper                        *text.Shaper
+	top, bottom                   int
+	focused                       bool
+	start, end, length            int
+	blink                         time.Time
+	bounds                        image.Rectangle
+	selectionText                 string
+	selectionTop, selectionBottom int
+	regions                       []widget.Region
 }
 
-// Layout draws an editor with an ink-height caret at Gio's actual caret
+// Layout draws an editor with ink-height selection and caret at Gio's actual
 // coordinates. The caller MUST drain Editor.Update first, handling its change
 // and submit events. Gio 0.10 has no separate caret paint hook: ReadOnly is set
 // only during drawing to suppress its font-line-height caret, then restored.
@@ -35,12 +41,31 @@ type Caret struct {
 func (c *Caret) Layout(gtx layout.Context, style material.EditorStyle, shaper *text.Shaper) layout.Dimensions {
 	ed := style.Editor
 	readOnly := ed.ReadOnly
+	selectionColor := style.SelectionColor
+	style.SelectionColor = color.NRGBA{}
+	rec := op.Record(gtx.Ops)
 	var dims layout.Dimensions
 	func() {
 		ed.ReadOnly = true
 		defer func() { ed.ReadOnly = readOnly }()
 		dims = style.Layout(gtx)
 	}()
+	call := rec.Stop()
+	pixels := gtx.Sp(style.TextSize)
+	if c.shaper != shaper || c.font != style.Font || c.pixels != pixels {
+		c.shaper, c.font, c.pixels = shaper, style.Font, pixels
+		c.top, c.bottom = inkBounds(shaper, style.Font, pixels)
+		c.selectionText = ""
+	}
+	// Layout first to obtain Gio's current (scrolled and wrapped) regions,
+	// then replay its text above our ink-height selection backgrounds.
+	if ed.SelectionLen() > 0 && (gtx.Focused(ed) || ed.PaintSelectionWhenUnfocused) {
+		c.paintSelection(gtx, style, dims, selectionColor)
+	} else {
+		c.selectionText = ""
+		c.regions = c.regions[:0]
+	}
+	call.Add(gtx.Ops)
 	c.bounds = image.Rectangle{}
 	focused := gtx.Focused(ed) && gtx.Enabled() && !readOnly
 	if !focused {
@@ -52,11 +77,6 @@ func (c *Caret) Layout(gtx layout.Context, style material.EditorStyle, shaper *t
 		c.blink = gtx.Now
 	}
 	c.focused, c.start, c.end, c.length = true, start, end, ed.Len()
-	pixels := gtx.Sp(style.TextSize)
-	if c.shaper != shaper || c.font != style.Font || c.pixels != pixels {
-		c.shaper, c.font, c.pixels = shaper, style.Font, pixels
-		c.top, c.bottom = inkBounds(shaper, style.Font, pixels)
-	}
 	pos := ed.CaretCoords().Round()
 	top, bottom := pos.Y+c.top, pos.Y+c.bottom
 	if ed.Len() == 0 && style.Hint != "" {
@@ -82,6 +102,54 @@ func (c *Caret) Layout(gtx layout.Context, style material.EditorStyle, shaper *t
 		paint.FillShape(gtx.Ops, style.Color, clip.Rect(c.bounds).Op())
 	}
 	return dims
+}
+
+func (c *Caret) paintSelection(gtx layout.Context, style material.EditorStyle, dims layout.Dimensions, col color.NRGBA) {
+	if !gtx.Enabled() {
+		// Match material.Editor's disabled selection palette (Gio f32color.Disabled).
+		lum := (13933*int(col.R) + 46871*int(col.G) + 4732*int(col.B)) / 65536
+		mix := func(v uint8) uint8 { return uint8((int(v)*80 + lum*176) / 256) }
+		col = color.NRGBA{R: mix(col.R), G: mix(col.G), B: mix(col.B), A: uint8(uint32(col.A) * 160 / 255)}
+	}
+	ed := style.Editor
+	selected := ed.SelectedText()
+	if ed.Mask != 0 {
+		selected = strings.Map(func(r rune) rune {
+			if r == '\n' {
+				return r
+			}
+			return ed.Mask
+		}, selected)
+	}
+	if selected != c.selectionText {
+		c.selectionText = selected
+		c.selectionTop, c.selectionBottom = c.top, c.bottom
+		c.shaper.LayoutString(text.Parameters{Font: c.font, PxPerEm: fixed.I(c.pixels), MaxWidth: 1 << 20}, selected)
+		found := false
+		for g, ok := c.shaper.NextGlyph(); ok; g, ok = c.shaper.NextGlyph() {
+			if g.Bounds.Min.Y == g.Bounds.Max.Y {
+				continue
+			}
+			top, bottom := g.Bounds.Min.Y.Floor(), g.Bounds.Max.Y.Ceil()
+			if !found {
+				c.selectionTop, c.selectionBottom, found = top, bottom, true
+			} else {
+				c.selectionTop, c.selectionBottom = min(c.selectionTop, top), max(c.selectionBottom, bottom)
+			}
+		}
+	}
+	start, end := ed.Selection()
+	c.regions = ed.Regions(start, end, c.regions[:0])
+	pad := gtx.Dp(1)
+	for _, region := range c.regions {
+		r := region.Bounds
+		baseline := r.Max.Y - region.Baseline
+		r.Min.Y, r.Max.Y = baseline+c.selectionTop-pad, baseline+c.selectionBottom+pad
+		r = r.Intersect(image.Rectangle{Max: dims.Size})
+		if !r.Empty() {
+			paint.FillShape(gtx.Ops, col, clip.Rect(r).Op())
+		}
+	}
 }
 
 func hintInk(gtx layout.Context, style material.EditorStyle, shaper *text.Shaper) (top, bottom int, found bool) {
