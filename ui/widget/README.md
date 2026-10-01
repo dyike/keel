@@ -17,7 +17,7 @@
 | `switch.go` | `Switch` |
 | `slider.go` | `Slider`：范围、步长、拖动和键盘调整 |
 | `accordion.go` | `Accordion`：单项 / 多项展开、标题键盘导航 |
-| `progress.go` | `Progress` |
+| `progress.go` | `Progress`：确定进度、不确定动画和模式切换 |
 | `dialog.go` | `Dialog`：确认、提示，放在 `window.Options.Overlay` |
 | `icon.go` | `Icon`、`VectorIcon`：矢量图标、尺寸与颜色 |
 | `draw.go` | 内部绘图小工具 |

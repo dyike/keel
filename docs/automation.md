@@ -120,7 +120,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `disclosure` | 折叠面板标题 | `value` 是 expanded / collapsed，支持 `disabled` |
 | `image` | `widget.Image`、Markdown 图片 | `value` 是 loading / loaded / error，名字是替代文字 |
 | `footnotes` | Markdown 脚注 | 引用和返回链接单独列出 |
-| `progressbar` | `widget.Progress` | `value` 是百分比 |
+| `progressbar` | `widget.Progress` | `value` 是百分比或 indeterminate |
 | `dialog` | 打开的 `widget.Dialog` | 它里面的文字和按钮单独列出 |
 | `link` | Markdown 段落里的链接、`widget.Link` | `value` 是网址 |
 | `code` | Markdown 代码块 | 名字是语言；里面的代码文字和"复制"按钮单独列出 |
