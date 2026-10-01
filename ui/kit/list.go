@@ -108,7 +108,7 @@ func (v *ListView) row(cx *el.Context, i int) el.Element {
 func (v *ListView) Render(cx *el.Context) el.Element {
 	// The list, not each row, takes focus: rows scroll out of existence, so
 	// keyboard focus could not stay on one.
-	return el.Div().ID(autoID("list", v)).Role("listbox").Disabled(v.disabled).
+	return el.Div().ID(autoID("list", v)).Role("listbox").Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Py(4).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {

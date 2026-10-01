@@ -141,6 +141,9 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `navigation` | `kit.Pagination` | `value` 为"当前页/总页数" |
 | `log` / `article` | `kit.MessageScroller` / `kit.Message` | 消息以作者为名，内容单独列出 |
 | `attachment` | `kit.Attachment` | 名字是文件名，`value` 为上传进度或 error |
+| `separator` | `kit.Resizable`、`kit.Dock` 的分隔条 | `value` 为第一个面板的尺寸（Resizable） |
+| `region` | `kit.Dock` 的停靠区 | 名字是当前面板标题；标签、菜单按钮和内容单独列出 |
+| `toolbar` | `kit.Toolbar` | 按钮单独列出 |
 | `tooltip` | `kit.WithTooltip` 的提示 | 名字是提示文字 |
 | `menu` | 打开的 `kit.Menu` | 菜单项单独列出 |
 | `menuitem` | 菜单项 | 有子菜单时 `value` 为 submenu；支持 `disabled` |

@@ -190,7 +190,7 @@ func (v *TreeView) row(cx *el.Context, i int) el.Element {
 
 func (v *TreeView) Render(cx *el.Context) el.Element {
 	v.flatten()
-	return el.Div().ID(autoID("tree", v)).Role("tree").Disabled(v.disabled).
+	return el.Div().ID(autoID("tree", v)).Role("tree").Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Py(4).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool { return v.key(cx, e) }).

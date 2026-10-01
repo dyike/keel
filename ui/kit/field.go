@@ -7,8 +7,11 @@ import (
 
 // check is the shared row of checkbox-like controls: a focusable,
 // clickable row with a mark and a label. Space and Enter toggle it.
-func check(id, role, label string, selected, disabled bool, mark el.Element, toggle func()) *el.DivEl {
-	row := el.Div().ID(id).Role(role).Name(label).Selected(selected).Disabled(disabled).
+func check(id, role, label, name string, selected, disabled bool, mark el.Element, toggle func()) *el.DivEl {
+	if name == "" || label != "" {
+		name = label
+	}
+	row := el.Div().ID(id).Role(role).Name(name).Selected(selected).Disabled(disabled).
 		Row().Items(el.Center).Gap(8).Py(2).Rounded(4).Focusable(true).OnClick(toggle).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		Child(mark)

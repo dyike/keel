@@ -87,6 +87,8 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 
 基础组件：[Tabs](kit/tabs.md)、[Accordion](kit/accordion.md)、[Badge](kit/badge.md)、[Progress](kit/progress.md)、[Link](kit/link.md)、[Image](kit/image.md)。
 
+应用外壳：[Sidebar](kit/sidebar.md)、[Toolbar](kit/toolbar.md)、[Resizable](kit/resizable.md)、[Dock](kit/dock.md)、[Settings](kit/settings.md)、[Carousel](kit/carousel.md)。
+
 浮层组件（需要 `el.Root`）：
 
 - [Popover](kit/popover.md)：触发元素旁的非模态面板。

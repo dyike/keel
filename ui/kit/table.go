@@ -285,7 +285,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 	for c := range v.cols {
 		head.Child(v.header(cx, c))
 	}
-	body := el.Div().Items(el.Stretch).Child(v.list.Render(cx))
+	body := el.Div().Items(el.Stretch).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).Child(v.list.Render(cx))
 	if len(v.rows) == 0 && !v.loading {
 		empty := v.empty
 		if empty == "" {
@@ -296,7 +296,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 	if v.loading {
 		body.Child(el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Child(Spinner().Render(cx)))
 	}
-	return el.Div().ID(autoID("table", v)).Role("table").Value(locale.Current().Rows(len(v.rows))).Disabled(v.disabled).
+	return el.Div().ID(autoID("table", v)).Role("table").Value(locale.Current().Rows(len(v.rows))).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {

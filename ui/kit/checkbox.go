@@ -7,6 +7,7 @@ import (
 
 // CheckboxView is a labelled check box. Click, Space or Enter toggles it.
 type CheckboxView struct {
+	name                   string // accessible name from a Form or Settings row when label is empty
 	label                  string
 	value, mixed, disabled bool
 	onChange               func(bool)
@@ -47,7 +48,7 @@ func (v *CheckboxView) Render(cx *el.Context) el.Element {
 	} else if v.value {
 		box.Child(Icon(IconDone).Size(14).Color(mark).Render(cx))
 	}
-	row := check(autoID("checkbox", v), "checkbox", v.label, v.value, v.disabled, box, func() {
+	row := check(autoID("checkbox", v), "checkbox", v.label, v.name, v.value, v.disabled, box, func() {
 		v.value, v.mixed = !v.value || v.mixed, false
 		if v.onChange != nil {
 			v.onChange(v.value)
@@ -58,3 +59,5 @@ func (v *CheckboxView) Render(cx *el.Context) el.Element {
 	}
 	return row
 }
+
+func (v *CheckboxView) setName(s string) { v.name = s }

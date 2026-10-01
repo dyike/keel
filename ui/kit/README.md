@@ -65,3 +65,9 @@
 | [Progress](../../docs/kit/progress.md) | 进度条 |
 | [Link](../../docs/kit/link.md) | 链接 |
 | [Image](../../docs/kit/image.md) | 图片 |
+| [Sidebar](../../docs/kit/sidebar.md) | 导航侧栏 |
+| [Toolbar](../../docs/kit/toolbar.md) | 工具栏与溢出菜单 |
+| [Resizable](../../docs/kit/resizable.md) | 可拖动分隔的两栏 |
+| [Dock](../../docs/kit/dock.md) | 可停靠面板与布局保存 |
+| [Settings](../../docs/kit/settings.md) | 设置页 |
+| [Carousel](../../docs/kit/carousel.md) | 轮播 |

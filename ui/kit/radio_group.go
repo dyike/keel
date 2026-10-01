@@ -79,7 +79,7 @@ func (v *RadioGroupView) Render(cx *el.Context) el.Element {
 		}
 		dot := el.Div().Size(el.Dp(18)).NoShrink().Rounded(9).Bg(ring).Center().Child(inner)
 		i, o := i, o
-		row := check(id+"/"+strconv.Itoa(i), "radio", o, on, v.disabled, dot, func() {
+		row := check(id+"/"+strconv.Itoa(i), "radio", o, "", on, v.disabled, dot, func() {
 			v.choose(o)
 			cx.Focus(id + "/" + strconv.Itoa(i)) // it becomes the group's Tab stop
 		}).

@@ -8,6 +8,7 @@ import (
 // SwitchView turns a setting on or off immediately; use Checkbox for choices
 // that are applied later by a submit button.
 type SwitchView struct {
+	name            string // accessible name from a Form or Settings row when label is empty
 	label           string
 	value, disabled bool
 	onChange        func(bool)
@@ -35,10 +36,12 @@ func (v *SwitchView) Render(cx *el.Context) el.Element {
 	if v.value {
 		body.Justify(el.End)
 	}
-	return check(autoID("switch", v), "switch", v.label, v.value, v.disabled, body, func() {
+	return check(autoID("switch", v), "switch", v.label, v.name, v.value, v.disabled, body, func() {
 		v.value = !v.value
 		if v.onChange != nil {
 			v.onChange(v.value)
 		}
 	})
 }
+
+func (v *SwitchView) setName(s string) { v.name = s }

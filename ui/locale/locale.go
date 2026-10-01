@@ -31,6 +31,11 @@ type Strings struct {
 	PrevPage, NextPage                       string
 	Commands, SearchCommands                 string
 	Latest, Uploading                        string
+	More, Resize                             string
+	CollapseSidebar, ExpandSidebar           string
+	PrevSlide, NextSlide                     string
+	DockLeft, DockRight, DockBottom          string
+	SearchSettings                           string
 	// Total formats an item count for a pager, e.g. "共 36 条".
 	Total func(n int) string
 
@@ -70,6 +75,9 @@ func Chinese() Strings {
 		PrevMonth: "上个月", NextMonth: "下个月", PrevPage: "上一页", NextPage: "下一页",
 		Commands: "命令面板", SearchCommands: "搜索命令…",
 		Latest: "回到最新", Uploading: "上传中",
+		More: "更多", Resize: "调整大小", CollapseSidebar: "收起侧栏", ExpandSidebar: "展开侧栏",
+		PrevSlide: "上一张", NextSlide: "下一张",
+		DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", SearchSettings: "搜索设置",
 		Total:        func(n int) string { return "共 " + strconv.Itoa(n) + " 条" },
 		Weekdays:     [7]string{"日", "一", "二", "三", "四", "五", "六"},
 		FirstWeekday: time.Monday,
@@ -93,6 +101,9 @@ func English() Strings {
 		PrevMonth: "Previous month", NextMonth: "Next month", PrevPage: "Previous page", NextPage: "Next page",
 		Commands: "Command palette", SearchCommands: "Type a command…",
 		Latest: "Jump to latest", Uploading: "Uploading",
+		More: "More", Resize: "Resize", CollapseSidebar: "Collapse sidebar", ExpandSidebar: "Expand sidebar",
+		PrevSlide: "Previous slide", NextSlide: "Next slide",
+		DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", SearchSettings: "Search settings",
 		Total: func(n int) string {
 			if n == 1 {
 				return "1 item"
