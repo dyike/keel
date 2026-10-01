@@ -12,4 +12,4 @@ status := el.ViewFunc(func(cx *el.Context) el.Element {
 
 Agent 角色 status，子元素单独列出；组件本身无键盘操作，传入控件保留交互。溢出菜单留到 M5。
 
-验证：`go run ./examples/components -section status-bar -theme dark`，省略 theme 查看浅色。
+验证：`go run ./examples/components -section status_bar -theme dark`，省略 theme 查看浅色。

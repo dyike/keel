@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("status-bar", "controls", func() core.Widget { return el.Embed(statusBarGallery{}) })
+	registerSection("status_bar", "controls", func() core.Widget { return el.Embed(statusBarGallery{}) })
 }
 
 type statusBarGallery struct{}
