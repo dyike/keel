@@ -194,3 +194,29 @@ func TestAutomationToggleState(t *testing.T) {
 		t.Fatal("disabled state missing")
 	}
 }
+
+func TestAutomationExtendedControlStates(t *testing.T) {
+	check := widget.Checkbox("全部项目", false)
+	check.SetIndeterminate(true)
+	check.SetDisabled(true)
+	button := widget.Button("上传", nil)
+	button.SetLoading(true)
+	progress := widget.Progress("处理中")
+	progress.SetIndeterminate(true)
+	group := widget.ToggleGroup("单选一", "单选二")
+	group.SetDisabled(true)
+	w := openTest(t, Options{Height: 600, Content: layout.Column(check, button, progress, group)})
+	e := element(t, w, "全部项目")
+	if e.Role != "checkbox" || e.Value != "mixed" || !e.Disabled {
+		t.Fatalf("mixed checkbox missing state: %+v", e)
+	}
+	if e = element(t, w, "上传"); !e.Disabled {
+		t.Fatal("loading button not disabled")
+	}
+	if e = element(t, w, "处理中"); e.Value != "indeterminate" {
+		t.Fatal("progress has fabricated percentage")
+	}
+	if e = element(t, w, "单选一"); !e.Disabled {
+		t.Fatal("group disabled state not propagated")
+	}
+}
