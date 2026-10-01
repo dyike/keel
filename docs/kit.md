@@ -42,13 +42,13 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 - [Alert](kit/alert.md)：行内状态提示。
 - [Empty](kit/empty.md)：空状态说明。
 - [Avatar](kit/avatar.md)：图片与姓名回退头像。
-- [Tag](kit/tag.md)：不可移除标签。
+- [Tag](kit/tag.md)：可选择、可移除标签。
 - [DescriptionList](kit/description_list.md)：字段说明列表。
 - [GroupBox](kit/group_box.md)：带标题的视图分组。
 - [StatusBar](kit/status_bar.md)：状态与详情栏。
 - [Marker](kit/marker.md)：纯图形标记。
 
-Icon：矢量图标，默认颜色随主题切换。
+[Icon](kit/icon.md)：矢量图标，默认颜色随主题切换。
 
 主题文本使用场景：选中底色 Highlight 上使用 PrimaryText；Primary 保留为按钮背景和描边。Markdown 默认使用 CodeBg/CodeText，旧包级颜色变量的零值表示跟随主题，CodeStyle 为空时按背景自动选择 github/github-dark。
 

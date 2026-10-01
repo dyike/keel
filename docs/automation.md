@@ -117,14 +117,15 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `row` | 表格中可见的行，名字是各列用竖线连起来 | `selected` |
 | `slider` | `widget.Slider` | `value` 是当前数值；点击轨道或聚焦后按方向键调整 |
 | `accordion` | `widget.Accordion` | 标题和展开内容单独列出 |
-| `tag` | kit 标签（不可点击） | 名字是文字，value 为语义级别 |
+| `tag` | kit 标签容器 | value 为颜色名，selected 为选择状态；选择和移除按钮分别列出 |
 | `group` | kit 组件分组 | 名字为分组标题，保留子组件语义 |
 | `status` | kit 状态栏 | 名字为主状态，value 为详情 |
-| `alert` | kit 行内提示（不可点击） | 名字是标题，value 为 neutral/info/success/warning/danger；正文单独列出 |
+| `alert` | kit 行内提示容器 | 名字是标题，value 为 info/success/warning/danger；正文和关闭按钮单独列出 |
 | `badge` | 数字、圆点、图标角标（不可点击） | 名字为原始计数，`value` 为显示值、`dot` 或 `icon` |
 | `toggle` | 状态按钮 | `selected` 表示选中，支持 `disabled` |
 | `disclosure` | 折叠面板标题 | `value` 是 expanded / collapsed，支持 `disabled` |
-| `image` | `widget.Image`、Markdown 图片、kit Avatar | `value` 是 loading / loaded / error；Avatar 回退为 initials。名字是替代文字 |
+| `avatar` | kit 头像 | 名字为人名，value 为 online/busy/offline，无状态为空 |
+| `image` | `widget.Image`、Markdown 图片 | `value` 是 loading / loaded / error，名字是替代文字 |
 | `footnotes` | Markdown 脚注 | 引用和返回链接单独列出 |
 | `progressbar` | `widget.Progress` | `value` 是百分比或 indeterminate |
 | `dialog` | 打开的 `widget.Dialog` | 它里面的文字和按钮单独列出 |
@@ -173,5 +174,3 @@ Agent ──MCP(stdio)──► keel-mcp ──JSON 行(unix socket)──► �
 ## 在 Go 测试里用
 
 `cmd/keel-mcp/main_test.go` 用 MCP 官方 SDK 的客户端启动 `keel-mcp`，把 multiwindow 示例完整走一遍（`TestEndToEnd`），并测试 `attach` 的连接、断开、重连和占用提示（`TestAttach`），也是写这类测试的样板。`ui/window/automation_test.go` 在进程内直接测试自动化模式（滚动、Tab 焦点、回调里关窗口）。两者都随 `go test ./...` 运行，不弹窗口。
-
-| `avatar` | kit 头像 | 名字为人名，value 为 online/busy/offline；无状态为空 |

@@ -20,4 +20,4 @@ go run ./examples/components -screenshot /tmp/keel-components.png
 
 主题验证：`go run ./examples/components -section theme`，点击“浅色”“深色”来回切换；可用 `-theme dark` 指定启动配色，并与 `-screenshot /tmp/keel-theme.png` 组合检查截图。
 
-M1 展示组件可用 `-section alert|empty|avatar|tag|description-list|group-box|status-bar|marker` 分别运行（任选一个值），加 `-theme dark` 检查深色。`-section focus` 验证 Tab / Shift+Tab、Space / Enter 激活、祖先按键冒泡和程序聚焦输入框。
+M1 展示组件可用 `-section icon|alert|empty|avatar|tag|description-list|group-box|status-bar|marker|spinner|skeleton` 分别运行（任选一个值），加 `-theme dark` 检查深色。`-section focus` 验证 Tab / Shift+Tab、Space / Enter 激活、祖先按键冒泡、程序聚焦输入框和子树禁用。`-section time` 验证定时关闭与提前取消。Spinner/Skeleton 示例可切换减少动画。
