@@ -27,3 +27,38 @@ func TestTagColorNames(t *testing.T) {
 		}
 	}
 }
+
+func TestTagSelectionRemovalAndDisabled(t *testing.T) {
+	changes, removes := 0, 0
+	v := Tag("标签").Selectable().OnChange(func(bool) { changes++ }).OnRemove(func() { removes++ })
+	h := renderView(v, 180, 1)
+	v.SetValue(true)
+	h.Frame()
+	if changes != 0 {
+		t.Fatal("program change fired callback")
+	}
+	click(t, h, "标签")
+	if v.Value() || changes != 1 {
+		t.Fatal("selection failed")
+	}
+	click(t, h, "移除 标签")
+	if removes != 1 || changes != 1 {
+		t.Fatal("remove also selected")
+	}
+	h.Frame()
+	if _, ok := node(h, "移除 标签"); !ok {
+		t.Fatal("tag hid itself")
+	}
+	v.SetDisabled(true)
+	h.Frame()
+	click(t, h, "移除 标签")
+	if removes != 1 {
+		t.Fatal("disabled remove")
+	}
+	v.SetDisabled(false)
+	h.Frame()
+	click(t, h, "移除 标签")
+	if removes != 2 {
+		t.Fatal("restore failed")
+	}
+}
