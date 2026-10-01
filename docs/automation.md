@@ -117,7 +117,6 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `row` | 表格中可见的行，名字是各列用竖线连起来 | `selected` |
 | `slider` | `widget.Slider` | `value` 是当前数值；点击轨道或聚焦后按方向键调整 |
 | `accordion` | `widget.Accordion` | 标题和展开内容单独列出 |
-| `empty` | kit 空状态（不可点击） | 名字是标题，说明文字单独列出 |
 | `tag` | kit 标签（不可点击） | 名字是文字，value 为语义级别 |
 | `descriptionlist` | kit 字段说明列表 | value 为条目数，字段名和值单独列出 |
 | `group` | kit 组件分组 | 名字为分组标题，保留子组件语义 |

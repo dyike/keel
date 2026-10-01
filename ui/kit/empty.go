@@ -6,18 +6,35 @@ import (
 )
 
 // EmptyView explains why a region contains no results.
-type EmptyView struct{ title, description string }
+type EmptyView struct {
+	title, description string
+	icon               IconName
+	action             el.Element
+}
 
-func Empty(title, description string) *EmptyView { return &EmptyView{title, description} }
-func (v *EmptyView) SetTitle(s string)           { v.title = s }
-func (v *EmptyView) SetDescription(s string)     { v.description = s }
-func (v *EmptyView) Render(*el.Context) el.Element {
-	box := el.Div().Role("empty").Name(v.title).P(24).Gap(8).Items(el.Center).Bg(theme.Surface)
+func Empty(title string, description ...string) *EmptyView {
+	v := &EmptyView{title: title, icon: IconInbox}
+	if len(description) > 0 {
+		v.description = description[0]
+	}
+	return v
+}
+func (v *EmptyView) Description(s string) *EmptyView { v.description = s; return v }
+func (v *EmptyView) Icon(i IconName) *EmptyView      { v.icon = i; return v }
+func (v *EmptyView) Action(e el.Element) *EmptyView  { v.action = e; return v }
+func (v *EmptyView) SetTitle(s string)               { v.title = s }
+func (v *EmptyView) SetDescription(s string)         { v.description = s }
+func (v *EmptyView) Render(cx *el.Context) el.Element {
+	box := el.Div().P(24).Gap(8).Items(el.Center).Bg(theme.Surface)
+	box.Child(Icon(v.icon).Size(40).Color(theme.Muted).Render(cx))
 	if v.title != "" {
 		box.Child(el.Text(v.title).TextColor(theme.Text))
 	}
 	if v.description != "" {
 		box.Child(el.Text(v.description).TextColor(theme.Muted))
+	}
+	if v.action != nil {
+		box.Child(v.action)
 	}
 	return box
 }
