@@ -275,9 +275,11 @@ func (r *RootWidget) dispatch(gtx core.C) {
 // blur clears keyboard focus on a press that no focusable element claims. The
 // root's area encloses everything, so it sees every press; an input or text
 // that was pressed asks for focus later in the frame, and that request wins.
+// Listen for the whole pointer sequence: if a disabled control leaves only
+// this background handler, an unhandled release must not strand pointer capture.
 func (r *RootWidget) blur(gtx core.C) {
 	for {
-		ev, ok := gtx.Event(pointer.Filter{Target: &r.bg, Kinds: pointer.Press})
+		ev, ok := gtx.Event(pointer.Filter{Target: &r.bg, Kinds: pointer.Press | pointer.Release})
 		if !ok {
 			break
 		}

@@ -27,7 +27,8 @@ func Semantic(gtx C, w func(gtx C) D, ops ...interface{ Add(*op.Ops) }) D {
 // Role marks a node's role for agents, optionally with a value.
 // The internal el-inert marker hides a background subtree from Agent snapshots
 // while a modal el layer is active; it is not exposed as a component role. Automation
-// reads it as "role" or "role:value" from the node's description. Roles:
+// reads it as "role" or "role:value" from the node's description. A button may
+// carry "button:loading" while its action is unavailable. Roles:
 // link, tab, columnheader, select, disclosure, toggle (clickable); image, row, option,
 // table, progressbar, slider, dialog, code, footnotes, accordion, badge, avatar, alert, tag, group, status (others).
 func Role(role string, value ...string) semantic.DescriptionOp {

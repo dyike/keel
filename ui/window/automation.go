@@ -276,7 +276,7 @@ func roleOf(d input.SemanticDesc, inControl bool) (role, value string) {
 	switch d.Class {
 	case semantic.Button:
 		switch custom {
-		case "link", "tab", "columnheader", "select", "image", "disclosure", "toggle":
+		case "button", "link", "tab", "columnheader", "select", "image", "disclosure", "toggle":
 			return custom, val
 		}
 		return "button", ""

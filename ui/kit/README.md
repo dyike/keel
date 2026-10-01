@@ -10,6 +10,7 @@
 
 | 组件 | 说明 |
 | --- | --- |
+| [Button](../../docs/kit/button.md) | 操作按钮、图标、键盘与加载状态 |
 | [Alert](../../docs/kit/alert.md) | 行内状态提示，支持浅深色 |
 | [Empty](../../docs/kit/empty.md) | 空状态说明 |
 | [Avatar](../../docs/kit/avatar.md) | 固定尺寸头像和姓名回退 |

@@ -41,6 +41,8 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 
 ## 已实现组件
 
+- [Button](kit/button.md)：操作按钮，支持焦点、禁用、图标和固定尺寸的加载状态。
+
 - [Alert](kit/alert.md)：行内状态提示。
 - [Empty](kit/empty.md)：空状态说明。
 - [Avatar](kit/avatar.md)：图片与姓名回退头像。

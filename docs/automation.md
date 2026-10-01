@@ -103,7 +103,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | 角色 | 来自 | 额外信息 |
 | --- | --- | --- |
 | `text` | `widget.Text`、`Heading`、`Muted` | |
-| `button` | `widget.Button` | `disabled` |
+| `button` | `kit.Button`、`widget.Button` | `disabled`；kit 加载时 `value: loading` |
 | `link` | `widget.Link` | |
 | `textbox` | `widget.Input`、`TextArea` | `value`；密码框的值是等长的 `•` |
 | `checkbox` | `widget.Checkbox` | `checked` / `unchecked`；半选时 `value` 为 mixed |

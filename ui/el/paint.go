@@ -230,6 +230,9 @@ func (e *engine) semantics(n *Node) []interface{ Add(*op.Ops) } {
 	case "":
 	case "button":
 		ops = append(ops, semantic.Button)
+		if n.value != "" {
+			ops = append(ops, core.Role("button", n.value))
+		}
 	case "link", "tab", "columnheader", "select":
 		ops = append(ops, semantic.Button, core.Role(role, n.value))
 	case "checkbox":

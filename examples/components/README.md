@@ -23,3 +23,5 @@ go run ./examples/components -screenshot /tmp/keel-components.png
 M1 展示组件可用 `-section icon|alert|empty|avatar|tag|description_list|group_box|status_bar|marker|spinner|skeleton` 分别运行（任选一个值），加 `-theme dark` 检查深色。`-section focus` 验证 Tab / Shift+Tab、Space / Enter 激活、祖先按键冒泡、程序聚焦输入框和子树禁用。`-section time` 验证定时关闭与提前取消。Spinner/Skeleton 示例可切换减少动画。
 
 `-section overlay` 使用 el.Root 验证 E4/E5：非模态点击穿透、模态遮罩、Tab 循环、Esc 关闭与焦点恢复。
+
+`-section button` 使用 kit.Button，覆盖四种 Variant、28/32/40dp、加载时尺寸保持、禁用、窄容器以及鼠标和键盘操作。

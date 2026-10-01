@@ -272,3 +272,23 @@ func TestMeasurementPreservesFocus(t *testing.T) {
 		t.Fatalf("measurement lost focus/activation: %v %d", focused, calls)
 	}
 }
+
+func TestDisabledClickDoesNotCaptureNextPress(t *testing.T) {
+	disabled := false
+	calls := 0
+	root := Root(ViewFunc(func(*Context) Element {
+		return Div().Size(Dp(80)).Disabled(disabled).OnClick(func() { calls++ }).Child(Text("action"))
+	}))
+	h := uitest.New(root)
+	h.Click(10, 10)
+	disabled = true
+	h.Frame()
+	h.Click(10, 10)
+	disabled = false
+	h.Frame()
+	h.Click(10, 10)
+	h.Frame()
+	if calls != 2 {
+		t.Fatalf("click after disabled release was lost: calls=%d", calls)
+	}
+}
