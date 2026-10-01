@@ -76,6 +76,16 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 		limH = shrinkBy(availH, boxY)
 	}
 
+	flex := func(innerW, innerH, limW, limH int) image.Point {
+		if s.scrollY {
+			// Children get unbounded height; the element keeps its own.
+			c := e.flex(n, innerW, -1, limW, inf)
+			n.contentH = c.Y
+			return c
+		}
+		return e.flex(n, innerW, innerH, limW, limH)
+	}
+	box := !n.isText && n.input == nil && n.widget == nil
 	var content image.Point
 	switch {
 	case n.isText:
@@ -84,18 +94,24 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 		content = e.measureInput(n, limW)
 	case n.widget != nil:
 		content = e.measureWidget(n, innerW, innerH, limW, limH)
-	case s.scrollY:
-		// Children get unbounded height; the element keeps its own.
-		content = e.flex(n, innerW, -1, limW, inf)
-		n.contentH = content.Y
 	default:
-		content = e.flex(n, innerW, innerH, limW, limH)
+		content = flex(innerW, innerH, limW, limH)
 	}
-	if w < 0 {
+	autoW, autoH := w < 0, h < 0
+	if autoW {
 		w = e.clampW(n, content.X+boxX, availW)
 	}
-	if h < 0 {
+	if autoH {
 		h = e.clampH(n, content.Y+boxY, availH)
+	}
+	// MinW / MinH widened a content-sized box: lay the children out again at
+	// the final size so stretched children (menu rows) fill it.
+	if box && (autoW && w > content.X+boxX || autoH && !s.scrollY && h > content.Y+boxY) {
+		fw, fh := w-boxX, innerH
+		if autoH && !s.scrollY {
+			fh = h - boxY
+		}
+		flex(fw, fh, fw, max(fh, limH))
 	}
 	n.size = image.Pt(w, h)
 }
