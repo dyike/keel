@@ -5,6 +5,8 @@ import (
 	"image/color"
 
 	"gioui.org/font"
+	"gioui.org/io/event"
+	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/op"
 	"gioui.org/text"
@@ -18,10 +20,11 @@ import (
 
 // Label is read-only text that wraps to the available width.
 type Label struct {
-	text  string
-	size  unit.Sp
-	bold  bool
-	color *color.NRGBA
+	text        string
+	size        unit.Sp
+	bold        bool
+	color       *color.NRGBA
+	focusTarget interface{ Focus(C) }
 }
 
 func Text(s string) *Label    { return &Label{text: s, size: theme.BodySize} }
@@ -33,7 +36,21 @@ func Muted(s string) *Label { return &Label{text: s, size: theme.SmallSize, colo
 func (l *Label) Text() string     { return l.text }
 func (l *Label) SetText(s string) { l.text = s }
 
+// For associates a label with an input without adding a separate Tab stop.
+func (l *Label) For(target interface{ Focus(C) }) *Label { l.focusTarget = target; return l }
+
 func (l *Label) Layout(gtx C) D {
+	if l.focusTarget != nil {
+		for {
+			ev, ok := gtx.Event(pointer.Filter{Target: l, Kinds: pointer.Press})
+			if !ok {
+				break
+			}
+			if e, ok := ev.(pointer.Event); ok && (e.Source != pointer.Mouse || e.Buttons.Contain(pointer.ButtonPrimary)) {
+				l.focusTarget.Focus(gtx)
+			}
+		}
+	}
 	lb := material.Label(theme.Material, l.size, l.text)
 	lb.Color = theme.Text
 	if l.color != nil {
@@ -44,7 +61,13 @@ func (l *Label) Layout(gtx C) D {
 	}
 	// Gio's label node spans the whole available height; this one has the
 	// text's real bounds, and the inner node becomes its child.
-	return core.Semantic(gtx, func(gtx C) D { return layoutLabel(gtx, lb) }, semantic.LabelOp(l.text))
+	return core.Semantic(gtx, func(gtx C) D {
+		if l.focusTarget != nil {
+			event.Op(gtx.Ops, l)
+			pointer.CursorPointer.Add(gtx.Ops)
+		}
+		return layoutLabel(gtx, lb)
+	}, semantic.LabelOp(l.text))
 }
 
 // Center visible font ink in the logical line box. Keep Gio's line spacing and

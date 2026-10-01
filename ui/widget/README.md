@@ -4,7 +4,7 @@
 
 | 文件 | 组件 |
 | --- | --- |
-| `text.go` | `Text`、`Heading`、`Muted` |
+| `text.go` | `Text`、`Heading`、`Muted`：换行、文字对齐、`For` 关联聚焦 |
 | `button.go`、`style.go` | `Button`：尺寸、图标、加载、禁用；共享尺寸和加载绘制 |
 | `link.go` | `Link` |
 | `image.go`、`image_load.go` | `Image`、`LoadImage`、`ImageData`：异步加载、缩放和失败占位 |
