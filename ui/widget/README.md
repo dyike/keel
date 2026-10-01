@@ -19,6 +19,7 @@
 | `accordion.go` | `Accordion`：单项 / 多项展开、标题键盘导航 |
 | `progress.go` | `Progress` |
 | `dialog.go` | `Dialog`：确认、提示，放在 `window.Options.Overlay` |
+| `icon.go` | `Icon`、`VectorIcon`：矢量图标、尺寸与颜色 |
 | `draw.go` | 内部绘图小工具 |
 
 - **依赖**：`core`、`theme`、`layout`。

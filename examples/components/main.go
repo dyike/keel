@@ -51,9 +51,13 @@ func gallery() core.Widget {
 	)
 }
 func main() {
+	section := flag.String("section", "all", "component name, controls, inputs, or all")
 	screenshot := flag.String("screenshot", "", "render a PNG and exit")
 	flag.Parse()
-	content := gallery()
+	content, ok := sectionContent(*section, gallery())
+	if !ok {
+		log.Fatalf("unknown section %q", *section)
+	}
 	if *screenshot != "" {
 		if err := window.Screenshot(content, 680, 1040, *screenshot); err != nil {
 			log.Fatal(err)

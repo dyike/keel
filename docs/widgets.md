@@ -300,3 +300,7 @@ layout.Row(widget.Heading("新功能"), badge)
 ```
 
 `core.Func` 里有状态（比如 Gio 的 `widget.Clickable`）时，状态要放在闭包外面，否则每帧都会重建。需要复用第二次，就按[扩展指南](extending.md#新增组件)把它做成正式组件。
+
+## 分组件功能与验证
+
+- [图标](widgets/icon.md)
