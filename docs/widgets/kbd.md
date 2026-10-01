@@ -1,5 +1,7 @@
 # 键帽
 
+`Kbd(...)` 返回 `*widget.KbdView`。
+
 ```go
 widget.Kbd("mod+shift+p") // macOS ⇧⌘P，Windows/Linux Ctrl+Shift+P
 widget.Kbd("mod+s").Plain().Size(widget.Small)

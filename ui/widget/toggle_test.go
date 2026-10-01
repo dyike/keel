@@ -8,7 +8,7 @@ import (
 
 func TestToggleInteraction(t *testing.T) {
 	var changes []bool
-	v := Toggle("固定", false).OnChange(func(b bool) { changes = append(changes, b) })
+	var v *ToggleView = Toggle("固定", false).OnChange(func(b bool) { changes = append(changes, b) })
 	h := uitest.New(v)
 	clickNamed(t, h, "固定")
 	if !v.Value() || len(changes) != 1 {

@@ -9,7 +9,7 @@ import (
 func init() { registerSection("toggle", "controls", toggleGallery) }
 func toggleGallery() core.Widget {
 	feedback := widget.Muted("未固定")
-	pin := widget.Toggle("固定面板", false).Icon(widget.Icon(widget.IconCheck)).OnChange(func(v bool) {
+	var pin *widget.ToggleView = widget.Toggle("固定面板", false).Icon(widget.Icon(widget.IconCheck)).OnChange(func(v bool) {
 		if v {
 			feedback.SetText("已固定")
 		} else {

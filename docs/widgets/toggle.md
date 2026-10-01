@@ -1,5 +1,7 @@
 # 状态按钮
 
+`Toggle(...)` 返回 `*widget.ToggleView`。
+
 ```go
 pin := widget.Toggle("固定", false).Icon(widget.Icon(widget.IconCheck)).Size(widget.Small).OnChange(onChange)
 pin.SetValue(true)

@@ -10,7 +10,7 @@ import (
 // ToggleGroupView selects one option by default, or any subset in Multiple mode.
 // Selecting the active option again clears it. Values are returned in display order.
 type ToggleGroupView struct {
-	items              []*ToggleButton
+	items              []*ToggleView
 	multiple, disabled bool
 	onChange           func([]string)
 }

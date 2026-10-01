@@ -303,6 +303,8 @@ layout.Row(widget.Heading("新功能"), badge)
 
 ## 分组件功能与验证
 
+`Kbd(...)` 返回 `*KbdView`，`Toggle(...)` 返回 `*ToggleView`；组件构造函数与返回类型使用同一名称。
+
 - [图标](widgets/icon.md)
 - [按钮](widgets/button.md)
 - [复选框](widgets/checkbox.md)

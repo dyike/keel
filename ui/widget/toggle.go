@@ -12,8 +12,8 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
-// ToggleButton is a pressable button with a persistent selected state.
-type ToggleButton struct {
+// ToggleView is a pressable button with a persistent selected state.
+type ToggleView struct {
 	text         string
 	on, disabled bool
 	click        widget.Clickable
@@ -23,18 +23,18 @@ type ToggleButton struct {
 	ghost        bool
 }
 
-func Toggle(text string, on bool) *ToggleButton { return &ToggleButton{text: text, on: on} }
-func (t *ToggleButton) Value() bool             { return t.on }
+func Toggle(text string, on bool) *ToggleView { return &ToggleView{text: text, on: on} }
+func (t *ToggleView) Value() bool             { return t.on }
 
 // SetValue updates the state without calling OnChange.
-func (t *ToggleButton) SetValue(on bool)                      { t.on = on }
-func (t *ToggleButton) SetDisabled(disabled bool)             { t.disabled = disabled }
-func (t *ToggleButton) OnChange(fn func(bool)) *ToggleButton  { t.onChange = fn; return t }
-func (t *ToggleButton) Icon(icon *IconView) *ToggleButton     { t.icon = icon; return t }
-func (t *ToggleButton) Size(size ComponentSize) *ToggleButton { t.size = size; return t }
-func (t *ToggleButton) Ghost() *ToggleButton                  { t.ghost = true; return t }
+func (t *ToggleView) SetValue(on bool)                    { t.on = on }
+func (t *ToggleView) SetDisabled(disabled bool)           { t.disabled = disabled }
+func (t *ToggleView) OnChange(fn func(bool)) *ToggleView  { t.onChange = fn; return t }
+func (t *ToggleView) Icon(icon *IconView) *ToggleView     { t.icon = icon; return t }
+func (t *ToggleView) Size(size ComponentSize) *ToggleView { t.size = size; return t }
+func (t *ToggleView) Ghost() *ToggleView                  { t.ghost = true; return t }
 
-func (t *ToggleButton) Layout(gtx C) D {
+func (t *ToggleView) Layout(gtx C) D {
 	gtx.Constraints.Min = image.Point{}
 	if t.disabled {
 		gtx = gtx.Disabled()

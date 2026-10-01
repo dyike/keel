@@ -14,8 +14,8 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
-// Keycap displays a shortcut. It does not register a keyboard handler.
-type Keycap struct {
+// KbdView displays a shortcut. It does not register a keyboard handler.
+type KbdView struct {
 	shortcut string
 	size     ComponentSize
 	plain    bool
@@ -23,11 +23,11 @@ type Keycap struct {
 
 // Kbd uses core.ParseShortcut syntax (e.g. mod+shift+p). Invalid chords are
 // displayed literally, allowing arbitrary key labels as well.
-func Kbd(shortcut string) *Keycap                 { return &Keycap{shortcut: shortcut} }
-func (k *Keycap) Size(size ComponentSize) *Keycap { k.size = size; return k }
-func (k *Keycap) Plain() *Keycap                  { k.plain = true; return k }
-func (k *Keycap) SetShortcut(shortcut string)     { k.shortcut = shortcut }
-func (k *Keycap) Layout(gtx C) D {
+func Kbd(shortcut string) *KbdView                  { return &KbdView{shortcut: shortcut} }
+func (k *KbdView) Size(size ComponentSize) *KbdView { k.size = size; return k }
+func (k *KbdView) Plain() *KbdView                  { k.plain = true; return k }
+func (k *KbdView) SetShortcut(shortcut string)      { k.shortcut = shortcut }
+func (k *KbdView) Layout(gtx C) D {
 	gtx.Constraints.Min = image.Point{}
 	return core.Semantic(gtx, func(gtx C) D {
 		content := func(gtx C) D {

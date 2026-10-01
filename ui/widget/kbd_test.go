@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+var _ *KbdView = Kbd("mod+k").Plain().Size(Small)
+
 func TestShortcutLabels(t *testing.T) {
 	for _, tt := range []struct{ input, platform, want string }{
 		{"mod+shift+p", "darwin", "⇧⌘P"}, {"mod+shift+p", "windows", "Ctrl+Shift+P"},
