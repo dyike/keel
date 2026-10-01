@@ -113,6 +113,7 @@ func (r *RootWidget) prepareLayers(cx *Context) {
 		}
 	}
 	collect(r.mainTree)
+	serial := r.layerSerial
 	for i := range cx.layers {
 		d := &cx.layers[i]
 		d.eligible = !d.layer.content.node().style.hidden && (d.layer.centered || ids[d.layer.anchor])
@@ -121,9 +122,18 @@ func (r *RootWidget) prepareLayers(cx *Context) {
 		}
 		st := r.layers[d.key]
 		if st == nil {
-			r.layerSerial++
-			st = &layerState{seed: childKey(childKey(0, "overlay", 0), "", int(r.layerSerial))}
-			r.layers[d.key] = st
+			serial++
+			st = &layerState{seed: childKey(childKey(0, "overlay", 0), "", int(serial))}
+			if r.e.gtx.Enabled() {
+				r.layers[d.key] = st
+				r.layerSerial = serial
+			}
+		}
+		// Read-only painting may recompute geometry, but must not overwrite
+		// the live layer's focus history or hit areas. Element state stays shared.
+		if !r.e.gtx.Enabled() {
+			copy := *st
+			st = &copy
 		}
 		d.state = st
 		r.store.assignKeys(d.layer.content.node(), st.seed)
@@ -142,6 +152,9 @@ func (r *RootWidget) prepareLayers(cx *Context) {
 	}
 }
 func (r *RootWidget) blockTree(n *Node, blocked bool) {
+	if !r.e.gtx.Enabled() {
+		return
+	}
 	if s := r.store.states[n.key]; s != nil {
 		s.blocked = blocked
 		if blocked {
@@ -436,24 +449,6 @@ func (r *RootWidget) focusFirst(n *Node) bool {
 		}
 	}
 	return false
-}
-
-// measure renders against isolated frame bookkeeping. It never cancels a live
-// layer, dispatches callbacks, consumes input, or overwrites its focus history.
-func (r *RootWidget) measure(gtx core.C) core.D {
-	tmp := *r
-	tmp.store = newStore()
-	tmp.cache = elementCache{entries: map[any]*cacheEntry{}}
-	tmp.layers = nil
-	tmp.activeLayers = nil
-	tmp.timers = nil
-	tmp.e = engine{}
-	tmp.measuring = true
-	dims := tmp.Layout(gtx)
-	if tmp.focusPending {
-		r.focusID, r.focusPending = tmp.focusID, true
-	}
-	return dims
 }
 
 func (r *RootWidget) dispatchHover(gtx core.C) {

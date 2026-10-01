@@ -67,7 +67,7 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 	if n.id != "" || n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() {
 		st = r.store.get(n.key)
 	}
-	if st != nil {
+	if st != nil && r.e.gtx.Enabled() {
 		st.id = n.id
 		st.disabled = n.effectiveDisabled
 		st.focusable = n.isFocusable() && n.input == nil

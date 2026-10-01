@@ -35,6 +35,9 @@ func ReducedMotion() bool { return theme.ReducedMotion }
 // for a frame. Do not declare timers in Cache builders, which may not run again.
 func (cx *Context) After(key any, d time.Duration, fn func()) {
 	r := cx.root
+	if !r.e.gtx.Enabled() {
+		return
+	}
 	if r.timers == nil {
 		r.timers = map[any]*viewTimer{}
 	}

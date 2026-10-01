@@ -160,13 +160,15 @@ func (e *engine) paintContent(n *Node) {
 			o.Add(gtx.Ops)
 		}
 		if state != nil && n.isFocusable() && n.input == nil && !e.blockFocus && !e.blockInput {
-			state.keyFrame = e.store.frame
+			if gtx.Enabled() {
+				state.keyFrame = e.store.frame
+			}
 			// Register in paint order so Gio Tab order matches tree order.
 			gtx.Event(focusFilters(state)...)
 			event.Op(gtx.Ops, state)
 		}
 		if state != nil && n.interactive() && !n.effectiveDisabled && !e.blockInput {
-			if state.fresh {
+			if state.fresh && gtx.Enabled() {
 				// Gio drops areas whose handler asked for no events this
 				// frame. dispatch asks from the next frame on; ask now so
 				// the element is clickable, and visible to agents, at once.
@@ -174,7 +176,9 @@ func (e *engine) paintContent(n *Node) {
 				state.fresh = false
 			}
 			state.click.Add(gtx.Ops)
-			state.onClick, state.onDoubleClick, state.clickable = n.onClick, n.onDoubleClick, true
+			if gtx.Enabled() {
+				state.onClick, state.onDoubleClick, state.clickable = n.onClick, n.onDoubleClick, true
+			}
 			if st.cursor != pointer.CursorDefault {
 				st.cursor.Add(gtx.Ops)
 			}
@@ -193,7 +197,9 @@ func (e *engine) paintContent(n *Node) {
 		if e.blockFocus {
 			e.gtx = e.gtx.Disabled()
 		}
-		state.keyFrame = e.store.frame
+		if gtx.Enabled() {
+			state.keyFrame = e.store.frame
+		}
 		e.paintInput(n, state, inner)
 	case n.widget != nil:
 		stk := op.Offset(inner.Min).Push(gtx.Ops)
@@ -342,6 +348,10 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 // content, so the last child can scroll clear of the bottom padding.
 func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	gtx := e.gtx
+	if !gtx.Enabled() {
+		copy := *st
+		st = &copy
+	}
 	bw := e.dp(n.style.borderWidth)
 	_, pt, _, pb := e.edges(n.style.pad)
 	viewport := image.Rect(bw, bw, n.size.X-bw, n.size.Y-bw)

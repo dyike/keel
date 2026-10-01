@@ -108,7 +108,6 @@ type RootWidget struct {
 	layers         map[any]*layerState
 	activeLayers   []*layerState
 	layerSerial    uint64
-	measuring      bool
 	timerEpoch     uint64
 	timers         map[any]*viewTimer
 	source         input.Source
@@ -141,18 +140,22 @@ func Embed(v View) *RootWidget {
 func (r *RootWidget) FillsWindow() bool { return r.fill }
 
 func (r *RootWidget) Layout(gtx core.C) core.D {
-	if !gtx.Enabled() && !r.measuring {
-		return r.measure(gtx)
-	}
+	// A missing input source can mean measurement or a disabled parent.
+	// Both render real state without advancing its lifecycle.
+	live := gtx.Enabled()
 	st := r.store
-	st.frame++
+	if live {
+		st.frame++
+	}
 	e := &r.e
 	e.gtx, e.m, e.store = gtx, gtx.Metric, st
 
 	if gtx.Enabled() {
 		r.source = gtx.Source
 	}
-	r.beginTimers()
+	if live {
+		r.beginTimers()
+	}
 	cx := Context{root: r}
 	tree := r.view.Render(&cx).node()
 	st.assignKeys(tree, 1)
@@ -161,12 +164,14 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	r.prepareLayers(&cx)
 	r.callbacks = false
 	r.requestedFocus = nil
-	r.dispatchLayers(&cx)
-	r.dispatchHover(gtx)
-	r.blur(gtx)
-	r.dispatchKeys(gtx)
-	r.dispatch(gtx)
-	flushClipboard(gtx)
+	if live {
+		r.dispatchLayers(&cx)
+		r.dispatchHover(gtx)
+		r.blur(gtx)
+		r.dispatchKeys(gtx)
+		r.dispatch(gtx)
+		flushClipboard(gtx)
+	}
 	if r.callbacks {
 		r.beginTimers()
 		cx.shortcuts = nil
@@ -223,9 +228,11 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	e.blockInput, e.blockFocus = false, false
 	r.paintLayers(&cx, base, priorFocus)
 	r.finishTimers()
-	flushClipboard(gtx) // from shortcuts and widget callbacks during this frame
-	st.sweep()
-	r.cache.sweep(st.frame)
+	if live {
+		flushClipboard(gtx) // from shortcuts and widget callbacks during this frame
+		st.sweep()
+		r.cache.sweep(st.frame)
+	}
 	if r.fill {
 		return core.D{Size: max}
 	}
