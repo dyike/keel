@@ -259,6 +259,10 @@ func (s *Styled[T]) Rounded(dp float32) *T { s.n.style.radius = dp; return s.sel
 // CursorPointer shows a hand over the element.
 func (s *Styled[T]) CursorPointer() *T { s.n.style.cursor = pointer.CursorPointer; return s.self }
 
+// Cursor sets the pointer shape over the element, e.g. pointer.CursorColResize
+// on a splitter.
+func (s *Styled[T]) Cursor(c pointer.Cursor) *T { s.n.style.cursor = c; return s.self }
+
 // Text style, inherited by descendant text like CSS.
 
 func (s *Styled[T]) TextColor(c color.NRGBA) *T { s.n.style.text.color = &c; return s.self }

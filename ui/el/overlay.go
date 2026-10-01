@@ -172,7 +172,10 @@ func (r *RootWidget) blockTree(n *Node, blocked bool) {
 	if s := r.store.states[n.key]; s != nil {
 		s.blocked = blocked
 		if blocked {
-			s.hovered = false
+			// Blocked handlers ask for no events, so Gio drops their areas;
+			// re-register them at once when unblocked, as for new elements,
+			// or the first click after a modal closes is lost.
+			s.hovered, s.fresh = false, true
 		}
 	}
 	for _, c := range n.children {

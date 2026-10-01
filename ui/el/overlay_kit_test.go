@@ -71,3 +71,22 @@ func TestZeroSizeAnchor(t *testing.T) {
 		t.Fatalf("toasts at %v, want (284,16)", b.Min)
 	}
 }
+
+// The first click after a modal layer closes reaches the page, even when no
+// frame runs in between (automation renders only on request).
+func TestFirstClickAfterModalCloses(t *testing.T) {
+	open, clicks := true, 0
+	h := uitest.New(Root(ViewFunc(func(cx *Context) Element {
+		if open {
+			cx.Overlay("m", Modal(Div().Name("close").Size(Dp(40)).OnClick(func() { open = false })))
+		}
+		return Div().Child(Div().Name("page").Size(Dp(40)).OnClick(func() { clicks++ }))
+	})))
+	b := nodeBounds(h, "close")
+	h.Click(float32(b.Min.X+5), float32(b.Min.Y+5))
+	b = nodeBounds(h, "page")
+	h.Click(float32(b.Min.X+5), float32(b.Min.Y+5))
+	if open || clicks != 1 {
+		t.Fatalf("open=%v clicks=%d", open, clicks)
+	}
+}
