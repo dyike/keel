@@ -14,3 +14,4 @@
 | [Empty](../../docs/kit/empty.md) | 空状态说明 |
 | [Avatar](../../docs/kit/avatar.md) | 固定尺寸头像和姓名回退 |
 | [Tag](../../docs/kit/tag.md) | 不可移除标签 |
+| [DescriptionList](../../docs/kit/description_list.md) | 单列字段说明 |

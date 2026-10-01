@@ -43,3 +43,4 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`el`；不引用 `widget`、`lay
 - [Empty](kit/empty.md)：空状态说明。
 - [Avatar](kit/avatar.md)：图片与姓名回退头像。
 - [Tag](kit/tag.md)：不可移除标签。
+- [DescriptionList](kit/description_list.md)：字段说明列表。
