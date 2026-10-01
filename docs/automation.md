@@ -122,7 +122,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `badge` | 数字、圆点、图标角标（不可点击） | 名字为原始计数，`value` 为显示值、`dot` 或 `icon` |
 | `toggle` | 状态按钮 | `selected` 表示选中，支持 `disabled` |
 | `disclosure` | 折叠面板标题 | `value` 是 expanded / collapsed，支持 `disabled` |
-| `image` | `widget.Image`、Markdown 图片 | `value` 是 loading / loaded / error，名字是替代文字 |
+| `image` | `widget.Image`、Markdown 图片、kit Avatar | `value` 是 loading / loaded / error；Avatar 回退为 initials。名字是替代文字 |
 | `footnotes` | Markdown 脚注 | 引用和返回链接单独列出 |
 | `progressbar` | `widget.Progress` | `value` 是百分比或 indeterminate |
 | `dialog` | 打开的 `widget.Dialog` | 它里面的文字和按钮单独列出 |
