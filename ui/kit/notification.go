@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"strconv"
 	"time"
 
@@ -89,7 +90,7 @@ func (v *NotifierView) card(cx *el.Context, base string, n notice) el.Element {
 	return surface().ID(id).Role("status").Name(n.Title).Value(n.Tone.name()).P(12).Row().Gap(10).Items(el.Start).Child(
 		el.Div().W(el.Dp(4)).H(el.Dp(20)).Rounded(2).Bg(n.Tone.color()),
 		text,
-		Button("", func() { v.Dismiss(n.id) }).Name("关闭 "+n.Title).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx),
+		Button("", func() { v.Dismiss(n.id) }).Name(locale.Current().Name(locale.Current().Close, n.Title)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx),
 	)
 }
 

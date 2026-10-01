@@ -1,6 +1,7 @@
 package el
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"image"
 
 	"gioui.org/gesture"
@@ -50,9 +51,9 @@ type Context struct {
 // dropped. Applying a theme also rebuilds cached elements.
 func (cx *Context) Cache(key any, build func() Element) Element {
 	c := &cx.root.cache
-	if c.themeRevision != theme.Revision() {
+	if rev := [2]uint64{theme.Revision(), locale.Revision()}; c.revision != rev {
 		clear(c.entries)
-		c.themeRevision = theme.Revision()
+		c.revision = rev
 	}
 	if e, ok := c.entries[key]; ok {
 		e.frame = cx.root.store.frame
@@ -68,8 +69,8 @@ func (cx *Context) Cache(key any, build func() Element) Element {
 }
 
 type elementCache struct {
-	entries       map[any]*cacheEntry
-	themeRevision uint64
+	entries  map[any]*cacheEntry
+	revision [2]uint64 // theme and locale: either change rebuilds cached elements
 }
 
 type cacheEntry struct {

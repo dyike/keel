@@ -10,6 +10,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/widget/material"
+	"github.com/dyike/keel/ui/locale"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/layout"
@@ -35,8 +36,8 @@ type DialogBox struct {
 
 func Dialog() *DialogBox {
 	d := &DialogBox{}
-	d.ok = Button("确定", func() { d.finish(d.onOK) })
-	d.cancel = Button("取消", func() { d.finish(d.onCancel) }).Secondary()
+	d.ok = Button("", func() { d.finish(d.onOK) })
+	d.cancel = Button("", func() { d.finish(d.onCancel) }).Secondary()
 	return d
 }
 
@@ -70,7 +71,8 @@ func (d *DialogBox) show(title, message string, cancel bool, onOK, onCancel func
 	if onCancel != nil {
 		d.onCancel = onCancel
 	}
-	d.ok.SetText("确定")
+	d.ok.SetText(locale.Current().OK)
+	d.cancel.SetText(locale.Current().Cancel)
 	d.ok.kind = primary
 	d.open = true
 }

@@ -3,6 +3,7 @@ package kit
 import (
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 	"image/color"
 )
@@ -40,7 +41,7 @@ func (v *TagView) Render(cx *el.Context) el.Element {
 		if v.selected {
 			box.Bg(tint(c, 48))
 		}
-		label.Name("切换 " + v.text).OnClick(func() {
+		label.Name(locale.Current().Name(locale.Current().Toggle, v.text)).OnClick(func() {
 			v.selected = !v.selected
 			if v.onChange != nil {
 				v.onChange(v.selected)
@@ -54,7 +55,7 @@ func (v *TagView) Render(cx *el.Context) el.Element {
 				v.onRemove()
 			}
 		}
-		box.Child(el.Div().ID("remove").Name("移除 " + v.text).P(4).OnClick(remove).OnKey(func(e el.KeyEvent) bool {
+		box.Child(el.Div().ID("remove").Name(locale.Current().Name(locale.Current().Remove, v.text)).P(4).OnClick(remove).OnKey(func(e el.KeyEvent) bool {
 			if e.Name == string(key.NameDeleteBackward) || e.Name == string(key.NameDeleteForward) {
 				if e.State == el.KeyRelease {
 					remove()

@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"image"
 	"image/color"
 	"time"
@@ -57,15 +58,16 @@ func (d *Doc) code(b *block) el.Element {
 	cv.rich.anchor = b.anchor
 	label := b.lang
 	if label == "" || label == "text" || label == "txt" || label == "plaintext" {
-		label = "纯文本"
+		label = locale.Current().PlainText
 	}
-	copyLabel, copyGlyph := "复制", copyIcon
+	text := locale.Current()
+	copyLabel, copyGlyph := text.Copy, copyIcon
 	if time.Since(cv.copied) < 2*time.Second {
-		copyLabel, copyGlyph = "已复制", checkIcon
+		copyLabel, copyGlyph = text.Copied, checkIcon
 	}
-	wrapLabel := "自动换行"
+	wrapLabel := text.WrapLines
 	if cv.wrap {
-		wrapLabel = "取消自动换行"
+		wrapLabel = text.NoWrapLines
 	}
 	return el.Div().Role("code").Name(label).Bg(followColor(CodeBg, theme.CodeBg)).Border(1, followColor(CodeBorder, theme.Border)).Rounded(14).Child(
 		el.Div().Row().Items(el.Center).Gap(6).Px(14).Pt(8).Pb(4).Child(

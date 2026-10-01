@@ -9,6 +9,7 @@ github.com/dyike/keel
 ├── ui/
 │   ├── core/             地基：Widget 接口、回调、线程规则
 │   ├── theme/            颜色、字号、字体
+│   ├── locale/           框架自己显示的文字：确定、复制、关闭……
 │   ├── layout/           摆放组件：Column、Row、Card …
 │   ├── kit/              基于 el 的新组件，M0 登记、M1 开始实现
 │   ├── widget/           旧组件（只修 bug）：Button、Input、Checkbox …（一个组件一个文件）
@@ -45,7 +46,8 @@ ui:
      │         │      │
      └─────────┴──────┴──► core
 
-  theme ──► internal/loop（主题切换通知所有窗口重绘）
+  theme、locale ──► internal/loop（切换主题或语言时通知所有窗口重绘）
+  el、kit、widget、markdown ──► locale（框架文字）
   el、widget ──► internal/editorstyle
 
 native:
@@ -73,6 +75,7 @@ native:
 | --- | --- | --- |
 | `ui/core` | 所有界面模块都要遵守的接口和函数 | 任何具体组件、颜色 |
 | `ui/theme` | 视觉参数、全局调色板切换与重绘通知 | 组件、局部主题作用域 |
+| `ui/locale` | 框架自己显示或报告给 Agent 的文字，运行时切换语言 | 应用自己的文案、翻译系统 |
 | `ui/layout` | 只摆放子组件的容器；`Frame` 绘制工具 | 用户回调 |
 | `ui/widget` | 旧组件的 bug 修复 | 新组件、新能力 |
 | `ui/kit` | 基于 el 的组件 | Gio 输入和浮层基础设施、窗口管理 |

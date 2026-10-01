@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"image"
 	"time"
 
@@ -72,7 +73,7 @@ func (v *SheetView) Render(cx *el.Context) el.Element {
 		panel.H(el.Dp(v.size)).MaxH(el.Full).W(el.Full)
 	}
 	header := el.Div().Row().Items(el.Center).Gap(8).Child(el.Text(v.title).TextSize(17).Bold().Grow())
-	header.Child(Button("", v.close).Name("关闭").Icon(IconClose).Variant(ButtonGhost).Size(28).Render(cx))
+	header.Child(Button("", v.close).Name(locale.Current().Close).Icon(IconClose).Variant(ButtonGhost).Size(28).Render(cx))
 	panel.Child(header)
 	if v.body != nil {
 		panel.Child(el.Div().Grow().ScrollY().Child(v.body.Render(cx)))

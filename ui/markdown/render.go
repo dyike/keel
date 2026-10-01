@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"image"
 	"image/color"
 	"strconv"
@@ -170,7 +171,7 @@ func (d *Doc) table(b *block) el.Element {
 		}
 		return el.Div().Grow().W(el.Dp(1)).Px(10).Py(8).Child(el.Widget(r))
 	}
-	grid := el.Div().Role("table").Value(strconv.Itoa(len(t.rows))+" 行").Border(1, theme.Border).Rounded(6)
+	grid := el.Div().Role("table").Value(locale.Current().Rows(len(t.rows))).Border(1, theme.Border).Rounded(6)
 	head := el.Div().Row().Bg(theme.Subtle).Role("row").Name(joinCells(t.header))
 	for i := range cols {
 		head.Child(cell("h"+strconv.Itoa(i), t.header[i], i, true))

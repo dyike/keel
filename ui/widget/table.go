@@ -2,7 +2,7 @@ package widget
 
 import (
 	"cmp"
-	"fmt"
+	"github.com/dyike/keel/ui/locale"
 	"slices"
 	"strconv"
 	"strings"
@@ -61,7 +61,7 @@ type TableView struct {
 
 // Table creates an empty table with the given columns, 320dp tall.
 func Table(cols ...Column) *TableView {
-	t := &TableView{cols: cols, sortCol: -1, selected: -1, height: 320, empty: "暂无数据"}
+	t := &TableView{cols: cols, sortCol: -1, selected: -1, height: 320}
 	t.heads = make([]widget.Clickable, len(cols))
 	t.list.Axis = giolayout.Vertical
 	return t
@@ -190,7 +190,7 @@ func (t *TableView) Layout(gtx C) D {
 	if t.focused {
 		border = theme.Primary
 	}
-	summary := fmt.Sprintf("%d 行", len(t.rows))
+	summary := locale.Current().Rows(len(t.rows))
 	return core.Semantic(gtx, func(gtx C) D {
 		return layout.Frame(gtx, theme.Surface, border, 6, giolayout.Inset{Top: 1, Bottom: 1, Left: 1, Right: 1}, func(gtx C) D {
 			return giolayout.Flex{Axis: giolayout.Vertical}.Layout(gtx,
@@ -324,7 +324,7 @@ func (t *TableView) body(gtx C) D {
 	defer clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops).Pop()
 	event.Op(gtx.Ops, t)
 	if len(t.order) == 0 {
-		return giolayout.Center.Layout(gtx, Muted(t.empty).Layout)
+		return giolayout.Center.Layout(gtx, Muted(t.emptyText()).Layout)
 	}
 	if t.reveal0 {
 		t.reveal0 = false
@@ -369,4 +369,11 @@ func (t *TableView) body(gtx C) D {
 			}, core.Role("row"), semantic.LabelOp(strings.Join(row, " | ")), semantic.SelectedOp(selected), semantic.EnabledOp(gtx.Enabled()))
 		})
 	})
+}
+
+func (t *TableView) emptyText() string {
+	if t.empty == "" {
+		return locale.Current().NoData
+	}
+	return t.empty
 }

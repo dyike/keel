@@ -6,6 +6,7 @@ import (
 	"gioui.org/widget/material"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 	"image/color"
 	"math"
@@ -13,23 +14,30 @@ import (
 )
 
 type SpinnerView struct {
-	size  float32
-	label string
+	size     float32
+	label    string
+	labelSet bool
 }
 
-func Spinner() *SpinnerView { return &SpinnerView{size: 20, label: "加载中"} }
+// Spinner shows an indeterminate progress ring labelled with the locale's
+// Loading text until Label sets another one ("" hides the text).
+func Spinner() *SpinnerView { return &SpinnerView{size: 20} }
 func (v *SpinnerView) Size(dp float32) *SpinnerView {
 	if dp > 0 {
 		v.size = dp
 	}
 	return v
 }
-func (v *SpinnerView) Label(s string) *SpinnerView { v.label = s; return v }
+func (v *SpinnerView) Label(s string) *SpinnerView { v.label, v.labelSet = s, true; return v }
 func (v *SpinnerView) Render(cx *el.Context) el.Element {
+	label := v.label
+	if !v.labelSet {
+		label = locale.Current().Loading
+	}
 	ring := spinnerRing(cx, v.size, theme.PrimaryText)
-	box := el.Div().Role("progressbar").Name(v.label).Value("indeterminate").Row().Items(el.Center).Gap(8).Child(ring)
-	if v.label != "" {
-		box.Child(el.Text(v.label).TextColor(theme.Muted))
+	box := el.Div().Role("progressbar").Name(label).Value("indeterminate").Row().Items(el.Center).Gap(8).Child(ring)
+	if label != "" {
+		box.Child(el.Text(label).TextColor(theme.Muted))
 	}
 	return box
 }

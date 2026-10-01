@@ -1,6 +1,7 @@
 package widget
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"image"
 
 	"gioui.org/io/key"
@@ -33,11 +34,12 @@ type SelectBox struct {
 
 // Select creates a dropdown; label may be empty. Nothing is chosen at first.
 func Select(label string, options ...string) *SelectBox {
-	s := &SelectBox{label: label, hint: "请选择", index: -1}
+	s := &SelectBox{label: label, index: -1}
 	s.SetOptions(options...)
 	return s
 }
 
+// Hint sets the placeholder; empty uses the locale's SelectHint.
 func (s *SelectBox) Hint(h string) *SelectBox                  { s.hint = h; return s }
 func (s *SelectBox) OnChange(fn func(value string)) *SelectBox { s.onChange = fn; return s }
 func (s *SelectBox) SetDisabled(v bool) {
@@ -132,7 +134,7 @@ func (s *SelectBox) field(gtx C) D {
 		name = s.name
 	}
 	if name == "" {
-		name = s.hint
+		name = s.placeholder()
 	}
 	d := s.box.Layout(gtx, func(gtx C) D {
 		pointer.CursorPointer.Add(gtx.Ops)
@@ -160,7 +162,7 @@ func (s *SelectBox) closed(gtx C) D {
 			col = theme.Muted
 		}
 		if text == "" {
-			text, col = s.hint, theme.Muted
+			text, col = s.placeholder(), theme.Muted
 		}
 		return giolayout.Flex{Alignment: giolayout.Middle}.Layout(gtx,
 			giolayout.Flexed(1, func(gtx C) D {
@@ -209,4 +211,11 @@ func (s *SelectBox) dropdown(gtx C, field image.Point) {
 		}
 		return giolayout.Flex{Axis: giolayout.Vertical}.Layout(gtx, children...)
 	})
+}
+
+func (s *SelectBox) placeholder() string {
+	if s.hint == "" {
+		return locale.Current().SelectHint
+	}
+	return s.hint
 }

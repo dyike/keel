@@ -1,6 +1,7 @@
 package widget
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"image"
 	"strings"
 
@@ -205,7 +206,7 @@ func (f *Field) frame(gtx C) D {
 						}
 						return giolayout.UniformInset(3).Layout(gtx, f.clearIcon.Layout)
 					})
-				}, semantic.Button, semantic.LabelOp("清空"+name), semantic.EnabledOp(g.Enabled()))
+				}, semantic.Button, semantic.LabelOp(locale.Current().Name(locale.Current().Clear, name)), semantic.EnabledOp(g.Enabled()))
 			}))
 		}
 		return giolayout.Flex{Alignment: giolayout.Middle}.Layout(gtx, children...)

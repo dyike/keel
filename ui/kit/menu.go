@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"strconv"
 
 	"gioui.org/io/key"
@@ -133,14 +134,14 @@ func (v *MenuView) panel(cx *el.Context) el.Element {
 
 func (v *MenuView) label() string {
 	if v.parent == nil {
-		return "菜单"
+		return locale.Current().Menu
 	}
 	for _, it := range v.parent.items {
 		if it.sub == v {
 			return it.label
 		}
 	}
-	return "菜单"
+	return locale.Current().Menu
 }
 
 func (v *MenuView) row(cx *el.Context, i int, it menuItem) el.Element {

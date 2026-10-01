@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"time"
 
 	"github.com/dyike/keel/ui/el"
@@ -20,9 +21,9 @@ func CopyButton(text func() string) *CopyButtonView { return &CopyButtonView{tex
 
 func (v *CopyButtonView) Render(cx *el.Context) el.Element {
 	id := autoID("copy", v)
-	label, icon := "复制", IconCopy
+	label, icon := locale.Current().Copy, IconCopy
 	if v.copied {
-		label, icon = "已复制", IconCheck
+		label, icon = locale.Current().Copied, IconCheck
 		cx.After(copyKey{id}, CopiedFeedback, func() { v.copied = false })
 	}
 	return Button(label, func() {

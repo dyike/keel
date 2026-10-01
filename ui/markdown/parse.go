@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"github.com/dyike/keel/ui/locale"
 	"strconv"
 	"strings"
 	"unicode"
@@ -288,10 +289,7 @@ func inlines(n ast.Node, src []byte, style span, macros mathMacros) []span {
 					return ast.WalkContinue, nil
 				})
 				s.imageAlt = alt.String()
-				s.text = "［图片：" + s.imageAlt + "］"
-				if s.imageAlt == "" {
-					s.text = "［图片］"
-				}
+				s.text = "[" + locale.Current().Name(locale.Current().Image, s.imageAlt) + "]"
 				add(s)
 			case *east.TaskCheckBox:
 				// drawn as the list marker instead

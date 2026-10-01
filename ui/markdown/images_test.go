@@ -71,7 +71,7 @@ func TestLinkedImageAndEmptyAlt(t *testing.T) {
 	h.Frame()
 	var bounds image.Rectangle
 	walk(h.Router.AppendSemantics(nil)[0], func(n input.SemanticNode) {
-		if n.Desc.Class.String() == "Button" && n.Desc.Label == "［图片：click me］" {
+		if n.Desc.Class.String() == "Button" && n.Desc.Label == "[图片 click me]" {
 			bounds = n.Desc.Bounds
 		}
 	})

@@ -3,6 +3,7 @@ package widget
 import (
 	"context"
 	"fmt"
+	"github.com/dyike/keel/ui/locale"
 	"image"
 	"time"
 
@@ -146,9 +147,9 @@ func (v *ImageView) paint(gtx C) D {
 	h := gtx.Dp(64)
 	size := gtx.Constraints.Constrain(image.Pt(w, h))
 	fillRounded(gtx, theme.Subtle, size.X, size.Y, gtx.Dp(6))
-	label := "图片加载中"
+	label := locale.Current().ImageLoading
 	if v.status() == "error" {
-		label = "图片加载失败"
+		label = locale.Current().ImageFailed
 	}
 	if v.Alt != "" {
 		label += " · " + v.Alt

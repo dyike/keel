@@ -2,6 +2,7 @@ package kit
 
 import (
 	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 )
 
@@ -69,7 +70,7 @@ func (v *DialogView) close() {
 // Confirm asks a question with 取消 and 确定; onOK runs only on 确定.
 // Focus starts on 确定, so Enter confirms.
 func (v *DialogView) Confirm(title, message string, onOK func()) {
-	v.message(title, message, "确定", ButtonPrimary, true, onOK)
+	v.message(title, message, locale.Current().OK, ButtonPrimary, true, onOK)
 }
 
 // ConfirmDanger asks before a destructive action. Focus starts on 取消, a
@@ -80,7 +81,7 @@ func (v *DialogView) ConfirmDanger(title, message, okText string, onOK func()) {
 
 // Alert shows a message with a single 确定; onOK may be nil.
 func (v *DialogView) Alert(title, message string, onOK func()) {
-	v.message(title, message, "确定", ButtonPrimary, false, onOK)
+	v.message(title, message, locale.Current().OK, ButtonPrimary, false, onOK)
 }
 
 func (v *DialogView) message(title, message, okText string, variant ButtonVariant, cancel bool, onOK func()) {
@@ -95,7 +96,7 @@ func (v *DialogView) message(title, message, okText string, variant ButtonVarian
 	}).ID(id + "/ok").Variant(variant)
 	v.footer, v.focus = []el.View{ok}, id+"/ok"
 	if cancel {
-		v.footer = []el.View{Button("取消", v.close).ID(id + "/cancel").Variant(ButtonSecondary), ok}
+		v.footer = []el.View{Button(locale.Current().Cancel, v.close).ID(id + "/cancel").Variant(ButtonSecondary), ok}
 		if variant == ButtonDanger {
 			v.focus = id + "/cancel"
 		}

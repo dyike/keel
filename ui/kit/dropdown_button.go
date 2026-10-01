@@ -1,6 +1,9 @@
 package kit
 
-import "github.com/dyike/keel/ui/el"
+import (
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
+)
 
 // DropdownButtonView is a button that opens a menu. With Split, the label
 // runs a main action and a separate arrow opens the menu:
@@ -35,7 +38,7 @@ func (v *DropdownButtonView) Render(cx *el.Context) el.Element {
 		v.menu.Trigger(dropdownPart(v.label, v.menu.Toggle, v).Icon(IconChevronDown))
 		return v.menu.Render(cx)
 	}
-	v.menu.Trigger(dropdownPart("", v.menu.Toggle, v).Name(v.label + " 更多选项").Icon(IconChevronDown))
+	v.menu.Trigger(dropdownPart("", v.menu.Toggle, v).Name(locale.Current().Name(v.label, locale.Current().MoreOptions)).Icon(IconChevronDown))
 	return el.Div().Row().Gap(1).Items(el.Start).Child(dropdownPart(v.label, v.action, v).Render(cx), v.menu.Render(cx))
 }
 

@@ -2,6 +2,7 @@ package kit
 
 import (
 	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 )
 
@@ -58,7 +59,7 @@ func (v *AlertView) Render(cx *el.Context) el.Element {
 	}
 	body := el.Div().Row().Grow().P(12).Gap(8).Items(el.Start).Child(Icon(name).Color(v.tone.color()).Render(cx), text)
 	if v.onClose != nil {
-		body.Child(el.Div().ID("close").Name("关闭 " + v.title).Focusable(true).P(4).OnClick(v.close).Child(Icon(IconClose).Render(cx)))
+		body.Child(el.Div().ID("close").Name(locale.Current().Name(locale.Current().Close, v.title)).Focusable(true).P(4).OnClick(v.close).Child(Icon(IconClose).Render(cx)))
 	}
 	return el.Div().Disabled(v.disabled).W(el.Full).Role("alert").Name(v.title).Value(v.tone.name()).Row().Items(el.Stretch).Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Child(el.Div().W(el.Dp(4)).NoShrink().Bg(v.tone.color()), body)
 }

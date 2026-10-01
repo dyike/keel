@@ -19,7 +19,7 @@ func TestInputAdornmentsClearFocusAndReadOnly(t *testing.T) {
 	if f.Value() != "你好" {
 		t.Fatal("label did not focus editor")
 	}
-	clickNamed(t, h, "清空搜索")
+	clickNamed(t, h, "清空 搜索")
 	if f.Value() != "" || !reflect.DeepEqual(changes, []string{"你好", ""}) {
 		t.Fatalf("clear callback mismatch: %q %v", f.Value(), changes)
 	}
@@ -30,7 +30,7 @@ func TestInputAdornmentsClearFocusAndReadOnly(t *testing.T) {
 	}
 	f.SetReadOnly(true)
 	h.Frame()
-	clickNamed(t, h, "清空搜索")
+	clickNamed(t, h, "清空 搜索")
 	h.Type("x")
 	if f.Value() != "再试" {
 		t.Fatal("read-only field cleared or edited")
@@ -38,7 +38,7 @@ func TestInputAdornmentsClearFocusAndReadOnly(t *testing.T) {
 	f.SetReadOnly(false)
 	f.SetDisabled(true)
 	h.Frame()
-	clickNamed(t, h, "清空搜索")
+	clickNamed(t, h, "清空 搜索")
 	h.Type("y")
 	if f.Value() != "再试" {
 		t.Fatal("disabled field changed")
