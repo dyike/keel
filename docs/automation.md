@@ -117,6 +117,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `row` | 表格中可见的行，名字是各列用竖线连起来 | `selected` |
 | `slider` | `widget.Slider` | `value` 是当前数值；点击轨道或聚焦后按方向键调整 |
 | `accordion` | `widget.Accordion` | 标题和展开内容单独列出 |
+| `badge` | 数字、圆点、图标角标（不可点击） | 名字为原始计数，`value` 为显示值、`dot` 或 `icon` |
 | `toggle` | 状态按钮 | `selected` 表示选中，支持 `disabled` |
 | `disclosure` | 折叠面板标题 | `value` 是 expanded / collapsed，支持 `disabled` |
 | `image` | `widget.Image`、Markdown 图片 | `value` 是 loading / loaded / error，名字是替代文字 |

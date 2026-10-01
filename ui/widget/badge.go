@@ -27,9 +27,9 @@ type BadgeView struct {
 }
 
 func Badge(count int) *BadgeView { return &BadgeView{count: count, max: 99} }
-func (b *BadgeView) Max(max int) *BadgeView {
-	if max > 0 {
-		b.max = max
+func (b *BadgeView) Max(n int) *BadgeView {
+	if n > 0 {
+		b.max = n
 	}
 	return b
 }
@@ -127,7 +127,7 @@ func (b *BadgeView) layoutBadge(gtx C) D {
 				return layoutBadgeCount(gtx, st)
 			})
 		})
-	}, semantic.LabelOp(strconv.Itoa(b.count)))
+	}, core.Role("badge", b.semanticValue()), semantic.LabelOp(strconv.Itoa(b.count)))
 }
 
 // Counts use the actual numeric glyph bounds. The general label's CJK/Latin
@@ -150,4 +150,14 @@ func layoutBadgeCount(gtx C, st material.LabelStyle) D {
 	shift.Pop()
 	d.Baseline -= dy
 	return d
+}
+
+func (b *BadgeView) semanticValue() string {
+	if b.dot {
+		return "dot"
+	}
+	if b.icon != nil {
+		return "icon"
+	}
+	return b.label()
 }

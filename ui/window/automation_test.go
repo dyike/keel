@@ -220,3 +220,20 @@ func TestAutomationExtendedControlStates(t *testing.T) {
 		t.Fatal("group disabled state not propagated")
 	}
 }
+
+func TestAutomationBadgeValues(t *testing.T) {
+	for _, tc := range []struct {
+		name, value string
+		b           *widget.BadgeView
+	}{
+		{"150", "99+", widget.Badge(150)}, {"3", "3", widget.Badge(3)}, {"1", "dot", widget.Badge(1).Dot()}, {"2", "icon", widget.Badge(2).Icon(widget.Icon(widget.IconCheck))},
+	} {
+		t.Run(tc.value, func(t *testing.T) {
+			w := openTest(t, Options{Content: tc.b})
+			e := element(t, w, tc.name)
+			if e.Role != "badge" || e.Value != tc.value {
+				t.Fatalf("unexpected badge: %+v", e)
+			}
+		})
+	}
+}
