@@ -22,3 +22,5 @@
 Icon：矢量图标，默认颜色随主题切换。
 
 [Spinner](../../docs/kit/spinner.md)：支持减少动画的不确定进度。
+
+[Skeleton](../../docs/kit/skeleton.md)：占位、圆形和 Shimmer 扫光。

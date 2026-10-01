@@ -53,3 +53,5 @@ Icon：矢量图标，默认颜色随主题切换。
 主题文本使用场景：选中底色 Highlight 上使用 PrimaryText；Primary 保留为按钮背景和描边。Markdown 默认使用 CodeBg/CodeText，旧包级颜色变量的零值表示跟随主题，CodeStyle 为空时按背景自动选择 github/github-dark。
 
 [Spinner](kit/spinner.md)：支持减少动画的不确定进度。
+
+[Skeleton](kit/skeleton.md)：占位、圆形和 Shimmer 扫光。
