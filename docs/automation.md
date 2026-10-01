@@ -145,6 +145,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `region` | `kit.Dock` 的停靠区 | 名字是当前面板标题；标签、菜单按钮和内容单独列出 |
 | `toolbar` | `kit.Toolbar` | 按钮单独列出 |
 | `banner` | `kit.TitleBar` | 名字是标题；窗口按钮和应用内容单独列出 |
+| `figure` | `kit.LineChart`、`kit.BarChart`、`kit.Plot` | 名字是标题，图表的 `value` 为"项数x系列数"；切换到数据表后各行以 `row` 列出 |
 | `tooltip` | `kit.WithTooltip` 的提示 | 名字是提示文字 |
 | `menu` | 打开的 `kit.Menu` | 菜单项单独列出 |
 | `menuitem` | 菜单项 | 有子菜单时 `value` 为 submenu；支持 `disabled` |

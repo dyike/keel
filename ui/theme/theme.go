@@ -35,6 +35,8 @@ var (
 	OnColor      = RGB(0xffffff)        // text on Primary and Danger
 	Highlight    = RGB(0xdbeafe)        // selected rows and options
 	Scrim        = color.NRGBA{A: 0x66} // dims the window behind a dialog
+	// Chart is the categorical order for data series; see Palette.Chart.
+	Chart = Light().Chart
 )
 
 // Text sizes.

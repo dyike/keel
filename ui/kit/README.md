@@ -72,3 +72,7 @@
 | [Settings](../../docs/kit/settings.md) | 设置页 |
 | [Carousel](../../docs/kit/carousel.md) | 轮播 |
 | [TitleBar](../../docs/kit/title_bar.md) | 无边框窗口的标题栏 |
+| [Chart](../../docs/kit/chart.md) | 折线图、柱状图、堆叠柱状图 |
+| [Plot](../../docs/kit/plot.md) | 可缩放平移的 x/y 绘图 |
+| [ColorPicker](../../docs/kit/color_picker.md) | 颜色选择 |
+| [Questionnaire](../../docs/kit/questionnaire.md) | 分页问卷与答案模型 |

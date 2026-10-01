@@ -11,6 +11,7 @@ import (
 // RatingView picks a whole number of stars from 0 to max. Click a star, or
 // use ← → (Home / End for the ends) once it has focus.
 type RatingView struct {
+	name               string // accessible name from a Form row when label is empty
 	label              string
 	value, max         int
 	readOnly, disabled bool
@@ -50,7 +51,11 @@ func (v *RatingView) Render(cx *el.Context) el.Element {
 			shown = i // preview the rating under the pointer
 		}
 	}
-	row := el.Div().ID(id).Role("slider").Name(v.label).Value(strconv.Itoa(v.value) + "/" + strconv.Itoa(v.max)).
+	name := v.label
+	if name == "" {
+		name = v.name
+	}
+	row := el.Div().ID(id).Role("slider").Name(name).Value(strconv.Itoa(v.value) + "/" + strconv.Itoa(v.max)).
 		Row().Gap(2).Rounded(4).Disabled(v.disabled).Focusable(interactive).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
@@ -86,3 +91,5 @@ func (v *RatingView) Render(cx *el.Context) el.Element {
 	}
 	return labelled(v.label, el.Div().Items(el.Start).Child(row), "")
 }
+
+func (v *RatingView) setName(s string) { v.name = s }
