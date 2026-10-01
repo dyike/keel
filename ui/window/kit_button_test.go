@@ -31,7 +31,7 @@ func TestKitButtonSnapshotAndKeyboard(t *testing.T) {
 	}
 	v.SetLoading(true)
 	busy := element(t, w, "保存 123")
-	if busy.Role != "button" || !busy.Disabled || busy.Value != "loading" || busy.Width != before.Width || busy.Height != before.Height {
+	if busy.Role != "button" || busy.Disabled || busy.Value != "loading" || busy.Width != before.Width || busy.Height != before.Height {
 		t.Fatalf("loading semantics/bounds: %+v", busy)
 	}
 	if len(w.snapshot()) != 1 {
@@ -99,6 +99,26 @@ func TestKitButtonRuntimeColorsAndPointerStyles(t *testing.T) {
 			}
 			w.virt.router.Queue(pointer.Event{Kind: pointer.Release, Source: pointer.Mouse, Position: pos})
 			w.render()
+			v.SetLoading(true)
+			if got := sample(); got != tc.bg {
+				t.Fatalf("busy hover: %v want %v", got, tc.bg)
+			}
+			w.virt.router.Queue(pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Position: pos, Buttons: pointer.ButtonPrimary})
+			if got := sample(); got != tc.bg {
+				t.Fatalf("busy active: %v want %v", got, tc.bg)
+			}
+			w.virt.router.Queue(pointer.Event{Kind: pointer.Release, Source: pointer.Mouse, Position: pos})
+			w.render()
+			v.SetLoading(false)
+			v.SetDisabled(true)
+			want := p.Subtle
+			if tc.variant == kit.ButtonGhost {
+				want = p.Bg
+			}
+			if got := sample(); got != want {
+				t.Fatalf("disabled background: %v want %v", got, want)
+			}
+			v.SetDisabled(false)
 		}
 	}
 }
@@ -137,5 +157,41 @@ func TestKitButtonLoadingDecorationColors(t *testing.T) {
 		if white == 0 || muted != 0 {
 			t.Fatalf("loading colors icon=%v: white=%d muted=%d", icon, white, muted)
 		}
+	}
+}
+
+func TestKitButtonBusyKeepsKeyboardFocus(t *testing.T) {
+	calls := 0
+	var v *kit.ButtonView
+	v = kit.Button("save", func() { calls++; v.SetLoading(true) })
+	next := 0
+	w := openTest(t, Options{Content: el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+		return el.Div().Child(v.Render(cx), kit.Button("next", func() { next++ }).Render(cx))
+	}))})
+	w.press("tab")
+	w.press("enter")
+	w.press("enter")
+	if calls != 1 {
+		t.Fatalf("busy activated: %d", calls)
+	}
+	v.SetLoading(false)
+	w.press("enter")
+	if calls != 2 {
+		t.Fatalf("busy lost focus: %d", calls)
+	}
+	w.press("tab")
+	w.press("enter")
+	if next != 1 {
+		t.Fatal("Tab did not advance from busy button")
+	}
+	w.press("shift+tab")
+	v.SetLoading(false)
+	w.press("enter")
+	if calls != 3 {
+		t.Fatal("busy button was removed from Tab order")
+	}
+	v.SetDisabled(true)
+	if e := element(t, w, "save"); !e.Disabled {
+		t.Fatal("disabled must override busy")
 	}
 }

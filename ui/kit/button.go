@@ -72,7 +72,10 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 	active.G = uint8(uint16(active.G) * 9 / 10)
 	active.B = uint8(uint16(active.B) * 9 / 10)
 	if v.disabled {
-		bg, fg = theme.Subtle, theme.Muted
+		fg = theme.Muted
+		if v.variant != ButtonGhost {
+			bg = theme.Subtle
+		}
 	}
 	font, iconSize, padding := float32(14), float32(16), float32(16)
 	if v.height <= 28 {
@@ -81,10 +84,9 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 		font, iconSize, padding = 16, 20, 22
 	}
 	box := el.Div().Role("button").Name(v.text).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(6).Items(el.Center).Justify(el.Center).
-		Rounded(6).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).CursorPointer().OnClick(v.activate).
-		Disabled(v.disabled || v.loading).
+		Rounded(6).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
+		Disabled(v.disabled).
 		DisabledStyle(func(s *el.Style) { s.Bg(bg).TextColor(fg) }).
-		Hover(func(s *el.Style) { s.Bg(hover) }).Active(func(s *el.Style) { s.Bg(active) }).
 		FocusStyle(func(s *el.Style) {
 			if v.variant == ButtonPrimary || v.variant == ButtonDanger {
 				s.BorderColor(theme.OnColor)
@@ -92,6 +94,9 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 				s.BorderColor(theme.PrimaryText)
 			}
 		})
+	if !v.loading && !v.disabled {
+		box.CursorPointer().Hover(func(s *el.Style) { s.Bg(hover) }).Active(func(s *el.Style) { s.Bg(active) })
+	}
 	if v.loading {
 		box.Value("loading")
 	}

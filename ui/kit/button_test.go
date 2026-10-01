@@ -31,7 +31,7 @@ func TestButtonPointerKeyboardAndState(t *testing.T) {
 			t.Fatal("disabled/loading button activated")
 		}
 		n, ok := buttonNode(h, "保存 Save 123")
-		if !ok || !n.Desc.Disabled {
+		if !ok || n.Desc.Disabled != !loading {
 			t.Fatal("missing disabled semantics")
 		}
 	}
@@ -66,7 +66,7 @@ func TestButtonLoadingPreservesBounds(t *testing.T) {
 						t.Fatalf("loading moved button: %v -> %v scale=%d height=%g icon=%v", before, got, scale, height, withIcon)
 					}
 					n, ok := semanticNode(h, "button:loading")
-					if !ok || !n.Desc.Disabled {
+					if !ok || n.Desc.Disabled {
 						t.Fatal("missing loading state")
 					}
 					v.SetLoading(false)
