@@ -2,7 +2,6 @@ package el
 
 import (
 	"image"
-	"image/color"
 
 	"gioui.org/io/event"
 	"gioui.org/io/key"
@@ -11,6 +10,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/theme"
 )
 
 // Side selects the edge of an anchor at which a layer is placed.
@@ -302,7 +302,7 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 		macro := op.Record(gtx.Ops)
 		area := clip.Rect{Max: maxSize}.Push(gtx.Ops)
 		if l.centered && l.scrim {
-			paint.Fill(gtx.Ops, color.NRGBA{A: 100})
+			paint.Fill(gtx.Ops, theme.Scrim)
 		}
 		if !r.e.blockInput {
 			// Pass-through observes outside presses without consuming the target click.

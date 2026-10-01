@@ -193,7 +193,7 @@ if v.open {
 
 `Anchored(anchorID, content)` 使用本帧锚点位置，锚点可在主树或先声明的浮层中。Placement 的方向为 Bottom / Top / Left / Right，对齐为 Start / Center / End，默认 Bottom / Start；Offset 默认 4dp。指定方向放不下、对侧放得下时翻转，再将位置平移到 root 内；超出部分按 root 裁剪。MatchAnchorWidth 将最小宽度设为锚点宽度。锚点不存在或隐藏时不绘制，并调用一次 OnDismiss。
 
-非模态浮层之外、且不在锚点上的按下事件会请求关闭，并继续传给下面的元素。`.Modal()` 使锚定浮层拦截外部点击；`el.Modal(content)` 创建默认居中的模态浮层，自带遮罩和焦点约束，`.Scrim(false)` 只隐藏遮罩颜色，仍拦截输入。模态期间背景不响应悬停和点击，Agent 快照也不列出被遮挡的主树及下层浮层。
+非模态浮层之外、且不在锚点上的按下事件会请求关闭，并继续传给下面的元素。`.Modal()` 使锚定浮层拦截外部点击；`el.Modal(content)` 创建默认居中的模态浮层，自带遮罩和焦点约束，遮罩在绘制时读取 `theme.Scrim`，随运行时主题切换更新；`.Scrim(false)` 只隐藏遮罩颜色，仍拦截输入。模态期间背景不响应悬停和点击，Agent 快照也不列出被遮挡的主树及下层浮层。
 
 `.TrapFocus()` 将 Tab / Shift+Tab 限制在浮层内，出现时聚焦第一个可聚焦元素；同帧 `cx.Focus(id)` 可指定浮层内的目标。关闭后恢复先前焦点，原目标已经移除时清除焦点。未开启焦点约束的非模态浮层不移动焦点。OnDismiss 在帧锁内执行，只通知调用方更新打开状态，不会替调用方保存 open。
 
