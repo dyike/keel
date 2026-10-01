@@ -7,6 +7,8 @@ import (
 
 	"gioui.org/font"
 	"gioui.org/gesture"
+	"gioui.org/io/event"
+	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -94,9 +96,27 @@ func (e *engine) paintContent(n *Node) {
 			n.active(&st)
 		}
 	}
+	if n.focusable && n.input == nil && gtx.Focused(state) {
+		st.borderWidth, st.borderColor = 2, theme.Primary
+		if n.focus != nil {
+			n.focus(&st)
+		}
+	}
 	if n.input != nil && gtx.Focused(&state.editor) {
 		st.borderColor = theme.Primary
+		if n.focus != nil {
+			n.focus(&st)
+		}
 	}
+	// Visual text-color variants inherit without changing measured text metrics.
+	savedColor, savedText := e.paintTextColor, n.textStyle
+	if st.text.color != nil {
+		e.paintTextColor = st.text.color
+	}
+	if e.paintTextColor != nil {
+		n.textStyle.color = e.paintTextColor
+	}
+	defer func() { e.paintTextColor = savedColor; n.textStyle = savedText }()
 
 	rect := image.Rectangle{Max: n.size}
 	radius := e.dp(st.radius)
@@ -108,6 +128,12 @@ func (e *engine) paintContent(n *Node) {
 		defer clip.UniformRRect(rect, radius).Push(gtx.Ops).Pop()
 		for _, o := range sem {
 			o.Add(gtx.Ops)
+		}
+		if state != nil && n.focusable && n.input == nil {
+			state.keyFrame = e.store.frame
+			// Register in paint order so Gio Tab order matches tree order.
+			gtx.Event(key.FocusFilter{Target: state}, key.Filter{Focus: state, Optional: allKeyModifiers})
+			event.Op(gtx.Ops, state)
 		}
 		if state != nil && n.interactive() {
 			if state.fresh {
@@ -127,13 +153,14 @@ func (e *engine) paintContent(n *Node) {
 
 	e.paintBox(st, rect, radius)
 	pl, pt, pr, pb := e.edges(st.pad)
-	bw := e.dp(st.borderWidth)
+	bw := e.dp(n.style.borderWidth) // visual focus/hover borders never move content
 	inner := image.Rectangle{Min: image.Pt(bw+pl, bw+pt), Max: image.Pt(n.size.X-bw-pr, n.size.Y-bw-pb)}
 
 	switch {
 	case n.isText:
 		e.paintText(n, inner)
 	case n.input != nil:
+		state.keyFrame = e.store.frame
 		e.paintInput(n, state, inner)
 	case n.widget != nil:
 		stk := op.Offset(inner.Min).Push(gtx.Ops)

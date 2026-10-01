@@ -176,7 +176,27 @@ func button(label string, onClick func()) el.Element {
 - 布局是 flexbox 的子集：没有换行（wrap）、网格、`align-self`、横向滚动、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
 - 没有虚拟列表：`ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行的表格用 `el.Widget(widget.Table)`。
 - 没有动画和过渡效果。
-- 键盘：`Input` 自带焦点；其他元素还不能获得焦点或处理按键，快捷键用 `cx.Shortcut`。
+- 键盘：普通元素用 `Focusable` 加入原生焦点顺序，见下文；全局快捷键用 `cx.Shortcut`。
 
 
 主题切换时 `theme.Apply` 会使 `cx.Cache` 的元素在下次访问时重建。自建缓存需要包含 `theme.Revision()`；主题色应在 Render 或缓存构建函数内读取，固定颜色不会自动转换。
+
+
+## 焦点与按键（E1）
+
+```go
+el.Div().ID("save").Focusable().
+    OnClick(save).
+    Focus(func(s *el.Style) { s.BorderColor(theme.Primary) }).
+    Child(el.Text("保存"))
+```
+
+`Focusable()` 让元素接受点击焦点，并按绘制顺序参与 Tab / Shift+Tab 导航，与 `Input`、`TextArea` 共用原生焦点顺序。隐藏、移除和完全滚出绘制区域的节点不参与导航。未加 `Focusable` 的点击元素仍然只接受指针操作。
+
+聚焦元素收到无修饰键的 Space / Enter 时，在匹配的按键释放事件中调用一次 `OnClick`；失去焦点后不保留待激活按键。`OnKey(func(el.KeyEvent) bool)` 接收按下和释放事件，从聚焦元素向有处理器的祖先冒泡。返回 `true` 会停止冒泡并取消默认激活。`KeyEvent` 是 Gio 的 `key.Event` 别名，包含 `Name`、`State`、`Modifiers`。Tab 保留原生导航行为；全局快捷键继续使用 `cx.Shortcut`。
+
+`Focus(func(*el.Style))` 是绘制样式，可改背景、边框色和文字色，不改变尺寸。普通元素默认使用 2dp Primary 焦点边框；输入框沿用自身边框。文字色传递给未显式设置颜色的子元素，失焦后恢复。
+
+`cx.Focus("save")` 在本帧绘制后请求焦点，也支持带 ID 的 `Input` / `TextArea`。ID 应在当前 root 内唯一；重复时选择第一个已绘制的匹配目标。目标不存在、隐藏或完全在视口外时保留原焦点；`cx.Focus("")` 清除焦点。只能在 Render 或其事件回调里调用。
+
+当前 `OnKey` 冒泡源是显式 `Focusable` 元素；输入框编辑按键仍由 Gio editor 处理，不通过这条冒泡链。焦点陷阱、禁用子树和定时能力留给后续阶段。可运行 `go run ./examples/components -section focus` 验证接口。

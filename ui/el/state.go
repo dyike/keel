@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"gioui.org/gesture"
+	"gioui.org/io/key"
 	"gioui.org/widget"
 
 	"github.com/dyike/keel/ui/internal/editorstyle"
@@ -31,6 +32,12 @@ func childKey(parent stateKey, id string, index int) stateKey {
 
 // elemState is what an element keeps between frames.
 type elemState struct {
+	focusable  bool
+	onKey      func(KeyEvent) bool
+	keyParent  *elemState
+	keyFrame   uint64
+	pressedKey key.Name
+
 	frame uint64 // last frame the element was painted in
 
 	click         gesture.Click

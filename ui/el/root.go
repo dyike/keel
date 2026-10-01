@@ -96,12 +96,14 @@ func (cx *Context) Shortcut(chord string, fn func()) {
 
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
-	bg    int // tag of the area under everything; see blur
-	view  View
-	fill  bool
-	store *store
-	cache elementCache
-	e     engine
+	bg           int // tag of the area under everything; see blur
+	view         View
+	fill         bool
+	store        *store
+	cache        elementCache
+	e            engine
+	focusID      string
+	focusPending bool
 }
 
 // Root makes v the whole content of a window: it fills the window, with the
@@ -128,6 +130,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	e.gtx, e.m, e.store = gtx, gtx.Metric, st
 
 	r.blur(gtx)
+	r.dispatchKeys(gtx)
 	r.dispatch(gtx)
 	flushClipboard(gtx)
 	cx := Context{root: r}
@@ -145,6 +148,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	}
 
 	st.assignKeys(tree, 1)
+	r.prepareKeys(tree, nil)
 	base := textStyle{color: &theme.Text, size: theme.BodySize}
 	max := gtx.Constraints.Max
 	if r.fill {
@@ -161,6 +165,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	area := clip.Rect{Max: max}.Push(gtx.Ops)
 	event.Op(gtx.Ops, &r.bg)
 	e.paint(tree)
+	r.applyFocus(gtx, tree)
 	area.Pop()
 	flushClipboard(gtx) // from shortcuts and widget callbacks during this frame
 	st.sweep()
@@ -182,6 +187,9 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			ev, ok := st.click.Update(gtx.Source)
 			if !ok {
 				break
+			}
+			if ev.Kind == gesture.KindPress && st.focusable {
+				gtx.Execute(key.FocusCmd{Tag: st})
 			}
 			if ev.Kind != gesture.KindClick {
 				continue

@@ -19,6 +19,9 @@ type Element interface{ node() *Node }
 type Node struct {
 	style         Style
 	hover, active func(*Style)
+	focus         func(*Style)
+	focusable     bool
+	onKey         func(KeyEvent) bool
 	id            string
 	children      []Element
 
@@ -59,7 +62,7 @@ type layoutMemo struct {
 func (n *Node) node() *Node { return n }
 
 func (n *Node) interactive() bool {
-	return n.onClick != nil || n.onDoubleClick != nil || n.hover != nil || n.active != nil || n.style.cursor != pointer.CursorDefault
+	return n.focusable || n.onClick != nil || n.onDoubleClick != nil || n.hover != nil || n.active != nil || n.style.cursor != pointer.CursorDefault
 }
 
 // Styled carries the builder methods every element shares. T is the element
