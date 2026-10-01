@@ -14,7 +14,7 @@
 | `select.go` | `Select`：下拉选择 |
 | `tabs.go` | `Tabs` |
 | `radio.go` | `RadioGroup` |
-| `switch.go` | `Switch` |
+| `switch.go` | `Switch`：尺寸、禁用、加载、键盘操作 |
 | `slider.go` | `Slider`：范围、步长、拖动和键盘调整 |
 | `accordion.go` | `Accordion`：单项 / 多项展开、标题键盘导航 |
 | `progress.go` | `Progress`：确定进度、不确定动画和模式切换 |
