@@ -176,27 +176,29 @@ func button(label string, onClick func()) el.Element {
 - 布局是 flexbox 的子集：没有换行（wrap）、网格、`align-self`、横向滚动、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
 - 没有虚拟列表：`ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行的表格用 `el.Widget(widget.Table)`。
 - 没有动画和过渡效果。
-- 键盘：普通元素用 `Focusable` 加入原生焦点顺序，见下文；全局快捷键用 `cx.Shortcut`。
 
 
 主题切换时 `theme.Apply` 会使 `cx.Cache` 的元素在下次访问时重建。自建缓存需要包含 `theme.Revision()`；主题色应在 Render 或缓存构建函数内读取，固定颜色不会自动转换。
 
 
-## 焦点与按键（E1）
+## 焦点、按键与禁用（E1 / E2）
 
 ```go
 el.Div().ID("save").Focusable().
     OnClick(save).
-    Focus(func(s *el.Style) { s.BorderColor(theme.Primary) }).
+    FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
     Child(el.Text("保存"))
 ```
 
-`Focusable()` 让元素接受点击焦点，并按绘制顺序参与 Tab / Shift+Tab 导航，与 `Input`、`TextArea` 共用原生焦点顺序。隐藏、移除和完全滚出绘制区域的节点不参与导航。未加 `Focusable` 的点击元素仍然只接受指针操作。
+`Focusable()` 让元素接受点击焦点，并按绘制顺序参与 Tab / Shift+Tab 导航，与 `Input`、`TextArea` 共用原生焦点顺序。隐藏、移除和完全滚出绘制区域的节点不参与导航。带 OnClick 的元素默认可聚焦；Focusable(false) 显式退出 Tab 顺序。
 
-聚焦元素收到无修饰键的 Space / Enter 时，在匹配的按键释放事件中调用一次 `OnClick`；失去焦点后不保留待激活按键。`OnKey(func(el.KeyEvent) bool)` 接收按下和释放事件，从聚焦元素向有处理器的祖先冒泡。返回 `true` 会停止冒泡并取消默认激活。`KeyEvent` 是 Gio 的 `key.Event` 别名，包含 `Name`、`State`、`Modifiers`。Tab 保留原生导航行为；全局快捷键继续使用 `cx.Shortcut`。
+聚焦元素收到无修饰键的 Space / Enter 时，在匹配的按键释放事件中调用一次 `OnClick`；失去焦点后不保留待激活按键。`OnKey(func(el.KeyEvent) bool)` 接收按下和释放事件，从聚焦元素向有处理器的祖先冒泡。返回 `true` 会停止冒泡并取消默认激活。`KeyEvent` 是 el 自己的结构体，包含 string 类型的 Name、KeyPress/KeyRelease 状态和 key.Modifiers。Tab 保留原生导航行为；全局快捷键继续使用 `cx.Shortcut`。
 
-`Focus(func(*el.Style))` 是绘制样式，可改背景、边框色和文字色，不改变尺寸。普通元素默认使用 2dp Primary 焦点边框；输入框沿用自身边框。文字色传递给未显式设置颜色的子元素，失焦后恢复。
+`FocusStyle(func(*el.Style))` 是绘制样式，可改背景、边框色和文字色，不改变尺寸。普通元素默认使用 2dp Primary 焦点边框；输入框沿用自身边框。文字色传递给未显式设置颜色的子元素，失焦后恢复。
 
 `cx.Focus("save")` 在本帧绘制后请求焦点，也支持带 ID 的 `Input` / `TextArea`。ID 应在当前 root 内唯一；重复时选择第一个已绘制的匹配目标。目标不存在、隐藏或完全在视口外时保留原焦点；`cx.Focus("")` 清除焦点。只能在 Render 或其事件回调里调用。
 
-当前 `OnKey` 冒泡源是显式 `Focusable` 元素；输入框编辑按键仍由 Gio editor 处理，不通过这条冒泡链。焦点陷阱、禁用子树和定时能力留给后续阶段。可运行 `go run ./examples/components -section focus` 验证接口。
+当前 `OnKey` 冒泡源是显式 `Focusable` 元素；输入框编辑按键仍由 Gio editor 处理，不通过这条冒泡链。焦点陷阱留给浮层阶段。可运行 `go run ./examples/components -section focus` 验证接口。
+
+
+`cx.Focused(id)` 读取当前焦点，查询支持普通元素和输入框。`Disabled(true)` 自上而下禁止子树的点击、悬停和按键，释放当前焦点，禁止程序聚焦，并将 Agent 语义标记为 disabled；解除禁用后可重新聚焦。`DisabledStyle(func(*el.Style))` 设置禁用外观，默认文字为 Muted。显式禁用与测量时没有输入源分开处理，连续测量不会清空交互状态。Focus 保留为 FocusStyle 的兼容别名。

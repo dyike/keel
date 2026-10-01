@@ -32,7 +32,9 @@ func childKey(parent stateKey, id string, index int) stateKey {
 
 // elemState is what an element keeps between frames.
 type elemState struct {
+	id         string
 	focusable  bool
+	disabled   bool
 	onKey      func(KeyEvent) bool
 	keyParent  *elemState
 	keyFrame   uint64

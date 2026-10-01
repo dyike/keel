@@ -8,7 +8,6 @@ import (
 	"gioui.org/font"
 	"gioui.org/gesture"
 	"gioui.org/io/event"
-	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -82,13 +81,18 @@ func (e *engine) paint(n *Node) {
 }
 
 func (e *engine) paintContent(n *Node) {
+	savedGtx := e.gtx
+	if n.effectiveDisabled {
+		e.gtx = e.gtx.Disabled()
+	}
+	defer func() { e.gtx = savedGtx }()
 	gtx := e.gtx
 	st := n.style // a copy: hover and active variants change it for this frame only
 	var state *elemState
 	if n.interactive() || n.style.scrollY || n.input != nil {
 		state = e.store.get(n.key)
 	}
-	if state != nil && n.interactive() {
+	if state != nil && n.interactive() && !n.effectiveDisabled {
 		if n.hover != nil && state.click.Hovered() {
 			n.hover(&st)
 		}
@@ -96,7 +100,7 @@ func (e *engine) paintContent(n *Node) {
 			n.active(&st)
 		}
 	}
-	if n.focusable && n.input == nil && gtx.Focused(state) {
+	if n.isFocusable() && n.input == nil && gtx.Focused(state) {
 		st.borderWidth, st.borderColor = 2, theme.Primary
 		if n.focus != nil {
 			n.focus(&st)
@@ -106,6 +110,12 @@ func (e *engine) paintContent(n *Node) {
 		st.borderColor = theme.Primary
 		if n.focus != nil {
 			n.focus(&st)
+		}
+	}
+	if n.effectiveDisabled {
+		st.text.color = &theme.Muted
+		if n.disabledStyle != nil {
+			n.disabledStyle(&st)
 		}
 	}
 	// Visual text-color variants inherit without changing measured text metrics.
@@ -119,7 +129,7 @@ func (e *engine) paintContent(n *Node) {
 	defer func() { e.paintTextColor = savedColor; n.textStyle = savedText }()
 
 	rect := image.Rectangle{Max: n.size}
-	radius := e.dp(st.radius)
+	radius := min(e.dp(st.radius), min(n.size.X, n.size.Y)/2)
 
 	// Elements that take input or report semantics get their own clip area;
 	// others do not, so their children can overflow them.
@@ -129,13 +139,13 @@ func (e *engine) paintContent(n *Node) {
 		for _, o := range sem {
 			o.Add(gtx.Ops)
 		}
-		if state != nil && n.focusable && n.input == nil {
+		if state != nil && n.isFocusable() && n.input == nil {
 			state.keyFrame = e.store.frame
 			// Register in paint order so Gio Tab order matches tree order.
-			gtx.Event(key.FocusFilter{Target: state}, key.Filter{Focus: state, Optional: allKeyModifiers})
+			gtx.Event(focusFilters(state)...)
 			event.Op(gtx.Ops, state)
 		}
-		if state != nil && n.interactive() {
+		if state != nil && n.interactive() && !n.effectiveDisabled {
 			if state.fresh {
 				// Gio drops areas whose handler asked for no events this
 				// frame. dispatch asks from the next frame on; ask now so
@@ -216,7 +226,7 @@ func (e *engine) semantics(n *Node) []interface{ Add(*op.Ops) } {
 		ops = append(ops, semantic.SelectedOp(*n.selected))
 	}
 	if len(ops) > 0 {
-		ops = append(ops, semantic.EnabledOp(true))
+		ops = append(ops, semantic.EnabledOp(!n.effectiveDisabled))
 	}
 	return ops
 }

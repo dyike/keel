@@ -5,6 +5,7 @@ import (
 
 	"gioui.org/gesture"
 	"gioui.org/io/event"
+	"gioui.org/io/input"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/op/clip"
@@ -96,6 +97,8 @@ func (cx *Context) Shortcut(chord string, fn func()) {
 
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
+	source       input.Source
+	callbacks    bool
 	bg           int // tag of the area under everything; see blur
 	view         View
 	fill         bool
@@ -129,12 +132,23 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	e := &r.e
 	e.gtx, e.m, e.store = gtx, gtx.Metric, st
 
+	if gtx.Enabled() {
+		r.source = gtx.Source
+	}
+	cx := Context{root: r}
+	tree := r.view.Render(&cx).node()
+	st.assignKeys(tree, 1)
+	r.prepareKeys(tree, nil, false)
+	r.callbacks = false
 	r.blur(gtx)
 	r.dispatchKeys(gtx)
 	r.dispatch(gtx)
 	flushClipboard(gtx)
-	cx := Context{root: r}
-	tree := r.view.Render(&cx).node()
+	if r.callbacks {
+		cx.shortcuts = nil
+		tree = r.view.Render(&cx).node()
+	}
+
 	for _, s := range cx.shortcuts {
 		for {
 			ev, ok := gtx.Event(key.Filter{Name: s.name, Required: s.mods})
@@ -148,7 +162,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	}
 
 	st.assignKeys(tree, 1)
-	r.prepareKeys(tree, nil)
+	r.prepareKeys(tree, nil, false)
 	base := textStyle{color: &theme.Text, size: theme.BodySize}
 	max := gtx.Constraints.Max
 	if r.fill {
@@ -179,8 +193,9 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 // dispatch runs click handlers for input that arrived since the last frame,
 // before Render, so the frame being drawn already shows their effect.
 func (r *RootWidget) dispatch(gtx core.C) {
+	var focusTarget *elemState
 	for _, st := range r.store.states {
-		if !st.clickable {
+		if !st.clickable || st.disabled || st.frame != r.store.frame {
 			continue
 		}
 		for {
@@ -189,18 +204,21 @@ func (r *RootWidget) dispatch(gtx core.C) {
 				break
 			}
 			if ev.Kind == gesture.KindPress && st.focusable {
-				gtx.Execute(key.FocusCmd{Tag: st})
+				focusTarget = st
 			}
 			if ev.Kind != gesture.KindClick {
 				continue
 			}
 			if ev.NumClicks >= 2 && st.onDoubleClick != nil {
-				core.Call(gtx, st.onDoubleClick)
+				core.Call(gtx, func() { r.callbacks = true; st.onDoubleClick() })
 			}
 			if st.onClick != nil {
-				core.Call(gtx, st.onClick)
+				core.Call(gtx, func() { r.callbacks = true; st.onClick() })
 			}
 		}
+	}
+	if focusTarget != nil {
+		gtx.Execute(key.FocusCmd{Tag: focusTarget})
 	}
 }
 

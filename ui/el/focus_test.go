@@ -5,7 +5,10 @@ import (
 	"reflect"
 	"testing"
 
+	"gioui.org/io/input"
 	"gioui.org/io/key"
+	"gioui.org/op"
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/uitest"
 )
 
@@ -56,13 +59,13 @@ func TestKeyBubblingAndHandledActivation(t *testing.T) {
 	var got []string
 	clicks := 0
 	child := Div().ID("child").Focusable().OnClick(func() { clicks++ }).OnKey(func(e KeyEvent) bool {
-		if e.State == key.Press {
+		if e.State == KeyPress {
 			got = append(got, "child")
 		}
-		return e.Name == key.NameSpace
+		return e.Name == string(key.NameSpace)
 	}).Child(Text("child"))
 	parent := Div().OnKey(func(e KeyEvent) bool {
-		if e.State == key.Press {
+		if e.State == KeyPress {
 			got = append(got, "parent")
 		}
 		return true
@@ -189,5 +192,83 @@ func TestFocusChangeCancelsHeldActivation(t *testing.T) {
 	h.Key(key.NameSpace, 0)
 	if calls != 1 {
 		t.Fatal("fresh press/release failed")
+	}
+}
+
+func TestDefaultFocusAndOptOut(t *testing.T) {
+	calls := 0
+	focused := false
+	root := Root(viewFunc(func(cx *Context) Element {
+		focused = cx.Focused("auto")
+		return Div().Child(Div().ID("auto").OnClick(func() { calls++ }).Child(Text("auto")), Div().ID("skip").Focusable(false).OnClick(func() { calls += 100 }).Child(Text("skip")))
+	}))
+	h := uitest.New(root)
+	h.Router.MoveFocus(key.FocusForward)
+	h.Frame()
+	h.Key(key.NameSpace, 0)
+	if !focused || calls != 1 {
+		t.Fatal("default click element not keyboard accessible")
+	}
+	h.Router.MoveFocus(key.FocusForward)
+	h.Frame()
+	h.Key(key.NameSpace, 0)
+	if calls >= 100 {
+		t.Fatal("focus opt-out ignored")
+	}
+}
+func TestDisabledSubtreeAndQueuedEvents(t *testing.T) {
+	disabled := false
+	calls := 0
+	text := ""
+	root := Root(viewFunc(func(cx *Context) Element {
+		return Div().Disabled(disabled).Child(Div().ID("button").Name("button").OnClick(func() { calls++ }).Child(Text("button")), Input().ID("input").Bind(&text))
+	}))
+	h := uitest.New(root)
+	h.Router.MoveFocus(key.FocusForward)
+	h.Frame()
+	disabled = true
+	h.Key(key.NameSpace, 0)
+	if calls != 0 {
+		t.Fatal("queued key bypassed current disabled state")
+	}
+	h.Click(center(nodeBounds(h, "button")))
+	h.Frame()
+	if calls != 0 {
+		t.Fatal("disabled pointer activated")
+	}
+	disabled = false
+	h.Frame()
+	h.Click(center(nodeBounds(h, "button")))
+	h.Frame()
+	if calls != 1 {
+		t.Fatal("enable did not restore click")
+	}
+}
+func TestMeasurementPreservesFocus(t *testing.T) {
+	calls := 0
+	request := true
+	var focused bool
+	root := Embed(viewFunc(func(cx *Context) Element {
+		if request {
+			cx.Focus("target")
+			request = false
+		}
+		focused = cx.Focused("target")
+		return Div().ID("target").OnClick(func() { calls++ }).Child(Text("target"))
+	}))
+	h := uitest.NewFunc(func(gtx core.C) {
+		for i := 0; i < 3; i++ {
+			var scratch op.Ops
+			m := gtx
+			m.Ops = &scratch
+			m.Source = input.Source{}
+			root.Layout(m)
+		}
+		root.Layout(gtx)
+	})
+	h.Frame()
+	h.Key(key.NameSpace, 0)
+	if !focused || calls != 1 {
+		t.Fatalf("measurement lost focus/activation: %v %d", focused, calls)
 	}
 }

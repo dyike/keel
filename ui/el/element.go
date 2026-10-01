@@ -17,13 +17,16 @@ type Element interface{ node() *Node }
 
 // Node holds what an element was built with and, after layout, where it is.
 type Node struct {
-	style         Style
-	hover, active func(*Style)
-	focus         func(*Style)
-	focusable     bool
-	onKey         func(KeyEvent) bool
-	id            string
-	children      []Element
+	style                       Style
+	hover, active               func(*Style)
+	focus                       func(*Style)
+	focusable                   bool
+	focusSet                    bool
+	disabled, effectiveDisabled bool
+	disabledStyle               func(*Style)
+	onKey                       func(KeyEvent) bool
+	id                          string
+	children                    []Element
 
 	text     string
 	isText   bool
@@ -61,6 +64,9 @@ type layoutMemo struct {
 
 func (n *Node) node() *Node { return n }
 
+func (n *Node) isFocusable() bool {
+	return !n.effectiveDisabled && (n.focusable || !n.focusSet && n.onClick != nil)
+}
 func (n *Node) interactive() bool {
 	return n.focusable || n.onClick != nil || n.onDoubleClick != nil || n.hover != nil || n.active != nil || n.style.cursor != pointer.CursorDefault
 }

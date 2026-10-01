@@ -1,28 +1,61 @@
 package el
 
 import (
+	"gioui.org/gesture"
+	"gioui.org/io/event"
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/core"
 )
 
-// KeyEvent is a Gio key press or release, including its modifiers.
-// Text input continues to use Input/TextArea rather than key events.
-type KeyEvent = key.Event
+// KeyState distinguishes key presses from releases.
+type KeyState uint8
+
+const (
+	KeyPress KeyState = iota
+	KeyRelease
+)
+
+// KeyEvent keeps the el API independent of the Gio event structure.
+type KeyEvent struct {
+	Name      string
+	Modifiers key.Modifiers
+	State     KeyState
+}
 
 const allKeyModifiers = key.ModCtrl | key.ModCommand | key.ModShift | key.ModAlt | key.ModSuper
 
 // Focusable adds the element to the native Tab order and focuses it on press.
 // Input and TextArea already manage their native editor focus.
-func (s *Styled[T]) Focusable() *T { s.n.focusable = true; return s.self }
+func (s *Styled[T]) Focusable(enabled ...bool) *T {
+	s.n.focusSet = true
+	s.n.focusable = len(enabled) == 0 || enabled[0]
+	return s.self
+}
 
 // OnKey handles keys from a focused Focusable element, bubbling through its
 // ancestors. Return true to stop bubbling and suppress default activation.
 // Tab remains platform focus navigation; use Context.Shortcut for global keys.
 func (s *Styled[T]) OnKey(fn func(KeyEvent) bool) *T { s.n.onKey = fn; return s.self }
 
-// Focus sets a visual focus style, like Hover. It does not change layout.
+// FocusStyle sets a visual focus style, like Hover. It does not change layout.
 // The default focus style is a 2dp Primary border inside the element bounds.
-func (s *Styled[T]) Focus(fn func(*Style)) *T { s.n.focus = fn; return s.self }
+func (s *Styled[T]) FocusStyle(fn func(*Style)) *T { s.n.focus = fn; return s.self }
+
+// Focus is a compatibility alias for FocusStyle.
+func (s *Styled[T]) Focus(fn func(*Style)) *T         { return s.FocusStyle(fn) }
+func (s *Styled[T]) Disabled(v bool) *T               { s.n.disabled = v; return s.self }
+func (s *Styled[T]) DisabledStyle(fn func(*Style)) *T { s.n.disabledStyle = fn; return s.self }
+func (cx *Context) Focused(id string) bool {
+	if id == "" {
+		return false
+	}
+	for _, st := range cx.root.store.states {
+		if st.id == id && !st.disabled && (cx.root.source.Focused(st) || cx.root.source.Focused(&st.editor)) {
+			return true
+		}
+	}
+	return false
+}
 
 // Focus requests focus by ID in this root. It is applied after painting.
 // The first visible Focusable element or input with that ID wins. An empty ID clears
@@ -30,22 +63,32 @@ func (s *Styled[T]) Focus(fn func(*Style)) *T { s.n.focus = fn; return s.self }
 // Call from Render or its callbacks; IDs should be unique within a root.
 func (cx *Context) Focus(id string) { cx.root.focusID = id; cx.root.focusPending = true }
 
-func (r *RootWidget) prepareKeys(n *Node, parent *elemState) {
-	if n.style.hidden {
-		return
+func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
+	n.effectiveDisabled = disabled || n.disabled || n.style.hidden
+	st := r.store.states[n.key]
+	if n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() {
+		st = r.store.get(n.key)
 	}
-	if st := r.store.states[n.key]; st != nil {
-		st.focusable = false
-		st.onKey, st.keyParent = nil, nil
-	}
-	if n.focusable || n.onKey != nil {
-		st := r.store.get(n.key)
-		st.focusable = n.focusable && n.input == nil
+	if st != nil {
+		st.id = n.id
+		st.disabled = n.effectiveDisabled
+		st.focusable = n.isFocusable() && n.input == nil
 		st.onKey, st.keyParent = n.onKey, parent
+		st.onClick, st.onDoubleClick = n.onClick, n.onDoubleClick
+		if st.disabled {
+			st.pressedKey = ""
+			st.click = gesture.Click{}
+			st.fresh = true
+			if r.e.gtx.Focused(st) || r.e.gtx.Focused(&st.editor) {
+				r.e.gtx.Execute(key.FocusCmd{})
+			}
+		}
+	}
+	if st != nil && (n.isFocusable() || n.onKey != nil) {
 		parent = st
 	}
 	for _, c := range n.children {
-		r.prepareKeys(c.node(), parent)
+		r.prepareKeys(c.node(), parent, n.effectiveDisabled)
 	}
 }
 func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
@@ -59,10 +102,10 @@ func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
 	}
 	var find func(*Node) bool
 	find = func(n *Node) bool {
-		if n.style.hidden {
+		if n.effectiveDisabled {
 			return false
 		}
-		if n.id == r.focusID && (n.focusable || n.input != nil) {
+		if n.id == r.focusID && (n.isFocusable() || n.input != nil) {
 			st := r.store.states[n.key]
 			if st != nil && st.keyFrame == r.store.frame {
 				if n.input != nil {
@@ -84,11 +127,11 @@ func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
 }
 func (r *RootWidget) dispatchKeys(gtx core.C) {
 	for _, st := range r.store.states {
-		if !st.focusable || st.keyFrame+1 != r.store.frame {
+		if !st.focusable || st.disabled || st.frame != r.store.frame || st.keyFrame+1 != r.store.frame {
 			continue
 		}
 		for {
-			ev, ok := gtx.Event(key.FocusFilter{Target: st}, key.Filter{Focus: st, Optional: allKeyModifiers, Name: ""})
+			ev, ok := gtx.Event(focusFilters(st)...)
 			if !ok {
 				break
 			}
@@ -102,7 +145,14 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 				handled := false
 				for node := st; node != nil; node = node.keyParent {
 					if node.onKey != nil {
-						core.Call(gtx, func() { handled = node.onKey(ev) })
+						core.Call(gtx, func() {
+							r.callbacks = true
+							state := KeyPress
+							if ev.State == key.Release {
+								state = KeyRelease
+							}
+							handled = node.onKey(KeyEvent{Name: string(ev.Name), Modifiers: ev.Modifiers, State: state})
+						})
 					}
 					if handled {
 						break
@@ -120,9 +170,27 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 					st.pressedKey = ev.Name
 				} else if st.pressedKey == ev.Name {
 					st.pressedKey = ""
-					core.Call(gtx, st.onClick)
+					core.Call(gtx, func() {
+						if st.onClick != nil {
+							r.callbacks = true
+							st.onClick()
+						}
+					})
 				}
 			}
 		}
 	}
+}
+
+func focusFilters(st *elemState) []event.Filter {
+	filters := []event.Filter{key.FocusFilter{Target: st}}
+	for p := st; p != nil; p = p.keyParent {
+		if p.onKey != nil {
+			return append(filters, key.Filter{Focus: st, Optional: allKeyModifiers})
+		}
+	}
+	for _, name := range []key.Name{key.NameSpace, key.NameReturn, key.NameEnter} {
+		filters = append(filters, key.Filter{Focus: st, Name: name})
+	}
+	return filters
 }

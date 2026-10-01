@@ -86,3 +86,33 @@ func TestFocusTextColorRestoresCachedTree(t *testing.T) {
 	w.click(element(t, w, "other").center())
 	check(false)
 }
+
+type disabledView struct {
+	disabled bool
+	calls    int
+}
+
+func (v *disabledView) Render(cx *el.Context) el.Element {
+	return el.Div().Disabled(v.disabled).Child(el.Div().Name("禁用按钮").OnClick(func() { v.calls++ }).Child(el.Text("禁用按钮")), el.Input().Name("禁用输入"))
+}
+func TestElementDisabledSnapshot(t *testing.T) {
+	v := &disabledView{disabled: true}
+	w := openTest(t, Options{Content: el.Embed(v)})
+	for _, name := range []string{"禁用按钮", "禁用输入"} {
+		if !element(t, w, name).Disabled {
+			t.Fatal("missing disabled", name)
+		}
+	}
+	w.click(element(t, w, "禁用按钮").center())
+	if v.calls != 0 {
+		t.Fatal("disabled click")
+	}
+	v.disabled = false
+	if element(t, w, "禁用按钮").Disabled {
+		t.Fatal("stale disabled")
+	}
+	w.click(element(t, w, "禁用按钮").center())
+	if v.calls != 1 {
+		t.Fatal("restore failed")
+	}
+}
