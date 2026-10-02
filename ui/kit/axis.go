@@ -91,6 +91,12 @@ func niceTicks(lo, hi float64, n int) []float64 {
 
 // formatNumber writes v with thousands separators and at most two decimals.
 func formatNumber(v float64) string {
+	if !finiteNumber(v) {
+		return "—"
+	}
+	if a := math.Abs(v); a >= 1e12 || a > 0 && a < .01 {
+		return strconv.FormatFloat(v, 'g', 4, 64)
+	}
 	neg := v < 0
 	s := strconv.FormatFloat(math.Abs(v), 'f', 2, 64)
 	s = strings.TrimRight(strings.TrimRight(s, "0"), ".")

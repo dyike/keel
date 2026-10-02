@@ -3,6 +3,7 @@ package kit
 import (
 	"image"
 	"math"
+	"slices"
 	"strings"
 
 	"gioui.org/f32"
@@ -33,29 +34,35 @@ type PlotSeries struct {
 // and double-clicking (or the 复位 button, or 0) restores the full view.
 // Focused, + and − zoom and the arrow keys pan.
 type PlotView struct {
-	title  string
-	series []PlotSeries
-	lines  bool
-	height float32
-	format func(float64) string
-	x0, x1 float64 // visible range
-	y0, y1 float64
-	fitted bool
-	pick   [2]int // series, point under the pointer; -1 none
-	tag    int
-	drag   gesture.Drag
-	click  gesture.Click
-	last   f32.Point
-	plotW  float32
+	title    string
+	series   []PlotSeries
+	lines    bool
+	height   float32
+	format   func(float64) string
+	x0, x1   float64 // visible range
+	y0, y1   float64
+	fitted   bool
+	pick     [2]int // series, point under the pointer; -1 none
+	tag      int
+	drag     gesture.Drag
+	click    gesture.Click
+	last     f32.Point
+	hasData  bool
+	disabled bool
+	dragging bool
+	dragView [4]float64
+	plotW    float32
 }
 
 func Plot(series ...PlotSeries) *PlotView {
-	return &PlotView{series: series, height: 260, format: formatNumber, pick: [2]int{-1, -1}}
+	v := &PlotView{height: 260, format: formatNumber, pick: [2]int{-1, -1}}
+	v.SetSeries(series...)
+	return v
 }
 func (v *PlotView) Title(s string) *PlotView { v.title = s; return v }
 func (v *PlotView) Lines() *PlotView         { v.lines = true; return v }
 func (v *PlotView) Height(dp float32) *PlotView {
-	if dp > 0 {
+	if dp > 0 && finiteNumber(float64(dp)) {
 		v.height = dp
 	}
 	return v
@@ -68,14 +75,44 @@ func (v *PlotView) Format(fn func(float64) string) *PlotView {
 }
 
 // SetSeries replaces the data and fits the view to it.
-func (v *PlotView) SetSeries(series ...PlotSeries) { v.series, v.fitted = series, false }
+func (v *PlotView) SetSeries(series ...PlotSeries) {
+	v.series = slices.Clone(series)
+	v.hasData = false
+	for i := range v.series {
+		v.series[i].Points = slices.Clone(series[i].Points)
+		for _, p := range series[i].Points {
+			if validPlotPoint(p) {
+				v.hasData = true
+				break
+			}
+		}
+	}
+	v.fitted, v.pick = false, [2]int{-1, -1}
+	v.dragging = false
+}
+func (v *PlotView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.cancelDrag()
+		v.pick = [2]int{-1, -1}
+	}
+}
+func (v *PlotView) cancelDrag() {
+	if v.dragging {
+		v.x0, v.x1, v.y0, v.y1 = v.dragView[0], v.dragView[1], v.dragView[2], v.dragView[3]
+	}
+	v.dragging = false
+	v.drag = gesture.Drag{}
+}
+func validPlotPoint(p PlotPoint) bool    { return finiteNumber(p.X) && finiteNumber(p.Y) }
+func validPlotRange(lo, hi float64) bool { return finiteNumber(lo) && finiteNumber(hi) && hi > lo }
 
 // View returns the visible ranges.
 func (v *PlotView) View() (x0, x1, y0, y1 float64) { return v.x0, v.x1, v.y0, v.y1 }
 
 // SetView shows the given ranges.
 func (v *PlotView) SetView(x0, x1, y0, y1 float64) {
-	if x1 > x0 && y1 > y0 {
+	if validPlotRange(x0, x1) && validPlotRange(y0, y1) {
 		v.x0, v.x1, v.y0, v.y1, v.fitted = x0, x1, y0, y1, true
 	}
 }
@@ -85,6 +122,9 @@ func (v *PlotView) Reset() {
 	first := true
 	for _, s := range v.series {
 		for _, p := range s.Points {
+			if !validPlotPoint(p) {
+				continue
+			}
 			if first {
 				v.x0, v.x1, v.y0, v.y1, first = p.X, p.X, p.Y, p.Y, false
 			}
@@ -95,33 +135,77 @@ func (v *PlotView) Reset() {
 	if first {
 		v.x0, v.x1, v.y0, v.y1 = 0, 1, 0, 1
 	}
-	pad := func(lo, hi float64) (float64, float64) {
-		if hi == lo {
-			return lo - 1, hi + 1
-		}
-		d := (hi - lo) * 0.05
-		return lo - d, hi + d
-	}
-	v.x0, v.x1 = pad(v.x0, v.x1)
-	v.y0, v.y1 = pad(v.y0, v.y1)
+	v.x0, v.x1 = plotPaddedRange(v.x0, v.x1)
+	v.y0, v.y1 = plotPaddedRange(v.y0, v.y1)
 	v.fitted = true
 }
 
 // zoom scales the view by f around (fx, fy), fractions of the plot box.
-func (v *PlotView) zoom(f, fx, fy float64) {
-	cx, cy := v.x0+(v.x1-v.x0)*fx, v.y0+(v.y1-v.y0)*fy
-	v.x0, v.x1 = cx-(cx-v.x0)*f, cx+(v.x1-cx)*f
-	v.y0, v.y1 = cy-(cy-v.y0)*f, cy+(v.y1-cy)*f
+func plotPaddedRange(lo, hi float64) (float64, float64) {
+	scale := max(math.Abs(lo), math.Abs(hi))
+	if scale == 0 {
+		return -1, 1
+	}
+	a, b := lo/scale, hi/scale
+	d := (b - a) * .05
+	if d == 0 {
+		d = .05
+	}
+	lower, upper := (a-d)*scale, (b+d)*scale
+	lower = max(-math.MaxFloat64, lower)
+	upper = min(math.MaxFloat64, upper)
+	if lower == upper {
+		lower = math.Nextafter(lower, math.Inf(-1))
+		upper = math.Nextafter(upper, math.Inf(1))
+	}
+	return max(-math.MaxFloat64, lower), min(math.MaxFloat64, upper)
 }
-
-// pan moves the view by fractions of its size.
+func plotZoomRange(lo, hi, f, at float64) (float64, float64) {
+	scale := max(math.Abs(lo), math.Abs(hi))
+	if scale == 0 {
+		return lo, hi
+	}
+	a, b := lo/scale, hi/scale
+	c := a*(1-at) + b*at
+	low, high := (c+(a-c)*f)*scale, (c+(b-c)*f)*scale
+	if !validPlotRange(low, high) || f < 1 && (high/scale-low/scale) < 1e-12 {
+		return lo, hi
+	}
+	return low, high
+}
+func (v *PlotView) zoom(f, fx, fy float64) {
+	if !finiteNumber(f) || f <= 0 || !finiteNumber(fx) || !finiteNumber(fy) {
+		return
+	}
+	f = min(100, max(.01, f))
+	fx = min(1, max(0, fx))
+	fy = min(1, max(0, fy))
+	v.x0, v.x1 = plotZoomRange(v.x0, v.x1, f, fx)
+	v.y0, v.y1 = plotZoomRange(v.y0, v.y1, f, fy)
+	v.pick = [2]int{-1, -1}
+}
+func plotPanRange(lo, hi, d float64) (float64, float64) {
+	scale := max(math.Abs(lo), math.Abs(hi))
+	if scale == 0 || !finiteNumber(d) {
+		return lo, hi
+	}
+	a, b := lo/scale, hi/scale
+	low, high := (a+(b-a)*d)*scale, (b+(b-a)*d)*scale
+	if !validPlotRange(low, high) {
+		return lo, hi
+	}
+	return low, high
+}
 func (v *PlotView) pan(dx, dy float64) {
-	w, h := v.x1-v.x0, v.y1-v.y0
-	v.x0, v.x1 = v.x0+w*dx, v.x1+w*dx
-	v.y0, v.y1 = v.y0+h*dy, v.y1+h*dy
+	v.x0, v.x1 = plotPanRange(v.x0, v.x1, dx)
+	v.y0, v.y1 = plotPanRange(v.y0, v.y1, dy)
+	v.pick = [2]int{-1, -1}
 }
 
 func (v *PlotView) Render(cx *el.Context) el.Element {
+	if v.dragging && !cx.Enabled(autoID("plot", v)) {
+		v.cancelDrag()
+	}
 	if !v.fitted {
 		v.Reset()
 	}
@@ -134,7 +218,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 	if name == "" {
 		name = strings.Join(names, ", ")
 	}
-	head := el.Div().Row().Items(el.Center).Gap(12)
+	head := el.Div().Row().Wrap().Items(el.Center).Gap(12)
 	if v.title != "" {
 		head.Child(el.Text(v.title).Bold())
 	}
@@ -154,32 +238,38 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 		if t < v.y0 || t > v.y1 {
 			continue
 		}
-		top := float32((1-(t-v.y0)/(v.y1-v.y0))*float64(v.height)) - 8
+		top := float32((1-axisFraction(t, v.y0, v.y1))*float64(v.height)) - 8
 		axis.Child(el.Div().Absolute().Top(top).Right(8).Child(el.Text(v.format(t)).TextSize(11).TextColor(theme.Muted)))
 	}
 	box := el.Div().Grow().W(el.Dp(0)).H(el.Dp(v.height)).Items(el.Stretch).Child(
 		el.Widget(core.Func(func(gtx core.C) core.D { return v.draw(gtx, xt, yt) })).H(el.Dp(v.height)))
-	if s, i := v.pick[0], v.pick[1]; s >= 0 && s < len(v.series) && i < len(v.series[s].Points) && v.plotW > 0 {
+	if !v.hasData {
+		box.Child(el.Div().Absolute().Top(20).Left(12).Child(el.Text(text.NoData).TextColor(theme.Muted)))
+	}
+	if s, i := v.pick[0], v.pick[1]; s >= 0 && s < len(v.series) && i >= 0 && i < len(v.series[s].Points) && v.plotW > 0 {
 		p := v.series[s].Points[i]
-		left := float32((p.X-v.x0)/(v.x1-v.x0)) * v.plotW
-		top := float32((1 - (p.Y-v.y0)/(v.y1-v.y0)) * float64(v.height))
+		left := float32(axisFraction(p.X, v.x0, v.x1)) * v.plotW
+		top := float32((1 - axisFraction(p.Y, v.y0, v.y1)) * float64(v.height))
 		if left+12+160 > v.plotW {
 			left -= 12 + 160 + 12
 		}
-		box.Child(el.Div().Absolute().Left(max(left+12, 0)).Top(max(top-40, 0)).W(el.Dp(160)).P(8).Gap(2).Rounded(6).
+		box.Child(el.Div().Absolute().Left(max(left+12, 0)).Top(max(top-40, 0)).W(el.Dp(min(float32(160), v.plotW))).P(8).Gap(2).Rounded(6).
 			Bg(theme.Surface).Border(1, theme.Border).Child(
 			el.Text(v.series[s].Name).TextSize(12).Bold(),
 			el.Text("x "+v.format(p.X)+"   y "+v.format(p.Y)).TextSize(12).TextColor(theme.Muted)))
 	}
-	xs := el.Div().H(el.Dp(18)) // labels sit under the plot, past the y-axis column
+	xs := el.Div().Row().H(el.Dp(18))
+	previous := 0.0
 	for _, t := range xt {
-		if t < v.x0 || t > v.x1 || v.plotW == 0 {
+		if t < v.x0 || t > v.x1 {
 			continue
 		}
-		xs.Child(el.Div().Absolute().Top(0).Left(float32((t-v.x0)/(v.x1-v.x0))*v.plotW - 12).
-			Child(el.Text(v.format(t)).TextSize(11).TextColor(theme.Muted)))
+		fraction := axisFraction(t, v.x0, v.x1)
+		xs.Child(el.Div().W(el.Frac(float32(fraction-previous))).NoShrink(),
+			el.Div().W(el.Dp(0)).NoShrink().Child(el.Div().Absolute().Left(-12).W(el.Dp(56)).Child(el.Text(v.format(t)).TextSize(11).TextColor(theme.Muted).MaxLines(1))))
+		previous = fraction
 	}
-	return el.Div().ID(autoID("plot", v)).Role("figure").Name(name).Gap(10).P(12).Rounded(8).
+	return el.Div().Disabled(v.disabled).ID(autoID("plot", v)).Role("figure").Name(name).Gap(10).P(12).Rounded(8).
 		Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
@@ -206,7 +296,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 			}
 			return ok
 		}).
-		Child(head, el.Div().Row().Child(axis, box), xs)
+		Child(head, el.Div().Row().Child(axis, box), el.Div().Row().Child(el.Div().W(el.Dp(axisWidth)).NoShrink(), xs.Grow().W(el.Dp(0))))
 }
 
 func (v *PlotView) draw(gtx core.C, xt, yt []float64) core.D {
@@ -220,7 +310,7 @@ func (v *PlotView) draw(gtx core.C, xt, yt []float64) core.D {
 		gtx.Execute(op.InvalidateCmd{}) // the axis labels need this width: draw again
 	}
 	at := func(p PlotPoint) f32.Point {
-		return f32.Pt(float32((p.X-v.x0)/(v.x1-v.x0))*float32(size.X), float32(1-(p.Y-v.y0)/(v.y1-v.y0))*float32(size.Y))
+		return f32.Pt(float32(min(1e6, max(-1e6, axisFraction(p.X, v.x0, v.x1))))*float32(size.X), float32(min(1e6, max(-1e6, 1-axisFraction(p.Y, v.y0, v.y1))))*float32(size.Y))
 	}
 	if gtx.Enabled() {
 		v.events(gtx, size, at)
@@ -245,13 +335,21 @@ func (v *PlotView) draw(gtx core.C, xt, yt []float64) core.D {
 	for i, s := range v.series {
 		c := theme.Chart[i%len(theme.Chart)]
 		if v.lines {
-			pts := make([]f32.Point, len(s.Points))
-			for j, p := range s.Points {
-				pts[j] = at(p)
+			var pts []f32.Point
+			for _, p := range s.Points {
+				if !validPlotPoint(p) {
+					strokePath(gtx, pts, 2*px, c)
+					pts = pts[:0]
+					continue
+				}
+				pts = append(pts, at(p))
 			}
 			strokePath(gtx, pts, 2*px, c)
 		}
 		for j, p := range s.Points {
+			if !validPlotPoint(p) {
+				continue
+			}
 			q := at(p)
 			if q.X < -8 || q.Y < -8 || q.X > float32(size.X)+8 || q.Y > float32(size.Y)+8 {
 				continue
@@ -272,6 +370,9 @@ func (v *PlotView) draw(gtx core.C, xt, yt []float64) core.D {
 
 // events handles wheel zoom, drag pan, double-click reset and hover picking.
 func (v *PlotView) events(gtx core.C, size image.Point, at func(PlotPoint) f32.Point) {
+	if size.X <= 0 || size.Y <= 0 {
+		return
+	}
 	changed := false
 	for {
 		ev, ok := v.drag.Update(gtx.Metric, gtx.Source, gesture.Both)
@@ -280,8 +381,18 @@ func (v *PlotView) events(gtx core.C, size image.Point, at func(PlotPoint) f32.P
 		}
 		switch ev.Kind {
 		case pointer.Press:
+			v.dragging = true
+			v.dragView = [4]float64{v.x0, v.x1, v.y0, v.y1}
 			v.last = ev.Position
+		case pointer.Cancel:
+			v.cancelDrag()
+			changed = true
+		case pointer.Release:
+			v.dragging = false
 		case pointer.Drag:
+			if !v.dragging {
+				continue
+			}
 			d := ev.Position.Sub(v.last)
 			v.last = ev.Position
 			v.pan(-float64(d.X)/float64(size.X), float64(d.Y)/float64(size.Y))
@@ -310,7 +421,7 @@ func (v *PlotView) events(gtx core.C, size image.Point, at func(PlotPoint) f32.P
 		}
 		switch e.Kind {
 		case pointer.Scroll:
-			f := math.Pow(1.0015, float64(e.Scroll.Y))
+			f := math.Pow(1.0015, min(3000, max(-3000, float64(e.Scroll.Y))))
 			v.zoom(f, float64(e.Position.X)/float64(size.X), 1-float64(e.Position.Y)/float64(size.Y))
 			changed = true
 		case pointer.Leave:
@@ -321,6 +432,9 @@ func (v *PlotView) events(gtx core.C, size image.Point, at func(PlotPoint) f32.P
 			best, pick := float32(12*gtx.Metric.PxPerDp)*float32(12*gtx.Metric.PxPerDp), [2]int{-1, -1}
 			for i, s := range v.series {
 				for j, p := range s.Points {
+					if !validPlotPoint(p) {
+						continue
+					}
 					d := at(p).Sub(e.Position)
 					if dd := d.X*d.X + d.Y*d.Y; dd < best {
 						best, pick = dd, [2]int{i, j}
