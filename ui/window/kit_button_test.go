@@ -58,6 +58,8 @@ func TestKitButtonSnapshotAndKeyboard(t *testing.T) {
 func TestKitButtonRuntimeColorsAndPointerStyles(t *testing.T) {
 	old := theme.Current()
 	defer core.Update(func() { theme.Apply(old) })
+	theme.SetReducedMotion(true) // as KEEL_AUTOMATION does: colors switch, not fade
+	defer theme.SetReducedMotion(false)
 	v := kit.Button("按钮", func() {})
 	w := openTest(t, Options{Width: 240, Height: 140, Content: el.Embed(v)})
 	sample := func() color.NRGBA {

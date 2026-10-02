@@ -3,7 +3,9 @@ package el
 import (
 	"gioui.org/io/key"
 	"image"
+	"image/color"
 	"strings"
+	"time"
 
 	"gioui.org/font"
 	"gioui.org/gesture"
@@ -147,6 +149,9 @@ func (e *engine) paintContent(n *Node) {
 		}
 		if n.active != nil && state.click.Pressed() {
 			n.active(&st)
+		}
+		if (n.hover != nil || n.active != nil) && gtx.Enabled() {
+			e.easeBackground(&st, state)
 		}
 	}
 	if n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus {
@@ -718,4 +723,46 @@ func (e *engine) textShift(n *Node) int {
 	}
 	shifts[key] = shift
 	return shift
+}
+
+// bgEase is how long a hover or press background takes to change.
+const bgEase = 120 * time.Millisecond
+
+// easeBackground fades an element's background between its resting, hover
+// and pressed colors instead of switching at once. Reduced motion switches.
+func (e *engine) easeBackground(st *Style, state *elemState) {
+	var target color.NRGBA
+	if st.bg != nil {
+		target = *st.bg
+	}
+	now := e.gtx.Now
+	if !state.bgInit || theme.ReducedMotion {
+		state.bgInit, state.bgShown, state.bgTo = true, target, target
+		return
+	}
+	if target != state.bgTo {
+		state.bgFrom, state.bgTo, state.bgStart = state.bgShown, target, now
+	}
+	t := float32(now.Sub(state.bgStart)) / float32(bgEase)
+	shown := target
+	if t < 1 {
+		shown = lerpColor(state.bgFrom, target, t)
+		e.gtx.Execute(op.InvalidateCmd{})
+	}
+	state.bgShown = shown
+	if shown.A != 0 || st.bg != nil {
+		st.bg = &shown
+	}
+}
+
+// lerpColor blends two colors; a transparent end keeps the other's hue.
+func lerpColor(a, b color.NRGBA, t float32) color.NRGBA {
+	if a.A == 0 {
+		a.R, a.G, a.B = b.R, b.G, b.B
+	}
+	if b.A == 0 {
+		b.R, b.G, b.B = a.R, a.G, a.B
+	}
+	mix := func(x, y uint8) uint8 { return uint8(float32(x) + (float32(y)-float32(x))*t + 0.5) }
+	return color.NRGBA{R: mix(a.R, b.R), G: mix(a.G, b.G), B: mix(a.B, b.B), A: mix(a.A, b.A)}
 }

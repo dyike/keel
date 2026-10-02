@@ -3,7 +3,9 @@ package el
 import (
 	"hash/fnv"
 	"image"
+	"image/color"
 	"strconv"
+	"time"
 
 	"gioui.org/gesture"
 	"gioui.org/io/key"
@@ -64,7 +66,13 @@ type elemState struct {
 	pressFocus  string
 	pressEditor bool
 	pressable   bool
-	fresh       bool // created this frame: dispatch has not seen it yet
+
+	// The background shown last frame and the change it is easing through,
+	// for elements with hover or pressed styles.
+	bgShown, bgFrom, bgTo color.NRGBA
+	bgStart               time.Time
+	bgInit                bool
+	fresh                 bool // created this frame: dispatch has not seen it yet
 
 	scrollbarX, scrollbarY   scrollbarState
 	scrollableX, scrollableY bool

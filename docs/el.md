@@ -77,7 +77,7 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 | 滚动与定位 | `ScrollX()` 横向滚动（需要约束宽度）、`ScrollY()` 纵向滚动（需要确定的高度），`StickToBottom()` 跟随到底，`ScrollToEndOn(v)` 在 v 变化时跳到底部；`Absolute()` + `Top/Right/Bottom/Left` 绝对定位，同时给左右会拉伸宽度 |
 | 外观 | `Bg(c)`、`Border(dp, c)`、`Rounded(dp)`（用 `theme.RadiusSm/Md/Lg/Xl/Full`）、`Shadow(theme.ElevationSm/Md/Lg)` 阴影画在元素外面、不改变尺寸，`Opacity(a)` 整个子树半透明，`CursorPointer()`、`Hidden(b)` |
 | 文字（向下继承） | `TextColor(c)`、`TextSize(sp)`（用 `theme.TextXs` … `theme.TextHeading`）、`Bold()`、`Medium()`、`Mono()` 等宽字体（`theme.MonoFace`）、`LineHeight(倍数)`、`MaxLines(n)` |
-| 状态变体 | `Hover(func(*el.Style))`、`Active(func(*el.Style))`：悬停、按下时的颜色变化 |
+| 状态变体 | `Hover(func(*el.Style))`、`Active(func(*el.Style))`：悬停、按下时的颜色变化，背景在 120ms 内渐变过去；开启减少动画（`theme.SetReducedMotion`，自动化模式默认开启）时直接切换 |
 | 交互 | `OnClick(fn)`、`OnDoubleClick(fn)` |
 | 结构 | `ID(s)`、`Child(...)`、`Children(slice)`、`When(cond, func(*T))` |
 | Agent 语义 | `Role(s)`、`Name(s)`、`Value(s)`、`Selected(b)` |
