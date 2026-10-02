@@ -45,6 +45,7 @@ type Strings struct {
 	DockLeft, DockRight, DockBottom                 string
 	DockSplitRight, DockSplitBelow                  string
 	DockZoom, DockRestore                           string
+	CodeEditor                                      string
 	SearchSettings                                  string
 	Minimize, Maximize, Restore                     string
 	CandleOpen, CandleHigh, CandleLow, CandleClose  string
@@ -100,7 +101,7 @@ func Chinese() Strings {
 		Latest: "回到最新", Uploading: "上传中",
 		More: "更多", Resize: "调整大小", CollapseSidebar: "收起侧栏", ExpandSidebar: "展开侧栏",
 		PrevSlide: "上一张", NextSlide: "下一张",
-		DockSplitRight: "向右拆分", DockSplitBelow: "向下拆分", DockZoom: "最大化", DockRestore: "还原", DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", SearchSettings: "搜索设置",
+		DockSplitRight: "向右拆分", DockSplitBelow: "向下拆分", DockZoom: "最大化", DockRestore: "还原", CodeEditor: "代码编辑器", DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", SearchSettings: "搜索设置",
 		Minimize: "最小化", Maximize: "最大化", Restore: "还原",
 		CandleOpen: "开盘", CandleHigh: "最高", CandleLow: "最低", CandleClose: "收盘",
 		ChartValue: "数值", ChartShare: "占比", ShowTable: "查看数据表", ShowChart: "查看图表", ResetView: "复位",
@@ -136,7 +137,7 @@ func English() Strings {
 		Latest: "Jump to latest", Uploading: "Uploading",
 		More: "More", Resize: "Resize", CollapseSidebar: "Collapse sidebar", ExpandSidebar: "Expand sidebar",
 		PrevSlide: "Previous slide", NextSlide: "Next slide",
-		DockSplitRight: "Split right", DockSplitBelow: "Split below", DockZoom: "Maximize", DockRestore: "Restore", DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", SearchSettings: "Search settings",
+		DockSplitRight: "Split right", DockSplitBelow: "Split below", DockZoom: "Maximize", DockRestore: "Restore", CodeEditor: "Code editor", DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", SearchSettings: "Search settings",
 		Minimize: "Minimize", Maximize: "Maximize", Restore: "Restore",
 		CandleOpen: "Open", CandleHigh: "High", CandleLow: "Low", CandleClose: "Close",
 		ChartValue: "Value", ChartShare: "Share", ShowTable: "Show data table", ShowChart: "Show chart", ResetView: "Reset view",
