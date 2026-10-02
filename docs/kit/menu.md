@@ -28,3 +28,9 @@ more.Trigger(kit.Button("更多", more.Toggle).Variant(kit.ButtonGhost))
 Agent：菜单容器的角色是 `menu`（子菜单的名字是它在父菜单中的标题），菜单项的角色是 `menuitem`；有子菜单的项 `value` 为 `submenu`；禁用的项报告 `disabled`。
 
 验证：`go run ./examples/components -section menu`。
+
+长菜单会限制在窗口内并纵向滚动。方向键、Home / End 会把目标项滚入可见范围；打开时若前面多项禁用，也会显示第一个可用项。宽度过大时受窗口宽度约束。
+
+`SetDisabled(true)` 关闭并禁用整个菜单；禁用正在展开的父项或子菜单会关闭对应分支。关闭顶层时会递归清除展开状态，重新打开不会恢复旧的深层子菜单。`Sub` 忽略 nil、循环引用和重复挂载的子菜单实例；不同分支请分别创建实例。
+
+右键触发可以给 `Trigger` 传入自定义 View，在元素的 `OnContextMenu` 中调用 `Toggle`。键盘入口由触发 View 的 `OnKey` 定义，示例使用 F10；弹层依然锚定触发区域，外部点击和 Esc 的关闭行为相同。

@@ -26,22 +26,24 @@ type menuItem struct {
 // → opens a submenu, ← or Esc closes one level. Running any item closes the
 // whole menu. Shortcuts are only displayed, never registered.
 type MenuView struct {
-	trigger el.View
-	items   []menuItem
-	open    bool
-	openSub int // index of the open submenu, -1 none
-	parent  *MenuView
-	width   float32
+	trigger  el.View
+	items    []menuItem
+	open     bool
+	openSub  int // index of the open submenu, -1 none
+	parent   *MenuView
+	width    float32
+	disabled bool
+	reveal   int
 }
 
-func Menu() *MenuView { return &MenuView{openSub: -1, width: 220} }
+func Menu() *MenuView { return &MenuView{openSub: -1, width: 220, reveal: -1} }
 
 // Trigger sets the view the menu opens from (top-level menus only).
 func (v *MenuView) Trigger(t el.View) *MenuView { v.trigger = t; return v }
 
 // Width sets the minimum menu width in dp, 220 by default.
 func (v *MenuView) Width(dp float32) *MenuView {
-	if dp > 0 {
+	if dp > 0 && finiteNumber(float64(dp)) {
 		v.width = dp
 	}
 	return v
@@ -59,6 +61,14 @@ func (v *MenuView) Separator() *MenuView {
 
 // Sub adds an item that opens sub to its side.
 func (v *MenuView) Sub(label string, sub *MenuView) *MenuView {
+	if sub == nil || sub.parent != nil {
+		return v
+	}
+	for p := v; p != nil; p = p.parent {
+		if p == sub {
+			return v
+		}
+	}
 	sub.parent = v
 	v.items = append(v.items, menuItem{label: label, sub: sub})
 	return v
@@ -69,11 +79,44 @@ func (v *MenuView) SetItemDisabled(label string, disabled bool) {
 	for i := range v.items {
 		if v.items[i].label == label {
 			v.items[i].disabled = disabled
+			if disabled && v.openSub == i {
+				v.closeSub()
+			}
 		}
 	}
 }
-func (v *MenuView) Value() bool        { return v.open }
-func (v *MenuView) SetValue(open bool) { v.open = open; v.openSub = -1 }
+func (v *MenuView) Value() bool { return v.open }
+func (v *MenuView) SetValue(open bool) {
+	v.open = open && !v.disabled
+	v.closeSub()
+	v.reveal = -1
+	if v.open {
+		v.reveal = v.step(-1, 1)
+	}
+}
+func (v *MenuView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.SetValue(false)
+		if p := v.parent; p != nil && p.openSub >= 0 && p.openSub < len(p.items) && p.items[p.openSub].sub == v {
+			p.closeSub()
+		}
+	}
+}
+func (v *MenuView) closeSub() {
+	if v.openSub >= 0 && v.openSub < len(v.items) {
+		if sub := v.items[v.openSub].sub; sub != nil {
+			sub.closeSub()
+			sub.open = false
+			sub.reveal = -1
+		}
+	}
+	v.openSub = -1
+}
+func (v *MenuView) itemDisabled(i int) bool {
+	it := v.items[i]
+	return it.disabled || it.sub != nil && it.sub.disabled
+}
 
 // Toggle opens or closes the menu; pass it as the trigger's click handler.
 func (v *MenuView) Toggle() { v.SetValue(!v.open) }
@@ -91,7 +134,7 @@ func (v *MenuView) step(i, d int) int {
 	n := len(v.items)
 	for k := 1; k <= n; k++ {
 		j := ((i+d*k)%n + n) % n
-		if it := v.items[j]; !it.separator && !it.disabled {
+		if it := v.items[j]; !it.separator && !v.itemDisabled(j) {
 			return j
 		}
 	}
@@ -105,26 +148,28 @@ func (v *MenuView) Render(cx *el.Context) el.Element {
 			OnDismiss(func() { v.SetValue(false) }))
 		v.renderSub(cx)
 	}
-	return anchor(id, cx, v.trigger)
+	return el.Div().Disabled(v.disabled).Child(anchor(id, cx, v.trigger))
 }
 
 // renderSub declares the open submenu chain after this menu's layer, so each
 // level sits above its parent and Esc closes the innermost one first.
 func (v *MenuView) renderSub(cx *el.Context) {
-	if v.openSub < 0 || v.openSub >= len(v.items) || v.items[v.openSub].sub == nil {
+	if v.openSub < 0 || v.openSub >= len(v.items) || v.items[v.openSub].sub == nil || v.itemDisabled(v.openSub) {
 		return
 	}
 	sub := v.items[v.openSub].sub
 	cx.Overlay(autoID("menu", sub), el.Anchored(v.itemID(v.openSub), sub.panel(cx)).Placement(el.Right, el.Start).Offset(2).TrapFocus().
-		OnDismiss(func() { v.openSub = -1 }))
+		OnDismiss(v.closeSub))
 	sub.renderSub(cx)
 }
 
 func (v *MenuView) panel(cx *el.Context) el.Element {
-	list := surface().Role("menu").Name(v.label()).MinW(el.Dp(v.width)).Py(4).Items(el.Stretch)
+	w, h := cx.ViewportSize()
+	list := surface().ID(autoID("menu-scroll", v)).Role("menu").Name(v.label()).MinW(el.Dp(min(v.width, max(0, w-16)))).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().Py(4).Items(el.Stretch)
+	v.revealItem(cx)
 	for i, it := range v.items {
 		if it.separator {
-			list.Child(el.Div().H(el.Dp(1)).My(4).Bg(theme.Border))
+			list.Child(el.Div().NoShrink().H(el.Dp(1)).My(4).Bg(theme.Border))
 			continue
 		}
 		list.Child(v.row(cx, i, it))
@@ -146,12 +191,13 @@ func (v *MenuView) label() string {
 
 func (v *MenuView) row(cx *el.Context, i int, it menuItem) el.Element {
 	run := func() {
-		if it.disabled {
+		if v.itemDisabled(i) {
 			return
 		}
 		if it.sub != nil {
 			v.openSub = i
-			cx.Focus(it.sub.itemID(it.sub.step(-1, 1)))
+			it.sub.reveal = it.sub.step(-1, 1)
+			cx.Focus(it.sub.itemID(it.sub.reveal))
 			return
 		}
 		v.root().SetValue(false)
@@ -159,14 +205,14 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem) el.Element {
 			it.action()
 		}
 	}
-	row := el.Div().ID(v.itemID(i)).Role("menuitem").Name(it.label).Row().Items(el.Center).Gap(12).
-		Mx(4).Px(8).H(el.Dp(30)).Rounded(4).Focusable(true).Disabled(it.disabled).
+	row := el.Div().ID(v.itemID(i)).NoShrink().Role("menuitem").Name(it.label).Row().Items(el.Center).Gap(12).
+		Mx(4).Px(8).H(el.Dp(30)).Rounded(4).Focusable(true).Disabled(v.itemDisabled(i)).
 		DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).
 		FocusStyle(func(s *el.Style) { s.Bg(theme.Subtle).BorderColor(theme.Subtle) }).
 		OnClick(run).
 		OnKey(func(e el.KeyEvent) bool { return v.key(cx, i, e) }).
 		Child(el.Text(it.label).Grow().MaxLines(1))
-	if !it.disabled {
+	if !v.itemDisabled(i) {
 		row.CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 	}
 	if it.sub != nil {
@@ -183,21 +229,22 @@ func (v *MenuView) key(cx *el.Context, i int, e el.KeyEvent) bool {
 	}
 	switch key.Name(e.Name) {
 	case key.NameDownArrow:
-		cx.Focus(v.itemID(v.step(i, 1)))
+		v.focusItem(cx, v.step(i, 1))
 	case key.NameUpArrow:
-		cx.Focus(v.itemID(v.step(i, -1)))
+		v.focusItem(cx, v.step(i, -1))
 	case key.NameHome:
-		cx.Focus(v.itemID(v.step(-1, 1)))
+		v.focusItem(cx, v.step(-1, 1))
 	case key.NameEnd:
-		cx.Focus(v.itemID(v.step(len(v.items), -1)))
+		v.focusItem(cx, v.step(len(v.items), -1))
 	case key.NameRightArrow:
-		if sub := v.items[i].sub; sub != nil && !v.items[i].disabled {
+		if sub := v.items[i].sub; sub != nil && !v.itemDisabled(i) {
 			v.openSub = i
-			cx.Focus(sub.itemID(sub.step(-1, 1)))
+			sub.reveal = sub.step(-1, 1)
+			cx.Focus(sub.itemID(sub.reveal))
 		}
 	case key.NameLeftArrow:
-		if v.parent != nil {
-			v.parent.openSub = -1 // focus returns to the parent item
+		if p := v.parent; p != nil && p.openSub >= 0 && p.openSub < len(p.items) && p.items[p.openSub].sub == v {
+			p.closeSub() // focus returns to the parent item
 		}
 	default:
 		return false
@@ -211,4 +258,31 @@ func navKey(e el.KeyEvent) bool {
 		return true
 	}
 	return false
+}
+
+func (v *MenuView) focusItem(cx *el.Context, i int) {
+	v.reveal = i
+	v.revealItem(cx)
+	cx.Focus(v.itemID(i))
+}
+func (v *MenuView) revealItem(cx *el.Context) {
+	if v.reveal < 0 || v.reveal >= len(v.items) {
+		return
+	}
+	id := autoID("menu-scroll", v)
+	_, height, _ := cx.ScrollState(id)
+	if height <= 0 {
+		cx.AfterEnabled(id, "reveal", 0, func() {})
+		return
+	}
+	top := float32(4)
+	for i := 0; i < v.reveal; i++ {
+		if v.items[i].separator {
+			top += 9
+		} else {
+			top += 30
+		}
+	}
+	cx.ScrollIntoView(id, top, top+30)
+	v.reveal = -1
 }
