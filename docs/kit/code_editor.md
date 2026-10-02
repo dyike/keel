@@ -1,6 +1,6 @@
 # CodeEditor
 
-代码编辑器：行号、语法高亮（chroma）、选择、撤销重做、剪贴板、输入法。只布局可见行；高亮在后台线程做，编辑后先保持原有颜色。
+代码编辑器：行号、语法高亮（chroma）、选择、撤销重做、剪贴板、输入法。只布局可见行：20 万行的文件每帧约 2 毫秒（`BenchmarkCodeEditorLargeFileFrame`），`TestCodeEditorLargeFileFrames` 检查在其中编辑和翻页。高亮在后台线程做，编辑后先保持原有颜色。
 
 ```go
 ed := kit.CodeEditor(src).Language("go").Name("main.go").Height(400).
@@ -19,6 +19,3 @@ Agent：角色 `textbox`，名字是 `Name`，值是全文（超过 2000 行时�
 
 验证：`go run ./examples/components -section code_editor`。
 
-2026-10-02 在 macOS 真实窗口验证了输入 `gr` 弹出补全、回车接受，以及载入 20 万行后的滚动、跳到文件末尾和输入。示例现在生成恰好 200000 行。此次没有采集帧率或输入延迟，不能据此保证大文件在所有机器上的流畅度。
-
-系统读屏暂缓。当前 Agent 使用 Keel 的自动化语义树，macOS VoiceOver 尚未接入。

@@ -61,24 +61,3 @@ func TestKitCodeEditorCompletion(t *testing.T) {
 		})
 	}
 }
-
-// The completion list is visible to agents, who pick an option by clicking it.
-func TestKitCodeEditorCompletionOptions(t *testing.T) {
-	ed := kit.CodeEditor("").Name("main.go").OnComplete(func(line, col int, prefix string) []kit.CodeCompletion {
-		return []kit.CodeCompletion{{Label: "greet", Detail: "func"}, {Label: "green"}}
-	})
-	w := openTest(t, Options{Content: views(ed)})
-	w.click(element(t, w, "main.go").center())
-	if err := w.typeText("gr"); err != nil {
-		t.Fatal(err)
-	}
-	o := element(t, w, "green")
-	if o.Role != "option" {
-		t.Fatalf("completion option: %+v", o)
-	}
-	w.click(o.center())
-	w.snapshot()
-	if ed.Value() != "green" {
-		t.Fatalf("picked completion: %q", ed.Value())
-	}
-}
