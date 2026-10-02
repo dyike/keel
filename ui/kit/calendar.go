@@ -16,17 +16,23 @@ import (
 // PageDown by a month, Home and End to the week's ends, Enter or Space picks.
 // Week layout, day and month names come from ui/locale.
 type CalendarView struct {
-	start, end   time.Time // chosen dates at midnight; end == start unless Range
-	rangeMode    bool
-	pending      bool // Range: the first end is picked, the second is not
-	month, focus time.Time
-	lo, hi       time.Time
-	blocked      func(time.Time) bool
-	disabled     bool
-	onChange     func(start, end time.Time)
+	months                int
+	draft                 time.Time
+	rangeError            bool
+	choosing, yearEditing bool
+	chooseYear            int
+	yearPicker            *NumberInputView
+	start, end            time.Time // chosen dates at midnight; end == start unless Range
+	rangeMode             bool
+	pending               bool // Range: the first end is picked, the second is not
+	month, focus          time.Time
+	lo, hi                time.Time
+	blocked               func(time.Time) bool
+	disabled              bool
+	onChange              func(start, end time.Time)
 }
 
-func Calendar() *CalendarView { return &CalendarView{} }
+func Calendar() *CalendarView { return &CalendarView{months: 1} }
 
 // Range picks a span: the first click sets one end, the second the other.
 func (v *CalendarView) Range() *CalendarView { v.rangeMode = true; return v }
@@ -34,11 +40,19 @@ func (v *CalendarView) Range() *CalendarView { v.rangeMode = true; return v }
 // Bounds limits selectable dates to [min, max]; a zero time leaves that side open.
 func (v *CalendarView) Bounds(min, max time.Time) *CalendarView {
 	v.lo, v.hi = day(min), day(max)
+	if !v.lo.IsZero() && !v.hi.IsZero() && v.hi.Before(v.lo) {
+		v.lo, v.hi = v.hi, v.lo
+	}
+	v.CancelRange()
 	return v
 }
 
 // DisableDates blocks dates for which fn returns true, e.g. weekends.
-func (v *CalendarView) DisableDates(fn func(time.Time) bool) *CalendarView { v.blocked = fn; return v }
+func (v *CalendarView) DisableDates(fn func(time.Time) bool) *CalendarView {
+	v.blocked = fn
+	v.CancelRange()
+	return v
+}
 
 // OnChange runs when the user picks a date or completes a range; for a
 // single date start == end.
@@ -53,6 +67,7 @@ func (v *CalendarView) Value() (start, end time.Time) { return v.start, v.end }
 // SetValue chooses dates without calling OnChange and shows start's month.
 // A single-date calendar uses only start.
 func (v *CalendarView) SetValue(start, end time.Time) {
+	v.CancelRange()
 	v.start, v.end, v.pending = day(start), day(end), false
 	if !v.rangeMode || v.end.IsZero() {
 		v.end = v.start
@@ -64,7 +79,14 @@ func (v *CalendarView) SetValue(start, end time.Time) {
 		v.month, v.focus = monthOf(v.start), v.start
 	}
 }
-func (v *CalendarView) SetDisabled(on bool) { v.disabled = on }
+func (v *CalendarView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.CancelRange()
+		v.choosing = false
+		v.yearEditing = false
+	}
+}
 
 // SetMonth shows the month containing t.
 func (v *CalendarView) SetMonth(t time.Time) { v.month = monthOf(t) }
@@ -95,13 +117,23 @@ func (v *CalendarView) pick(d time.Time) {
 	case !v.rangeMode:
 		v.start, v.end = d, d
 	case !v.pending:
-		v.start, v.end, v.pending = d, time.Time{}, true
-		return // wait for the other end
+		v.draft, v.pending, v.rangeError = d, true, false
+		return
 	default:
-		v.end, v.pending = d, false
-		if v.end.Before(v.start) {
-			v.start, v.end = v.end, v.start
+		start, end := v.draft, d
+		if end.Before(start) {
+			start, end = end, start
 		}
+		// A range cannot bridge a disabled date. Restart from the clicked endpoint.
+		for date := start; !date.After(end); date = date.AddDate(0, 0, 1) {
+			if !v.allowed(date) {
+				v.draft = d
+				v.rangeError = true
+				return
+			}
+		}
+		v.start, v.end = start, end
+		v.CancelRange()
 	}
 	if v.onChange != nil {
 		v.onChange(v.start, v.end)
@@ -121,7 +153,8 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 	if v.month.IsZero() {
 		v.month = monthOf(today)
 	}
-	if v.focus.IsZero() || monthOf(v.focus) != v.month {
+	last := v.month.AddDate(0, max(1, v.months), 0)
+	if v.focus.IsZero() || v.focus.Before(v.month) || !v.focus.Before(last) {
 		v.focus = v.month
 		if monthOf(today) == v.month {
 			v.focus = today
@@ -130,41 +163,102 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 			v.focus = v.start
 		}
 	}
-	move := func(d time.Time) {
-		v.focus, v.month = d, monthOf(d)
-		cx.Focus(v.cellID(d))
+	if !v.allowed(v.focus) {
+		if next, ok := v.seek(v.focus, 1); ok {
+			v.focus = next
+		}
 	}
-	prev := Button("", func() { v.month = v.month.AddDate(0, -1, 0) }).Name(text.PrevMonth).Icon(IconChevronLeft).Variant(ButtonGhost).Size(28)
-	next := Button("", func() { v.month = v.month.AddDate(0, 1, 0) }).Name(text.NextMonth).Icon(IconChevronRight).Variant(ButtonGhost).Size(28)
-	prev.SetDisabled(v.disabled)
-	next.SetDisabled(v.disabled)
-	title := text.Month(v.month.Year(), v.month.Month())
-	head := el.Div().Row().Items(el.Center).Child(prev.Render(cx), el.Div().Grow().Items(el.Center).Child(el.Text(title).Bold().MaxLines(1)), next.Render(cx))
-
+	move := func(d time.Time) { v.moveFocus(cx, d) }
+	prevName, nextName := text.PrevMonth, text.NextMonth
+	if v.choosing {
+		prevName, nextName = text.PrevYear, text.NextYear
+	}
+	prev := Button("", func() {
+		if v.choosing {
+			v.chooseYear = max(1, v.chooseYear-1)
+			v.yearEditing = false
+		} else {
+			v.month = v.month.AddDate(0, -1, 0)
+		}
+	}).Name(prevName).Icon(IconChevronLeft).Variant(ButtonGhost).Size(28)
+	next := Button("", func() {
+		if v.choosing {
+			v.chooseYear = min(9999, v.chooseYear+1)
+			v.yearEditing = false
+		} else {
+			v.month = v.month.AddDate(0, 1, 0)
+		}
+	}).Name(nextName).Icon(IconChevronRight).Variant(ButtonGhost).Size(28)
+	prev.SetDisabled(v.disabled || !v.choosing && !v.monthAllowed(v.month.AddDate(0, -1, 0)))
+	next.SetDisabled(v.disabled || !v.choosing && !v.monthAllowed(v.month.AddDate(0, 1, 0)))
+	title := Button(v.monthTitle(), func() { v.choosing = !v.choosing; v.chooseYear = v.month.Year(); v.yearEditing = false }).Variant(ButtonGhost).Size(28)
+	head := el.Div().Row().WFull().Items(el.Center).Child(prev.Render(cx), el.Div().Grow().Items(el.Center).Child(title.Render(cx)), next.Render(cx))
+	body := el.Div().Row().Wrap().Gap(16).WFull()
+	count := max(1, v.months)
+	if v.choosing {
+		body.Child(v.yearMonths(cx))
+		count = 1
+	} else {
+		for i := range count {
+			body.Child(v.monthGrid(v.month.AddDate(0, i, 0), today, move))
+		}
+	}
+	root := el.Div().Disabled(v.disabled).W(el.Dp(float32(count*252+(count-1)*16))).MaxW(el.Full).Gap(8).Items(el.Stretch).Child(head, body)
+	root.OnKey(func(e el.KeyEvent) bool {
+		if key.Name(e.Name) == key.NameEscape && v.pending {
+			if e.State == el.KeyPress {
+				v.CancelRange()
+			}
+			return true
+		}
+		return false
+	})
+	if v.pending {
+		root.Child(Button(text.Cancel, func() { v.CancelRange(); cx.Focus(v.FocusID()) }).Variant(ButtonGhost).Render(cx))
+	}
+	if v.rangeError {
+		root.Child(el.Text(text.RangeUnavailable).TextColor(theme.Danger))
+	}
+	return root
+}
+func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) el.Element {
+	text := locale.Current()
 	const cw, ch = 36, 32
 	week := el.Div().Row()
 	for i := 0; i < 7; i++ {
 		wd := (int(text.FirstWeekday) + i) % 7
 		week.Child(el.Div().W(el.Dp(cw)).H(el.Dp(24)).Center().Child(el.Text(text.Weekdays[wd]).TextSize(12).TextColor(theme.Muted)))
 	}
-	grid := el.Div().Role("grid").Name(title).Child(week)
-	first := v.month.AddDate(0, 0, -((int(v.month.Weekday()) - int(text.FirstWeekday) + 7) % 7))
+	title := text.Month(month.Year(), month.Month())
+	grid := el.Div().W(el.Dp(252)).NoShrink().Role("grid").Name(title)
+	if v.months > 1 {
+		grid.Child(el.Div().H(el.Dp(28)).Center().Child(el.Text(title).Bold()))
+	}
+	grid.Child(week)
+	first := month.AddDate(0, 0, -((int(month.Weekday()) - int(text.FirstWeekday) + 7) % 7))
 	for w := 0; w < 6; w++ {
 		row := el.Div().Row()
 		for i := 0; i < 7; i++ {
 			d := first.AddDate(0, 0, w*7+i)
-			row.Child(v.cell(d, today, cw, ch, move))
+			if v.months > 1 && monthOf(d) != month {
+				row.Child(el.Div().W(el.Dp(cw)).H(el.Dp(ch)))
+			} else {
+				row.Child(v.cell(d, today, month, cw, ch, move))
+			}
 		}
 		grid.Child(row)
 	}
-	return el.Div().Gap(8).Items(el.Start).Child(head, grid)
+	return grid
 }
 
-func (v *CalendarView) cell(d, today time.Time, cw, ch float32, move func(time.Time)) el.Element {
-	inMonth := monthOf(d) == v.month
+func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func(time.Time)) el.Element {
+	inMonth := monthOf(d) == month
 	ok := v.allowed(d)
 	chosen := !v.start.IsZero() && (d.Equal(v.start) || !v.end.IsZero() && d.Equal(v.end))
 	between := v.rangeMode && !v.end.IsZero() && d.After(v.start) && d.Before(v.end)
+	if v.pending && d.Equal(v.draft) {
+		chosen = true
+	}
 	var bg color.NRGBA // transparent unless chosen or in the range
 	fg := theme.Text
 	switch {

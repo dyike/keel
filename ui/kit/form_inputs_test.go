@@ -123,10 +123,10 @@ func TestCalendarKeyboardRangeAndBounds(t *testing.T) {
 	h.Key(key.NameRightArrow, 0) // focus is on the 12th
 	h.Key(key.NamePageDown, 0)
 	h.Frame()
-	if !shown(h, "2026-11-13") || cal.focus.Day() != 13 || cal.month.Month() != time.November {
+	if !shown(h, "2026-10-25") || cal.focus.Day() != 25 || cal.month.Month() != time.October {
 		t.Fatalf("keyboard focus %v month %v", cal.focus, cal.month)
 	}
-	click(t, h, "2026-11-28") // after max: ignored
+	click(t, h, "2026-10-26") // after max: ignored
 	if s, _ := cal.Value(); s.Day() != 12 {
 		t.Fatal("out-of-bounds day was picked")
 	}
