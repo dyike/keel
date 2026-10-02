@@ -388,7 +388,11 @@ func (v *CodeEditorView) command(gtx core.C, e key.Event) {
 			return
 		}
 		if from.line != to.line || shift {
-			v.shiftLines(gtx, from.line, to.line, !shift)
+			last := to.line
+			if to.col == 0 && to.line > from.line {
+				last-- // a selection ending at a line's start leaves that line alone
+			}
+			v.shiftLines(gtx, from.line, last, !shift)
 			return
 		}
 		v.replaceSelection(gtx, v.indentUnit(), true)
