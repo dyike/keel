@@ -14,11 +14,13 @@ import (
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/text"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
+	"golang.org/x/image/math/fixed"
 )
 
 func (e *engine) label(n *Node, text string) material.LabelStyle {
@@ -280,6 +282,12 @@ func (e *engine) paintContent(n *Node) {
 // semantics returns the ops that describe n to agents.
 func (e *engine) semantics(n *Node) []interface{ Add(*op.Ops) } {
 	var ops []interface{ Add(*op.Ops) }
+	if n.isText && n.role == "" && n.name == "" && n.value == "" && n.selected == nil {
+		// Plain text: the Gio label reports itself, in an area padded to
+		// cover glyphs that reach past the line box. A clip of our own would
+		// cut those (the tails of g and y in tight fonts such as YaHei).
+		return nil
+	}
 	role := n.role
 	if role == "" && (n.onClick != nil || n.onDoubleClick != nil) {
 		role = "button"
@@ -344,7 +352,7 @@ func (e *engine) paintBox(st Style, rect image.Rectangle, radius int) {
 
 func (e *engine) paintText(n *Node, inner image.Rectangle) {
 	gtx := e.gtx
-	defer op.Offset(inner.Min.Add(image.Pt(0, theme.Shift(e.m, n.textStyle.size)))).Push(gtx.Ops).Pop()
+	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n)))).Push(gtx.Ops).Pop()
 	g := gtx
 	g.Constraints = layout.Constraints{Max: inner.Size()}
 	e.label(n, n.text).Layout(g)
@@ -423,7 +431,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		inner.Min.Y += (inner.Dy() - spec.line) / 2
 		inner.Max.Y = inner.Min.Y + spec.line
 	}
-	defer op.Offset(inner.Min.Add(image.Pt(0, theme.Shift(e.m, n.textStyle.size)))).Push(gtx.Ops).Pop()
+	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n)))).Push(gtx.Ops).Pop()
 	g := gtx
 	g.Constraints = layout.Exact(inner.Size())
 	ts := n.textStyle
@@ -599,4 +607,70 @@ func (e *engine) paintChildren(n *Node) {
 			draw(child, max(left, right), view.Max.X)
 		}
 	}
+}
+
+// shiftKey identifies a text style whose ink has been measured.
+type shiftKey struct {
+	face font.Typeface
+	px   int
+	bold bool
+}
+
+// shifts caches textShift per text style. Touched only under the frame lock.
+var shifts = map[shiftKey]int{}
+
+// textShift moves glyphs down so their ink, not the font's line box, is
+// centered in the box. Fonts differ: macOS PingFang leaves a deep empty
+// descent, so CJK text sits high; Windows YaHei fits its ink tightly. The
+// shift is measured from the font, and never pushes the lowest ink (the
+// descender of g) further out of the line box.
+func (e *engine) textShift(n *Node) int {
+	ts := n.textStyle
+	face := font.Font{Typeface: theme.Material.Face}
+	if ts.bold != nil && *ts.bold {
+		face.Weight = font.Bold
+	}
+	px := e.m.Sp(ts.size)
+	key := shiftKey{face.Typeface, px, face.Weight == font.Bold}
+	if s, ok := shifts[key]; ok {
+		return s
+	}
+	// The line box is what a Label of this style measures: Gio sizes a text
+	// box that way, and fallback fonts (国 in a Latin face) would otherwise
+	// skew metrics read from single glyphs.
+	lb := material.Label(theme.Material, ts.size, "国Ag")
+	lb.Font = face
+	dims := lb.Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}))
+	boxDescent := dims.Baseline // below the baseline
+	boxAscent := dims.Size.Y - boxDescent
+	// Center the body of the text (国 and a capital); g gives the lowest ink.
+	shaper := theme.Material.Shaper
+	shaper.LayoutString(text.Parameters{Font: face, PxPerEm: fixed.I(px), MaxWidth: 1 << 20}, "国Ag")
+	bodyTop, bodyBottom, lowest := 0, 0, 0
+	found := false
+	for i := 0; ; i++ {
+		g, ok := shaper.NextGlyph()
+		if !ok {
+			break
+		}
+		if g.Bounds.Min.Y == g.Bounds.Max.Y {
+			continue
+		}
+		top, bottom := g.Bounds.Min.Y.Floor(), g.Bounds.Max.Y.Ceil()
+		lowest = max(lowest, bottom)
+		if i < 2 { // 国 and A
+			if !found {
+				bodyTop, bodyBottom, found = top, bottom, true
+			}
+			bodyTop, bodyBottom = min(bodyTop, top), max(bodyBottom, bottom)
+		}
+	}
+	shift := 0
+	if found {
+		// The line box runs from -boxAscent to +boxDescent around the baseline.
+		shift = ((boxDescent - boxAscent) - (bodyTop + bodyBottom)) / 2
+		shift = max(min(shift, boxDescent-lowest), 0)
+	}
+	shifts[key] = shift
+	return shift
 }
