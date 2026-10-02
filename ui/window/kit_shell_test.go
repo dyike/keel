@@ -18,6 +18,7 @@ func TestKitShellSnapshot(t *testing.T) {
 	o := kitPage(bar, nav, res, car)
 	o.Height = 700
 	w := openTest(t, o)
+	w.render() // Measure the toolbar before inspecting its expanded commands.
 	for name, role := range map[string]string{"新建": "button", "收件箱": "link", "调整大小": "separator", "下一张": "button"} {
 		if got := roleOfName(w, name); got != role {
 			t.Errorf("%s: %q want %q", name, got, role)

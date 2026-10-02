@@ -88,6 +88,7 @@ func TestToolbarIconHasKeyboardTooltip(t *testing.T) {
 	v := Toolbar(ToolbarItem{Label: "Search", Icon: IconSearch, HasIcon: true, IconOnly: true})
 	c := &clock{now: time.Now()}
 	h := c.harness(func(cx *el.Context) el.Element { return el.Div().W(el.Dp(200)).Child(v.Render(cx)) })
+	h.Frame() // Command width is measured on the first frame.
 	click(t, h, "Search")
 	c.advance(h, time.Second)
 	h.Frame()

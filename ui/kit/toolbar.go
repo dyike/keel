@@ -2,6 +2,8 @@ package kit
 
 import (
 	"gioui.org/op"
+	"gioui.org/op/clip"
+	"image"
 	"strconv"
 	"unicode/utf8"
 
@@ -54,7 +56,7 @@ func (v *ToolbarView) SetItems(items ...ToolbarItem) {
 // fit returns how many leading items fit beside the 更多 button.
 func (v *ToolbarView) fit() int {
 	if v.avail <= 0 {
-		return len(v.items) // first frame: nothing measured yet
+		return 0 // Keep every action reachable in More until the command area is measured.
 	}
 	const gap = 4
 	moreW := v.moreWidth()
@@ -140,11 +142,11 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 		}))
 		row.Child(v.more.Render(cx))
 	}
-	outer := el.Div().Role("toolbar").Row().Items(el.Center).Disabled(v.disabled)
+	outer := el.Div().Role("toolbar").WFull().Row().Items(el.Center).Disabled(v.disabled)
 	if v.leading != nil {
 		outer.Child(el.Div().ID(id + "/leading").NoShrink().Child(v.leading.Render(cx)))
 	}
-	outer.Child(el.Div().ID(id + "/commands").Grow().MinW(el.Dp(0)).Row().Items(el.Center).Decorate(func(gtx core.C, draw func()) {
+	outer.Child(el.Div().ID(id + "/commands").Grow().W(el.Dp(0)).MinW(el.Dp(0)).Row().Items(el.Center).Decorate(func(gtx core.C, draw func()) {
 		if px := gtx.Metric.PxPerDp; px > 0 {
 			w := float32(gtx.Constraints.Max.X) / px
 			if v.avail != w {
@@ -152,6 +154,7 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 				gtx.Execute(op.InvalidateCmd{})
 			}
 		}
+		defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Max}).Push(gtx.Ops).Pop()
 		draw()
 	}).Child(row))
 	if v.trailing != nil {

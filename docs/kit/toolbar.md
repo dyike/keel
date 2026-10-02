@@ -20,3 +20,5 @@ bar := kit.Toolbar(
 Agent：容器角色 `toolbar`，按钮单独列出；"更多"按钮打开的是普通的 `menu`。
 
 验证：`go run ./examples/components -section toolbar`，加 `-theme dark` 检查深色。
+
+首帧尚未测出命令区宽度时，操作先放进“更多”，测量后自动展开能容纳的按钮。命令区裁剪自己的绘制和命中，避免首次显示或窗口缩放时覆盖右侧插槽；首帧菜单操作有回归测试。
