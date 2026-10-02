@@ -19,6 +19,9 @@ type DropdownButtonView struct {
 }
 
 func DropdownButton(label string, menu *MenuView) *DropdownButtonView {
+	if menu == nil {
+		menu = Menu()
+	}
 	return &DropdownButtonView{label: label, menu: menu}
 }
 func (v *DropdownButtonView) Split(action func()) *DropdownButtonView { v.action = action; return v }
@@ -36,10 +39,10 @@ func (v *DropdownButtonView) SetDisabled(on bool) {
 func (v *DropdownButtonView) Render(cx *el.Context) el.Element {
 	if v.action == nil {
 		v.menu.Trigger(dropdownPart(v.label, v.menu.Toggle, v).Icon(IconChevronDown))
-		return v.menu.Render(cx)
+		return el.Div().Disabled(v.disabled).Items(el.Start).Child(v.menu.Render(cx))
 	}
 	v.menu.Trigger(dropdownPart("", v.menu.Toggle, v).Name(locale.Current().Name(v.label, locale.Current().MoreOptions)).Icon(IconChevronDown))
-	return el.Div().Row().Gap(1).Items(el.Start).Child(dropdownPart(v.label, v.action, v).Render(cx), v.menu.Render(cx))
+	return el.Div().Disabled(v.disabled).Row().Gap(1).Items(el.Start).Child(dropdownPart(v.label, v.action, v).Render(cx), v.menu.Render(cx))
 }
 
 func dropdownPart(label string, fn func(), v *DropdownButtonView) *ButtonView {
