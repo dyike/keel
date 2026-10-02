@@ -45,4 +45,6 @@ theme.Apply(p)
 | `CodeBg` / `CodeText` | `#f0f1f3` / `#1f2328` | 代码块 |
 | `Chart` | 8 个分类色 | 图表系列颜色，按顺序使用；浅色和深色各一套，均通过色觉缺陷校验 |
 
+`LoadFonts(files...)` 加载字体文件（TTF、OTF、TTC）并重绘所有窗口，Web 版必须用它提供中文字体，见[在浏览器里运行](../../docs/web.md)。
+
 字号常量 `BodySize` / `SmallSize` / `HeadingSize` 为 15 / 13 / 22 sp；`ControlHeight` 为 36dp，是所有单行字段（输入框、下拉框、日期时间、搜索框）的高度；`Face` 是字体优先级（苹方 → 冬青黑体 → 微软雅黑 → Noto Sans CJK → Go），逐字形回退。`Material` 是底层的 Gio `material.Theme`，提供字形排版器，自己写 Gio 代码时用它。

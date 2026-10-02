@@ -13,6 +13,7 @@ Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，原
 | 渲染 AI 回答（流式 Markdown、代码高亮） | [Markdown](markdown.md) |
 | 查某个组件的 API | [kit 组件规范与索引](kit.md) |
 | 申请权限、截屏、模拟键鼠、全局快捷键 | [原生能力](native.md) |
+| 编译成 WebAssembly 在浏览器里运行 | [在浏览器里运行](web.md) |
 | 新增组件或原生能力 | [扩展指南](extending.md) |
 | 写测试、做截图对比 | [测试](testing.md) |
 | 让 Agent 点击、输入、截图，跑端到端测试 | [Agent 端到端测试](automation.md) |
