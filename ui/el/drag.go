@@ -14,6 +14,7 @@ const (
 // X and Y may fall outside 0..W and 0..H while the pointer is outside.
 type DragEvent struct {
 	Kind       DragKind
+	Canceled   bool // DragEnd caused by cancellation rather than release
 	X, Y, W, H float32
 }
 

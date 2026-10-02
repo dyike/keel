@@ -305,7 +305,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			if px == 0 {
 				px = 1
 			}
-			de := DragEvent{Kind: kind, X: ev.Position.X / px, Y: ev.Position.Y / px, W: float32(st.size.X) / px, H: float32(st.size.Y) / px}
+			de := DragEvent{Kind: kind, Canceled: ev.Kind == pointer.Cancel, X: ev.Position.X / px, Y: ev.Position.Y / px, W: float32(st.size.X) / px, H: float32(st.size.Y) / px}
 			fn := st.onDrag
 			core.Call(gtx, func() { r.callbacks = true; fn(de) })
 		}

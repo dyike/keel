@@ -291,3 +291,5 @@ func button(label string, onClick func()) el.Element {
 `cx.ClickModifiers()` 仅在指针点击/双击回调中返回该事件的 Shift、Ctrl、Command 等修饰键；回调外为零。键盘事件直接使用 `KeyEvent.Modifiers`。
 
 `OnContextMenu(fn)` 在次键按下时调用，不吞掉主键操作；回调可用 `ClickModifiers`。键盘入口通过 `OnKey` 声明，例如 Shift+F10。锚定浮层在锚点或其祖先禁用、隐藏后关闭，不把浮层自身对背景的输入阻挡视作禁用。
+
+拖动结束时 `DragEvent.Canceled` 区分取消与正常释放。需要在松手后提交变更的组件应在取消时丢弃暂存结果。
