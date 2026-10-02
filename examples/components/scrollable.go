@@ -17,8 +17,8 @@ func init() {
 			}
 			return el.Div().P(24).Gap(16).Items(el.Stretch).Child(
 				el.Text("横向滚动").TextSize(24).Bold(),
-				el.Text("使用触控板横向手势或水平滚轮；也可点击按钮定位末尾。"),
-				el.Div().ID("cards").ScrollX().H(el.Dp(120)).Child(row),
+				el.Text("支持触控板、拖动底部滑块或点击轨道；Tab 聚焦后可用方向键、Home / End。"),
+				el.Div().ID("cards").Focusable(true).ScrollX().H(el.Dp(120)).Child(row),
 				kit.Button("查看最后一张", func() { cx.ScrollIntoViewX("cards", 7*162, 7*162+150) }).Render(cx))
 		}))
 	})

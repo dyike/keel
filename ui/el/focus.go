@@ -108,11 +108,12 @@ func (cx *Context) Focus(id string) { cx.root.focusID = id; cx.root.focusPending
 func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 	n.effectiveDisabled = disabled || n.disabled || n.style.hidden
 	st := r.store.states[n.key]
-	if n.id != "" || n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() {
+	if n.id != "" || n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() || n.style.scrollX || n.style.scrollY {
 		st = r.store.get(n.key)
 	}
 	if st != nil && r.e.gtx.Enabled() {
 		st.id = n.id
+		st.scrollableX, st.scrollableY = n.style.scrollX, n.style.scrollY
 		st.disabled = n.effectiveDisabled
 		st.focusable = n.isFocusable() && n.input == nil
 		st.onKey, st.keyParent = n.onKey, parent
@@ -121,13 +122,14 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 			st.pressedKey = ""
 			st.click = gesture.Click{}
 			st.drag = gesture.Drag{}
+			st.scrollbarX, st.scrollbarY = scrollbarState{}, scrollbarState{}
 			st.fresh = true
 			if r.e.gtx.Focused(st) || r.e.gtx.Focused(&st.editor) {
 				r.e.gtx.Execute(key.FocusCmd{})
 			}
 		}
 	}
-	if st != nil && (n.isFocusable() || n.onKey != nil) {
+	if st != nil && (n.isFocusable() || n.onKey != nil || n.style.scrollX || n.style.scrollY) {
 		parent = st
 	}
 	for _, c := range n.children {
@@ -197,6 +199,12 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 							handled = node.onKey(KeyEvent{Name: string(ev.Name), Modifiers: ev.Modifiers, State: state})
 						})
 					}
+					if !handled && !node.disabled {
+						handled = node.scrollKey(gtx, ev)
+						if handled && ev.State == key.Press {
+							r.callbacks = true
+						}
+					}
 					if handled {
 						break
 					}
@@ -227,9 +235,16 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 
 func focusFilters(st *elemState) []event.Filter {
 	filters := []event.Filter{key.FocusFilter{Target: st}}
+	scrolling := false
 	for p := st; p != nil; p = p.keyParent {
+		scrolling = scrolling || p.scrollableX || p.scrollableY
 		if p.onKey != nil {
 			return append(filters, key.Filter{Focus: st, Optional: allKeyModifiers})
+		}
+	}
+	if scrolling {
+		for _, name := range []key.Name{key.NameLeftArrow, key.NameRightArrow, key.NameUpArrow, key.NameDownArrow, key.NamePageUp, key.NamePageDown, key.NameHome, key.NameEnd} {
+			filters = append(filters, key.Filter{Focus: st, Name: name, Optional: key.ModShift})
 		}
 	}
 	for _, name := range []key.Name{key.NameSpace, key.NameReturn, key.NameEnter} {

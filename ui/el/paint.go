@@ -3,7 +3,6 @@ package el
 import (
 	"gioui.org/io/key"
 	"image"
-	"image/color"
 	"strings"
 
 	"gioui.org/font"
@@ -393,6 +392,7 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		copy := *st
 		st = &copy
 	}
+	previousX, previousY := st.scrollX, st.scrollY
 	bw := e.dp(n.style.borderWidth)
 	pl, pt, pr, pb := e.edges(n.style.pad)
 	viewport := image.Rect(bw, bw, n.size.X-bw, n.size.Y-bw)
@@ -430,6 +430,25 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		st.scrollY = 0
 	}
 
+	barWidth := e.dp(10)
+	xTrack := image.Rect(viewport.Min.X, max(viewport.Min.Y, viewport.Max.Y-barWidth), viewport.Max.X, viewport.Max.Y)
+	yTrack := image.Rect(max(viewport.Min.X, viewport.Max.X-barWidth), viewport.Min.Y, viewport.Max.X, viewport.Max.Y)
+	if n.style.scrollX && maxX > 0 && n.style.scrollY && maxScroll > 0 {
+		xTrack.Max.X = max(xTrack.Min.X, xTrack.Max.X-barWidth)
+		yTrack.Max.Y = max(yTrack.Min.Y, yTrack.Max.Y-barWidth)
+	}
+	if n.style.scrollX {
+		st.scrollX = st.scrollbarX.update(gtx, xTrack, true, st.scrollX, viewport.Dx(), totalX, e.dp(24), st)
+	}
+	if n.style.scrollY {
+		st.scrollY = st.scrollbarY.update(gtx, yTrack, false, st.scrollY, viewport.Dy(), total, e.dp(24), st)
+	}
+
+	if gtx.Enabled() && (st.scrollX != previousX || st.scrollY != previousY) {
+		// Virtual content is built before paint; rebuild at the new offset.
+		gtx.Execute(op.InvalidateCmd{})
+	}
+
 	// The viewport is its own area with the scroll handler, so it is a node
 	// in the semantic tree and agents only see what shows through it.
 	stk := clip.Rect(viewport).Push(gtx.Ops)
@@ -454,22 +473,12 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	}
 	e.visible, e.origin = savedVis, savedOrigin
 	off.Pop()
+
+	if n.style.scrollY {
+		st.scrollbarY.paint(gtx, yTrack, false, st.scrollY, viewport.Dy(), total, e.dp(24))
+	}
+	if n.style.scrollX {
+		st.scrollbarX.paint(gtx, xTrack, true, st.scrollX, viewport.Dx(), totalX, e.dp(24))
+	}
 	stk.Pop()
-
-	if n.style.scrollY && maxScroll > 0 { // a thin indicator along the right edge
-		view := viewport.Dy()
-		thumb := min(view, max(view*view/total, e.dp(24)))
-		y := viewport.Min.Y + (view-thumb)*st.scrollY/maxScroll
-		x := viewport.Max.X - e.dp(5)
-		r := image.Rect(x, y, x+e.dp(3), y+thumb)
-		paint.FillShape(gtx.Ops, color.NRGBA{A: 0x55}, clip.UniformRRect(r, e.dp(1.5)).Op(gtx.Ops))
-	}
-	if n.style.scrollX && maxX > 0 {
-		view := viewport.Dx()
-		thumb := min(view, max(view*view/totalX, e.dp(24)))
-		x := viewport.Min.X + (view-thumb)*st.scrollX/maxX
-		y := viewport.Max.Y - e.dp(5)
-		paint.FillShape(gtx.Ops, theme.Muted, clip.UniformRRect(image.Rect(x, y, x+thumb, y+e.dp(3)), e.dp(1.5)).Op(gtx.Ops))
-	}
-
 }

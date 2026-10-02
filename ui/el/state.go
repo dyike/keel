@@ -55,6 +55,9 @@ type elemState struct {
 	clickable     bool        // registered a click area last frame
 	fresh         bool        // created this frame: dispatch has not seen it yet
 
+	scrollbarX, scrollbarY   scrollbarState
+	scrollableX, scrollableY bool
+
 	scrollHorizontal                                                 gesture.Scroll
 	scrollX, scrollPendingX, scrollMaxX, scrollViewX, scrollContentX int
 	scrolledX                                                        bool

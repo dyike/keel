@@ -178,7 +178,7 @@ return el.Div().Hidden(!visible).Child(el.Text("已保存"))
 
 ## 滚动状态与锚定
 
-`ScrollX()` 让子内容横向延展并裁剪到视口，可与 `ScrollY()` 组合。支持水平滚轮和触控板水平手势；横纵轴分别消费对应滚动量。`cx.ScrollStateX(id)` 返回偏移、视口宽度、内容宽度（dp）；`cx.ScrollIntoViewX(id, left, right)` 最小滚动以显示目标区间。滚动条目前是位置指示器，拖动交互另项实现。示例：`go run ./examples/components -section scrollable`。
+`ScrollX()` 让子内容横向延展并裁剪到视口，可与 `ScrollY()` 组合。支持水平滚轮和触控板水平手势；横纵轴分别消费对应滚动量。`cx.ScrollStateX(id)` 返回偏移、视口宽度、内容宽度（dp）；`cx.ScrollIntoViewX(id, left, right)` 最小滚动以显示目标区间。横纵滚动条支持拖动滑块、点击轨道定位，并随浅深色主题切换。滚动容器添加 `Focusable(true)` 后可用 Tab 聚焦，再用方向键、PageUp/PageDown、Home/End 滚动；双轴容器的 Shift+PageUp/PageDown、Shift+Home/End 操作横轴。组件自身 `OnKey` 优先处理（如表格行选择）。示例：`go run ./examples/components -section scrollable`。
 
 `cx.ScrollState(id)` 返回带 ID 的 `ScrollY` 元素上一帧的滚动偏移、可视高度、内容高度，单位 dp；第一次绘制之前三个值都是 0。虚拟列表用它决定构建哪些行。`cx.ScrollIntoView(id, top, bottom)` 以最小的滚动量让内容中 `[top, bottom]` 这一段可见，在下一次绘制时生效。
 
