@@ -9,7 +9,7 @@ import (
 func init() {
 	registerSection("chart", "data", func() core.Widget {
 		months := []string{"1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"}
-		sales := kit.LineChart(months,
+		sales := kit.AreaChart(months,
 			kit.Series{Name: "华东", Values: []float64{120, 132, 101, 134, 190, 230, 210, 182, 191, 234, 290, 330}},
 			kit.Series{Name: "华北", Values: []float64{220, 182, 191, 234, 290, 330, 310, 201, 154, 190, 330, 410}},
 			kit.Series{Name: "华南 South", Values: []float64{150, 232, 201, 154, 190, 330, 410, 320, 332, 301, 334, 390}},

@@ -13,6 +13,15 @@ import (
 	"github.com/dyike/keel/ui/core"
 )
 
+// axisFraction avoids overflowing the subtraction for opposite extreme values.
+func axisFraction(x, lo, hi float64) float64 {
+	scale := max(math.Abs(lo), math.Abs(hi))
+	if scale == 0 || hi == lo {
+		return 0.5
+	}
+	return (x/scale - lo/scale) / (hi/scale - lo/scale)
+}
+
 // niceTicks covers [lo, hi] with about n round steps (1, 2 or 5 × 10^k) and
 // returns the ticks, first <= lo and last >= hi.
 func niceTicks(lo, hi float64, n int) []float64 {
@@ -29,10 +38,25 @@ func niceTicks(lo, hi float64, n int) []float64 {
 			lo, hi = lo-math.Abs(lo)/2, hi+math.Abs(hi)/2
 		}
 	}
+	lo = max(-math.MaxFloat64, lo)
+	hi = min(math.MaxFloat64, hi)
+	if lo == hi {
+		if lo > 0 {
+			lo = 0
+		} else {
+			hi = 1
+		}
+	}
 	// Of the round steps (1, 2 or 5 × 10^k) near the even split, take the one
 	// whose tick count is closest to n; ties go to the larger step.
 	raw := (hi - lo) / float64(max(n, 1))
+	if raw == 0 || !finiteNumber(raw) {
+		return []float64{lo, hi}
+	}
 	mag := math.Pow(10, math.Floor(math.Log10(raw)))
+	if mag == 0 || !finiteNumber(mag) {
+		return []float64{lo, hi}
+	}
 	step, best := mag, math.MaxFloat64
 	for _, m := range []float64{0.5, 1, 2, 5, 10} {
 		s := m * mag
@@ -48,8 +72,19 @@ func niceTicks(lo, hi float64, n int) []float64 {
 			break
 		}
 	}
+	if len(out) == 0 {
+		return []float64{lo, hi}
+	}
 	if out[len(out)-1] < hi {
 		out = append(out, out[len(out)-1]+step)
+	}
+	for _, t := range out {
+		if !finiteNumber(t) {
+			return []float64{lo, hi}
+		}
+	}
+	if len(out) < 2 || out[0] >= out[len(out)-1] {
+		return []float64{lo, hi}
 	}
 	return out
 }
