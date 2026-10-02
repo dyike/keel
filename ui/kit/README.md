@@ -38,6 +38,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Toggle](../../docs/kit/toggle.md) | 保持按下的按钮 |
 | [ToggleGroup](../../docs/kit/toggle_group.md) | 单选或多选按钮组 |
 | [Input / TextArea](../../docs/kit/input.md) | 文本框、前后缀、清空、错误 |
+| [Input Group](../../docs/kit/input_group.md) | 输入、图标与按钮组合 |
 | [Select](../../docs/kit/select.md) | 下拉选择、可搜索 |
 | [Combobox](../../docs/kit/combobox.md) | 可筛选输入 |
 | [Slider](../../docs/kit/slider.md) | 滑块 |

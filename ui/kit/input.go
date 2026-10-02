@@ -58,9 +58,14 @@ func (v *InputView) Error() string       { return v.err }
 // FocusID is the element ID that cx.Focus uses to focus the text box.
 func (v *InputView) FocusID() string { return autoID("input", v) + "/text" }
 
-func (v *InputView) Render(cx *el.Context) el.Element {
+func (v *InputView) Render(cx *el.Context) el.Element { return v.render(cx, true) }
+
+func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 	id := autoID("input", v)
 	name := v.a11y()
+	if !chrome && v.name != "" {
+		name = v.name
+	}
 	if name == "" {
 		name = v.placeholder
 	}
@@ -120,6 +125,9 @@ func (v *InputView) Render(cx *el.Context) el.Element {
 	}
 	if v.suffix != nil {
 		box.Child(el.Div().TextColor(theme.Muted).Child(v.suffix.Render(cx)))
+	}
+	if !chrome {
+		return box.Border(0, theme.Border).Rounded(0).P(0)
 	}
 	return labelled(v.label, box, v.err)
 }
