@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
@@ -29,6 +30,7 @@ type SelectView struct {
 	disabled                 bool
 	query                    string
 	onChange                 func(string)
+	typeahead                base.Typeahead
 }
 
 func Select(label string, options ...string) *SelectView {
@@ -87,6 +89,7 @@ func (v *SelectView) setOpen(cx *el.Context, open bool) {
 		return
 	}
 	v.buildRows()
+	v.typeahead.Reset()
 	v.active = v.firstEnabled()
 	for i, row := range v.rows {
 		if row.index >= 0 && v.entries[row.index].Value == v.value && !v.rowDisabled(i) {

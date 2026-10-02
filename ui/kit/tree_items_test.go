@@ -1,10 +1,12 @@
 package kit
 
 import (
-	"gioui.org/io/key"
-	"github.com/dyike/keel/ui/el"
 	"reflect"
 	"testing"
+
+	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/base"
+	"github.com/dyike/keel/ui/el"
 )
 
 func TestTreeMultipleDisabledAndDynamicRoots(t *testing.T) {
@@ -95,11 +97,11 @@ func TestTreeDragReorderAndCancel(t *testing.T) {
 }
 
 func TestListAndTreePageKeysStopAtEnabledBoundary(t *testing.T) {
-	disabled := func(i int) bool { return i == 0 || i == 4 }
-	if i, _ := listEnabledKey(string(key.NamePageDown), 1, 5, disabled); i != 3 {
+	nav := base.List{Count: 5, Disabled: func(i int) bool { return i == 0 || i == 4 }}
+	if i, _ := nav.Key(string(key.NamePageDown), 1); i != 3 {
 		t.Fatalf("PageDown %d", i)
 	}
-	if i, _ := listEnabledKey(string(key.NamePageUp), 3, 5, disabled); i != 1 {
+	if i, _ := nav.Key(string(key.NamePageUp), 3); i != 1 {
 		t.Fatalf("PageUp %d", i)
 	}
 }

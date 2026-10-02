@@ -2,10 +2,11 @@ package kit
 
 import (
 	"fmt"
-	"gioui.org/io/key"
-	"github.com/dyike/keel/ui/el"
 	"math"
 	"slices"
+
+	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/el"
 )
 
 func (v *TreeView) SetNodeDisabled(id string, on bool) {
@@ -32,7 +33,7 @@ func (v *TreeView) SelectedIDs() []string {
 	var walk func([]*TreeNode)
 	walk = func(nodes []*TreeNode) {
 		for _, n := range nodes {
-			if v.selection[n.ID] {
+			if v.selection.Has(n.ID) {
 				ids = append(ids, n.ID)
 			}
 			walk(n.Children)
@@ -42,22 +43,22 @@ func (v *TreeView) SelectedIDs() []string {
 	return ids
 }
 func (v *TreeView) SetSelectedIDs(ids []string) {
-	selection := make(map[string]bool)
 	v.SetValue("")
+	var keep []string
 	for _, id := range ids {
 		if v.nodes[id] != nil {
-			selection[id] = true
+			keep = append(keep, id)
 			v.SetValue(id)
 			if !v.multi {
 				break
 			}
 		}
 	}
-	v.selection = selection
+	v.selection.Set(keep...)
 }
 func (v *TreeView) selectedNode(id string) bool {
 	if v.multi {
-		return v.selection[id]
+		return v.selection.Has(id)
 	}
 	return id == v.selected
 }
@@ -66,30 +67,12 @@ func (v *TreeView) selectNode(cx *el.Context, i int, mods key.Modifiers) {
 		return
 	}
 	before := v.SelectedIDs()
-	id := v.rows[i].node.ID
 	if v.multi {
-		add := mods.Contain(key.ModShortcut)
-		anchor := v.index(v.anchor)
-		if mods.Contain(key.ModShift) && anchor >= 0 {
-			if !add {
-				v.selection = make(map[string]bool)
-			}
-			for p := min(i, anchor); p <= max(i, anchor); p++ {
-				if !v.rows[p].node.Disabled {
-					v.selection[v.rows[p].node.ID] = true
-				}
-			}
-		} else {
-			if !add {
-				v.selection = make(map[string]bool)
-			}
-			if add && v.selection[id] {
-				delete(v.selection, id)
-			} else {
-				v.selection[id] = true
-			}
-			v.anchor = id
+		order := make([]string, len(v.rows))
+		for p, r := range v.rows {
+			order[p] = r.node.ID
 		}
+		v.selection.Click(order, i, mods.Contain(key.ModShift), mods.Contain(key.ModShortcut), func(p int) bool { return v.rows[p].node.Disabled })
 	}
 	v.choose(cx, i)
 	if !slices.Equal(before, v.SelectedIDs()) && v.onSelection != nil {

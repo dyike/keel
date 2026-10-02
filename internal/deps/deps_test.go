@@ -16,7 +16,8 @@ var allowed = map[string][]string{
 	"ui/core":                 {"ui/internal/loop"},
 	"ui/theme":                {"ui/internal/loop"},
 	"ui/locale":               {"ui/internal/loop"},
-	"ui/kit":                  {"ui/core", "ui/theme", "ui/locale", "ui/el", "ui/internal/loop", "ui/internal/editorstyle"},
+	"ui/base":                 {},
+	"ui/kit":                  {"ui/base", "ui/core", "ui/theme", "ui/locale", "ui/el", "ui/internal/loop", "ui/internal/editorstyle"},
 	"ui/window":               {"ui/core", "ui/theme", "ui/internal/loop"},
 	"ui/el":                   {"ui/core", "ui/theme", "ui/locale", "ui/internal/loop", "ui/internal/editorstyle"},
 	"ui/markdown":             {"ui/el", "ui/core", "ui/theme", "ui/locale", "ui/internal/imageload", "ui/internal/loop", "ui/internal/editorstyle"},
@@ -77,7 +78,7 @@ func TestKitDirectDependencies(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, dep := range strings.Fields(string(out)) {
-		if strings.HasPrefix(dep, mod+"/") && !slices.Contains([]string{mod + "/ui/core", mod + "/ui/theme", mod + "/ui/locale", mod + "/ui/el"}, dep) {
+		if strings.HasPrefix(dep, mod+"/") && !slices.Contains([]string{mod + "/ui/base", mod + "/ui/core", mod + "/ui/theme", mod + "/ui/locale", mod + "/ui/el"}, dep) {
 			t.Errorf("kit directly imports %s", dep)
 		}
 	}

@@ -1,12 +1,12 @@
 package kit
 
 import (
-	"gioui.org/io/key"
 	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
@@ -149,7 +149,7 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 	v.buildRows()
 	v.list.SetCount(len(v.rows))
 	if v.active < 0 || v.active >= len(v.rows) || v.rowDisabled(v.active) {
-		v.active, _ = listEnabledKey(string(key.NameHome), -1, len(v.rows), v.rowDisabled)
+		v.active = base.List{Count: len(v.rows), Disabled: v.rowDisabled}.First()
 		if v.active >= 0 {
 			v.list.ScrollTo(cx, v.active)
 		}
@@ -162,7 +162,7 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 			}
 		}).
 		OnKey(func(e el.KeyEvent) bool {
-			i, ok := listEnabledKey(e.Name, v.active, len(v.rows), v.rowDisabled)
+			i, ok := base.List{Count: len(v.rows), Disabled: v.rowDisabled}.Key(e.Name, v.active)
 			if !ok || e.Modifiers != 0 {
 				return false
 			}

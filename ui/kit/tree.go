@@ -1,10 +1,13 @@
 package kit
 
 import (
+	"slices"
+	"time"
+
 	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
-	"slices"
 )
 
 // TreeNode is one node of a Tree. IDs must be unique within the tree.
@@ -25,8 +28,9 @@ type treeRow struct {
 // parent, Home / End jump, Enter activates. Only visible rows are built.
 type TreeView struct {
 	multi, reorderable bool
-	selection          map[string]bool
-	anchor, dragID     string
+	selection          base.Selection[string]
+	typeahead          base.Typeahead
+	dragID             string
 	dragY              float32
 	onSelection        func([]string)
 	onReorder          func(string, string, int)
@@ -96,11 +100,7 @@ func (v *TreeView) SetRoots(roots ...*TreeNode) {
 		}
 	}
 	selection := v.selection
-	for id := range selection {
-		if nodes[id] == nil {
-			delete(selection, id)
-		}
-	}
+	selection.Keep(func(id string) bool { return nodes[id] != nil })
 	v.SetValue(v.selected)
 	v.selection = selection
 }
@@ -115,10 +115,10 @@ func (v *TreeView) SetValue(id string) {
 		id = ""
 	}
 	v.selected, v.reveal = id, id != ""
-	v.anchor = id
-	v.selection = make(map[string]bool)
 	if id != "" {
-		v.selection[id] = true
+		v.selection.Set(id)
+	} else {
+		v.selection.Set()
 	}
 	var walk func(nodes []*TreeNode) bool
 	walk = func(nodes []*TreeNode) bool {
@@ -185,12 +185,13 @@ func (v *TreeView) key(cx *el.Context, e el.KeyEvent) bool {
 	if v.multi && key.Name(e.Name) == "A" && e.Modifiers.Contain(key.ModShortcut) {
 		if e.State == el.KeyPress {
 			before := v.SelectedIDs()
-			v.selection = make(map[string]bool)
+			var all []string
 			for _, row := range v.rows {
 				if !row.node.Disabled {
-					v.selection[row.node.ID] = true
+					all = append(all, row.node.ID)
 				}
 			}
+			v.selection.Set(all...)
 			if !slices.Equal(before, v.SelectedIDs()) && v.onSelection != nil {
 				v.onSelection(v.SelectedIDs())
 			}
@@ -231,7 +232,16 @@ func (v *TreeView) key(cx *el.Context, e el.KeyEvent) bool {
 		}
 		return true
 	}
-	j, ok := listEnabledKey(e.Name, i, len(v.rows), func(i int) bool { return v.rows[i].node.Disabled })
+	nav := base.List{Count: len(v.rows), Disabled: func(i int) bool { return v.rows[i].node.Disabled }}
+	if s, ok := base.Text(e.Name, e.Modifiers&typeaheadBlockers != 0); ok {
+		if e.State == el.KeyPress {
+			if j, found := v.typeahead.Find(time.Now(), s, i, nav, func(j int) string { return v.rows[j].node.Label }); found {
+				v.selectNode(cx, j, 0)
+			}
+		}
+		return true
+	}
+	j, ok := nav.Key(e.Name, i)
 	if ok && e.State == el.KeyPress && len(v.rows) > 0 {
 		v.selectNode(cx, j, e.Modifiers)
 	}

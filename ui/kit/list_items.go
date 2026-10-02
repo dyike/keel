@@ -1,11 +1,12 @@
 package kit
 
 import (
-	"gioui.org/io/key"
-	"github.com/dyike/keel/ui/el"
 	"math"
 	"slices"
 	"strconv"
+
+	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/el"
 )
 
 // ListItem gives an entry a stable identity, label and interaction state.
@@ -41,14 +42,7 @@ func (v *ListView) SetEntries(entries ...ListItem) {
 	if i, ok := index[selected]; ok {
 		v.selected = i
 	}
-	for id := range v.selection {
-		if _, ok := index[id]; !ok {
-			delete(v.selection, id)
-		}
-	}
-	if _, ok := index[v.anchor]; !ok {
-		v.anchor = ""
-	}
+	v.selection.Keep(func(id string) bool { _, ok := index[id]; return ok })
 	v.list.SetCount(len(entries))
 }
 func (v *ListView) Entries() []ListItem {
@@ -76,33 +70,26 @@ func (v *ListView) SelectedValues() []int {
 		}
 		return nil
 	}
-	var values []int
-	for i, id := range v.keys {
-		if v.selection[id] {
-			values = append(values, i)
-		}
-	}
-	return values
+	return v.selection.Indexes(v.keys)
 }
 func (v *ListView) SetSelectedValues(values []int) {
 	v.reveal = true
-	v.selection = make(map[string]bool)
 	v.selected = -1
-	v.anchor = ""
+	var keys []string
 	for _, i := range values {
 		if i >= 0 && i < len(v.items) {
-			v.selection[v.keys[i]] = true
+			keys = append(keys, v.keys[i])
 			v.selected = i
-			v.anchor = v.keys[i]
 			if !v.multi {
 				break
 			}
 		}
 	}
+	v.selection.Set(keys...)
 }
 func (v *ListView) selectedItem(i int) bool {
 	if v.multi {
-		return v.selection[v.keys[i]]
+		return v.selection.Has(v.keys[i])
 	}
 	return i == v.selected
 }
@@ -112,29 +99,7 @@ func (v *ListView) selectItem(cx *el.Context, i int, mods key.Modifiers) {
 	}
 	before := v.SelectedValues()
 	if v.multi {
-		add := mods.Contain(key.ModShortcut)
-		a := slices.Index(v.keys, v.anchor)
-		if mods.Contain(key.ModShift) && a >= 0 {
-			if !add {
-				v.selection = make(map[string]bool)
-			}
-			for p := min(a, i); p <= max(a, i); p++ {
-				if !v.itemDisabled[p] {
-					v.selection[v.keys[p]] = true
-				}
-			}
-		} else {
-			if !add {
-				v.selection = make(map[string]bool)
-			}
-			id := v.keys[i]
-			if add && v.selection[id] {
-				delete(v.selection, id)
-			} else {
-				v.selection[id] = true
-			}
-			v.anchor = id
-		}
+		v.selection.Click(v.keys, i, mods.Contain(key.ModShift), mods.Contain(key.ModShortcut), func(p int) bool { return v.itemDisabled[p] })
 	}
 	v.choose(cx, i)
 	if !slices.Equal(before, v.SelectedValues()) && v.onSelection != nil {
@@ -181,42 +146,6 @@ func (v *ListView) dragItem(i int, e el.DragEvent) {
 	}
 }
 
-func listEnabledKey(name string, current, count int, disabled func(int) bool) (int, bool) {
-	i, ok := listKeys(name, current, count, 10)
-	if !ok || count == 0 {
-		return current, ok
-	}
-	direction := 1
-	switch key.Name(name) {
-	case key.NameUpArrow, key.NamePageUp, key.NameEnd:
-		direction = -1
-	}
-	if current < 0 && key.Name(name) == key.NameUpArrow {
-		i = count - 1
-	}
-	target := i
-	for i >= 0 && i < count {
-		if !disabled(i) {
-			return i, true
-		}
-		i += direction
-	}
-	if key.Name(name) == key.NamePageDown {
-		for i := target - 1; i > current; i-- {
-			if !disabled(i) {
-				return i, true
-			}
-		}
-	}
-	if key.Name(name) == key.NamePageUp {
-		for i := target + 1; i < current; i++ {
-			if !disabled(i) {
-				return i, true
-			}
-		}
-	}
-	return current, true
-}
 func indexListItems(items []string) []ListItem {
 	entries := make([]ListItem, len(items))
 	for i, label := range items {

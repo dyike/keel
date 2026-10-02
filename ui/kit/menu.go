@@ -1,8 +1,11 @@
 package kit
 
 import (
-	"github.com/dyike/keel/ui/locale"
 	"strconv"
+	"time"
+
+	"github.com/dyike/keel/ui/base"
+	"github.com/dyike/keel/ui/locale"
 
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/el"
@@ -34,6 +37,7 @@ type MenuView struct {
 	width    float32
 	disabled bool
 	reveal   int
+	find     base.Typeahead
 }
 
 func Menu() *MenuView { return &MenuView{openSub: -1, width: 220, reveal: -1} }
@@ -90,6 +94,7 @@ func (v *MenuView) SetValue(open bool) {
 	v.open = open && !v.disabled
 	v.closeSub()
 	v.reveal = -1
+	v.find.Reset()
 	if v.open {
 		v.reveal = v.step(-1, 1)
 	}
@@ -129,17 +134,14 @@ func (v *MenuView) root() *MenuView {
 }
 func (v *MenuView) itemID(i int) string { return autoID("menu", v) + "/" + strconv.Itoa(i) }
 
-// step returns the next enabled item from i in direction d, wrapping around.
-func (v *MenuView) step(i, d int) int {
-	n := len(v.items)
-	for k := 1; k <= n; k++ {
-		j := ((i+d*k)%n + n) % n
-		if it := v.items[j]; !it.separator && !v.itemDisabled(j) {
-			return j
-		}
-	}
-	return i
+// nav navigates the items, skipping separators and disabled items and
+// wrapping around.
+func (v *MenuView) nav() base.List {
+	return base.List{Count: len(v.items), Wrap: true, Disabled: func(j int) bool { return v.items[j].separator || v.itemDisabled(j) }}
 }
+
+// step returns the next enabled item from i in direction d.
+func (v *MenuView) step(i, d int) int { return v.nav().Next(i, d) }
 
 func (v *MenuView) Render(cx *el.Context) el.Element {
 	id := autoID("menu", v)
@@ -224,6 +226,14 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem) el.Element {
 }
 
 func (v *MenuView) key(cx *el.Context, i int, e el.KeyEvent) bool {
+	if s, ok := base.Text(e.Name, e.Modifiers&typeaheadBlockers != 0); ok {
+		if e.State == el.KeyPress {
+			if j, found := v.find.Find(time.Now(), s, i, v.nav(), func(j int) string { return v.items[j].label }); found {
+				v.focusItem(cx, j)
+			}
+		}
+		return true
+	}
 	if e.State != el.KeyPress {
 		return navKey(e)
 	}

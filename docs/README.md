@@ -1,6 +1,6 @@
 # Keel 文档
 
-Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，原生能力（权限、截图、合成输入、全局快捷键）通过 cgo 调用 macOS API。应用代码里没有 HTML、CSS、JavaScript，也没有 WebView。
+Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，原生能力（权限、截图、合成输入、全局快捷键）在 macOS 上通过 cgo 调用系统 API，在 Windows 上直接调用 Win32，在 Linux 上走 X11 协议。应用代码里没有 HTML、CSS、JavaScript，也没有 WebView。
 
 ## 按你要做的事找文档
 
@@ -10,6 +10,7 @@ Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，原
 | 弄清模块怎么分、谁依赖谁、线程规则 | [架构](architecture.md)，以及每个模块目录下的 README |
 | 开窗口、窗口快捷键、离屏截图 | [窗口与应用](app.md) |
 | 用 GPUI 风格写界面：视图 + 链式样式 + flexbox | [元素与视图](el.md) |
+| 自己画外观，复用 kit 的键盘导航、首字母跳转、多选 | [无样式基础层](base.md) |
 | 渲染 AI 回答（流式 Markdown、代码高亮） | [Markdown](markdown.md) |
 | 查某个组件的 API | [kit 组件规范与索引](kit.md) |
 | 查看与 GPUI Kit 的实现进度和剩余缺口 | [组件进度对照](reports/gpui-progress-2026-10-02.md) |

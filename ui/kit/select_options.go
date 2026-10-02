@@ -1,12 +1,15 @@
 package kit
 
 import (
+	"slices"
+	"strings"
+	"time"
+
 	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
-	"slices"
-	"strings"
 )
 
 // SelectOption separates the stored value from its label and section title.
@@ -142,8 +145,7 @@ func (v *SelectView) rowDisabled(i int) bool {
 	return v.rows[i].index < 0 || v.entries[v.rows[i].index].Disabled
 }
 func (v *SelectView) firstEnabled() int {
-	i, _ := listEnabledKey(string(key.NameHome), -1, len(v.rows), v.rowDisabled)
-	return i
+	return base.List{Count: len(v.rows), Disabled: v.rowDisabled}.First()
 }
 func (v *SelectView) optionKey(cx *el.Context, e el.KeyEvent) bool {
 	if e.Modifiers != 0 {
@@ -155,22 +157,25 @@ func (v *SelectView) optionKey(cx *el.Context, e el.KeyEvent) bool {
 		}
 		return true
 	}
-	i, ok := listEnabledKey(e.Name, v.active, len(v.rows), v.rowDisabled)
-	if key.Name(e.Name) == key.NameDownArrow || key.Name(e.Name) == key.NameUpArrow {
-		direction := 1
-		if key.Name(e.Name) == key.NameUpArrow {
-			direction = -1
-		}
-		for step := 1; step <= len(v.rows); step++ {
-			next := (v.active + direction*step) % len(v.rows)
-			if next < 0 {
-				next += len(v.rows)
-			}
-			if !v.rowDisabled(next) {
-				i = next
-				break
+	nav := base.List{Count: len(v.rows), Disabled: v.rowDisabled}
+	if s, ok := base.Text(e.Name, false); ok {
+		if e.State == el.KeyPress {
+			label := func(i int) string { return v.entries[v.rows[i].index].Label }
+			if i, found := v.typeahead.Find(time.Now(), s, v.active, nav, label); found {
+				v.active = i
+				v.virtual.ScrollTo(cx, i)
 			}
 		}
+		return true
+	}
+	i, ok := nav.Key(e.Name, v.active)
+	switch key.Name(e.Name) {
+	case key.NameDownArrow:
+		nav.Wrap = true
+		i = nav.Next(v.active, 1)
+	case key.NameUpArrow:
+		nav.Wrap = true
+		i = nav.Next(v.active, -1)
 	}
 	if ok && e.State == el.KeyPress && i >= 0 {
 		v.active = i

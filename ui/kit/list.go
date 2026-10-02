@@ -1,34 +1,15 @@
 package kit
 
 import (
-	"gioui.org/io/key"
-	"github.com/dyike/keel/ui/el"
-	"github.com/dyike/keel/ui/theme"
 	"image/color"
 	"slices"
-)
+	"time"
 
-// listKeys moves a selection index for ↑ ↓ Home End PageUp PageDown; it
-// reports the new index and whether the key was one of them.
-func listKeys(name string, i, n, page int) (int, bool) {
-	switch key.Name(name) {
-	case key.NameDownArrow:
-		i++
-	case key.NameUpArrow:
-		i--
-	case key.NameHome:
-		i = 0
-	case key.NameEnd:
-		i = n - 1
-	case key.NamePageDown:
-		i += page
-	case key.NamePageUp:
-		i -= page
-	default:
-		return i, false
-	}
-	return min(max(i, 0), n-1), true
-}
+	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/base"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/theme"
+)
 
 // ListView is a list of text items with one selection. Click or use ↑ ↓
 // Home End PageUp PageDown to select; double-click or Enter activates.
@@ -38,8 +19,9 @@ type ListView struct {
 	itemDisabled       []bool
 	multi, reorderable bool
 	reveal             bool
-	selection          map[string]bool
-	anchor, dragID     string
+	selection          base.Selection[string]
+	typeahead          base.Typeahead
+	dragID             string
 	dragY              float32
 	onSelection        func([]int)
 	onReorder          func(int, int)
@@ -133,19 +115,29 @@ func (v *ListView) Render(cx *el.Context) el.Element {
 			if v.multi && key.Name(e.Name) == "A" && e.Modifiers.Contain(key.ModShortcut) {
 				if e.State == el.KeyPress {
 					before := v.SelectedValues()
-					v.selection = make(map[string]bool)
+					var all []string
 					for i, id := range v.keys {
 						if !v.itemDisabled[i] {
-							v.selection[id] = true
+							all = append(all, id)
 						}
 					}
+					v.selection.Set(all...)
 					if !slices.Equal(before, v.SelectedValues()) && v.onSelection != nil {
 						v.onSelection(v.SelectedValues())
 					}
 				}
 				return true
 			}
-			i, ok := listEnabledKey(e.Name, v.selected, len(v.items), func(i int) bool { return v.itemDisabled[i] })
+			nav := base.List{Count: len(v.items), Disabled: func(i int) bool { return v.itemDisabled[i] }}
+			if s, ok := base.Text(e.Name, e.Modifiers&typeaheadBlockers != 0); ok {
+				if e.State == el.KeyPress {
+					if i, found := v.typeahead.Find(time.Now(), s, v.selected, nav, func(i int) string { return v.items[i] }); found {
+						v.selectItem(cx, i, 0)
+					}
+				}
+				return true
+			}
+			i, ok := nav.Key(e.Name, v.selected)
 			if ok && e.State == el.KeyPress && len(v.items) > 0 {
 				v.selectItem(cx, i, e.Modifiers)
 			}
@@ -153,6 +145,10 @@ func (v *ListView) Render(cx *el.Context) el.Element {
 		}).
 		Child(v.list.Render(cx))
 }
+
+// typeaheadBlockers are the modifiers that make a letter key a shortcut
+// rather than typed text.
+const typeaheadBlockers = key.ModCtrl | key.ModCommand | key.ModAlt | key.ModSuper
 
 // listFrame styles the focusable box around a List or Tree. A plain one keeps
 // a transparent border so the focus outline has somewhere to show.

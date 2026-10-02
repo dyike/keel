@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
@@ -493,7 +494,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 			if v.cellMode {
 				return v.cellKey(cx, e)
 			}
-			p, ok := listKeys(e.Name, v.position(v.selected), len(v.order), 8)
+			p, ok := base.List{Count: len(v.order), Page: 8}.Key(e.Name, v.position(v.selected))
 			if ok && e.State == el.KeyPress && len(v.order) > 0 {
 				v.chooseRows(cx, v.order[p], e.Modifiers)
 				cx.Focus(autoID("table", v))

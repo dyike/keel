@@ -1,12 +1,14 @@
 package kit
 
 import (
+	"slices"
+	"strconv"
+
 	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
-	"slices"
-	"strconv"
 )
 
 // SidebarItem is one destination in a Sidebar. IDs must be unique.
@@ -92,7 +94,7 @@ func (v *SidebarView) choose(id string) {
 	}
 }
 
-func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []string, depth int) el.Element {
+func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []string, depth int) el.Element {
 	on := it.ID == v.selected
 	disabled := v.disabled || it.Disabled
 	fg := theme.Muted
@@ -102,7 +104,7 @@ func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []st
 	if disabled {
 		fg = theme.Muted
 	}
-	row := el.Div().ID(base + "/" + it.ID).Role("link").Name(it.Label).Selected(on).Disabled(disabled).
+	row := el.Div().ID(prefix + "/" + it.ID).Role("link").Name(it.Label).Selected(on).Disabled(disabled).
 		Row().Items(el.Center).Gap(10).H(el.Dp(36)).Px(10).Pl(float32(10 + depth*14)).Rounded(theme.RadiusLg).CursorPointer().TextColor(theme.Text).TextSize(theme.TextControl).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnClick(func() {
@@ -139,7 +141,7 @@ func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []st
 					break
 				}
 			}
-			j, ok := listEnabledKey(e.Name, at, len(ids), func(i int) bool { return v.find(ids[i]).Disabled })
+			j, ok := base.List{Count: len(ids), Disabled: func(i int) bool { return v.find(ids[i]).Disabled }}.Key(e.Name, at)
 			if ok && e.State == el.KeyPress && j >= 0 {
 				v.focusItem(cx, ids[j])
 			}

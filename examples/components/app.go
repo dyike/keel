@@ -12,7 +12,7 @@ import (
 )
 
 // foundations are the sections that demonstrate el itself, not a component.
-var foundations = map[string]bool{"theme": true, "layout": true, "scrollable": true, "focus": true, "time": true, "overlay": true}
+var foundations = map[string]bool{"theme": true, "layout": true, "scrollable": true, "focus": true, "headless": true, "time": true, "overlay": true}
 
 var categoryTitles = []struct{ id, title string }{
 	{"foundations", "基础能力"},
@@ -110,6 +110,9 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	doc := "docs/kit/" + name + ".md"
 	if foundations[name] {
 		doc = "docs/el.md"
+	}
+	if name == "headless" {
+		doc = "docs/base.md"
 	}
 	langLabel := "English"
 	if !strings.HasPrefix(locale.Current().Lang, "zh") {

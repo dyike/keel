@@ -1,12 +1,14 @@
 package kit
 
 import (
+	"slices"
+	"strings"
+
 	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
-	"slices"
-	"strings"
 )
 
 func (v *ComboboxView) Multiple() *ComboboxView {
@@ -134,7 +136,7 @@ func (v *ComboboxView) optionKey(cx *el.Context, e el.KeyEvent) bool {
 	case key.NameUpArrow:
 		v.active = (v.active - 1 + len(matches)) % len(matches)
 	default:
-		v.active, _ = listKeys(e.Name, v.active, len(matches), 8)
+		v.active, _ = base.List{Count: len(matches), Page: 8}.Key(e.Name, v.active)
 	}
 	v.virtual.SetCount(len(matches))
 	v.virtual.ScrollTo(cx, v.active)
