@@ -150,6 +150,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `menu` | 打开的 `kit.Menu` | 菜单项单独列出 |
 | `menuitem` | 菜单项 | 有子菜单时 `value` 为 submenu；支持 `disabled` |
 | `link` | Markdown 段落里的链接 | `value` 是网址 |
+| `search` | `kit.CodeEditor` 的查找面板 | 输入框和按钮单独列出 |
 | `code` | Markdown 代码块 | 名字是语言；里面的代码文字和"复制"按钮单独列出 |
 
 组件通过 `core.Role` 或 el 的 `Role` 声明的其他角色会原样列出，不需要在自动化代码里登记，只需补进上表。默认情况下，一个元素会吸收它内部的文字；如果子元素需要单独列出（对话框、菜单这类容器），把角色加入 `ui/window/automation.go` 的 `containerRoles`。

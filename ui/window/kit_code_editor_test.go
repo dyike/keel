@@ -61,3 +61,25 @@ func TestKitCodeEditorCompletion(t *testing.T) {
 		})
 	}
 }
+
+// The find panel's field and buttons are listed for agents, who search and
+// replace through them.
+func TestKitCodeEditorFindPanel(t *testing.T) {
+	ed := kit.CodeEditor("foo bar foo").Name("source")
+	w := openTest(t, Options{Content: views(ed)})
+	ed.OpenSearch(true)
+	w.snapshot()
+	field := element(t, w, "查找") // the field wins over the panel of the same name
+	if field.Role != "textbox" {
+		t.Fatalf("find field: %+v", field)
+	}
+	w.click(field.center())
+	if err := w.typeText("foo"); err != nil {
+		t.Fatal(err)
+	}
+	w.click(element(t, w, "全部替换").center())
+	w.snapshot()
+	if ed.Value() != " bar " {
+		t.Fatalf("replace all from the panel: %q", ed.Value())
+	}
+}
