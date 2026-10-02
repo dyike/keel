@@ -26,6 +26,8 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 
 交互组件支持鼠标和键盘；禁用时不能激活或获得焦点，Agent 快照报告 disabled。焦点、按键、禁用、定时、浮层的具体新 API 在对应阶段 review，不在本规范预先定型。
 
+浮层组件必须先创建面板并调用 `cx.Overlay`，再渲染 Body / Footer 的内容并追加到面板。内容本身可能登记子浮层；顺序反过来会让子菜单早于父层登记，因锚点尚不可用而被关闭。模态组件用 `Layer.Owner` 绑定所属元素，继承外层的禁用和隐藏。验收必须包含真实嵌套打开、逐层 Esc、焦点返回和祖先禁用，不能只测试独立弹层。
+
 ## 文件模板与验收
 
 一个组件对应 `ui/kit/<name>.go`、`<name>_test.go`、`docs/kit/<name>.md`、`examples/components/<name>.go`。在 kit README 和文档索引登记。示例注册独立 `-section <name>`，展示常用状态、边界和浅深色。

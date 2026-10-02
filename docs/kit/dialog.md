@@ -27,3 +27,9 @@ edit.SetValue(true)
 Agent：普通对话框的角色是 `dialog`，`ConfirmDanger` 和 `Persistent()` 的角色是 `alertdialog`，名字是标题，里面的元素单独列出。对话框打开期间，快照里看不到下面的页面。
 
 验证：`go run ./examples/components -section dialog`。
+
+对话框限制在窗口内，长正文单独滚动，窄窗口的页脚按钮改为纵向排列；极小窗口允许整个面板滚动。非有限宽度被忽略，Footer 保存视图列表的副本。
+
+`SetDisabled(true)` 直接关闭，且阻止 SetValue / 标准消息重新打开；不触发用户关闭回调。所在容器禁用、隐藏或不再提供所属元素时，已声明的模态层会请求关闭并调用一次 OnClose。关闭后不会因恢复启用而重新弹出。
+
+正文和页脚可以包含 Menu、Popover 或另一个 Dialog。父浮层先登记，子浮层位于上方；Esc 逐层关闭，每层恢复对应的先前焦点。示例“自定义”里的客户预设用于验证嵌套菜单。

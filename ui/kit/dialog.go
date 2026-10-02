@@ -4,6 +4,7 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
+	"slices"
 )
 
 // DialogView is a modal dialog: the page dims, ignores the pointer and loses
@@ -27,6 +28,7 @@ type DialogView struct {
 	width    float32
 	alert    bool
 	open     bool
+	disabled bool
 	opened   bool // the open state the last Render saw, to focus on opening
 	focus    string
 	onClose  func()
@@ -36,15 +38,20 @@ type DialogView struct {
 func Dialog(title string) *DialogView { return &DialogView{title: title, width: 420} }
 
 func (v *DialogView) Body(b el.View) *DialogView          { v.body = b; return v }
-func (v *DialogView) Footer(views ...el.View) *DialogView { v.footer = views; return v }
+func (v *DialogView) Footer(views ...el.View) *DialogView { v.footer = slices.Clone(views); return v }
 func (v *DialogView) OnClose(fn func()) *DialogView       { v.onClose = fn; return v }
 func (v *DialogView) SetTitle(s string)                   { v.title = s }
 func (v *DialogView) Value() bool                         { return v.open }
-func (v *DialogView) SetValue(open bool)                  { v.open = open }
+func (v *DialogView) SetValue(open bool) {
+	v.open = open && !v.disabled
+	if !v.open {
+		v.opened = false
+	}
+}
 
 // Width sets the dialog width in dp, 420 by default.
 func (v *DialogView) Width(dp float32) *DialogView {
-	if dp > 0 {
+	if dp > 0 && finiteNumber(float64(dp)) {
 		v.width = dp
 	}
 	return v
@@ -56,6 +63,9 @@ func (v *DialogView) Persistent() *DialogView { v.alert = true; return v }
 
 // close is a user dismissal: Esc, the scrim, or a cancel button.
 func (v *DialogView) close() {
+	if !v.open {
+		return
+	}
 	v.open = false
 	cancel := v.onCancel
 	v.onCancel = nil
@@ -85,6 +95,10 @@ func (v *DialogView) Alert(title, message string, onOK func()) {
 }
 
 func (v *DialogView) message(title, message, okText string, variant ButtonVariant, cancel bool, onOK func()) {
+	if v.disabled {
+		return
+	}
+	v.opened = false
 	id := autoID("dialog", v)
 	v.title, v.alert, v.open, v.onCancel = title, variant == ButtonDanger, true, nil
 	v.body = el.ViewFunc(func(*el.Context) el.Element { return el.Text(message).TextColor(theme.Muted) })
@@ -112,28 +126,43 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 	if v.alert {
 		role = "alertdialog"
 	}
-	panel := surface().Role(role).Name(v.title).W(el.Dp(v.width)).MaxW(el.Full).P(20).Gap(16).Items(el.Stretch)
+	id := autoID("dialog", v)
+	w, h := cx.ViewportSize()
+	panel := surface().Role(role).Name(v.title).W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().P(20).Gap(16).Items(el.Stretch)
+	layer := el.Modal(panel).Owner(id).OnDismiss(v.close)
+	if v.alert {
+		layer.KeepOnOutsidePress()
+	}
+	cx.Overlay(id, layer)
 	if v.title != "" {
 		panel.Child(el.Text(v.title).TextSize(17).Bold())
 	}
 	if v.body != nil {
-		panel.Child(v.body.Render(cx))
+		panel.Child(el.Div().ID(id + "/body").MaxH(el.Dp(max(0, h-160))).ScrollY().Items(el.Stretch).Child(v.body.Render(cx)))
 	}
 	if len(v.footer) > 0 {
-		row := el.Div().Row().Gap(8).Justify(el.End)
+		row := el.Div().Gap(8).Justify(el.End)
+		if min(w-16, v.width) >= 360 {
+			row.Row()
+		}
 		for _, f := range v.footer {
-			row.Child(f.Render(cx))
+			if f != nil {
+				row.Child(f.Render(cx))
+			}
 		}
 		panel.Child(row)
 	}
-	layer := el.Modal(panel).OnDismiss(v.close)
-	if v.alert {
-		layer.KeepOnOutsidePress()
-	}
-	cx.Overlay(autoID("dialog", v), layer)
 	if !v.opened && v.focus != "" {
 		cx.Focus(v.focus)
 	}
 	v.opened = true
-	return el.Div().Hidden(true) // the layer is declared; nothing takes space here
+	return el.Div().ID(id).Absolute().Size(el.Dp(0)).Disabled(v.disabled)
+}
+
+func (v *DialogView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.SetValue(false)
+		v.onCancel = nil
+	}
 }

@@ -26,6 +26,7 @@ const (
 // Layer describes an overlay for one Render. Declare it again while open.
 type Layer struct {
 	anchor                       string
+	owner                        string
 	content                      Element
 	side                         Side
 	align                        Align
@@ -51,6 +52,12 @@ func (l *Layer) Placement(side Side, align Align) *Layer {
 	l.side, l.align, l.edge = side, align, l.centered
 	return l
 }
+
+// Owner ties a layer's lifetime to an enabled element in the current tree.
+// Use this for modals declared by a component nested in a disabled or hidden
+// container. The owner controls eligibility, not position or modality.
+func (l *Layer) Owner(id string) *Layer { l.owner = id; return l }
+
 func (l *Layer) Offset(dp float32) *Layer   { l.offset = dp; return l }
 func (l *Layer) MatchAnchorWidth() *Layer   { l.matchWidth = true; return l }
 func (l *Layer) Modal() *Layer              { l.modal = true; return l }
@@ -130,7 +137,7 @@ func (r *RootWidget) prepareLayers(cx *Context) {
 	serial := r.layerSerial
 	for i := range cx.layers {
 		d := &cx.layers[i]
-		d.eligible = !d.layer.content.node().style.hidden && (d.layer.centered || ids[d.layer.anchor])
+		d.eligible = !d.layer.content.node().style.hidden && (d.layer.centered || ids[d.layer.anchor]) && (d.layer.owner == "" || ids[d.layer.owner])
 		if d.eligible {
 			collect(d.layer.content.node())
 		}

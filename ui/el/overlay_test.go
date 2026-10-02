@@ -395,3 +395,36 @@ func TestHoverIDDoesNotClipOverflow(t *testing.T) {
 		t.Fatalf("adding hover ID clipped child: %v", b)
 	}
 }
+
+func TestModalOwnerControlsEligibility(t *testing.T) {
+	enabled, present, open := true, true, true
+	calls := 0
+	h := uitest.New(Root(ViewFunc(func(cx *Context) Element {
+		if open {
+			cx.Overlay("owned", Modal(Div().Name("Owned modal").W(Dp(100)).H(Dp(80))).Owner("owner").OnDismiss(func() { calls++; open = false }))
+		}
+		root := Div().Disabled(!enabled)
+		if present {
+			root.Child(Div().ID("owner").Absolute().Size(Dp(0)))
+		}
+		return root
+	})))
+	h.Frame()
+	if !open || calls != 0 {
+		t.Fatal("active owner was blocked by its own modal")
+	}
+	enabled = false
+	h.Frame()
+	h.Frame()
+	if open || calls != 1 {
+		t.Fatal("disabled owner did not dismiss once")
+	}
+	enabled = true
+	open = true
+	present = false
+	h.Frame()
+	h.Frame()
+	if open || calls != 2 {
+		t.Fatal("missing owner did not dismiss")
+	}
+}
