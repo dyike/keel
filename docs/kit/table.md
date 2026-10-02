@@ -24,3 +24,5 @@ t.SetRows(rows)
 Agent：角色 `table`，`value` 是行数（如"36 行"）；表头是 `columnheader`；每行是 `row`，名字是各列用" | "连接，`selected` 表示选中。
 
 验证：`go run ./examples/components -section table`，加 `-theme dark` 检查深色。
+
+表格构造时复制列配置，`SetRows` 复制二维数据，`Rows` / `Row` 返回副本。复用同一份列配置创建多个表格，拖动列宽不会互相影响。后续用 `SetRows` 更新数据，用 `SetColumnWidth(index, dp)` 修改某一张表的列宽；修改原始切片或构造时的 `ColumnSpec` 不会影响已创建的表格。

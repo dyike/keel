@@ -109,7 +109,7 @@ func TestTableFlexibleColumnsFillAndOverflow(t *testing.T) {
 	if table.widths[0] != 160 || table.widths[1] != 40 || table.widths[2] != 40 {
 		t.Fatalf("minimum widths %v", table.widths)
 	}
-	fixed.Width(350)
+	table.SetColumnWidth(0, 350)
 	h.Frame()
 	h.Frame()
 	if _, _, content := cx.ScrollStateX(autoID("table", table)); content != 430 {

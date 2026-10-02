@@ -2,6 +2,7 @@ package kit
 
 import (
 	"cmp"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -75,7 +76,15 @@ type TableView struct {
 }
 
 func Table(cols ...*ColumnSpec) *TableView {
-	v := &TableView{cols: cols, sortCol: -1, selected: -1, widths: make([]float32, len(cols))}
+	owned := make([]*ColumnSpec, len(cols))
+	for i, col := range cols {
+		if col == nil {
+			panic("kit.Table: nil column")
+		}
+		copy := *col
+		owned[i] = &copy
+	}
+	v := &TableView{cols: owned, sortCol: -1, selected: -1, widths: make([]float32, len(cols))}
 	v.list = VirtualList(0, 40, v.row)
 	return v
 }
@@ -94,24 +103,44 @@ func (v *TableView) Empty(s string) *TableView { v.empty = s; return v }
 // the rows with core.Update, then SetRows and SetLoading(false).
 func (v *TableView) SetLoading(on bool) { v.loading = on }
 
-// SetRows replaces the data, keeping the sort column. The selection is
+// SetRows copies the data, keeping the sort column. The selection is
 // cleared when its index no longer exists.
 func (v *TableView) SetRows(rows [][]string) {
-	v.rows = rows
+	v.rows = cloneTableRows(rows)
 	if v.selected >= len(rows) {
 		v.selected = -1
 	}
 	v.resort()
 }
-func (v *TableView) Rows() [][]string { return v.rows }
+
+// Rows returns a deep copy; use SetRows to replace data and refresh sorting.
+func (v *TableView) Rows() [][]string { return cloneTableRows(v.rows) }
 func (v *TableView) Len() int         { return len(v.rows) }
 
-// Row returns row i, or nil.
+// Row returns a copy of row i, or nil.
 func (v *TableView) Row(i int) []string {
 	if i < 0 || i >= len(v.rows) {
 		return nil
 	}
-	return v.rows[i]
+	return slices.Clone(v.rows[i])
+}
+
+func cloneTableRows(rows [][]string) [][]string {
+	out := slices.Clone(rows)
+	for i, row := range rows {
+		out[i] = slices.Clone(row)
+	}
+	return out
+}
+
+// SetColumnWidth changes this table's column width in dp (minimum 40),
+// independently of the ColumnSpec used to construct it. Invalid indexes and
+// non-finite widths are ignored. It does not change sorting or selection.
+func (v *TableView) SetColumnWidth(column int, dp float32) {
+	if column < 0 || column >= len(v.cols) || math.IsNaN(float64(dp)) || math.IsInf(float64(dp), 0) {
+		return
+	}
+	v.cols[column].Width(dp)
 }
 
 // Value is the selected row, or -1.
