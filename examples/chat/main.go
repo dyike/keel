@@ -6,6 +6,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"math/rand/v2"
 	"os/exec"
@@ -47,7 +48,8 @@ type chat struct {
 
 func newChat(delay time.Duration) *chat {
 	c := &chat{delay: delay}
-	c.scroller = kit.MessageScroller(c.items)
+	c.scroller = kit.MessageScroller(nil, 160, c.item)
+	c.syncKeys()
 	return c
 }
 
@@ -89,23 +91,35 @@ func (c *chat) items(cx *el.Context) []el.Element {
 			Hover(func(st *el.Style) { st.Bg(theme.SubtleHover) }).
 			OnClick(func() { c.prompt = "全部样例"; c.send() }).Child(el.Text("查看全部样例")))
 	}
-	var out []el.Element
-	for _, m := range c.msgs {
-		if m.user {
-			text := m.text
-			out = append(out, kit.Message("我", el.ViewFunc(func(*el.Context) el.Element { return el.Text(text) })).User().Render(cx))
-			continue
-		}
-		msg := kit.Message("AI", m.doc)
-		if !m.doc.Streaming() {
-			// Copy the whole answer as Markdown; dragging across its text
-			// blocks and Cmd/Ctrl+C copies the selected plain text.
-			src := m.doc.Source()
-			msg.Actions(m.copy(src))
-		}
-		out = append(out, msg.Render(cx))
+	return nil
+}
+func (c *chat) item(cx *el.Context, i int) el.Element {
+	if len(c.msgs) == 0 {
+		return c.items(cx)[i]
 	}
-	return out
+	m := c.msgs[i]
+	if m.user {
+		return kit.Message("我", el.ViewFunc(func(*el.Context) el.Element { return el.Text(m.text) })).User().Render(cx)
+	}
+	msg := kit.Message("AI", m.doc)
+	if !m.doc.Streaming() {
+		msg.Actions(m.copy(m.doc.Source()))
+	}
+	return msg.Render(cx)
+}
+func (c *chat) syncKeys() {
+	keys := make([]string, len(c.msgs))
+	if len(keys) == 0 {
+		keys = make([]string, len(demoSamples)+2)
+		for i := range keys {
+			keys[i] = fmt.Sprintf("welcome-%d", i)
+		}
+	} else {
+		for i, m := range c.msgs {
+			keys[i] = fmt.Sprintf("message-%p", m)
+		}
+	}
+	c.scroller.SetKeys(keys)
 }
 
 func (c *chat) action(cx *el.Context) el.Element {
@@ -127,6 +141,7 @@ func (c *chat) send() {
 	doc := newDocument("")
 	doc.SetStreaming(true)
 	c.msgs = append(c.msgs, &message{user: true, text: q}, &message{doc: doc})
+	c.syncKeys()
 	c.scroller.ScrollToEnd() // sending jumps to the end even if the user had scrolled up
 	stop := new(atomic.Bool)
 	c.stop = stop
@@ -186,6 +201,7 @@ func main() {
 		}
 		c.msgs = []*message{{doc: newDocument(src)}}
 		c.preview = true
+		c.syncKeys()
 	}
 	window.Open(window.Options{Title: "AI 助手", Width: 720, Height: 640, Content: el.Root(c)})
 	window.Main()

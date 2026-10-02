@@ -109,20 +109,16 @@ func TestMessageBubbleScrollerAttachment(t *testing.T) {
 	}
 	loads := 0
 	var sc *MessageScrollerView
-	sc = MessageScroller(func(cx *el.Context) []el.Element {
-		var out []el.Element
-		for i, m := range msgs {
-			msg := Message("AI", text(m))
-			if i%2 == 0 {
-				msg.User()
-			}
-			out = append(out, msg.Render(cx))
+	sc = MessageScroller(msgs, 80, func(cx *el.Context, i int) el.Element {
+		msg := Message("AI", text(msgs[i]))
+		if i%2 == 0 {
+			msg.User()
 		}
-		return out
+		return msg.Render(cx)
 	}).OnReachTop(func() {
 		loads++
-		msgs = append([]string{"更早的消息"}, msgs...)
-		sc.HistoryPrepended()
+		msgs = append([]string{"更早的消息 " + strconv.Itoa(loads)}, msgs...)
+		sc.SetKeys(msgs)
 	})
 	h := uitest.New(el.Root(viewFunc(func(cx *el.Context) el.Element { return el.Div().Child(sc.Render(cx)) })))
 	h.Frame()
@@ -131,6 +127,9 @@ func TestMessageBubbleScrollerAttachment(t *testing.T) {
 	}
 	for range 40 {
 		h.Scroll(200, 150, -200)
+		if loads > 0 {
+			break
+		}
 	}
 	h.Frame()
 	if loads != 1 || !shown(h, "回到最新") {

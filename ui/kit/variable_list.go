@@ -30,6 +30,9 @@ type VariableListView struct {
 	anchorDelta      float32
 	restore          bool
 	reveal           string
+	followEnd        bool
+	end, endApplied  int
+	role             string
 }
 
 // VariableList makes a variable-height list. Keys must be unique and nonempty;
@@ -131,11 +134,16 @@ func (v *VariableListView) ScrollTo(cx *el.Context, i int) {
 
 func (v *VariableListView) Render(cx *el.Context) el.Element {
 	id := v.ID()
-	off, view, _ := cx.ScrollState(id)
+	off, view, content := cx.ScrollState(id)
 	painted := view > 0
 	if !painted {
 		view = v.height
+		if v.fill {
+			_, viewport := cx.ViewportSize()
+			view = max(view, viewport)
+		}
 	}
+	atEnd := v.followEnd && (!painted || off+view >= content-4) || v.end != v.endApplied
 	preserveAnchor := v.anchor != "" && v.reveal == "" && (v.restore || off == v.lastOffset)
 	total := v.sums.prefix(len(v.keys))
 	if v.restore {
@@ -151,8 +159,11 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 			off = min(top, bottom-view)
 		}
 	}
+	if atEnd {
+		off = max(total-view, 0)
+	}
 	off = min(max(off, 0), max(total-view, 0))
-	if v.restore || v.reveal != "" {
+	if v.restore || v.reveal != "" || atEnd {
 		cx.ScrollTo(id, off)
 	}
 	if !painted {
@@ -160,7 +171,13 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 	}
 	first := v.sums.at(max(off-view, 0))
 	last := min(len(v.keys), v.sums.at(off+2*view)+1)
-	box := el.Div().ID(id).ScrollY().Focusable(true).Disabled(v.disabled).Items(el.Stretch)
+	box := el.Div().ID(id).ScrollY().Focusable(true).Disabled(v.disabled).Items(el.Stretch).ScrollToEndOn(v.end)
+	if v.followEnd {
+		box.StickToBottom()
+	}
+	if v.role != "" {
+		box.Role(v.role)
+	}
 	if v.fill {
 		box.Grow().MinH(el.Dp(1))
 	} else {
@@ -183,6 +200,7 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 		if !gtx.Enabled() {
 			return
 		}
+		v.endApplied = v.end
 		actual, _, _ := cx.ScrollState(id)
 		heights := make([]float32, len(built))
 		start := leading

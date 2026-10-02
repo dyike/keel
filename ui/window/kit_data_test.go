@@ -61,8 +61,11 @@ func TestKitCommandAndChatSnapshot(t *testing.T) {
 		t.Fatalf("command item: %+v", e)
 	}
 	say := el.ViewFunc(func(*el.Context) el.Element { return el.Text("你好") })
-	sc := kit.MessageScroller(func(cx *el.Context) []el.Element {
-		return []el.Element{kit.Message("AI", say).Render(cx), kit.Bubble(say).Mine().Render(cx)}
+	sc := kit.MessageScroller([]string{"a", "b"}, 80, func(cx *el.Context, i int) el.Element {
+		if i == 0 {
+			return kit.Message("AI", say).Render(cx)
+		}
+		return kit.Bubble(say).Mine().Render(cx)
 	})
 	a := kit.Attachment("报价.pdf", 2048)
 	w = openTest(t, Options{Width: 640, Height: 400, Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element {

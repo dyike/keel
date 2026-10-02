@@ -17,17 +17,13 @@ func init() {
 		}
 		older := 20
 		var sc *kit.MessageScrollerView
-		sc = kit.MessageScroller(func(cx *el.Context) []el.Element {
-			var out []el.Element
-			for i, m := range msgs {
-				m := m
-				msg := kit.Message("AI", el.ViewFunc(func(*el.Context) el.Element { return el.Text(m) }))
-				if i%2 == 0 {
-					msg.User()
-				}
-				out = append(out, msg.Render(cx))
+		sc = kit.MessageScroller(msgs, 80, func(cx *el.Context, i int) el.Element {
+			m := msgs[i]
+			msg := kit.Message("AI", el.ViewFunc(func(*el.Context) el.Element { return el.Text(m) }))
+			if i%2 == 0 {
+				msg.User()
 			}
-			return out
+			return msg.Render(cx)
 		}).OnReachTop(func() {
 			if older == 0 {
 				return
@@ -38,7 +34,7 @@ func init() {
 			}
 			older -= 10
 			msgs = append(batch, msgs...)
-			sc.HistoryPrepended()
+			sc.SetKeys(msgs)
 		})
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().Child(
@@ -46,6 +42,7 @@ func init() {
 				sc.Render(cx),
 				el.Div().P(12).Child(kit.Button("发送新消息", func() {
 					msgs = append(msgs, "新消息 #"+strconv.Itoa(len(msgs)))
+					sc.SetKeys(msgs)
 					sc.ScrollToEnd()
 				}).Render(cx)))
 		}))
