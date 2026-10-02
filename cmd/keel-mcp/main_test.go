@@ -299,7 +299,7 @@ func TestDockExample(t *testing.T) {
 	}
 	call, _ := startServer(t, nil)
 	got := call("launch", map[string]any{"command": "go run ./examples/components -section dock -width 1000", "dir": repoRoot()})
-	expect(t, got, `tab "文件"`, `tab "搜索"`, `tab "大纲"`, `tab "终端"`, "编辑器 Editor")
+	expect(t, got, `tab "文件"`, `tab "搜索"`, `tab "大纲"`, `tab "终端"`, `tab "main.go" selected`, `tab "app.go" selected`)
 	got = call("click", map[string]any{"text": "更多 搜索"})
 	expect(t, got, `menuitem "停靠到右侧"`)
 	got = call("click", map[string]any{"text": "停靠到右侧"})
