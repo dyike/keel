@@ -23,8 +23,27 @@ func init() {
 				return kit.Tag("¥" + t.Row(row)[2]).Tone(kit.ToneInfo).Render(cx)
 			}), kit.Col("状态").Width(100), kit.Col("仓库").Width(140), kit.Col("日期").Width(140)).FrozenColumns(1, 1).Height(360).OnActivate(func(r int) { msg = "打开 " + t.Row(r)[0] })
 		t.SetRows(rows)
+		saved := t.LayoutState()
+		warehouseVisible := true
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(8).W(el.Dp(600)).Child(t.Render(cx), el.Text(msg).TextColor(theme.Muted))
+			return el.Div().P(24).Gap(8).W(el.Dp(600)).Child(
+				el.Div().Row().Wrap().Gap(8).Child(
+					kit.Button("客户移到首列", func() { t.MoveColumn(1, 0) }).Render(cx),
+					kit.Button("切换仓库列", func() { warehouseVisible = !warehouseVisible; t.SetColumnVisible(4, warehouseVisible) }).Render(cx),
+					kit.Button("保存列布局", func() { saved = t.LayoutState(); msg = "列布局已保存" }).Render(cx),
+					kit.Button("恢复列布局", func() {
+						if err := t.SetLayoutState(saved); err != nil {
+							msg = err.Error()
+						} else {
+							for _, c := range saved.Columns {
+								if c.Column == 4 {
+									warehouseVisible = !c.Hidden
+								}
+							}
+							msg = "列布局已恢复"
+						}
+					}).Render(cx)),
+				t.Render(cx), el.Text(msg).TextColor(theme.Muted))
 		}))
 	})
 }

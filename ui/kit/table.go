@@ -60,6 +60,8 @@ const minColumn = 40
 type TableView struct {
 	frozenLeft, frozenRight int
 	cols                    []*ColumnSpec
+	columns                 []int // display position → source column
+	hidden                  []bool
 	rows                    [][]string
 	order                   []int // display position → data index
 	sortCol                 int
@@ -86,6 +88,10 @@ func Table(cols ...*ColumnSpec) *TableView {
 		owned[i] = &copy
 	}
 	v := &TableView{cols: owned, sortCol: -1, selected: -1, widths: make([]float32, len(cols))}
+	v.hidden = make([]bool, len(cols))
+	for c := range cols {
+		v.columns = append(v.columns, c)
+	}
 	v.list = VirtualList(0, 40, v.row).ItemKey(func(position int) string { return strconv.Itoa(v.order[position]) })
 	return v
 }
@@ -95,24 +101,22 @@ func Table(cols ...*ColumnSpec) *TableView {
 func (v *TableView) FrozenColumns(left, right int) *TableView {
 	v.frozenLeft = max(0, min(left, len(v.cols)))
 	v.frozenRight = max(0, min(right, len(v.cols)-v.frozenLeft))
-	for c, col := range v.cols {
-		if v.frozen(c) && col.width <= 0 {
-			col.Width(120)
-		}
-	}
+	v.ensureFrozenWidths()
 	return v
 }
-func (v *TableView) frozen(c int) bool { return c < v.frozenLeft || c >= len(v.cols)-v.frozenRight }
 func (v *TableView) pin(c int, cell *el.DivEl) *el.DivEl {
-	if c < v.frozenLeft {
+	columns := v.visibleColumns()
+	left, right := v.frozenCounts(columns)
+	pos := slices.Index(columns, c)
+	if pos < left {
 		var offset float32
-		for i := 0; i < c; i++ {
+		for _, i := range columns[:pos] {
 			offset += v.cols[i].width
 		}
 		cell.PinLeft(offset)
-	} else if c >= len(v.cols)-v.frozenRight {
+	} else if pos >= len(columns)-right {
 		var offset float32
-		for i := c + 1; i < len(v.cols); i++ {
+		for _, i := range columns[pos+1:] {
 			offset += v.cols[i].width
 		}
 		cell.PinRight(offset)
@@ -298,7 +302,7 @@ func (v *TableView) header(cx *el.Context, c int) el.Element {
 		}
 		col.width = max(minColumn, v.widths[c]+e.X-v.grab)
 	})
-	return v.pin(c, el.Div().Row().Items(el.Stretch).Bg(theme.Subtle).Child(cell, handle)).When(col.width > 0, func(d *el.DivEl) { d.NoShrink() }).
+	return v.pin(c, el.Div().ID(autoID("table", v)+"/header/"+strconv.Itoa(c)).Row().Items(el.Stretch).Bg(theme.Subtle).Child(cell, handle)).When(col.width > 0, func(d *el.DivEl) { d.NoShrink() }).
 		When(col.width <= 0, func(d *el.DivEl) { d.Flex(col.flex).W(el.Dp(0)).MinW(el.Dp(minColumn)) })
 }
 
@@ -310,8 +314,9 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 	if on {
 		r.Bg(theme.Highlight)
 	}
-	for c, col := range v.cols {
-		cell := v.sized(c, el.Div().Px(12).Justify(el.Center))
+	for _, c := range v.visibleColumns() {
+		col := v.cols[c]
+		cell := v.sized(c, el.Div().ID(autoID("table", v)+"/cell/"+strconv.Itoa(data)+"/"+strconv.Itoa(c)).Px(12).Justify(el.Center))
 		if col.width <= 0 {
 			cell.Items(el.Start)
 			if col.numeric {
@@ -345,10 +350,10 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 	}
 	head := el.Div().Row().NoShrink().Items(el.Stretch).Bg(theme.Subtle)
 	var minWidth float32
-	for _, col := range v.cols {
-		minWidth += max(col.width, minColumn)
+	for _, c := range v.visibleColumns() {
+		minWidth += max(v.cols[c].width, minColumn)
 	}
-	for c := range v.cols {
+	for _, c := range v.visibleColumns() {
 		head.Child(v.header(cx, c))
 	}
 	body := el.Div().Items(el.Stretch).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).Child(v.list.Render(cx))
