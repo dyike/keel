@@ -46,6 +46,7 @@ type Strings struct {
 	DockSplitRight, DockSplitBelow                  string
 	SearchSettings                                  string
 	Minimize, Maximize, Restore                     string
+	ChartValue, ChartShare                          string
 	ShowTable, ShowChart, ResetView                 string
 	ColorShade, Hue, Opacity                        string
 	Previous, Next, Submit, Required                string
@@ -97,7 +98,7 @@ func Chinese() Strings {
 		PrevSlide: "上一张", NextSlide: "下一张",
 		DockSplitRight: "向右拆分", DockSplitBelow: "向下拆分", DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", SearchSettings: "搜索设置",
 		Minimize: "最小化", Maximize: "最大化", Restore: "还原",
-		ShowTable: "查看数据表", ShowChart: "查看图表", ResetView: "复位",
+		ChartValue: "数值", ChartShare: "占比", ShowTable: "查看数据表", ShowChart: "查看图表", ResetView: "复位",
 		ColorShade: "饱和度与亮度", Hue: "色相", Opacity: "不透明度",
 		Previous: "上一题", Next: "下一题", Submit: "提交", Required: "这一题必须回答",
 		Progress:     func(i, n int) string { return "第 " + strconv.Itoa(i) + " / " + strconv.Itoa(n) + " 题" },
@@ -131,7 +132,7 @@ func English() Strings {
 		PrevSlide: "Previous slide", NextSlide: "Next slide",
 		DockSplitRight: "Split right", DockSplitBelow: "Split below", DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", SearchSettings: "Search settings",
 		Minimize: "Minimize", Maximize: "Maximize", Restore: "Restore",
-		ShowTable: "Show data table", ShowChart: "Show chart", ResetView: "Reset view",
+		ChartValue: "Value", ChartShare: "Share", ShowTable: "Show data table", ShowChart: "Show chart", ResetView: "Reset view",
 		ColorShade: "Saturation and brightness", Hue: "Hue", Opacity: "Opacity",
 		Previous: "Previous", Next: "Next", Submit: "Submit", Required: "This question needs an answer",
 		Progress: func(i, n int) string { return "Question " + strconv.Itoa(i) + " of " + strconv.Itoa(n) },
