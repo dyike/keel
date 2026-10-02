@@ -5,6 +5,11 @@ package core
 type WindowControls interface {
 	// Frameless reports whether the window draws its own title bar.
 	Frameless() bool
+	// Focused reports native window activation, not an individual control focus.
+	Focused() bool
+	// TitleBarArea registers the current draggable title region in window dp.
+	// The window clears it each frame; controls must be outside this rectangle.
+	TitleBarArea(x, y, width, height float32)
 	Minimize()
 	// ToggleMaximize maximizes the window, or restores it when maximized.
 	ToggleMaximize()

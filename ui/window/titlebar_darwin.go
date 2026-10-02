@@ -1,0 +1,61 @@
+//go:build darwin && !ios && cgo
+
+package window
+
+/*
+#include <stdint.h>
+void keel_titlebar_area(uintptr_t view, double x, double y, double width, double height);
+*/
+import "C"
+
+import (
+	gioapp "gioui.org/app"
+	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/internal/loop"
+	"sync"
+)
+
+var nativeWindows sync.Map // uintptr NSView -> *Window; never pass Go pointers to C
+func platformWindowEvent(w *Window, event any) {
+	if e, ok := event.(gioapp.AppKitViewEvent); ok {
+		loop.Lock()
+		defer loop.Unlock()
+		clearPlatformWindow(w)
+		w.nativeView = e.View
+		if e.View != 0 {
+			nativeWindows.Store(e.View, w)
+		}
+	}
+}
+func clearPlatformWindow(w *Window) {
+	if w.nativeView != 0 {
+		nativeWindows.Delete(w.nativeView)
+		C.keel_titlebar_area(C.uintptr_t(w.nativeView), 0, 0, 0, 0)
+		w.nativeView, w.lastTitleView = 0, 0
+	}
+}
+func syncTitleBar(w *Window) {
+	if w.nativeView == 0 || w.nativeView == w.lastTitleView && w.titleArea == w.lastTitleArea {
+		return
+	}
+	w.lastTitleView, w.lastTitleArea = w.nativeView, w.titleArea
+	a := w.titleArea
+	C.keel_titlebar_area(C.uintptr_t(w.nativeView), C.double(a[0]), C.double(a[1]), C.double(a[2]), C.double(a[3]))
+}
+
+//export keel_titlebar_double_click
+func keel_titlebar_double_click(view C.uintptr_t, action C.int) {
+	if value, ok := nativeWindows.Load(uintptr(view)); ok {
+		w := value.(*Window)
+		core.Update(func() {
+			if w.closed {
+				return
+			}
+			if action == 1 {
+				w.Minimize()
+			} else if action == 2 {
+				w.ToggleMaximize()
+			}
+		})
+	}
+}

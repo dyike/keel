@@ -1,8 +1,10 @@
 package kit
 
 import (
+	"image"
 	"image/color"
 	"runtime"
+	"slices"
 
 	"gioui.org/io/system"
 	"gioui.org/op/clip"
@@ -32,19 +34,34 @@ type TitleBarView struct {
 func TitleBar(title string) *TitleBarView { return &TitleBarView{title: title, goos: runtime.GOOS} }
 
 // Leading adds views after the window buttons on the left.
-func (v *TitleBarView) Leading(views ...el.View) *TitleBarView { v.leading = views; return v }
+func (v *TitleBarView) Leading(views ...el.View) *TitleBarView {
+	v.leading = slices.Clone(views)
+	return v
+}
 
 // Trailing adds views at the right, before the window buttons off macOS.
-func (v *TitleBarView) Trailing(views ...el.View) *TitleBarView { v.trailing = views; return v }
-func (v *TitleBarView) SetTitle(s string)                       { v.title = s }
+func (v *TitleBarView) Trailing(views ...el.View) *TitleBarView {
+	v.trailing = slices.Clone(views)
+	return v
+}
+func (v *TitleBarView) SetTitle(s string) { v.title = s }
 
 // dragArea marks an element as the window's move handle. It must not contain
 // the buttons: the platform treats any press inside it as a window drag.
-func dragArea(d *el.DivEl) *el.DivEl {
+func dragArea(cx *el.Context, w core.WindowControls, d *el.DivEl) *el.DivEl {
 	return d.Decorate(func(gtx core.C, draw func()) {
-		area := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
-		system.ActionInputOp(system.ActionMove).Add(gtx.Ops)
-		area.Pop()
+		if gtx.Enabled() {
+			origin, visible := cx.PaintGeometry()
+			rect := image.Rectangle{Min: origin, Max: origin.Add(gtx.Constraints.Max)}.Intersect(visible)
+			px := gtx.Metric.PxPerDp
+			if px <= 0 {
+				px = 1
+			}
+			w.TitleBarArea(float32(rect.Min.X)/px, float32(rect.Min.Y)/px, float32(rect.Dx())/px, float32(rect.Dy())/px)
+			area := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
+			system.ActionInputOp(system.ActionMove).Add(gtx.Ops)
+			area.Pop()
+		}
 		draw()
 	})
 }
@@ -58,19 +75,24 @@ func (v *TitleBarView) Render(cx *el.Context) el.Element {
 		bar.Child(v.lights(cx, w))
 	}
 	for _, l := range v.leading {
-		bar.Child(l.Render(cx))
+		bar.Child(renderOptional(cx, l))
 	}
-	title := el.Text(v.title).TextSize(13).Bold().MaxLines(1).TextColor(theme.Text)
+	fg := theme.Text
+	if w != nil && !w.Focused() {
+		fg = theme.Muted
+	}
+	title := el.Text(v.title).TextSize(13).Bold().MaxLines(1).TextColor(fg)
 	middle := el.Div().Grow().W(el.Dp(0)).H(el.Dp(TitleBarHeight)).Row().Items(el.Center).Child(title)
 	if mac {
 		middle.Justify(el.Center) // macOS centers window titles
 	}
 	if controls {
-		dragArea(middle)
+		middle.OnDoubleClick(w.ToggleMaximize)
+		dragArea(cx, w, middle)
 	}
 	bar.Child(middle)
 	for _, t := range v.trailing {
-		bar.Child(t.Render(cx))
+		bar.Child(renderOptional(cx, t))
 	}
 	if controls && !mac {
 		bar.Pr(0).Child(v.buttons(cx, w))
@@ -85,6 +107,9 @@ func (v *TitleBarView) lights(cx *el.Context, w core.WindowControls) el.Element 
 	text := locale.Current()
 	hover := cx.Hovered(id)
 	light := func(name string, c color.NRGBA, symbol string, fn func()) el.Element {
+		if !w.Focused() && !hover {
+			c = theme.Border
+		}
 		dot := el.Div().Role("button").Name(name).Size(el.Dp(12)).Rounded(6).Bg(c).Center().
 			Focusable(false).OnClick(fn)
 		if hover {
@@ -124,4 +149,11 @@ func (v *TitleBarView) buttons(cx *el.Context, w core.WindowControls) el.Element
 		btn(maxName, square, theme.SubtleHover, w.ToggleMaximize),
 		btn(text.Close, Icon(IconClose).Size(14).Color(theme.Text).Render(cx), theme.Danger, w.Close),
 	)
+}
+
+func renderOptional(cx *el.Context, v el.View) el.Element {
+	if v == nil {
+		return el.Div().Hidden(true)
+	}
+	return v.Render(cx)
 }

@@ -34,14 +34,17 @@ type Options struct {
 }
 
 type Window struct {
-	win       *gioapp.Window // nil in automation mode
-	virt      *virtual       // non-nil in automation mode
-	opts      Options
-	shortcuts []shortcut
-	root      root
-	closed    bool          // guarded by the frame lock
-	maximized bool          // guarded by the frame lock; from the platform's config
-	shown     chan struct{} // closed at the first frame or at destruction
+	win                       *gioapp.Window // nil in automation mode
+	virt                      *virtual       // non-nil in automation mode
+	opts                      Options
+	shortcuts                 []shortcut
+	root                      root
+	closed                    bool // guarded by the frame lock
+	focused                   bool
+	nativeView, lastTitleView uintptr
+	titleArea, lastTitleArea  [4]float32
+	maximized                 bool          // guarded by the frame lock; from the platform's config
+	shown                     chan struct{} // closed at the first frame or at destruction
 }
 
 // Open creates and shows a window. Call it before Main or from any callback.
@@ -69,7 +72,7 @@ func newWindow(o Options) *Window {
 	if o.Height == 0 {
 		o.Height = 480
 	}
-	return &Window{opts: o, shortcuts: mustParseShortcuts(o.Shortcuts), shown: make(chan struct{})}
+	return &Window{opts: o, focused: true, shortcuts: mustParseShortcuts(o.Shortcuts), shown: make(chan struct{})}
 }
 
 // Main runs the platform event loop. The process exits after the last window
@@ -115,6 +118,20 @@ func (w *Window) Maximized() bool { return w.maximized }
 
 // Frameless reports whether the window draws its own title bar.
 func (w *Window) Frameless() bool { return w.opts.Frameless }
+func (w *Window) Focused() bool   { return w.focused }
+func (w *Window) TitleBarArea(x, y, width, height float32) {
+	if w.opts.Frameless {
+		w.titleArea = [4]float32{x, y, width, height}
+	}
+}
+func (w *Window) setFocused(focused bool) {
+	if w.focused != focused {
+		w.focused = focused
+		if w.win != nil {
+			w.win.Invalidate()
+		}
+	}
+}
 
 // perform must not block: callers hold the frame lock, while Gio's Perform
 // waits for the main thread, which may be waiting for another window's frame,
@@ -156,6 +173,7 @@ func (w *Window) run() {
 			return
 		case gioapp.ConfigEvent:
 			loop.Lock()
+			w.setFocused(e.Config.Focused)
 			if m := e.Config.Mode == gioapp.Maximized; m != w.maximized {
 				w.maximized = m
 				w.win.Invalidate() // title bars show maximize or restore
@@ -172,12 +190,16 @@ func (w *Window) run() {
 			loop.Unlock()
 			e.Frame(gtx.Ops)
 			w.markShown()
+		default:
+			platformWindowEvent(w, e)
 		}
 	}
 }
 
 func (w *Window) layout(gtx core.C) {
 	defer core.SetCurrentWindow(w)()
+	w.titleArea = [4]float32{}
+	defer func() { syncTitleBar(w) }()
 	w.handleShortcuts(gtx)
 	w.root.Layout(gtx, w.opts.Content)
 	if w.opts.Overlay != nil {
@@ -208,6 +230,7 @@ func (w *Window) finish() int {
 	remaining := loop.Unregister(w)
 	loop.Lock()
 	w.closed = true
+	clearPlatformWindow(w)
 	if w.opts.OnClose != nil {
 		w.opts.OnClose()
 	}

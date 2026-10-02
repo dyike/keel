@@ -13,11 +13,13 @@ type fakeWindow struct {
 	calls                []string
 }
 
-func (f *fakeWindow) Frameless() bool { return f.frameless }
-func (f *fakeWindow) Minimize()       { f.calls = append(f.calls, "min") }
-func (f *fakeWindow) ToggleMaximize() { f.maximized = !f.maximized; f.calls = append(f.calls, "max") }
-func (f *fakeWindow) Maximized() bool { return f.maximized }
-func (f *fakeWindow) Close()          { f.calls = append(f.calls, "close") }
+func (f *fakeWindow) Focused() bool                            { return true }
+func (f *fakeWindow) TitleBarArea(x, y, width, height float32) {}
+func (f *fakeWindow) Frameless() bool                          { return f.frameless }
+func (f *fakeWindow) Minimize()                                { f.calls = append(f.calls, "min") }
+func (f *fakeWindow) ToggleMaximize()                          { f.maximized = !f.maximized; f.calls = append(f.calls, "max") }
+func (f *fakeWindow) Maximized() bool                          { return f.maximized }
+func (f *fakeWindow) Close()                                   { f.calls = append(f.calls, "close") }
 
 func TestTitleBarButtonsPerPlatform(t *testing.T) {
 	for _, goos := range []string{"darwin", "windows"} {
