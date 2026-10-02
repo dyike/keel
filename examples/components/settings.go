@@ -18,7 +18,7 @@ func init() {
 			}
 		})
 		lang.SetValue("中文")
-		dark := kit.Switch("", false).OnChange(func(on bool) {
+		dark := kit.Switch("", theme.Current().Bg == theme.Dark().Bg).OnChange(func(on bool) {
 			if on {
 				theme.Apply(theme.Dark())
 			} else {
