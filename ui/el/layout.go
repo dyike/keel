@@ -84,11 +84,11 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 		if s.scrollY {
 			innerH, limH = -1, inf
 		}
-		c := e.flex(n, innerW, innerH, limW, limH)
+		c := e.layoutChildren(n, innerW, innerH, limW, limH)
 		// A column scrolls its intrinsic width but still stretches narrow
 		// content across the viewport (e.g. flexible table columns).
 		if s.scrollX && !s.row && viewportW >= 0 && c.X < viewportW {
-			c = e.flex(n, viewportW, innerH, limW, limH)
+			c = e.layoutChildren(n, viewportW, innerH, limW, limH)
 		}
 		n.contentW, n.contentH = c.X, c.Y
 		return c
@@ -430,7 +430,11 @@ func (e *engine) place(n *Node) {
 		}
 	}
 	crossInner := crossOf(inner, row)
-	for _, c := range kids {
+	for i, c := range kids {
+		if s.wrap || s.grid > 0 {
+			c.pos = origin.Add(n.flowPositions[i])
+			continue
+		}
 		ms, me, cs, ce := e.margins(c, row)
 		cross := cs
 		switch align {

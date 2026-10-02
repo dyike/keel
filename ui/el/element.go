@@ -42,13 +42,14 @@ type Node struct {
 	selected      *bool
 
 	// Layout results, in pixels. pos is relative to the parent's border box.
-	pos, size image.Point
-	forceW    int // set by the parent: stretch or flex size; -1 none
-	forceH    int
-	contentW  int // scroll containers: width of the content
-	contentH  int // scroll containers: height of the content
-	key       stateKey
-	textStyle textStyle // resolved, inherited
+	pos, size     image.Point
+	forceW        int // set by the parent: stretch or flex size; -1 none
+	forceH        int
+	flowPositions []image.Point // wrapped/grid child positions within the content box
+	contentW      int           // scroll containers: width of the content
+	contentH      int           // scroll containers: height of the content
+	key           stateKey
+	textStyle     textStyle // resolved, inherited
 
 	// Set on subtrees returned by Context.Cache: they are reused across
 	// frames, so a layout with the same inputs can reuse the last result.
@@ -146,10 +147,31 @@ func (s *Styled[T]) When(cond bool, fn func(*T)) *T {
 // Layout: direction, alignment, gap.
 
 // Row lays children out left to right. The default is top to bottom.
-func (s *Styled[T]) Row() *T { s.n.style.row = true; return s.self }
+func (s *Styled[T]) Row() *T {
+	s.n.style.row, s.n.style.wrap, s.n.style.grid = true, false, 0
+	return s.self
+}
 
 // Col lays children out top to bottom (the default).
-func (s *Styled[T]) Col() *T { s.n.style.row = false; return s.self }
+func (s *Styled[T]) Col() *T {
+	s.n.style.row, s.n.style.wrap, s.n.style.grid = false, false, 0
+	return s.self
+}
+
+// Wrap lays children left to right and starts a new line when width runs out.
+// Gap applies between items and lines; Grow distributes space within each line.
+func (s *Styled[T]) Wrap() *T {
+	s.n.style.row, s.n.style.wrap, s.n.style.grid = true, true, 0
+	return s.self
+}
+
+// Grid lays children in equal-width columns (at least one), in row order.
+// Columns honor fixed/minimum child widths; rows size to their tallest child.
+// Gap applies between columns and rows. It does not support spanning cells.
+func (s *Styled[T]) Grid(columns int) *T {
+	s.n.style.row, s.n.style.wrap, s.n.style.grid = false, false, max(columns, 1)
+	return s.self
+}
 
 // Gap puts dp between children.
 func (s *Styled[T]) Gap(dp float32) *T { s.n.style.gap = dp; return s.self }
