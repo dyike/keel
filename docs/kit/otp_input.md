@@ -14,3 +14,5 @@ code := kit.OtpInput("验证码", 6).OnComplete(func(s string) { verify(s) })
 Agent：角色 `textbox`，名字是标签，`value` 是已输入的数字。
 
 验证：`go run ./examples/components -section otp_input`，加 `-theme dark` 检查深色。
+
+窄容器中各位等宽收缩，实际编辑区与可见格子的宽度一致。默认六位在 224dp 内容宽度下仍完整显示；1× / 2× 的数字边界和整段粘贴有回归测试。

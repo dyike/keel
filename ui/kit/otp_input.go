@@ -51,7 +51,8 @@ func (v *OtpInputView) Render(cx *el.Context) el.Element {
 	focused := cx.FocusWithin(id)
 	const box, gap = 40, 8
 	digits := []rune(v.value)
-	row := el.Div().Row().Gap(gap)
+	width := float32(v.length*box + (v.length-1)*gap)
+	row := el.Div().WFull().Row().Gap(gap)
 	for i := 0; i < v.length; i++ {
 		ch := ""
 		if i < len(digits) {
@@ -64,7 +65,7 @@ func (v *OtpInputView) Render(cx *el.Context) el.Element {
 		case focused && !v.disabled && i == min(len(digits), v.length-1):
 			border = theme.Primary
 		}
-		cell := el.Div().W(el.Dp(box)).H(el.Dp(48)).Rounded(6).Border(1, border).Bg(theme.Surface).Center().
+		cell := el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(box)).H(el.Dp(48)).Rounded(6).Border(1, border).Bg(theme.Surface).Center().
 			Child(el.Text(ch).TextSize(20).Bold())
 		if v.disabled {
 			cell.Bg(theme.Subtle).TextColor(theme.Muted)
@@ -73,10 +74,9 @@ func (v *OtpInputView) Render(cx *el.Context) el.Element {
 	}
 	// One real text box lies invisibly over the cells: it owns focus, editing,
 	// Backspace and paste; the cells only display its digits.
-	width := float32(v.length*box + (v.length-1)*gap)
 	clear := color.NRGBA{}
 	field := el.Input().ID(v.FocusID()).Name(v.a11y()).Bind(&v.value).Filter("0123456789").MaxLen(v.length).
-		Absolute().Top(0).Left(0).W(el.Dp(width)).H(el.Dp(48)).Border(0, clear).Bg(clear).TextColor(clear).P(0).
+		Absolute().Top(0).Left(0).Right(0).H(el.Dp(48)).Border(0, clear).Bg(clear).TextColor(clear).P(0).
 		OnChange(func(s string) {
 			v.err = ""
 			if v.onChange != nil {
@@ -86,7 +86,7 @@ func (v *OtpInputView) Render(cx *el.Context) el.Element {
 				v.onComplete(s)
 			}
 		})
-	wrap := el.Div().ID(id).Disabled(v.disabled).Items(el.Start).Child(row, field)
+	wrap := el.Div().ID(id).W(el.Dp(width)).MaxW(el.Full).Disabled(v.disabled).Items(el.Start).Child(row, field)
 	return labelled(v.label, wrap, v.err)
 }
 
