@@ -194,11 +194,26 @@ func listEnabledKey(name string, current, count int, disabled func(int) bool) (i
 	if current < 0 && key.Name(name) == key.NameUpArrow {
 		i = count - 1
 	}
+	target := i
 	for i >= 0 && i < count {
 		if !disabled(i) {
 			return i, true
 		}
 		i += direction
+	}
+	if key.Name(name) == key.NamePageDown {
+		for i := target - 1; i > current; i-- {
+			if !disabled(i) {
+				return i, true
+			}
+		}
+	}
+	if key.Name(name) == key.NamePageUp {
+		for i := target + 1; i < current; i++ {
+			if !disabled(i) {
+				return i, true
+			}
+		}
 	}
 	return current, true
 }

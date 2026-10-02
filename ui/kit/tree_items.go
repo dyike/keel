@@ -1,0 +1,213 @@
+package kit
+
+import (
+	"fmt"
+	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/el"
+	"math"
+	"slices"
+)
+
+func (v *TreeView) SetNodeDisabled(id string, on bool) {
+	if n := v.nodes[id]; n != nil {
+		n.Disabled = on
+	}
+}
+func (v *TreeView) MultiSelect() *TreeView {
+	v.multi = true
+	v.SetSelectedIDs([]string{v.selected})
+	return v
+}
+func (v *TreeView) OnSelectionChange(fn func([]string)) *TreeView { v.onSelection = fn; return v }
+
+// SelectedIDs includes collapsed selections in tree order, as a fresh snapshot.
+func (v *TreeView) SelectedIDs() []string {
+	if !v.multi {
+		if v.selected != "" {
+			return []string{v.selected}
+		}
+		return nil
+	}
+	var ids []string
+	var walk func([]*TreeNode)
+	walk = func(nodes []*TreeNode) {
+		for _, n := range nodes {
+			if v.selection[n.ID] {
+				ids = append(ids, n.ID)
+			}
+			walk(n.Children)
+		}
+	}
+	walk(v.roots)
+	return ids
+}
+func (v *TreeView) SetSelectedIDs(ids []string) {
+	selection := make(map[string]bool)
+	v.SetValue("")
+	for _, id := range ids {
+		if v.nodes[id] != nil {
+			selection[id] = true
+			v.SetValue(id)
+			if !v.multi {
+				break
+			}
+		}
+	}
+	v.selection = selection
+}
+func (v *TreeView) selectedNode(id string) bool {
+	if v.multi {
+		return v.selection[id]
+	}
+	return id == v.selected
+}
+func (v *TreeView) selectNode(cx *el.Context, i int, mods key.Modifiers) {
+	if i < 0 || i >= len(v.rows) || v.rows[i].node.Disabled {
+		return
+	}
+	before := v.SelectedIDs()
+	id := v.rows[i].node.ID
+	if v.multi {
+		add := mods.Contain(key.ModShortcut)
+		anchor := v.index(v.anchor)
+		if mods.Contain(key.ModShift) && anchor >= 0 {
+			if !add {
+				v.selection = make(map[string]bool)
+			}
+			for p := min(i, anchor); p <= max(i, anchor); p++ {
+				if !v.rows[p].node.Disabled {
+					v.selection[v.rows[p].node.ID] = true
+				}
+			}
+		} else {
+			if !add {
+				v.selection = make(map[string]bool)
+			}
+			if add && v.selection[id] {
+				delete(v.selection, id)
+			} else {
+				v.selection[id] = true
+			}
+			v.anchor = id
+		}
+	}
+	v.choose(cx, i)
+	if !slices.Equal(before, v.SelectedIDs()) && v.onSelection != nil {
+		v.onSelection(v.SelectedIDs())
+	}
+}
+
+// Roots returns an owned snapshot for persistence after a move.
+func (v *TreeView) Roots() []*TreeNode {
+	var clone func([]*TreeNode) []*TreeNode
+	clone = func(nodes []*TreeNode) []*TreeNode {
+		out := make([]*TreeNode, len(nodes))
+		for i, n := range nodes {
+			copy := *n
+			copy.Children = clone(n.Children)
+			out[i] = &copy
+		}
+		return out
+	}
+	return clone(v.roots)
+}
+func (v *TreeView) siblings(id string) (*[]*TreeNode, int, string) {
+	var find func(*[]*TreeNode, string) (*[]*TreeNode, int, string)
+	find = func(nodes *[]*TreeNode, parent string) (*[]*TreeNode, int, string) {
+		for i, n := range *nodes {
+			if n.ID == id {
+				return nodes, i, parent
+			}
+			if list, pos, p := find(&n.Children, n.ID); list != nil {
+				return list, pos, p
+			}
+		}
+		return nil, -1, ""
+	}
+	return find(&v.roots, "")
+}
+
+// MoveNode moves a subtree into parent ("" means roots). index is its final
+// sibling position; len(target) means append. Invalid moves leave the tree intact.
+// Programmatic moves do not invoke callbacks.
+func (v *TreeView) MoveNode(id, parent string, index int) error {
+	node := v.nodes[id]
+	if node == nil {
+		return fmt.Errorf("kit.Tree: unknown node %q", id)
+	}
+	target := &v.roots
+	if parent != "" {
+		p := v.nodes[parent]
+		if p == nil {
+			return fmt.Errorf("kit.Tree: unknown parent %q", parent)
+		}
+		target = &p.Children
+	}
+	var contains func(*TreeNode) bool
+	contains = func(n *TreeNode) bool {
+		if n.ID == parent {
+			return true
+		}
+		for _, c := range n.Children {
+			if contains(c) {
+				return true
+			}
+		}
+		return false
+	}
+	if contains(node) {
+		return fmt.Errorf("kit.Tree: cannot move a node into its descendant")
+	}
+	if index < 0 || index > len(*target) {
+		return fmt.Errorf("kit.Tree: invalid insertion index")
+	}
+	source, from, _ := v.siblings(id)
+	*source = slices.Delete(*source, from, from+1)
+	index = min(index, len(*target))
+	*target = slices.Insert(*target, index, node)
+	if parent != "" {
+		v.open[parent] = true
+	}
+	selection := v.selection
+	v.SetValue(v.selected)
+	v.selection = selection
+	v.flatten()
+	return nil
+}
+func (v *TreeView) Reorderable(fn func(id, parent string, index int)) *TreeView {
+	v.reorderable = true
+	v.onReorder = fn
+	return v
+}
+func (v *TreeView) dragNode(i int, e el.DragEvent) {
+	switch e.Kind {
+	case el.DragStart:
+		v.dragID = v.rows[i].node.ID
+		v.dragY = e.Y
+	case el.DragEnd:
+		id := v.dragID
+		v.dragID = ""
+		from := v.index(id)
+		if e.Canceled || from < 0 || v.disabled || v.rows[from].node.Disabled {
+			return
+		}
+		target := max(0, min(len(v.rows)-1, from+int(math.Round(float64((e.Y-v.dragY)/28)))))
+		if target == from || v.rows[target].node.Disabled {
+			return
+		}
+		siblings, index, parent := v.siblings(v.rows[target].node.ID)
+		source, old, _ := v.siblings(id)
+		if siblings == source && old < index {
+			index--
+		}
+		if target > from {
+			index++
+		}
+		if parent != "" && v.nodes[parent].Disabled {
+			return
+		}
+		if err := v.MoveNode(id, parent, index); err == nil && v.onReorder != nil {
+			v.onReorder(id, parent, index)
+		}
+	}
+}
