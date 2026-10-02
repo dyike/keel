@@ -19,27 +19,27 @@ import (
 type Strings struct {
 	Lang string // BCP 47 tag of this text, e.g. zh-CN, en
 
-	OK, Cancel, Close, Remove, Toggle, Clear string
-	Copy, Copied                             string
-	Loading, Menu, MoreOptions               string
-	SelectHint, NoData                       string
-	Image, ImageLoading, ImageFailed         string
-	PlainText, WrapLines, NoWrapLines        string
-	Search, NoMatches                        string
-	Increase, Decrease                       string
-	PrevMonth, NextMonth                     string
-	PrevPage, NextPage                       string
-	Commands, SearchCommands                 string
-	Latest, Uploading                        string
-	More, Resize                             string
-	CollapseSidebar, ExpandSidebar           string
-	PrevSlide, NextSlide                     string
-	DockLeft, DockRight, DockBottom          string
-	SearchSettings                           string
-	Minimize, Maximize, Restore              string
-	ShowTable, ShowChart, ResetView          string
-	ColorShade, Hue, Opacity                 string
-	Previous, Next, Submit, Required         string
+	OK, Cancel, Close, Remove, Toggle, Clear, Retry string
+	Copy, Copied                                    string
+	Loading, Menu, MoreOptions                      string
+	SelectHint, NoData                              string
+	Image, ImageLoading, ImageFailed                string
+	PlainText, WrapLines, NoWrapLines               string
+	Search, NoMatches                               string
+	Increase, Decrease                              string
+	PrevMonth, NextMonth                            string
+	PrevPage, NextPage                              string
+	Commands, SearchCommands                        string
+	Latest, Uploading                               string
+	More, Resize                                    string
+	CollapseSidebar, ExpandSidebar                  string
+	PrevSlide, NextSlide                            string
+	DockLeft, DockRight, DockBottom                 string
+	SearchSettings                                  string
+	Minimize, Maximize, Restore                     string
+	ShowTable, ShowChart, ResetView                 string
+	ColorShade, Hue, Opacity                        string
+	Previous, Next, Submit, Required                string
 	// Progress formats "question i of n", e.g. "第 3 / 10 题".
 	Progress func(i, n int) string
 	// Total formats an item count for a pager, e.g. "共 36 条".
@@ -71,7 +71,7 @@ func (s Strings) Name(action, target string) string {
 func Chinese() Strings {
 	return Strings{
 		Lang: "zh-CN",
-		OK:   "确定", Cancel: "取消", Close: "关闭", Remove: "移除", Toggle: "切换", Clear: "清空",
+		OK:   "确定", Cancel: "取消", Close: "关闭", Remove: "移除", Toggle: "切换", Clear: "清空", Retry: "重试",
 		Copy: "复制", Copied: "已复制",
 		Loading: "加载中", Menu: "菜单", MoreOptions: "更多选项",
 		SelectHint: "请选择", NoData: "暂无数据",
@@ -102,7 +102,7 @@ func Chinese() Strings {
 func English() Strings {
 	return Strings{
 		Lang: "en",
-		OK:   "OK", Cancel: "Cancel", Close: "Close", Remove: "Remove", Toggle: "Toggle", Clear: "Clear",
+		OK:   "OK", Cancel: "Cancel", Close: "Close", Remove: "Remove", Toggle: "Toggle", Clear: "Clear", Retry: "Retry",
 		Copy: "Copy", Copied: "Copied",
 		Loading: "Loading", Menu: "Menu", MoreOptions: "More options",
 		SelectHint: "Select…", NoData: "No data",

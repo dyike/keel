@@ -58,6 +58,10 @@ const minColumn = 40
 // Row indexes in callbacks, Value and SetValue are positions in the data given
 // to SetRows, whatever the sort order.
 type TableView struct {
+	filter                  func([]string) bool
+	hasMore, loadRequested  bool
+	loadError               string
+	onLoadMore              func()
 	cellMode                bool
 	cells                   map[TableCell]bool
 	activeCell, cellAnchor  TableCell
@@ -144,12 +148,18 @@ func (v *TableView) Empty(s string) *TableView { v.empty = s; return v }
 
 // SetLoading shows a spinner over the rows while data loads elsewhere; deliver
 // the rows with core.Update, then SetRows and SetLoading(false).
-func (v *TableView) SetLoading(on bool) { v.loading = on }
+func (v *TableView) SetLoading(on bool) {
+	v.loading = on
+	if on {
+		v.loadError = ""
+	}
+}
 
 // SetRows copies the data, keeping the sort column. The selection is
 // cleared when its index no longer exists.
 func (v *TableView) SetRows(rows [][]string) {
 	v.rows = cloneTableRows(rows)
+	v.loadRequested = false
 	if v.selected >= len(rows) {
 		v.selected = -1
 	}
@@ -241,9 +251,11 @@ func (v *TableView) SortBy(col int, desc bool) {
 func (v *TableView) resort() {
 	v.order = v.order[:0]
 	for i := range v.rows {
-		v.order = append(v.order, i)
+		if v.filter == nil || v.filter(slices.Clone(v.rows[i])) {
+			v.order = append(v.order, i)
+		}
 	}
-	v.list.SetCount(len(v.rows))
+	v.list.SetCount(len(v.order))
 	c := v.sortCol
 	if c < 0 {
 		return
@@ -402,6 +414,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 }
 
 func (v *TableView) Render(cx *el.Context) el.Element {
+	v.loadNearEnd(cx)
 	if v.reveal {
 		v.list.ScrollTo(cx, v.position(v.selected))
 		if v.cellMode {
@@ -424,20 +437,26 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 		head.Child(v.header(cx, c))
 	}
 	body := el.Div().Items(el.Stretch).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).Child(v.list.Render(cx))
-	if len(v.rows) == 0 && !v.loading {
+	var status el.Element
+	if len(v.order) == 0 && !v.loading && v.loadError == "" {
 		empty := v.empty
 		if empty == "" {
 			empty = locale.Current().NoData
 		}
-		body.Child(el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Child(el.Text(empty).TextColor(theme.Muted)))
+		status = el.Text(empty).TextColor(theme.Muted)
+	}
+	if v.loadError != "" {
+		retry := Button(locale.Current().Retry, v.requestMore)
+		retry.SetDisabled(v.onLoadMore == nil)
+		status = el.Div().Gap(8).Items(el.Center).Child(el.Text(v.loadError).TextColor(theme.Danger), retry.Render(cx))
 	}
 	if v.loading {
-		body.Child(el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Child(Spinner().Render(cx)))
+		status = Spinner().Render(cx)
 	}
 	content := el.Div().MinW(el.Dp(minWidth)).Items(el.Stretch).
 		When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Child(head, el.Div().H(el.Dp(1)).NoShrink().Bg(theme.Border), body)
-	return el.Div().ID(autoID("table", v)).ScrollX().Role("table").Value(locale.Current().Rows(len(v.rows))).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
+	table := el.Div().ID(autoID("table", v)).ScrollX().Role("table").Value(locale.Current().Rows(len(v.order))).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
@@ -461,4 +480,13 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 			return ok
 		}).
 		Child(content)
+	if status == nil {
+		return table
+	}
+	// Status belongs to the viewport, not the horizontally scrolling content.
+	overlay := el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Child(status)
+	if v.loadError != "" {
+		overlay.Bg(theme.Surface).Rounded(6).Border(1, theme.Border)
+	}
+	return el.Div().Items(el.Stretch).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).Child(table, overlay)
 }

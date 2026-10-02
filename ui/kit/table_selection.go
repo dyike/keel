@@ -34,7 +34,7 @@ func (v *TableView) SelectedRows() []int {
 		return rows
 	}
 	if !v.multi {
-		if v.selected >= 0 {
+		if v.selected >= 0 && v.position(v.selected) >= 0 {
 			return []int{v.selected}
 		}
 		return nil
@@ -163,7 +163,7 @@ func (v *TableView) selectionKey(e el.KeyEvent) bool {
 			if e.State == el.KeyPress {
 				before := v.SelectedCells()
 				v.cells = make(map[TableCell]bool)
-				for row := range v.rows {
+				for _, row := range v.order {
 					for _, c := range v.visibleColumns() {
 						v.cells[TableCell{row, c}] = true
 					}
@@ -178,7 +178,7 @@ func (v *TableView) selectionKey(e el.KeyEvent) bool {
 		if e.State == el.KeyPress {
 			before := v.SelectedRows()
 			v.selection = make(map[int]bool, len(v.rows))
-			for row := range v.rows {
+			for _, row := range v.order {
 				v.selection[row] = true
 			}
 			if !slices.Equal(before, v.SelectedRows()) && v.onSelection != nil {

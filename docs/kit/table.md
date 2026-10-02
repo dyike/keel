@@ -47,3 +47,7 @@ Agent：角色 `table`，`value` 是行数（如"36 行"）；表头是 `columnh
 `CellSelect()` 切换到单元格模式并清空选区，`MultiSelect()` 可切回行模式。普通点击选单格，Ctrl/Cmd 点击增减单格，Shift 点击或方向键扩展矩形范围；方向键移动、Home/End 跳到行首/尾，Ctrl/Cmd+Home/End 跳到整表首/尾，PageUp/PageDown 移动八行，并滚动露出目标单元格。冻结列保持固定。
 
 此模式点击表头选整列，Shift 点击选连续多列，Ctrl/Cmd 点击增减整列，双击表头排序。`TableCell{Row, Column}` 使用源数据索引，`SelectedCells()` 返回按显示顺序排列的副本，`SetSelectedCells` 程序赋值不触发 `OnCellSelectionChange`。`SetSelectedRows` 选中指定行的全部可见单元格；`SetValue` 选中该行首个可见单元格。隐藏列保留选区，复制时只输出参与选区的可见列；稀疏选区的未选交叉单元格输出空值。修改源数据长度后清理越界选区。
+
+`SetFilter(func(row []string) bool)` 在排序前过滤源数据，传入的行是副本；`nil` 清除筛选。筛选条件变化后需重新调用此方法。`Len()` 是源行数，`VisibleLen()` 是筛选后行数；源数据索引和选区保留，筛选掉的行不参与复制或全选。
+
+分页加载使用 `OnLoadMore(fn)` 和 `SetHasMore(true)`：距离底部两行以内自动请求，组件在回调前设为 loading，同一份数据最多自动请求一次。异步结果通过 `core.Update` 交付：`SetRows` 更新全部已加载数据，`SetLoading(false)` 结束请求，末页再 `SetHasMore(false)`。失败调用 `SetLoadError(message)`，停止自动重试，用户点击重试后重新调用 `OnLoadMore`。禁用或隐藏时不自动加载。筛选后内容不足一屏也会继续分页，应用必须正确标记末页。示例 `go run ./examples/components -section table_data` 模拟首次加载失败、重试和三页数据；状态提示始终位于视口内。
