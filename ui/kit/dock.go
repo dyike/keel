@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"gioui.org/io/key"
 	"slices"
 
 	"gioui.org/io/pointer"
@@ -29,6 +30,7 @@ type DockPanel struct {
 // DockLayout is everything about a Dock's arrangement, for saving and
 // restoring it (it encodes as JSON). Panel lists are in tab order.
 type DockLayout struct {
+	Version                         int      `json:"version,omitempty"`
 	Left, Right, Bottom             []string `json:",omitempty"`
 	LeftActive, RightActive         string   `json:",omitempty"`
 	BottomActive                    string   `json:",omitempty"`
@@ -41,25 +43,36 @@ type DockLayout struct {
 // moves it to another region or closes it. Layout and SetLayout save and
 // restore the arrangement.
 type DockView struct {
-	center   el.View
-	panels   map[string]DockPanel
-	layout   DockLayout
-	painted  [3]float32
-	total    [2]float32 // painted width and height of the whole dock, dp
-	grab     float32
-	menus    [3]*MenuView
-	onLayout func(DockLayout)
+	center      el.View
+	panels      map[string]DockPanel
+	layout      DockLayout
+	painted     [3]float32
+	total       [2]float32 // painted width and height of the whole dock, dp
+	grab        float32
+	menus       [3]*MenuView
+	onLayout    func(DockLayout)
+	disabled    bool
+	resizing    bool
+	resizeSide  DockSide
+	resizeStart float32
 }
 
 func Dock(center el.View) *DockView {
 	return &DockView{center: center, panels: map[string]DockPanel{},
-		layout: DockLayout{LeftSize: 240, RightSize: 260, BottomSize: 180},
+		layout: DockLayout{Version: 1, LeftSize: 240, RightSize: 260, BottomSize: 180},
 		menus:  [3]*MenuView{Menu(), Menu(), Menu()}}
 }
 
 // Panel adds a panel to a region; the first panel added to a region is active.
 func (v *DockView) Panel(p DockPanel, side DockSide) *DockView {
+	if p.ID == "" || side > DockBottom {
+		return v
+	}
+	_, exists := v.panels[p.ID]
 	v.panels[p.ID] = p
+	if exists {
+		return v
+	}
 	ids, active := v.side(side)
 	*ids = append(*ids, p.ID)
 	if *active == "" {
@@ -81,47 +94,90 @@ func (v *DockView) Layout() DockLayout {
 
 // SetLayout restores an arrangement. Unknown panel IDs are dropped; panels
 // it does not mention stay where they are.
-func (v *DockView) SetLayout(l DockLayout) {
-	known := func(ids []string) []string {
-		return slices.DeleteFunc(slices.Clone(ids), func(id string) bool { _, ok := v.panels[id]; return !ok })
+func (v *DockView) SetLayout(l DockLayout) bool {
+	if l.Version < 0 || l.Version > 1 {
+		return false
 	}
-	mentioned := map[string]bool{}
-	for _, ids := range [][]string{l.Left, l.Right, l.Bottom, l.Hidden} {
-		for _, id := range ids {
-			mentioned[id] = true
+	for _, size := range []float32{l.LeftSize, l.RightSize, l.BottomSize} {
+		if !finiteNumber(float64(size)) {
+			return false
 		}
 	}
-	keep := func(ids []string) []string {
-		var out []string
+	placed := map[string]bool{}
+	known := func(ids []string) ([]string, bool) {
+		out := []string{}
 		for _, id := range ids {
-			if !mentioned[id] {
+			if _, ok := v.panels[id]; !ok {
+				continue
+			}
+			if placed[id] {
+				return nil, false
+			}
+			placed[id] = true
+			out = append(out, id)
+		}
+		return out, true
+	}
+	next := l
+	next.Version = 1
+	var ok bool
+	if next.Left, ok = known(l.Left); !ok {
+		return false
+	}
+	if next.Right, ok = known(l.Right); !ok {
+		return false
+	}
+	if next.Bottom, ok = known(l.Bottom); !ok {
+		return false
+	}
+	keep := func(old []string) []string {
+		var out []string
+		for _, id := range old {
+			if !placed[id] {
 				out = append(out, id)
 			}
 		}
 		return out
 	}
-	old := v.layout
-	v.layout = l
-	v.layout.Left = append(known(l.Left), keep(old.Left)...)
-	v.layout.Right = append(known(l.Right), keep(old.Right)...)
-	v.layout.Bottom = append(known(l.Bottom), keep(old.Bottom)...)
-	v.layout.Hidden = append(known(l.Hidden), keep(old.Hidden)...)
-	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
-		v.fixActive(s)
+	next.Left = append(next.Left, keep(v.layout.Left)...)
+	next.Right = append(next.Right, keep(v.layout.Right)...)
+	next.Bottom = append(next.Bottom, keep(v.layout.Bottom)...)
+	hidden := map[string]bool{}
+	next.Hidden = nil
+	for _, id := range l.Hidden {
+		if _, ok := v.panels[id]; ok && !hidden[id] {
+			hidden[id] = true
+			next.Hidden = append(next.Hidden, id)
+		}
 	}
-	if l.LeftSize <= 0 {
-		v.layout.LeftSize = old.LeftSize
+	// Unmentioned panels retain both their region and previous hidden state.
+	for _, id := range v.layout.Hidden {
+		if !placed[id] && !hidden[id] {
+			hidden[id] = true
+			next.Hidden = append(next.Hidden, id)
+		}
 	}
-	if l.RightSize <= 0 {
-		v.layout.RightSize = old.RightSize
+	if next.LeftSize <= 0 {
+		next.LeftSize = v.layout.LeftSize
 	}
-	if l.BottomSize <= 0 {
-		v.layout.BottomSize = old.BottomSize
+	if next.RightSize <= 0 {
+		next.RightSize = v.layout.RightSize
 	}
+	if next.BottomSize <= 0 {
+		next.BottomSize = v.layout.BottomSize
+	}
+	v.layout = next
+	for _, side := range []DockSide{DockLeft, DockRight, DockBottom} {
+		v.fixActive(side)
+	}
+	return true
 }
 
 // Visible reports whether a panel is shown (not closed).
-func (v *DockView) Visible(id string) bool { return !slices.Contains(v.layout.Hidden, id) }
+func (v *DockView) Visible(id string) bool {
+	_, ok := v.panels[id]
+	return ok && !slices.Contains(v.layout.Hidden, id)
+}
 
 // SetVisible closes a panel or reopens it in the region it was last in (left
 // if none).
@@ -147,7 +203,7 @@ func (v *DockView) SetVisible(id string, on bool) {
 
 // Move puts a panel at the end of a region and makes it that region's active tab.
 func (v *DockView) Move(id string, to DockSide) {
-	if _, ok := v.panels[id]; !ok {
+	if _, ok := v.panels[id]; !ok || to > DockBottom {
 		return
 	}
 	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
@@ -213,6 +269,9 @@ func (v *DockView) fixActive(s DockSide) {
 }
 
 func (v *DockView) changed() {
+	if v.disabled {
+		return
+	}
 	if v.onLayout != nil {
 		v.onLayout(v.Layout())
 	}
@@ -283,7 +342,7 @@ func (v *DockView) handle(s DockSide) el.Element {
 	if s == DockBottom {
 		cursor, sign = pointer.CursorRowResize, -1
 	}
-	h := el.Div().Role("separator").Name(locale.Current().Resize).NoShrink().Bg(theme.Border).Cursor(cursor).
+	h := el.Div().Focusable(true).FocusStyle(func(st *el.Style) { st.Bg(theme.Primary) }).Role("separator").Name(locale.Current().Resize).NoShrink().Bg(theme.Border).Cursor(cursor).
 		Hover(func(st *el.Style) { st.Bg(theme.Primary) }).
 		OnDrag(func(e el.DragEvent) {
 			pos := e.X
@@ -293,12 +352,51 @@ func (v *DockView) handle(s DockSide) el.Element {
 			switch e.Kind {
 			case el.DragStart:
 				v.grab = pos
+				v.resizing = true
+				v.resizeSide = s
+				v.resizeStart = *v.size(s)
 			case el.DragEnd:
-				v.changed()
+				v.resizing = false
+				if e.Canceled {
+					*v.size(s) = v.resizeStart
+				} else if *v.size(s) != v.resizeStart {
+					v.changed()
+				}
 			default:
 				*v.size(s) = max(80, v.painted[s]+sign*(pos-v.grab))
 			}
 		})
+	h.OnKey(func(e el.KeyEvent) bool {
+		if e.Modifiers != 0 {
+			return false
+		}
+		delta := float32(0)
+		next := *v.size(s)
+		switch key.Name(e.Name) {
+		case key.NameLeftArrow, key.NameUpArrow:
+			delta = -10 * sign
+		case key.NameRightArrow, key.NameDownArrow:
+			delta = 10 * sign
+		case key.NameHome:
+			next = 80
+		case key.NameEnd:
+			axis := 0
+			if s == DockBottom {
+				axis = 1
+			}
+			next = max(80, v.total[axis]-120)
+		default:
+			return false
+		}
+		if e.State == el.KeyPress {
+			old := *v.size(s)
+			*v.size(s) = max(80, next+delta)
+			if old != *v.size(s) {
+				v.changed()
+			}
+		}
+		return true
+	})
 	if s == DockBottom {
 		return h.H(el.Dp(4))
 	}
@@ -329,6 +427,10 @@ func (v *DockView) fitted(s DockSide) float32 {
 }
 
 func (v *DockView) Render(cx *el.Context) el.Element {
+	id := autoID("dock", v)
+	if v.resizing && !cx.Enabled(id) {
+		v.cancelResize()
+	}
 	middle := el.Div().Grow().W(el.Dp(0)).Items(el.Stretch)
 	center := el.Div().Grow().H(el.Dp(0)).Items(el.Stretch)
 	if v.center != nil {
@@ -338,7 +440,7 @@ func (v *DockView) Render(cx *el.Context) el.Element {
 	if b := v.region(cx, DockBottom); b != nil {
 		middle.Child(v.handle(DockBottom), b)
 	}
-	row := el.Div().Row().Grow().Items(el.Stretch).Decorate(func(gtx core.C, draw func()) {
+	row := el.Div().ID(id).Disabled(v.disabled).Row().Grow().Items(el.Stretch).Decorate(func(gtx core.C, draw func()) {
 		if px := gtx.Metric.PxPerDp; px > 0 {
 			v.total = [2]float32{float32(gtx.Constraints.Max.X) / px, float32(gtx.Constraints.Max.Y) / px}
 		}
@@ -352,4 +454,20 @@ func (v *DockView) Render(cx *el.Context) el.Element {
 		row.Child(v.handle(DockRight), r)
 	}
 	return row
+}
+
+func (v *DockView) cancelResize() {
+	if v.resizing {
+		*v.size(v.resizeSide) = v.resizeStart
+		v.resizing = false
+	}
+}
+func (v *DockView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.cancelResize()
+		for _, m := range v.menus {
+			m.SetValue(false)
+		}
+	}
 }
