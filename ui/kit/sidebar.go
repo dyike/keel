@@ -176,9 +176,9 @@ func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []st
 		return row
 	}
 	// Collapsed: icon only, the label in a tooltip; a dot stands for the badge.
-	row.Justify(el.Center).Px(0)
+	row.Justify(el.Center).Px(0).WFull()
 	if it.Badge > 0 {
-		row = el.Div().Items(el.Stretch).Child(row, el.Div().Absolute().Top(4).Right(8).Child(Badge(1).Dot().Tone(ToneInfo).Render(cx)))
+		row = el.Div().WFull().Items(el.Stretch).Child(row, el.Div().Absolute().Top(4).Right(8).Child(Badge(1).Dot().Tone(ToneInfo).Render(cx)))
 	}
 	tip := v.tips[it.ID]
 	if tip == nil {
@@ -206,7 +206,13 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 	if v.header != nil {
 		nav.Child(el.Div().ID(base + "/header").NoShrink().Child(v.header.Render(cx)))
 	}
-	body := el.Div().ID(base + "/scroll").Grow().MinH(el.Dp(0)).ScrollY().Gap(4).Items(el.Stretch)
+	// Put the 10dp scrollbar hit area in the outer gutter, leaving 2dp
+	// between it and the rows. Extend into the existing navigation padding
+	// so expanded labels keep their available width.
+	body := el.Div().ID(base + "/scroll").Grow().MinH(el.Dp(0)).ScrollY().Gap(4).Items(el.Stretch).Mx(-12).Px(12)
+	if v.collapsed {
+		body.Mx(-8).Pl(8)
+	}
 	_, viewportHeight := cx.ViewportSize()
 	nav.MaxH(el.Dp(viewportHeight))
 	if v.revealID != "" {

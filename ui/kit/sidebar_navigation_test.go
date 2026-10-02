@@ -106,3 +106,42 @@ func TestSidebarCollapsedSlotsAndProgramReveal(t *testing.T) {
 		t.Fatal("collapsed selected item not revealed")
 	}
 }
+
+func TestSidebarScrollbarGutter(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		for _, collapsed := range []bool{false, true} {
+			t.Run(fmt.Sprintf("scale%d/collapsed%v", scale, collapsed), func(t *testing.T) {
+				items := make([]SidebarItem, 30)
+				for i := range items {
+					items[i] = SidebarItem{ID: fmt.Sprint(i), Label: fmt.Sprintf("Row %d", i), Icon: IconInbox, Badge: 6}
+				}
+				v := Sidebar().Height(250).Section("", items...)
+				v.SetCollapsed(collapsed)
+				h := renderView(v, 400, scale)
+				nav, ok := semanticNode(h, "navigation")
+				if !ok {
+					t.Fatal("missing navigation")
+				}
+				row := bounds(h, "Row 0")
+				// The scrollbar track occupies the last 10dp of the body/nav; rows
+				// must stop before it, including the badge wrapper in collapsed mode.
+				if row.Empty() || row.Max.X > nav.Desc.Bounds.Max.X-12*scale || row.Dx() < 28*scale {
+					t.Fatalf("row %v overlaps gutter or squeezes icon in nav %v", row, nav.Desc.Bounds)
+				}
+				click(t, h, "Row 0")
+				if v.Value() != "0" {
+					t.Fatal("row click failed")
+				}
+				before := v.Value()
+				// Track click scrolls instead of activating the row under the scrollbar.
+				h.Click(float32(nav.Desc.Bounds.Max.X-5*scale), float32(row.Min.Y+120*scale))
+				if v.Value() != before {
+					t.Fatal("scrollbar click activated a row")
+				}
+				if shown(h, "Row 0") {
+					t.Fatal("scrollbar track did not scroll")
+				}
+			})
+		}
+	}
+}

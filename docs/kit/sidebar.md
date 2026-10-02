@@ -9,6 +9,7 @@ nav := kit.Sidebar().
     OnChange(navigate)
 ```
 
+- 鼠标点击只显示选中背景；Tab、方向键导航显示焦点框。滚动条占用右侧独立留白，不覆盖行背景、角标或点击区域。
 - 36dp 导航行、16dp 图标、14sp 文案；选中项使用中性底色和强调图标，计数为低对比数字，底部展开状态显示折叠文案。
 - 有标题的分组显示标题；没有标题的分组之间用分隔线隔开。
 - 每个可用项都能用 Tab 聚焦，↑ ↓ / Home / End / PageUp / PageDown 移动并滚动到目标，回车或空格激活。`Disabled` 或 `SetItemDisabled(id, bool)` 禁用单项；`SetDisabled` 禁用整个侧栏及插槽操作。
