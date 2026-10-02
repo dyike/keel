@@ -44,7 +44,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Combobox](../../docs/kit/combobox.md) | 可筛选输入 |
 | [Slider](../../docs/kit/slider.md) | 滑块 |
 | [NumberInput](../../docs/kit/number_input.md) | 数字输入 |
-| [OtpInput](../../docs/kit/otp_input.md) | 验证码分格输入 |
+| [OtpInput](../../docs/kit/otp_input.md) | 验证码、密码遮罩、分组与尺寸 |
 | [TimeField](../../docs/kit/time_field.md) | 时间输入 |
 | [Calendar](../../docs/kit/calendar.md) | 日历、范围 |
 | [DatePicker](../../docs/kit/date_picker.md) | 日期字段 |

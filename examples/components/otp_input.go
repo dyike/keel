@@ -18,8 +18,12 @@ func init() {
 				code.SetError("验证码错误，试试 123456")
 			}
 		})
+		pin := kit.OtpInput("密码 PIN · 4 位", 4).Masked(true).Groups(1).Size(40)
+		pin.SetValue("1234")
+		grouped := kit.OtpInput("分组 Groups · 3–2–2", 7).Groups(3).Size(56)
+		grouped.SetValue("1234567")
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Items(el.Start).Child(code.Render(cx), el.Text(msg).TextColor(theme.Muted))
+			return el.Div().P(24).Gap(12).Items(el.Start).Child(code.Render(cx), el.Text(msg).TextColor(theme.Muted), pin.Render(cx), grouped.Render(cx))
 		}))
 	})
 }
