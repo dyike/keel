@@ -88,6 +88,7 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 			Border(0, theme.Border).Bg(theme.Surface).P(0).Grow().MinH(el.Dp(float32(v.rows) * 22)).
 			MaxLen(v.maxLen).Filter(v.filter).ReadOnly(v.readOnly).
 			OnChange(func(s string) {
+				v.err = ""
 				if v.onChange != nil {
 					v.onChange(s)
 				}

@@ -18,3 +18,5 @@ note := kit.TextArea("备注").Rows(4)
 Agent：角色 `textbox`，名字是标签（没有标签时是占位文字，在 Form 里是行标签），`value` 是内容；清空按钮名为"清空 标签"。
 
 验证：`go run ./examples/components -section input`，加 `-theme dark` 检查深色。
+
+用户修改单行或多行输入后都会清除当前错误，便于重新校验；程序赋值不隐式清除服务端错误，禁用时输入也不会清除错误或触发回调。
