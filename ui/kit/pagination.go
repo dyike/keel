@@ -31,12 +31,17 @@ func (v *PaginationView) SetValue(p int) { v.page = min(max(p, 1), v.Pages()) }
 func (v *PaginationView) SetTotal(n int) { v.total = max(n, 0); v.SetValue(v.page) }
 
 // Pages is the number of pages, at least 1.
-func (v *PaginationView) Pages() int { return max(1, (v.total+v.size-1)/v.size) }
+func (v *PaginationView) Pages() int {
+	if v.total == 0 {
+		return 1
+	}
+	return (v.total-1)/v.size + 1
+}
 
 // Bounds returns the item range [start, end) of the current page.
 func (v *PaginationView) Bounds() (start, end int) {
 	start = (v.page - 1) * v.size
-	return start, min(start+v.size, v.total)
+	return start, start + min(v.size, v.total-start)
 }
 
 func (v *PaginationView) goTo(p int) {
@@ -87,7 +92,7 @@ func (v *PaginationView) Render(cx *el.Context) el.Element {
 	prev.SetDisabled(v.page <= 1)
 	next.SetDisabled(v.page >= v.Pages())
 	row := el.Div().Role("navigation").Value(strconv.Itoa(v.page)+"/"+strconv.Itoa(v.Pages())).
-		Row().Items(el.Center).Gap(4).Child(el.Text(text.Total(v.total)).TextColor(theme.Muted).TextSize(13), el.Div().W(el.Dp(4)), prev.Render(cx))
+		Wrap().Items(el.Center).Gap(4).Child(el.Text(text.Total(v.total)).TextColor(theme.Muted).TextSize(13), el.Div().W(el.Dp(4)), prev.Render(cx))
 	for _, p := range v.numbers() {
 		if p == 0 {
 			row.Child(el.Text("…").TextColor(theme.Muted).Px(4))

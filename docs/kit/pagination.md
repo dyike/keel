@@ -15,3 +15,5 @@ start, end := pages.Bounds() // 当前页的数据范围 [start, end)
 Agent：容器角色 `navigation`，`value` 为"当前页/总页数"；页码是名为数字的按钮。
 
 验证：`go run ./examples/components -section pagination`，加 `-theme dark` 检查深色。
+
+窄容器下总数、页码与前后页按钮自动换行，末页按钮仍可点击。页数和最后一页范围的计算避免整数加法溢出。
