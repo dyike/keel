@@ -42,6 +42,10 @@ type Context struct {
 	root      *RootWidget
 }
 
+// ClickModifiers reports modifier keys during the current pointer click
+// callback (including double click); outside that callback it returns zero.
+func (cx *Context) ClickModifiers() key.Modifiers { return cx.root.clickModifiers }
+
 // Cache returns the element built for key, calling build only when key was
 // not used in the previous frame. While the width it is given stays the same,
 // the element's layout is reused too, so long, mostly unchanging content (a
@@ -104,6 +108,7 @@ func (cx *Context) Shortcut(chord string, fn func()) {
 
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
+	clickModifiers key.Modifiers
 	requestedFocus event.Tag
 	mainTree       *Node
 	layers         map[any]*layerState
@@ -259,12 +264,14 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			if ev.Kind != gesture.KindClick {
 				continue
 			}
+			r.clickModifiers = ev.Modifiers
 			if ev.NumClicks >= 2 && st.onDoubleClick != nil {
 				core.Call(gtx, func() { r.callbacks = true; st.onDoubleClick() })
 			}
 			if st.onClick != nil {
 				core.Call(gtx, func() { r.callbacks = true; st.onClick() })
 			}
+			r.clickModifiers = 0
 		}
 		for st.onDrag != nil {
 			ev, ok := st.drag.Update(gtx.Metric, gtx.Source, gesture.Both)

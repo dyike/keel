@@ -21,7 +21,10 @@ func init() {
 		t = kit.Table(kit.Col("单号").Width(120), kit.Col("客户").Width(180),
 			kit.Col("金额").Width(120).Numeric().Cell(func(cx *el.Context, row int) el.Element {
 				return kit.Tag("¥" + t.Row(row)[2]).Tone(kit.ToneInfo).Render(cx)
-			}), kit.Col("状态").Width(100), kit.Col("仓库").Width(140), kit.Col("日期").Width(140)).FrozenColumns(1, 1).Height(360).OnActivate(func(r int) { msg = "打开 " + t.Row(r)[0] })
+			}), kit.Col("状态").Width(100), kit.Col("仓库").Width(140), kit.Col("日期").Width(140)).FrozenColumns(1, 1).MultiSelect().Height(360).OnActivate(func(r int) { msg = "打开 " + t.Row(r)[0] })
+		t.OnSelectionChange(func(rows []int) {
+			msg = fmt.Sprintf("选中 %d 行；Ctrl/Cmd+C 复制，Shift 扩展范围", len(rows))
+		})
 		t.SetRows(rows)
 		saved := t.LayoutState()
 		warehouseVisible := true

@@ -58,6 +58,10 @@ const minColumn = 40
 // Row indexes in callbacks, Value and SetValue are positions in the data given
 // to SetRows, whatever the sort order.
 type TableView struct {
+	multi                   bool
+	selection               map[int]bool
+	anchor                  int
+	onSelection             func([]int)
 	frozenLeft, frozenRight int
 	cols                    []*ColumnSpec
 	columns                 []int // display position → source column
@@ -87,7 +91,7 @@ func Table(cols ...*ColumnSpec) *TableView {
 		copy := *col
 		owned[i] = &copy
 	}
-	v := &TableView{cols: owned, sortCol: -1, selected: -1, widths: make([]float32, len(cols))}
+	v := &TableView{cols: owned, sortCol: -1, selected: -1, anchor: -1, widths: make([]float32, len(cols))}
 	v.hidden = make([]bool, len(cols))
 	for c := range cols {
 		v.columns = append(v.columns, c)
@@ -145,6 +149,14 @@ func (v *TableView) SetRows(rows [][]string) {
 	if v.selected >= len(rows) {
 		v.selected = -1
 	}
+	for row := range v.selection {
+		if row >= len(rows) {
+			delete(v.selection, row)
+		}
+	}
+	if v.anchor >= len(rows) {
+		v.anchor = -1
+	}
 	v.resort()
 }
 
@@ -186,7 +198,11 @@ func (v *TableView) SetValue(i int) {
 	if i < -1 || i >= len(v.rows) {
 		i = -1
 	}
-	v.selected, v.reveal = i, true
+	v.selected, v.anchor, v.reveal = i, i, true
+	v.selection = make(map[int]bool)
+	if i >= 0 {
+		v.selection[i] = true
+	}
 }
 
 // SortBy sorts by column col, descending if desc; col -1 restores data order.
@@ -309,7 +325,7 @@ func (v *TableView) header(cx *el.Context, c int) el.Element {
 func (v *TableView) row(cx *el.Context, p int) el.Element {
 	data := v.order[p]
 	cells := v.rows[data]
-	on := data == v.selected
+	on := v.rowSelected(data)
 	r := el.Div().Role("row").Name(strings.Join(cells, " | ")).Selected(on).Row().Items(el.Center)
 	if on {
 		r.Bg(theme.Highlight)
@@ -334,7 +350,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 	}
 	if !v.disabled {
 		r.CursorPointer().
-			OnClick(func() { v.choose(cx, data) }).
+			OnClick(func() { v.chooseRows(cx, data, cx.ClickModifiers()) }).
 			OnDoubleClick(v.activate)
 		if !on {
 			r.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
@@ -374,6 +390,9 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
+			if v.selectionKey(e) {
+				return true
+			}
 			if key.Name(e.Name) == key.NameReturn {
 				if e.State == el.KeyPress {
 					v.activate()
@@ -382,7 +401,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 			}
 			p, ok := listKeys(e.Name, v.position(v.selected), len(v.order), 8)
 			if ok && e.State == el.KeyPress && len(v.order) > 0 {
-				v.choose(cx, v.order[p])
+				v.chooseRows(cx, v.order[p], e.Modifiers)
 			}
 			return ok
 		}).
