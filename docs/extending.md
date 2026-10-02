@@ -110,13 +110,19 @@ func ClipboardText() (string, error) {
 
 C 分配的内存由 Go 侧 `C.free` 释放。不要把 Go 指针交给 C 长期保存。
 
-**第三步：给其他平台加桩。** `sys_other.go`：
+**第三步：其他平台。** `sys_windows.go`（Win32）和 `sys_linux.go`（X11）也要有同名函数，暂时做不了就先返回 `native.ErrUnsupported`。`sys_other.go` 覆盖其余平台：
 
 ```go
 func ClipboardText() (string, error) { return "", native.ErrUnsupported }
 ```
 
-漏了这一步，Linux、Windows 就编译不过。用 `CGO_ENABLED=0 GOOS=linux go vet ./native/...` 检查。
+漏了哪个文件，那个平台就编译不过。逐个检查：
+
+```sh
+GOOS=windows go vet ./native/...
+CGO_ENABLED=0 GOOS=linux go vet ./native/...
+CGO_ENABLED=0 GOOS=freebsd go vet ./native/...
+```
 
 **第四步：公开包。** 新建 `native/clipboard/clipboard.go`，参数校验放在这一层，`sys` 层只做翻译：
 

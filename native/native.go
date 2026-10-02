@@ -6,8 +6,9 @@
 //	native/input       synthesize mouse and keyboard input
 //	native/hotkey      system-wide shortcuts
 //
-// Only macOS 14+ is implemented; elsewhere every call returns ErrUnsupported.
-// To add a capability, add the C function to internal/sys (plus a stub in
+// Implemented on macOS 14+ (cgo), Windows and Linux under X11; elsewhere, and
+// in macOS builds without cgo, every call returns ErrUnsupported. To add a
+// capability, add it to each platform file in internal/sys (plus a stub in
 // sys_other.go) and a small public package that validates arguments.
 package native
 

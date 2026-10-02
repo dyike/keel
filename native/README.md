@@ -14,8 +14,8 @@
 两个共享部分不是独立模块：
 
 - `native`（本目录的 `native.go`）：所有模块共用的错误值 `native.Err*`。
-- `native/internal/sys`：cgo 绑定，所有 Objective-C 代码只在这里。外部不能引用。
+- `native/internal/sys`：平台绑定，macOS 的 cgo 与 Objective-C、Windows 的 Win32 调用、Linux 的 X11 协议都只在这里。外部不能引用。
 
-只实现了 macOS 14+，其他平台返回 `native.ErrUnsupported`。
+支持 macOS 14+、Windows 和 Linux（X11），其他平台返回 `native.ErrUnsupported`。
 
 文档：[原生能力](../docs/native.md) · [新增原生能力](../docs/extending.md#新增原生能力)

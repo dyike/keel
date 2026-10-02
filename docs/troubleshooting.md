@@ -97,7 +97,8 @@ Gio v0.10.3 在 macOS 上，窗口还没完全创建就被关闭，会在 `casca
 
 ## 全局快捷键没反应
 
-- 程序必须在 `window.Main()` 里运行，快捷键事件由主线程的事件循环派发。
+- macOS 上程序必须在 `window.Main()` 里运行，快捷键事件由主线程的事件循环派发。
+- Linux 上需要 X11 会话，Wayland 下只有 XWayland 程序有焦点时才能收到。
 - 组合键被其他程序占用时 `hotkey.Register` 返回 `native.ErrConflict`，检查返回值。
 - 回调确实触发了但界面没变：回调里改界面要用 `core.Update`。
 

@@ -9,7 +9,15 @@
 | `native/input` | 移动鼠标、点击、按键 | 读取鼠标位置以外的操作都需要辅助功能 |
 | `native/hotkey` | 全局快捷键 | 无 |
 
-只实现了 macOS 14+。在其他平台，或关闭 cgo 构建时，所有函数返回 `native.ErrUnsupported`，程序照常编译。
+支持三个平台，其他平台以及关闭 cgo 构建的 macOS 上，所有函数返回 `native.ErrUnsupported`，程序照常编译。
+
+| 平台 | 实现 | 说明 |
+| --- | --- | --- |
+| macOS 14+ | cgo 调用系统框架 | 需要用户授权，见下文 |
+| Windows 10+ | 直接调用 user32、gdi32，不需要 cgo | 不需要授权；坐标按主显示器的 DPI 换算成逻辑点 |
+| Linux | 纯 Go 实现 X11 协议，不需要 cgo | 需要 X11 会话；合成输入需要 X 服务器的 XTEST 扩展；逻辑点按 `Xft.dpi` 换算 |
+
+Linux 的 Wayland 会话不允许普通程序截取整个屏幕或向其他程序注入输入。有 XWayland（`DISPLAY` 已设置）时可以调用，但只能看到、操作 X11 程序的窗口；没有 `DISPLAY` 时返回 `ErrUnsupported`。
 
 ## 错误
 
@@ -43,7 +51,9 @@ ok, err := permission.Request(permission.Accessibility) // 可能弹出系统授
 | `ScreenRecording` | 屏幕录制（macOS 15 起叫"屏幕与系统录音"） | `screen.Capture` |
 | `InputMonitoring` | 输入监控 | 目前没有功能用到，预留 |
 
-使用时要注意三点：
+Windows 和 Linux 没有这几种授权，`Granted` 和 `Request` 总是返回 `true`。
+
+在 macOS 上使用时要注意三点：
 
 - **`Request` 不等用户回答。** 它弹框后立刻返回当时的授权状态，通常是 `false`。用户在系统设置里打开开关后，你需要再调 `Granted` 确认。
 - **`false` 不区分"拒绝过"和"还没问过"。** macOS 不提供这个信息。
@@ -65,9 +75,9 @@ png, err := screen.Capture(d.ID)
 ```
 
 - 返回 PNG 字节，尺寸为 `PixelWidth × PixelHeight`，不含鼠标指针。
-- 需要屏幕录制权限，自己不会弹框，没有权限直接返回 `ErrPermissionDenied`。
+- macOS 上需要屏幕录制权限，自己不会弹框，没有权限直接返回 `ErrPermissionDenied`。
 - 最多阻塞 10 秒。**不要在回调里调用**，它会让所有窗口卡住。放进 goroutine，结果用 `core.Update` 送回界面。
-- 不能在主线程调用，否则返回 `ErrFailed`。`main` 函数在 `window.Main()` 之前运行在主线程上，也不能在那里调用。
+- macOS 上不能在主线程调用，否则返回 `ErrFailed`。`main` 函数在 `window.Main()` 之前运行在主线程上，也不能在那里调用。
 
 ## input：合成键鼠
 
@@ -79,11 +89,11 @@ input.Tap("enter")                   // 按下并松开
 input.KeyDown("cmd"); input.Tap("c"); input.KeyUp("cmd")   // ⌘C
 ```
 
-按键名按美式键盘的物理位置，与当前输入法和键盘布局无关：
+按键名按美式键盘的物理位置，与当前输入法和键盘布局无关（Linux 例外：X11 按当前布局查找能打出这个字符的键）：
 
 - 字母、数字、符号：`a`–`z`、`0`–`9`、`-` `=` `[` `]` `\` `;` `'` `,` `.` `/` `` ` ``
 - 功能键：`enter` `tab` `space` `backspace` `delete` `escape` `home` `end` `pageup` `pagedown` `up` `down` `left` `right` `f1`–`f12`
-- 修饰键：`cmd` `shift` `alt` `ctrl`
+- 修饰键：`cmd` `shift` `alt` `ctrl`。Windows 和 Linux 上 `cmd` 是 Windows 键（Super）。
 
 `KeyDown` 和 `KeyUp` 必须成对调用，否则系统会认为这个键一直按着。
 
@@ -104,4 +114,6 @@ defer unregister()
 - 组合键已被占用时返回 `ErrConflict`。
 - `unregister` 可以重复调用，只有第一次生效。
 
-需要 `window.Main()` 在运行：快捷键事件由主线程的事件循环派发。不开窗口的纯后台程序暂时用不了，见[常见问题](troubleshooting.md#全局快捷键没反应)。
+`cmd` 在 Windows 和 Linux 上是 Windows 键（Super）。跨平台的快捷键通常写成 macOS 用 `cmd`、其他平台用 `ctrl`。
+
+macOS 上需要 `window.Main()` 在运行：快捷键事件由主线程的事件循环派发。Windows 和 Linux 有自己的消息线程，不受这个限制。macOS 上不开窗口的纯后台程序暂时用不了，见[常见问题](troubleshooting.md#全局快捷键没反应)。

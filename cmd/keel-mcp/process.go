@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -45,13 +44,12 @@ func (a *appProcess) launch(command, workdir string, timeout time.Duration, visi
 		return err
 	}
 	sock := filepath.Join(dir, "app.sock")
-	cmd := exec.Command("sh", "-c", command)
+	cmd := shellCommand(command)
 	cmd.Dir = workdir
 	cmd.Env = append(os.Environ(), "KEEL_AUTOMATION="+sock)
 	if !visible {
 		cmd.Env = append(cmd.Env, "KEEL_HEADLESS=1")
 	}
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true} // stop kills go run's child too
 	a.logs.reset()
 	cmd.Stdout = &a.logs
 	cmd.Stderr = &a.logs
@@ -97,7 +95,7 @@ func (a *appProcess) stop() {
 		select {
 		case <-a.exited:
 		default:
-			syscall.Kill(-a.cmd.Process.Pid, syscall.SIGKILL)
+			killTree(a.cmd)
 			<-a.exited
 		}
 		a.cmd = nil
