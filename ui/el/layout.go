@@ -126,6 +126,9 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 		}
 		flex(fw, fh, fw, max(fh, limH))
 	}
+	if s.revealSet {
+		h = int(float32(h)*s.reveal + 0.5)
+	}
 	n.size = image.Pt(w, h)
 }
 

@@ -62,6 +62,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [MessageScroller](../../docs/kit/message_scroller.md) | 对话滚动区 |
 | [Attachment](../../docs/kit/attachment.md) | 附件卡片 |
 | [Tabs](../../docs/kit/tabs.md) | 标签页 |
+| [Collapsible](../../docs/kit/collapsible.md) | 独立触发器与内容、可中断展开动画 |
 | [Accordion](../../docs/kit/accordion.md) | 折叠面板 |
 | [Badge](../../docs/kit/badge.md) | 角标 |
 | [Progress](../../docs/kit/progress.md) | 进度条 |

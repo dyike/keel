@@ -390,3 +390,15 @@ func (s *Styled[T]) PinRight(dp float32) *T {
 // OnContextMenu runs fn on a secondary pointer press. It does not consume
 // primary clicks; add an OnKey handler for a keyboard context-menu action.
 func (s *Styled[T]) OnContextMenu(fn func()) *T { s.n.onContextMenu = fn; return s.self }
+
+// Reveal exposes a fraction of this element's natural height, clipping both
+// painting and input. Children retain their full layout, so text does not
+// reflow vertically during an expand/collapse animation. NaN becomes zero.
+func (s *Styled[T]) Reveal(fraction float32) *T {
+	if fraction != fraction {
+		fraction = 0
+	}
+	s.n.style.reveal = max(0, min(1, fraction))
+	s.n.style.revealSet = true
+	return s.self
+}

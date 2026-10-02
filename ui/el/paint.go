@@ -105,6 +105,12 @@ func (e *engine) paintContent(n *Node) {
 	}
 	defer func() { e.gtx = savedGtx }()
 	gtx := e.gtx
+	if n.style.revealSet {
+		savedVisible := e.visible
+		e.visible = e.visible.Intersect(image.Rectangle{Min: e.origin, Max: e.origin.Add(n.size)})
+		defer func() { e.visible = savedVisible }()
+		defer clip.Rect(image.Rectangle{Max: n.size}).Push(gtx.Ops).Pop()
+	}
 	st := n.style // a copy: hover and active variants change it for this frame only
 	var state *elemState
 	if n.id != "" || n.interactive() || (n.style.scrollY || n.style.scrollX) || n.input != nil {

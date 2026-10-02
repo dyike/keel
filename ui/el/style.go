@@ -68,6 +68,8 @@ const (
 // shared by all elements (see Styled); Hover and Active take a func that
 // changes a Style, whose methods mirror the element ones.
 type Style struct {
+	reveal                  float32
+	revealSet               bool
 	wrap                    bool
 	grid                    int
 	row                     bool // lay children out left to right; default top to bottom

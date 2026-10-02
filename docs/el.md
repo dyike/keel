@@ -299,3 +299,5 @@ func button(label string, onClick func()) el.Element {
 `cx.ViewportSize()` 在 Render 阶段返回根视口可用宽高（dp），用于限制命令面板等窗口内浮层的高度，避免键盘滚动目标位于窗口之外。
 
 `cx.Countdown(id, key, duration, paused, fn)` 声明保留剩余时间的一次性倒计时。显式 paused、所属元素不可见/禁用/被模态遮挡时暂停，恢复后继续剩余时间；改 duration 重启，省略声明取消。与 `AfterEnabled` 恢复后重新等待完整延迟的语义不同，通知倒计时用 Countdown，悬停提示延迟继续用 AfterEnabled。
+
+`element.Reveal(fraction)` 按 0–1 比例揭示自然高度，保留子元素完整排版，同时裁剪绘制与输入区域；0 时不占高度且不能获得焦点。用于折叠动画，动画时间仍由组件根据 `cx.Now()` 驱动。NaN 按 0，越界值限制到 0–1。
