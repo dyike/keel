@@ -229,6 +229,20 @@ func (e *engine) paintContent(n *Node) {
 		}
 	}
 
+	// A press on the box that no child takes focuses its text: an input's own
+	// padding, or a field frame's blank space (FocusOnPress). Registered
+	// before the children, so the editor and any buttons stay on top.
+	if state != nil && (n.focusOnPress != "" || n.input != nil) && !n.effectiveDisabled && !e.blockInput {
+		area := clip.Rect(rect).Push(gtx.Ops)
+		event.Op(gtx.Ops, &state.pressTag)
+		pointer.CursorText.Add(gtx.Ops)
+		area.Pop()
+		if gtx.Enabled() {
+			// Ask now as well: Gio drops an area nobody asked events for.
+			gtx.Event(pointer.Filter{Target: &state.pressTag, Kinds: pointer.Press})
+			state.pressFocus, state.pressEditor, state.pressable = n.focusOnPress, n.input != nil, true
+		}
+	}
 	e.paintBox(st, rect, radius)
 	pl, pt, pr, pb := e.edges(st.pad)
 	bw := e.dp(n.style.borderWidth) // visual focus/hover borders never move content

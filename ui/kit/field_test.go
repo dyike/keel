@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"gioui.org/io/key"
+
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 )
@@ -39,6 +41,26 @@ func TestFieldsShareControlHeight(t *testing.T) {
 		above, below := bounds(h, fmt.Sprint("m", i)), bounds(h, fmt.Sprint("m", i+1))
 		if got := below.Min.Y - above.Max.Y; got != want {
 			t.Errorf("%s: %ddp tall, want %d", f.name, got, want)
+		}
+	}
+}
+
+// A press anywhere in a field's frame, not only on its text line, focuses it.
+func TestFieldFramePressFocusesText(t *testing.T) {
+	plain := Input("").Placeholder("plain")
+	grouped := Input("").Placeholder("grouped")
+	h := page(plain, InputGroup("group", grouped))
+	for _, f := range []struct {
+		name  string
+		value func() string
+	}{{"plain", plain.Value}, {"grouped", grouped.Value}} {
+		box := bounds(h, f.name)
+		// 5dp above the text line: inside the frame's padding.
+		h.Click(float32(box.Min.X+box.Dx()/2), float32(box.Min.Y-5))
+		h.Key("A", key.ModShortcut)
+		h.Type("7")
+		if got := f.value(); got != "7" {
+			t.Errorf("%s: typed %q; a press on the frame should focus the text", f.name, got)
 		}
 	}
 }

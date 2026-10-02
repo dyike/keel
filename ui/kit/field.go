@@ -45,7 +45,8 @@ func labelled(label string, control el.Element, errMsg string) el.Element {
 
 // fieldFrame is the one box every text field in kit draws: same height,
 // padding, radius and border colors (error, then focus, then rest). Change
-// how fields look here, not in each component. A field that wraps (tags in a
+// how fields look here, not in each component. Frames around a text input
+// also call FocusOnPress, so a press anywhere in the frame focuses the text. A field that wraps (tags in a
 // multiple Combobox) grows past theme.ControlHeight.
 func fieldFrame(id string, focused, invalid, disabled, readOnly bool) *el.DivEl {
 	border := theme.Border
@@ -70,8 +71,9 @@ func fieldText(in *el.InputEl) *el.InputEl {
 }
 
 // searchField is the search box of Select, Command, Settings and the like:
-// a fieldFrame with a search icon in front of the text.
-func searchField(cx *el.Context, id string, in *el.InputEl) *el.DivEl {
-	return fieldFrame(id, cx.FocusWithin(id), false, false, false).
+// a fieldFrame with a search icon in front of the text, whose blank space
+// focuses the text (inputID, the input's ID).
+func searchField(cx *el.Context, id, inputID string, in *el.InputEl) *el.DivEl {
+	return fieldFrame(id, cx.FocusWithin(id), false, false, false).FocusOnPress(inputID).
 		Child(Icon(IconSearch).Size(16).Color(theme.Muted).Render(cx), fieldText(in))
 }

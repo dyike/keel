@@ -137,7 +137,7 @@ func (v *TimeFieldView) Render(cx *el.Context) el.Element {
 			}
 			return true
 		})
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).W(el.Auto).
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).W(el.Auto).
 		Child(Icon(IconClock).Size(16).Color(theme.Muted).Render(cx), field)
 	return labelled(v.label, el.Div().Items(el.Start).Child(box), v.err)
 }

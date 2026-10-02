@@ -185,7 +185,7 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 		v.list.Height(min(viewport, float32(len(v.rows))*36))
 		results = el.Div().Role("listbox").Name(text.Commands).Items(el.Stretch).Child(v.list.Render(cx))
 	}
-	panel := surface().Role("dialog").Name(text.Commands).W(el.Dp(560)).MaxW(el.Full).Items(el.Stretch).Child(el.Div().P(8).Child(searchField(cx, id+"/searchbox", search)), el.Div().H(el.Dp(1)).Bg(theme.Border), results)
+	panel := surface().Role("dialog").Name(text.Commands).W(el.Dp(560)).MaxW(el.Full).Items(el.Stretch).Child(el.Div().P(8).Child(searchField(cx, id+"/searchbox", id+"/search", search)), el.Div().H(el.Dp(1)).Bg(theme.Border), results)
 	cx.Overlay(id, el.Modal(el.Div().Pt(top).Items(el.Center).Child(panel)).Placement(el.Top, el.Center).OnDismiss(func() { v.SetValue(false) }))
 	return el.Div().Hidden(true)
 }

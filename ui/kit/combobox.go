@@ -163,7 +163,7 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 		}
 		cx.Focus(v.FocusID())
 	}).Child(Icon(IconChevronDown).Size(16).Color(theme.Muted).Render(cx))
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).Role("combobox").Name(v.a11y()).Value(strings.Join(v.Values(), ", "))
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Role("combobox").Name(v.a11y()).Value(strings.Join(v.Values(), ", "))
 	if v.multiple {
 		box.Wrap()
 		for _, value := range v.values {

@@ -219,7 +219,7 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 	available := max(float32(1), min(float32(240), height-100))
 	if v.searchable {
 		available = max(1, available-40)
-		panel.Child(el.Div().Px(4).Pb(4).Child(searchField(cx, id+"/searchbox", el.Input().ID(id+"/search").Name(locale.Current().Search).Placeholder(locale.Current().Search).Bind(&v.query).
+		panel.Child(el.Div().Px(4).Pb(4).Child(searchField(cx, id+"/searchbox", id+"/search", el.Input().ID(id+"/search").Name(locale.Current().Search).Placeholder(locale.Current().Search).Bind(&v.query).
 			OnChange(func(string) { v.active = -1; cx.ScrollTo(v.virtual.ID(), 0) }).
 			OnSubmit(func(string) {
 				if v.active >= 0 && !v.rowDisabled(v.active) {

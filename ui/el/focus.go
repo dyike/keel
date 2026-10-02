@@ -24,6 +24,13 @@ type KeyEvent struct {
 
 const allKeyModifiers = key.ModCtrl | key.ModCommand | key.ModShift | key.ModAlt | key.ModSuper
 
+// FocusOnPress makes a press anywhere in this box that no child takes focus
+// the element with id, such as the input inside a field's frame: clicking the
+// frame's padding or beside the text then focuses the text. The box shows the
+// text cursor; it gets no role and no Tab stop. It needs an ID of its own.
+// An Input already does this for its own padding.
+func (s *Styled[T]) FocusOnPress(id string) *T { s.n.focusOnPress = id; return s.self }
+
 // Focusable adds the element to the native Tab order and focuses it on press.
 // Input and TextArea already manage their native editor focus.
 func (s *Styled[T]) Focusable(on bool) *T {

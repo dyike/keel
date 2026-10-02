@@ -253,8 +253,24 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 func (r *RootWidget) dispatch(gtx core.C) {
 	r.pointerDispatch = true
 	defer func() { r.pointerDispatch = false }()
-	var focusTarget *elemState
+	var focusTarget, editorTarget *elemState
 	for _, st := range r.store.states {
+		if st.pressable && !st.disabled && !st.blocked && st.frame == r.store.frame {
+			for {
+				ev, ok := gtx.Event(pointer.Filter{Target: &st.pressTag, Kinds: pointer.Press})
+				if !ok {
+					break
+				}
+				if ev, ok := ev.(pointer.Event); !ok || ev.Kind != pointer.Press {
+					continue
+				}
+				if st.pressEditor {
+					editorTarget = st
+				} else {
+					r.focusID, r.focusPending, r.focusFromPointer = st.pressFocus, true, true
+				}
+			}
+		}
 		if !st.clickable || st.disabled || st.blocked || st.frame != r.store.frame {
 			continue
 		}
@@ -320,6 +336,9 @@ func (r *RootWidget) dispatch(gtx core.C) {
 	if focusTarget != nil {
 		r.requestedFocus = focusTarget
 		gtx.Execute(key.FocusCmd{Tag: focusTarget})
+	}
+	if editorTarget != nil {
+		gtx.Execute(key.FocusCmd{Tag: &editorTarget.editor})
 	}
 }
 

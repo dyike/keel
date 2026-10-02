@@ -43,7 +43,7 @@ func (v *InputGroupView) Render(cx *el.Context) el.Element {
 	v.input.setName(name)
 	id := autoID("inputgroup", v)
 	disabled := v.disabled || v.input.disabled
-	field := fieldFrame(id, cx.FocusWithin(id), v.Error() != "", disabled, v.input.readOnly).Role("group").Name(name)
+	field := fieldFrame(id, cx.FocusWithin(id), v.Error() != "", disabled, v.input.readOnly).FocusOnPress(v.input.FocusID()).Role("group").Name(name)
 	if v.prefix != nil {
 		field.Child(el.Div().ID(id + "/prefix").NoShrink().Child(v.prefix.Render(cx)))
 	}

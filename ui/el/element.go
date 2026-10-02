@@ -37,6 +37,7 @@ type Node struct {
 
 	onClick       func()
 	onContextMenu func()
+	focusOnPress  string // ID to focus on a press no child takes
 	onDoubleClick func()
 	onDrag        func(DragEvent)
 	role, name    string

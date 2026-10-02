@@ -58,7 +58,13 @@ type elemState struct {
 	onDrag        func(DragEvent)
 	size          image.Point // painted size in px, for drag events
 	clickable     bool        // registered a click area last frame
-	fresh         bool        // created this frame: dispatch has not seen it yet
+	// FocusOnPress, and an input's padding: a press here focuses pressFocus,
+	// or this input's own editor.
+	pressTag    struct{}
+	pressFocus  string
+	pressEditor bool
+	pressable   bool
+	fresh       bool // created this frame: dispatch has not seen it yet
 
 	scrollbarX, scrollbarY   scrollbarState
 	scrollableX, scrollableY bool

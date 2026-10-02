@@ -49,7 +49,7 @@ Render 每帧都会调用，要保持便宜：只根据状态搭树，不做 I/O
 | --- | --- |
 | `el.Div()` | 盒子，唯一能有子元素的元素。默认子元素从上到下排列 |
 | `el.Text(s)` | 文字，按可用宽度自动换行 |
-| `el.Input()` / `el.TextArea()` | 输入框，带默认边框样式，获得焦点时边框变蓝。单行框默认高 `theme.ControlHeight`，文字垂直居中，和 kit 的字段一致 |
+| `el.Input()` / `el.TextArea()` | 输入框，带默认边框样式，获得焦点时边框变蓝。单行框默认高 `theme.ControlHeight`，文字垂直居中，和 kit 的字段一致；点内边距也会聚焦 |
 | `el.Widget(w)` | 嵌入任意 `core.Widget`，比如用 `core.Func` 包起来的一段 Gio 布局 |
 
 输入框：
@@ -61,6 +61,8 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 点击空白处会让输入框失去焦点。
 
 `Bind(&字符串)` 双向绑定：用户输入会写进变量，程序改了变量，下一帧输入框也跟着变。`Password()` 遮盖内容。`MaxLen(n)` 限制字符数，`Filter("0123456789")` 只接受这些字符（输入和粘贴都会过滤），`ReadOnly(true)` 允许选择复制但不能编辑。单行输入框设置 `OnKey` 后，↑ ↓ PageUp PageDown 先交给它处理，编辑器不再收到这几个键（单行框里它们本来只能把光标移到开头或结尾）；带 Shift 等修饰键的组合仍归编辑器，用来扩展选区。返回值不影响结果，这几个键总是被拿走。输入框位于 `Disabled(true)` 的子树里时不能编辑，`el.Widget` 嵌入的 Gio 代码也一样。
+
+输入框外面再包一层框（带图标、按钮的搜索框）时，给外框设 `ID` 和 `FocusOnPress(输入框ID)`：点外框里没有子元素接住的地方会聚焦输入框，鼠标显示文字光标；外框不会因此变成按钮，也不进 Tab 顺序。
 
 ## 样式方法
 

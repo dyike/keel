@@ -190,7 +190,7 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 		})
 	// The 28dp step buttons sit near the edges: 3dp around them keeps the
 	// frame at theme.ControlHeight.
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).Gap(4).P(3).
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(4).P(3).
 		Child(minus.Render(cx), field, plus.Render(cx))
 	return labelled(v.label, box, v.err)
 }
