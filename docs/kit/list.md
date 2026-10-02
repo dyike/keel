@@ -14,3 +14,5 @@ contacts := kit.List(names...).Height(240).OnChange(show).OnActivate(open)
 Agent：容器角色 `listbox`，每项是 `option`，`selected` 表示选中。
 
 验证：`go run ./examples/components -section list`，加 `-theme dark` 检查深色。
+
+构造和 `SetItems` 复制选项切片，`Items()` 返回副本。通过 `SetItems` 更新数据；修改传入或返回的切片不影响列表。选择仍以索引表示，替换后索引越界时清空，不触发用户回调。

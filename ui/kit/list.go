@@ -4,6 +4,7 @@ import (
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
+	"slices"
 )
 
 // listKeys moves a selection index for ↑ ↓ Home End PageUp PageDown; it
@@ -40,7 +41,7 @@ type ListView struct {
 }
 
 func List(items ...string) *ListView {
-	v := &ListView{items: items, selected: -1}
+	v := &ListView{items: slices.Clone(items), selected: -1}
 	v.list = VirtualList(len(items), 32, v.row)
 	return v
 }
@@ -52,7 +53,7 @@ func (v *ListView) OnChange(fn func(index int)) *ListView   { v.onChange = fn; r
 func (v *ListView) OnActivate(fn func(index int)) *ListView { v.onActive = fn; return v }
 func (v *ListView) Value() int                              { return v.selected }
 func (v *ListView) SetDisabled(on bool)                     { v.disabled = on }
-func (v *ListView) Items() []string                         { return v.items }
+func (v *ListView) Items() []string                         { return slices.Clone(v.items) }
 
 // SetValue selects item i (-1 clears) without calling OnChange.
 func (v *ListView) SetValue(i int) {
@@ -64,7 +65,7 @@ func (v *ListView) SetValue(i int) {
 
 // SetItems replaces the items and clears the selection if it no longer exists.
 func (v *ListView) SetItems(items ...string) {
-	v.items = items
+	v.items = slices.Clone(items)
 	v.list.SetCount(len(items))
 	if v.selected >= len(items) {
 		v.selected = -1
