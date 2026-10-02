@@ -63,7 +63,16 @@ func (e *engine) paint(n *Node) {
 	gtx := e.gtx
 	// Skip what cannot be seen, e.g. the part of a long chat scrolled away.
 	// Absolute children may overflow their parent, so they are always painted.
-	abs := image.Rectangle{Min: e.origin.Add(n.pos), Max: e.origin.Add(n.pos).Add(n.size)}
+	pos := n.pos
+	if view := e.horizontalView; view != nil {
+		if n.style.pinX < 0 {
+			pos.X = view.Min.X + e.dp(n.style.pinOffset) - e.origin.X
+		}
+		if n.style.pinX > 0 {
+			pos.X = view.Max.X - e.dp(n.style.pinOffset) - n.size.X - e.origin.X
+		}
+	}
+	abs := image.Rectangle{Min: e.origin.Add(pos), Max: e.origin.Add(pos).Add(n.size)}
 	if !n.style.absolute && !abs.Overlaps(e.visible) {
 		return
 	}
@@ -79,7 +88,7 @@ func (e *engine) paint(n *Node) {
 	saved := e.origin
 	e.origin = abs.Min
 	defer func() { e.origin = saved }()
-	defer op.Offset(n.pos).Push(gtx.Ops).Pop()
+	defer op.Offset(pos).Push(gtx.Ops).Pop()
 	if n.decorate != nil {
 		g := gtx
 		g.Constraints = layout.Exact(n.size)
@@ -226,9 +235,7 @@ func (e *engine) paintContent(n *Node) {
 	case st.scrollY || st.scrollX:
 		e.paintScroll(n, state, inner)
 	default:
-		for _, c := range n.children {
-			e.paint(c.node())
-		}
+		e.paintChildren(n)
 	}
 }
 
@@ -468,9 +475,13 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	if n.style.scrollY {
 		e.scrollParents = append(e.scrollParents, st)
 	}
-	for _, c := range n.children {
-		e.paint(c.node())
+	savedHorizontal := e.horizontalView
+	if n.style.scrollX {
+		view := viewport.Add(savedOrigin)
+		e.horizontalView = &view
 	}
+	e.paintChildren(n)
+	e.horizontalView = savedHorizontal
 	if n.style.scrollY {
 		e.scrollParents = e.scrollParents[:len(e.scrollParents)-1]
 	}
@@ -484,4 +495,64 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		st.scrollbarX.paint(gtx, xTrack, true, st.scrollX, viewport.Dx(), totalX, e.dp(24))
 	}
 	stk.Pop()
+}
+
+// Paint pinned siblings last and clip ordinary siblings to the remaining lane.
+// Clipping affects both pixels and pointer/semantic operations.
+func (e *engine) paintChildren(n *Node) {
+	if e.horizontalView == nil {
+		for _, c := range n.children {
+			e.paint(c.node())
+		}
+		return
+	}
+	view := *e.horizontalView
+	left, right := view.Min.X, view.Max.X
+	pinned := false
+	for _, c := range n.children {
+		child := c.node()
+		if child.style.hidden {
+			continue
+		}
+		if child.style.pinX < 0 {
+			left = max(left, view.Min.X+e.dp(child.style.pinOffset)+child.size.X)
+			pinned = true
+		}
+		if child.style.pinX > 0 {
+			right = min(right, view.Max.X-e.dp(child.style.pinOffset)-child.size.X)
+			pinned = true
+		}
+	}
+	if !pinned {
+		for _, c := range n.children {
+			e.paint(c.node())
+		}
+		return
+	}
+	draw := func(child *Node, minX, maxX int) {
+		visible := e.visible
+		area := image.Rect(minX, visible.Min.Y, max(minX, maxX), visible.Max.Y).Intersect(visible)
+		if area.Empty() {
+			return
+		}
+		e.visible = area
+		stack := clip.Rect(area.Sub(e.origin)).Push(e.gtx.Ops)
+		e.paint(child)
+		stack.Pop()
+		e.visible = visible
+	}
+	for _, c := range n.children {
+		if c.node().style.pinX == 0 {
+			draw(c.node(), left, right)
+		}
+	}
+	for _, c := range n.children {
+		child := c.node()
+		if child.style.pinX < 0 {
+			draw(child, view.Min.X, min(left, view.Max.X))
+		}
+		if child.style.pinX > 0 {
+			draw(child, max(left, right), view.Max.X)
+		}
+	}
 }

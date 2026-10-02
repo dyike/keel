@@ -266,7 +266,7 @@ func button(label string, onClick func()) el.Element {
 
 ## 已知限制
 
-- 布局是 flexbox 的子集：没有换行（wrap）、网格、`align-self`、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
+- 布局是 flexbox 的子集：支持 wrap 和简单 grid；尚无 `align-self`、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
 - `ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行以上用 `kit.VirtualList` 或 `kit.Table`，只布局可见行。
 - 没有过渡动画的封装，需要自己用 `Now` / `Animating` 计算。
 - 浮层只在 `el.Root` 中完整支持，`el.Embed` 按嵌入约束尽力支持。
@@ -285,3 +285,5 @@ func button(label string, onClick func()) el.Element {
 `Grid(columns)` 按行填充指定数量的列，`Gap` 设置行列间距。列默认等宽，但会先满足子元素的固定宽度及最小宽度；若所有最小宽度之和超过可用空间，保留最小宽度并溢出。每行按最高元素确定高度，自动高度的元素默认拉伸到行高。这个基础网格不支持跨行、跨列或命名区域。`Row`、`Col`、`Wrap`、`Grid` 会切换布局模式。
 
 验证：`go run ./examples/components -section layout`，调整窗口宽度检查换行和网格。
+
+`PinLeft(offset)` / `PinRight(offset)` 将元素绘制在最近 `ScrollX` 视口对应边缘的 offset dp 处，保留布局占位。固定元素最后绘制；普通兄弟元素裁剪到两侧固定元素之间，裁剪同时约束点击和语义区域。两侧宽度超过视口时左侧优先。没有横向滚动祖先时保持普通布局，用于表格冻结列等场景。

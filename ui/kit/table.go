@@ -58,21 +58,22 @@ const minColumn = 40
 // Row indexes in callbacks, Value and SetValue are positions in the data given
 // to SetRows, whatever the sort order.
 type TableView struct {
-	cols     []*ColumnSpec
-	rows     [][]string
-	order    []int // display position → data index
-	sortCol  int
-	desc     bool
-	selected int
-	empty    string
-	loading  bool
-	disabled bool
-	widths   []float32 // painted column widths in dp, for resizing
-	grab     float32   // pointer offset inside the resize handle
-	list     *VirtualListView
-	reveal   bool // scroll the selection into view on the next Render
-	onChange func(row int)
-	onActive func(row int)
+	frozenLeft, frozenRight int
+	cols                    []*ColumnSpec
+	rows                    [][]string
+	order                   []int // display position → data index
+	sortCol                 int
+	desc                    bool
+	selected                int
+	empty                   string
+	loading                 bool
+	disabled                bool
+	widths                  []float32 // painted column widths in dp, for resizing
+	grab                    float32   // pointer offset inside the resize handle
+	list                    *VirtualListView
+	reveal                  bool // scroll the selection into view on the next Render
+	onChange                func(row int)
+	onActive                func(row int)
 }
 
 func Table(cols ...*ColumnSpec) *TableView {
@@ -87,6 +88,36 @@ func Table(cols ...*ColumnSpec) *TableView {
 	v := &TableView{cols: owned, sortCol: -1, selected: -1, widths: make([]float32, len(cols))}
 	v.list = VirtualList(0, 40, v.row).ItemKey(func(position int) string { return strconv.Itoa(v.order[position]) })
 	return v
+}
+
+// FrozenColumns pins the first left and last right columns. Counts are
+// clamped; left columns take priority. Flexible frozen columns become 120dp.
+func (v *TableView) FrozenColumns(left, right int) *TableView {
+	v.frozenLeft = max(0, min(left, len(v.cols)))
+	v.frozenRight = max(0, min(right, len(v.cols)-v.frozenLeft))
+	for c, col := range v.cols {
+		if v.frozen(c) && col.width <= 0 {
+			col.Width(120)
+		}
+	}
+	return v
+}
+func (v *TableView) frozen(c int) bool { return c < v.frozenLeft || c >= len(v.cols)-v.frozenRight }
+func (v *TableView) pin(c int, cell *el.DivEl) *el.DivEl {
+	if c < v.frozenLeft {
+		var offset float32
+		for i := 0; i < c; i++ {
+			offset += v.cols[i].width
+		}
+		cell.PinLeft(offset)
+	} else if c >= len(v.cols)-v.frozenRight {
+		var offset float32
+		for i := c + 1; i < len(v.cols); i++ {
+			offset += v.cols[i].width
+		}
+		cell.PinRight(offset)
+	}
+	return cell
 }
 
 // Height sets the height of the rows' viewport in dp, 320 by default; Fill grows instead.
@@ -267,7 +298,7 @@ func (v *TableView) header(cx *el.Context, c int) el.Element {
 		}
 		col.width = max(minColumn, v.widths[c]+e.X-v.grab)
 	})
-	return el.Div().Row().Items(el.Stretch).Child(cell, handle).When(col.width > 0, func(d *el.DivEl) { d.NoShrink() }).
+	return v.pin(c, el.Div().Row().Items(el.Stretch).Bg(theme.Subtle).Child(cell, handle)).When(col.width > 0, func(d *el.DivEl) { d.NoShrink() }).
 		When(col.width <= 0, func(d *el.DivEl) { d.Flex(col.flex).W(el.Dp(0)).MinW(el.Dp(minColumn)) })
 }
 
@@ -293,6 +324,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 		case c < len(cells):
 			cell.Child(el.Text(cells[c]).MaxLines(1))
 		}
+		v.pin(c, cell)
 		r.Child(cell)
 	}
 	if !v.disabled {

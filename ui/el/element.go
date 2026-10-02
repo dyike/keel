@@ -370,3 +370,18 @@ func Map[T any](items []T, fn func(int, T) Element) []Element {
 	}
 	return out
 }
+
+// PinLeft keeps an element at an offset from its nearest ScrollX viewport's
+// left edge. It retains layout space and paints above unpinned siblings.
+func (s *Styled[T]) PinLeft(dp float32) *T {
+	s.n.style.pinX = -1
+	s.n.style.pinOffset = max(0, dp)
+	return s.self
+}
+
+// PinRight is PinLeft relative to the right edge.
+func (s *Styled[T]) PinRight(dp float32) *T {
+	s.n.style.pinX = 1
+	s.n.style.pinOffset = max(0, dp)
+	return s.self
+}

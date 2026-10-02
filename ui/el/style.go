@@ -79,6 +79,8 @@ type Style struct {
 	justify, align          Align
 	alignSet                bool
 	scrollX, scrollY        bool
+	pinX                    int // -1 left, +1 right of nearest horizontal viewport
+	pinOffset               float32
 	stickBottom             bool
 	endVersion, keepVersion int // ScrollToEndOn; jumps to the end when it changes
 	absolute                bool

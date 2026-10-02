@@ -24,6 +24,7 @@ type engine struct {
 	m                      unit.Metric
 	store                  *store
 	scrollParents          []*elemState
+	horizontalView         *image.Rectangle
 	scratch                op.Ops          // measuring passes record here and discard
 	origin                 image.Point     // absolute position of the node being painted's parent
 	visible                image.Rectangle // absolute area that can show anything
