@@ -47,7 +47,8 @@ type Window struct {
 	shown                     chan struct{} // closed at the first frame or at destruction
 }
 
-// Open creates and shows a window. Call it before Main or from any callback.
+// Open creates and shows a centered window where the platform supports it.
+// Call it before Main or from any callback.
 // It panics on an invalid shortcut, which is a programming error.
 func Open(o Options) *Window {
 	w := newWindow(o)
@@ -165,6 +166,7 @@ func (w *Window) Closed() bool { return w.closed }
 
 func (w *Window) run() {
 	var ops op.Ops
+	positioned := false
 	for {
 		switch e := w.win.Event().(type) {
 		case gioapp.DestroyEvent:
@@ -189,6 +191,12 @@ func (w *Window) run() {
 			w.layout(gtx)
 			loop.Unlock()
 			e.Frame(gtx.Ops)
+			if !positioned {
+				positioned = true
+				loop.Lock()
+				centerNewWindow(w)
+				loop.Unlock()
+			}
 			w.markShown()
 		default:
 			platformWindowEvent(w, e)

@@ -7,6 +7,7 @@
 | `window.go` | `Open`、`Main`、`Options`（含 `Overlay`）、`Window` |
 | `shortcut.go` | 快捷键解析与分发 |
 | `root.go` | 窗口根视图：背景、滚动、24dp 边距 |
+| `position_*` | 首次显示居中；macOS 按屏幕可用区域计算，其他平台使用 Gio 动作 |
 | `screenshot.go` | `Screenshot` 离屏渲染成 PNG |
 | `automation.go` | 自动化模式：内存窗口、语义快照、模拟点击输入滚动 |
 | `automation_server.go` | 自动化协议：`KEEL_AUTOMATION` socket 上的 JSON 请求 |

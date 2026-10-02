@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -15,11 +16,15 @@ func TestRealWindows(t *testing.T) {
 	if os.Getenv("KEEL_DESKTOP") != "1" {
 		t.Skip("set KEEL_DESKTOP=1 to open real windows")
 	}
-	for _, args := range [][]string{
+	cases := [][]string{
 		{"./testdata/raise"},                   // Raise/Close from UI code must not deadlock
 		{"./testdata/reopen", "update", "now"}, // closing right after opening must not crash
 		{"./testdata/reopen", "locked", "now"},
-	} {
+	}
+	if runtime.GOOS == "darwin" {
+		cases = append(cases, []string{"./testdata/center"})
+	}
+	for _, args := range cases {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
