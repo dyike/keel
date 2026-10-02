@@ -87,3 +87,11 @@ func TestPlotCanceledDragRestoresView(t *testing.T) {
 		t.Fatal("canceled drag changed view")
 	}
 }
+
+func TestPlotHorizontalTicksPresentOnFirstFrame(t *testing.T) {
+	p := Plot(PlotSeries{Points: []PlotPoint{{0, 100}, {10, 200}}})
+	h := renderView(p, 400, 1)
+	if !shown(h, "5") || !shown(h, "10") {
+		t.Fatal("horizontal tick labels absent on first frame")
+	}
+}

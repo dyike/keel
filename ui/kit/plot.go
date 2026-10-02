@@ -266,7 +266,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 		}
 		fraction := axisFraction(t, v.x0, v.x1)
 		xs.Child(el.Div().W(el.Frac(float32(fraction-previous))).NoShrink(),
-			el.Div().W(el.Dp(0)).NoShrink().Child(el.Div().Absolute().Left(-12).W(el.Dp(56)).Child(el.Text(v.format(t)).TextSize(11).TextColor(theme.Muted).MaxLines(1))))
+			el.Div().W(el.Dp(1)).H(el.Dp(18)).Mx(-.5).NoShrink().Child(el.Div().Absolute().Left(-12).W(el.Dp(56)).Child(el.Text(v.format(t)).TextSize(11).TextColor(theme.Muted).MaxLines(1))))
 		previous = fraction
 	}
 	return el.Div().Disabled(v.disabled).ID(autoID("plot", v)).Role("figure").Name(name).Gap(10).P(12).Rounded(8).
