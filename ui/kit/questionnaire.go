@@ -62,7 +62,19 @@ type QuestionnaireView struct {
 }
 
 func Questionnaire(questions ...Question) *QuestionnaireView {
-	return &QuestionnaireView{questions: questions, controls: map[string]*questionControl{}}
+	owned := slices.Clone(questions)
+	ids := make(map[string]bool, len(questions))
+	for i, q := range owned {
+		if q.ID == "" || ids[q.ID] {
+			panic("kit.Questionnaire: empty or duplicate question ID")
+		}
+		if q.Kind > QuestionRating {
+			panic("kit.Questionnaire: invalid question kind")
+		}
+		ids[q.ID] = true
+		owned[i].Options = slices.Clone(q.Options)
+	}
+	return &QuestionnaireView{questions: owned, controls: map[string]*questionControl{}}
 }
 func (v *QuestionnaireView) OnSubmit(fn func(answers map[string]Answer)) *QuestionnaireView {
 	v.onSubmit = fn

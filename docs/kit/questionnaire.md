@@ -23,3 +23,5 @@ Agent：容器角色 `form`，名字是进度文字；当前题目是以题目�
 验证：`go run ./examples/components -section questionnaire`，加 `-theme dark` 检查深色。
 
 `SetDisabled(true)` 禁用当前答案控件、前后翻页和提交，不触发校验或 `OnSubmit`；程序仍可调用 `SetPage`、`SetValue`。重新启用后保留当前页及答案。
+
+构造时复制题目及选项，之后修改原始切片不会改变问卷。题目 ID 必须非空且唯一；不支持的题型会在构造时 panic。`Value` 与 `OnSubmit` 提供独立的答案快照，修改返回 map 或多选答案切片不会影响内部状态。
