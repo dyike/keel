@@ -17,6 +17,7 @@ type CarouselView struct {
 	slides   []el.View
 	current  int
 	autoplay time.Duration
+	disabled bool
 	height   float32
 	onChange func(int)
 }
@@ -34,13 +35,16 @@ func (v *CarouselView) Height(dp float32) *CarouselView {
 // Autoplay advances every d; 0 turns it off.
 func (v *CarouselView) Autoplay(d time.Duration) *CarouselView { v.autoplay = d; return v }
 func (v *CarouselView) OnChange(fn func(int)) *CarouselView    { v.onChange = fn; return v }
-func (v *CarouselView) Value() int                             { return v.current }
+
+// SetDisabled blocks navigation and autoplay; programmatic SetValue still works.
+func (v *CarouselView) SetDisabled(on bool) { v.disabled = on }
+func (v *CarouselView) Value() int          { return v.current }
 
 // SetValue shows slide i without calling OnChange.
 func (v *CarouselView) SetValue(i int) { v.current = min(max(i, 0), max(len(v.slides)-1, 0)) }
 
 func (v *CarouselView) goTo(i int) {
-	if len(v.slides) == 0 {
+	if v.disabled || len(v.slides) == 0 {
 		return
 	}
 	i = (i%len(v.slides) + len(v.slides)) % len(v.slides)
@@ -56,9 +60,9 @@ func (v *CarouselView) goTo(i int) {
 func (v *CarouselView) Render(cx *el.Context) el.Element {
 	id := autoID("carousel", v)
 	text := locale.Current()
-	if v.autoplay > 0 && len(v.slides) > 1 && !cx.Hovered(id) && !el.ReducedMotion() {
+	if !v.disabled && v.autoplay > 0 && len(v.slides) > 1 && !cx.Hovered(id) && !el.ReducedMotion() {
 		cur := v.current
-		cx.After(carouselKey{id, cur}, v.autoplay, func() { v.goTo(cur + 1) })
+		cx.AfterEnabled(id, carouselKey{id, cur}, v.autoplay, func() { v.goTo(cur + 1) })
 	}
 	stage := el.Div().H(el.Dp(v.height)).Rounded(8).Bg(theme.Subtle).Items(el.Stretch).Justify(el.Center)
 	if v.current < len(v.slides) && v.slides[v.current] != nil {
@@ -79,7 +83,7 @@ func (v *CarouselView) Render(cx *el.Context) el.Element {
 		el.Div().Grow().Items(el.Center).Child(dots),
 		Button("", func() { v.goTo(v.current + 1) }).Name(text.NextSlide).Icon(IconChevronRight).Variant(ButtonGhost).Size(28).Render(cx),
 	)
-	return el.Div().ID(id).Role("group").Name(strconv.Itoa(v.current+1)+"/"+strconv.Itoa(len(v.slides))).
+	return el.Div().ID(id).Disabled(v.disabled).Role("group").Name(strconv.Itoa(v.current+1)+"/"+strconv.Itoa(len(v.slides))).
 		Gap(8).Items(el.Stretch).Rounded(8).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {

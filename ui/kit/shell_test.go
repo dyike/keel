@@ -212,3 +212,63 @@ func TestDockMoveCloseResizeAndLayout(t *testing.T) {
 		t.Fatal("reopen in its region")
 	}
 }
+
+func TestCarouselDisabledCancelsNavigationAndTimer(t *testing.T) {
+	c := &clock{now: time.Unix(100, 0)}
+	calls := 0
+	car := Carousel(text("one"), text("two")).Autoplay(3 * time.Second).OnChange(func(int) { calls++ })
+	parentDisabled := false
+	var cx *el.Context
+	h := c.harness(func(ctx *el.Context) el.Element {
+		cx = ctx
+		return el.Div().W(el.Dp(300)).Disabled(parentDisabled).Child(car.Render(ctx))
+	})
+	cx.Focus(autoID("carousel", car))
+	h.Frame()
+	h.Frame()
+	car.SetDisabled(true)
+	h.Frame()
+	h.Key(key.NameRightArrow, 0)
+	click(t, h, "下一张")
+	click(t, h, "2")
+	h.Move(390, 290)
+	c.advance(h, 10*time.Second)
+	h.Frame()
+	if car.Value() != 0 || calls != 0 || cx.Focused(autoID("carousel", car)) {
+		t.Fatal("disabled carousel changed or retained focus")
+	}
+	car.SetValue(1)
+	if calls != 0 || car.Value() != 1 {
+		t.Fatal("programmatic disabled value")
+	}
+	car.SetDisabled(false)
+	h.Frame()
+	c.advance(h, 2*time.Second)
+	if car.Value() != 1 {
+		t.Fatal("timer resumed too soon")
+	}
+	c.advance(h, time.Second)
+	h.Frame()
+	if car.Value() != 0 || calls != 1 {
+		t.Fatal("timer did not resume")
+	}
+	// Inherited disabled must pause timers too, not only pointer dispatch.
+	parentDisabled = true
+	h.Frame()
+	c.advance(h, 20*time.Second)
+	h.Frame()
+	if car.Value() != 0 || calls != 1 {
+		t.Fatal("autoplay ignored inherited disabled")
+	}
+	parentDisabled = false
+	h.Frame()
+	c.advance(h, 2*time.Second)
+	if car.Value() != 0 {
+		t.Fatal("inherited pause retained expired deadline")
+	}
+	c.advance(h, time.Second)
+	h.Frame()
+	if car.Value() != 1 || calls != 2 {
+		t.Fatal("inherited reenable did not restart timer")
+	}
+}

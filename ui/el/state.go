@@ -44,7 +44,8 @@ type elemState struct {
 	keyFrame   uint64
 	pressedKey key.Name
 
-	frame uint64 // last frame the element was painted in
+	enabledFrame uint64 // last live, visible, enabled paint
+	frame        uint64 // last frame the element was painted in
 
 	click         gesture.Click
 	onClick       func()

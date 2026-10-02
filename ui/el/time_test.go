@@ -164,3 +164,57 @@ func TestAfterInvalidatesOtherWindows(t *testing.T) {
 		t.Fatalf("timer callback bypassed core.Call: invalidations=%d", invalidations)
 	}
 }
+
+func TestAfterEnabledWaitsForVisibleOwner(t *testing.T) {
+	now := time.Unix(1000, 0)
+	calls := 0
+	visible := false
+	disabled := false
+	root := Root(viewFunc(func(cx *Context) Element {
+		cx.AfterEnabled("owner", "owned-timer", time.Second, func() { calls++ })
+		box := Div().Disabled(disabled)
+		if visible {
+			box.Child(Div().ID("owner").H(Dp(20)))
+		}
+		return box
+	}))
+	h := uitest.NewFunc(func(gtx core.C) { gtx.Now = now; root.Layout(gtx) })
+	now = now.Add(5 * time.Second)
+	h.Frame()
+	if calls != 0 {
+		t.Fatal("missing owner fired")
+	}
+	visible = true
+	h.Frame()
+	now = now.Add(500 * time.Millisecond)
+	h.Frame()
+	disabled = true
+	h.Frame()
+	now = now.Add(5 * time.Second)
+	h.Frame()
+	if calls != 0 {
+		t.Fatal("disabled owner fired")
+	}
+	disabled = false
+	h.Frame()
+	now = now.Add(999 * time.Millisecond)
+	h.Frame()
+	if calls != 0 {
+		t.Fatal("did not restart full delay")
+	}
+	now = now.Add(time.Millisecond)
+	h.Frame()
+	h.Frame()
+	if calls != 1 {
+		t.Fatalf("one-shot calls %d", calls)
+	}
+	disabled = true
+	h.Frame()
+	disabled = false
+	h.Frame()
+	now = now.Add(2 * time.Second)
+	h.Frame()
+	if calls != 1 {
+		t.Fatal("completed one-shot timer rearmed after disabling")
+	}
+}

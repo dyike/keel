@@ -12,6 +12,8 @@ type viewTimer struct {
 	duration time.Duration
 	frame    uint64
 	fn       func()
+	owner    string
+	paused   bool
 	fired    bool
 }
 
@@ -48,7 +50,19 @@ func (cx *Context) After(key any, d time.Duration, fn func()) {
 	}
 	timer.frame = r.timerEpoch
 	timer.fn = fn
+	timer.owner = ""
 }
+
+// AfterEnabled is After scoped to a visible, enabled element ID. Its full
+// delay restarts after that element or an ancestor is disabled, hidden, or
+// covered by a modal layer. Declare it every Render, like After.
+func (cx *Context) AfterEnabled(id string, key any, d time.Duration, fn func()) {
+	cx.After(key, d, fn)
+	if cx.root.e.gtx.Enabled() {
+		cx.root.timers[key].owner = id
+	}
+}
+
 func (r *RootWidget) beginTimers() { r.timerEpoch++ }
 func (r *RootWidget) finishTimers() {
 	gtx := r.e.gtx
@@ -64,6 +78,22 @@ func (r *RootWidget) finishTimers() {
 		}
 		if timer.fired {
 			continue
+		}
+		if timer.owner != "" {
+			enabled := false
+			for _, st := range r.store.states {
+				if st.id == timer.owner && st.enabledFrame == r.store.frame {
+					enabled = true
+					break
+				}
+			}
+			if !enabled {
+				timer.paused = true
+				continue
+			}
+			if timer.paused {
+				timer.paused, timer.fired, timer.due = false, false, gtx.Now.Add(timer.duration)
+			}
 		}
 		if !gtx.Now.Before(timer.due) {
 			timer.fired = true

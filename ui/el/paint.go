@@ -101,6 +101,9 @@ func (e *engine) paintContent(n *Node) {
 	if n.id != "" || n.interactive() || (n.style.scrollY || n.style.scrollX) || n.input != nil {
 		state = e.store.get(n.key)
 	}
+	if state != nil && gtx.Enabled() {
+		state.enabledFrame = e.store.frame
+	}
 	if state != nil && n.interactive() && !n.effectiveDisabled && !e.blockInput {
 		if n.hover != nil && state.click.Hovered() {
 			n.hover(&st)
