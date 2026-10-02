@@ -58,6 +58,10 @@ const minColumn = 40
 // Row indexes in callbacks, Value and SetValue are positions in the data given
 // to SetRows, whatever the sort order.
 type TableView struct {
+	cellMode                bool
+	cells                   map[TableCell]bool
+	activeCell, cellAnchor  TableCell
+	onCells                 func([]TableCell)
 	multi                   bool
 	selection               map[int]bool
 	anchor                  int
@@ -157,6 +161,17 @@ func (v *TableView) SetRows(rows [][]string) {
 	if v.anchor >= len(rows) {
 		v.anchor = -1
 	}
+	for cell := range v.cells {
+		if cell.Row >= len(rows) {
+			delete(v.cells, cell)
+		}
+	}
+	if v.activeCell.Row >= len(rows) {
+		v.activeCell = TableCell{-1, -1}
+	}
+	if v.cellAnchor.Row >= len(rows) {
+		v.cellAnchor = TableCell{-1, -1}
+	}
 	v.resort()
 }
 
@@ -195,6 +210,15 @@ func (v *TableView) Value() int { return v.selected }
 
 // SetValue selects row i (-1 clears) and scrolls it into view, without calling OnChange.
 func (v *TableView) SetValue(i int) {
+	if v.cellMode {
+		columns := v.visibleColumns()
+		if len(columns) > 0 {
+			v.SetSelectedCells([]TableCell{{i, columns[0]}})
+		} else {
+			v.SetSelectedCells(nil)
+		}
+		return
+	}
 	if i < -1 || i >= len(v.rows) {
 		i = -1
 	}
@@ -304,7 +328,12 @@ func (v *TableView) header(cx *el.Context, c int) el.Element {
 		}
 		draw()
 	})
-	if !col.noSort && !v.disabled {
+	if v.cellMode && !v.disabled {
+		cell.CursorPointer().OnClick(func() { v.chooseColumn(cx, c, cx.ClickModifiers()) })
+		if !col.noSort {
+			cell.OnDoubleClick(func() { v.SortBy(c, v.sortCol == c && !v.desc) })
+		}
+	} else if !col.noSort && !v.disabled {
 		cell.CursorPointer().Focusable(false).OnClick(func() {
 			v.SortBy(c, v.sortCol == c && !v.desc)
 		})
@@ -327,6 +356,9 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 	cells := v.rows[data]
 	on := v.rowSelected(data)
 	r := el.Div().Role("row").Name(strings.Join(cells, " | ")).Selected(on).Row().Items(el.Center)
+	if v.cellMode {
+		r.Items(el.Stretch)
+	}
 	if on {
 		r.Bg(theme.Highlight)
 	}
@@ -345,10 +377,20 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 		case c < len(cells):
 			cell.Child(el.Text(cells[c]).MaxLines(1))
 		}
+		if v.cellMode {
+			selected := v.cells[TableCell{data, c}]
+			cell.Role("gridcell").Name("cell " + strconv.Itoa(data) + "," + strconv.Itoa(c)).Selected(selected)
+			if selected {
+				cell.Bg(theme.Highlight)
+			}
+			if !v.disabled {
+				cell.OnClick(func() { v.chooseCell(cx, data, c, cx.ClickModifiers()) })
+			}
+		}
 		v.pin(c, cell)
 		r.Child(cell)
 	}
-	if !v.disabled {
+	if !v.disabled && !v.cellMode {
 		r.CursorPointer().
 			OnClick(func() { v.chooseRows(cx, data, cx.ClickModifiers()) }).
 			OnDoubleClick(v.activate)
@@ -362,7 +404,16 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 func (v *TableView) Render(cx *el.Context) el.Element {
 	if v.reveal {
 		v.list.ScrollTo(cx, v.position(v.selected))
+		if v.cellMode {
+			v.revealCell(cx)
+		}
 		v.reveal = false
+		if v.cellMode {
+			if _, view, _ := cx.ScrollStateX(autoID("table", v)); view == 0 {
+				v.reveal = true
+				cx.After(revealKey{autoID("table", v)}, 0, func() {})
+			}
+		}
 	}
 	head := el.Div().Row().NoShrink().Items(el.Stretch).Bg(theme.Subtle)
 	var minWidth float32
@@ -399,9 +450,13 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 				}
 				return true
 			}
+			if v.cellMode {
+				return v.cellKey(cx, e)
+			}
 			p, ok := listKeys(e.Name, v.position(v.selected), len(v.order), 8)
 			if ok && e.State == el.KeyPress && len(v.order) > 0 {
 				v.chooseRows(cx, v.order[p], e.Modifiers)
+				cx.Focus(autoID("table", v))
 			}
 			return ok
 		}).

@@ -43,3 +43,7 @@ Agent：角色 `table`，`value` 是行数（如"36 行"）；表头是 `columnh
 `MultiSelect()` 启用行多选：普通点击替换选区，Ctrl/Cmd 点击增减单行，Shift 点击或 Shift+方向键按当前排序扩展/缩小范围，Ctrl/Cmd+Shift 点击合并范围。`SelectedRows()` 返回按当前显示顺序排列的源行索引副本，`Value()` 表示活动行（可以已被取消选中）。`SetValue` 替换为单行选区，`SetSelectedRows` 替换多行选区，程序操作均不触发回调；`OnSelectionChange` 接收独立副本。数据缩短时移除越界选区，排序不改变选中的源行。
 
 表格聚焦时 Ctrl/Cmd+A 全选多选表格的行，Ctrl/Cmd+C 复制选区。`SelectionText()` 返回相同的 TSV 内容：仅包含当前可见列，列和行都按显示顺序输出，单元格内的制表符、换行和双引号按 CSV 引号规则转义。输入框自行处理其文本选择和复制。
+
+`CellSelect()` 切换到单元格模式并清空选区，`MultiSelect()` 可切回行模式。普通点击选单格，Ctrl/Cmd 点击增减单格，Shift 点击或方向键扩展矩形范围；方向键移动、Home/End 跳到行首/尾，Ctrl/Cmd+Home/End 跳到整表首/尾，PageUp/PageDown 移动八行，并滚动露出目标单元格。冻结列保持固定。
+
+此模式点击表头选整列，Shift 点击选连续多列，Ctrl/Cmd 点击增减整列，双击表头排序。`TableCell{Row, Column}` 使用源数据索引，`SelectedCells()` 返回按显示顺序排列的副本，`SetSelectedCells` 程序赋值不触发 `OnCellSelectionChange`。`SetSelectedRows` 选中指定行的全部可见单元格；`SetValue` 选中该行首个可见单元格。隐藏列保留选区，复制时只输出参与选区的可见列；稀疏选区的未选交叉单元格输出空值。修改源数据长度后清理越界选区。

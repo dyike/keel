@@ -12,12 +12,27 @@ import (
 // row; SelectedRows reports membership in current display order.
 func (v *TableView) MultiSelect() *TableView {
 	rows := v.SelectedRows()
+	v.cellMode = false
+	v.cells = nil
 	v.multi = true
 	v.SetSelectedRows(rows)
 	return v
 }
 func (v *TableView) OnSelectionChange(fn func([]int)) *TableView { v.onSelection = fn; return v }
 func (v *TableView) SelectedRows() []int {
+	if v.cellMode {
+		set := make(map[int]bool)
+		for cell := range v.cells {
+			set[cell.Row] = true
+		}
+		var rows []int
+		for _, r := range v.order {
+			if set[r] {
+				rows = append(rows, r)
+			}
+		}
+		return rows
+	}
 	if !v.multi {
 		if v.selected >= 0 {
 			return []int{v.selected}
@@ -36,6 +51,16 @@ func (v *TableView) SelectedRows() []int {
 // SetSelectedRows replaces row selection without callbacks. Invalid indexes
 // are ignored. In single selection mode only the first valid row is selected.
 func (v *TableView) SetSelectedRows(rows []int) {
+	if v.cellMode {
+		var cells []TableCell
+		for _, r := range rows {
+			for _, c := range v.visibleColumns() {
+				cells = append(cells, TableCell{r, c})
+			}
+		}
+		v.SetSelectedCells(cells)
+		return
+	}
 	v.selection = make(map[int]bool)
 	active := -1
 	for _, row := range rows {
@@ -50,6 +75,9 @@ func (v *TableView) SetSelectedRows(rows []int) {
 	v.selected, v.anchor, v.reveal = active, active, true
 }
 func (v *TableView) rowSelected(row int) bool {
+	if v.cellMode {
+		return false
+	}
 	if v.multi {
 		return v.selection[row]
 	}
@@ -93,13 +121,23 @@ func (v *TableView) SelectionText() string {
 	writer := csv.NewWriter(&out)
 	writer.Comma = '\t'
 	columns := v.visibleColumns()
+	if v.cellMode {
+		columns = slices.DeleteFunc(columns, func(c int) bool {
+			for cell := range v.cells {
+				if cell.Column == c {
+					return false
+				}
+			}
+			return true
+		})
+	}
 	if len(columns) == 0 {
 		return ""
 	}
 	for _, row := range v.SelectedRows() {
 		values := make([]string, len(columns))
 		for i, c := range columns {
-			if c < len(v.rows[row]) {
+			if c < len(v.rows[row]) && (!v.cellMode || v.cells[TableCell{row, c}]) {
 				values[i] = v.rows[row][c]
 			}
 		}
@@ -115,12 +153,25 @@ func (v *TableView) selectionKey(e el.KeyEvent) bool {
 	switch key.Name(e.Name) {
 	case "C":
 		if e.State == el.KeyPress {
-			if text := v.SelectionText(); text != "" {
-				el.WriteClipboard(text)
+			if len(v.SelectedRows()) > 0 && len(v.visibleColumns()) > 0 {
+				el.WriteClipboard(v.SelectionText())
 			}
 		}
 		return true
 	case "A":
+		if v.cellMode {
+			if e.State == el.KeyPress {
+				before := v.SelectedCells()
+				v.cells = make(map[TableCell]bool)
+				for row := range v.rows {
+					for _, c := range v.visibleColumns() {
+						v.cells[TableCell{row, c}] = true
+					}
+				}
+				v.notifyCells(before)
+			}
+			return true
+		}
 		if !v.multi {
 			return false
 		}

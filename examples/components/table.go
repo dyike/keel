@@ -28,9 +28,20 @@ func init() {
 		t.SetRows(rows)
 		saved := t.LayoutState()
 		warehouseVisible := true
+		cells := false
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(8).W(el.Dp(600)).Child(
 				el.Div().Row().Wrap().Gap(8).Child(
+					kit.Button("切换行/单元格选择", func() {
+						cells = !cells
+						if cells {
+							t.CellSelect()
+							msg = "单元格模式：Shift 扩展范围，点击表头选整列，双击表头排序"
+						} else {
+							t.MultiSelect()
+							msg = "行多选模式"
+						}
+					}).Render(cx),
 					kit.Button("客户移到首列", func() { t.MoveColumn(1, 0) }).Render(cx),
 					kit.Button("切换仓库列", func() { warehouseVisible = !warehouseVisible; t.SetColumnVisible(4, warehouseVisible) }).Render(cx),
 					kit.Button("保存列布局", func() { saved = t.LayoutState(); msg = "列布局已保存" }).Render(cx),
