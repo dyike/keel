@@ -1,0 +1,194 @@
+package kit
+
+import (
+	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
+	"github.com/dyike/keel/ui/theme"
+	"slices"
+	"strings"
+)
+
+func (v *ComboboxView) Multiple() *ComboboxView {
+	v.multiple = true
+	v.SetValues([]string{v.value})
+	return v
+}
+func (v *ComboboxView) Values() []string {
+	if !v.multiple {
+		if v.value != "" {
+			return []string{v.value}
+		}
+		return nil
+	}
+	return slices.Clone(v.values)
+}
+func (v *ComboboxView) SetValues(values []string) {
+	v.close()
+	v.searchError = ""
+	v.cached = false
+	v.values = nil
+	v.value = ""
+	v.text = ""
+	for _, value := range values {
+		if value != "" && !slices.Contains(v.values, value) {
+			v.values = append(v.values, value)
+			v.value = value
+			if !v.multiple {
+				v.text = value
+				break
+			}
+		}
+	}
+}
+func (v *ComboboxView) OnValuesChange(fn func([]string)) *ComboboxView { v.onValues = fn; return v }
+func (v *ComboboxView) removeValue(value string) {
+	before := v.Values()
+	v.values = slices.DeleteFunc(v.values, func(s string) bool { return s == value })
+	old := v.value
+	v.value = ""
+	if len(v.values) > 0 {
+		v.value = v.values[len(v.values)-1]
+	}
+	if !slices.Equal(before, v.values) && v.onValues != nil {
+		v.onValues(v.Values())
+	}
+	if old != v.value && v.onChange != nil {
+		v.onChange(v.value)
+	}
+}
+func (v *ComboboxView) close() { v.open = false; v.request++; v.loading = false }
+func (v *ComboboxView) cancelDraft() {
+	v.close()
+	v.focused = false
+	v.text = v.value
+	if v.multiple {
+		v.text = ""
+	}
+}
+
+// OnSearch delegates suggestion lookup to the application. Deliver asynchronous
+// results on the UI loop via SetResults/SetSearchError; stale tokens are ignored.
+func (v *ComboboxView) OnSearch(fn func(query string, token uint64)) *ComboboxView {
+	v.onSearch = fn
+	v.cached = false
+	if v.open {
+		v.searchChanged()
+	}
+	return v
+}
+func (v *ComboboxView) searchChanged() {
+	v.request++
+	v.active = 0
+	v.searchError = ""
+	v.loading = v.onSearch != nil
+	if v.onSearch != nil {
+		v.onSearch(v.text, v.request)
+	}
+}
+func (v *ComboboxView) SetResults(token uint64, options ...string) bool {
+	if !v.open || v.disabled || token != v.request || v.onSearch == nil {
+		return false
+	}
+	v.SetOptions(options...)
+	v.loading = false
+	v.searchError = ""
+	v.active = 0
+	return true
+}
+func (v *ComboboxView) SetSearchError(token uint64, message string) bool {
+	if !v.open || token != v.request || v.onSearch == nil {
+		return false
+	}
+	v.loading = false
+	v.searchError = message
+	v.active = -1
+	return true
+}
+func (v *ComboboxView) optionKey(cx *el.Context, e el.KeyEvent) bool {
+	switch key.Name(e.Name) {
+	case key.NameUpArrow, key.NameDownArrow, key.NamePageUp, key.NamePageDown:
+	default:
+		return false
+	}
+	if e.State != el.KeyPress || e.Modifiers != 0 {
+		return true
+	}
+	if !v.open {
+		if key.Name(e.Name) == key.NameDownArrow {
+			v.open = true
+			v.searchChanged()
+		}
+		return true
+	}
+	if v.loading || v.searchError != "" {
+		return true
+	}
+	matches := v.matches()
+	if len(matches) == 0 {
+		return true
+	}
+	switch key.Name(e.Name) {
+	case key.NameDownArrow:
+		v.active = (v.active + 1) % len(matches)
+	case key.NameUpArrow:
+		v.active = (v.active - 1 + len(matches)) % len(matches)
+	default:
+		v.active, _ = listKeys(e.Name, v.active, len(matches), 8)
+	}
+	v.virtual.SetCount(len(matches))
+	v.virtual.ScrollTo(cx, v.active)
+	return true
+}
+func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
+	option := v.matches()[i]
+	selected := option == v.value
+	if v.multiple {
+		selected = slices.Contains(v.values, option)
+	}
+	row := el.Div().Role("option").Name(option).Selected(selected).Mx(4).Px(8).Row().Items(el.Center).Rounded(4).CursorPointer().Focusable(false).
+		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(option); cx.Focus(v.FocusID()) }).Child(el.Text(option).Grow().MaxLines(1), checkMark(cx, selected))
+	if i == v.active {
+		row.Bg(theme.Subtle)
+	}
+	return row
+}
+func (v *ComboboxView) suggestions(cx *el.Context, id string) el.Element {
+	list := surface().ID(id + "/list").Role("listbox").Name(v.a11y()).Py(4).Items(el.Stretch)
+	switch {
+	case v.loading:
+		list.Child(el.Div().P(12).Row().Gap(8).Child(Spinner().Render(cx), el.Text(locale.Current().Loading)))
+	case v.searchError != "":
+		list.Child(el.Div().P(12).Gap(8).Child(el.Text(v.searchError).TextColor(theme.Danger), Button(locale.Current().Retry, v.searchChanged).Render(cx)))
+	default:
+		matches := v.matches()
+		if len(matches) == 0 {
+			list.Child(el.Div().Px(12).Py(6).Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted)))
+		} else {
+			_, height := cx.ViewportSize()
+			v.virtual.SetCount(len(matches))
+			v.virtual.Height(min(max(1, min(240, height-80)), float32(len(matches))*30))
+			list.Child(v.virtual.Render(cx))
+		}
+	}
+	return list
+}
+
+type comboboxBlurKey struct{ id string }
+
+func (v *ComboboxView) filteredMatches() []string {
+	if v.onSearch != nil {
+		return v.options
+	}
+	q := strings.ToLower(strings.TrimSpace(v.text))
+	if q == "" || !v.multiple && q == strings.ToLower(v.value) {
+		return v.options
+	}
+	var matches []string
+	for _, option := range v.options {
+		if strings.Contains(strings.ToLower(option), q) {
+			matches = append(matches, option)
+		}
+	}
+	return matches
+}

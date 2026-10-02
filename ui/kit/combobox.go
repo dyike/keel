@@ -1,8 +1,7 @@
 package kit
 
 import (
-	"gioui.org/io/key"
-	"strconv"
+	"slices"
 	"strings"
 
 	"github.com/dyike/keel/ui/el"
@@ -17,6 +16,15 @@ import (
 // the highlighted option. Without AllowCustom, leaving the field with text
 // that is not an option restores the last choice.
 type ComboboxView struct {
+	multiple, loading, cached            bool
+	values, filtered                     []string
+	onValues                             func([]string)
+	virtual                              *VirtualListView
+	revision, cachedRevision             uint64
+	cachedText, cachedValue              string
+	searchError                          string
+	request                              uint64
+	onSearch                             func(string, uint64)
 	name                                 string // accessible name from a Form row when label is empty
 	label, placeholder, text, value, err string
 	options                              []string
@@ -26,18 +34,24 @@ type ComboboxView struct {
 }
 
 func Combobox(label string, options ...string) *ComboboxView {
-	return &ComboboxView{label: label, options: options, active: -1}
+	v := &ComboboxView{label: label, options: slices.Clone(options), active: -1}
+	v.virtual = VirtualList(0, 30, v.optionRow)
+	return v
 }
 func (v *ComboboxView) Placeholder(s string) *ComboboxView           { v.placeholder = s; return v }
 func (v *ComboboxView) AllowCustom() *ComboboxView                   { v.allowCustom = true; return v }
 func (v *ComboboxView) OnChange(fn func(value string)) *ComboboxView { v.onChange = fn; return v }
 func (v *ComboboxView) Value() string                                { return v.value }
-func (v *ComboboxView) SetValue(s string)                            { v.value, v.text = s, s }
-func (v *ComboboxView) SetOptions(options ...string)                 { v.options = options }
+func (v *ComboboxView) SetValue(s string)                            { v.SetValues([]string{s}) }
+func (v *ComboboxView) SetOptions(options ...string) {
+	v.options = slices.Clone(options)
+	v.revision++
+	v.active = -1
+}
 func (v *ComboboxView) SetDisabled(on bool) {
 	v.disabled = on
 	if on {
-		v.open = false
+		v.cancelDraft()
 	}
 }
 func (v *ComboboxView) SetError(msg string) { v.err = msg }
@@ -45,27 +59,41 @@ func (v *ComboboxView) Error() string       { return v.err }
 func (v *ComboboxView) FocusID() string     { return autoID("combobox", v) + "/text" }
 
 func (v *ComboboxView) matches() []string {
-	q := strings.ToLower(strings.TrimSpace(v.text))
-	if q == "" || q == strings.ToLower(v.value) {
-		return v.options
+	if !v.cached || v.cachedRevision != v.revision || v.cachedText != v.text || v.cachedValue != v.value {
+		v.filtered = v.filteredMatches()
+		v.cached = true
+		v.cachedRevision = v.revision
+		v.cachedText = v.text
+		v.cachedValue = v.value
 	}
-	var out []string
-	for _, o := range v.options {
-		if strings.Contains(strings.ToLower(o), q) {
-			out = append(out, o)
-		}
-	}
-	return out
+	return v.filtered
 }
-
-func (v *ComboboxView) choose(s string) {
-	v.open, v.text, v.active = false, s, -1
-	if s == v.value {
+func (v *ComboboxView) choose(value string) {
+	if v.disabled || v.loading || v.searchError != "" || v.multiple && value == "" {
 		return
 	}
-	v.value, v.err = s, ""
-	if v.onChange != nil {
-		v.onChange(s)
+	old := v.value
+	if v.multiple {
+		added := !slices.Contains(v.values, value)
+		if added {
+			v.values = append(v.values, value)
+		}
+		v.value = value
+		v.text = ""
+		v.open = true
+		if added && v.onValues != nil {
+			v.onValues(v.Values())
+		}
+		v.searchChanged()
+	} else {
+		v.close()
+		v.text = value
+		v.value = value
+		v.active = -1
+	}
+	v.err = ""
+	if old != v.value && v.onChange != nil {
+		v.onChange(v.value)
 	}
 }
 
@@ -80,22 +108,33 @@ func (v *ComboboxView) offered(s string) bool {
 
 // settle handles leaving the field or pressing Enter with no match.
 func (v *ComboboxView) settle() {
+	if v.loading || v.searchError != "" {
+		v.cancelDraft()
+		return
+	}
 	switch {
 	case v.offered(v.text) || v.allowCustom && strings.TrimSpace(v.text) != "":
 		v.choose(strings.TrimSpace(v.text))
 	default:
 		v.text = v.value
+		if v.multiple {
+			v.text = ""
+		}
 	}
-	v.open = false
+	v.close()
 }
 
 func (v *ComboboxView) Render(cx *el.Context) el.Element {
 	id := autoID("combobox", v)
-	focused := cx.FocusWithin(id) || v.open && cx.FocusWithin(id+"/list")
-	if v.focused && !focused && !v.open {
-		v.settle()
+	if v.focused && !cx.Enabled(id) {
+		v.cancelDraft()
 	}
-	v.focused = focused
+	focused := !v.disabled && (cx.FocusWithin(id) || v.open && cx.FocusWithin(id+"/list"))
+	if v.focused && !focused && !v.open {
+		cx.AfterEnabled(id, comboboxBlurKey{id}, 0, func() { v.settle(); v.focused = false })
+	} else {
+		v.focused = focused
+	}
 	border := theme.Border
 	switch {
 	case v.err != "":
@@ -105,27 +144,12 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 	}
 	field := el.Input().ID(v.FocusID()).Name(v.a11y()).Placeholder(v.placeholder).Bind(&v.text).
 		Border(0, theme.Border).Bg(theme.Surface).P(0).Grow().
-		OnChange(func(string) { v.open, v.active = true, 0 }).
-		OnKey(func(e el.KeyEvent) bool {
-			m := v.matches()
-			if e.State != el.KeyPress || len(m) == 0 {
-				return true
-			}
-			switch key.Name(e.Name) {
-			case key.NameDownArrow:
-				if !v.open {
-					v.open, v.active = true, 0
-				} else {
-					v.active = (v.active + 1) % len(m)
-				}
-			case key.NameUpArrow:
-				if v.open {
-					v.active = (v.active - 1 + len(m)) % len(m)
-				}
-			}
-			return true
-		}).
+		OnChange(func(string) { v.open = true; v.searchChanged(); cx.ScrollTo(v.virtual.ID(), 0) }).
+		OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) }).
 		OnSubmit(func(string) {
+			if v.loading || v.searchError != "" {
+				return
+			}
 			if m := v.matches(); v.open && v.active >= 0 && v.active < len(m) {
 				v.choose(m[v.active])
 				return
@@ -139,33 +163,38 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 		})
 	toggle := el.Div().Name(locale.Current().Name(locale.Current().MoreOptions, v.a11y())).P(2).Rounded(4).
 		Focusable(false).CursorPointer().OnClick(func() {
-		v.open = !v.open
+		if v.open {
+			v.close()
+		} else {
+			v.open = true
+			v.searchChanged()
+		}
 		cx.Focus(v.FocusID())
 	}).Child(Icon(IconChevronDown).Size(16).Color(theme.Muted).Render(cx))
-	box := el.Div().ID(id).WFull().Role("combobox").Name(v.a11y()).Value(v.value).Row().Items(el.Center).Gap(8).
-		Px(10).Py(8).Rounded(6).Border(1, border).Bg(theme.Surface).Disabled(v.disabled).Child(field, toggle)
+	box := el.Div().ID(id).WFull().Role("combobox").Name(v.a11y()).Value(strings.Join(v.Values(), ", ")).Row().Items(el.Center).Gap(8).
+		Px(10).Py(8).Rounded(6).Border(1, border).Bg(theme.Surface).Disabled(v.disabled)
+	if v.multiple {
+		box.Wrap()
+		for _, value := range v.values {
+			tag := Tag(value).OnRemove(func() { v.removeValue(value); cx.Focus(v.FocusID()) })
+			box.Child(el.Div().ID("tag/" + value).Child(tag.Render(cx)))
+		}
+		field.MinW(el.Dp(100))
+	}
+	box.Child(field, toggle)
 	if v.disabled {
 		box.Bg(theme.Subtle)
 		field.Bg(theme.Subtle)
 	}
 	if v.open && !v.disabled {
-		list := surface().ID(id + "/list").Role("listbox").Name(v.a11y()).Py(4).Items(el.Stretch).MaxH(el.Dp(240)).ScrollY()
-		m := v.matches()
-		if len(m) == 0 {
-			list.Child(el.Div().Px(12).Py(6).Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted)))
-		}
-		for i, o := range m {
-			o := o
-			row := el.Div().ID(id + "/" + strconv.Itoa(i)).Role("option").Name(o).Selected(o == v.value)
-			if i == v.active {
-				row.Bg(theme.Subtle)
+		cx.Overlay(id, el.Anchored(id, v.suggestions(cx, id)).MatchAnchorWidth().OnDismiss(func() {
+			if !cx.Enabled(id) {
+				v.cancelDraft()
+			} else {
+				v.settle()
 			}
-			list.Child(row.
-				Mx(4).Px(8).H(el.Dp(30)).Row().Items(el.Center).Rounded(4).CursorPointer().Focusable(false).
-				Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(o) }).
-				Child(el.Text(o).Grow().MaxLines(1), checkMark(cx, o == v.value)))
-		}
-		cx.Overlay(id, el.Anchored(id, list).MatchAnchorWidth().OnDismiss(func() { v.settle(); v.active = -1 }))
+			v.active = -1
+		}))
 	}
 	return labelled(v.label, box, v.err)
 }
