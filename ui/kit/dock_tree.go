@@ -195,6 +195,7 @@ func (v *DockView) Split(id, target string, placement DockPlacement) bool {
 		return false
 	}
 	v.cancelResize()
+	v.drag = dockDrag{}
 	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
 		*v.tree(s) = removeDockPanel(*v.tree(s), id)
 	}

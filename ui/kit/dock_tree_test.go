@@ -56,7 +56,7 @@ func TestDockNestedSplitRestoreAndIsolation(t *testing.T) {
 		t.Fatal("empty split not collapsed")
 	}
 	v.SetVisible("b", false)
-	h := renderView(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().H(el.Dp(600)).Child(v.Render(cx)) }), 800, 1)
+	h := renderView(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().W(el.Dp(800)).H(el.Dp(600)).Child(v.Render(cx)) }), 800, 1)
 	if shown(h, "body B") || !shown(h, "A") {
 		t.Fatal("hidden group")
 	}
@@ -96,7 +96,7 @@ func TestDockNestedGeometryAndKeyboardResize(t *testing.T) {
 	v.Split("b", "a", DockPlacementBottom)
 	calls := 0
 	v.OnLayoutChange(func(DockLayout) { calls++ })
-	h := renderView(el.ViewFunc(func(ctx *el.Context) el.Element { return el.Div().H(el.Dp(600)).Child(v.Render(ctx)) }), 800, 1)
+	h := renderView(el.ViewFunc(func(ctx *el.Context) el.Element { return el.Div().W(el.Dp(800)).H(el.Dp(600)).Child(v.Render(ctx)) }), 800, 1)
 	a, b := bounds(h, "A"), bounds(h, "body B")
 	if a.Empty() || b.Empty() || a.Max.Y >= b.Min.Y {
 		t.Fatalf("split geometry A=%v B=%v", a, b)
@@ -119,7 +119,7 @@ func TestDockMenuSplitsAndRejoinsGroups(t *testing.T) {
 	v := nestedDock()
 	calls := 0
 	v.OnLayoutChange(func(DockLayout) { calls++ })
-	h := renderView(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().H(el.Dp(600)).Child(v.Render(cx)) }), 800, 1)
+	h := renderView(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().W(el.Dp(800)).H(el.Dp(600)).Child(v.Render(cx)) }), 800, 1)
 	click(t, h, "更多 A")
 	click(t, h, "向下拆分")
 	h.Frame()
@@ -140,7 +140,9 @@ func TestDockNestedDragCancelAndAncestorDisable(t *testing.T) {
 		calls := 0
 		v.OnLayoutChange(func(DockLayout) { calls++ })
 		disabled := false
-		h := renderView(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().H(el.Dp(600)).Disabled(disabled).Child(v.Render(cx)) }), 800, 1)
+		h := renderView(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().W(el.Dp(800)).H(el.Dp(600)).Disabled(disabled).Child(v.Render(cx))
+		}), 800, 1)
 		x, y := center(bounds(h, "调整大小"))
 		h.Router.Queue(pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: f32.Pt(x, y)}, pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: f32.Pt(x, y)})
 		h.Frame()

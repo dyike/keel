@@ -44,6 +44,12 @@ type DockLayout struct {
 // moves it to another region or closes it. Layout and SetLayout save and
 // restore the arrangement.
 type DockView struct {
+	drag                  dockDrag
+	groupRects            map[*DockNode]dockRect
+	tabRects              map[string]dockRect
+	tabOrigins            map[string][2]float32
+	centerRect            dockRect
+	focusTab              string
 	splitSizes            map[*DockNode]float32
 	center                el.View
 	panels                map[string]DockPanel
@@ -62,7 +68,7 @@ type DockView struct {
 }
 
 func Dock(center el.View) *DockView {
-	return &DockView{splitSizes: map[*DockNode]float32{}, center: center, panels: map[string]DockPanel{},
+	return &DockView{groupRects: map[*DockNode]dockRect{}, tabRects: map[string]dockRect{}, tabOrigins: map[string][2]float32{}, splitSizes: map[*DockNode]float32{}, center: center, panels: map[string]DockPanel{},
 		layout: DockLayout{Version: 2, LeftSize: 240, RightSize: 260, BottomSize: 180},
 		menus:  map[*DockNode]*MenuView{}}
 }
@@ -203,6 +209,7 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 	}
 	next.LeftTree, next.RightTree, next.BottomTree = trees[0], trees[1], trees[2]
 	v.cancelResize()
+	v.drag = dockDrag{}
 	v.layout = next
 	v.splitSizes = map[*DockNode]float32{}
 	v.menus = map[*DockNode]*MenuView{}
@@ -225,6 +232,7 @@ func (v *DockView) SetVisible(id string, on bool) {
 		return
 	}
 	v.cancelResize()
+	v.drag = dockDrag{}
 	if on {
 		v.layout.Hidden = slices.DeleteFunc(v.layout.Hidden, func(s string) bool { return s == id })
 		if v.where(id) < 0 {
@@ -250,6 +258,7 @@ func (v *DockView) Move(id string, to DockSide) {
 		return
 	}
 	v.cancelResize()
+	v.drag = dockDrag{}
 	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
 		*v.tree(s) = removeDockPanel(*v.tree(s), id)
 		ids, _ := v.side(s)
@@ -337,14 +346,31 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 	for _, id := range ids {
 		id := id
 		on := id == *active
-		t := el.Div().ID(id).NoShrink().Role("tab").Name(v.panels[id].Title).Selected(on).Px(10).Py(6).Rounded(4).TextSize(13).
+		t := el.Div().ID(v.tabID(id)).NoShrink().Role("tab").Name(v.panels[id].Title).Selected(on).Px(10).Py(6).Rounded(4).TextSize(13).
 			CursorPointer().Focusable(true).FocusStyle(func(st *el.Style) { st.BorderColor(theme.Primary) }).
-			OnClick(func() { *active = id; _, selected := v.side(s); *selected = id; v.changed() }).Child(el.Text(v.panels[id].Title).MaxLines(1))
+			OnClick(func() {
+				if *active != id {
+					*active = id
+					_, selected := v.side(s)
+					*selected = id
+					v.changed()
+				}
+			}).Child(el.Text(v.panels[id].Title).MaxLines(1))
 		if on {
 			t.Bg(theme.Surface).TextColor(theme.PrimaryText)
 		} else {
 			t.TextColor(theme.Muted).Hover(func(st *el.Style) { st.Bg(theme.SubtleHover) })
 		}
+		t.OnDrag(func(e el.DragEvent) { v.tabDrag(id, e) }).Decorate(func(gtx core.C, draw func()) {
+			v.tabRects[id] = dockGeometry(cx, gtx, t)
+			origin, _ := cx.PaintGeometry()
+			scale := gtx.Metric.PxPerDp
+			if scale <= 0 {
+				scale = 1
+			}
+			v.tabOrigins[id] = [2]float32{float32(origin.X) / scale, float32(origin.Y) / scale}
+			draw()
+		})
 		tabs.Child(t)
 	}
 	m := v.menus[n]
@@ -389,7 +415,7 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 		body.Child(p.View.Render(cx))
 	}
 	box := el.Div().ID(autoID("dock-group", n)).Role("region").Name(v.panels[cur].Title).NoShrink().Items(el.Stretch).Bg(theme.Surface).Child(head, body)
-	return box.Grow().MinW(el.Dp(0)).MinH(el.Dp(0))
+	return box.Grow().MinW(el.Dp(0)).MinH(el.Dp(0)).Decorate(func(gtx core.C, draw func()) { v.groupRects[n] = dockGeometry(cx, gtx, box); draw() })
 }
 
 // handle resizes region s; growing a right or bottom region means dragging
@@ -488,23 +514,41 @@ func (v *DockView) fitted(s DockSide) float32 {
 
 func (v *DockView) Render(cx *el.Context) el.Element {
 	id := autoID("dock", v)
-	if (v.resizing || v.splitResize != nil) && !cx.Enabled(id) {
+	if (v.resizing || v.splitResize != nil || v.drag.id != "") && !cx.Enabled(id) {
 		v.cancelResize()
+		v.drag = dockDrag{}
+	}
+	if v.focusTab != "" {
+		cx.Focus(v.tabID(v.focusTab))
+		v.focusTab = ""
 	}
 	middle := el.Div().Grow().W(el.Dp(0)).Items(el.Stretch)
 	center := el.Div().Grow().H(el.Dp(0)).Items(el.Stretch)
 	if v.center != nil {
 		center.Child(v.center.Render(cx))
 	}
+	center.Decorate(func(gtx core.C, draw func()) { v.centerRect = dockGeometry(cx, gtx, center); draw() })
 	middle.Child(center)
 	if b := v.region(cx, DockBottom); b != nil {
 		middle.Child(v.handle(DockBottom), b)
 	}
-	row := el.Div().ID(id).Disabled(v.disabled).Row().Grow().Items(el.Stretch).Decorate(func(gtx core.C, draw func()) {
+	row := el.Div().ID(id).Disabled(v.disabled).Row().Grow().Items(el.Stretch).OnKey(func(e el.KeyEvent) bool {
+		if e.Name == string(key.NameEscape) && v.drag.id != "" {
+			if e.State == el.KeyPress {
+				v.drag = dockDrag{}
+			}
+			return true
+		}
+		return false
+	}).Decorate(func(gtx core.C, draw func()) {
 		if px := gtx.Metric.PxPerDp; px > 0 {
 			v.total = [2]float32{float32(gtx.Constraints.Max.X) / px, float32(gtx.Constraints.Max.Y) / px}
 		}
+		clear(v.groupRects)
+		clear(v.tabRects)
+		clear(v.tabOrigins)
 		draw()
+		v.paintDrop(cx, gtx)
 	})
 	if l := v.region(cx, DockLeft); l != nil {
 		row.Child(l, v.handle(DockLeft))
@@ -529,6 +573,7 @@ func (v *DockView) cancelResize() {
 func (v *DockView) SetDisabled(on bool) {
 	v.disabled = on
 	if on {
+		v.drag = dockDrag{}
 		v.cancelResize()
 		for _, m := range v.menus {
 			m.SetValue(false)
