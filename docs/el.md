@@ -271,3 +271,6 @@ func button(label string, onClick func()) el.Element {
 - 没有过渡动画的封装，需要自己用 `Now` / `Animating` 计算。
 - 浮层只在 `el.Root` 中完整支持，`el.Embed` 按嵌入约束尽力支持。
 - 浮层不支持跨窗口。
+
+
+在 `Decorate` 内可用 `cx.LayoutSize(element)` 读取同一棵树中元素的最终宽高（dp），包括被裁剪的行。布局前不可读取。虚拟列表可用 `cx.ScrollTo(id, offset)` 在下次绘制时设置纵向偏移，按新的内容尺寸裁剪，用于内容变化后保持锚点；首次绘制前和只读布局时不生效。

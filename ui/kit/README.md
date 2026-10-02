@@ -49,7 +49,8 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Rating](../../docs/kit/rating.md) | 星级评分 |
 | [Stepper](../../docs/kit/stepper.md) | 步骤进度 |
 | [Form](../../docs/kit/form.md) | 表单与校验 |
-| [VirtualList](../../docs/kit/virtual_list.md) | 只构建可见行的长列表 |
+| [VirtualList](../../docs/kit/virtual_list.md) | 等高虚拟列表 |
+| [VariableList](../../docs/kit/variable_list.md) | 自然高度虚拟列表、稳定 key 与阅读位置保持 |
 | [List](../../docs/kit/list.md) | 单选长列表 |
 | [Tree](../../docs/kit/tree.md) | 树 |
 | [Table](../../docs/kit/table.md) | 表格：排序、列宽、单元格插槽 |

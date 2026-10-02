@@ -141,3 +141,31 @@ func TestFlexRedistributesMinimumSizes(t *testing.T) {
 		}
 	}
 }
+
+func TestLayoutSizeAndScrollTo(t *testing.T) {
+	var cx *Context
+	var measured image.Point
+	row := Div().W(Dp(100)).H(Dp(400))
+	h := uitest.New(Root(viewFunc(func(c *Context) Element {
+		cx = c
+		return Div().Items(Start).Child(Div().ID("target").W(Dp(100)).H(Dp(100)).ScrollY().Child(row).Decorate(func(gtx core.C, draw func()) {
+			w, h := cx.LayoutSize(row)
+			measured = image.Pt(int(w), int(h))
+			draw()
+		}))
+	})))
+	if measured != image.Pt(100, 400) {
+		t.Fatalf("layout size %v", measured)
+	}
+	cx.ScrollTo("target", 250)
+	h.Frame()
+	if off, _, _ := cx.ScrollState("target"); off != 250 {
+		t.Fatalf("offset %g", off)
+	}
+	row.H(Dp(500))
+	cx.ScrollTo("target", 900)
+	h.Frame()
+	if off, _, _ := cx.ScrollState("target"); off != 400 {
+		t.Fatalf("new-content clamp %g", off)
+	}
+}

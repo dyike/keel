@@ -109,3 +109,36 @@ func (cx *Context) ScrollIntoViewX(id string, left, right float32) {
 		st.scrollPendingX += min(r-(x+st.scrollViewX), l-x)
 	}
 }
+
+// LayoutSize returns an element's final border-box size in dp. Read it only
+// during Decorate, after layout has finished; it also works for clipped rows.
+func (cx *Context) LayoutSize(element Element) (width, height float32) {
+	if element == nil {
+		return
+	}
+	px := cx.root.e.m.PxPerDp
+	if px == 0 {
+		px = 1
+	}
+	size := element.node().size
+	return float32(size.X) / px, float32(size.Y) / px
+}
+
+// ScrollTo sets a ScrollY offset in dp on its next paint. The new content
+// size clamps it then, so callers can preserve an anchor as content changes.
+// It does nothing before the container's first paint or in read-only layout.
+func (cx *Context) ScrollTo(id string, offset float32) {
+	if !cx.root.e.gtx.Enabled() {
+		return
+	}
+	st := cx.scrollElem(id)
+	if st == nil {
+		return
+	}
+	px := cx.root.e.m.PxPerDp
+	if px == 0 {
+		px = 1
+	}
+	st.scrollPending = max(int(offset*px+0.5), 0) - st.scrollY
+	cx.root.e.gtx.Execute(op.InvalidateCmd{})
+}
