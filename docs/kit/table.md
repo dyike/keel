@@ -26,3 +26,5 @@ Agent：角色 `table`，`value` 是行数（如"36 行"）；表头是 `columnh
 验证：`go run ./examples/components -section table`，加 `-theme dark` 检查深色。
 
 表格构造时复制列配置，`SetRows` 复制二维数据，`Rows` / `Row` 返回副本。复用同一份列配置创建多个表格，拖动列宽不会互相影响。后续用 `SetRows` 更新数据，用 `SetColumnWidth(index, dp)` 修改某一张表的列宽；修改原始切片或构造时的 `ColumnSpec` 不会影响已创建的表格。
+
+排序时虚拟行使用原始数据索引作为元素 key，自定义单元格中仍在构建范围内的输入/焦点状态随数据行移动。替换整个数据集后仍按新数据索引解释身份；跨数据集的业务状态应保存在应用模型中。

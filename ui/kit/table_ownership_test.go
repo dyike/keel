@@ -1,6 +1,10 @@
 package kit
 
-import "testing"
+import (
+	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/el"
+	"testing"
+)
 
 func TestTableOwnsRowsAndColumnConfiguration(t *testing.T) {
 	spec := Col("number").Width(100)
@@ -38,5 +42,33 @@ func TestTableOwnsRowsAndColumnConfiguration(t *testing.T) {
 	}
 	if a.Row(-1) != nil || a.Row(1) != nil {
 		t.Fatal("invalid row must be nil")
+	}
+}
+
+func TestTableSortPreservesCustomCellIdentity(t *testing.T) {
+	var table *TableView
+	table = Table(Col("name"), Col("editor").Cell(func(cx *el.Context, row int) el.Element { return el.Input().Name("edit-" + table.Row(row)[0]) })).Height(120)
+	table.SetRows([][]string{{"b"}, {"a"}})
+	h := sized(360, table)
+	clickClass(t, h, "Editor", "edit-b")
+	h.Type("draft")
+	if desc(h, "edit-b") != "draft" {
+		t.Fatal("row click stole focus from the cell editor")
+	}
+	table.SortBy(0, false)
+	h.Frame()
+	if desc(h, "edit-b") != "draft" || desc(h, "edit-a") == "draft" {
+		t.Fatalf("sorted editor state: a=%q b=%q", desc(h, "edit-a"), desc(h, "edit-b"))
+	}
+}
+
+func TestTableRowFocusNavigatesBeforeViewportScroll(t *testing.T) {
+	table := Table(Col("name")).Height(120)
+	table.SetRows([][]string{{"first"}, {"second"}, {"third"}, {"fourth"}, {"fifth"}})
+	h := sized(360, table)
+	click(t, h, "first")
+	h.Key(key.NameDownArrow, 0)
+	if table.Value() != 1 {
+		t.Fatalf("Down after row click selected %d, want 1", table.Value())
 	}
 }

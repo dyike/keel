@@ -85,7 +85,7 @@ func Table(cols ...*ColumnSpec) *TableView {
 		owned[i] = &copy
 	}
 	v := &TableView{cols: owned, sortCol: -1, selected: -1, widths: make([]float32, len(cols))}
-	v.list = VirtualList(0, 40, v.row)
+	v.list = VirtualList(0, 40, v.row).ItemKey(func(position int) string { return strconv.Itoa(v.order[position]) })
 	return v
 }
 
@@ -297,7 +297,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 	}
 	if !v.disabled {
 		r.CursorPointer().
-			OnClick(func() { v.choose(cx, data); cx.Focus(autoID("table", v)) }).
+			OnClick(func() { v.choose(cx, data) }).
 			OnDoubleClick(v.activate)
 		if !on {
 			r.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })

@@ -214,14 +214,23 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 							handled = node.onKey(KeyEvent{Name: string(ev.Name), Modifiers: ev.Modifiers, State: state})
 						})
 					}
-					if !handled && !node.disabled {
-						handled = node.scrollKey(gtx, ev)
-						if handled && ev.State == key.Press {
-							r.callbacks = true
-						}
-					}
 					if handled {
 						break
+					}
+				}
+				// Explicit handlers get first refusal across the whole focus chain.
+				// Otherwise a nested viewport consumes navigation meant for its owner.
+				if !handled {
+					for node := st; node != nil; node = node.keyParent {
+						if !node.disabled && !node.blocked {
+							handled = node.scrollKey(gtx, ev)
+						}
+						if handled {
+							if ev.State == key.Press {
+								r.callbacks = true
+							}
+							break
+						}
 					}
 				}
 				if handled {
