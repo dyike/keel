@@ -83,6 +83,7 @@ func Main() {
 	if automating() {
 		go serveAutomation()
 	}
+	watchSystemPreferences()
 	gioapp.Main()
 }
 

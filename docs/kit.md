@@ -108,3 +108,9 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 其他：[CopyButton](kit/copy_button.md)，复制到剪贴板并显示反馈。
 
 DangerText 用于 Alert/Tag 等表面上的危险状态文字；Danger 仍用于实心危险按钮。两套默认配色的状态文字对 Surface 均以 4.5:1 为最低对比度验收。
+
+### 系统减少动画
+
+macOS 运行 `window.Main()` 后默认跟随系统“减少动态效果”，包括运行时变化。`theme.SetReducedMotion(bool)` 设置应用覆盖值；`theme.FollowSystemMotion()` 恢复跟随最近的系统值。两者在 UI 回调或 `core.Update` 内调用。自动化模式使用显式覆盖，保持截图稳定。其他平台默认允许动画，应用仍可显式关闭。
+
+原生观察者使用 [NSWorkspace 的辅助功能显示通知](https://developer.apple.com/documentation/appkit/nsworkspace/accessibilitydisplayoptionsdidchangenotification)，登记在 workspace 自己的 notification center。原生主线程不得等待 UI 帧锁；回调入队后由后台消费者更新主题。

@@ -23,3 +23,5 @@ window.Main() // 最后一个窗口关闭后退出进程
 ```
 
 改这里的代码前先读 [架构 · 不能在锁内等待主线程](../../docs/architecture.md#不能在锁内等待主线程)。详见 [窗口与应用](../../docs/app.md)。
+
+macOS 的 `Main` 会订阅 NSWorkspace 的辅助功能显示偏好，启动时读取“减少动态效果”，变化时更新 `theme.ReducedMotion`。AppKit 回调通过有界队列交给后台消费者，再在 `core.Update` 中更新主题，避免主线程等待帧锁。无窗口测试不安装原生观察者；其他平台目前使用应用设置。

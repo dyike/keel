@@ -68,7 +68,7 @@ func init() {
 	if auto.addr != "" {
 		// Agents act on what a snapshot reports, so nothing may still be
 		// sliding into place; the app can turn motion back on.
-		theme.ReducedMotion = true
+		theme.SetReducedMotion(true)
 	}
 }
 
