@@ -1,7 +1,9 @@
 package kit
 
 import (
+	"gioui.org/op"
 	"strconv"
+	"unicode/utf8"
 
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/core"
@@ -24,22 +26,29 @@ type ToolbarItem struct {
 // ToolbarView is a row of commands. Buttons that do not fit move into a 更多
 // menu at the end. It is one Tab stop: ← → Home End move between buttons.
 type ToolbarView struct {
-	items  []ToolbarItem
-	active int
-	widths []float32 // painted width of each item, dp
-	avail  float32   // painted width of the toolbar, dp
-	more   *MenuView
+	items             []ToolbarItem
+	active            int
+	widths            []float32 // painted width of each item, dp
+	avail             float32   // painted width of the toolbar, dp
+	more              *MenuView
+	height            float32
+	disabled          bool
+	leading, trailing el.View
+	tips              map[int]*TooltipView
 }
 
 func Toolbar(items ...ToolbarItem) *ToolbarView {
-	v := &ToolbarView{items: items, more: Menu()}
+	v := &ToolbarView{items: append([]ToolbarItem(nil), items...), more: Menu(), height: 32, tips: map[int]*TooltipView{}}
 	v.widths = make([]float32, len(items))
 	return v
 }
 
 // SetItems replaces the buttons.
 func (v *ToolbarView) SetItems(items ...ToolbarItem) {
-	v.items, v.widths, v.active = items, make([]float32, len(items)), 0
+	v.items, v.widths, v.active = append([]ToolbarItem(nil), items...), make([]float32, len(items)), 0
+	v.more.SetValue(false)
+	v.avail = 0
+	v.tips = map[int]*TooltipView{}
 }
 
 // fit returns how many leading items fit beside the 更多 button.
@@ -47,15 +56,17 @@ func (v *ToolbarView) fit() int {
 	if v.avail <= 0 {
 		return len(v.items) // first frame: nothing measured yet
 	}
-	const gap, moreW = 4, 36
+	const gap = 4
+	moreW := v.moreWidth()
 	used := float32(0)
-	for i, w := range v.widths {
+	for i := range v.widths {
+		w := v.itemWidth(i)
 		used += w + gap
 		if used > v.avail {
 			// Leave room for 更多 unless everything else fits exactly.
-			for i > 0 && used-v.widths[i]-gap+moreW > v.avail {
+			for i > 0 && used-v.itemWidth(i)-gap+moreW > v.avail {
 				i--
-				used -= v.widths[i] + gap
+				used -= v.itemWidth(i) + gap
 			}
 			return i
 		}
@@ -72,10 +83,21 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 			buttons = append(buttons, i)
 		}
 	}
-	if len(buttons) > 0 && !containsInt(buttons, v.active) {
-		v.active = buttons[0]
+	if n < len(v.items) {
+		buttons = append(buttons, -1)
 	}
-	row := el.Div().Role("toolbar").Row().Items(el.Center).Gap(4)
+	if len(buttons) > 0 && !containsInt(buttons, v.active) {
+		focused := cx.Focused(id + "/" + strconv.Itoa(v.active))
+		v.active = buttons[0]
+		if n < len(v.items) {
+			v.active = -1
+		}
+		if focused {
+			cx.Focus(id + "/" + strconv.Itoa(v.active))
+		}
+	}
+	row := el.Div().Row().Items(el.Center).Gap(4)
+	measured := map[int]el.Element{}
 	move := func(to int) {
 		v.active = to
 		cx.Focus(id + "/" + strconv.Itoa(to))
@@ -87,13 +109,20 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 			e = el.Div().W(el.Dp(1)).H(el.Dp(20)).Mx(4).Bg(theme.Border)
 		} else {
 			e = v.button(cx, id, i, it, buttons, move)
-		}
-		row.Child(e.Decorate(func(gtx core.C, draw func()) {
-			if px := gtx.Metric.PxPerDp; px > 0 && i < len(v.widths) {
-				v.widths[i] = float32(gtx.Constraints.Max.X) / px
+			if it.HasIcon && it.IconOnly {
+				tip := v.tips[i]
+				if tip == nil {
+					tip = &TooltipView{}
+					v.tips[i] = tip
+				}
+				button := e
+				tip.text = it.Label
+				tip.target = el.ViewFunc(func(*el.Context) el.Element { return button })
+				e = el.Div().Child(tip.Render(cx))
 			}
-			draw()
-		}))
+		}
+		measured[i] = e
+		row.Child(e.NoShrink())
 	}
 	if n < len(v.items) {
 		v.more.items = v.more.items[:0]
@@ -103,37 +132,68 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 				v.more.Separator()
 			default:
 				v.more.Item(it.Label, "", it.Action)
-				v.more.SetItemDisabled(it.Label, it.Disabled)
+				v.more.items[len(v.more.items)-1].disabled = it.Disabled
 			}
 		}
-		v.more.Trigger(Button("", v.more.Toggle).Name(locale.Current().More).Icon(IconChevronDown).Variant(ButtonGhost).Size(32))
+		v.more.Trigger(el.ViewFunc(func(cx *el.Context) el.Element {
+			return v.button(cx, id, -1, ToolbarItem{Label: locale.Current().More, Icon: IconChevronDown, HasIcon: true, IconOnly: true, Action: v.more.Toggle}, buttons, move)
+		}))
 		row.Child(v.more.Render(cx))
 	}
-	// The stretched wrapper measures the width the parent allows; a parent
-	// sized by its content allows the toolbar's own width.
-	return el.Div().Row().Items(el.Center).Decorate(func(gtx core.C, draw func()) {
+	outer := el.Div().Role("toolbar").Row().Items(el.Center).Disabled(v.disabled)
+	if v.leading != nil {
+		outer.Child(el.Div().ID(id + "/leading").NoShrink().Child(v.leading.Render(cx)))
+	}
+	outer.Child(el.Div().ID(id + "/commands").Grow().MinW(el.Dp(0)).Row().Items(el.Center).Decorate(func(gtx core.C, draw func()) {
 		if px := gtx.Metric.PxPerDp; px > 0 {
-			v.avail = float32(gtx.Constraints.Max.X) / px
+			w := float32(gtx.Constraints.Max.X) / px
+			if v.avail != w {
+				v.avail = w
+				gtx.Execute(op.InvalidateCmd{})
+			}
 		}
 		draw()
-	}).Child(row)
+	}).Child(row))
+	if v.trailing != nil {
+		outer.Child(el.Div().ID(id + "/trailing").NoShrink().Child(v.trailing.Render(cx)))
+	}
+	return outer.Decorate(func(gtx core.C, draw func()) {
+		for i, e := range measured {
+			w, _ := cx.LayoutSize(e)
+			if v.items[i].Separator {
+				w += 8
+			}
+			if v.widths[i] != w {
+				v.widths[i] = w
+				gtx.Execute(op.InvalidateCmd{})
+			}
+		}
+		draw()
+	})
 }
 
 func (v *ToolbarView) button(cx *el.Context, id string, i int, it ToolbarItem, buttons []int, move func(int)) *el.DivEl {
 	fg := theme.Text
-	if it.Disabled {
+	if it.Disabled || v.disabled {
 		fg = theme.Muted
 	}
 	b := el.Div().ID(id + "/" + strconv.Itoa(i)).Role("button").Name(it.Label).Disabled(it.Disabled).
-		Row().Items(el.Center).Gap(6).H(el.Dp(32)).Px(10).Rounded(6).TextColor(fg).TextSize(14).
+		Row().Items(el.Center).Gap(6).H(el.Dp(v.height)).Px(10).Rounded(6).TextColor(fg).TextSize(14).
 		Focusable(i == v.active).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnClick(func() {
+			if v.disabled || it.Disabled {
+				return
+			}
 			v.active = i
+			cx.Focus(id + "/" + strconv.Itoa(i))
 			if it.Action != nil {
 				it.Action()
 			}
 		}).
 		OnKey(func(e el.KeyEvent) bool {
+			if len(buttons) == 0 || e.Modifiers != 0 {
+				return false
+			}
 			at := indexInt(buttons, i)
 			to, ok := at, true
 			switch key.Name(e.Name) {
@@ -157,7 +217,7 @@ func (v *ToolbarView) button(cx *el.Context, id string, i int, it ToolbarItem, b
 		b.CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 	}
 	if it.HasIcon {
-		b.Child(Icon(it.Icon).Size(16).Color(fg).Render(cx))
+		b.Child(Icon(it.Icon).Size(v.iconSize()).Color(fg).Render(cx))
 	}
 	if !it.IconOnly || !it.HasIcon {
 		b.Child(el.Text(it.Label).MaxLines(1))
@@ -173,4 +233,51 @@ func indexInt(s []int, x int) int {
 		}
 	}
 	return -1
+}
+
+func (v *ToolbarView) Leading(view el.View) *ToolbarView  { v.leading = view; return v }
+func (v *ToolbarView) Trailing(view el.View) *ToolbarView { v.trailing = view; return v }
+func (v *ToolbarView) Size(height float32) *ToolbarView {
+	if height >= 24 && finiteNumber(float64(height)) && height != v.height {
+		v.height = height
+		v.avail = 0
+		clear(v.widths)
+	}
+	return v
+}
+func (v *ToolbarView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.more.SetValue(false)
+	}
+}
+func (v *ToolbarView) SetItemDisabled(i int, on bool) {
+	if i >= 0 && i < len(v.items) {
+		v.items[i].Disabled = on
+	}
+}
+func (v *ToolbarView) Items() []ToolbarItem { return append([]ToolbarItem(nil), v.items...) }
+func (v *ToolbarView) iconSize() float32 {
+	if v.height >= 40 {
+		return 20
+	}
+	return 16
+}
+func (v *ToolbarView) moreWidth() float32 { return v.iconSize() + 20 }
+func (v *ToolbarView) itemWidth(i int) float32 {
+	if v.widths[i] > 0 {
+		return v.widths[i]
+	}
+	it := v.items[i]
+	if it.Separator {
+		return 9
+	}
+	if it.IconOnly && it.HasIcon {
+		return v.moreWidth()
+	}
+	width := float32(utf8.RuneCountInString(it.Label))*14 + 20
+	if it.HasIcon {
+		width += v.iconSize() + 6
+	}
+	return width
 }

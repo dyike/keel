@@ -13,7 +13,7 @@ func init() {
 		do := func(s string) func() { return func() { msg = "已执行：" + s } }
 		bar := kit.Toolbar(
 			kit.ToolbarItem{Label: "新建", Icon: kit.IconPlus, HasIcon: true, Action: do("新建")},
-			kit.ToolbarItem{Label: "搜索", Icon: kit.IconSearch, HasIcon: true, Action: do("搜索")},
+			kit.ToolbarItem{Label: "搜索", Icon: kit.IconSearch, HasIcon: true, IconOnly: true, Action: do("搜索")},
 			kit.ToolbarItem{Separator: true},
 			kit.ToolbarItem{Label: "复制 Copy", Action: do("复制")},
 			kit.ToolbarItem{Label: "导出", Action: do("导出")},
@@ -21,6 +21,7 @@ func init() {
 			kit.ToolbarItem{Label: "分享", Action: do("分享")},
 			kit.ToolbarItem{Label: "归档", Action: do("归档"), Disabled: true},
 		)
+		bar.Leading(el.ViewFunc(func(*el.Context) el.Element { return el.Div().Px(8).Child(el.Text("文件")) })).Trailing(kit.Button("帮助", do("帮助")).Variant(kit.ButtonGhost))
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(12).Items(el.Stretch).Child(
 				el.Div().Border(1, theme.Border).Rounded(8).P(4).Items(el.Stretch).Child(bar.Render(cx)),
