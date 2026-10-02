@@ -17,3 +17,7 @@ details.SetValue(true)
 Agent：角色是 `dialog`，名字是标题；关闭按钮的名字是"关闭"。
 
 验证：`go run ./examples/components -section sheet`。
+
+Sheet 的正文可以包含 Menu、Popover 等浮层；父层先登记，Esc 从最内层关闭，最后才关闭 Sheet。`SetDisabled(true)` 关闭并阻止重新打开，祖先禁用或隐藏也会关闭模态层，恢复启用不会自动重开。用户关闭回调至多执行一次。
+
+滑入距离使用受窗口约束后的实际宽高。尺寸为 NaN 或无穷时忽略；关闭后立即重新打开会重新开始动画，不要求中间先渲染一次关闭状态。示例“订单操作”可验证嵌套菜单。

@@ -23,30 +23,42 @@ type SheetView struct {
 	body     el.View
 	size     float32
 	open     bool
+	disabled bool
 	openedAt time.Time
 	onClose  func()
 }
 
 // Sheet creates a sheet against side (el.Right, el.Left, el.Top, el.Bottom).
 func Sheet(side el.Side, title string) *SheetView {
+	if side > el.Right {
+		side = el.Right
+	}
 	return &SheetView{side: side, title: title, size: 360}
 }
 func (v *SheetView) Body(b el.View) *SheetView    { v.body = b; return v }
 func (v *SheetView) OnClose(fn func()) *SheetView { v.onClose = fn; return v }
 func (v *SheetView) SetTitle(s string)            { v.title = s }
 func (v *SheetView) Value() bool                  { return v.open }
-func (v *SheetView) SetValue(open bool)           { v.open = open }
+func (v *SheetView) SetValue(open bool) {
+	v.open = open && !v.disabled
+	if !v.open {
+		v.openedAt = time.Time{}
+	}
+}
 
 // Size sets the width (left/right) or height (top/bottom) in dp, 360 by default.
 func (v *SheetView) Size(dp float32) *SheetView {
-	if dp > 0 {
+	if dp > 0 && finiteNumber(float64(dp)) {
 		v.size = dp
 	}
 	return v
 }
 
 func (v *SheetView) close() {
-	v.open = false
+	if !v.open {
+		return
+	}
+	v.SetValue(false)
 	if v.onClose != nil {
 		v.onClose()
 	}
@@ -75,19 +87,36 @@ func (v *SheetView) Render(cx *el.Context) el.Element {
 	header := el.Div().Row().Items(el.Center).Gap(8).Child(el.Text(v.title).TextSize(17).Bold().Grow())
 	header.Child(Button("", v.close).Name(locale.Current().Close).Icon(IconClose).Variant(ButtonGhost).Size(28).Render(cx))
 	panel.Child(header)
+	id := autoID("sheet", v)
+	cx.Overlay(id, el.Modal(panel).Owner(id).Placement(v.side, el.Start).OnDismiss(v.close))
 	if v.body != nil {
-		panel.Child(el.Div().Grow().ScrollY().Child(v.body.Render(cx)))
+		panel.Child(el.Div().ID(id + "/body").Grow().MinH(el.Dp(0)).ScrollY().Child(v.body.Render(cx)))
 	}
 	if progress < 1 {
 		// Slide in from the edge: shift painting and hit areas together.
 		remaining := 1 - progress
 		panel.Decorate(func(gtx core.C, draw func()) {
-			d := float32(gtx.Dp(1)) * v.size * remaining * remaining // ease out
+			w, h := cx.LayoutSize(panel)
+			size := w
+			if !horizontal {
+				size = h
+			}
+			scale := gtx.Metric.PxPerDp
+			if scale <= 0 {
+				scale = 1
+			}
+			d := scale * size * remaining * remaining // ease out using the fitted size
 			off := map[el.Side]image.Point{el.Right: {int(d), 0}, el.Left: {-int(d), 0}, el.Bottom: {0, int(d)}, el.Top: {0, -int(d)}}[v.side]
 			defer op.Offset(off).Push(gtx.Ops).Pop()
 			draw()
 		})
 	}
-	cx.Overlay(autoID("sheet", v), el.Modal(panel).Placement(v.side, el.Start).OnDismiss(v.close))
-	return el.Div().Hidden(true) // the layer is declared; nothing takes space here
+	return el.Div().ID(id).Absolute().Size(el.Dp(0)).Disabled(v.disabled)
+}
+
+func (v *SheetView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.SetValue(false)
+	}
 }

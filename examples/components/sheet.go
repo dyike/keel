@@ -14,11 +14,15 @@ func init() {
 type sheetGallery struct{ right, bottom *kit.SheetView }
 
 func newSheetGallery() *sheetGallery {
-	body := el.ViewFunc(func(cx *el.Context) el.Element {
-		return el.Div().Gap(8).Child(el.Text("订单 SO-1001").Bold(), el.Text("华东物流 · 待付款 · ¥300.00").TextColor(theme.Muted),
-			kit.DescriptionList().Item("负责人", "张三").Item("创建时间", "2026-10-01 09:30").Render(cx))
-	})
-	return &sheetGallery{right: kit.Sheet(el.Right, "订单详情").Body(body), bottom: kit.Sheet(el.Bottom, "批量操作").Size(220).Body(body)}
+	body := func() el.View {
+		menu := kit.Menu().Item("复制订单号", "", nil).Item("查看操作记录", "", nil)
+		menu.Trigger(kit.Button("订单操作", menu.Toggle))
+		return el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().Gap(8).Child(el.Text("订单 SO-1001").Bold(), el.Text("华东物流 · 待付款 · ¥300.00").TextColor(theme.Muted),
+				kit.DescriptionList().Item("负责人", "张三").Item("创建时间", "2026-10-01 09:30").Render(cx), menu.Render(cx))
+		})
+	}
+	return &sheetGallery{right: kit.Sheet(el.Right, "订单详情").Body(body()), bottom: kit.Sheet(el.Bottom, "批量操作").Size(220).Body(body())}
 }
 
 func (g *sheetGallery) Render(cx *el.Context) el.Element {
