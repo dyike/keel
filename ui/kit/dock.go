@@ -2,6 +2,7 @@ package kit
 
 import (
 	"gioui.org/io/key"
+	"gioui.org/op"
 	"slices"
 
 	"gioui.org/io/pointer"
@@ -55,6 +56,7 @@ type DockView struct {
 	panels                map[string]DockPanel
 	layout                DockLayout
 	painted               [3]float32
+	viewport              [2]float32
 	total                 [2]float32 // painted width and height of the whole dock, dp
 	grab                  float32
 	menus                 map[*DockNode]*MenuView
@@ -495,7 +497,7 @@ func (v *DockView) fitted(s DockSide) float32 {
 	sz := *v.size(s)
 	if s == DockBottom {
 		if h := v.total[1]; h > 0 && sz > h-120 {
-			sz = max(h-120, 40)
+			sz = max(h-124, 0)
 		}
 		return sz
 	}
@@ -507,13 +509,18 @@ func (v *DockView) fitted(s DockSide) float32 {
 		r = v.layout.RightSize
 	}
 	if w := v.total[0]; w > 0 && l+r > w-128 {
-		sz *= max(w-128, 80) / (l + r)
+		sz *= max(w-128, 0) / (l + r)
 	}
 	return sz
 }
 
 func (v *DockView) Render(cx *el.Context) el.Element {
 	id := autoID("dock", v)
+	width, height := cx.ViewportSize()
+	viewport := [2]float32{width, height}
+	if v.total == [2]float32{} || v.viewport != viewport {
+		v.total, v.viewport = viewport, viewport
+	}
 	if (v.resizing || v.splitResize != nil || v.drag.id != "") && !cx.Enabled(id) {
 		v.cancelResize()
 		v.drag = dockDrag{}
@@ -542,7 +549,11 @@ func (v *DockView) Render(cx *el.Context) el.Element {
 		return false
 	}).Decorate(func(gtx core.C, draw func()) {
 		if px := gtx.Metric.PxPerDp; px > 0 {
-			v.total = [2]float32{float32(gtx.Constraints.Max.X) / px, float32(gtx.Constraints.Max.Y) / px}
+			actual := [2]float32{float32(gtx.Constraints.Max.X) / px, float32(gtx.Constraints.Max.Y) / px}
+			if v.total != actual {
+				v.total = actual
+				gtx.Execute(op.InvalidateCmd{})
+			}
 		}
 		clear(v.groupRects)
 		clear(v.tabRects)
