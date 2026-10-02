@@ -15,7 +15,7 @@ type hoverCardGallery struct{ card *kit.HoverCardView }
 
 func newHoverCardGallery() *hoverCardGallery {
 	return &hoverCardGallery{card: kit.HoverCard(
-		el.ViewFunc(func(*el.Context) el.Element { return el.Text("@张三").TextColor(theme.PrimaryText) }),
+		kit.Button("@张三", nil).Variant(kit.ButtonGhost),
 		el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().Row().Gap(12).Child(kit.Avatar("张三").Size(40).Render(cx), el.Div().Gap(4).Grow().Child(
 				el.Text("张三 Zhang San").Bold(),
@@ -28,7 +28,7 @@ func newHoverCardGallery() *hoverCardGallery {
 
 func (g *hoverCardGallery) Render(cx *el.Context) el.Element {
 	return el.Div().P(24).Gap(12).Items(el.Start).Child(
-		el.Text("HoverCard：悬停 0.7 秒打开，移到卡片上保持打开").Bold(),
+		el.Text("HoverCard：悬停 0.7 秒或聚焦打开，移到卡片上保持打开").Bold(),
 		el.Div().Row().Gap(4).Child(el.Text("负责人："), g.card.Render(cx)),
 	)
 }
