@@ -16,11 +16,17 @@ import (
 // valid time reverts to the last value. ↑ ↓ change it by a minute,
 // PageUp and PageDown by an hour, wrapping around midnight.
 type TimeFieldView struct {
-	name              string // accessible name from a Form row when label is empty
-	label, text, err  string
-	value             time.Duration // since midnight
-	disabled, focused bool
-	onChange          func(time.Duration)
+	name               string // accessible name from a Form row when label is empty
+	label, text, err   string
+	value              time.Duration // since midnight
+	disabled, focused  bool
+	onChange           func(time.Duration)
+	segmented, seconds bool
+	hour12             *bool
+	parts              [3]string
+	partFocused        [3]bool
+	lastHour12         bool
+	localeReady        bool
 }
 
 func TimeField(label string) *TimeFieldView {
@@ -30,21 +36,39 @@ func TimeField(label string) *TimeFieldView {
 }
 func (v *TimeFieldView) OnChange(fn func(time.Duration)) *TimeFieldView { v.onChange = fn; return v }
 
-// Value is the time since midnight, in whole minutes.
+// Value is the time since midnight, in minutes or whole seconds with Seconds.
 func (v *TimeFieldView) Value() time.Duration { return v.value }
 
 // SetValue sets the time without calling OnChange; it wraps around 24 hours.
 func (v *TimeFieldView) SetValue(d time.Duration) {
-	v.value = d.Truncate(time.Minute) % (24 * time.Hour)
+	precision := time.Minute
+	if v.seconds {
+		precision = time.Second
+	}
+	v.value = d.Truncate(precision) % (24 * time.Hour)
 	if v.value < 0 {
 		v.value += 24 * time.Hour
 	}
 	v.text = formatClock(v.value)
+	v.syncParts()
 }
-func (v *TimeFieldView) SetDisabled(on bool) { v.disabled = on }
+func (v *TimeFieldView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.focused = false
+		v.partFocused = [3]bool{}
+		v.text = formatClock(v.value)
+		v.syncParts()
+	}
+}
 func (v *TimeFieldView) SetError(msg string) { v.err = msg }
 func (v *TimeFieldView) Error() string       { return v.err }
-func (v *TimeFieldView) FocusID() string     { return autoID("time", v) + "/text" }
+func (v *TimeFieldView) FocusID() string {
+	if v.segmented {
+		return v.segmentID(0)
+	}
+	return autoID("time", v) + "/text"
+}
 
 func formatClock(d time.Duration) string {
 	return fmt.Sprintf("%02d:%02d", int(d/time.Hour), int(d%time.Hour/time.Minute))
@@ -84,12 +108,20 @@ func (v *TimeFieldView) commit() {
 }
 
 func (v *TimeFieldView) Render(cx *el.Context) el.Element {
+	if v.segmented {
+		return v.renderSegments(cx)
+	}
 	id := autoID("time", v)
+	if v.focused && !cx.Enabled(id) {
+		v.focused = false
+		v.text = formatClock(v.value)
+	}
 	focused := cx.FocusWithin(id)
 	if v.focused && !focused {
-		v.commit()
+		cx.AfterEnabled(id, timeBlurKey{v, -1}, 0, func() { v.commit(); v.focused = false })
+	} else {
+		v.focused = focused
 	}
-	v.focused = focused
 	border := theme.Border
 	switch {
 	case v.err != "":
