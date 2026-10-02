@@ -224,24 +224,24 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) el.Element {
 	text := locale.Current()
 	const cw, ch = 36, 32
-	week := el.Div().Row()
+	week := el.Div().WFull().Row()
 	for i := 0; i < 7; i++ {
 		wd := (int(text.FirstWeekday) + i) % 7
-		week.Child(el.Div().W(el.Dp(cw)).H(el.Dp(24)).Center().Child(el.Text(text.Weekdays[wd]).TextSize(12).TextColor(theme.Muted)))
+		week.Child(el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(24)).Center().Child(el.Text(text.Weekdays[wd]).TextSize(12).TextColor(theme.Muted)))
 	}
 	title := text.Month(month.Year(), month.Month())
-	grid := el.Div().W(el.Dp(252)).NoShrink().Role("grid").Name(title)
+	grid := el.Div().W(el.Dp(252)).MaxW(el.Full).NoShrink().Role("grid").Name(title)
 	if v.months > 1 {
 		grid.Child(el.Div().H(el.Dp(28)).Center().Child(el.Text(title).Bold()))
 	}
 	grid.Child(week)
 	first := month.AddDate(0, 0, -((int(month.Weekday()) - int(text.FirstWeekday) + 7) % 7))
 	for w := 0; w < 6; w++ {
-		row := el.Div().Row()
+		row := el.Div().WFull().Row()
 		for i := 0; i < 7; i++ {
 			d := first.AddDate(0, 0, w*7+i)
 			if v.months > 1 && monthOf(d) != month {
-				row.Child(el.Div().W(el.Dp(cw)).H(el.Dp(ch)))
+				row.Child(el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(ch)))
 			} else {
 				row.Child(v.cell(d, today, month, cw, ch, move))
 			}
@@ -272,7 +272,7 @@ func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func
 	}
 	label := locale.Current().Date(d)
 	c := el.Div().ID(v.cellID(d)).Role("gridcell").Name(label).Selected(chosen || between).
-		W(el.Dp(cw)).H(el.Dp(ch)).Rounded(6).Bg(bg).TextColor(fg).Center().
+		W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(ch)).Rounded(6).Bg(bg).TextColor(fg).Center().
 		Focusable(d.Equal(v.focus)).Disabled(!ok).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		Child(el.Text(strconv.Itoa(d.Day())))
