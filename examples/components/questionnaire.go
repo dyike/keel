@@ -23,8 +23,9 @@ func init() {
 		q.OnSubmit(func(a map[string]kit.Answer) {
 			result = fmt.Sprintf("已提交：%s · %s · %d 星", a["role"].Text, strings.Join(a["tools"].Choices, "/"), a["score"].Rating)
 		})
+		disabled := false
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).W(el.Dp(480)).Child(q.Render(cx), el.Text(result).TextColor(theme.Muted))
+			return el.Div().P(24).Gap(16).W(el.Dp(480)).Child(kit.Button("启用 / 禁用问卷", func() { disabled = !disabled; q.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), q.Render(cx), el.Text(result).TextColor(theme.Muted))
 		}))
 	})
 }

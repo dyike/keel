@@ -21,3 +21,5 @@ q := kit.Questionnaire(
 Agent：容器角色 `form`，名字是进度文字；当前题目是以题目标题命名的 `group`，控件以题目标题为名字。
 
 验证：`go run ./examples/components -section questionnaire`，加 `-theme dark` 检查深色。
+
+`SetDisabled(true)` 禁用当前答案控件、前后翻页和提交，不触发校验或 `OnSubmit`；程序仍可调用 `SetPage`、`SetValue`。重新启用后保留当前页及答案。

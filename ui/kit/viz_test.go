@@ -226,3 +226,55 @@ func TestColorPickerDisabledAndBlurDraft(t *testing.T) {
 		t.Fatalf("normal blur failed: %v calls %d", p.Value(), calls)
 	}
 }
+
+func TestQuestionnaireDisabledAnswersNavigationAndSubmit(t *testing.T) {
+	calls := 0
+	q := Questionnaire(
+		Question{ID: "single", Title: "single", Kind: QuestionSingle, Options: []string{"A", "B"}},
+		Question{ID: "multi", Title: "multi", Kind: QuestionMultiple, Options: []string{"X", "Y"}},
+		Question{ID: "text", Title: "text", Kind: QuestionText},
+		Question{ID: "rating", Title: "rating", Kind: QuestionRating},
+	).OnSubmit(func(map[string]Answer) { calls++ })
+	h := renderView(viewFunc(func(cx *el.Context) el.Element { return q.Render(cx) }), 400, 1)
+	q.SetDisabled(true)
+	h.Frame()
+	n, _ := semanticNode(h, "form")
+	if !n.Desc.Disabled {
+		t.Fatal("disabled form missing semantics")
+	}
+	click(t, h, "A")
+	click(t, h, "下一题")
+	if q.Page() != 0 || q.Value()["single"].Text != "" {
+		t.Fatal("disabled first page changed")
+	}
+	q.SetPage(1)
+	h.Frame()
+	click(t, h, "X")
+	click(t, h, "上一题")
+	if q.Page() != 1 || len(q.Value()["multi"].Choices) != 0 {
+		t.Fatal("disabled checkbox/navigation")
+	}
+	q.SetPage(2)
+	h.Frame()
+	clickClass(t, h, "Editor", "text")
+	h.Type("ignored")
+	if q.Value()["text"].Text != "" {
+		t.Fatal("disabled text edited")
+	}
+	q.SetPage(3)
+	h.Frame()
+	click(t, h, "提交")
+	if calls != 0 {
+		t.Fatal("disabled submit")
+	}
+	q.SetValue(map[string]Answer{"text": {Text: "program"}, "rating": {Rating: 3}})
+	if q.Value()["text"].Text != "program" || q.Value()["rating"].Rating != 3 || calls != 0 {
+		t.Fatal("disabled programmatic answers")
+	}
+	q.SetDisabled(false)
+	h.Frame()
+	click(t, h, "提交")
+	if calls != 1 || q.Page() != 3 {
+		t.Fatal("reenabled submit/state")
+	}
+}

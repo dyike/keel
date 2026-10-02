@@ -56,6 +56,7 @@ type QuestionnaireView struct {
 	questions []Question
 	controls  map[string]*questionControl
 	page      int
+	disabled  bool
 	err       string
 	onSubmit  func(map[string]Answer)
 }
@@ -67,6 +68,10 @@ func (v *QuestionnaireView) OnSubmit(fn func(answers map[string]Answer)) *Questi
 	v.onSubmit = fn
 	return v
 }
+
+// SetDisabled disables every answer control, navigation, and submission.
+// SetPage and SetValue remain available for programmatic updates.
+func (v *QuestionnaireView) SetDisabled(on bool) { v.disabled = on }
 
 // Page is the index of the question shown; SetPage moves to another.
 func (v *QuestionnaireView) Page() int { return v.page }
@@ -164,6 +169,9 @@ func (v *QuestionnaireView) missing(i int) bool {
 }
 
 func (v *QuestionnaireView) next() {
+	if v.disabled {
+		return
+	}
 	if v.missing(v.page) {
 		v.err = locale.Current().Required
 		return
@@ -172,6 +180,9 @@ func (v *QuestionnaireView) next() {
 }
 
 func (v *QuestionnaireView) submit() {
+	if v.disabled {
+		return
+	}
 	for i := range v.questions {
 		if v.missing(i) {
 			v.SetPage(i)
@@ -226,7 +237,7 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	if v.page == n-1 {
 		forward = Button(text.Submit, v.submit)
 	}
-	return el.Div().Role("form").Name(text.Progress(v.page+1, n)).Gap(20).Items(el.Stretch).Child(
+	return el.Div().Disabled(v.disabled).Role("form").Name(text.Progress(v.page+1, n)).Gap(20).Items(el.Stretch).Child(
 		progress.Render(cx),
 		card,
 		el.Div().Row().Gap(8).Justify(el.End).Child(prev.Render(cx), forward.Render(cx)),
