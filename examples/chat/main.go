@@ -30,9 +30,9 @@ type message struct {
 }
 
 // copy is the answer's copy button, kept so its 已复制 feedback survives frames.
-func (m *message) copy(src string) *kit.CopyButtonView {
+func (m *message) copy() *kit.CopyButtonView {
 	if m.copier == nil {
-		m.copier = kit.CopyButton(func() string { return src })
+		m.copier = kit.CopyButton(func() string { return m.doc.Source() })
 	}
 	return m.copier
 }
@@ -103,7 +103,7 @@ func (c *chat) item(cx *el.Context, i int) el.Element {
 	}
 	msg := kit.Message("AI", m.doc)
 	if !m.doc.Streaming() {
-		msg.Actions(m.copy(m.doc.Source()))
+		msg.Actions(m.copy())
 	}
 	return msg.Render(cx)
 }

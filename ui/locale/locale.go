@@ -36,6 +36,7 @@ type Strings struct {
 	PrevMonth, NextMonth                            string
 	PrevPage, NextPage                              string
 	Commands, SearchCommands                        string
+	Sending, SendFailed                             string
 	Latest, Uploading                               string
 	More, Resize                                    string
 	CollapseSidebar, ExpandSidebar                  string
@@ -89,6 +90,7 @@ func Chinese() Strings {
 		Search: "搜索", NoMatches: "无匹配项", Increase: "增加", Decrease: "减少",
 		PrevMonth: "上个月", NextMonth: "下个月", PrevPage: "上一页", NextPage: "下一页",
 		Commands: "命令面板", SearchCommands: "搜索命令…",
+		Sending: "发送中", SendFailed: "发送失败",
 		Latest: "回到最新", Uploading: "上传中",
 		More: "更多", Resize: "调整大小", CollapseSidebar: "收起侧栏", ExpandSidebar: "展开侧栏",
 		PrevSlide: "上一张", NextSlide: "下一张",
@@ -122,6 +124,7 @@ func English() Strings {
 		Search: "Search", NoMatches: "No matches", Increase: "Increase", Decrease: "Decrease",
 		PrevMonth: "Previous month", NextMonth: "Next month", PrevPage: "Previous page", NextPage: "Next page",
 		Commands: "Command palette", SearchCommands: "Type a command…",
+		Sending: "Sending", SendFailed: "Send failed",
 		Latest: "Jump to latest", Uploading: "Uploading",
 		More: "More", Resize: "Resize", CollapseSidebar: "Collapse sidebar", ExpandSidebar: "Expand sidebar",
 		PrevSlide: "Previous slide", NextSlide: "Next slide",
