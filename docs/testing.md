@@ -95,3 +95,15 @@ KEEL_DESKTOP=1 go test -run RealWindows ./ui/window
 | 后台 `core.Update` | hotkey 示例里的时钟每秒走 |
 | 权限、截图、合成输入 | 需要授权，按 [原生能力](native.md) 的说明手动测 |
 | 中文输入法 | 在输入框里用拼音输入，候选框位置正确，上屏后内容正确 |
+
+## 全组件截图矩阵
+
+```sh
+go run ./examples/components -matrix /tmp/keel-component-matrix
+# 单个组件：窄窗口、1×、深色
+go run ./examples/components -section button -width 320 -scale 1 -theme dark -screenshot /tmp/button.png
+```
+
+矩阵按已注册的每个组件生成浅 / 深色、320 / 680dp 宽、1× / 2× 共八张首帧截图，并输出可浏览的 `index.html`。每个案例重新构造组件，避免上一个案例的布局缓存影响结果。大图通过索引中的图片链接打开；截图只包含当前视口，滚动后的内容和浮层仍需交互测试。
+
+`window.Screenshot` 保持默认 2×；需要其他缩放时用 `ScreenshotAtScale`。尺寸以 dp 表示，PNG 尺寸按缩放四舍五入到物理像素。非法尺寸或缩放返回错误。
