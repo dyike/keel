@@ -173,6 +173,7 @@ func (v *CodeEditorView) layout(gtx core.C) core.D {
 
 	area := clip.Rect{Max: m.size}.Push(gtx.Ops)
 	defer area.Pop()
+	editor := clip.Rect{Max: m.size}.Push(gtx.Ops)
 	v.semantics(gtx)
 	pointer.CursorText.Add(gtx.Ops)
 	event.Op(gtx.Ops, v)
@@ -195,6 +196,7 @@ func (v *CodeEditorView) layout(gtx core.C) core.D {
 	}
 	v.paintCaret(gtx)
 	v.paintScrollbar(gtx)
+	editor.Pop() // Floating controls are siblings of the textbox in the semantic tree.
 	v.paintCompletions(gtx)
 	v.paintHover(gtx)
 	v.reportIME(gtx)
@@ -362,6 +364,10 @@ func (v *CodeEditorView) completionRect(gtx core.C) image.Rectangle {
 	m := v.metrics
 	rows := min(len(v.comp), 8)
 	w := gtx.Dp(260)
+	for _, c := range v.comp {
+		w = max(w, v.textWidth(c.Label)+v.textWidth(c.Detail)+gtx.Dp(40))
+	}
+	w = min(w, m.size.X)
 	p := v.caretPoint(v.compFrom)
 	r := image.Rect(p.X, p.Y+m.lh, p.X+w, p.Y+m.lh+rows*m.lh+gtx.Dp(8))
 	if r.Max.Y > m.size.Y && p.Y-r.Dy() >= 0 {
@@ -390,19 +396,28 @@ func (v *CodeEditorView) paintCompletions(gtx core.C) {
 		core.Role("option").Add(gtx.Ops)
 		semantic.LabelOp(v.comp[i].Label).Add(gtx.Ops)
 		semantic.SelectedOp(i == v.compSel).Add(gtx.Ops)
-		area.Pop()
 		if i == v.compSel {
 			paint.FillShape(gtx.Ops, theme.Highlight, clip.UniformRRect(row, gtx.Dp(theme.RadiusMd)).Op(gtx.Ops))
 		}
 		v.paintText(gtx, v.comp[i].Label, image.Pt(row.Min.X+gtx.Dp(8), row.Min.Y+m.baseline), theme.Text)
 		if d := v.comp[i].Detail; d != "" {
-			w := 0
-			for _, g := range v.shape(m.px, d) {
-				w += g.Advance.Round()
+			left := row.Min.X + gtx.Dp(20) + v.textWidth(v.comp[i].Label)
+			if left < row.Max.X-gtx.Dp(8) {
+				detail := clip.Rect(image.Rect(left, row.Min.Y, row.Max.X-gtx.Dp(8), row.Max.Y)).Push(gtx.Ops)
+				v.paintText(gtx, d, image.Pt(max(left, row.Max.X-gtx.Dp(8)-v.textWidth(d)), row.Min.Y+m.baseline), theme.Muted)
+				detail.Pop()
 			}
-			v.paintText(gtx, d, image.Pt(row.Max.X-gtx.Dp(8)-w, row.Min.Y+m.baseline), theme.Muted)
 		}
+		area.Pop()
 	}
+}
+
+func (v *CodeEditorView) textWidth(s string) int {
+	w := 0
+	for _, g := range v.shape(v.metrics.px, s) {
+		w += g.Advance.Round()
+	}
+	return w
 }
 
 func (v *CodeEditorView) paintHover(gtx core.C) {

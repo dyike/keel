@@ -63,7 +63,10 @@ func init() {
 					kit.Button("载入 20 万行", func() {
 						var sb strings.Builder
 						for i := range 200000 {
-							fmt.Fprintf(&sb, "x%d := %d // 第 %d 行\n", i, i*7, i+1)
+							if i > 0 {
+								sb.WriteByte('\n')
+							}
+							fmt.Fprintf(&sb, "x%d := %d // 第 %d 行", i, i*7, i+1)
 						}
 						big.SetValue(sb.String())
 					}).Variant(kit.ButtonSecondary).Size(28).Render(cx),

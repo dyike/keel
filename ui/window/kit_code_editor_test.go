@@ -23,3 +23,41 @@ func TestKitCodeEditorAgentTypes(t *testing.T) {
 		t.Fatalf("typed text missing: %q", ed.Value())
 	}
 }
+
+func TestKitCodeEditorCompletion(t *testing.T) {
+	for _, accept := range []string{"enter", "click"} {
+		t.Run(accept, func(t *testing.T) {
+			ed := kit.CodeEditor("").Name("source").OnComplete(func(_, _ int, prefix string) []kit.CodeCompletion {
+				if prefix == "gr" {
+					return []kit.CodeCompletion{{Label: "greet", Insert: "greet()"}}
+				}
+				return nil
+			})
+			w := openTest(t, Options{Content: views(ed)})
+			w.click(element(t, w, "source").center())
+			if err := w.typeText("gr"); err != nil {
+				t.Fatal(err)
+			}
+			item := element(t, w, "greet")
+			if item.Role != "option" || item.Selected == nil || !*item.Selected {
+				t.Fatalf("completion semantics: %+v", item)
+			}
+			if accept == "click" {
+				w.click(item.center())
+			} else {
+				if err := w.press("enter"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			w.snapshot()
+			if ed.Value() != "greet()" {
+				t.Fatalf("completion not accepted: %q", ed.Value())
+			}
+			for _, e := range w.snapshot() {
+				if e.Role == "option" {
+					t.Fatal("completion stayed open")
+				}
+			}
+		})
+	}
+}

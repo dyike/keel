@@ -1,6 +1,6 @@
 # CodeEditor
 
-代码编辑器：行号、语法高亮（chroma）、选择、撤销重做、剪贴板、输入法。只布局可见行，20 万行的文件也能流畅滚动和编辑；高亮在后台线程做，编辑后先保持原有颜色。
+代码编辑器：行号、语法高亮（chroma）、选择、撤销重做、剪贴板、输入法。只布局可见行；高亮在后台线程做，编辑后先保持原有颜色。
 
 ```go
 ed := kit.CodeEditor(src).Language("go").Name("main.go").Height(400).
@@ -15,6 +15,10 @@ ed.SetDiagnostics(lsp.Diagnostics())
 - 鼠标：单击定位，拖动选择，双击选词，三击选行，点行号选整行。
 - `Value`/`SetValue`、`Cursor`/`SetCursor`、`Selection`、`Lines`、`SetReadOnly`、`SetDisabled`、`Focus`、`Fill`。
 
-Agent：角色 `textbox`，名字是 `Name`，值是全文（超过 2000 行时是行数）；补全项是 `option`，悬停提示是 `tooltip`。
+Agent：角色 `textbox`，名字是 `Name`，值是全文（超过 2000 行时是行数）；补全项是独立的 `option` 节点，包含选中状态，可按回车或点击接受；悬停提示是 `tooltip`。
 
 验证：`go run ./examples/components -section code_editor`。
+
+2026-10-02 在 macOS 真实窗口验证了输入 `gr` 弹出补全、回车接受，以及载入 20 万行后的滚动、跳到文件末尾和输入。示例现在生成恰好 200000 行。此次没有采集帧率或输入延迟，不能据此保证大文件在所有机器上的流畅度。
+
+系统读屏暂缓。当前 Agent 使用 Keel 的自动化语义树，macOS VoiceOver 尚未接入。
