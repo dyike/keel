@@ -22,3 +22,5 @@ Agent：只列出可视区里的行。
 
 
 自然高度内容使用 [VariableList](variable_list.md)，支持稳定 key、行高缓存和阅读位置保持。
+
+等高列表可设置 `ItemKey(func(i int) string)`，在插入、排序时按数据身份保留已构建行的元素状态。key 必须非空且唯一；默认使用索引，回调只在构建范围内调用。

@@ -19,3 +19,5 @@ tree := kit.Tree(&kit.TreeNode{ID: "ui", Label: "ui", Children: []*kit.TreeNode{
 Agent：容器角色 `tree`，每个节点是 `treeitem`，`value` 为 expanded / collapsed（没有子节点时为空），`selected` 表示选中。
 
 验证：`go run ./examples/components -section tree`，加 `-theme dark` 检查深色。
+
+构造和 `SetRoots` 会深复制节点。更新标签或子节点后应重新调用 `SetRoots`，修改原始节点不会改变组件。选中和展开状态按 ID 保留，移除节点后清理相应状态；`SetValue` 指定不存在的 ID 会清空选择。nil 节点忽略，空 ID、重复 ID 或循环引用会在改变旧树之前 panic。虚拟行使用节点 ID 保持身份，`SetValue` 会滚动到目标节点。

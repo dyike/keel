@@ -23,6 +23,8 @@ type treeRow struct {
 // parent, Home / End jump, Enter activates. Only visible rows are built.
 type TreeView struct {
 	roots              []*TreeNode
+	nodes              map[string]*TreeNode
+	reveal             bool
 	open               map[string]bool
 	selected           string
 	disabled           bool
@@ -32,8 +34,9 @@ type TreeView struct {
 }
 
 func Tree(roots ...*TreeNode) *TreeView {
-	v := &TreeView{roots: roots, open: map[string]bool{}}
-	v.list = VirtualList(0, 28, v.row)
+	v := &TreeView{open: map[string]bool{}}
+	v.list = VirtualList(0, 28, v.row).ItemKey(func(i int) string { return v.rows[i].node.ID })
+	v.SetRoots(roots...)
 	return v
 }
 
@@ -41,10 +44,48 @@ func (v *TreeView) Height(dp float32) *TreeView             { v.list.Height(dp);
 func (v *TreeView) Fill() *TreeView                         { v.list.Fill(); return v }
 func (v *TreeView) OnChange(fn func(id string)) *TreeView   { v.onChange = fn; return v }
 func (v *TreeView) OnActivate(fn func(id string)) *TreeView { v.onActive = fn; return v }
-func (v *TreeView) SetRoots(roots ...*TreeNode)             { v.roots = roots }
 func (v *TreeView) SetDisabled(on bool)                     { v.disabled = on }
 func (v *TreeView) Expanded(id string) bool                 { return v.open[id] }
-func (v *TreeView) SetExpanded(id string, open bool)        { v.open[id] = open }
+func (v *TreeView) SetExpanded(id string, open bool) {
+	if _, ok := v.nodes[id]; ok {
+		v.open[id] = open
+	}
+}
+
+// SetRoots deep-copies the nodes and preserves selection/expansion by ID.
+// Nil nodes are skipped. Empty or duplicate IDs (including cycles) panic before
+// modifying the tree. Removed selections and expansion entries are discarded.
+func (v *TreeView) SetRoots(roots ...*TreeNode) {
+	nodes := make(map[string]*TreeNode)
+	var clone func([]*TreeNode) []*TreeNode
+	clone = func(source []*TreeNode) []*TreeNode {
+		var out []*TreeNode
+		for _, node := range source {
+			if node == nil {
+				continue
+			}
+			if node.ID == "" {
+				panic("kit.Tree: empty node ID")
+			}
+			if _, ok := nodes[node.ID]; ok {
+				panic("kit.Tree: duplicate node ID " + node.ID)
+			}
+			copy := *node
+			nodes[node.ID] = &copy
+			copy.Children = clone(node.Children)
+			out = append(out, &copy)
+		}
+		return out
+	}
+	owned := clone(roots)
+	v.roots, v.nodes = owned, nodes
+	for id := range v.open {
+		if _, ok := nodes[id]; !ok {
+			delete(v.open, id)
+		}
+	}
+	v.SetValue(v.selected)
+}
 
 // Value is the selected node's ID, or "".
 func (v *TreeView) Value() string { return v.selected }
@@ -52,7 +93,10 @@ func (v *TreeView) Value() string { return v.selected }
 // SetValue selects a node without calling OnChange and expands its ancestors
 // so it shows.
 func (v *TreeView) SetValue(id string) {
-	v.selected = id
+	if _, ok := v.nodes[id]; !ok {
+		id = ""
+	}
+	v.selected, v.reveal = id, id != ""
 	var walk func(nodes []*TreeNode) bool
 	walk = func(nodes []*TreeNode) bool {
 		for _, n := range nodes {
@@ -190,6 +234,10 @@ func (v *TreeView) row(cx *el.Context, i int) el.Element {
 
 func (v *TreeView) Render(cx *el.Context) el.Element {
 	v.flatten()
+	if v.reveal {
+		v.list.ScrollTo(cx, v.index(v.selected))
+		v.reveal = false
+	}
 	return el.Div().ID(autoID("tree", v)).Role("tree").Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Py(4).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).

@@ -11,12 +11,13 @@ import (
 //
 //	kit.VirtualList(len(logs), 24, func(cx *el.Context, i int) el.Element { return el.Text(logs[i]) })
 type VirtualListView struct {
-	count  int
-	rowH   float32
-	height float32
-	fill   bool
-	row    func(cx *el.Context, i int) el.Element
-	reveal int // row to scroll to once the viewport exists, -1 none
+	count   int
+	rowH    float32
+	height  float32
+	fill    bool
+	row     func(cx *el.Context, i int) el.Element
+	itemKey func(int) string
+	reveal  int // row to scroll to once the viewport exists, -1 none
 }
 
 func VirtualList(count int, rowHeight float32, row func(cx *el.Context, i int) el.Element) *VirtualListView {
@@ -35,6 +36,10 @@ func (v *VirtualListView) Height(dp float32) *VirtualListView {
 func (v *VirtualListView) Fill() *VirtualListView { v.fill = true; return v }
 func (v *VirtualListView) SetCount(n int)         { v.count = max(n, 0) }
 func (v *VirtualListView) Count() int             { return v.count }
+
+// ItemKey uses stable, unique, nonempty data keys for row element identity.
+// The default is the row index. The callback is called only for built rows.
+func (v *VirtualListView) ItemKey(fn func(int) string) *VirtualListView { v.itemKey = fn; return v }
 
 // ID is the scroll container's element ID.
 func (v *VirtualListView) ID() string { return autoID("vlist", v) }
@@ -99,7 +104,11 @@ func (v *VirtualListView) Render(cx *el.Context) el.Element {
 	box.Child(el.Div().H(el.Dp(float32(first) * v.rowH)))
 	for i := first; i < last; i++ {
 		// Stable IDs keep each row's state as the window slides.
-		box.Child(el.Div().ID(id + "/" + strconv.Itoa(i)).H(el.Dp(v.rowH)).NoShrink().Items(el.Stretch).Child(v.row(cx, i)))
+		key := strconv.Itoa(i)
+		if v.itemKey != nil {
+			key = v.itemKey(i)
+		}
+		box.Child(el.Div().ID(id + "/" + key).H(el.Dp(v.rowH)).NoShrink().Items(el.Stretch).Child(v.row(cx, i)))
 	}
 	box.Child(el.Div().H(el.Dp(float32(v.count-last) * v.rowH)))
 	return box
