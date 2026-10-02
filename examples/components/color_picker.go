@@ -23,9 +23,10 @@ func init() {
 				el.Div().Size(el.Dp(28)).Rounded(6).Border(1, theme.Border).Bg(popover.Value()),
 				kit.Button("选择主题色", pop.Toggle).Variant(kit.ButtonSecondary).Render(cx))
 		}))
+		disabled := false
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(24).Items(el.Start).Child(
-				picker.Render(cx),
+				picker.Render(cx), kit.Button("启用 / 禁用取色器", func() { disabled = !disabled; picker.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx),
 				el.Text("放进 Popover：").TextColor(theme.Muted), pop.Render(cx))
 		}))
 	})

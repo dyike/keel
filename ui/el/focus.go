@@ -87,6 +87,21 @@ func (cx *Context) FocusWithin(id string) bool {
 	return n != nil && focused(n)
 }
 
+// Enabled reports whether the last declared element with id accepts input,
+// including ancestor disabled state and modal blocking. Missing IDs are false.
+// During Render this describes the previous declaration, like FocusWithin.
+func (cx *Context) Enabled(id string) bool {
+	if id == "" {
+		return false
+	}
+	for _, st := range cx.root.store.states {
+		if st.id == id {
+			return !st.disabled && !st.blocked
+		}
+	}
+	return false
+}
+
 func (cx *Context) Focused(id string) bool {
 	if id == "" {
 		return false

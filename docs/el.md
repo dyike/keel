@@ -276,3 +276,5 @@ func button(label string, onClick func()) el.Element {
 在 `Decorate` 内可用 `cx.LayoutSize(element)` 读取同一棵树中元素的最终宽高（dp），包括被裁剪的行。布局前不可读取。虚拟列表可用 `cx.ScrollTo(id, offset)` 在下次绘制时设置纵向偏移，按新的内容尺寸裁剪，用于内容变化后保持锚点；首次绘制前和只读布局时不生效。
 
 `cx.AfterEnabled(id, key, delay, fn)` 把定时器绑定到指定元素：元素可见且未禁用时才运行；元素或祖先禁用、隐藏或被模态层遮挡后暂停，恢复时重新等待完整 delay。与 `After` 一样每帧声明，省略声明会取消。
+
+`cx.Enabled(id)` 查询最近声明的元素是否可接收输入，包含祖先禁用和模态层阻挡；找不到 ID 时返回 false。在 `Render` 中查询的是上一轮声明，与焦点查询的时机一致。

@@ -27,6 +27,7 @@ const pickerWidth = 240
 type ColorPickerView struct {
 	h, s, v, a float64 // hue 0..360, the rest 0..1
 	alpha      bool
+	disabled   bool
 	swatches   []color.NRGBA
 	hex        string
 	focused    bool
@@ -53,6 +54,16 @@ func (p *ColorPickerView) Swatches(colors ...color.NRGBA) *ColorPickerView {
 }
 func (p *ColorPickerView) OnChange(fn func(color.NRGBA)) *ColorPickerView { p.onChange = fn; return p }
 
+// SetDisabled blocks user input. Disabling cancels an uncommitted HEX draft;
+// SetValue remains available and never calls OnChange.
+func (p *ColorPickerView) SetDisabled(on bool) {
+	p.disabled = on
+	if on {
+		p.focused = false
+		p.hex = hexOf(p.Value(), p.alpha)
+	}
+}
+
 // Value is the current color.
 func (p *ColorPickerView) Value() color.NRGBA {
 	r, g, b := hsvToRGB(p.h, p.s, p.v)
@@ -78,6 +89,9 @@ func (p *ColorPickerView) changed() {
 }
 
 func (p *ColorPickerView) set(h, s, v, a float64) {
+	if p.disabled {
+		return
+	}
 	h, s, v, a = math.Mod(h+360, 360), clamp01(s), clamp01(v), clamp01(a)
 	if h == p.h && s == p.s && v == p.v && a == p.a {
 		return
@@ -174,11 +188,17 @@ func gradient(gtx core.C, box image.Rectangle, c0, c1 color.NRGBA, vertical bool
 func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
 	id := autoID("color", p)
-	focused := cx.FocusWithin(id + "/hex")
-	if p.focused && !focused {
-		p.commitHex()
+	if p.focused && !cx.Enabled(id) {
+		p.focused = false
+		p.hex = hexOf(p.Value(), p.alpha)
 	}
-	p.focused = focused
+	focused := !p.disabled && cx.FocusWithin(id+"/hex")
+	if p.focused && !focused {
+		// Decide after this frame's disabled ancestry and modal state are known.
+		cx.AfterEnabled(id, pickerBlurKey{id}, 0, func() { p.commitHex(); p.focused = false })
+	} else {
+		p.focused = focused
+	}
 	pure := func() color.NRGBA { r, g, b := hsvToRGB(p.h, 1, 1); return color.NRGBA{R: r, G: g, B: b, A: 255} }
 	keys := func(dx, dy float64, apply func(dx, dy float64)) func(el.KeyEvent) bool {
 		return func(e el.KeyEvent) bool {
@@ -242,7 +262,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 			gradient(gtx, seg, color.NRGBA{R: r0, G: g0, B: b0, A: 255}, color.NRGBA{R: r1, G: g1, B: b1, A: 255}, false)
 		}
 	}, func(f float64) { p.set(f*360, p.s, p.v, p.a) }, func(d float64) { p.set(p.h+d*2, p.s, p.v, p.a) })
-	col := el.Div().ID(id).Role("group").Name(hexOf(p.Value(), p.alpha)).Gap(10).W(el.Dp(pickerWidth)).Items(el.Stretch).Child(svBox, hue)
+	col := el.Div().ID(id).Disabled(p.disabled).Role("group").Name(hexOf(p.Value(), p.alpha)).Gap(10).W(el.Dp(pickerWidth)).Items(el.Stretch).Child(svBox, hue)
 	if p.alpha {
 		col.Child(bar(text.Opacity, strconv.Itoa(int(math.Round(p.a*100)))+"%", p.a, func(gtx core.C, box image.Rectangle) {
 			paint.FillShape(gtx.Ops, theme.Subtle, clip.Rect(box).Op())
@@ -270,14 +290,24 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 			}
 			row.Child(el.Div().Role("button").Name(hexOf(c, p.alpha)).Size(el.Dp(24)).Rounded(4).Bg(c).Border(1, theme.Border).
 				CursorPointer().Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
-				OnClick(func() { p.SetValue(c); p.changed() }))
+				OnClick(func() {
+					if !p.disabled {
+						p.SetValue(c)
+						p.changed()
+					}
+				}))
 		}
 		col.Child(row)
 	}
 	return col
 }
 
+type pickerBlurKey struct{ id string }
+
 func (p *ColorPickerView) commitHex() {
+	if p.disabled {
+		return
+	}
 	c, ok := parseHex(p.hex)
 	if !ok {
 		p.hex = hexOf(p.Value(), p.alpha)

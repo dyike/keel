@@ -169,3 +169,60 @@ func TestQuestionnaireRequiredNavigationSubmit(t *testing.T) {
 		t.Fatalf("answers %+v", answers)
 	}
 }
+
+func TestColorPickerDisabledAndBlurDraft(t *testing.T) {
+	calls := 0
+	red := color.NRGBA{R: 255, A: 255}
+	p := ColorPicker().Alpha().Swatches(red).OnChange(func(color.NRGBA) { calls++ })
+	parentDisabled := false
+	h := renderView(viewFunc(func(cx *el.Context) el.Element {
+		return el.Div().Child(el.Div().Disabled(parentDisabled).Child(p.Render(cx)), Button("disable-parent", func() { parentDisabled = true }).Render(cx), Button("outside", func() {}).Render(cx))
+	}), 400, 1)
+	initial := p.Value()
+	p.SetDisabled(true)
+	h.Frame()
+	n, _ := node(h, "色相")
+	x, y := center(n.Desc.Bounds)
+	h.Drag(x, y, x+50, y)
+	h.Key(key.NameRightArrow, 0)
+	click(t, h, "#FF0000FF")
+	if p.Value() != initial || calls != 0 {
+		t.Fatal("disabled picker responded")
+	}
+	p.SetValue(red)
+	h.Frame()
+	if p.Value() != red || calls != 0 {
+		t.Fatal("disabled programmatic color")
+	}
+	p.SetDisabled(false)
+	h.Frame()
+	edit := func() {
+		clickClass(t, h, "Editor", "HEX")
+		h.Key(key.NameEnd, 0)
+		for range 9 {
+			h.Key(key.NameDeleteBackward, 0)
+		}
+		h.Type("#00FF00FF")
+		h.Frame()
+	}
+	edit()
+	click(t, h, "disable-parent")
+	h.Frame()
+	h.Frame()
+	if p.Value() != red || calls != 0 {
+		t.Fatal("inherited disabled committed draft")
+	}
+	parentDisabled = false
+	h.Frame()
+	h.Frame()
+	if p.Value() != red || calls != 0 {
+		t.Fatal("reenable committed abandoned draft")
+	}
+	edit()
+	click(t, h, "outside")
+	h.Frame()
+	h.Frame()
+	if p.Value() != (color.NRGBA{G: 255, A: 255}) || calls != 1 {
+		t.Fatalf("normal blur failed: %v calls %d", p.Value(), calls)
+	}
+}

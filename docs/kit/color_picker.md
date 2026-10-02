@@ -16,3 +16,5 @@ picker.SetValue(theme.Primary)
 Agent：容器角色 `group`，名字是当前颜色的十六进制值；方块和各个条的角色是 `slider`（名字为"饱和度与亮度""色相""不透明度"）；输入框名为 HEX；预设色块是以十六进制值命名的按钮。
 
 验证：`go run ./examples/components -section color_picker`，加 `-theme dark` 检查深色。
+
+`SetDisabled(true)` 禁用色板、滑块、预设色和 HEX 输入，并取消尚未提交的 HEX 草稿。父容器禁用引起的失焦不会提交草稿。`SetValue` 在禁用期间仍可更新颜色且不调用 `OnChange`。
