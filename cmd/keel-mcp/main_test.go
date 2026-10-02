@@ -320,3 +320,27 @@ func TestDockExample(t *testing.T) {
 	}
 	expect(t, got, `tab "大纲" selected`)
 }
+
+func TestOrdersKeyboardOnly(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds and runs the example app")
+	}
+	call, _ := startServer(t, nil)
+	call("launch", map[string]any{"command": "go run ./examples/orders", "dir": repoRoot()})
+	press := func(key string) string { return call("press_key", map[string]any{"key": key}) }
+	press("mod+n")
+	expect(t, call("type", map[string]any{"text": "键盘客户"}), `textbox "客户" value="键盘客户"`)
+	press("tab")
+	expect(t, call("type", map[string]any{"text": "4200"}), `textbox "金额" value="4200"`)
+	press("tab")
+	press("enter")
+	press("down")
+	expect(t, press("enter"), `value="已付款"`)
+	press("tab")
+	press("right")
+	expect(t, press("right"), `radio "现金" checked`)
+	press("tab")
+	expect(t, press("space"), `switch "加急处理" checked`)
+	press("tab")
+	expect(t, press("enter"), `tab "订单列表" selected`, `row "SO-1037 | 键盘客户 | 已付款 | 4200.00" selected`)
+}

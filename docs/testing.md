@@ -109,3 +109,5 @@ go run ./examples/components -section button -width 320 -scale 1 -theme dark -sc
 `window.Screenshot` 保持默认 2×；需要其他缩放时用 `ScreenshotAtScale`。尺寸以 dp 表示，PNG 尺寸按缩放四舍五入到物理像素。非法尺寸或缩放返回错误。
 
 组件示例中的固定展示宽度必须同时设置 `MaxW(el.Full)`；否则测试到的是被裁掉的宽画布，而非组件的窄布局。并列操作用 Wrap，保留需要验证横向滚动的内容宽度。Sidebar 示例在 600dp 以下初始折叠，仍可手动展开；Dock 的多列工作区需要足够宽度，不把 320dp 截图当成手机布局承诺。
+
+`cmd/keel-mcp` 的示例级回归包括：订单筛选、详情和删除、新建订单纯键盘流程；聊天流式输出、代码/表格和中断；设置页主题、搜索和语言切换；Dock 移动面板、切换后保留输入、菜单 Esc 与关闭面板。`TestOrdersKeyboardOnly` 不点击控件，从 Mod+N 开始用 Tab、方向键、Space、Enter 完成保存。

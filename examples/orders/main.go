@@ -45,6 +45,7 @@ type desk struct {
 	pay              *kit.RadioGroupView
 	urgent           *kit.SwitchView
 	form             *kit.FormView
+	focusCustomer    bool
 }
 
 func newDesk() *desk {
@@ -113,7 +114,11 @@ func (d *desk) selected() (int, bool) {
 }
 
 func (d *desk) Render(cx *el.Context) el.Element {
-	cx.Shortcut("mod+n", func() { d.tab = 1 })
+	cx.Shortcut("mod+n", func() { d.tab = 1; d.focusCustomer = true })
+	if d.focusCustomer {
+		cx.Focus(d.customer.FocusID())
+		d.focusCustomer = false
+	}
 	pages := []func() el.Element{func() el.Element { return d.listPage(cx) }, func() el.Element { return d.formPage(cx) }, d.statsPage}
 	return el.Div().P(24).Gap(16).ScrollY().Child(
 		el.Text("订单管理").TextSize(22).Bold(),
