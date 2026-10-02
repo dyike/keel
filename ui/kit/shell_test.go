@@ -272,3 +272,53 @@ func TestCarouselDisabledCancelsNavigationAndTimer(t *testing.T) {
 		t.Fatal("inherited reenable did not restart timer")
 	}
 }
+
+func TestResizableDisabledBlocksDragAndKeys(t *testing.T) {
+	for _, vertical := range []bool{false, true} {
+		calls, childClicks := 0, 0
+		split := Resizable(Button("pane", func() { childClicks++ }), text("other")).Min(40, 40).OnChange(func(float32) { calls++ })
+		if vertical {
+			split.Vertical()
+		}
+		split.SetValue(120)
+		h := render(func(cx *el.Context) el.Element { return el.Div().W(el.Dp(360)).H(el.Dp(260)).Child(split.Render(cx)) })
+		n, _ := semanticNode(h, "separator:120")
+		x, y := center(n.Desc.Bounds)
+		h.Click(x, y)
+		h.Key(key.NameRightArrow, 0)
+		if split.Value() != 136 || calls != 1 {
+			t.Fatal("enabled splitter did not respond")
+		}
+		split.SetDisabled(true)
+		h.Frame()
+		n, _ = semanticNode(h, "separator:136")
+		if !n.Desc.Disabled {
+			t.Fatal("disabled separator missing semantics")
+		}
+		x, y = center(n.Desc.Bounds)
+		x1, y1 := x+50, y
+		if vertical {
+			x1, y1 = x, y+50
+		}
+		h.Drag(x, y, x1, y1)
+		h.Key(key.NameEnd, 0)
+		click(t, h, "pane")
+		if split.Value() != 136 || calls != 1 || childClicks != 0 {
+			t.Fatal("disabled splitter responded")
+		}
+		split.SetValue(100)
+		h.Frame()
+		if split.Value() != 100 || calls != 1 {
+			t.Fatal("programmatic disabled assignment")
+		}
+		split.SetDisabled(false)
+		h.Frame()
+		n, _ = semanticNode(h, "separator:100")
+		x, y = center(n.Desc.Bounds)
+		h.Click(x, y)
+		h.Key(key.NameRightArrow, 0)
+		if split.Value() != 116 || calls != 2 {
+			t.Fatal("reenabled splitter did not respond")
+		}
+	}
+}

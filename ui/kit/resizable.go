@@ -18,6 +18,7 @@ import (
 type ResizableView struct {
 	first, second  el.View
 	vertical       bool
+	disabled       bool
 	size           float32 // first pane, dp
 	min1, min2     float32
 	total, painted float32 // container and first pane size as last painted
@@ -42,6 +43,9 @@ func (v *ResizableView) OnChange(fn func(size float32)) *ResizableView { v.onCha
 // Value is the first pane's size in dp.
 func (v *ResizableView) Value() float32 { return v.size }
 
+// SetDisabled disables the splitter and its pane content. SetValue remains available.
+func (v *ResizableView) SetDisabled(on bool) { v.disabled = on }
+
 // SetValue sets the first pane's size without calling OnChange.
 func (v *ResizableView) SetValue(dp float32) { v.size = v.clamp(dp) }
 
@@ -56,6 +60,9 @@ func (v *ResizableView) clamp(dp float32) float32 {
 }
 
 func (v *ResizableView) set(dp float32) {
+	if v.disabled {
+		return
+	}
 	dp = v.clamp(dp)
 	if dp == v.size {
 		return
@@ -113,7 +120,7 @@ func (v *ResizableView) Render(cx *el.Context) el.Element {
 		})
 	one := el.Div().NoShrink().Items(el.Stretch)
 	two := el.Div().Grow().Items(el.Stretch)
-	box := el.Div().Items(el.Stretch).Grow()
+	box := el.Div().Disabled(v.disabled).Items(el.Stretch).Grow()
 	if v.vertical {
 		one.H(el.Dp(v.size))
 		two.H(el.Dp(0))

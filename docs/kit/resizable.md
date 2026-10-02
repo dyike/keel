@@ -10,6 +10,7 @@ stack := kit.Resizable(editor, terminal).Vertical() // 上下排列
 
 - 拖动分隔条调整大小；分隔条可以获得焦点，方向键每次移动 16dp，Home / End 跳到最小或最大。
 - 窗口大小变化时，第一个面板保持自己的尺寸，第二个面板占用剩下的空间。`Min(first, second)` 限制两边的最小尺寸，默认各 80dp。
+- `SetDisabled(true)` 禁用分隔条及两侧内容，移除焦点并停止拖动、按键和用户回调；`SetValue` 仍可调整尺寸。
 - `Value()` / `SetValue(dp)`（不触发回调），`OnChange(fn)` 在用户拖动或按键调整时调用。
 - 会撑满父容器给的空间，所以要放在有确定尺寸的地方。
 
