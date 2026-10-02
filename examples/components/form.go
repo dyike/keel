@@ -5,6 +5,7 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/theme"
+	"time"
 )
 
 func init() {
@@ -25,10 +26,29 @@ func init() {
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(16).W(el.Dp(420)).Child(f.Render(cx), el.Div().Row().Gap(12).Items(el.Center).Child(
 				kit.Button("提交", func() {
-					if f.Validate(cx) {
-						msg = "已提交 " + name.Value()
+					token := f.BeginSubmit(cx)
+					if token == 0 {
+						return
 					}
-				}).Render(cx), el.Text(msg).TextColor(theme.Muted))))
+					submittedName := name.Value()
+					msg = "正在校验并提交…"
+					go func() {
+						time.Sleep(600 * time.Millisecond)
+						core.Update(func() {
+							var errors []string
+							if submittedName == "admin" {
+								errors = []string{"此名称已被占用"}
+							}
+							if f.FinishSubmit(token, errors) {
+								if len(errors) > 0 {
+									msg = "请修正字段"
+								} else {
+									msg = "已提交 " + submittedName
+								}
+							}
+						})
+					}()
+				}).Loading(f.Submitting()).Render(cx), kit.Button("取消提交", f.CancelSubmit).Variant(kit.ButtonGhost).Render(cx), el.Text(msg).TextColor(theme.Muted))))
 		}))
 	})
 }

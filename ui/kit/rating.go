@@ -117,3 +117,10 @@ func (v *RatingView) Render(cx *el.Context) el.Element {
 }
 
 func (v *RatingView) setName(s string) { v.name = s }
+
+func (v *RatingView) FocusID() string {
+	if v.readOnly {
+		return ""
+	}
+	return autoID("rating", v)
+}

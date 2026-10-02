@@ -206,3 +206,9 @@ func (v *ComboboxView) a11y() string {
 	}
 	return v.name
 }
+
+func (v *ComboboxView) commitForm() {
+	if !v.disabled {
+		v.settle()
+	}
+}

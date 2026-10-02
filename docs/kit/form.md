@@ -22,13 +22,29 @@ kit.Button("创建", func() {
 
 - 校验函数返回错误信息，合法时返回空字符串；可以传 nil 表示不校验这一项。
 - `Validate(cx)` 运行全部校验、在各字段下显示错误、把焦点移到第一个不合法的字段，返回是否全部通过。必须在回调里调用。
-- 错误会在用户修改字段后消失，下一次 `Validate` 时重新计算。
+- 自带错误展示的控件按各自编辑规则清除错误；其他控件的错误由 Form 显示，保留到下次校验或异步结果更新。`Errors()` 返回各字段当前错误的副本。
 - 控件不需要再传标签：Form 会把行标签作为控件的无障碍名称。
-- 可校验的控件实现了 `kit.Validatable`（`SetError`、`FocusID`），包括 Input、TextArea、Select、NumberInput、OtpInput、TimeField、Combobox、DatePicker。
+- 自带错误展示的控件实现了 `kit.Validatable`（`SetError`、`FocusID`），包括 Input、TextArea、Select、NumberInput、OtpInput、TimeField、Combobox、DatePicker。
 - `kit.Required(s, msg)` 在 s 为空或全是空白时返回 msg。`LabelWidth(dp)` 设置标签列宽，默认 72。
 
 Agent：容器角色 `form`，行标签是 `text`，控件以行标签为名字。
 
 验证：`go run ./examples/components -section form`，加 `-theme dark` 检查深色。
 
-所有非 nil 校验函数都会执行，包括 Checkbox 等未实现 Validatable 的控件；Validatable 只决定是否显示控件内错误及聚焦能力。Required 将 Unicode 空白（含全角空格）视为空值。
+所有非 nil 校验函数都会执行。Checkbox、Switch、Radio、Slider、Rating 等非文本字段的错误由 Form 放在控件下方；有 `FocusID` 时聚焦控件，否则聚焦错误字段容器。禁用字段不会成为焦点目标。NumberInput、TimeField 和 Combobox 的可用编辑草稿在校验前提交，避免校验读取旧值。Required 将 Unicode 空白（含全角空格）视为空值。
+
+异步校验与提交共用一次请求：
+
+```go
+token := f.BeginSubmit(cx)
+if token == 0 { return } // 同步校验失败、禁用或已有请求
+payload := customer.Value() // 在 UI 回调里捕获，后台只使用快照
+go func() {
+    errors := validateAndSave(payload) // []string，按 Field 顺序；nil 表示成功
+    core.Update(func() { f.FinishSubmit(token, errors) })
+}()
+```
+
+`Submitting()` 为 true 时字段不可编辑，重复 `BeginSubmit` 返回 0；外部提交按钮可用 `.Loading(f.Submitting())` 显示忙碌状态。`FinishSubmit` 恢复编辑、展示各字段错误，并在字段恢复可用后聚焦首个错误。错误切片可短于字段数，剩余字段按无错误处理；过长切片、过期或取消的 token 返回 false，不改变状态。
+
+`CancelSubmit()` 使未完成结果失效并恢复编辑；它不会取消业务 goroutine 的网络请求，应用需要自行取消 I/O。`SetDisabled(true)`、祖先禁用或再次同步 `Validate` 也会使请求失效。程序在提交期间替换字段值、或移除表单时，应先调用 `CancelSubmit`。后台只能通过 `core.Update` 调用完成接口。

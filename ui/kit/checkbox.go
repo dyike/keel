@@ -61,3 +61,5 @@ func (v *CheckboxView) Render(cx *el.Context) el.Element {
 }
 
 func (v *CheckboxView) setName(s string) { v.name = s }
+
+func (v *CheckboxView) FocusID() string { return autoID("checkbox", v) }

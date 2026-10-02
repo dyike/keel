@@ -14,6 +14,7 @@ import (
 // ← ↓ and → ↑ step, PageUp / PageDown move ten steps, Home / End jump to the ends.
 type SliderView struct {
 	label                 string
+	name                  string
 	min, max, step, value float64
 	disabled              bool
 	onChange              func(float64)
@@ -213,7 +214,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 			if upper {
 				name = locale.Current().UpperValue
 			}
-			thumb.ID(v.endpointID(upper)).Role("slider").Name(locale.Current().Name(name, v.label)).Value(strconv.FormatFloat(x, 'f', -1, 64)).Focusable(true).
+			thumb.ID(v.endpointID(upper)).Role("slider").Name(locale.Current().Name(name, v.a11y())).Value(strconv.FormatFloat(x, 'f', -1, 64)).Focusable(true).
 				FocusStyle(func(s *el.Style) { s.BorderColor(theme.Text) }).OnKey(keyHandler(upper))
 		}
 		layer := el.Div().Absolute()
@@ -231,7 +232,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 	if v.paired {
 		track.Child(knob(v.upper, true))
 	} else {
-		track.Role("slider").Name(v.label).Value(strconv.FormatFloat(v.value, 'f', -1, 64)).Focusable(true).OnKey(keyHandler(false)).
+		track.Role("slider").Name(v.a11y()).Value(strconv.FormatFloat(v.value, 'f', -1, 64)).Focusable(true).OnKey(keyHandler(false)).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
 	}
 	track.OnDrag(func(e el.DragEvent) {
@@ -257,4 +258,12 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 		track.CursorPointer()
 	}
 	return labelled(v.label, track, "")
+}
+
+func (v *SliderView) setName(s string) { v.name = s }
+func (v *SliderView) a11y() string {
+	if v.label != "" {
+		return v.label
+	}
+	return v.name
 }

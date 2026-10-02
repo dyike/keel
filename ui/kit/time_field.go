@@ -160,3 +160,19 @@ func (v *TimeFieldView) a11y() string {
 	}
 	return v.name
 }
+
+func (v *TimeFieldView) commitForm() {
+	if v.disabled {
+		return
+	}
+	if !v.segmented {
+		v.commit()
+		return
+	}
+	for i, active := range v.partFocused {
+		if active {
+			v.commitSegment(i)
+			return
+		}
+	}
+}

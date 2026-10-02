@@ -45,3 +45,5 @@ func (v *SwitchView) Render(cx *el.Context) el.Element {
 }
 
 func (v *SwitchView) setName(s string) { v.name = s }
+
+func (v *SwitchView) FocusID() string { return autoID("switch", v) }

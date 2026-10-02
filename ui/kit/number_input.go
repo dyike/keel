@@ -213,3 +213,9 @@ func (v *NumberInputView) a11y() string {
 	}
 	return v.name
 }
+
+func (v *NumberInputView) commitForm() {
+	if !v.disabled {
+		v.commit()
+	}
+}
