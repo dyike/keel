@@ -1,13 +1,15 @@
 # 组件示例
 
 ```sh
-go run ./examples/components                    # 全部组件，从上到下排列
-go run ./examples/components -section select    # 单个组件，名字与 docs/kit/<名字>.md 一致
-go run ./examples/components -section inputs    # 一类：controls、inputs、overlays、data
-go run ./examples/components -theme dark        # 深色
+go run ./examples/components                    # 组件库应用：左侧导航和搜索，右侧是选中的组件
+go run ./examples/components -section select    # 只显示一个组件，名字与 docs/kit/<名字>.md 一致
+go run ./examples/components -section inputs    # 一类：controls、inputs、overlays、data、shell
+go run ./examples/components -theme dark        # 深色启动；应用右上角也能切换深浅色和中英文
 ```
 
-每个 kit 组件对应一个 `<名字>.go`，用 `registerSection` 注册同名 section，展示常用状态、边界和浅深色。`ui/kit/conventions_test.go` 检查每个组件都有示例。
+应用的侧栏按"基础能力、基础组件、输入、浮层、数据、应用外壳"分组，顶部搜索框过滤组件名。每个组件第一次打开时创建，切走再回来状态保留。整窗口的组件（Dock、Settings 等 el.Root）占满右侧内容区，自带的浮层也限制在内容区里。
+
+每个 kit 组件对应一个 `<名字>.go`，用 `registerSection` 注册同名 section，展示常用状态、边界和浅深色；注册后自动出现在应用侧栏里。`ui/kit/conventions_test.go` 检查每个组件都有示例。
 
 生成截图：
 

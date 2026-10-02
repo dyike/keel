@@ -83,10 +83,6 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 	if shown == "" {
 		shown, color = v.placeholder, theme.Muted
 	}
-	border := theme.Border
-	if v.err != "" {
-		border = theme.Danger
-	}
 	setOpen := func(open bool) {
 		v.close()
 		if !open || v.disabled {
@@ -103,8 +99,7 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		v.cal.focus, v.cal.month = focus, monthOf(focus)
 		cx.Focus(v.cal.FocusID())
 	}
-	field := el.Div().ID(id).WFull().Role("button").Name(v.a11y()).Value(v.text()).Disabled(v.disabled).
-		Row().Items(el.Center).Gap(8).H(el.Dp(36)).Px(10).Rounded(6).Bg(theme.Surface).Border(1, border).
+	field := fieldFrame(id, false, v.err != "", v.disabled, false).Role("button").Name(v.a11y()).Value(v.text()).
 		Focusable(true).OnClick(func() { setOpen(!v.open) }).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
@@ -118,7 +113,7 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		}).
 		Child(el.Text(shown).TextColor(color).Grow().MaxLines(1), Icon(IconCalendar).Size(16).Color(theme.Muted).Render(cx))
 	if v.disabled {
-		field.Bg(theme.Subtle).TextColor(theme.Muted)
+		field.TextColor(theme.Muted)
 	} else {
 		field.CursorPointer()
 	}

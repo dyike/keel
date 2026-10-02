@@ -146,8 +146,7 @@ func (v *PieChartView) Render(cx *el.Context) el.Element {
 	}
 	legend := el.Div().Row().Wrap().Gap(6)
 	for i, s := range v.data {
-		legend.Child(toggleButton(cx, autoID("pie", v)+"/legend/"+strconv.Itoa(i), s.Name, nil, !v.hidden[i], false, func() { v.hidden[i] = !v.hidden[i]; v.hover = -1 }).
-			Child(el.Div().Size(el.Dp(8)).Rounded(4).Bg(theme.Chart[i%len(theme.Chart)])))
+		legend.Child(legendItem(autoID("pie", v)+"/legend/"+strconv.Itoa(i), s.Name, theme.Chart[i%len(theme.Chart)], 5, !v.hidden[i], func() { v.hidden[i] = !v.hidden[i]; v.hover = -1 }))
 	}
 	return box.Child(legend)
 }

@@ -135,15 +135,7 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 	} else {
 		v.focused = focused
 	}
-	border := theme.Border
-	switch {
-	case v.err != "":
-		border = theme.Danger
-	case focused && !v.disabled:
-		border = theme.Primary
-	}
-	field := el.Input().ID(v.FocusID()).Name(v.a11y()).Placeholder(v.placeholder).Bind(&v.text).
-		Border(0, theme.Border).Bg(theme.Surface).P(0).Grow().
+	field := fieldText(el.Input().ID(v.FocusID()).Name(v.a11y()).Placeholder(v.placeholder).Bind(&v.text)).
 		OnChange(func(string) { v.open = true; v.searchChanged(); cx.ScrollTo(v.virtual.ID(), 0) }).
 		OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) }).
 		OnSubmit(func(string) {
@@ -171,8 +163,7 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 		}
 		cx.Focus(v.FocusID())
 	}).Child(Icon(IconChevronDown).Size(16).Color(theme.Muted).Render(cx))
-	box := el.Div().ID(id).WFull().Role("combobox").Name(v.a11y()).Value(strings.Join(v.Values(), ", ")).Row().Items(el.Center).Gap(8).
-		Px(10).Py(8).Rounded(6).Border(1, border).Bg(theme.Surface).Disabled(v.disabled)
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).Role("combobox").Name(v.a11y()).Value(strings.Join(v.Values(), ", "))
 	if v.multiple {
 		box.Wrap()
 		for _, value := range v.values {
@@ -182,10 +173,6 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 		field.MinW(el.Dp(100))
 	}
 	box.Child(field, toggle)
-	if v.disabled {
-		box.Bg(theme.Subtle)
-		field.Bg(theme.Subtle)
-	}
 	if v.open && !v.disabled {
 		cx.Overlay(id, el.Anchored(id, v.suggestions(cx, id)).MatchAnchorWidth().OnDismiss(func() {
 			if !cx.Enabled(id) {

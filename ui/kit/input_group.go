@@ -43,17 +43,7 @@ func (v *InputGroupView) Render(cx *el.Context) el.Element {
 	v.input.setName(name)
 	id := autoID("inputgroup", v)
 	disabled := v.disabled || v.input.disabled
-	border := theme.Border
-	if v.Error() != "" {
-		border = theme.Danger
-	} else if cx.FocusWithin(id) && !disabled {
-		border = theme.Primary
-	}
-	bg := theme.Surface
-	if disabled || v.input.readOnly {
-		bg = theme.Subtle
-	}
-	field := el.Div().ID(id).Role("group").Name(name).WFull().Row().Items(el.Center).Gap(8).Px(10).Py(8).Border(1, border).Rounded(6).Bg(bg).Disabled(disabled)
+	field := fieldFrame(id, cx.FocusWithin(id), v.Error() != "", disabled, v.input.readOnly).Role("group").Name(name)
 	if v.prefix != nil {
 		field.Child(el.Div().ID(id + "/prefix").NoShrink().Child(v.prefix.Render(cx)))
 	}

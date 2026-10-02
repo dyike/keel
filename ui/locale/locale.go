@@ -67,6 +67,8 @@ type Strings struct {
 
 	// Rows formats a row count, e.g. "36 行" or "36 rows".
 	Rows func(n int) string
+	// Detail joins a status and its reason: "发送失败：网络中断", "Send failed: offline".
+	Detail func(status, reason string) string
 }
 
 // Name joins an action and its target into an accessible name, such as
@@ -110,6 +112,7 @@ func Chinese() Strings {
 		Month:        func(y int, m time.Month) string { return strconv.Itoa(y) + "年" + strconv.Itoa(int(m)) + "月" },
 		Date:         func(t time.Time) string { return t.Format("2006-01-02") },
 		Rows:         func(n int) string { return strconv.Itoa(n) + " 行" },
+		Detail:       func(status, reason string) string { return status + "：" + reason },
 	}
 }
 
@@ -149,6 +152,7 @@ func English() Strings {
 		FirstWeekday: time.Sunday,
 		Month:        func(y int, m time.Month) string { return m.String() + " " + strconv.Itoa(y) },
 		Date:         func(t time.Time) string { return t.Format("Jan 2, 2006") },
+		Detail:       func(status, reason string) string { return status + ": " + reason },
 		Rows: func(n int) string {
 			if n == 1 {
 				return "1 row"

@@ -35,7 +35,7 @@ type TreeView struct {
 	reveal             bool
 	open               map[string]bool
 	selected           string
-	disabled           bool
+	disabled, plain    bool
 	rows               []treeRow
 	list               *VirtualListView
 	onChange, onActive func(id string)
@@ -48,8 +48,11 @@ func Tree(roots ...*TreeNode) *TreeView {
 	return v
 }
 
-func (v *TreeView) Height(dp float32) *TreeView             { v.list.Height(dp); return v }
-func (v *TreeView) Fill() *TreeView                         { v.list.Fill(); return v }
+func (v *TreeView) Height(dp float32) *TreeView { v.list.Height(dp); return v }
+func (v *TreeView) Fill() *TreeView             { v.list.Fill(); return v }
+
+// Plain drops the frame and background, like ListView.Plain.
+func (v *TreeView) Plain() *TreeView                        { v.plain = true; return v }
 func (v *TreeView) OnChange(fn func(id string)) *TreeView   { v.onChange = fn; return v }
 func (v *TreeView) OnActivate(fn func(id string)) *TreeView { v.onActive = fn; return v }
 func (v *TreeView) SetDisabled(on bool)                     { v.disabled = on }
@@ -286,8 +289,7 @@ func (v *TreeView) Render(cx *el.Context) el.Element {
 		v.list.ScrollTo(cx, v.index(v.selected))
 		v.reveal = false
 	}
-	return el.Div().ID(autoID("tree", v)).Role("tree").Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
-		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Py(4).Items(el.Stretch).
+	return listFrame(el.Div().ID(autoID("tree", v)).Role("tree").Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }), v.plain).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool { return v.key(cx, e) }).
 		Child(v.list.Render(cx))

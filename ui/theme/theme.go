@@ -44,6 +44,10 @@ const (
 	BodySize    unit.Sp = 15
 	SmallSize   unit.Sp = 13
 	HeadingSize unit.Sp = 22
+
+	// ControlHeight is the height of every single-line field: inputs,
+	// selects, pickers and search boxes, so fields side by side line up.
+	ControlHeight unit.Dp = 36
 )
 
 // Face lists font families in priority order. Pinning a CJK family avoids tofu

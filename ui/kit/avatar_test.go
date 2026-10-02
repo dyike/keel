@@ -6,7 +6,7 @@ import (
 )
 
 func TestAvatarInitialsAndStableSize(t *testing.T) {
-	for name, want := range map[string]string{"张三": "张", "Ada Lovelace": "AL", "Ada Byron Lovelace": "AB", "9 lives": "9L", "  ": "?"} {
+	for name, want := range map[string]string{"张三": "张", "Ada Lovelace": "AL", "Ada Byron Lovelace": "AB", "9 lives": "9L", "  ": "?", "AI 助手": "AI", "Yike 张": "Y", "ada": "A"} {
 		if got := avatarInitials(name); got != want {
 			t.Fatalf("%q: %q != %q", name, got, want)
 		}

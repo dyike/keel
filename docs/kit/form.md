@@ -26,6 +26,7 @@ kit.Button("创建", func() {
 - 控件不需要再传标签：Form 会把行标签作为控件的无障碍名称。
 - 自带错误展示的控件实现了 `kit.Validatable`（`SetError`、`FocusID`），包括 Input、TextArea、Select、NumberInput、OtpInput、TimeField、Combobox、DatePicker。
 - `kit.Required(s, msg)` 在 s 为空或全是空白时返回 msg。`LabelWidth(dp)` 设置标签列宽，默认 72。
+- `Actions(views...)` 放在字段下方的按钮行，和控件列左对齐；提交中仍可点击，方便取消。
 
 Agent：容器角色 `form`，行标签是 `text`，控件以行标签为名字。
 

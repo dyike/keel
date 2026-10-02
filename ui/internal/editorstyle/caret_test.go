@@ -197,7 +197,14 @@ func TestEmptyCaretAlignsWithPlaceholderPixels(t *testing.T) {
 					style := material.Editor(theme.Material, &ed, hint)
 					style.Color = color.NRGBA{R: 255, A: 255}
 					style.HintColor = color.NRGBA{B: 255, A: 255}
-					caret.Layout(gtx, style, theme.Material.Shaper)
+					// Like a real field: the editor sits inside 10dp of padding,
+					// where the empty caret is drawn.
+					pad := 10 * scale
+					off := op.Offset(image.Pt(pad, 0)).Push(&ops)
+					inner := gtx
+					inner.Constraints = layout.Exact(image.Pt(size.X-pad, size.Y))
+					caret.Layout(inner, style, theme.Material.Shaper)
+					off.Pop()
 					router.Frame(&ops)
 				}
 				if err := win.Frame(&ops); err != nil {
@@ -208,21 +215,29 @@ func TestEmptyCaretAlignsWithPlaceholderPixels(t *testing.T) {
 					t.Fatal(err)
 				}
 				redTop, redBottom, blueTop, blueBottom := size.Y, -1, size.Y, -1
+				redRight, blueLeft := -1, size.X
 				for y := 0; y < size.Y; y++ {
 					for x := 0; x < size.X; x++ {
 						p := img.RGBAAt(x, y)
 						if p.R > 180 && p.G < 100 && p.B < 100 {
 							redTop = min(redTop, y)
 							redBottom = max(redBottom, y)
+							redRight = max(redRight, x)
 						}
 						if p.B > 180 && p.R < 100 && p.G < 100 {
 							blueTop = min(blueTop, y)
 							blueBottom = max(blueBottom, y)
+							blueLeft = min(blueLeft, x)
 						}
 					}
 				}
 				if redBottom < 0 || blueBottom < 0 {
 					t.Fatal("missing caret or placeholder pixels")
+				}
+				// The caret must keep clear of the hint's first glyph: a caret
+				// within a pixel or two of it reads as a stroke (搜 becomes 锼).
+				if gap := blueLeft - redRight - 1; gap < 2*scale {
+					t.Fatalf("caret ends at x=%d, %dpx from hint ink at x=%d; want at least %d", redRight, gap, blueLeft, 2*scale)
 				}
 				delta := (redTop + redBottom) - (blueTop + blueBottom)
 				if delta < -2 || delta > 2 {

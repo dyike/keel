@@ -1,6 +1,11 @@
 package kit
 
-import "github.com/dyike/keel/ui/el"
+import (
+	"slices"
+	"strings"
+
+	"github.com/dyike/keel/ui/el"
+)
 
 func (v *SidebarView) Header(view el.View) *SidebarView { v.header = view; return v }
 func (v *SidebarView) Footer(view el.View) *SidebarView { v.footer = view; return v }
@@ -76,8 +81,11 @@ func (v *SidebarView) collectIDs(visible bool) []string {
 	var walk func([]SidebarItem)
 	walk = func(items []SidebarItem) {
 		for _, it := range items {
+			if visible && !v.shown(it) {
+				continue
+			}
 			out = append(out, it.ID)
-			if !visible || v.expanded[it.ID] {
+			if !visible || v.open(it) {
 				walk(it.Children)
 			}
 		}
@@ -117,4 +125,24 @@ func (v *SidebarView) focusItem(cx *el.Context, id string) {
 type sidebarRevealKey struct {
 	view *SidebarView
 	id   string
+}
+
+// Filter shows only items whose label contains query, ignoring case, with the
+// parents that lead to them; "" shows everything. Sections without a match
+// drop out with their heading. The selection is kept even when hidden.
+func (v *SidebarView) Filter(query string) { v.query = strings.ToLower(strings.TrimSpace(query)) }
+
+func (v *SidebarView) matches(it SidebarItem) bool {
+	return v.query == "" || strings.Contains(strings.ToLower(it.Label), v.query)
+}
+
+// shown reports whether the filter keeps it: it matches, or a descendant does.
+func (v *SidebarView) shown(it SidebarItem) bool {
+	return v.matches(it) || slices.ContainsFunc(it.Children, v.shown)
+}
+
+// open reports whether its children are listed: expanded, or filtering
+// reaches a match below it.
+func (v *SidebarView) open(it SidebarItem) bool {
+	return v.expanded[it.ID] || v.query != "" && slices.ContainsFunc(it.Children, v.shown)
 }

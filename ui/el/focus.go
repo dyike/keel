@@ -128,6 +128,7 @@ func (cx *Context) Focus(id string) {
 
 func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 	n.effectiveDisabled = disabled || n.disabled || n.style.hidden || n.style.revealSet && n.style.reveal <= 0
+	n.disabledRoot = n.effectiveDisabled && !disabled
 	st := r.store.states[n.key]
 	if n.id != "" || n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() || n.style.scrollX || n.style.scrollY {
 		st = r.store.get(n.key)

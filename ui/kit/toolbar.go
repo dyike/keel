@@ -18,8 +18,7 @@ import (
 type ToolbarItem struct {
 	Label     string
 	Icon      IconName
-	HasIcon   bool // show Icon; with IconOnly the label becomes the tooltip
-	IconOnly  bool
+	IconOnly  bool // with an Icon, the label becomes the tooltip
 	Action    func()
 	Disabled  bool
 	Separator bool
@@ -111,7 +110,7 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 			e = el.Div().W(el.Dp(1)).H(el.Dp(20)).Mx(4).Bg(theme.Border)
 		} else {
 			e = v.button(cx, id, i, it, buttons, move)
-			if it.HasIcon && it.IconOnly {
+			if it.Icon != IconNone && it.IconOnly {
 				tip := v.tips[i]
 				if tip == nil {
 					tip = &TooltipView{}
@@ -138,7 +137,7 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 			}
 		}
 		v.more.Trigger(el.ViewFunc(func(cx *el.Context) el.Element {
-			return v.button(cx, id, -1, ToolbarItem{Label: locale.Current().More, Icon: IconChevronDown, HasIcon: true, IconOnly: true, Action: v.more.Toggle}, buttons, move)
+			return v.button(cx, id, -1, ToolbarItem{Label: locale.Current().More, Icon: IconChevronDown, IconOnly: true, Action: v.more.Toggle}, buttons, move)
 		}))
 		row.Child(v.more.Render(cx))
 	}
@@ -219,10 +218,10 @@ func (v *ToolbarView) button(cx *el.Context, id string, i int, it ToolbarItem, b
 	if !it.Disabled {
 		b.CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 	}
-	if it.HasIcon {
+	if it.Icon != IconNone {
 		b.Child(Icon(it.Icon).Size(v.iconSize()).Color(fg).Render(cx))
 	}
-	if !it.IconOnly || !it.HasIcon {
+	if !it.IconOnly || it.Icon == IconNone {
 		b.Child(el.Text(it.Label).MaxLines(1))
 	}
 	return b
@@ -275,11 +274,11 @@ func (v *ToolbarView) itemWidth(i int) float32 {
 	if it.Separator {
 		return 9
 	}
-	if it.IconOnly && it.HasIcon {
+	if it.IconOnly && it.Icon != IconNone {
 		return v.moreWidth()
 	}
 	width := float32(utf8.RuneCountInString(it.Label))*14 + 20
-	if it.HasIcon {
+	if it.Icon != IconNone {
 		width += v.iconSize() + 6
 	}
 	return width

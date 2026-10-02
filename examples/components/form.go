@@ -23,32 +23,38 @@ func init() {
 			}).
 			Field("邮箱", email, func() string { return kit.Required(email.Value(), "请填写邮箱") }).
 			Field("角色", role, func() string { return kit.Required(role.Value(), "请选择角色") })
-		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(16).W(el.Dp(420)).MaxW(el.Full).Child(f.Render(cx), el.Div().Wrap().Gap(12).Items(el.Center).Child(
-				kit.Button("提交", func() {
-					token := f.BeginSubmit(cx)
-					if token == 0 {
-						return
+		var submit func(cx *el.Context)
+		f.Actions(el.ViewFunc(func(cx *el.Context) el.Element {
+			return kit.Button("提交", func() { submit(cx) }).Loading(f.Submitting()).Render(cx)
+		}), el.ViewFunc(func(cx *el.Context) el.Element {
+			return kit.Button("取消提交", f.CancelSubmit).Variant(kit.ButtonSecondary).Render(cx)
+		}), el.ViewFunc(func(*el.Context) el.Element { return el.Text(msg).TextColor(theme.Muted) }))
+		submit = func(cx *el.Context) {
+			token := f.BeginSubmit(cx)
+			if token == 0 {
+				return
+			}
+			submittedName := name.Value()
+			msg = "正在校验并提交…"
+			go func() {
+				time.Sleep(600 * time.Millisecond)
+				core.Update(func() {
+					var errors []string
+					if submittedName == "admin" {
+						errors = []string{"此名称已被占用"}
 					}
-					submittedName := name.Value()
-					msg = "正在校验并提交…"
-					go func() {
-						time.Sleep(600 * time.Millisecond)
-						core.Update(func() {
-							var errors []string
-							if submittedName == "admin" {
-								errors = []string{"此名称已被占用"}
-							}
-							if f.FinishSubmit(token, errors) {
-								if len(errors) > 0 {
-									msg = "请修正字段"
-								} else {
-									msg = "已提交 " + submittedName
-								}
-							}
-						})
-					}()
-				}).Loading(f.Submitting()).Render(cx), kit.Button("取消提交", f.CancelSubmit).Variant(kit.ButtonGhost).Render(cx), el.Text(msg).TextColor(theme.Muted))))
+					if f.FinishSubmit(token, errors) {
+						if len(errors) > 0 {
+							msg = "请修正字段"
+						} else {
+							msg = "已提交 " + submittedName
+						}
+					}
+				})
+			}()
+		}
+		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().P(24).Items(el.Start).Child(el.Div().W(el.Dp(420)).MaxW(el.Full).Child(f.Render(cx)))
 		}))
 	})
 }

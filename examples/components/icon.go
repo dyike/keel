@@ -13,8 +13,8 @@ func init() {
 type iconGallery struct{}
 
 func (iconGallery) Render(cx *el.Context) el.Element {
-	r := el.Div().Row().Gap(16)
-	for n := kit.IconCheck; n <= kit.IconInbox; n++ {
+	r := el.Div().Wrap().Gap(16)
+	for n := kit.IconCheck; n <= kit.IconEdit; n++ {
 		r.Child(kit.Icon(n).Size(24).Render(cx))
 	}
 	return r

@@ -21,8 +21,8 @@ func newApp() *app {
 	a := &app{
 		nav: kit.Sidebar().Section("",
 			kit.SidebarItem{ID: "inbox", Label: "收件箱", Icon: kit.IconInbox, Badge: 4},
-			kit.SidebarItem{ID: "orders", Label: "订单", Icon: kit.IconCopy},
-			kit.SidebarItem{ID: "settings", Label: "设置", Icon: kit.IconUser}),
+			kit.SidebarItem{ID: "orders", Label: "订单", Icon: kit.IconReceipt},
+			kit.SidebarItem{ID: "settings", Label: "设置", Icon: kit.IconSettings}),
 		palette: kit.Command(kit.CommandItem{Title: "新建订单", Shortcut: "mod+n"}, kit.CommandItem{Title: "切换深色模式", Action: func() { theme.Apply(theme.Dark()) }}),
 		search: kit.Input("").Placeholder("搜索 ⌘K").Prefix(el.ViewFunc(func(cx *el.Context) el.Element {
 			return kit.Icon(kit.IconSearch).Size(14).Color(theme.Muted).Render(cx)

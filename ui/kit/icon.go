@@ -12,10 +12,13 @@ import (
 	"golang.org/x/exp/shiny/materialdesign/icons"
 )
 
+// IconName names a built-in icon. The zero value IconNone draws nothing and
+// takes no space, so an optional icon field can be left unset.
 type IconName uint8
 
 const (
-	IconCheck IconName = iota
+	IconNone IconName = iota
+	IconCheck
 	IconClose
 	IconPlus
 	IconSearch
@@ -34,6 +37,16 @@ const (
 	IconStarOutline
 	IconCalendar
 	IconClock
+	IconSettings
+	IconBell
+	IconLock
+	IconFolder
+	IconFile
+	IconArchive
+	IconReceipt
+	IconHome
+	IconTrash
+	IconEdit
 )
 
 // IconView wraps a Gio vector icon. Labels belong to its containing control.
@@ -43,51 +56,54 @@ type IconView struct {
 	color *color.NRGBA
 }
 
+var iconData = [...][]byte{
+	IconCheck:        icons.ActionCheckCircle,
+	IconClose:        icons.NavigationClose,
+	IconPlus:         icons.ContentAdd,
+	IconSearch:       icons.ActionSearch,
+	IconCopy:         icons.ContentContentCopy,
+	IconChevronDown:  icons.NavigationExpandMore,
+	IconChevronRight: icons.NavigationChevronRight,
+	IconInfo:         icons.ActionInfo,
+	IconWarning:      icons.AlertWarning,
+	IconError:        icons.AlertError,
+	IconUser:         icons.SocialPerson,
+	IconInbox:        icons.ContentInbox,
+	IconDone:         icons.ActionDone,
+	IconChevronLeft:  icons.NavigationChevronLeft,
+	IconMinus:        icons.ContentRemove,
+	IconStar:         icons.ToggleStar,
+	IconStarOutline:  icons.ToggleStarBorder,
+	IconCalendar:     icons.ActionDateRange,
+	IconClock:        icons.ActionSchedule,
+	IconSettings:     icons.ActionSettings,
+	IconBell:         icons.SocialNotifications,
+	IconLock:         icons.ActionLock,
+	IconFolder:       icons.FileFolder,
+	IconFile:         icons.ActionDescription,
+	IconArchive:      icons.ContentArchive,
+	IconReceipt:      icons.ActionReceipt,
+	IconHome:         icons.ActionHome,
+	IconTrash:        icons.ActionDelete,
+	IconEdit:         icons.EditorModeEdit,
+}
+
+// decoded caches parsed icons: Icon is called on every Render. Only touched
+// under the frame lock.
+var decoded [len(iconData)]*giowidget.Icon
+
 func Icon(name IconName) *IconView {
-	data := icons.ActionCheckCircle
-	switch name {
-	case IconInfo:
-		data = icons.ActionInfo
-	case IconWarning:
-		data = icons.AlertWarning
-	case IconError:
-		data = icons.AlertError
-	case IconUser:
-		data = icons.SocialPerson
-	case IconInbox:
-		data = icons.ContentInbox
-	case IconDone:
-		data = icons.ActionDone
-	case IconChevronLeft:
-		data = icons.NavigationChevronLeft
-	case IconMinus:
-		data = icons.ContentRemove
-	case IconStar:
-		data = icons.ToggleStar
-	case IconStarOutline:
-		data = icons.ToggleStarBorder
-	case IconCalendar:
-		data = icons.ActionDateRange
-	case IconClock:
-		data = icons.ActionSchedule
-	case IconClose:
-		data = icons.NavigationClose
-	case IconPlus:
-		data = icons.ContentAdd
-	case IconSearch:
-		data = icons.ActionSearch
-	case IconCopy:
-		data = icons.ContentContentCopy
-	case IconChevronDown:
-		data = icons.NavigationExpandMore
-	case IconChevronRight:
-		data = icons.NavigationChevronRight
+	if name == IconNone || int(name) >= len(iconData) {
+		return &IconView{size: 18}
 	}
-	ic, err := giowidget.NewIcon(data)
-	if err != nil {
-		panic(err)
-	} // All bundled icon data is known at build time.
-	return &IconView{icon: ic, size: 18}
+	if decoded[name] == nil {
+		ic, err := giowidget.NewIcon(iconData[name])
+		if err != nil {
+			panic(err) // All bundled icon data is known at build time.
+		}
+		decoded[name] = ic
+	}
+	return &IconView{icon: decoded[name], size: 18}
 }
 
 // VectorIcon supports custom Gio icons, including icons decoded by widget.NewIcon.

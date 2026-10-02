@@ -11,6 +11,8 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/theme"
 )
 
 // axisFraction avoids overflowing the subtraction for opposite extreme values.
@@ -139,4 +141,24 @@ func dot(gtx core.C, at f32.Point, r, ring float32, fill, surface color.NRGBA) {
 	}
 	circle(r+ring, surface)
 	circle(r, fill)
+}
+
+// legendItem is a series key that toggles the series: swatch, then name in
+// text color. A hidden series keeps an outlined swatch and a muted name, so
+// the key stays readable without leaning on its color.
+func legendItem(id, name string, c color.NRGBA, radius float32, shown bool, toggle func()) *el.DivEl {
+	swatch := el.Div().Size(el.Dp(10)).Rounded(radius).NoShrink()
+	fg := theme.Text
+	if shown {
+		swatch.Bg(c)
+	} else {
+		swatch.Border(1.5, c)
+		fg = theme.Muted
+	}
+	return el.Div().ID(id).Role("toggle").Name(name).Selected(shown).
+		Row().Items(el.Center).Gap(6).H(el.Dp(26)).Px(8).Rounded(6).Border(1, color.NRGBA{}).TextSize(13).TextColor(fg).
+		Focusable(true).CursorPointer().OnClick(toggle).
+		Hover(func(s *el.Style) { s.Bg(theme.Subtle) }).
+		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
+		Child(swatch, el.Text(name))
 }

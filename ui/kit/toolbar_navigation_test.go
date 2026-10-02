@@ -85,7 +85,7 @@ func TestToolbarCopiesItemsAndKeepsDuplicateDisablingSeparate(t *testing.T) {
 }
 
 func TestToolbarIconHasKeyboardTooltip(t *testing.T) {
-	v := Toolbar(ToolbarItem{Label: "Search", Icon: IconSearch, HasIcon: true, IconOnly: true})
+	v := Toolbar(ToolbarItem{Label: "Search", Icon: IconSearch, IconOnly: true})
 	c := &clock{now: time.Now()}
 	h := c.harness(func(cx *el.Context) el.Element { return el.Div().W(el.Dp(200)).Child(v.Render(cx)) })
 	h.Frame() // Command width is measured on the first frame.

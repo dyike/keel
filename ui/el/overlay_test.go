@@ -428,3 +428,15 @@ func TestModalOwnerControlsEligibility(t *testing.T) {
 		t.Fatal("missing owner did not dismiss")
 	}
 }
+
+// Stretching content (a full-width search field or list) stays as wide as
+// the anchor instead of taking the whole root, like a dropdown its trigger.
+func TestOverlayMatchAnchorWidthCapsStretchingContent(t *testing.T) {
+	h := uitest.New(Root(ViewFunc(func(cx *Context) Element {
+		cx.Overlay("list", Anchored("trigger", Div().Name("list").Items(Stretch).Child(Div().W(Full).H(Dp(20)))).MatchAnchorWidth())
+		return Div().Child(Div().ID("trigger").W(Dp(120)).H(Dp(30)))
+	})))
+	if b := nodeBounds(h, "list"); b.Dx() != 120 {
+		t.Fatalf("list width %d, want the trigger's 120", b.Dx())
+	}
+}

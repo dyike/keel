@@ -5,7 +5,7 @@
 ```go
 nav := kit.Sidebar().
     Section("工作台", kit.SidebarItem{ID: "inbox", Label: "收件箱", Icon: kit.IconInbox, Badge: 12}).
-    Section("", kit.SidebarItem{ID: "settings", Label: "设置", Icon: kit.IconUser}).
+    Section("", kit.SidebarItem{ID: "settings", Label: "设置", Icon: kit.IconSettings}).
     OnChange(navigate)
 ```
 
@@ -17,6 +17,8 @@ nav := kit.Sidebar().
 - `Header(el.View)` / `Footer(el.View)` 位于导航滚动区之外，适合工作区切换和账户信息。插槽可在 Render 中读取 `Collapsed()`，自行切换图标版内容。
 - `Height(dp)` 显式设置侧栏高度，导航内容溢出时只滚动中间区域；默认按内容定高，上限为窗口高度。嵌入应用外壳时可传 `cx.ViewportSize()` 返回的高度。
 - 底部按钮可以收起侧栏，收起后宽 56dp：只显示图标，名称改由 Tooltip 显示，角标变成圆点。
+- `Icon` 可以不设（`IconNone`）：展开时只显示文字，收起时显示名称首字。
+- `Filter(query)` 只显示名称包含 query 的项（不区分大小写），以及通向它们的父项，父项会临时展开；没有匹配项的分组连同标题一起隐藏。传空字符串恢复全部。选中项被过滤掉时仍保持选中。组件库应用 `go run ./examples/components` 用它做搜索。
 - `Value()` / `SetValue(id)`、`SetBadge(id, n)`、`Collapsed()` / `SetCollapsed`、`Width(dp)`（默认 220）。
 
 选项会递归复制。整个 Sidebar 的 ID 必须非空且唯一；新增 Section 包含空值或重复 ID 时整组不加入。父项禁用不隐式禁用子项。

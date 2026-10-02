@@ -204,8 +204,7 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 	head.Child(el.Div().Grow())
 	if len(v.series) > 1 && v.kind != ChartCandlestick {
 		for i, s := range v.series {
-			head.Child(toggleButton(cx, autoID("chart", v)+"/legend/"+strconv.Itoa(i), s.Name, nil, !v.hidden[i], false, func() { v.hidden[i] = !v.hidden[i] }).
-				Child(el.Div().Size(el.Dp(8)).Rounded(2).Bg(theme.Chart[i%len(theme.Chart)])))
+			head.Child(legendItem(autoID("chart", v)+"/legend/"+strconv.Itoa(i), s.Name, theme.Chart[i%len(theme.Chart)], 2, !v.hidden[i], func() { v.hidden[i] = !v.hidden[i] }))
 		}
 	}
 	toggle := text.ShowTable
@@ -240,10 +239,22 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 		width = max(1, width-axisWidth-24)
 	}
 	every := max(1, int(math.Ceil(56*float64(len(v.labels))/float64(width))))
-	xs := el.Div().H(el.Dp(18)).Grow().W(el.Dp(0))
+	// Bands are flex weights, so labels line up with the plot whatever its
+	// painted width; runs of unlabeled bands collapse into one spacer. A label
+	// is centered on its band and may overhang it.
+	xs := el.Div().Row().H(el.Dp(18)).Grow().W(el.Dp(0))
+	next := 0
 	for i := 0; i < len(v.labels); i += every {
-		xs.Child(el.Div().Absolute().Left(float32(i) * width / float32(len(v.labels))).W(el.Dp(min(56, width))).
-			Child(el.Text(v.labels[i]).TextSize(11).TextColor(theme.Muted).MaxLines(1)))
+		if i > next {
+			xs.Child(el.Div().W(el.Dp(0)).Flex(float32(i - next)))
+		}
+		xs.Child(el.Div().W(el.Dp(0)).Flex(1).Items(el.Center).Child(
+			el.Div().W(el.Dp(56)).NoShrink().Items(el.Center).
+				Child(el.Text(v.labels[i]).TextSize(11).TextColor(theme.Muted).MaxLines(1))))
+		next = i + 1
+	}
+	if next < len(v.labels) {
+		xs.Child(el.Div().W(el.Dp(0)).Flex(float32(len(v.labels) - next)))
 	}
 	return root.Child(el.Div().Row().Child(el.Div().W(el.Dp(axisWidth)).NoShrink(), xs))
 }
@@ -350,13 +361,23 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 	case ChartBar:
 		v.drawBars(gtx, band, y, dp)
 	default:
-		for i, s := range v.series {
-			if v.hidden[i] {
-				continue
+		// Fills first, lines second: a later series' fill must not tint an
+		// earlier series' line.
+		if v.kind == ChartArea {
+			visible := 0
+			for i := range v.series {
+				if !v.hidden[i] {
+					visible++
+				}
 			}
-			for _, points := range chartSegments(s.Values, n, band, y, max(size.X, 1)) {
-				color := theme.Chart[i%len(theme.Chart)]
-				if v.kind == ChartArea && len(points) > 1 {
+			for i, s := range v.series {
+				if v.hidden[i] {
+					continue
+				}
+				for _, points := range chartSegments(s.Values, n, band, y, max(size.X, 1)) {
+					if len(points) < 2 {
+						continue
+					}
 					var path clip.Path
 					path.Begin(gtx.Ops)
 					path.MoveTo(f32.Pt(points[0].X, y(0)))
@@ -365,10 +386,18 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 					}
 					path.LineTo(f32.Pt(points[len(points)-1].X, y(0)))
 					path.Close()
-					fill := color
-					fill.A = 70
+					fill := theme.Chart[i%len(theme.Chart)]
+					fill.A = areaAlpha(visible)
 					paint.FillShape(gtx.Ops, fill, clip.Outline{Path: path.End()}.Op())
 				}
+			}
+		}
+		for i, s := range v.series {
+			if v.hidden[i] {
+				continue
+			}
+			for _, points := range chartSegments(s.Values, n, band, y, max(size.X, 1)) {
+				color := theme.Chart[i%len(theme.Chart)]
 				if len(points) == 1 {
 					dot(gtx, points[0], dp(2), 0, color, theme.Surface)
 				} else {
@@ -388,6 +417,15 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 		}
 	}
 	return core.D{Size: size}
+}
+
+// areaAlpha keeps stacked translucent fills from turning muddy where several
+// series overlap: one series gets a clear tint, several get a light one.
+func areaAlpha(visible int) uint8 {
+	if visible <= 1 {
+		return 64
+	}
+	return 28
 }
 
 // drawBars draws grouped or stacked bars: at most 24dp wide, 2dp of surface

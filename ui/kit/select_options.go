@@ -181,11 +181,12 @@ func (v *SelectView) optionKey(cx *el.Context, e el.KeyEvent) bool {
 func (v *SelectView) optionRow(cx *el.Context, i int) el.Element {
 	row := v.rows[i]
 	if row.index < 0 {
-		return el.Div().Px(12).Justify(el.Center).Child(el.Text(row.group).Bold().TextSize(12).TextColor(theme.Muted))
+		// Fill the 30dp slot and sit at its bottom, next to the group it names.
+		return el.Div().H(el.Dp(30)).Px(12).Pb(4).Justify(el.End).Child(el.Text(row.group).Bold().TextSize(12).TextColor(theme.Muted))
 	}
 	option := v.entries[row.index]
 	selected := v.picked(option.Value)
-	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).Mx(4).Px(8).Row().Items(el.Center).Rounded(4).Focusable(false).Child(el.Text(option.Label).Grow().MaxLines(1), checkMark(cx, selected))
+	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(28)).My(1).Mx(4).Px(8).Row().Items(el.Center).Rounded(4).Focusable(false).Child(el.Text(option.Label).Grow().MaxLines(1), checkMark(cx, selected))
 	if selected {
 		item.Bg(theme.Highlight)
 	}
@@ -197,8 +198,10 @@ func (v *SelectView) optionRow(cx *el.Context, i int) el.Element {
 				cx.Focus(v.FocusID() + "/options")
 			}
 		}).Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
-		if i == v.active {
-			item.Border(1, theme.Primary)
+		// The keyboard's place is a background, like hover; a border would
+		// read as a second focus ring beside the search field's.
+		if i == v.active && !selected {
+			item.Bg(theme.Subtle)
 		}
 	}
 	return item
@@ -216,7 +219,7 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 	available := max(float32(1), min(float32(240), height-100))
 	if v.searchable {
 		available = max(1, available-40)
-		panel.Child(el.Div().Px(4).Pb(4).Child(el.Input().ID(id + "/search").Name(locale.Current().Search).Placeholder(locale.Current().Search).Bind(&v.query).Py(6).
+		panel.Child(el.Div().Px(4).Pb(4).Child(searchField(cx, id+"/searchbox", el.Input().ID(id+"/search").Name(locale.Current().Search).Placeholder(locale.Current().Search).Bind(&v.query).
 			OnChange(func(string) { v.active = -1; cx.ScrollTo(v.virtual.ID(), 0) }).
 			OnSubmit(func(string) {
 				if v.active >= 0 && !v.rowDisabled(v.active) {
@@ -231,7 +234,7 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 					cx.Focus(id + "/options")
 				}
 				return true
-			})))
+			}))))
 	}
 	v.virtual.Height(min(available, max(30, float32(len(v.rows))*30)))
 	options := el.Div().ID(id + "/options").Focusable(true).Items(el.Stretch).OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) })

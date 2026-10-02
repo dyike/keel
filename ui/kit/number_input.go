@@ -9,7 +9,6 @@ import (
 
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
-	"github.com/dyike/keel/ui/theme"
 )
 
 // NumberInputView edits a number with − and + buttons. Typing may pass
@@ -176,15 +175,7 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 	draft := v.draftValue()
 	minus.SetDisabled(v.disabled || draft <= v.lo)
 	plus.SetDisabled(v.disabled || draft >= v.hi)
-	border := theme.Border
-	switch {
-	case v.err != "":
-		border = theme.Danger
-	case focused && !v.disabled:
-		border = theme.Primary
-	}
-	field := el.Input().ID(v.FocusID()).Name(v.a11y()).Bind(&v.text).Filter("0123456789.-").
-		Border(0, theme.Border).Bg(theme.Surface).P(0).Grow().MinW(el.Dp(40)).
+	field := fieldText(el.Input().ID(v.FocusID()).Name(v.a11y()).Bind(&v.text).Filter("0123456789.-")).MinW(el.Dp(40)).
 		OnSubmit(func(string) { v.commit() }).
 		OnKey(func(e el.KeyEvent) bool {
 			steps := map[key.Name]int64{key.NameUpArrow: 1, key.NameDownArrow: -1, key.NamePageUp: 10, key.NamePageDown: -10}
@@ -197,12 +188,10 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 			}
 			return true
 		})
-	box := el.Div().ID(id).WFull().Row().Items(el.Center).Gap(4).Px(4).Py(4).Rounded(6).Border(1, border).Bg(theme.Surface).
-		Disabled(v.disabled).Child(minus.Render(cx), field, plus.Render(cx))
-	if v.disabled {
-		box.Bg(theme.Subtle)
-		field.Bg(theme.Subtle)
-	}
+	// The 28dp step buttons sit near the edges: 3dp around them keeps the
+	// frame at theme.ControlHeight.
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).Gap(4).P(3).
+		Child(minus.Render(cx), field, plus.Render(cx))
 	return labelled(v.label, box, v.err)
 }
 

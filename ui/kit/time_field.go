@@ -122,15 +122,8 @@ func (v *TimeFieldView) Render(cx *el.Context) el.Element {
 	} else {
 		v.focused = focused
 	}
-	border := theme.Border
-	switch {
-	case v.err != "":
-		border = theme.Danger
-	case focused && !v.disabled:
-		border = theme.Primary
-	}
-	field := el.Input().ID(v.FocusID()).Name(v.a11y()).Placeholder("HH:MM").Bind(&v.text).
-		Filter("0123456789:").MaxLen(5).Border(0, theme.Border).Bg(theme.Surface).P(0).W(el.Dp(64)).
+	field := fieldText(el.Input().ID(v.FocusID()).Name(v.a11y()).Placeholder("HH:MM").Bind(&v.text)).
+		Filter("0123456789:").MaxLen(5).W(el.Dp(64)).NoShrink().
 		OnSubmit(func(string) { v.commit() }).
 		OnKey(func(e el.KeyEvent) bool {
 			if e.State == el.KeyPress {
@@ -144,12 +137,8 @@ func (v *TimeFieldView) Render(cx *el.Context) el.Element {
 			}
 			return true
 		})
-	box := el.Div().ID(id).Row().Items(el.Center).Gap(8).Px(10).Py(8).Rounded(6).Border(1, border).Bg(theme.Surface).
-		Disabled(v.disabled).Child(Icon(IconClock).Size(16).Color(theme.Muted).Render(cx), field)
-	if v.disabled {
-		box.Bg(theme.Subtle)
-		field.Bg(theme.Subtle)
-	}
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).W(el.Auto).
+		Child(Icon(IconClock).Size(16).Color(theme.Muted).Render(cx), field)
 	return labelled(v.label, el.Div().Items(el.Start).Child(box), v.err)
 }
 

@@ -3,6 +3,7 @@ package kit
 import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -34,6 +35,7 @@ type formField struct {
 //	kit.Button("创建", func() { if f.Validate(cx) { create() } })
 type FormView struct {
 	fields         []formField
+	actions        []el.View
 	labelWidth     float32
 	disabled, busy bool
 	request        uint64
@@ -46,6 +48,13 @@ func Form() *FormView { return &FormView{labelWidth: 72} }
 func (v *FormView) Field(label string, control el.View, validate func() string) *FormView {
 	v.CancelSubmit()
 	v.fields = append(v.fields, formField{label: label, control: control, validate: validate})
+	return v
+}
+
+// Actions sets the buttons below the fields, aligned with the control column.
+// They stay usable while a submission is pending, so one can cancel it.
+func (v *FormView) Actions(views ...el.View) *FormView {
+	v.actions = slices.Clone(views)
 	return v
 }
 
@@ -202,6 +211,13 @@ func (v *FormView) Render(cx *el.Context) el.Element {
 		}
 		form.Child(el.Div().Row().Gap(12).Items(el.Start).Disabled(v.busy).Child(
 			el.Div().W(el.Dp(v.labelWidth)).NoShrink().Items(el.End).Pt(8).Child(el.Text(f.label).TextColor(theme.Muted)), control))
+	}
+	if len(v.actions) > 0 {
+		row := el.Div().Grow().W(el.Dp(0)).Wrap().Gap(12).Items(el.Center)
+		for _, a := range v.actions {
+			row.Child(a.Render(cx))
+		}
+		form.Child(el.Div().Row().Gap(12).Child(el.Div().W(el.Dp(v.labelWidth)).NoShrink(), row))
 	}
 	return form
 }

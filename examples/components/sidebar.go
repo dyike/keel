@@ -11,15 +11,15 @@ func init() {
 	registerSection("sidebar", "shell", func() core.Widget {
 		nav := kit.Sidebar().
 			Section("工作台", kit.SidebarItem{ID: "inbox", Label: "收件箱", Icon: kit.IconInbox, Badge: 12},
-				kit.SidebarItem{ID: "orders", Label: "订单 Orders", Icon: kit.IconCopy, Children: []kit.SidebarItem{
+				kit.SidebarItem{ID: "orders", Label: "订单 Orders", Icon: kit.IconReceipt, Children: []kit.SidebarItem{
 					{ID: "pending", Label: "待处理订单", Icon: kit.IconClock, Badge: 6},
 					{ID: "completed", Label: "已完成订单", Icon: kit.IconCheck},
-					{ID: "archived", Label: "归档订单", Icon: kit.IconInbox, Disabled: true},
+					{ID: "archived", Label: "归档订单", Icon: kit.IconArchive, Disabled: true},
 				}},
 				kit.SidebarItem{ID: "calendar", Label: "日程", Icon: kit.IconCalendar}).
 			Section("团队", kit.SidebarItem{ID: "members", Label: "成员", Icon: kit.IconUser},
 				kit.SidebarItem{ID: "saved", Label: "已收藏", Icon: kit.IconStarOutline}).
-			Section("", kit.SidebarItem{ID: "settings", Label: "偏好设置", Icon: kit.IconInfo})
+			Section("", kit.SidebarItem{ID: "settings", Label: "偏好设置", Icon: kit.IconSettings})
 		nav.SetValue("inbox")
 		nav.SetExpanded("orders", true)
 		nav.Header(el.ViewFunc(func(cx *el.Context) el.Element {

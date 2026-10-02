@@ -232,7 +232,8 @@ func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) e
 	title := text.Month(month.Year(), month.Month())
 	grid := el.Div().W(el.Dp(252)).MaxW(el.Full).NoShrink().Role("grid").Name(title)
 	if v.months > 1 {
-		grid.Child(el.Div().H(el.Dp(28)).Center().Child(el.Text(title).Bold()))
+		// Same weight as the header button text: the header names the range.
+		grid.Child(el.Div().H(el.Dp(28)).Center().Child(el.Text(title).TextSize(13)))
 	}
 	grid.Child(week)
 	first := month.AddDate(0, 0, -((int(month.Weekday()) - int(text.FirstWeekday) + 7) % 7))
@@ -267,17 +268,24 @@ func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func
 	case between:
 		bg = theme.Highlight
 	}
-	if !inMonth || !ok {
+	if !inMonth && !chosen {
 		fg = theme.Muted
 	}
+	// Blocked days are fainter than days of other months, so they read as
+	// unavailable rather than merely out of range.
+	faint := theme.Muted
+	faint.A = 0x66
 	label := locale.Current().Date(d)
 	c := el.Div().ID(v.cellID(d)).Role("gridcell").Name(label).Selected(chosen || between).
 		W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(ch)).Rounded(6).Bg(bg).TextColor(fg).Center().
-		Focusable(d.Equal(v.focus)).Disabled(!ok).
+		Focusable(d.Equal(v.focus)).Disabled(!ok).DisabledStyle(func(s *el.Style) { s.TextColor(faint) }).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		Child(el.Text(strconv.Itoa(d.Day())))
 	if d.Equal(today) && !chosen {
 		c.Border(1, theme.Border)
+	}
+	if ok && !chosen && !between {
+		c.Hover(func(s *el.Style) { s.Bg(theme.Subtle) })
 	}
 	if ok {
 		c.CursorPointer().OnClick(func() { v.pick(d); move(d) }).OnKey(func(e el.KeyEvent) bool {

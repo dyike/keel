@@ -1,6 +1,8 @@
 package kit
 
 import (
+	"image/color"
+
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 )
@@ -39,4 +41,37 @@ func labelled(label string, control el.Element, errMsg string) el.Element {
 		box.Child(el.Text(errMsg).TextSize(12).TextColor(theme.DangerText))
 	}
 	return box
+}
+
+// fieldFrame is the one box every text field in kit draws: same height,
+// padding, radius and border colors (error, then focus, then rest). Change
+// how fields look here, not in each component. A field that wraps (tags in a
+// multiple Combobox) grows past theme.ControlHeight.
+func fieldFrame(id string, focused, invalid, disabled, readOnly bool) *el.DivEl {
+	border := theme.Border
+	switch {
+	case invalid:
+		border = theme.Danger
+	case focused && !disabled:
+		border = theme.Primary
+	}
+	bg := theme.Surface
+	if disabled || readOnly {
+		bg = theme.Subtle
+	}
+	return el.Div().ID(id).WFull().MinH(el.Dp(float32(theme.ControlHeight))).Row().Items(el.Center).Gap(8).Px(10).Py(4).
+		Rounded(6).Border(1, border).Bg(bg).Disabled(disabled)
+}
+
+// fieldText strips el.Input's own box so the text sits inside a fieldFrame
+// and shows the frame's background.
+func fieldText(in *el.InputEl) *el.InputEl {
+	return in.Border(0, color.NRGBA{}).Bg(color.NRGBA{}).P(0).MinH(el.Auto).Grow()
+}
+
+// searchField is the search box of Select, Command, Settings and the like:
+// a fieldFrame with a search icon in front of the text.
+func searchField(cx *el.Context, id string, in *el.InputEl) *el.DivEl {
+	return fieldFrame(id, cx.FocusWithin(id), false, false, false).
+		Child(Icon(IconSearch).Size(16).Color(theme.Muted).Render(cx), fieldText(in))
 }

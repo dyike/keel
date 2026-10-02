@@ -5,13 +5,14 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
+	"slices"
 	"strconv"
 )
 
 // SidebarItem is one destination in a Sidebar. IDs must be unique.
 type SidebarItem struct {
 	ID, Label string
-	Icon      IconName
+	Icon      IconName // optional; IconNone shows no icon
 	Disabled  bool
 	Children  []SidebarItem
 	Badge     int // a count shown at the end; 0 hides it
@@ -33,6 +34,7 @@ type SidebarView struct {
 	height         float32
 	disabled       bool
 	header, footer el.View
+	query          string
 	expanded       map[string]bool
 	positions      map[string]float32
 	revealID       string
@@ -142,8 +144,12 @@ func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []st
 				v.focusItem(cx, ids[j])
 			}
 			return ok
-		}).
-		Child(Icon(it.Icon).Size(16).Color(fg).Render(cx))
+		})
+	if it.Icon != IconNone {
+		row.Child(Icon(it.Icon).Size(16).Color(fg).Render(cx))
+	} else if v.collapsed {
+		row.Child(el.Text(string([]rune(it.Label)[:min(1, len([]rune(it.Label)))])))
+	}
 	if len(it.Children) > 0 {
 		row.Role("button").Value(strconv.FormatBool(v.expanded[it.ID]))
 	}
@@ -224,15 +230,21 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 	var addItems func([]SidebarItem, int)
 	addItems = func(items []SidebarItem, depth int) {
 		for _, it := range items {
+			if !v.shown(it) {
+				continue
+			}
 			v.positions[it.ID] = y
 			y += 40
 			body.Child(v.item(cx, base, it, ids, depth))
-			if v.expanded[it.ID] {
+			if v.open(it) {
 				addItems(it.Children, depth+1)
 			}
 		}
 	}
 	for i, s := range v.sections {
+		if !slices.ContainsFunc(s.items, v.shown) {
+			continue
+		}
 		if s.title != "" && !v.collapsed {
 			body.Child(el.Div().H(el.Dp(28)).Px(10).Justify(el.Center).Child(el.Text(s.title).TextSize(12).TextColor(theme.Muted)))
 			y += 32

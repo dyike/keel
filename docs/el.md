@@ -49,7 +49,7 @@ Render 每帧都会调用，要保持便宜：只根据状态搭树，不做 I/O
 | --- | --- |
 | `el.Div()` | 盒子，唯一能有子元素的元素。默认子元素从上到下排列 |
 | `el.Text(s)` | 文字，按可用宽度自动换行 |
-| `el.Input()` / `el.TextArea()` | 输入框，带默认边框样式，获得焦点时边框变蓝 |
+| `el.Input()` / `el.TextArea()` | 输入框，带默认边框样式，获得焦点时边框变蓝。单行框默认高 `theme.ControlHeight`，文字垂直居中，和 kit 的字段一致 |
 | `el.Widget(w)` | 嵌入任意 `core.Widget`，比如用 `core.Func` 包起来的一段 Gio 布局 |
 
 输入框：
@@ -211,7 +211,7 @@ if v.open {
 }
 ```
 
-`Anchored(anchorID, content)` 使用本帧锚点位置，锚点可在主树或先声明的浮层中。Placement 的方向为 Bottom / Top / Left / Right，对齐为 Start / Center / End，默认 Bottom / Start；Offset 默认 4dp。指定方向放不下、对侧放得下时翻转，再将位置平移到 root 内；超出部分按 root 裁剪。MatchAnchorWidth 将最小宽度设为锚点宽度。锚点不存在或隐藏时不绘制，并调用一次 OnDismiss。
+`Anchored(anchorID, content)` 使用本帧锚点位置，锚点可在主树或先声明的浮层中。Placement 的方向为 Bottom / Top / Left / Right，对齐为 Start / Center / End，默认 Bottom / Start；Offset 默认 4dp。指定方向放不下、对侧放得下时翻转，再将位置平移到 root 内；超出部分按 root 裁剪。MatchAnchorWidth 让浮层与锚点等宽（下拉框与触发器同宽），内容按这个宽度换行或截断。锚点不存在或隐藏时不绘制，并调用一次 OnDismiss。
 
 非模态浮层之外、且不在锚点上的按下事件会请求关闭，并继续传给下面的元素。`.Modal()` 使锚定浮层拦截外部点击；`el.Modal(content)` 创建默认居中的模态浮层，自带遮罩和焦点约束，遮罩在绘制时读取 `theme.Scrim`，随运行时主题切换更新；`.Scrim(false)` 只隐藏遮罩颜色，仍拦截输入。模态期间背景不响应悬停和点击，Agent 快照也不列出被遮挡的主树及下层浮层。
 

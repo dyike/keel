@@ -48,6 +48,7 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 	if w >= inf {
 		w = e.dp(200)
 	}
+	n.input.line = line
 	h := line
 	if n.input.multiline {
 		h = max(h, e.dp(72))
@@ -140,7 +141,13 @@ func (e *engine) paintContent(n *Node) {
 		}
 	}
 	if n.effectiveDisabled {
-		st.text.color = &theme.Muted
+		// The disabled root picks the muted color, or its DisabledStyle
+		// does; descendants keep that choice instead of resetting it.
+		if n.disabledRoot || e.paintTextColor == nil {
+			st.text.color = &theme.Muted
+		} else {
+			st.text.color = e.paintTextColor
+		}
 		if n.disabledStyle != nil {
 			n.disabledStyle(&st)
 		}
@@ -395,6 +402,12 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	if spec.bind != nil && *spec.bind != st.lastText {
 		st.lastText = *spec.bind
 		ed.SetText(*spec.bind)
+	}
+	// A single-line box taller than its line (theme.ControlHeight) centers
+	// the line, like a native field; the editor keeps the line's height.
+	if !spec.multiline && spec.line > 0 && inner.Dy() > spec.line {
+		inner.Min.Y += (inner.Dy() - spec.line) / 2
+		inner.Max.Y = inner.Min.Y + spec.line
 	}
 	defer op.Offset(inner.Min.Add(image.Pt(0, theme.Shift(e.m, n.textStyle.size)))).Push(gtx.Ops).Pop()
 	g := gtx

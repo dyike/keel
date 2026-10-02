@@ -116,7 +116,19 @@ func (s *scrollbarState) paint(gtx core.C, track image.Rectangle, horizontal boo
 	if s.hovered || s.active {
 		paint.FillShape(gtx.Ops, theme.Subtle, clip.Rect(track).Op())
 	}
-	inset := max(1, mainOf(track.Size(), !horizontal)/4)
+	// The bar overlays content, so at rest it is a thin translucent line that
+	// keeps the text beneath readable; hovering or dragging widens it.
+	cross := mainOf(track.Size(), !horizontal)
+	inset := max(1, cross*3/8)
+	color := theme.Muted
+	color.A = 0x80
+	if s.hovered || s.active {
+		inset = max(1, cross/4)
+		color.A = 0xff
+	}
+	if s.active {
+		color = theme.Primary
+	}
 	if horizontal {
 		thumb.Min.Y += inset
 		thumb.Max.Y -= inset
@@ -124,11 +136,8 @@ func (s *scrollbarState) paint(gtx core.C, track image.Rectangle, horizontal boo
 		thumb.Min.X += inset
 		thumb.Max.X -= inset
 	}
-	color := theme.Muted
-	if s.active {
-		color = theme.Primary
-	}
-	paint.FillShape(gtx.Ops, color, clip.UniformRRect(thumb, inset).Op(gtx.Ops))
+	r := max(1, mainOf(thumb.Size(), !horizontal)/2)
+	paint.FillShape(gtx.Ops, color, clip.UniformRRect(thumb, r).Op(gtx.Ops))
 }
 
 func (st *elemState) scrollKey(gtx core.C, ev key.Event) bool {

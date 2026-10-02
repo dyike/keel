@@ -92,17 +92,7 @@ func (v *TimeFieldView) renderSegments(cx *el.Context) el.Element {
 		v.partFocused = [3]bool{}
 		v.syncParts()
 	}
-	border := theme.Border
-	if v.err != "" {
-		border = theme.Danger
-	} else if focused && !v.disabled {
-		border = theme.Primary
-	}
-	bg := theme.Surface
-	if v.disabled {
-		bg = theme.Subtle
-	}
-	box := el.Div().ID(id).Row().Items(el.Center).Gap(4).Px(10).Py(8).Rounded(6).Border(1, border).Bg(bg).Disabled(v.disabled).
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).W(el.Auto).Gap(4).
 		Child(Icon(IconClock).Size(16).Color(theme.Muted).Render(cx))
 	text := locale.Current()
 	names := []string{text.Hour, text.Minute, text.Second}
@@ -121,8 +111,8 @@ func (v *TimeFieldView) renderSegments(cx *el.Context) el.Element {
 		if i > 0 {
 			box.Child(el.Text(":"))
 		}
-		field := el.Input().ID(partID).Name(text.Name(names[i], v.a11y())).Bind(&v.parts[i]).Filter("0123456789").MaxLen(2).
-			Border(0, theme.Border).Bg(bg).P(0).W(el.Dp(28)).
+		field := fieldText(el.Input().ID(partID).Name(text.Name(names[i], v.a11y())).Bind(&v.parts[i])).Filter("0123456789").MaxLen(2).
+			W(el.Dp(28)).NoShrink().
 			OnSubmit(func(string) { v.commitSegment(i) }).
 			OnKey(func(e el.KeyEvent) bool {
 				steps := map[key.Name]int{key.NameUpArrow: 1, key.NameDownArrow: -1, key.NamePageUp: 10, key.NamePageDown: -10}

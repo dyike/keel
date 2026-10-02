@@ -12,10 +12,10 @@ import (
 func init() {
 	registerSection("dock", "shell", func() core.Widget {
 		txt := func(s string) el.View {
-			return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s).TextColor(theme.Muted) })
+			return el.ViewFunc(func(*el.Context) el.Element { return el.Div().P(12).Child(el.Text(s).TextSize(13)) })
 		}
 		saved := "移动、关闭或调整面板后，这里显示保存的布局 JSON"
-		files := kit.Tree(&kit.TreeNode{ID: "ui", Label: "ui", Children: []*kit.TreeNode{{ID: "kit", Label: "kit"}, {ID: "el", Label: "el"}}}).Fill()
+		files := kit.Tree(&kit.TreeNode{ID: "ui", Label: "ui", Children: []*kit.TreeNode{{ID: "kit", Label: "kit"}, {ID: "el", Label: "el"}}}).Fill().Plain()
 		var d *kit.DockView
 		d = kit.Dock(el.ViewFunc(func(*el.Context) el.Element {
 			return el.Div().Grow().P(24).Gap(8).Bg(theme.Surface).Child(el.Text("编辑器 Editor").Bold(), el.Text(saved).TextSize(12).TextColor(theme.Muted))
@@ -29,6 +29,11 @@ func init() {
 				saved = string(b)
 			})
 		d.Split("search", "files", kit.DockPlacementBottom)
+		// Side panels narrow enough that the editor stays the widest region
+		// in the gallery's 680dp window.
+		l := d.Layout()
+		l.LeftSize, l.RightSize, l.BottomSize = 180, 160, 140
+		d.SetLayout(l)
 		return el.Root(d)
 	})
 }

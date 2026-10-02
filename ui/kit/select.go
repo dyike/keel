@@ -156,12 +156,7 @@ func (v *SelectView) Render(cx *el.Context) el.Element {
 			shown = locale.Current().SelectHint
 		}
 	}
-	border := theme.Border
-	if v.err != "" {
-		border = theme.Danger
-	}
-	field := el.Div().ID(id).WFull().Role("select").Name(name).Value(strings.Join(v.Values(), ", ")).Disabled(v.disabled).
-		Row().Items(el.Center).Gap(8).H(el.Dp(36)).Px(10).Rounded(6).Bg(theme.Surface).Border(1, border).
+	field := fieldFrame(id, false, v.err != "", v.disabled, false).Role("select").Name(name).Value(strings.Join(v.Values(), ", ")).
 		Focusable(true).OnClick(func() { v.setOpen(cx, !v.open) }).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
@@ -175,7 +170,7 @@ func (v *SelectView) Render(cx *el.Context) el.Element {
 		}).
 		Child(el.Text(shown).TextColor(color).Grow().MaxLines(1), Icon(IconChevronDown).Size(16).Color(theme.Muted).Render(cx))
 	if v.disabled {
-		field.Bg(theme.Subtle).TextColor(theme.Muted)
+		field.TextColor(theme.Muted)
 	} else {
 		field.CursorPointer()
 	}

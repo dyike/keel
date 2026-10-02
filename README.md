@@ -25,7 +25,7 @@ go run ./examples/hello
 go run ./examples/multiwindow
 go run ./examples/hotkey
 go run ./examples/chat -sample=all
-go run ./examples/components
+go run ./examples/components   # 组件库：侧栏选择、搜索
 go test -race ./...
 ```
 

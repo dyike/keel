@@ -12,8 +12,8 @@ func init() {
 		msg := "缩小窗口，放不下的按钮会移到「更多」里；←→ 在按钮间移动"
 		do := func(s string) func() { return func() { msg = "已执行：" + s } }
 		bar := kit.Toolbar(
-			kit.ToolbarItem{Label: "新建", Icon: kit.IconPlus, HasIcon: true, Action: do("新建")},
-			kit.ToolbarItem{Label: "搜索", Icon: kit.IconSearch, HasIcon: true, IconOnly: true, Action: do("搜索")},
+			kit.ToolbarItem{Label: "新建", Icon: kit.IconPlus, Action: do("新建")},
+			kit.ToolbarItem{Label: "搜索", Icon: kit.IconSearch, IconOnly: true, Action: do("搜索")},
 			kit.ToolbarItem{Separator: true},
 			kit.ToolbarItem{Label: "复制 Copy", Action: do("复制")},
 			kit.ToolbarItem{Label: "导出", Action: do("导出")},

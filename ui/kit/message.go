@@ -121,7 +121,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		state = "failed"
 		detail := text.SendFailed
 		if v.failure != "" {
-			detail += ": " + v.failure
+			detail = text.Detail(detail, v.failure)
 		}
 		status := el.Div().Row().Wrap().Gap(8).Items(el.Center).Child(el.Text(detail).TextSize(12).TextColor(theme.DangerText))
 		if v.user {

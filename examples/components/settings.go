@@ -26,13 +26,13 @@ func init() {
 			}
 		})
 		s := kit.Settings().
-			Section("通用", kit.IconUser,
+			Section("通用", kit.IconSettings,
 				kit.SettingItem{Label: "语言 Language", Description: "框架文字随之切换", Control: lang},
 				kit.SettingItem{Label: "深色模式", Description: "立即生效", Control: dark}).
-			Section("通知", kit.IconInbox,
+			Section("通知", kit.IconBell,
 				kit.SettingItem{Label: "邮件提醒", Description: "新订单时发送邮件", Control: kit.Switch("", true)},
 				kit.SettingItem{Label: "提醒间隔", Control: kit.NumberInput("").Range(1, 60)}).
-			Section("隐私", kit.IconWarning,
+			Section("隐私", kit.IconLock,
 				kit.SettingItem{Label: "使用统计", Description: "匿名发送崩溃报告", Control: kit.Checkbox("", false)})
 		return el.Root(s)
 	})

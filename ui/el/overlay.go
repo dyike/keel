@@ -58,7 +58,10 @@ func (l *Layer) Placement(side Side, align Align) *Layer {
 // container. The owner controls eligibility, not position or modality.
 func (l *Layer) Owner(id string) *Layer { l.owner = id; return l }
 
-func (l *Layer) Offset(dp float32) *Layer   { l.offset = dp; return l }
+func (l *Layer) Offset(dp float32) *Layer { l.offset = dp; return l }
+
+// MatchAnchorWidth sizes the layer to its anchor's width, as a dropdown
+// matches its trigger.
 func (l *Layer) MatchAnchorWidth() *Layer   { l.matchWidth = true; return l }
 func (l *Layer) Modal() *Layer              { l.modal = true; return l }
 func (l *Layer) TrapFocus() *Layer          { l.trap = true; return l }
@@ -305,9 +308,9 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 			if scale == 0 {
 				scale = 1
 			}
-			if n.style.minW.px(r.e.m, maxSize.X) < anchor.Dx() {
-				n.style.minW = Dp(float32(anchor.Dx()) / scale)
-			}
+			// Exactly the anchor's width: content that stretches (a list, a
+			// search field) would otherwise take the whole root.
+			n.style.w = Dp(float32(anchor.Dx()) / scale)
 		}
 		r.e.layout(n, maxSize.X, maxSize.Y, base)
 		r.e.place(n)

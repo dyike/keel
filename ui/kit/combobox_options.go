@@ -146,9 +146,12 @@ func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
 	if v.multiple {
 		selected = slices.Contains(v.values, option)
 	}
-	row := el.Div().Role("option").Name(option).Selected(selected).Mx(4).Px(8).Row().Items(el.Center).Rounded(4).CursorPointer().Focusable(false).
+	row := el.Div().Role("option").Name(option).Selected(selected).H(el.Dp(28)).My(1).Mx(4).Px(8).Row().Items(el.Center).Rounded(4).CursorPointer().Focusable(false).
 		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(option); cx.Focus(v.FocusID()) }).Child(el.Text(option).Grow().MaxLines(1), checkMark(cx, selected))
-	if i == v.active {
+	switch {
+	case selected:
+		row.Bg(theme.Highlight)
+	case i == v.active:
 		row.Bg(theme.Subtle)
 	}
 	return row

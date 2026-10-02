@@ -87,7 +87,7 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 	v.nav.sections = []sidebarSection{nav}
 	q := strings.ToLower(strings.TrimSpace(v.query))
 	content := el.Div().Grow().W(el.Dp(0)).ScrollY().Px(24).Py(16).Items(el.Stretch)
-	search := el.Input().ID(autoID("settings", v) + "/search").Name(text.SearchSettings).Placeholder(text.SearchSettings).Bind(&v.query).Mb(8)
+	search := searchField(cx, autoID("settings", v)+"/searchbox", el.Input().ID(autoID("settings", v)+"/search").Name(text.SearchSettings).Placeholder(text.SearchSettings).Bind(&v.query)).Mb(8)
 	content.Child(search)
 	found := false
 	for _, s := range v.sections {

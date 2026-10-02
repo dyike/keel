@@ -88,7 +88,17 @@ func (c *Caret) Layout(gtx layout.Context, style material.EditorStyle, shaper *t
 		}
 	}
 	half := max(1, gtx.Dp(1)/2)
-	c.bounds = image.Rect(pos.X-half, top, pos.X+half, bottom).Intersect(image.Rectangle{Max: dims.Size})
+	x0, x1 := pos.X-half, pos.X+half
+	area := image.Rectangle{Max: dims.Size}
+	if ed.Len() == 0 && style.Hint != "" {
+		// A caret centered on the hint's first glyph merges with its strokes
+		// (a dark bar beside 搜 reads as 锼). Draw it just before the hint,
+		// in the field's padding, the way native text fields do.
+		x1 = pos.X - gtx.Dp(1)
+		x0 = x1 - 2*half
+		area.Min.X = x0
+	}
+	c.bounds = image.Rect(x0, top, x1, bottom).Intersect(area)
 	// Match the usual editor cadence and settle to a visible caret after idle.
 	const interval = 500 * time.Millisecond
 	elapsed := max(time.Duration(0), gtx.Now.Sub(c.blink))

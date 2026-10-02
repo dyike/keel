@@ -69,8 +69,7 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 	if name == "" {
 		name = v.placeholder
 	}
-	text := el.Input().ID(v.FocusID()).Name(name).Placeholder(v.placeholder).Bind(&v.value).
-		Border(0, theme.Border).Bg(theme.Surface).P(0).Grow().
+	text := fieldText(el.Input().ID(v.FocusID()).Name(name).Placeholder(v.placeholder).Bind(&v.value)).
 		MaxLen(v.maxLen).Filter(v.filter).ReadOnly(v.readOnly).
 		OnChange(func(s string) {
 			v.err = ""
@@ -84,8 +83,7 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 			}
 		})
 	if v.multiline {
-		text = el.TextArea().ID(v.FocusID()).Name(name).Placeholder(v.placeholder).Bind(&v.value).
-			Border(0, theme.Border).Bg(theme.Surface).P(0).Grow().MinH(el.Dp(float32(v.rows) * 22)).
+		text = fieldText(el.TextArea().ID(v.FocusID()).Name(name).Placeholder(v.placeholder).Bind(&v.value)).MinH(el.Dp(float32(v.rows) * 22)).
 			MaxLen(v.maxLen).Filter(v.filter).ReadOnly(v.readOnly).
 			OnChange(func(s string) {
 				v.err = ""
@@ -97,17 +95,9 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 	if v.password {
 		text.Password()
 	}
-	border := theme.Border
-	switch {
-	case v.err != "":
-		border = theme.Danger
-	case cx.FocusWithin(id) && !v.disabled:
-		border = theme.Primary
-	}
-	box := el.Div().ID(id).WFull().Row().Items(el.Center).Gap(8).Px(10).Py(8).Rounded(6).Border(1, border).Bg(theme.Surface).Disabled(v.disabled)
-	if v.disabled || v.readOnly {
-		box.Bg(theme.Subtle)
-		text.Bg(theme.Subtle)
+	box := fieldFrame(id, cx.FocusWithin(id), v.err != "", v.disabled, v.readOnly)
+	if v.multiline {
+		box.Items(el.Start).Py(8)
 	}
 	if v.prefix != nil {
 		box.Child(el.Div().TextColor(theme.Muted).Child(v.prefix.Render(cx)))
@@ -128,7 +118,7 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 		box.Child(el.Div().TextColor(theme.Muted).Child(v.suffix.Render(cx)))
 	}
 	if !chrome {
-		return box.Border(0, theme.Border).Rounded(0).P(0)
+		return box.Border(0, theme.Border).Rounded(0).P(0).MinH(el.Auto) // inside an InputGroup's frame
 	}
 	return labelled(v.label, box, v.err)
 }

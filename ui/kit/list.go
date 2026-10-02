@@ -4,6 +4,7 @@ import (
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
+	"image/color"
 	"slices"
 )
 
@@ -44,7 +45,7 @@ type ListView struct {
 	onReorder          func(int, int)
 	items              []string
 	selected           int
-	disabled           bool
+	disabled, plain    bool
 	list               *VirtualListView
 	onChange, onActive func(int)
 }
@@ -57,8 +58,12 @@ func List(items ...string) *ListView {
 }
 
 // Height sets the viewport height in dp, 320 by default; Fill grows instead.
-func (v *ListView) Height(dp float32) *ListView             { v.list.Height(dp); return v }
-func (v *ListView) Fill() *ListView                         { v.list.Fill(); return v }
+func (v *ListView) Height(dp float32) *ListView { v.list.Height(dp); return v }
+func (v *ListView) Fill() *ListView             { v.list.Fill(); return v }
+
+// Plain drops the frame and background, for a list that sits inside a panel
+// or sidebar that already frames it. Focus still shows as an outline.
+func (v *ListView) Plain() *ListView                        { v.plain = true; return v }
 func (v *ListView) OnChange(fn func(index int)) *ListView   { v.onChange = fn; return v }
 func (v *ListView) OnActivate(fn func(index int)) *ListView { v.onActive = fn; return v }
 func (v *ListView) Value() int                              { return v.selected }
@@ -116,8 +121,7 @@ func (v *ListView) Render(cx *el.Context) el.Element {
 	}
 	// The list, not each row, takes focus: rows scroll out of existence, so
 	// keyboard focus could not stay on one.
-	return el.Div().ID(autoID("list", v)).Role("listbox").Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
-		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Py(4).Items(el.Stretch).
+	return listFrame(el.Div().ID(autoID("list", v)).Role("listbox").Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }), v.plain).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
 			if key.Name(e.Name) == key.NameReturn {
@@ -148,4 +152,13 @@ func (v *ListView) Render(cx *el.Context) el.Element {
 			return ok
 		}).
 		Child(v.list.Render(cx))
+}
+
+// listFrame styles the focusable box around a List or Tree. A plain one keeps
+// a transparent border so the focus outline has somewhere to show.
+func listFrame(d *el.DivEl, plain bool) *el.DivEl {
+	if plain {
+		return d.Rounded(6).Border(1, color.NRGBA{}).Py(4).Items(el.Stretch)
+	}
+	return d.Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Py(4).Items(el.Stretch)
 }

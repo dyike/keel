@@ -23,6 +23,7 @@ type Node struct {
 	focusable                   bool
 	focusSet                    bool
 	disabled, effectiveDisabled bool
+	disabledRoot                bool // disabled here, not only by an ancestor
 	disabledStyle               func(*Style)
 	onKey                       func(KeyEvent) bool
 	id                          string

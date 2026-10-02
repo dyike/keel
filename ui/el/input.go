@@ -16,6 +16,7 @@ type inputSpec struct {
 	maxLen      int
 	filter      string
 	readOnly    bool
+	line        int // measured line height, to center single-line text
 }
 
 // Input creates a single-line text box. Enter triggers OnSubmit.
@@ -23,9 +24,10 @@ func Input() *InputEl {
 	e := &InputEl{}
 	e.n, e.self = newNode(), e
 	e.n.input = &inputSpec{}
-	// A bordered box by default; every part can be restyled. The border turns
-	// Primary while the box has focus.
-	e.Border(1, theme.Border).Rounded(6).Bg(theme.Surface).Px(10).Py(8)
+	// A bordered box by default, the same as kit's fields: theme.ControlHeight
+	// tall with the line centered. Every part can be restyled; the border
+	// turns Primary while the box has focus.
+	e.Border(1, theme.Border).Rounded(6).Bg(theme.Surface).Px(10).MinH(Dp(float32(theme.ControlHeight)))
 	return e
 }
 
@@ -33,6 +35,7 @@ func Input() *InputEl {
 func TextArea() *InputEl {
 	e := Input()
 	e.n.input.multiline = true
+	e.Py(8).MinH(Auto)
 	return e
 }
 

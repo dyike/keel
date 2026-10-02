@@ -55,13 +55,20 @@ func (v *AvatarView) Image(img image.Image) *AvatarView {
 	}
 	return v
 }
+
+// avatarInitials takes the first letters of the first two words. Han names
+// and mixed-script names ("AI 助手") use only the first word, never pairing a
+// Latin letter with a Han character; a short acronym stays whole ("AI").
 func avatarInitials(name string) string {
 	words := strings.Fields(name)
 	if len(words) == 0 {
 		return "?"
 	}
 	first := []rune(words[0])
-	if len(words) == 1 || unicode.Is(unicode.Han, first[0]) {
+	if len(words) == 1 || unicode.Is(unicode.Han, first[0]) || unicode.Is(unicode.Han, []rune(words[1])[0]) {
+		if len(first) == 2 && strings.ToUpper(words[0]) == words[0] && !unicode.Is(unicode.Han, first[0]) {
+			return words[0]
+		}
 		return string(unicode.ToUpper(first[0]))
 	}
 	last := []rune(words[1])
