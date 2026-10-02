@@ -1,6 +1,6 @@
 # GPUI Kit 实现进度 · 2026-10-02
 
-更新日期：2026-10-02，代码基准 `bc54e85`。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
+更新日期：2026-10-03（原报告 2026-10-02，代码基准 `bc54e85`）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
 “已有”表示 Keel 提供可复用的基础组件，并不表示与 GPUI Kit 功能完全一致；“部分”表示已有实现，但仍缺本表列出的关键能力；“未实现”表示缺少通用实现。最后一列列出建议补齐的能力，不是对源站全部配置项的逐项认证。
 
@@ -9,11 +9,12 @@
 原差距实施清单：原 A–F 共 36 项，35 项已完成，F3 的完整原生场景验收仍未完成。后续新增能力单列记录，不混入原清单分母；清单完成率不等于 GPUI Kit 功能对齐率。
 
 - [x] WebAssembly：`28a0e80`，浏览器 hello 示例已验证中文、输入、复选框和按钮；构建需 `-tags osusergo`，见 [Web](../../docs/web.md)。
-- [x] 视觉基础：`83c50ed`，圆角/字号/阴影刻度、透明度、字重/等宽/行高与 kit 样式迁移；间距刻度仍待统一。
-- [x] Dock 最大化：`bf9f69d`，菜单/双击进入、Esc 恢复、布局保存；中心区自由标签组/分割尚未实现。
-- [x] 多主题基础：`bf9f69d`，主题注册、JSON 配色、运行时切换、Nord/Paper 示例；目录监听和渐变主题配置尚未实现。
+- [x] 视觉基础：`83c50ed`，圆角/字号/阴影刻度、透明度、字重/等宽/行高与 kit 样式迁移；间距刻度 `08daebf` 已统一。
+- [x] Dock 最大化：`bf9f69d`，菜单/双击进入、Esc 恢复、布局保存；中心区文档标签组与拆分、跨窗口分离见下表。
+- [x] 多主题基础：`bf9f69d`，主题注册、JSON 配色、运行时切换、Nord/Paper 示例；目录监听、渐变配置 `08daebf` 已完成。
 - [x] CodeEditor 基础：`4f22179`，行号、高亮、撤销重做、输入法、自动缩进、诊断/补全/悬停接口；高级能力见下表。
 - [x] 编辑器验证与补全修复：`bc54e85`，真机确认补全出现和回车接受；回归测试覆盖 Agent 补全项、回车/点击接受与关闭。20 万行已实际载入并验证滚动、末尾跳转和输入，未采集帧率或输入延迟。
+- [x] 后续补齐（2026-10-03）：编辑器多光标/查找替换/折叠/括号 `56fa4f6`；局部主题与内置主题 `cc8e536`；Windows、Linux 原生能力 `643ceb6`（仅交叉编译验证）；无样式基础层 `d4d38b5`；状态栏溢出与动作键位 `3c4e511`；主题渐变/间距/目录监听 `08daebf`；HTML 与扩展 TeX `2bd4c61`；Dock 中心文档与跨窗口（本次提交）。
 - [ ] 完整原生验收：仍需复核标题栏、系统偏好、多窗口等；代码编辑器真机可运行不代表 F3 全部通过。
 - 系统读屏 / VoiceOver：**暂缓**，未接入，不计为已完成。
 
@@ -44,9 +45,9 @@
 | [DatePicker](https://gpui-kit.com/component/date-picker/) | 已有 | [日期输入、日历弹层、范围、取消草稿、键盘](../../ui/kit/date_picker.go) | — |
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 已有 | [标签/值布局、响应式列数](../../ui/kit/description_list.go) | — |
 | [Dialog](https://gpui-kit.com/component/dialog/) | 已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | — |
-| [Dock](https://gpui-kit.com/component/dock/) | 部分 | [边缘标签组拖放、嵌套分割、布局保存、最大化](../../ui/kit/dock.go) | 中心区自由标签组/分割；跨窗口 Dock 未纳入本轮 |
+| [Dock](https://gpui-kit.com/component/dock/) | 已有 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | — |
 | [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | — |
-| [Editor](https://gpui-kit.com/component/editor/) | 部分 | [行号、后台高亮、选择/撤销/输入法、自动缩进、诊断/补全/悬停接口](../../ui/kit/code_editor.go) | 搜索替换、折叠、多光标/矩形选择、语言级括号配对；LSP 客户端由应用提供 |
+| [Editor](https://gpui-kit.com/component/editor/) | 已有 | [行号、局部重高亮、多光标/矩形选择、查找替换、折叠、语法感知括号配对、诊断/补全/悬停/定义跳转接口](../../ui/kit/code_editor.go) | 未接入 Tree-sitter（用 chroma 词法与局部重高亮代替）；LSP 客户端由应用提供 |
 | [Empty](https://gpui-kit.com/component/empty/) | 已有 | [空状态标题、说明与操作](../../ui/kit/empty.go) | — |
 | [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | — |
 | [Form](https://gpui-kit.com/component/form/) | 已有 | [字段组织、校验、错误聚焦、异步提交/取消](../../ui/kit/form.go) | — |
@@ -56,7 +57,7 @@
 | [Image](https://gpui-kit.com/component/image/) | 已有 | [异步缓存、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | — |
 | [Input Group](https://gpui-kit.com/component/input-group/) | 已有 | [独立组合容器、前后内容、统一边框、标签聚焦](../../ui/kit/input_group.go) | — |
 | [Input](https://gpui-kit.com/component/input/) | 已有 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | — |
-| [Kbd](https://gpui-kit.com/component/kbd/) | 部分 | [平台键帽、动态文案、尺寸、无边框](../../ui/kit/kbd.go) | 动作绑定查询暂缓 |
+| [Kbd](https://gpui-kit.com/component/kbd/) | 已有 | [平台键帽、动态文案、尺寸、无边框、`KbdFor` 按动作显示键位表绑定](../../ui/kit/kbd.go) | — |
 | [Label](https://gpui-kit.com/component/label/) | 已有 | [Text、字号/颜色、For 标签关联聚焦](../../ui/el/element.go) | — |
 | [List](https://gpui-kit.com/component/list/) | 已有 | [列表项、稳定 ID、单项禁用、多选/范围、键盘、拖动](../../ui/kit/list.go) | — |
 | [Marker](https://gpui-kit.com/component/marker/) | 已有 | [标记形状、大小和颜色](../../ui/kit/marker.go) | — |
@@ -84,15 +85,15 @@
 | [Skeleton](https://gpui-kit.com/component/skeleton/) | 已有 | [占位形状、尺寸、加载展示](../../ui/kit/skeleton.go) | — |
 | [Slider](https://gpui-kit.com/component/slider/) | 已有 | [单值/双端范围、横向/竖向、步长、拖动与键盘](../../ui/kit/slider.go) | — |
 | [Spinner](https://gpui-kit.com/component/spinner/) | 已有 | [不确定动画、减少动画、可访问名称](../../ui/kit/spinner.go) | — |
-| [StatusBar](https://gpui-kit.com/component/status-bar/) | 部分 | [固定状态栏、左右内容组、单行文本](../../ui/kit/status_bar.go) | 独立溢出菜单尚未实现 |
+| [StatusBar](https://gpui-kit.com/component/status-bar/) | 已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | — |
 | [Stepper](https://gpui-kit.com/component/stepper/) | 已有 | [步骤状态、导航、键盘、横向滚动与禁用](../../ui/kit/stepper.go) | — |
 | [Switch](https://gpui-kit.com/component/switch/) | 已有 | [布尔开关、尺寸、加载、禁用](../../ui/kit/switch.go) | — |
 | [Table](https://gpui-kit.com/component/table/) | 已有 | [排序、行选择、单元格插槽、列宽调整；高级能力同 DataTable](../../ui/kit/table.go) | — |
 | [Tabs](https://gpui-kit.com/component/tabs/) | 已有 | [页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | — |
 | [Tag](https://gpui-kit.com/component/tag/) | 已有 | [颜色、移除、选中](../../ui/kit/tag.go) | — |
-| [TextView](https://gpui-kit.com/component/text-view/) | 部分 | [Markdown、公式子集、图片、选择复制、代码块、流式渲染](../../ui/markdown) | HTML 富文本、完整 TeX 暂缓 |
+| [TextView](https://gpui-kit.com/component/text-view/) | 已有 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 不是完整 TeX 引擎；不支持 CSS 样式 |
 | [Textarea](https://gpui-kit.com/component/textarea/) | 已有 | [多行、只读、自动高度、最大可见行数、错误恢复](../../ui/kit/input.go) | — |
-| [Theme](https://gpui-kit.com/component/theme/) | 部分 | [语义配色、字号/圆角/阴影、浅深切换、注册与 JSON 主题](../../ui/theme/registry.go) | 局部作用域、目录监听、渐变主题配置、统一间距刻度 |
+| [Theme](https://gpui-kit.com/component/theme/) | 已有 | [语义配色、间距/字号/圆角/阴影刻度、浅深切换、注册与 JSON 主题、局部作用域、渐变、目录监听](../../ui/theme/registry.go) | — |
 | [TimeField](https://gpui-kit.com/component/time-field/) | 已有 | [时分秒、步进/进位、12/24 小时、Tab 与本地化](../../ui/kit/time_field.go) | — |
 | [TitleBar](https://gpui-kit.com/component/title-bar/) | 已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 实现已有，原生行为验收仍待 F3 |
 | [Toggle](https://gpui-kit.com/component/toggle/) | 已有 | [状态按钮、图标、尺寸、单选/多选组](../../ui/kit/toggle_group.go) | — |

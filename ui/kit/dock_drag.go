@@ -78,6 +78,11 @@ func (v *DockView) tabDrag(id string, e el.DragEvent) {
 	if e.Canceled || v.disabled || !drag.moved {
 		return
 	}
+	// Dropped outside the dock: into a window of its own, when the app allows.
+	if drag.drop.kind == 0 && v.onDetach != nil && v.bounds.w > 0 && !v.bounds.contains(x, y) {
+		v.Detach(id)
+		return
+	}
 	changed := false
 	switch drag.drop.kind {
 	case 1:
@@ -102,7 +107,7 @@ func (v *DockView) joinTab(id, target string, after bool) bool {
 	dest := findDockGroup(*v.tree(side), target)
 	old := slices.Clone(dest.Panels)
 	// The target keeps the destination leaf alive while removing the source.
-	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
+	for _, s := range dockSides {
 		*v.tree(s) = removeDockPanel(*v.tree(s), id)
 	}
 	index := slices.Index(dest.Panels, target)
@@ -119,8 +124,23 @@ func (v *DockView) joinTab(id, target string, after bool) bool {
 	return source != dest || !slices.Equal(old, dest.Panels) || !wasActive
 }
 func (v *DockView) dropAt(id string, x, y float32) dockDrop {
+	// Documents cover the center, so only a thin strip along its edges
+	// brings back an empty side region there.
+	if c := v.centerRect; len(v.shown(DockCenter)) > 0 && c.contains(x, y) {
+		const strip = 24
+		switch {
+		case x-c.x < strip && len(v.shown(DockLeft)) == 0:
+			return v.regionDrop(id, DockLeft, dockRect{c.x, c.y, min(c.w/2, 240), c.h})
+		case c.x+c.w-x < strip && len(v.shown(DockRight)) == 0:
+			w := min(c.w/2, 260)
+			return v.regionDrop(id, DockRight, dockRect{c.x + c.w - w, c.y, w, c.h})
+		case c.y+c.h-y < strip && len(v.shown(DockBottom)) == 0:
+			h := min(c.h/2, 180)
+			return v.regionDrop(id, DockBottom, dockRect{c.x, c.y + c.h - h, c.w, h})
+		}
+	}
 	// Hit tabs in layout order, so hidden/offscreen tabs never become targets.
-	for _, side := range []DockSide{DockLeft, DockRight, DockBottom} {
+	for _, side := range dockSides {
 		ids, _ := v.side(side)
 		for _, target := range *ids {
 			if target == id {
@@ -137,7 +157,7 @@ func (v *DockView) dropAt(id string, x, y float32) dockDrop {
 			}
 		}
 	}
-	for _, side := range []DockSide{DockLeft, DockRight, DockBottom} {
+	for _, side := range dockSides {
 		for _, target := range dockPanels(*v.tree(side)) {
 			if target == id || !v.Visible(target) {
 				continue
@@ -196,6 +216,10 @@ func (v *DockView) dropAt(id string, x, y float32) dockDrop {
 			r.y += r.h - h
 			r.h = h
 			return v.regionDrop(id, DockBottom, r)
+		}
+		// The middle of an empty center opens the tab there as a document.
+		if v.documents && len(v.shown(DockCenter)) == 0 {
+			return v.regionDrop(id, DockCenter, r)
 		}
 	}
 	return dockDrop{}

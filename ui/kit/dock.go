@@ -20,7 +20,13 @@ const (
 	DockLeft DockSide = iota
 	DockRight
 	DockBottom
+	// DockCenter holds documents in the middle, in tab groups that split
+	// like the side regions. While it has any, they replace the center view.
+	DockCenter
 )
+
+// dockSides are every region, sides first.
+var dockSides = []DockSide{DockLeft, DockRight, DockBottom, DockCenter}
 
 // DockPanel is a tool window that lives in a Dock region. IDs must be unique.
 // The panel gets the region's full height; long content should scroll itself.
@@ -33,10 +39,15 @@ type DockPanel struct {
 // restoring it (it encodes as JSON). Panel lists are in tab order.
 type DockLayout struct {
 	LeftTree, RightTree, BottomTree *DockNode `json:",omitempty"`
-	Version                         int       `json:"version,omitempty"`
-	Left, Right, Bottom             []string  `json:",omitempty"`
-	LeftActive, RightActive         string    `json:",omitempty"`
-	BottomActive                    string    `json:",omitempty"`
+	CenterTree                      *DockNode `json:",omitempty"`
+	Center                          []string  `json:",omitempty"`
+	CenterActive                    string    `json:",omitempty"`
+	// Detached panels are open in windows of their own (see OnDetach).
+	Detached                        []string `json:",omitempty"`
+	Version                         int      `json:"version,omitempty"`
+	Left, Right, Bottom             []string `json:",omitempty"`
+	LeftActive, RightActive         string   `json:",omitempty"`
+	BottomActive                    string   `json:",omitempty"`
 	LeftSize, RightSize, BottomSize float32
 	Hidden                          []string `json:",omitempty"`
 	// Zoomed is the panel maximized over the whole dock, or "".
@@ -58,7 +69,11 @@ type DockView struct {
 	center                el.View
 	panels                map[string]DockPanel
 	layout                DockLayout
-	painted               [3]float32
+	painted               [4]float32
+	centerSize            float32  // unused: the center has no size of its own
+	bounds                dockRect // the whole dock in window dp, for dragging a tab out
+	documents             bool     // the app uses DockCenter, so tabs may be dropped there
+	onDetach              func(p DockPanel, reattach func())
 	viewport              [2]float32
 	total                 [2]float32 // painted width and height of the whole dock, dp
 	grab                  float32
@@ -80,11 +95,14 @@ func Dock(center el.View) *DockView {
 
 // Panel adds a panel to a region; the first panel added to a region is active.
 func (v *DockView) Panel(p DockPanel, side DockSide) *DockView {
-	if p.ID == "" || side > DockBottom {
+	if p.ID == "" || side > DockCenter {
 		return v
 	}
 	_, exists := v.panels[p.ID]
 	v.panels[p.ID] = p
+	if side == DockCenter {
+		v.documents = true
+	}
 	if exists {
 		return v
 	}
@@ -105,6 +123,7 @@ func (v *DockView) OnLayoutChange(fn func(DockLayout)) *DockView { v.onLayout = 
 func (v *DockView) Layout() DockLayout {
 	l := v.layout
 	l.LeftTree, l.RightTree, l.BottomTree = cloneDockNode(l.LeftTree), cloneDockNode(l.RightTree), cloneDockNode(l.BottomTree)
+	l.CenterTree, l.Center, l.Detached = cloneDockNode(l.CenterTree), slices.Clone(l.Center), slices.Clone(l.Detached)
 	l.Left, l.Right, l.Bottom, l.Hidden = slices.Clone(l.Left), slices.Clone(l.Right), slices.Clone(l.Bottom), slices.Clone(l.Hidden)
 	return l
 }
@@ -121,8 +140,8 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 		}
 	}
 	// Trees are authoritative when present; legacy lists migrate to one group.
-	var trees [3]*DockNode
-	for i, node := range []*DockNode{l.LeftTree, l.RightTree, l.BottomTree} {
+	var trees [4]*DockNode
+	for i, node := range []*DockNode{l.LeftTree, l.RightTree, l.BottomTree, l.CenterTree} {
 		var ok bool
 		trees[i], ok = v.restoreNode(node, map[*DockNode]bool{}, 0)
 		if !ok {
@@ -137,6 +156,9 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 	}
 	if l.BottomTree != nil {
 		l.Bottom = dockPanels(trees[2])
+	}
+	if l.CenterTree != nil {
+		l.Center = dockPanels(trees[3])
 	}
 	placed := map[string]bool{}
 	known := func(ids []string) ([]string, bool) {
@@ -165,6 +187,9 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 	if next.Bottom, ok = known(l.Bottom); !ok {
 		return false
 	}
+	if next.Center, ok = known(l.Center); !ok {
+		return false
+	}
 	keep := func(old []string) []string {
 		var out []string
 		for _, id := range old {
@@ -177,6 +202,8 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 	next.Left = append(next.Left, keep(v.layout.Left)...)
 	next.Right = append(next.Right, keep(v.layout.Right)...)
 	next.Bottom = append(next.Bottom, keep(v.layout.Bottom)...)
+	next.Center = append(next.Center, keep(v.layout.Center)...)
+	next.Detached = nil // windows are not restored: detached panels come back
 	hidden := map[string]bool{}
 	next.Hidden = nil
 	for _, id := range l.Hidden {
@@ -201,9 +228,9 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 	if next.BottomSize <= 0 {
 		next.BottomSize = v.layout.BottomSize
 	}
-	for i, ids := range [][]string{next.Left, next.Right, next.Bottom} {
+	for i, ids := range [][]string{next.Left, next.Right, next.Bottom, next.Center} {
 		if trees[i] == nil && len(ids) > 0 {
-			trees[i] = &DockNode{Panels: slices.Clone(ids), Active: []string{next.LeftActive, next.RightActive, next.BottomActive}[i]}
+			trees[i] = &DockNode{Panels: slices.Clone(ids), Active: []string{next.LeftActive, next.RightActive, next.BottomActive, next.CenterActive}[i]}
 		} else if trees[i] != nil {
 			for _, id := range ids {
 				if !slices.Contains(dockPanels(trees[i]), id) {
@@ -212,7 +239,7 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 			}
 		}
 	}
-	next.LeftTree, next.RightTree, next.BottomTree = trees[0], trees[1], trees[2]
+	next.LeftTree, next.RightTree, next.BottomTree, next.CenterTree = trees[0], trees[1], trees[2], trees[3]
 	if _, ok := v.panels[next.Zoomed]; !ok || hidden[next.Zoomed] {
 		next.Zoomed = ""
 	}
@@ -221,16 +248,17 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 	v.layout = next
 	v.splitSizes = map[*DockNode]float32{}
 	v.menus = map[*DockNode]*MenuView{}
-	for _, side := range []DockSide{DockLeft, DockRight, DockBottom} {
+	for _, side := range dockSides {
 		v.fixActive(side)
 	}
 	return true
 }
 
-// Visible reports whether a panel is shown (not closed).
+// Visible reports whether a panel is shown in the dock: not closed and not
+// detached into a window of its own.
 func (v *DockView) Visible(id string) bool {
 	_, ok := v.panels[id]
-	return ok && !slices.Contains(v.layout.Hidden, id)
+	return ok && !slices.Contains(v.layout.Hidden, id) && !slices.Contains(v.layout.Detached, id)
 }
 
 // SetVisible closes a panel or reopens it in the region it was last in (left
@@ -265,7 +293,7 @@ func (v *DockView) SetVisible(id string, on bool) {
 
 // Move puts a panel at the end of a region and makes it that region's active tab.
 func (v *DockView) Move(id string, to DockSide) {
-	if _, ok := v.panels[id]; !ok || to > DockBottom {
+	if _, ok := v.panels[id]; !ok || to > DockCenter {
 		return
 	}
 	v.cancelResize()
@@ -273,7 +301,7 @@ func (v *DockView) Move(id string, to DockSide) {
 	if v.layout.Zoomed == id {
 		v.layout.Zoomed = ""
 	}
-	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
+	for _, s := range dockSides {
 		*v.tree(s) = removeDockPanel(*v.tree(s), id)
 		ids, _ := v.side(s)
 		*ids = slices.DeleteFunc(*ids, func(x string) bool { return x == id })
@@ -294,6 +322,8 @@ func (v *DockView) side(s DockSide) (*[]string, *string) {
 		return &v.layout.Right, &v.layout.RightActive
 	case DockBottom:
 		return &v.layout.Bottom, &v.layout.BottomActive
+	case DockCenter:
+		return &v.layout.Center, &v.layout.CenterActive
 	}
 	return &v.layout.Left, &v.layout.LeftActive
 }
@@ -304,12 +334,14 @@ func (v *DockView) size(s DockSide) *float32 {
 		return &v.layout.RightSize
 	case DockBottom:
 		return &v.layout.BottomSize
+	case DockCenter:
+		return &v.centerSize
 	}
 	return &v.layout.LeftSize
 }
 
 func (v *DockView) where(id string) int {
-	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
+	for _, s := range dockSides {
 		if ids, _ := v.side(s); slices.Contains(*ids, id) {
 			return int(s)
 		}
@@ -397,7 +429,7 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 	for _, to := range []struct {
 		side  DockSide
 		label string
-	}{{DockLeft, text.DockLeft}, {DockRight, text.DockRight}, {DockBottom, text.DockBottom}} {
+	}{{DockLeft, text.DockLeft}, {DockRight, text.DockRight}, {DockBottom, text.DockBottom}, {DockCenter, text.DockCenter}} {
 		if to.side != s {
 			to := to
 			m.Item(to.label, "", func() { v.Move(cur, to.side); v.changed() })
@@ -424,6 +456,9 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 		zoom = text.DockRestore
 	}
 	m.Separator().Item(zoom, "", func() { v.toggleZoom(cur) })
+	if v.onDetach != nil {
+		m.Separator().Item(text.DockDetach, "", func() { v.Detach(cur) })
+	}
 	m.Separator().Item(text.Close, "", func() { v.SetVisible(cur, false); v.changed() })
 	m.Trigger(Button("", m.Toggle).Name(text.Name(text.More, v.panels[cur].Title)).Icon(IconChevronDown).Variant(ButtonGhost).Size(24))
 	head := el.Div().Row().Items(el.Center).Gap(theme.SpaceXs).Px(theme.SpaceXs).Py(theme.SpaceXs).Bg(theme.Subtle).Child(tabs, m.Render(cx))
@@ -566,7 +601,9 @@ func (v *DockView) Render(cx *el.Context) el.Element {
 	}
 	middle := el.Div().Grow().W(el.Dp(0)).Items(el.Stretch)
 	center := el.Div().Grow().H(el.Dp(0)).Items(el.Stretch)
-	if v.center != nil {
+	if docs := v.renderNode(cx, DockCenter, v.layout.CenterTree); docs != nil {
+		center.Child(docs)
+	} else if v.center != nil {
 		center.Child(v.center.Render(cx))
 	}
 	center.Decorate(func(gtx core.C, draw func()) { v.centerRect = dockGeometry(cx, gtx, center); draw() })
@@ -593,6 +630,10 @@ func (v *DockView) Render(cx *el.Context) el.Element {
 		clear(v.groupRects)
 		clear(v.tabRects)
 		clear(v.tabOrigins)
+		if px := gtx.Metric.PxPerDp; px > 0 {
+			origin, _ := cx.PaintGeometry()
+			v.bounds = dockRect{float32(origin.X) / px, float32(origin.Y) / px, float32(gtx.Constraints.Max.X) / px, float32(gtx.Constraints.Max.Y) / px}
+		}
 		draw()
 		v.paintDrop(cx, gtx)
 	})

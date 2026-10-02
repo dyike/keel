@@ -31,7 +31,7 @@ const (
 
 // DockNode is either a tab group (Panels, Active), or a binary split
 // (First, Second, Axis, Ratio). Ratio is the first child's share, in [0.05,0.95].
-// Each panel occurs exactly once across the three region trees.
+// Each panel occurs exactly once across the region trees.
 type DockNode struct {
 	Panels        []string  `json:",omitempty"`
 	Active        string    `json:",omitempty"`
@@ -102,6 +102,8 @@ func (v *DockView) tree(s DockSide) **DockNode {
 		return &v.layout.RightTree
 	case DockBottom:
 		return &v.layout.BottomTree
+	case DockCenter:
+		return &v.layout.CenterTree
 	}
 	return &v.layout.LeftTree
 }
@@ -196,7 +198,7 @@ func (v *DockView) Split(id, target string, placement DockPlacement) bool {
 	}
 	v.cancelResize()
 	v.drag = dockDrag{}
-	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
+	for _, s := range dockSides {
 		*v.tree(s) = removeDockPanel(*v.tree(s), id)
 	}
 	side := DockSide(v.where(target))
@@ -216,7 +218,7 @@ func (v *DockView) Split(id, target string, placement DockPlacement) bool {
 }
 func (v *DockView) syncTrees() {
 	v.splitSizes = map[*DockNode]float32{}
-	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
+	for _, s := range dockSides {
 		ids, _ := v.side(s)
 		*ids = dockPanels(*v.tree(s))
 		v.fixActive(s)
@@ -224,7 +226,7 @@ func (v *DockView) syncTrees() {
 	// Tree edits may remove groups; discard their menus as well.
 	for n, m := range v.menus {
 		present := false
-		for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
+		for _, s := range dockSides {
 			for _, id := range n.Panels {
 				if findDockGroup(*v.tree(s), id) == n {
 					present = true
