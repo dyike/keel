@@ -30,10 +30,11 @@ type DockPanel struct {
 // DockLayout is everything about a Dock's arrangement, for saving and
 // restoring it (it encodes as JSON). Panel lists are in tab order.
 type DockLayout struct {
-	Version                         int      `json:"version,omitempty"`
-	Left, Right, Bottom             []string `json:",omitempty"`
-	LeftActive, RightActive         string   `json:",omitempty"`
-	BottomActive                    string   `json:",omitempty"`
+	LeftTree, RightTree, BottomTree *DockNode `json:",omitempty"`
+	Version                         int       `json:"version,omitempty"`
+	Left, Right, Bottom             []string  `json:",omitempty"`
+	LeftActive, RightActive         string    `json:",omitempty"`
+	BottomActive                    string    `json:",omitempty"`
 	LeftSize, RightSize, BottomSize float32
 	Hidden                          []string `json:",omitempty"`
 }
@@ -43,24 +44,27 @@ type DockLayout struct {
 // moves it to another region or closes it. Layout and SetLayout save and
 // restore the arrangement.
 type DockView struct {
-	center      el.View
-	panels      map[string]DockPanel
-	layout      DockLayout
-	painted     [3]float32
-	total       [2]float32 // painted width and height of the whole dock, dp
-	grab        float32
-	menus       [3]*MenuView
-	onLayout    func(DockLayout)
-	disabled    bool
-	resizing    bool
-	resizeSide  DockSide
-	resizeStart float32
+	splitSizes            map[*DockNode]float32
+	center                el.View
+	panels                map[string]DockPanel
+	layout                DockLayout
+	painted               [3]float32
+	total                 [2]float32 // painted width and height of the whole dock, dp
+	grab                  float32
+	menus                 map[*DockNode]*MenuView
+	onLayout              func(DockLayout)
+	disabled              bool
+	resizing              bool
+	resizeSide            DockSide
+	resizeStart           float32
+	splitResize           *DockNode
+	splitStart, splitGrab float32
 }
 
 func Dock(center el.View) *DockView {
-	return &DockView{center: center, panels: map[string]DockPanel{},
-		layout: DockLayout{Version: 1, LeftSize: 240, RightSize: 260, BottomSize: 180},
-		menus:  [3]*MenuView{Menu(), Menu(), Menu()}}
+	return &DockView{splitSizes: map[*DockNode]float32{}, center: center, panels: map[string]DockPanel{},
+		layout: DockLayout{Version: 2, LeftSize: 240, RightSize: 260, BottomSize: 180},
+		menus:  map[*DockNode]*MenuView{}}
 }
 
 // Panel adds a panel to a region; the first panel added to a region is active.
@@ -75,6 +79,7 @@ func (v *DockView) Panel(p DockPanel, side DockSide) *DockView {
 	}
 	ids, active := v.side(side)
 	*ids = append(*ids, p.ID)
+	v.appendTree(side, p.ID)
 	if *active == "" {
 		*active = p.ID
 	}
@@ -88,6 +93,7 @@ func (v *DockView) OnLayoutChange(fn func(DockLayout)) *DockView { v.onLayout = 
 // Layout returns a copy of the arrangement.
 func (v *DockView) Layout() DockLayout {
 	l := v.layout
+	l.LeftTree, l.RightTree, l.BottomTree = cloneDockNode(l.LeftTree), cloneDockNode(l.RightTree), cloneDockNode(l.BottomTree)
 	l.Left, l.Right, l.Bottom, l.Hidden = slices.Clone(l.Left), slices.Clone(l.Right), slices.Clone(l.Bottom), slices.Clone(l.Hidden)
 	return l
 }
@@ -95,7 +101,7 @@ func (v *DockView) Layout() DockLayout {
 // SetLayout restores an arrangement. Unknown panel IDs are dropped; panels
 // it does not mention stay where they are.
 func (v *DockView) SetLayout(l DockLayout) bool {
-	if l.Version < 0 || l.Version > 1 {
+	if l.Version < 0 || l.Version > 2 {
 		return false
 	}
 	for _, size := range []float32{l.LeftSize, l.RightSize, l.BottomSize} {
@@ -103,9 +109,27 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 			return false
 		}
 	}
+	// Trees are authoritative when present; legacy lists migrate to one group.
+	var trees [3]*DockNode
+	for i, node := range []*DockNode{l.LeftTree, l.RightTree, l.BottomTree} {
+		var ok bool
+		trees[i], ok = v.restoreNode(node, map[*DockNode]bool{}, 0)
+		if !ok {
+			return false
+		}
+	}
+	if l.LeftTree != nil {
+		l.Left = dockPanels(trees[0])
+	}
+	if l.RightTree != nil {
+		l.Right = dockPanels(trees[1])
+	}
+	if l.BottomTree != nil {
+		l.Bottom = dockPanels(trees[2])
+	}
 	placed := map[string]bool{}
 	known := func(ids []string) ([]string, bool) {
-		out := []string{}
+		var out []string
 		for _, id := range ids {
 			if _, ok := v.panels[id]; !ok {
 				continue
@@ -119,7 +143,7 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 		return out, true
 	}
 	next := l
-	next.Version = 1
+	next.Version = 2
 	var ok bool
 	if next.Left, ok = known(l.Left); !ok {
 		return false
@@ -166,7 +190,22 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 	if next.BottomSize <= 0 {
 		next.BottomSize = v.layout.BottomSize
 	}
+	for i, ids := range [][]string{next.Left, next.Right, next.Bottom} {
+		if trees[i] == nil && len(ids) > 0 {
+			trees[i] = &DockNode{Panels: slices.Clone(ids), Active: []string{next.LeftActive, next.RightActive, next.BottomActive}[i]}
+		} else if trees[i] != nil {
+			for _, id := range ids {
+				if !slices.Contains(dockPanels(trees[i]), id) {
+					firstDockGroup(trees[i]).Panels = append(firstDockGroup(trees[i]).Panels, id)
+				}
+			}
+		}
+	}
+	next.LeftTree, next.RightTree, next.BottomTree = trees[0], trees[1], trees[2]
+	v.cancelResize()
 	v.layout = next
+	v.splitSizes = map[*DockNode]float32{}
+	v.menus = map[*DockNode]*MenuView{}
 	for _, side := range []DockSide{DockLeft, DockRight, DockBottom} {
 		v.fixActive(side)
 	}
@@ -185,6 +224,7 @@ func (v *DockView) SetVisible(id string, on bool) {
 	if _, ok := v.panels[id]; !ok || on == v.Visible(id) {
 		return
 	}
+	v.cancelResize()
 	if on {
 		v.layout.Hidden = slices.DeleteFunc(v.layout.Hidden, func(s string) bool { return s == id })
 		if v.where(id) < 0 {
@@ -193,6 +233,9 @@ func (v *DockView) SetVisible(id string, on bool) {
 		}
 		_, active := v.side(DockSide(v.where(id)))
 		*active = id
+		if n := findDockGroup(*v.tree(DockSide(v.where(id))), id); n != nil {
+			n.Active = id
+		}
 		return
 	}
 	v.layout.Hidden = append(v.layout.Hidden, id)
@@ -206,15 +249,20 @@ func (v *DockView) Move(id string, to DockSide) {
 	if _, ok := v.panels[id]; !ok || to > DockBottom {
 		return
 	}
+	v.cancelResize()
 	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
+		*v.tree(s) = removeDockPanel(*v.tree(s), id)
 		ids, _ := v.side(s)
 		*ids = slices.DeleteFunc(*ids, func(x string) bool { return x == id })
 		v.fixActive(s)
 	}
 	ids, active := v.side(to)
 	*ids = append(*ids, id)
+	v.appendTree(to, id)
+	findDockGroup(*v.tree(to), id).Active = id
 	*active = id
 	v.layout.Hidden = slices.DeleteFunc(v.layout.Hidden, func(s string) bool { return s == id })
+	v.syncTrees()
 }
 
 func (v *DockView) side(s DockSide) (*[]string, *string) {
@@ -259,6 +307,7 @@ func (v *DockView) shown(s DockSide) []string {
 }
 
 func (v *DockView) fixActive(s DockSide) {
+	v.fixNode(*v.tree(s))
 	_, active := v.side(s)
 	if shown := v.shown(s); !slices.Contains(shown, *active) {
 		*active = ""
@@ -277,20 +326,20 @@ func (v *DockView) changed() {
 	}
 }
 
-func (v *DockView) region(cx *el.Context, s DockSide) el.Element {
-	ids := v.shown(s)
+func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
+	ids := v.nodeShown(n)
 	if len(ids) == 0 {
 		return nil
 	}
-	_, active := v.side(s)
+	active := &n.Active
 	text := locale.Current()
-	tabs := el.Div().Role("tablist").Row().Grow().W(el.Dp(0)).Gap(2)
+	tabs := el.Div().Role("tablist").Row().Grow().W(el.Dp(0)).ScrollX().Gap(2)
 	for _, id := range ids {
 		id := id
 		on := id == *active
-		t := el.Div().Role("tab").Name(v.panels[id].Title).Selected(on).Px(10).Py(6).Rounded(4).TextSize(13).
+		t := el.Div().ID(id).NoShrink().Role("tab").Name(v.panels[id].Title).Selected(on).Px(10).Py(6).Rounded(4).TextSize(13).
 			CursorPointer().Focusable(true).FocusStyle(func(st *el.Style) { st.BorderColor(theme.Primary) }).
-			OnClick(func() { *active = id; v.changed() }).Child(el.Text(v.panels[id].Title).MaxLines(1))
+			OnClick(func() { *active = id; _, selected := v.side(s); *selected = id; v.changed() }).Child(el.Text(v.panels[id].Title).MaxLines(1))
 		if on {
 			t.Bg(theme.Surface).TextColor(theme.PrimaryText)
 		} else {
@@ -298,7 +347,11 @@ func (v *DockView) region(cx *el.Context, s DockSide) el.Element {
 		}
 		tabs.Child(t)
 	}
-	m := v.menus[s]
+	m := v.menus[n]
+	if m == nil {
+		m = Menu()
+		v.menus[n] = m
+	}
 	m.items = m.items[:0]
 	cur := *active
 	for _, to := range []struct {
@@ -310,6 +363,22 @@ func (v *DockView) region(cx *el.Context, s DockSide) el.Element {
 			m.Item(to.label, "", func() { v.Move(cur, to.side); v.changed() })
 		}
 	}
+	if len(ids) > 1 {
+		target := ids[0]
+		if target == cur {
+			target = ids[1]
+		}
+		m.Separator().Item(text.DockSplitRight, "", func() {
+			if v.Split(cur, target, DockPlacementRight) {
+				v.changed()
+			}
+		}).
+			Item(text.DockSplitBelow, "", func() {
+				if v.Split(cur, target, DockPlacementBottom) {
+					v.changed()
+				}
+			})
+	}
 	m.Separator().Item(text.Close, "", func() { v.SetVisible(cur, false); v.changed() })
 	m.Trigger(Button("", m.Toggle).Name(text.Name(text.More, v.panels[cur].Title)).Icon(IconChevronDown).Variant(ButtonGhost).Size(24))
 	head := el.Div().Row().Items(el.Center).Gap(4).Px(4).Py(4).Bg(theme.Subtle).Child(tabs, m.Render(cx))
@@ -319,17 +388,8 @@ func (v *DockView) region(cx *el.Context, s DockSide) el.Element {
 	if p := v.panels[cur]; p.View != nil {
 		body.Child(p.View.Render(cx))
 	}
-	box := el.Div().Role("region").Name(v.panels[cur].Title).NoShrink().Items(el.Stretch).Bg(theme.Surface).Child(head, body)
-	sz := v.fitted(s)
-	if s == DockBottom {
-		box.H(el.Dp(sz))
-	} else {
-		box.W(el.Dp(sz))
-	}
-	return box.Decorate(func(gtx core.C, draw func()) {
-		v.painted[s] = sz
-		draw()
-	})
+	box := el.Div().ID(autoID("dock-group", n)).Role("region").Name(v.panels[cur].Title).NoShrink().Items(el.Stretch).Bg(theme.Surface).Child(head, body)
+	return box.Grow().MinW(el.Dp(0)).MinH(el.Dp(0))
 }
 
 // handle resizes region s; growing a right or bottom region means dragging
@@ -428,7 +488,7 @@ func (v *DockView) fitted(s DockSide) float32 {
 
 func (v *DockView) Render(cx *el.Context) el.Element {
 	id := autoID("dock", v)
-	if v.resizing && !cx.Enabled(id) {
+	if (v.resizing || v.splitResize != nil) && !cx.Enabled(id) {
 		v.cancelResize()
 	}
 	middle := el.Div().Grow().W(el.Dp(0)).Items(el.Stretch)
@@ -457,6 +517,10 @@ func (v *DockView) Render(cx *el.Context) el.Element {
 }
 
 func (v *DockView) cancelResize() {
+	if v.splitResize != nil {
+		v.splitResize.Ratio = v.splitStart
+		v.splitResize = nil
+	}
 	if v.resizing {
 		*v.size(v.resizeSide) = v.resizeStart
 		v.resizing = false

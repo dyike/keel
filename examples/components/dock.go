@@ -28,6 +28,7 @@ func init() {
 				b, _ := json.Marshal(l)
 				saved = string(b)
 			})
+		d.Split("search", "files", kit.DockPlacementBottom)
 		return el.Root(d)
 	})
 }

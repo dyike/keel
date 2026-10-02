@@ -16,7 +16,7 @@ func TestDockLayoutVersionsDuplicatesAndOwnership(t *testing.T) {
 	v.SetVisible("a", false)
 	before := v.Layout()
 	for _, bad := range []DockLayout{
-		{Version: 2}, {Version: -1}, {Version: 1, Left: []string{"a"}, Right: []string{"a"}},
+		{Version: 3}, {Version: -1}, {Version: 1, Left: []string{"a"}, Right: []string{"a"}},
 		{Version: 1, LeftSize: float32(math.NaN())}, {Version: 1, BottomSize: float32(math.Inf(1))},
 	} {
 		if v.SetLayout(bad) || !reflect.DeepEqual(before, v.Layout()) {
@@ -32,7 +32,7 @@ func TestDockLayoutVersionsDuplicatesAndOwnership(t *testing.T) {
 		t.Fatal(err)
 	}
 	decoded.Version = 0
-	if !v.SetLayout(decoded) || v.Layout().Version != 1 || v.Visible("a") {
+	if !v.SetLayout(decoded) || v.Layout().Version != 2 || v.Visible("a") {
 		t.Fatal("legacy migration")
 	}
 	decoded.Left[0] = "mutated"

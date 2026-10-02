@@ -41,6 +41,7 @@ type Strings struct {
 	CollapseSidebar, ExpandSidebar                  string
 	PrevSlide, NextSlide                            string
 	DockLeft, DockRight, DockBottom                 string
+	DockSplitRight, DockSplitBelow                  string
 	SearchSettings                                  string
 	Minimize, Maximize, Restore                     string
 	ShowTable, ShowChart, ResetView                 string
@@ -91,7 +92,7 @@ func Chinese() Strings {
 		Latest: "回到最新", Uploading: "上传中",
 		More: "更多", Resize: "调整大小", CollapseSidebar: "收起侧栏", ExpandSidebar: "展开侧栏",
 		PrevSlide: "上一张", NextSlide: "下一张",
-		DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", SearchSettings: "搜索设置",
+		DockSplitRight: "向右拆分", DockSplitBelow: "向下拆分", DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", SearchSettings: "搜索设置",
 		Minimize: "最小化", Maximize: "最大化", Restore: "还原",
 		ShowTable: "查看数据表", ShowChart: "查看图表", ResetView: "复位",
 		ColorShade: "饱和度与亮度", Hue: "色相", Opacity: "不透明度",
@@ -124,7 +125,7 @@ func English() Strings {
 		Latest: "Jump to latest", Uploading: "Uploading",
 		More: "More", Resize: "Resize", CollapseSidebar: "Collapse sidebar", ExpandSidebar: "Expand sidebar",
 		PrevSlide: "Previous slide", NextSlide: "Next slide",
-		DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", SearchSettings: "Search settings",
+		DockSplitRight: "Split right", DockSplitBelow: "Split below", DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", SearchSettings: "Search settings",
 		Minimize: "Minimize", Maximize: "Maximize", Restore: "Restore",
 		ShowTable: "Show data table", ShowChart: "Show chart", ResetView: "Reset view",
 		ColorShade: "Saturation and brightness", Hue: "Hue", Opacity: "Opacity",

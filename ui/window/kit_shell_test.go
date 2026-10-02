@@ -56,3 +56,19 @@ func TestKitDockSnapshot(t *testing.T) {
 		t.Fatalf("agent move: %+v", l)
 	}
 }
+
+func TestKitDockNestedSnapshot(t *testing.T) {
+	txt := func(s string) el.View { return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) }) }
+	d := kit.Dock(txt("Center")).Panel(kit.DockPanel{ID: "a", Title: "Files", View: txt("File content")}, kit.DockLeft).
+		Panel(kit.DockPanel{ID: "b", Title: "Search", View: kit.Input("").Placeholder("Find text")}, kit.DockLeft)
+	d.Split("b", "a", kit.DockPlacementBottom)
+	w := openTest(t, Options{Width: 800, Height: 500, Content: el.Root(d)})
+	if roleOfName(w, "Files") != "region" || roleOfName(w, "Search") != "region" {
+		t.Fatal("missing nested regions")
+	}
+	w.click(element(t, w, "更多 Search").center())
+	w.click(element(t, w, "关闭").center())
+	if d.Visible("b") {
+		t.Fatal("close nested group")
+	}
+}
