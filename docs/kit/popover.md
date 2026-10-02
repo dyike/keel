@@ -17,3 +17,7 @@ filters.Trigger(kit.Button("筛选", filters.Toggle).Variant(kit.ButtonSecondary
 Agent：面板的角色是 `dialog`，里面的元素单独列出；页面其余部分仍然可见。
 
 验证：`go run ./examples/components -section popover`，加 `-theme dark` 检查深色。
+
+面板宽高受窗口约束，长内容可滚动。`Width(0)` 恢复按内容宽度；负数和非有限宽度会被忽略。`SetDisabled(true)` 关闭面板并禁用触发区域，程序打开和 Toggle 也不会绕过禁用。父容器禁用或锚点消失时，浮层会关闭。
+
+内容中可以继续放 Menu、Select 等浮层组件。父面板先登记，内部浮层显示在上方；Esc 从最里面逐层关闭。示例的“选择预设”可验证这条路径。

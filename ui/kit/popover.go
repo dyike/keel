@@ -12,6 +12,7 @@ import "github.com/dyike/keel/ui/el"
 type PopoverView struct {
 	trigger, content el.View
 	open             bool
+	disabled         bool
 	side             el.Side
 	align            el.Align
 	width            float32
@@ -28,19 +29,24 @@ func (v *PopoverView) Placement(side el.Side, align el.Align) *PopoverView {
 }
 
 // Width sets the panel width in dp; by default it fits its content.
-func (v *PopoverView) Width(dp float32) *PopoverView { v.width = dp; return v }
+func (v *PopoverView) Width(dp float32) *PopoverView {
+	if dp >= 0 && finiteNumber(float64(dp)) {
+		v.width = dp
+	}
+	return v
+}
 
 // OnChange is called when the user opens or closes the popover, not by SetOpen.
 func (v *PopoverView) OnChange(fn func(bool)) *PopoverView { v.onChange = fn; return v }
 func (v *PopoverView) Value() bool                         { return v.open }
-func (v *PopoverView) SetValue(open bool)                  { v.open = open }
+func (v *PopoverView) SetValue(open bool)                  { v.open = open && !v.disabled }
 
 // Toggle opens or closes the popover as a user action; pass it as the
 // trigger's click handler.
 func (v *PopoverView) Toggle() { v.change(!v.open) }
 
 func (v *PopoverView) change(open bool) {
-	if v.open == open {
+	if v.disabled || v.open == open {
 		return
 	}
 	v.open = open
@@ -52,14 +58,22 @@ func (v *PopoverView) change(open bool) {
 func (v *PopoverView) Render(cx *el.Context) el.Element {
 	id := autoID("popover", v)
 	if v.open {
-		panel := surface().Role("dialog").P(12)
+		w, h := cx.ViewportSize()
+		panel := surface().ID(id + "/panel").Role("dialog").MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX().P(12)
 		if v.width > 0 {
 			panel.W(el.Dp(v.width))
 		}
+		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).OnDismiss(func() { v.change(false) }))
 		if v.content != nil {
 			panel.Child(v.content.Render(cx))
 		}
-		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).OnDismiss(func() { v.change(false) }))
 	}
-	return anchor(id, cx, v.trigger)
+	return el.Div().Disabled(v.disabled).Child(anchor(id, cx, v.trigger))
+}
+
+func (v *PopoverView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.open = false
+	}
 }
