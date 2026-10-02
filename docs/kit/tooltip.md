@@ -15,3 +15,5 @@ copy := kit.WithTooltip(kit.Button("", doCopy).Icon(kit.IconCopy), "复制（⌘
 Agent：角色是 `tooltip`，名字是提示文字。
 
 验证：`go run ./examples/components -section tooltip`。
+
+悬停延迟绑定到实际可见且启用的目标，移开、禁用或模态遮挡会停止等待；恢复后重新等待完整延迟。`SetDisabled(true)` 同时禁用提示和目标区域。提示宽度会受当前窗口限制。多个 Tooltip 的延迟独立计算，不沿用上一个目标的等待时间。

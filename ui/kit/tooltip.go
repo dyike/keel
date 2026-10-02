@@ -14,10 +14,11 @@ const TooltipDelay = 500 * time.Millisecond
 // hovering, or at once when keyboard focus is inside the view. Moving away or
 // pressing Esc hides it. The hint never takes focus or clicks.
 type TooltipView struct {
-	target el.View
-	text   string
-	shown  bool // the hover delay has elapsed
-	muted  bool // dismissed with Esc until the pointer and focus leave
+	target   el.View
+	text     string
+	shown    bool // the hover delay has elapsed
+	disabled bool
+	muted    bool // dismissed with Esc until the pointer and focus leave
 }
 
 // WithTooltip wraps target with a hint.
@@ -32,17 +33,26 @@ func (v *TooltipView) Render(cx *el.Context) el.Element {
 	if !hovered {
 		v.shown = false
 	} else if !v.shown {
-		cx.After(tooltipKey{id}, TooltipDelay, func() { v.shown = true })
+		cx.AfterEnabled(id, tooltipKey{id}, TooltipDelay, func() { v.shown = true })
 	}
 	if !hovered && !focused {
 		v.muted = false
 	}
-	if (v.shown || focused) && !v.muted && v.text != "" {
-		tip := el.Div().Role("tooltip").Name(v.text).Px(8).Py(4).Rounded(4).MaxW(el.Dp(280)).
+	if (v.shown || focused) && !v.muted && !v.disabled && v.text != "" {
+		w, _ := cx.ViewportSize()
+		tip := el.Div().Role("tooltip").Name(v.text).Px(8).Py(4).Rounded(4).MaxW(el.Dp(min(280, max(0, w-16)))).
 			Bg(theme.Text).TextColor(theme.Surface).TextSize(12).Child(el.Text(v.text))
 		cx.Overlay(id, el.Anchored(id, tip).Placement(el.Top, el.Center).OnDismiss(func() { v.muted = true }))
 	}
-	return anchor(id, cx, v.target)
+	return el.Div().Disabled(v.disabled).Child(anchor(id, cx, v.target))
 }
 
 type tooltipKey struct{ id string }
+
+func (v *TooltipView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.shown = false
+		v.muted = false
+	}
+}
