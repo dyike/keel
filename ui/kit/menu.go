@@ -14,6 +14,7 @@ import (
 
 type menuItem struct {
 	label, shortcut string
+	keymapAction    string // shows this action's binding instead of shortcut
 	action          func()
 	sub             *MenuView
 	separator       bool
@@ -50,6 +51,14 @@ func (v *MenuView) Width(dp float32) *MenuView {
 	if dp > 0 && finiteNumber(float64(dp)) {
 		v.width = dp
 	}
+	return v
+}
+
+// ActionItem adds a command that shows the key bound to a keymap action
+// (core.Bind), following rebinding. Handle the key itself with the view's
+// cx.Action; the menu only runs fn when the item is chosen.
+func (v *MenuView) ActionItem(label, keymapAction string, fn func()) *MenuView {
+	v.items = append(v.items, menuItem{label: label, keymapAction: keymapAction, action: fn})
 	return v
 }
 
@@ -219,6 +228,8 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem) el.Element {
 	}
 	if it.sub != nil {
 		row.Value("submenu").Child(Icon(IconChevronRight).Size(14).Color(theme.Muted).Render(cx))
+	} else if it.keymapAction != "" {
+		row.Child(KbdFor(it.keymapAction).Plain().Render(cx))
 	} else if it.shortcut != "" {
 		row.Child(Kbd(it.shortcut).Plain().Render(cx))
 	}

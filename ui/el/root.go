@@ -106,6 +106,17 @@ func (cx *Context) Shortcut(chord string, fn func()) {
 	cx.shortcuts = append(cx.shortcuts, viewShortcut{name, mods, fn})
 }
 
+// Action handles a named action from the keymap (core.Bind) while the window
+// has focus and this view is rendered: every chord bound to name runs fn.
+// Rebinding takes effect on the next frame; an unbound action does nothing.
+func (cx *Context) Action(name string, fn func()) {
+	for _, chord := range core.Bindings(name) {
+		if k, mods, err := core.ParseShortcut(chord); err == nil {
+			cx.shortcuts = append(cx.shortcuts, viewShortcut{k, mods, fn})
+		}
+	}
+}
+
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
 	clickModifiers key.Modifiers

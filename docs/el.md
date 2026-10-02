@@ -122,6 +122,25 @@ func (p *Page) Render(cx *el.Context) el.Element {
 
 `cx.Shortcut("mod+s", fn)` 在视图渲染期间绑定快捷键。
 
+### 动作与键位表
+
+要让用户改键，就不要在视图里写死按键，改成命名动作：
+
+```go
+core.Bind("editor.save", "mod+s")      // 启动时设默认键，可以给多个
+core.LoadKeymap(userJSON)              // 叠加用户的 {"editor.save": ["ctrl+alt+s"]}
+
+func (v *editor) Render(cx *el.Context) el.Element {
+    cx.Action("editor.save", v.save)   // 绑定到这个动作的每个键都会触发
+    ...
+}
+```
+
+- 键位表是全局的，`core.Bind` 替换一个动作的全部按键，不传按键就是解绑；按键写错时返回错误，什么都不改。
+- 改键后所有窗口重绘，下一帧起生效；`cx.Action` 每帧按当前键位表注册，不用重启。
+- `core.Bindings(name)` 查一个动作的按键，`core.Keymap()` 返回全部，可以用来做快捷键设置页。
+- 显示按键用 `kit.KbdFor(name)` 和 `Menu.ActionItem`，它们跟着键位表变。
+
 ### 缓存不变的部分
 
 长列表、聊天记录里大部分内容每帧都不变。`cx.Cache(key, build)` 在 key 不变时直接复用上一帧的元素和布局，`build` 不会被调用：
