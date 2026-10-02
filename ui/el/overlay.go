@@ -116,7 +116,7 @@ func (r *RootWidget) prepareLayers(cx *Context) {
 	ids := map[string]bool{}
 	var collect func(*Node)
 	collect = func(n *Node) {
-		if n.style.hidden {
+		if n.style.hidden || n.effectiveDisabled || n.disabled {
 			return
 		}
 		if n.id != "" {

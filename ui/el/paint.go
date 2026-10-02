@@ -191,6 +191,17 @@ func (e *engine) paintContent(n *Node) {
 				}
 				state.fresh = false
 			}
+			if n.onContextMenu != nil {
+				// Register above interactive descendants, but pass primary events through.
+				defer func() {
+					area := clip.Rect(rect).Push(gtx.Ops)
+					gtx.Event(pointer.Filter{Target: &state.contextTag, Kinds: pointer.Press | pointer.Release | pointer.Cancel})
+					pass := pointer.PassOp{}.Push(gtx.Ops)
+					event.Op(gtx.Ops, &state.contextTag)
+					pass.Pop()
+					area.Pop()
+				}()
+			}
 			state.click.Add(gtx.Ops)
 			if n.onDrag != nil {
 				state.drag.Add(gtx.Ops)

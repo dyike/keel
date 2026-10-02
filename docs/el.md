@@ -289,3 +289,5 @@ func button(label string, onClick func()) el.Element {
 `PinLeft(offset)` / `PinRight(offset)` 将元素绘制在最近 `ScrollX` 视口对应边缘的 offset dp 处，保留布局占位。固定元素最后绘制；普通兄弟元素裁剪到两侧固定元素之间，裁剪同时约束点击和语义区域。两侧宽度超过视口时左侧优先。没有横向滚动祖先时保持普通布局，用于表格冻结列等场景。
 
 `cx.ClickModifiers()` 仅在指针点击/双击回调中返回该事件的 Shift、Ctrl、Command 等修饰键；回调外为零。键盘事件直接使用 `KeyEvent.Modifiers`。
+
+`OnContextMenu(fn)` 在次键按下时调用，不吞掉主键操作；回调可用 `ClickModifiers`。键盘入口通过 `OnKey` 声明，例如 Shift+F10。锚定浮层在锚点或其祖先禁用、隐藏后关闭，不把浮层自身对背景的输入阻挡视作禁用。

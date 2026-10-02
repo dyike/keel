@@ -49,6 +49,8 @@ type elemState struct {
 
 	click         gesture.Click
 	onClick       func()
+	onContextMenu func()
+	contextTag    struct{}
 	onDoubleClick func()
 	drag          gesture.Drag
 	onDrag        func(DragEvent)

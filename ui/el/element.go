@@ -35,6 +35,7 @@ type Node struct {
 	decorate func(core.C, func())
 
 	onClick       func()
+	onContextMenu func()
 	onDoubleClick func()
 	onDrag        func(DragEvent)
 	role, name    string
@@ -71,7 +72,7 @@ func (n *Node) isFocusable() bool {
 	return !n.effectiveDisabled && (n.focusable || !n.focusSet && n.onClick != nil)
 }
 func (n *Node) interactive() bool {
-	return n.focusable || n.onClick != nil || n.onDoubleClick != nil || n.onDrag != nil || n.hover != nil || n.active != nil || n.style.cursor != pointer.CursorDefault
+	return n.focusable || n.onClick != nil || n.onContextMenu != nil || n.onDoubleClick != nil || n.onDrag != nil || n.hover != nil || n.active != nil || n.style.cursor != pointer.CursorDefault
 }
 
 // Styled carries the builder methods every element shares. T is the element
@@ -385,3 +386,7 @@ func (s *Styled[T]) PinRight(dp float32) *T {
 	s.n.style.pinOffset = max(0, dp)
 	return s.self
 }
+
+// OnContextMenu runs fn on a secondary pointer press. It does not consume
+// primary clicks; add an OnKey handler for a keyboard context-menu action.
+func (s *Styled[T]) OnContextMenu(fn func()) *T { s.n.onContextMenu = fn; return s.self }

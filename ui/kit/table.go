@@ -58,6 +58,10 @@ const minColumn = 40
 // Row indexes in callbacks, Value and SetValue are positions in the data given
 // to SetRows, whatever the sort order.
 type TableView struct {
+	rowMenu                 func(int) *MenuView
+	cellMenu                func(int, int) *MenuView
+	contextMenu             *MenuView
+	contextCell             TableCell
 	filter                  func([]string) bool
 	hasMore, loadRequested  bool
 	loadError               string
@@ -376,7 +380,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 	}
 	for _, c := range v.visibleColumns() {
 		col := v.cols[c]
-		cell := v.sized(c, el.Div().ID(autoID("table", v)+"/cell/"+strconv.Itoa(data)+"/"+strconv.Itoa(c)).Px(12).Justify(el.Center))
+		cell := v.sized(c, el.Div().ID(v.cellID(data, c)).Px(12).Justify(el.Center))
 		if col.width <= 0 {
 			cell.Items(el.Start)
 			if col.numeric {
@@ -399,6 +403,9 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 				cell.OnClick(func() { v.chooseCell(cx, data, c, cx.ClickModifiers()) })
 			}
 		}
+		if v.cellMenu != nil || v.rowMenu != nil {
+			cell.OnContextMenu(func() { v.openMenu(cx, data, c) })
+		}
 		v.pin(c, cell)
 		r.Child(cell)
 	}
@@ -415,6 +422,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 
 func (v *TableView) Render(cx *el.Context) el.Element {
 	v.loadNearEnd(cx)
+	v.renderContextMenu(cx)
 	if v.reveal {
 		v.list.ScrollTo(cx, v.position(v.selected))
 		if v.cellMode {
@@ -460,6 +468,19 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
+			if key.Name(e.Name) == key.NameF10 && e.Modifiers == key.ModShift && (v.rowMenu != nil || v.cellMenu != nil) {
+				if e.State == el.KeyPress {
+					columns := v.visibleColumns()
+					if len(columns) > 0 {
+						column := columns[0]
+						if v.cellMode && v.activeCell.Column >= 0 && !v.hidden[v.activeCell.Column] {
+							column = v.activeCell.Column
+						}
+						v.openMenu(cx, v.selected, column)
+					}
+				}
+				return true
+			}
 			if v.selectionKey(e) {
 				return true
 			}
@@ -480,13 +501,14 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 			return ok
 		}).
 		Child(content)
+	wrapper := el.Div().Items(el.Stretch).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).Child(table)
 	if status == nil {
-		return table
+		return wrapper
 	}
 	// Status belongs to the viewport, not the horizontally scrolling content.
 	overlay := el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Child(status)
 	if v.loadError != "" {
 		overlay.Bg(theme.Surface).Rounded(6).Border(1, theme.Border)
 	}
-	return el.Div().Items(el.Stretch).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).Child(table, overlay)
+	return wrapper.Child(overlay)
 }

@@ -22,6 +22,17 @@ func init() {
 			kit.Col("金额").Width(120).Numeric().Cell(func(cx *el.Context, row int) el.Element {
 				return kit.Tag("¥" + t.Row(row)[2]).Tone(kit.ToneInfo).Render(cx)
 			}), kit.Col("状态").Width(100), kit.Col("仓库").Width(140), kit.Col("日期").Width(140)).FrozenColumns(1, 1).MultiSelect().Height(360).OnActivate(func(r int) { msg = "打开 " + t.Row(r)[0] })
+		t.RowMenu(func(row int) *kit.MenuView {
+			return kit.Menu().Item("打开订单", "", func() { msg = "打开 " + t.Row(row)[0] }).Item("复制选区", "mod+c", func() { el.WriteClipboard(t.SelectionText()) })
+		})
+		t.CellMenu(func(row, column int) *kit.MenuView {
+			return kit.Menu().Item("复制此单元格", "", func() {
+				values := t.Row(row)
+				if column < len(values) {
+					el.WriteClipboard(values[column])
+				}
+			}).Item("打开所属订单", "", func() { msg = "打开 " + t.Row(row)[0] })
+		})
 		t.OnSelectionChange(func(rows []int) {
 			msg = fmt.Sprintf("选中 %d 行；Ctrl/Cmd+C 复制，Shift 扩展范围", len(rows))
 		})

@@ -253,6 +253,19 @@ func (r *RootWidget) dispatch(gtx core.C) {
 		if !st.clickable || st.disabled || st.blocked || st.frame != r.store.frame {
 			continue
 		}
+		if st.onContextMenu != nil {
+			for {
+				ev, ok := gtx.Event(pointer.Filter{Target: &st.contextTag, Kinds: pointer.Press | pointer.Release | pointer.Cancel})
+				if !ok {
+					break
+				}
+				if ev, ok := ev.(pointer.Event); ok && ev.Kind == pointer.Press && ev.Buttons.Contain(pointer.ButtonSecondary) {
+					r.clickModifiers = ev.Modifiers
+					core.Call(gtx, func() { r.callbacks = true; st.onContextMenu() })
+					r.clickModifiers = 0
+				}
+			}
+		}
 		for {
 			ev, ok := st.click.Update(gtx.Source)
 			if !ok {
