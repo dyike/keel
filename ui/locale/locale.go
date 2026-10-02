@@ -18,6 +18,7 @@ import (
 // when customizing: Apply replaces all of it.
 type Strings struct {
 	Hour, Minute, Second, AM, PM, Period string
+	LowerValue, UpperValue               string
 	Clock12                              bool   // Default segmented time format.
 	Lang                                 string // BCP 47 tag of this text, e.g. zh-CN, en
 
@@ -75,6 +76,7 @@ func (s Strings) Name(action, target string) string {
 // Chinese returns the default text, simplified Chinese.
 func Chinese() Strings {
 	return Strings{
+		LowerValue: "下限", UpperValue: "上限",
 		Hour: "时", Minute: "分", Second: "秒", AM: "上午", PM: "下午", Period: "时段",
 		Lang: "zh-CN", Year: "年份", PrevYear: "上一年", NextYear: "下一年", RangeUnavailable: "范围包含不可选日期，请重新选择", MonthNames: [12]string{"1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"},
 		OK: "确定", Cancel: "取消", Close: "关闭", Remove: "移除", Toggle: "切换", Clear: "清空", Retry: "重试",
@@ -107,6 +109,7 @@ func Chinese() Strings {
 // English returns English text.
 func English() Strings {
 	return Strings{
+		LowerValue: "Lower", UpperValue: "Upper",
 		Hour: "Hour", Minute: "Minute", Second: "Second", AM: "AM", PM: "PM", Period: "Period", Clock12: true,
 		Lang: "en", Year: "Year", PrevYear: "Previous year", NextYear: "Next year", RangeUnavailable: "Range includes unavailable dates; choose again", MonthNames: [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"},
 		OK: "OK", Cancel: "Cancel", Close: "Close", Remove: "Remove", Toggle: "Toggle", Clear: "Clear", Retry: "Retry",
