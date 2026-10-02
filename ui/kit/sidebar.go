@@ -12,6 +12,8 @@ import (
 type SidebarItem struct {
 	ID, Label string
 	Icon      IconName
+	Disabled  bool
+	Children  []SidebarItem
 	Badge     int // a count shown at the end; 0 hides it
 }
 
@@ -24,58 +26,62 @@ type sidebarSection struct {
 // selected. Collapsed it shows only icons, each with a tooltip. Items take
 // focus with Tab; ↑ ↓ move between them.
 type SidebarView struct {
-	sections  []sidebarSection
-	selected  string
-	collapsed bool
-	width     float32
-	tips      map[string]*TooltipView
-	onChange  func(id string)
+	sections       []sidebarSection
+	selected       string
+	collapsed      bool
+	width          float32
+	height         float32
+	disabled       bool
+	header, footer el.View
+	expanded       map[string]bool
+	positions      map[string]float32
+	revealID       string
+	tips           map[string]*TooltipView
+	onChange       func(id string)
 }
 
-func Sidebar() *SidebarView { return &SidebarView{width: 220, tips: map[string]*TooltipView{}} }
+func Sidebar() *SidebarView {
+	return &SidebarView{width: 220, tips: map[string]*TooltipView{}, expanded: map[string]bool{}}
+}
 
 // Section adds a titled group of items; an empty title adds no heading.
 func (v *SidebarView) Section(title string, items ...SidebarItem) *SidebarView {
-	v.sections = append(v.sections, sidebarSection{title, items})
+	seen := map[string]bool{}
+	for _, id := range v.allIDs() {
+		seen[id] = true
+	}
+	if copy, ok := copySidebarItems(items, seen); ok {
+		v.sections = append(v.sections, sidebarSection{title, copy})
+	}
 	return v
 }
 
 // Width sets the expanded width in dp, 220 by default.
 func (v *SidebarView) Width(dp float32) *SidebarView {
-	if dp > 0 {
+	if dp > 0 && finiteNumber(float64(dp)) {
 		v.width = dp
 	}
 	return v
 }
 func (v *SidebarView) OnChange(fn func(id string)) *SidebarView { v.onChange = fn; return v }
 func (v *SidebarView) Value() string                            { return v.selected }
-func (v *SidebarView) SetValue(id string)                       { v.selected = id }
-func (v *SidebarView) Collapsed() bool                          { return v.collapsed }
-func (v *SidebarView) SetCollapsed(on bool)                     { v.collapsed = on }
+func (v *SidebarView) SetValue(id string) {
+	v.selected = id
+	v.revealID = id
+	v.expandParents(id)
+}
+func (v *SidebarView) Collapsed() bool      { return v.collapsed }
+func (v *SidebarView) SetCollapsed(on bool) { v.collapsed = on }
 
 // SetBadge updates an item's count.
 func (v *SidebarView) SetBadge(id string, n int) {
-	for s := range v.sections {
-		for i := range v.sections[s].items {
-			if v.sections[s].items[i].ID == id {
-				v.sections[s].items[i].Badge = n
-			}
-		}
+	if it := v.find(id); it != nil {
+		it.Badge = n
 	}
-}
-
-func (v *SidebarView) ids() []string {
-	var out []string
-	for _, s := range v.sections {
-		for _, it := range s.items {
-			out = append(out, it.ID)
-		}
-	}
-	return out
 }
 
 func (v *SidebarView) choose(id string) {
-	if id == v.selected {
+	if it := v.find(id); it == nil || it.Disabled || v.disabled || id == v.selected {
 		return
 	}
 	v.selected = id
@@ -84,39 +90,79 @@ func (v *SidebarView) choose(id string) {
 	}
 }
 
-func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []string) el.Element {
+func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []string, depth int) el.Element {
 	on := it.ID == v.selected
+	disabled := v.disabled || it.Disabled
 	fg := theme.Muted
 	if on {
 		fg = theme.PrimaryText
 	}
-	row := el.Div().ID(base + "/" + it.ID).Role("link").Name(it.Label).Selected(on).
-		Row().Items(el.Center).Gap(10).H(el.Dp(36)).Px(10).Rounded(8).CursorPointer().TextColor(theme.Text).TextSize(14).
+	if disabled {
+		fg = theme.Muted
+	}
+	row := el.Div().ID(base + "/" + it.ID).Role("link").Name(it.Label).Selected(on).Disabled(disabled).
+		Row().Items(el.Center).Gap(10).H(el.Dp(36)).Px(10).Pl(float32(10 + depth*14)).Rounded(8).CursorPointer().TextColor(theme.Text).TextSize(14).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
-		OnClick(func() { v.choose(it.ID) }).
+		OnClick(func() {
+			if len(it.Children) > 0 {
+				v.expanded[it.ID] = !v.expanded[it.ID]
+			} else {
+				v.choose(it.ID)
+			}
+		}).
 		OnKey(func(e el.KeyEvent) bool {
+			if e.Modifiers != 0 {
+				return false
+			}
+			if key.Name(e.Name) == key.NameRightArrow && len(it.Children) > 0 {
+				if e.State == el.KeyPress {
+					v.expanded[it.ID] = true
+				}
+				return true
+			}
+			if key.Name(e.Name) == key.NameLeftArrow {
+				if e.State == el.KeyPress {
+					if v.expanded[it.ID] {
+						v.expanded[it.ID] = false
+					} else if parent := v.parent(it.ID); parent != "" {
+						v.focusItem(cx, parent)
+					}
+				}
+				return true
+			}
 			at := 0
 			for i, id := range ids {
 				if id == it.ID {
 					at = i
+					break
 				}
 			}
-			j, ok := listKeys(e.Name, at, len(ids), 0)
-			if key.Name(e.Name) == key.NamePageUp || key.Name(e.Name) == key.NamePageDown {
-				ok = false
-			}
-			if ok && e.State == el.KeyPress {
-				cx.Focus(base + "/" + ids[j])
+			j, ok := listEnabledKey(e.Name, at, len(ids), func(i int) bool { return v.find(ids[i]).Disabled })
+			if ok && e.State == el.KeyPress && j >= 0 {
+				v.focusItem(cx, ids[j])
 			}
 			return ok
 		}).
 		Child(Icon(it.Icon).Size(16).Color(fg).Render(cx))
+	if len(it.Children) > 0 {
+		row.Role("button").Value(strconv.FormatBool(v.expanded[it.ID]))
+	}
+	if disabled {
+		row.TextColor(theme.Muted)
+	}
 	if on {
 		row.Bg(theme.Subtle).Bold()
 	} else {
 		row.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 	}
 	if !v.collapsed {
+		if len(it.Children) > 0 {
+			icon := IconChevronRight
+			if v.expanded[it.ID] {
+				icon = IconChevronDown
+			}
+			row.Child(Icon(icon).Size(14).Color(fg).Render(cx))
+		}
 		row.Child(el.Text(it.Label).Grow().MaxLines(1))
 		if it.Badge > 0 {
 			count := strconv.Itoa(it.Badge)
@@ -150,37 +196,68 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 	if v.collapsed {
 		width = 56
 	}
+	nav := el.Div().Role("navigation").Name(text.Menu).W(el.Dp(width)).NoShrink().Bg(theme.Bg).Px(12).Py(12).Gap(8).Items(el.Stretch).Disabled(v.disabled)
+	if v.collapsed {
+		nav.Px(8)
+	}
+	if v.height > 0 {
+		nav.H(el.Dp(v.height))
+	}
+	if v.header != nil {
+		nav.Child(el.Div().ID(base + "/header").NoShrink().Child(v.header.Render(cx)))
+	}
+	body := el.Div().ID(base + "/scroll").Grow().MinH(el.Dp(0)).ScrollY().Gap(4).Items(el.Stretch)
+	_, viewportHeight := cx.ViewportSize()
+	nav.MaxH(el.Dp(viewportHeight))
+	if v.revealID != "" {
+		v.expandParents(v.revealID)
+	}
 	ids := v.ids()
-	nav := el.Div().Role("navigation").Name(text.Menu).W(el.Dp(width)).NoShrink().Bg(theme.Bg).
-		Px(12).Py(16).Gap(4).Items(el.Stretch)
+	v.positions = map[string]float32{}
+	y := float32(0)
+	var addItems func([]SidebarItem, int)
+	addItems = func(items []SidebarItem, depth int) {
+		for _, it := range items {
+			v.positions[it.ID] = y
+			y += 40
+			body.Child(v.item(cx, base, it, ids, depth))
+			if v.expanded[it.ID] {
+				addItems(it.Children, depth+1)
+			}
+		}
+	}
 	for i, s := range v.sections {
 		if s.title != "" && !v.collapsed {
-			top := float32(18)
-			if i == 0 {
-				top = 0
-			}
-			nav.Child(el.Div().Px(10).Pt(top).Pb(6).Child(el.Text(s.title).TextSize(12).TextColor(theme.Muted)))
+			body.Child(el.Div().H(el.Dp(28)).Px(10).Justify(el.Center).Child(el.Text(s.title).TextSize(12).TextColor(theme.Muted)))
+			y += 32
 		} else if i > 0 {
-			nav.Child(el.Div().H(el.Dp(1)).Mx(10).My(10).Bg(theme.Border))
+			body.Child(el.Div().H(el.Dp(17)).Px(8).Justify(el.Center).Child(el.Div().H(el.Dp(1)).Bg(theme.Border)))
+			y += 21
 		}
-		for _, it := range s.items {
-			nav.Child(v.item(cx, base, it, ids))
-		}
+		addItems(s.items, 0)
+	}
+	nav.Child(body)
+	if v.footer != nil {
+		nav.Child(el.Div().ID(base + "/footer").NoShrink().Child(v.footer.Render(cx)))
 	}
 	name, icon := text.CollapseSidebar, IconChevronLeft
 	if v.collapsed {
 		name, icon = text.ExpandSidebar, IconChevronRight
 	}
-	if v.collapsed {
-		nav.Px(8)
-	}
 	label := name
 	if v.collapsed {
 		label = ""
 	}
-	nav.Child(el.Div().Grow().MinH(el.Dp(24)),
-		el.Div().H(el.Dp(1)).Mx(8).Bg(theme.Border),
-		el.Div().Pt(8).Items(el.Stretch).Child(
-			Button(label, func() { v.collapsed = !v.collapsed }).Name(name).Icon(icon).Variant(ButtonGhost).Size(28).Render(cx)))
+	nav.Child(el.Div().H(el.Dp(1)).NoShrink().Mx(8).Bg(theme.Border),
+		el.Div().NoShrink().Items(el.Stretch).Child(Button(label, func() { v.collapsed = !v.collapsed; v.revealID = v.selected }).Name(name).Icon(icon).Variant(ButtonGhost).Size(28).Render(cx)))
+	if v.revealID != "" {
+		target := v.revealID
+		cx.AfterEnabled(base+"/scroll", sidebarRevealKey{v, target}, 0, func() {
+			if top, ok := v.positions[target]; ok {
+				cx.ScrollIntoView(base+"/scroll", top, top+36)
+			}
+			v.revealID = ""
+		})
+	}
 	return el.Div().Row().Items(el.Stretch).Child(nav, el.Div().W(el.Dp(1)).Bg(theme.Border))
 }
