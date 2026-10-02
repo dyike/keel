@@ -8,13 +8,15 @@ import (
 )
 
 type viewTimer struct {
-	due      time.Time
-	duration time.Duration
-	frame    uint64
-	fn       func()
-	owner    string
-	paused   bool
-	fired    bool
+	due          time.Time
+	duration     time.Duration
+	frame        uint64
+	fn           func()
+	owner        string
+	paused       bool
+	fired        bool
+	retain, hold bool
+	remaining    time.Duration
 }
 
 // Now is the frame timestamp. Animations must derive their phase from it.
@@ -51,6 +53,7 @@ func (cx *Context) After(key any, d time.Duration, fn func()) {
 	timer.frame = r.timerEpoch
 	timer.fn = fn
 	timer.owner = ""
+	timer.retain, timer.hold = false, false
 }
 
 // AfterEnabled is After scoped to a visible, enabled element ID. Its full
@@ -60,6 +63,19 @@ func (cx *Context) AfterEnabled(id string, key any, d time.Duration, fn func()) 
 	cx.After(key, d, fn)
 	if cx.root.e.gtx.Enabled() {
 		cx.root.timers[key].owner = id
+	}
+}
+
+// Countdown is a one-shot timer scoped to a visible, enabled owner. Pausing,
+// hiding, disabling or covering the owner preserves the remaining delay.
+// Changing d restarts it; omitting the declaration cancels it, like After.
+func (cx *Context) Countdown(id string, key any, d time.Duration, paused bool, fn func()) {
+	cx.After(key, d, fn)
+	if cx.root.e.gtx.Enabled() {
+		timer := cx.root.timers[key]
+		timer.owner = id
+		timer.retain = true
+		timer.hold = paused
 	}
 }
 
@@ -79,20 +95,27 @@ func (r *RootWidget) finishTimers() {
 		if timer.fired {
 			continue
 		}
-		if timer.owner != "" {
-			enabled := false
+		if timer.owner != "" || timer.hold || timer.paused {
+			enabled := timer.owner == ""
 			for _, st := range r.store.states {
 				if st.id == timer.owner && st.enabledFrame == r.store.frame {
 					enabled = true
 					break
 				}
 			}
-			if !enabled {
+			if !enabled || timer.hold {
+				if timer.retain && !timer.paused {
+					timer.remaining = max(0, timer.due.Sub(gtx.Now))
+				}
 				timer.paused = true
 				continue
 			}
 			if timer.paused {
-				timer.paused, timer.fired, timer.due = false, false, gtx.Now.Add(timer.duration)
+				remaining := timer.duration
+				if timer.retain {
+					remaining = timer.remaining
+				}
+				timer.paused, timer.fired, timer.due = false, false, gtx.Now.Add(remaining)
 			}
 		}
 		if !gtx.Now.Before(timer.due) {

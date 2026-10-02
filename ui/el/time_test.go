@@ -218,3 +218,48 @@ func TestAfterEnabledWaitsForVisibleOwner(t *testing.T) {
 		t.Fatal("completed one-shot timer rearmed after disabling")
 	}
 }
+
+func TestCountdownPreservesRemainingDelayAcrossPauses(t *testing.T) {
+	for _, mode := range []string{"explicit", "disabled", "modal"} {
+		now := time.Unix(100, 0)
+		paused, disabled, modal := false, false, false
+		calls := 0
+		root := Root(viewFunc(func(cx *Context) Element {
+			cx.Countdown("owner", "countdown", 5*time.Second, paused, func() { calls++ })
+			if modal {
+				cx.Overlay("modal", Modal(Div().Size(Dp(50))))
+			}
+			return Div().ID("owner").Disabled(disabled).Size(Dp(100))
+		}))
+		h := uitest.NewFunc(func(gtx core.C) { gtx.Now = now; root.Layout(gtx) })
+		now = now.Add(2 * time.Second)
+		h.Frame()
+		switch mode {
+		case "explicit":
+			paused = true
+		case "disabled":
+			disabled = true
+		case "modal":
+			modal = true
+		}
+		h.Frame()
+		now = now.Add(20 * time.Second)
+		h.Frame()
+		if calls != 0 {
+			t.Fatalf("%s fired paused", mode)
+		}
+		paused, disabled, modal = false, false, false
+		h.Frame()
+		now = now.Add(2900 * time.Millisecond)
+		h.Frame()
+		if calls != 0 {
+			t.Fatalf("%s fired early", mode)
+		}
+		now = now.Add(100 * time.Millisecond)
+		h.Frame()
+		h.Frame()
+		if calls != 1 {
+			t.Fatalf("%s did not resume remaining time: %d", mode, calls)
+		}
+	}
+}
