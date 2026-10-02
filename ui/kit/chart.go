@@ -32,6 +32,7 @@ const (
 	ChartLine ChartKind = iota
 	ChartBar
 	ChartArea
+	ChartCandlestick
 )
 
 const axisWidth = 52 // dp for the y-axis labels
@@ -53,6 +54,7 @@ type ChartView struct {
 	tbl      *TableView
 	hover    int
 	tag      int // pointer handler tag
+	candles  []Candle
 	hidden   []bool
 	disabled bool
 	plotW    float32 // painted plot width, dp
@@ -200,7 +202,7 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 		head.Child(el.Text(v.title).Bold())
 	}
 	head.Child(el.Div().Grow())
-	if len(v.series) > 1 {
+	if len(v.series) > 1 && v.kind != ChartCandlestick {
 		for i, s := range v.series {
 			head.Child(toggleButton(cx, autoID("chart", v)+"/legend/"+strconv.Itoa(i), s.Name, nil, !v.hidden[i], false, func() { v.hidden[i] = !v.hidden[i] }).
 				Child(el.Div().Size(el.Dp(8)).Rounded(2).Bg(theme.Chart[i%len(theme.Chart)])))
@@ -343,6 +345,8 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 		}
 	}
 	switch v.kind {
+	case ChartCandlestick:
+		v.drawCandles(gtx, y, dp)
 	case ChartBar:
 		v.drawBars(gtx, band, y, dp)
 	default:

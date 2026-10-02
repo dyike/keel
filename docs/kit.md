@@ -92,7 +92,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 
 应用外壳：[TitleBar](kit/title_bar.md)、[Sidebar](kit/sidebar.md)、[Toolbar](kit/toolbar.md)、[Resizable](kit/resizable.md)、[Dock](kit/dock.md)、[Settings](kit/settings.md)、[Carousel](kit/carousel.md)。
 
-可视化与专项：[Chart](kit/chart.md)、[PieChart](kit/pie_chart.md)、[Plot](kit/plot.md)、[ColorPicker](kit/color_picker.md)、[Questionnaire](kit/questionnaire.md)。
+可视化与专项：[Chart](kit/chart.md)、[PieChart](kit/pie_chart.md)、[CandlestickChart](kit/candlestick_chart.md)、[Plot](kit/plot.md)、[ColorPicker](kit/color_picker.md)、[Questionnaire](kit/questionnaire.md)。
 
 浮层组件（需要 `el.Root`）：
 

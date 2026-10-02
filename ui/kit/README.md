@@ -76,6 +76,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Carousel](../../docs/kit/carousel.md) | 轮播 |
 | [TitleBar](../../docs/kit/title_bar.md) | 无边框窗口的标题栏 |
 | [Chart](../../docs/kit/chart.md) | 折线图、面积图、柱状图、堆叠柱状图 |
+| [CandlestickChart](../../docs/kit/candlestick_chart.md) | 开高低收、密集聚合、数据表 |
 | [PieChart](../../docs/kit/pie_chart.md) | 饼图、环形图、交互图例 |
 | [Plot](../../docs/kit/plot.md) | 可缩放平移的 x/y 绘图 |
 | [ColorPicker](../../docs/kit/color_picker.md) | 颜色选择 |
