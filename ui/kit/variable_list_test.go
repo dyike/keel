@@ -215,3 +215,67 @@ func BenchmarkVariableListFrame(b *testing.B) {
 		})
 	}
 }
+
+func TestVariableListRevealKeyAfterPrependAndReorder(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		t.Run(fmt.Sprint(scale), func(t *testing.T) {
+			keys := make([]string, 100000)
+			for i := range keys {
+				keys[i] = strconv.Itoa(i + 1)
+			}
+			var cx *el.Context
+			list := VariableList(keys, 72, func(_ *el.Context, i int) el.Element {
+				n, _ := strconv.Atoi(keys[i])
+				return el.Div().H(el.Dp(float32(40 + n%3*30))).Name("message-" + keys[i])
+			}).Height(200)
+			root := el.Root(viewFunc(func(c *el.Context) el.Element { cx = c; return el.Div().Child(list.Render(c)) }))
+			h := uitest.NewFunc(func(gtx core.C) {
+				gtx.Metric = unit.Metric{PxPerDp: float32(scale), PxPerSp: float32(scale)}
+				gtx.Constraints.Max = image.Pt(300*scale, 400*scale)
+				root.Layout(gtx)
+			})
+			check := func() {
+				t.Helper()
+				settle(h)
+				r := bounds(h, "message-50000")
+				if r.Empty() || r.Min.Y < 0 || r.Max.Y > 200*scale {
+					t.Fatalf("message 50000 not visible after key reveal: %v", r)
+				}
+				if list.reveal != "" {
+					t.Fatal("reveal did not settle")
+				}
+			}
+			list.ScrollToKey(cx, "50000")
+			check()
+			for batch := range 2 {
+				add := make([]string, 10)
+				for i := range add {
+					add[i] = fmt.Sprintf("older-%d-%d", batch, i)
+				}
+				keys = append(add, keys...)
+				list.SetKeys(keys)
+				list.ScrollTo(cx, 0)
+				settle(h)
+				list.ScrollToKey(cx, "50000")
+				list.ScrollToKey(cx, "missing")
+				if list.reveal != "50000" {
+					t.Fatal("missing key replaced pending reveal")
+				}
+				check()
+			}
+			// A pending key request must survive reordering before the next frame.
+			list.ScrollToKey(cx, "50000")
+			i := list.indices["50000"]
+			keys[10], keys[i] = keys[i], keys[10]
+			list.SetKeys(keys)
+			check()
+			off, _, _ := cx.ScrollState(list.ID())
+			list.ScrollToKey(cx, "")
+			list.ScrollToKey(cx, "missing")
+			settle(h)
+			if got, _, _ := cx.ScrollState(list.ID()); got != off {
+				t.Fatalf("missing key moved viewport: %g to %g", off, got)
+			}
+		})
+	}
+}

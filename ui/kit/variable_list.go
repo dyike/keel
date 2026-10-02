@@ -128,7 +128,16 @@ func (v *VariableListView) ScrollTo(cx *el.Context, i int) {
 	if i < 0 || i >= len(v.keys) {
 		return
 	}
-	v.reveal = v.keys[i]
+	v.ScrollToKey(cx, v.keys[i])
+}
+
+// ScrollToKey minimally reveals the row with key, independent of its current
+// index. Missing keys are ignored, leaving any pending reveal unchanged.
+func (v *VariableListView) ScrollToKey(cx *el.Context, key string) {
+	if _, ok := v.indices[key]; !ok {
+		return
+	}
+	v.reveal = key
 	cx.After(revealKey{v.ID()}, 0, func() {})
 }
 

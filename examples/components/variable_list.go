@@ -36,7 +36,7 @@ func init() {
 				el.Text("可变高度虚拟列表").Bold().TextSize(24),
 				el.Text(fmt.Sprintf("%d 条；调整窗口宽度、展开某行或在头部插入，检查阅读位置。", len(keys))).TextColor(theme.Muted),
 				el.Div().Row().Gap(8).Child(
-					kit.Button("定位第 50000 条", func() { list.ScrollTo(cx, 49999) }).Render(cx),
+					kit.Button("定位消息 50000", func() { list.ScrollToKey(cx, "50000") }).Render(cx),
 					kit.Button("头部插入 10 条", func() {
 						var add []string
 						for range 10 {
