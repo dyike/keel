@@ -110,3 +110,11 @@ Gio v0.10.3 在 macOS 上，窗口还没完全创建就被关闭，会在 `casca
 ## 窗口不能隐藏
 
 Gio 不支持隐藏再显示窗口。需要"关掉再打开"的窗口，关闭后重新 `window.Open`，状态保存在你自己的变量里。见[设计决策](decisions.md#选-gio)里列出的代价。
+
+## 组件首帧重叠，交互一次后恢复
+
+先检查尺寸是不是在 Decorate / 绘制阶段才记录，而 Render 已用上一帧的尺寸决定结构。只反复调用 Frame 再断言，容易掩盖这个问题。
+
+本轮有两类修复：Toolbar 在命令区宽度未知时先用“更多”承载操作，测量后再展开，命令区裁剪防止覆盖左右插槽；Dock 用当前根视口初始化停靠尺寸，实际嵌入尺寸不同则请求重绘校正。不要靠先画两帧截图来隐藏错误。
+
+回归应包含未 settle 的第一帧、窗口变窄的第一帧、1× / 2×，并检查被挤占的相邻区域及操作可达性。对应 `TestToolbarFirstFrameKeepsActionsAccessibleBesideSlots`、`TestDockFirstFrameAndResizeKeepCenter`。`examples/components -matrix` 故意只输出首帧，动态浮层和滚动仍通过真实输入路由测试。
