@@ -12,6 +12,8 @@ import (
 type accordionItem struct {
 	title    string
 	body     el.View
+	heading  el.View
+	motion   disclosureMotion
 	disabled bool
 }
 
@@ -22,6 +24,7 @@ type AccordionView struct {
 	items    []accordionItem
 	open     []int
 	multiple bool
+	disabled bool
 	onChange func(open []int)
 }
 
@@ -53,6 +56,9 @@ func (v *AccordionView) SetItemDisabled(i int, on bool) {
 }
 
 func (v *AccordionView) toggle(i int) {
+	if i < 0 || i >= len(v.items) || v.disabled || v.items[i].disabled {
+		return
+	}
 	switch on := slices.Contains(v.open, i); {
 	case on:
 		v.open = slices.DeleteFunc(v.open, func(j int) bool { return j == i })
@@ -66,34 +72,38 @@ func (v *AccordionView) toggle(i int) {
 	}
 }
 
-func (v *AccordionView) Render(cx *el.Context) el.Element {
-	id := autoID("accordion", v)
-	out := el.Div().Role("group").Items(el.Stretch).Rounded(8).Border(1, theme.Border).Bg(theme.Surface)
-	enabled := func(from, d int) int {
-		for k := 1; k <= len(v.items); k++ {
-			j := ((from+d*k)%len(v.items) + len(v.items)) % len(v.items)
-			if !v.items[j].disabled {
-				return j
-			}
-		}
-		return from
+// Heading replaces an item's visual heading while keeping its title as the
+// accessible name. The view should contain display content, not nested controls.
+func (v *AccordionView) Heading(i int, heading el.View) *AccordionView {
+	if i >= 0 && i < len(v.items) {
+		v.items[i].heading = heading
 	}
-	for i, it := range v.items {
-		i, it := i, it
-		on := slices.Contains(v.open, i)
-		state, icon := "collapsed", IconChevronRight
-		if on {
-			state, icon = "expanded", IconChevronDown
+	return v
+}
+func (v *AccordionView) SetDisabled(on bool) { v.disabled = on }
+func (v *AccordionView) triggerID(i int) string {
+	return autoID("accordion", v) + "/" + strconv.Itoa(i)
+}
+
+// Trigger renders just one header, for composition with Content.
+func (v *AccordionView) Trigger(i int) el.View {
+	return el.ViewFunc(func(cx *el.Context) el.Element {
+		if i < 0 || i >= len(v.items) {
+			return el.Div().Hidden(true)
 		}
-		if i > 0 {
-			out.Child(el.Div().H(el.Dp(1)).Bg(theme.Border))
+		it := v.items[i]
+		enabled := func(from, d int) int {
+			for k := 1; k <= len(v.items); k++ {
+				j := ((from+d*k)%len(v.items) + len(v.items)) % len(v.items)
+				if !v.items[j].disabled && cx.Enabled(v.triggerID(j)) {
+					return j
+				}
+			}
+			return from
 		}
-		head := el.Div().ID(id+"/"+strconv.Itoa(i)).Role("disclosure").Name(it.title).Value(state).Disabled(it.disabled).
-			Row().Items(el.Center).Gap(8).Px(14).Py(12).Focusable(true).
-			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
-			OnClick(func() { v.toggle(i) }).
+		return disclosureTrigger(cx, v.triggerID(i), it.title, it.heading, slices.Contains(v.open, i), v.disabled || it.disabled, func() { v.toggle(i) }).
 			OnKey(func(e el.KeyEvent) bool {
-				j, ok := i, true
+				j := i
 				switch key.Name(e.Name) {
 				case key.NameDownArrow:
 					j = enabled(i, 1)
@@ -104,21 +114,33 @@ func (v *AccordionView) Render(cx *el.Context) el.Element {
 				case key.NameEnd:
 					j = enabled(len(v.items), -1)
 				default:
-					ok = false
+					return false
 				}
-				if ok && e.State == el.KeyPress {
-					cx.Focus(id + "/" + strconv.Itoa(j))
+				if e.State == el.KeyPress && j >= 0 && j < len(v.items) {
+					cx.Focus(v.triggerID(j))
 				}
-				return ok
-			}).
-			Child(el.Text(it.title).Bold().Grow(), Icon(icon).Size(16).Color(theme.Muted).Render(cx))
-		if !it.disabled {
-			head.CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
+				return true
+			})
+	})
+}
+
+// Content renders an item's body with an interruptible expand/collapse animation.
+func (v *AccordionView) Content(i int) el.View {
+	return el.ViewFunc(func(cx *el.Context) el.Element {
+		if i < 0 || i >= len(v.items) {
+			return el.Div().Hidden(true)
 		}
-		out.Child(head)
-		if on && it.body != nil {
-			out.Child(el.Div().Px(14).Pb(14).Items(el.Stretch).Child(it.body.Render(cx)))
+		it := &v.items[i]
+		return disclosureContent(cx, autoID("accordion", v)+"/content/"+strconv.Itoa(i), v.triggerID(i), it.body, slices.Contains(v.open, i), v.disabled || it.disabled, &it.motion)
+	})
+}
+func (v *AccordionView) Render(cx *el.Context) el.Element {
+	out := el.Div().Role("group").Items(el.Stretch).Rounded(8).Border(1, theme.Border).Bg(theme.Surface)
+	for i := range v.items {
+		if i > 0 {
+			out.Child(el.Div().H(el.Dp(1)).Bg(theme.Border))
 		}
+		out.Child(v.Trigger(i).Render(cx), v.Content(i).Render(cx))
 	}
 	return out
 }

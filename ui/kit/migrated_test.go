@@ -9,6 +9,7 @@ import (
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"
+	"github.com/dyike/keel/ui/theme"
 )
 
 func text(s string) el.View { return viewFunc(func(*el.Context) el.Element { return el.Text(s) }) }
@@ -32,6 +33,9 @@ func TestTabsSwitchKeysAndKeepPages(t *testing.T) {
 }
 
 func TestAccordionSingleMultipleKeys(t *testing.T) {
+	old := theme.ReducedMotion
+	theme.SetReducedMotion(true)
+	defer theme.SetReducedMotion(old)
 	a := Accordion().Add("一", text("内容一")).Add("二", text("内容二")).Add("三", text("内容三"))
 	a.SetItemDisabled(1, true)
 	h := page(a)

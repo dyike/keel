@@ -11,6 +11,9 @@ func init() {
 		txt := func(s string) el.View { return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) }) }
 		name := kit.Input("显示名称").Placeholder("收起后保留输入内容")
 		one := kit.Accordion().Add("个人资料", name).Add("通知设置", kit.Switch("接收通知", true)).Add("暂不可用", txt("禁用项目"))
+		one.Heading(0, el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().Row().Gap(8).Child(kit.Icon(kit.IconUser).Size(16).Render(cx), el.Text("个人资料").Bold(), kit.Tag("可编辑").Render(cx))
+		}))
 		one.SetValue(0)
 		one.SetItemDisabled(2, true)
 		faq := kit.Accordion().Multiple().
