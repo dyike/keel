@@ -109,8 +109,8 @@ func pieShare(x float64) string { return strconv.FormatFloat(x*100, 'f', 1, 64) 
 func (v *PieChartView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
 	parts := v.fractions()
-	box := surface().Role("figure").Name(v.title).Value(strconv.Itoa(len(v.data))).Disabled(v.disabled).P(12).Gap(10).Items(el.Stretch)
-	heading := el.Div().Row().Wrap().Gap(8).Items(el.Center).Child(el.Text(v.title).Bold(), el.Div().Grow())
+	box := surface().Role("figure").Name(v.title).Value(strconv.Itoa(len(v.data))).Disabled(v.disabled).P(theme.SpaceLg).Gap(10).Items(el.Stretch)
+	heading := el.Div().Row().Wrap().Gap(theme.SpaceMd).Items(el.Center).Child(el.Text(v.title).Bold(), el.Div().Grow())
 	toggle := text.ShowTable
 	if v.table {
 		toggle = text.ShowChart
@@ -144,7 +144,7 @@ func (v *PieChartView) Render(cx *el.Context) el.Element {
 	} else {
 		box.Child(el.Div().H(el.Dp(16)))
 	}
-	legend := el.Div().Row().Wrap().Gap(6)
+	legend := el.Div().Row().Wrap().Gap(theme.SpaceSm)
 	for i, s := range v.data {
 		legend.Child(legendItem(autoID("pie", v)+"/legend/"+strconv.Itoa(i), s.Name, theme.Chart[i%len(theme.Chart)], 5, !v.hidden[i], func() { v.hidden[i] = !v.hidden[i]; v.hover = -1 }))
 	}

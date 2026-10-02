@@ -1,11 +1,12 @@
 package kit
 
 import (
+	"image/color"
+
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
-	"image/color"
 )
 
 // TagView displays an optional selectable/removable label.
@@ -35,7 +36,7 @@ func (v *TagView) Render(cx *el.Context) el.Element {
 	c, name := v.tone.color(), v.tone.name()
 
 	box := el.Div().Role("tag").Name(v.text).Value(name).Disabled(v.disabled).Row().Items(el.Center).Rounded(theme.RadiusFull).Bg(tint(c, 24))
-	label := el.Div().Px(8).Py(4).Child(el.Text(v.text).TextSize(float32(theme.SmallSize)).TextColor(c))
+	label := el.Div().Px(theme.SpaceMd).Py(theme.SpaceXs).Child(el.Text(v.text).TextSize(float32(theme.SmallSize)).TextColor(c))
 	if v.selectable {
 		box.Selected(v.selected)
 		if v.selected {
@@ -55,7 +56,7 @@ func (v *TagView) Render(cx *el.Context) el.Element {
 				v.onRemove()
 			}
 		}
-		box.Child(el.Div().ID("remove").Name(locale.Current().Name(locale.Current().Remove, v.text)).P(4).OnClick(remove).OnKey(func(e el.KeyEvent) bool {
+		box.Child(el.Div().ID("remove").Name(locale.Current().Name(locale.Current().Remove, v.text)).P(theme.SpaceXs).OnClick(remove).OnKey(func(e el.KeyEvent) bool {
 			if e.Name == string(key.NameDeleteBackward) || e.Name == string(key.NameDeleteForward) {
 				if e.State == el.KeyRelease {
 					remove()

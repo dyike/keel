@@ -156,7 +156,7 @@ func legendItem(id, name string, c color.NRGBA, radius float32, shown bool, togg
 		fg = theme.Muted
 	}
 	return el.Div().ID(id).Role("toggle").Name(name).Selected(shown).
-		Row().Items(el.Center).Gap(6).H(el.Dp(26)).Px(8).Rounded(theme.RadiusMd).Border(1, color.NRGBA{}).TextSize(theme.TextMd).TextColor(fg).
+		Row().Items(el.Center).Gap(theme.SpaceSm).H(el.Dp(26)).Px(theme.SpaceMd).Rounded(theme.RadiusMd).Border(1, color.NRGBA{}).TextSize(theme.TextMd).TextColor(fg).
 		Focusable(true).CursorPointer().OnClick(toggle).
 		Hover(func(s *el.Style) { s.Bg(theme.Subtle) }).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).

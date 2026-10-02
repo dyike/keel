@@ -21,7 +21,22 @@ type Palette struct {
 	// Chart is the categorical order for data series: slot i always means
 	// series i. Validated for color-vision deficiency against Surface.
 	Chart [8]color.NRGBA
+	// BgGradient, when set, paints the window background instead of Bg;
+	// PrimaryGradient paints primary buttons, progress bars and the user's
+	// chat bubbles instead of Primary. Bg and Primary stay the solid colors
+	// for everything else, so set them to a color from the gradient.
+	BgGradient, PrimaryGradient Gradient
 }
+
+// Gradient is a linear blend from From to To. Angle is in degrees: 0 runs
+// left to right, 90 top to bottom. The zero Gradient means none.
+type Gradient struct {
+	From, To color.NRGBA
+	Angle    float32
+}
+
+// IsZero reports whether g is unset.
+func (g Gradient) IsZero() bool { return g == Gradient{} }
 
 // Light returns an independent copy of the default light palette.
 func Light() Palette {
@@ -51,7 +66,8 @@ func Current() Palette {
 	return Palette{PrimaryText: PrimaryText, DangerText: DangerText, CodeBg: CodeBg, CodeText: CodeText, Bg: Bg, Surface: Surface, Border: Border, Text: Text, Muted: Muted,
 		Primary: Primary, PrimaryHover: PrimaryHover, Danger: Danger, DangerHover: DangerHover,
 		Success: Success, Warning: Warning, Info: Info, Subtle: Subtle, SubtleHover: SubtleHover,
-		OnColor: OnColor, Highlight: Highlight, Scrim: Scrim, Shadow: Shadow, Chart: Chart}
+		OnColor: OnColor, Highlight: Highlight, Scrim: Scrim, Shadow: Shadow, Chart: Chart,
+		BgGradient: BgGradient, PrimaryGradient: PrimaryGradient}
 }
 
 var revision uint64
@@ -82,6 +98,7 @@ func Scope(p Palette) (restore func()) {
 }
 
 func set(p Palette) {
+	BgGradient, PrimaryGradient = p.BgGradient, p.PrimaryGradient
 	PrimaryText, DangerText, CodeBg, CodeText = p.PrimaryText, p.DangerText, p.CodeBg, p.CodeText
 	Bg, Surface, Border, Text, Muted = p.Bg, p.Surface, p.Border, p.Text, p.Muted
 	Primary, PrimaryHover, Danger, DangerHover = p.Primary, p.PrimaryHover, p.Danger, p.DangerHover

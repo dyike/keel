@@ -196,8 +196,8 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 		name = strings.Join(names, ", ")
 	}
 	root := el.Div().Disabled(v.disabled).Role("figure").Name(name).Value(strconv.Itoa(len(v.labels))+"x"+strconv.Itoa(len(v.series))).
-		Gap(10).P(12).Rounded(theme.RadiusLg).Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch)
-	head := el.Div().Row().Wrap().Items(el.Center).Gap(12)
+		Gap(10).P(theme.SpaceLg).Rounded(theme.RadiusLg).Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch)
+	head := el.Div().Row().Wrap().Items(el.Center).Gap(theme.SpaceLg)
 	if v.title != "" {
 		head.Child(el.Text(v.title).Bold())
 	}
@@ -270,14 +270,14 @@ func (v *ChartView) tooltip() el.Element {
 	if left+w > v.plotW {
 		left = center - 12 - w
 	}
-	tip := el.Div().Absolute().Top(8).Left(max(left, 0)).W(el.Dp(w)).P(8).Gap(4).Rounded(theme.RadiusMd).
+	tip := el.Div().Absolute().Top(8).Left(max(left, 0)).W(el.Dp(w)).P(theme.SpaceMd).Gap(theme.SpaceXs).Rounded(theme.RadiusMd).
 		Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch).
 		Child(el.Text(v.labels[v.hover]).TextSize(theme.TextSm).Bold())
 	for i, s := range v.series {
 		if v.hidden[i] {
 			continue
 		}
-		tip.Child(el.Div().Row().Items(el.Center).Gap(6).Child(
+		tip.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceSm).Child(
 			el.Div().Size(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Chart[i%len(theme.Chart)]),
 			el.Text(s.Name).TextSize(theme.TextSm).TextColor(theme.Muted).Grow().MaxLines(1),
 			el.Text(v.valueText(s, v.hover)).TextSize(theme.TextSm)))

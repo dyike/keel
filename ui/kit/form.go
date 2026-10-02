@@ -1,11 +1,12 @@
 package kit
 
 import (
-	"github.com/dyike/keel/ui/el"
-	"github.com/dyike/keel/ui/theme"
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/theme"
 )
 
 // Validatable is a control that can show a validation error and be focused:
@@ -202,22 +203,22 @@ func (v *FormView) Render(cx *el.Context) el.Element {
 		if n, ok := f.control.(interface{ setName(string) }); ok {
 			n.setName(f.label)
 		}
-		control := el.Div().ID(v.fieldID(i)).Grow().Items(el.Stretch).Gap(6).Child(f.control.Render(cx))
+		control := el.Div().ID(v.fieldID(i)).Grow().Items(el.Stretch).Gap(theme.SpaceSm).Child(f.control.Render(cx))
 		if _, ok := f.control.(interface{ SetError(string) }); !ok && f.err != "" {
 			control.Child(el.Text(f.err).TextColor(theme.Danger).TextSize(theme.TextSm))
 		}
 		if _, ok := f.control.(interface{ FocusID() string }); !ok {
 			control.Focusable(f.err != "")
 		}
-		form.Child(el.Div().Row().Gap(12).Items(el.Start).Disabled(v.busy).Child(
-			el.Div().W(el.Dp(v.labelWidth)).NoShrink().Items(el.End).Pt(8).Child(el.Text(f.label).TextColor(theme.Muted)), control))
+		form.Child(el.Div().Row().Gap(theme.SpaceLg).Items(el.Start).Disabled(v.busy).Child(
+			el.Div().W(el.Dp(v.labelWidth)).NoShrink().Items(el.End).Pt(theme.SpaceMd).Child(el.Text(f.label).TextColor(theme.Muted)), control))
 	}
 	if len(v.actions) > 0 {
-		row := el.Div().Grow().W(el.Dp(0)).Wrap().Gap(12).Items(el.Center)
+		row := el.Div().Grow().W(el.Dp(0)).Wrap().Gap(theme.SpaceLg).Items(el.Center)
 		for _, a := range v.actions {
 			row.Child(a.Render(cx))
 		}
-		form.Child(el.Div().Row().Gap(12).Child(el.Div().W(el.Dp(v.labelWidth)).NoShrink(), row))
+		form.Child(el.Div().Row().Gap(theme.SpaceLg).Child(el.Div().W(el.Dp(v.labelWidth)).NoShrink(), row))
 	}
 	return form
 }

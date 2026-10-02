@@ -223,8 +223,9 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	max := gtx.Constraints.Max
 	if r.fill {
 		tree.forceW, tree.forceH = max.X, max.Y
-		if tree.style.bg == nil {
+		if tree.style.bg == nil && tree.style.gradient == nil {
 			tree.style.bg = &theme.Bg
+			tree.style.BgGradient(theme.BgGradient)
 		}
 	}
 	e.layout(tree, max.X, max.Y, base)

@@ -1,11 +1,12 @@
 package kit
 
 import (
-	"gioui.org/op"
-	"gioui.org/op/clip"
 	"image"
 	"strconv"
 	"unicode/utf8"
+
+	"gioui.org/op"
+	"gioui.org/op/clip"
 
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/core"
@@ -97,7 +98,7 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 			cx.Focus(id + "/" + strconv.Itoa(v.active))
 		}
 	}
-	row := el.Div().Row().Items(el.Center).Gap(4)
+	row := el.Div().Row().Items(el.Center).Gap(theme.SpaceXs)
 	measured := map[int]el.Element{}
 	move := func(to int) {
 		v.active = to
@@ -180,7 +181,7 @@ func (v *ToolbarView) button(cx *el.Context, id string, i int, it ToolbarItem, b
 		fg = theme.Muted
 	}
 	b := el.Div().ID(id + "/" + strconv.Itoa(i)).Role("button").Name(it.Label).Disabled(it.Disabled).
-		Row().Items(el.Center).Gap(6).H(el.Dp(v.height)).Px(10).Rounded(theme.RadiusMd).TextColor(fg).TextSize(theme.TextControl).
+		Row().Items(el.Center).Gap(theme.SpaceSm).H(el.Dp(v.height)).Px(10).Rounded(theme.RadiusMd).TextColor(fg).TextSize(theme.TextControl).
 		Focusable(i == v.active).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnClick(func() {
 			if v.disabled || it.Disabled {

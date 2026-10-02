@@ -23,14 +23,14 @@ func (v *GroupBoxView) SetChildren(children ...el.View) {
 	v.children = append([]el.View(nil), children...)
 }
 func (v *GroupBoxView) Render(cx *el.Context) el.Element {
-	box := el.Div().Role("group").Name(v.title).Gap(8)
+	box := el.Div().Role("group").Name(v.title).Gap(theme.SpaceMd)
 	if v.title != "" {
 		box.Child(el.Text(v.title).Bold().TextColor(theme.Text))
 	}
 	if v.description != "" {
 		box.Child(el.Text(v.description).TextColor(theme.Muted))
 	}
-	content := el.Div().P(16).Gap(12).Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface)
+	content := el.Div().P(theme.SpaceXl).Gap(theme.SpaceLg).Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface)
 	for _, child := range v.children {
 		if child != nil {
 			content.Child(child.Render(cx))

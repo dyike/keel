@@ -146,7 +146,7 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		}
 		cx.Overlay(id, el.Anchored(id, floating(theme.ElevationMd).ID(viewportID).Role("dialog").Name(v.a11y()).
 			MaxW(el.Dp(max(1, width-16))).MaxH(el.Dp(max(1, height-16))).
-			ScrollY().ScrollX().P(12).Child(calendar)).
+			ScrollY().ScrollX().P(theme.SpaceLg).Child(calendar)).
 			Modal().TrapFocus().OnDismiss(v.close))
 	}
 	return labelled(v.label, el.Div().Items(el.Start).MinW(el.Dp(200)).Child(field), v.err)

@@ -225,9 +225,9 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 	}
 	track := el.Div().ID(autoID("slider", v)).Disabled(v.disabled).Rounded(theme.RadiusFull).Child(bar, knob(v.value, false))
 	if v.vertical > 0 {
-		track.W(el.Dp(20)).H(el.Dp(v.vertical)).Py(8).Items(el.Center)
+		track.W(el.Dp(20)).H(el.Dp(v.vertical)).Py(theme.SpaceMd).Items(el.Center)
 	} else {
-		track.H(el.Dp(20)).Px(8).Justify(el.Center)
+		track.H(el.Dp(20)).Px(theme.SpaceMd).Justify(el.Center)
 	}
 	if v.paired {
 		track.Child(knob(v.upper, true))

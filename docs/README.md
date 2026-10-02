@@ -11,6 +11,7 @@ Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，原
 | 开窗口、窗口快捷键、离屏截图 | [窗口与应用](app.md) |
 | 用 GPUI 风格写界面：视图 + 链式样式 + flexbox | [元素与视图](el.md) |
 | 自己画外观，复用 kit 的键盘导航、首字母跳转、多选 | [无样式基础层](base.md) |
+| 切换主题、写主题文件、渐变、热重载、间距刻度 | [主题](theme.md) |
 | 渲染 AI 回答（流式 Markdown、代码高亮） | [Markdown](markdown.md) |
 | 查某个组件的 API | [kit 组件规范与索引](kit.md) |
 | 查看与 GPUI Kit 的实现进度和剩余缺口 | [组件进度对照](reports/gpui-progress-2026-10-02.md) |

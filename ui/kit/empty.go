@@ -19,7 +19,7 @@ func (v *EmptyView) Action(e el.View) *EmptyView     { v.action = e; return v }
 func (v *EmptyView) SetTitle(s string)               { v.title = s }
 func (v *EmptyView) SetDescription(s string)         { v.description = s }
 func (v *EmptyView) Render(cx *el.Context) el.Element {
-	box := el.Div().P(24).Gap(8).Items(el.Center).Bg(theme.Surface)
+	box := el.Div().P(theme.Space2xl).Gap(theme.SpaceMd).Items(el.Center).Bg(theme.Surface)
 	box.Child(Icon(v.icon).Size(40).Color(theme.Muted).Render(cx))
 	if v.title != "" {
 		box.Child(el.Text(v.title).TextColor(theme.Text))

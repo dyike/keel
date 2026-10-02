@@ -187,11 +187,11 @@ func (v *SelectView) optionRow(cx *el.Context, i int) el.Element {
 	row := v.rows[i]
 	if row.index < 0 {
 		// Fill the 30dp slot and sit at its bottom, next to the group it names.
-		return el.Div().H(el.Dp(30)).Px(12).Pb(4).Justify(el.End).Child(el.Text(row.group).Bold().TextSize(theme.TextSm).TextColor(theme.Muted))
+		return el.Div().H(el.Dp(30)).Px(theme.SpaceLg).Pb(theme.SpaceXs).Justify(el.End).Child(el.Text(row.group).Bold().TextSize(theme.TextSm).TextColor(theme.Muted))
 	}
 	option := v.entries[row.index]
 	selected := v.picked(option.Value)
-	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(28)).My(1).Mx(4).Px(8).Row().Items(el.Center).Rounded(theme.RadiusSm).Focusable(false).Child(el.Text(option.Label).Grow().MaxLines(1), checkMark(cx, selected))
+	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(28)).My(1).Mx(4).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).Focusable(false).Child(el.Text(option.Label).Grow().MaxLines(1), checkMark(cx, selected))
 	if selected {
 		item.Bg(theme.Highlight)
 	}
@@ -219,12 +219,12 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 			v.virtual.ScrollTo(cx, v.active)
 		}
 	}
-	panel := floating(theme.ElevationMd).Role("listbox").Name(v.a11y()).Py(4).Items(el.Stretch)
+	panel := floating(theme.ElevationMd).Role("listbox").Name(v.a11y()).Py(theme.SpaceXs).Items(el.Stretch)
 	_, height := cx.ViewportSize()
 	available := max(float32(1), min(float32(240), height-100))
 	if v.searchable {
 		available = max(1, available-40)
-		panel.Child(el.Div().Px(4).Pb(4).Child(searchField(cx, id+"/searchbox", id+"/search", el.Input().ID(id+"/search").Name(locale.Current().Search).Placeholder(locale.Current().Search).Bind(&v.query).
+		panel.Child(el.Div().Px(theme.SpaceXs).Pb(theme.SpaceXs).Child(searchField(cx, id+"/searchbox", id+"/search", el.Input().ID(id+"/search").Name(locale.Current().Search).Placeholder(locale.Current().Search).Bind(&v.query).
 			OnChange(func(string) { v.active = -1; cx.ScrollTo(v.virtual.ID(), 0) }).
 			OnSubmit(func(string) {
 				if v.active >= 0 && !v.rowDisabled(v.active) {
@@ -244,7 +244,7 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 	v.virtual.Height(min(available, max(30, float32(len(v.rows))*30)))
 	options := el.Div().ID(id + "/options").Focusable(true).Items(el.Stretch).OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) })
 	if len(v.rows) == 0 {
-		options.Child(el.Div().Px(12).Py(6).Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted)))
+		options.Child(el.Div().Px(theme.SpaceLg).Py(theme.SpaceSm).Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted)))
 	} else {
 		options.Child(v.virtual.Render(cx))
 	}

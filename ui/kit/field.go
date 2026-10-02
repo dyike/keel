@@ -14,7 +14,7 @@ func check(id, role, label, name string, selected, disabled bool, mark el.Elemen
 		name = label
 	}
 	row := el.Div().ID(id).Role(role).Name(name).Selected(selected).Disabled(disabled).
-		Row().Items(el.Center).Gap(8).Py(2).Rounded(theme.RadiusSm).Focusable(true).OnClick(toggle).
+		Row().Items(el.Center).Gap(theme.SpaceMd).Py(theme.SpaceXxs).Rounded(theme.RadiusSm).Focusable(true).OnClick(toggle).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		Child(mark)
 	if !disabled {
@@ -32,7 +32,7 @@ func labelled(label string, control el.Element, errMsg string) el.Element {
 	if label == "" && errMsg == "" {
 		return control
 	}
-	box := el.Div().Gap(6).Items(el.Stretch)
+	box := el.Div().Gap(theme.SpaceSm).Items(el.Stretch)
 	if label != "" {
 		box.Child(el.Text(label).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
@@ -60,7 +60,7 @@ func fieldFrame(id string, focused, invalid, disabled, readOnly bool) *el.DivEl 
 	if disabled || readOnly {
 		bg = theme.Subtle
 	}
-	return el.Div().ID(id).WFull().MinH(el.Dp(float32(theme.ControlHeight))).Row().Items(el.Center).Gap(8).Px(10).Py(4).
+	return el.Div().ID(id).WFull().MinH(el.Dp(float32(theme.ControlHeight))).Row().Items(el.Center).Gap(theme.SpaceMd).Px(10).Py(theme.SpaceXs).
 		Rounded(theme.RadiusMd).Border(1, border).Bg(bg).Disabled(disabled)
 }
 

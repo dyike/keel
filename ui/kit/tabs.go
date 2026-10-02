@@ -1,11 +1,12 @@
 package kit
 
 import (
+	"slices"
+	"strconv"
+
 	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/locale"
-	"slices"
-	"strconv"
 
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/el"
@@ -178,7 +179,7 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 				}
 				return ok
 			}).
-			Row().Items(el.Center).Gap(6).Child(el.Text(p.title).Grow().MinW(el.Dp(0)).MaxLines(1))
+			Row().Items(el.Center).Gap(theme.SpaceSm).Child(el.Text(p.title).Grow().MinW(el.Dp(0)).MaxLines(1))
 		if v.avail > 0 {
 			tab.MaxW(el.Dp(max(24, v.avail-60)))
 		}
@@ -189,7 +190,7 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		if v.onClose != nil {
 			// Beside the tab, not inside it: a click on the button must not
 			// also select the tab it is closing.
-			head.Pr(6).Child(el.Div().Name(locale.Current().Name(locale.Current().Close, p.title)).P(2).Rounded(theme.RadiusSm).
+			head.Pr(theme.SpaceSm).Child(el.Div().Name(locale.Current().Name(locale.Current().Close, p.title)).P(theme.SpaceXxs).Rounded(theme.RadiusSm).
 				Focusable(false).CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
 				OnClick(func() {
 					if !v.disabled {
@@ -245,7 +246,7 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 	if v.trailing != nil {
 		header.Child(el.Div().ID(id + "/trailing").NoShrink().Child(v.trailing.Render(cx)))
 	}
-	out := el.Div().Disabled(v.disabled).Gap(16).Items(el.Stretch).Child(el.Div().Items(el.Stretch).Child(header, el.Div().H(el.Dp(1)).Bg(theme.Border)))
+	out := el.Div().Disabled(v.disabled).Gap(theme.SpaceXl).Items(el.Stretch).Child(el.Div().Items(el.Stretch).Child(header, el.Div().H(el.Dp(1)).Bg(theme.Border)))
 	if v.current < len(v.pages) && v.pages[v.current].page != nil {
 		out.Child(el.Div().ID(v.tabID(v.current) + "/panel").Role("tabpanel").Name(v.pages[v.current].title).Items(el.Stretch).Child(v.pages[v.current].page.Render(cx)))
 	}

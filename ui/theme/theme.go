@@ -38,6 +38,8 @@ var (
 	Shadow       = color.NRGBA{R: 0x10, G: 0x18, B: 0x28, A: 0x2e} // tints raised surfaces' shadows
 	// Chart is the categorical order for data series; see Palette.Chart.
 	Chart = Light().Chart
+	// BgGradient and PrimaryGradient are optional; see Palette.
+	BgGradient, PrimaryGradient Gradient
 )
 
 // Text sizes.

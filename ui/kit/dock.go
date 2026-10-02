@@ -1,9 +1,10 @@
 package kit
 
 import (
+	"slices"
+
 	"gioui.org/io/key"
 	"gioui.org/op"
-	"slices"
 
 	"gioui.org/io/pointer"
 	"github.com/dyike/keel/ui/core"
@@ -355,11 +356,11 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 	}
 	active := &n.Active
 	text := locale.Current()
-	tabs := el.Div().Role("tablist").Row().Grow().W(el.Dp(0)).ScrollX().Gap(2)
+	tabs := el.Div().Role("tablist").Row().Grow().W(el.Dp(0)).ScrollX().Gap(theme.SpaceXxs)
 	for _, id := range ids {
 		id := id
 		on := id == *active
-		t := el.Div().ID(v.tabID(id)).NoShrink().Role("tab").Name(v.panels[id].Title).Selected(on).Px(10).Py(6).Rounded(theme.RadiusSm).TextSize(theme.TextMd).
+		t := el.Div().ID(v.tabID(id)).NoShrink().Role("tab").Name(v.panels[id].Title).Selected(on).Px(10).Py(theme.SpaceSm).Rounded(theme.RadiusSm).TextSize(theme.TextMd).
 			CursorPointer().Focusable(true).FocusStyle(func(st *el.Style) { st.BorderColor(theme.Primary) }).
 			OnClick(func() {
 				if *active != id {
@@ -425,10 +426,10 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 	m.Separator().Item(zoom, "", func() { v.toggleZoom(cur) })
 	m.Separator().Item(text.Close, "", func() { v.SetVisible(cur, false); v.changed() })
 	m.Trigger(Button("", m.Toggle).Name(text.Name(text.More, v.panels[cur].Title)).Icon(IconChevronDown).Variant(ButtonGhost).Size(24))
-	head := el.Div().Row().Items(el.Center).Gap(4).Px(4).Py(4).Bg(theme.Subtle).Child(tabs, m.Render(cx))
+	head := el.Div().Row().Items(el.Center).Gap(theme.SpaceXs).Px(theme.SpaceXs).Py(theme.SpaceXs).Bg(theme.Subtle).Child(tabs, m.Render(cx))
 	// A bounded body, not a scroll view: panels like Tree and Table fill it
 	// and scroll themselves; wrap long plain content in a ScrollY element.
-	body := el.Div().Grow().H(el.Dp(0)).Items(el.Stretch).P(8)
+	body := el.Div().Grow().H(el.Dp(0)).Items(el.Stretch).P(theme.SpaceMd)
 	if p := v.panels[cur]; p.View != nil {
 		body.Child(p.View.Render(cx))
 	}

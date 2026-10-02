@@ -1,9 +1,10 @@
 package kit
 
 import (
-	"github.com/dyike/keel/ui/locale"
 	"image"
 	"time"
+
+	"github.com/dyike/keel/ui/locale"
 
 	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
@@ -78,13 +79,13 @@ func (v *SheetView) Render(cx *el.Context) el.Element {
 		cx.Animating()
 	}
 	horizontal := v.side == el.Left || v.side == el.Right
-	panel := el.Div().Role("dialog").Name(v.title).Bg(theme.Surface).Shadow(theme.ElevationLg).P(20).Gap(16).Items(el.Stretch)
+	panel := el.Div().Role("dialog").Name(v.title).Bg(theme.Surface).Shadow(theme.ElevationLg).P(20).Gap(theme.SpaceXl).Items(el.Stretch)
 	if horizontal {
 		panel.W(el.Dp(v.size)).MaxW(el.Full).H(el.Full)
 	} else {
 		panel.H(el.Dp(v.size)).MaxH(el.Full).W(el.Full)
 	}
-	header := el.Div().Row().Items(el.Center).Gap(8).Child(el.Text(v.title).TextSize(theme.TextLg).Bold().Grow())
+	header := el.Div().Row().Items(el.Center).Gap(theme.SpaceMd).Child(el.Text(v.title).TextSize(theme.TextLg).Bold().Grow())
 	header.Child(Button("", v.close).Name(locale.Current().Close).Icon(IconClose).Variant(ButtonGhost).Size(28).Render(cx))
 	panel.Child(header)
 	id := autoID("sheet", v)

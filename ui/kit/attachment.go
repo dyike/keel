@@ -76,7 +76,7 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		pct := strconv.Itoa(int(v.progress*100+0.5)) + "%"
 		state, detail = text.Uploading+" "+pct, text.Uploading+" "+pct
 	}
-	info := el.Div().Grow().W(el.Dp(0)).Gap(4).Items(el.Stretch).Child(
+	info := el.Div().Grow().W(el.Dp(0)).Gap(theme.SpaceXs).Items(el.Stretch).Child(
 		el.Text(v.name).MaxLines(1),
 		el.Text(detail).TextSize(theme.TextSm).TextColor(color).MaxLines(1),
 	)

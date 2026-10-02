@@ -1,9 +1,10 @@
 package el
 
 import (
+	"image/color"
+
 	"gioui.org/font"
 	"github.com/dyike/keel/ui/theme"
-	"image/color"
 
 	"gioui.org/io/pointer"
 	"gioui.org/unit"
@@ -91,6 +92,7 @@ type Style struct {
 	top, right, bottom      *float32
 	left                    *float32
 	bg                      *color.NRGBA
+	gradient                *theme.Gradient // painted instead of bg when set
 	borderWidth, radius     float32
 	borderColor             color.NRGBA
 	cursor                  pointer.Cursor
@@ -133,7 +135,17 @@ func (t textStyle) inherit(parent textStyle) textStyle {
 }
 
 // Visual changes, usable in Hover and Active. They return the Style so calls chain.
-func (s *Style) Bg(c color.NRGBA) *Style          { s.bg = &c; return s }
+func (s *Style) Bg(c color.NRGBA) *Style { s.bg, s.gradient = &c, nil; return s }
+
+// BgGradient fills the background with a linear gradient instead of a solid
+// color; a later Bg replaces it. A zero gradient changes nothing, so a
+// theme's optional gradient can be passed as is.
+func (s *Style) BgGradient(g theme.Gradient) *Style {
+	if !g.IsZero() {
+		s.gradient = &g
+	}
+	return s
+}
 func (s *Style) BorderColor(c color.NRGBA) *Style { s.borderColor = c; return s }
 func (s *Style) TextColor(c color.NRGBA) *Style   { s.text.color = &c; return s }
 

@@ -133,7 +133,7 @@ func (v *ImageView) Render(cx *el.Context) el.Element {
 			Child(el.Text(v.alt).TextColor(theme.Muted).MaxLines(1))
 		if v.err != "" {
 			state = "error"
-			box.Gap(6).Child(el.Text(v.err).TextSize(theme.TextSm).TextColor(theme.DangerText))
+			box.Gap(theme.SpaceSm).Child(el.Text(v.err).TextSize(theme.TextSm).TextColor(theme.DangerText))
 			if v.retry != nil {
 				box.Child(Button(locale.Current().Retry, func() {
 					if v.err == "" || v.disabled {

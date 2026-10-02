@@ -128,8 +128,8 @@ func (v *StatusBarView) Render(cx *el.Context) el.Element {
 	hide := v.hidden()
 	// The groups shrink so long pinned text is cut off rather than pushing
 	// the bar wider; overflowing items keep their width and move instead.
-	left := el.Div().Row().Gap(8).MaxLines(1).Items(el.Center).MinW(el.Dp(0))
-	right := el.Div().Row().Gap(8).MaxLines(1).Items(el.Center).MinW(el.Dp(0))
+	left := el.Div().Row().Gap(theme.SpaceMd).MaxLines(1).Items(el.Center).MinW(el.Dp(0))
+	right := el.Div().Row().Gap(theme.SpaceMd).MaxLines(1).Items(el.Center).MinW(el.Dp(0))
 	if len(v.left) > 0 {
 		left.Child(v.pinnedGroup(cx, id+"/left", v.left, 0))
 	} else {
@@ -150,7 +150,7 @@ func (v *StatusBarView) Render(cx *el.Context) el.Element {
 	} else {
 		v.pinned[1] = 0
 	}
-	row := el.Div().ID(id + "/row").W(el.Full).H(el.Full).Row().Px(8).Gap(8).Items(el.Center).Decorate(func(gtx core.C, draw func()) {
+	row := el.Div().ID(id + "/row").W(el.Full).H(el.Full).Row().Px(theme.SpaceMd).Gap(theme.SpaceMd).Items(el.Center).Decorate(func(gtx core.C, draw func()) {
 		if px := gtx.Metric.PxPerDp; px > 0 {
 			if w := float32(gtx.Constraints.Max.X)/px - 16; v.avail != w {
 				v.avail = w
@@ -181,7 +181,7 @@ func (v *StatusBarView) Render(cx *el.Context) el.Element {
 // pinnedGroup shows the Left or Right views, which never overflow, and
 // records their width.
 func (v *StatusBarView) pinnedGroup(cx *el.Context, id string, views []el.View, side int) el.Element {
-	g := el.Div().ID(id).Row().Gap(8).Items(el.Center).MinW(el.Dp(0))
+	g := el.Div().ID(id).Row().Gap(theme.SpaceMd).Items(el.Center).MinW(el.Dp(0))
 	for _, e := range views {
 		if e != nil {
 			g.Child(e.Render(cx))
@@ -205,7 +205,7 @@ func (v *StatusBarView) itemElement(cx *el.Context, id string, i int) el.Element
 	if it.View != nil {
 		content = it.View.Render(cx)
 	} else if it.Action != nil {
-		content = el.Div().Role("button").Name(it.Label).Px(4).Rounded(theme.RadiusSm).Focusable(true).
+		content = el.Div().Role("button").Name(it.Label).Px(theme.SpaceXs).Rounded(theme.RadiusSm).Focusable(true).
 			Hover(func(s *el.Style) { s.Bg(theme.Subtle).TextColor(theme.Text) }).OnClick(it.Action).Child(el.Text(it.Label))
 	} else {
 		content = el.Text(it.Label)

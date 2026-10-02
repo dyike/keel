@@ -38,9 +38,9 @@ func (v *DescriptionListView) LabelWidth(dp float32) *DescriptionListView {
 	return v
 }
 func (v *DescriptionListView) Render(cx *el.Context) el.Element {
-	box := el.Div().W(el.Full).Gap(12)
+	box := el.Div().W(el.Full).Gap(theme.SpaceLg)
 	for _, item := range v.items {
-		row := el.Div().W(el.Full).Row().Gap(12).Items(el.Start)
+		row := el.Div().W(el.Full).Row().Gap(theme.SpaceLg).Items(el.Start)
 		label := el.Text(item.Label).W(el.Dp(v.labelWidth)).TextColor(theme.Muted)
 		if item.view == nil {
 			row.Role("text").Name(item.Label+"："+item.Text).Child(label, el.Text(item.Text).Grow().TextColor(theme.Text))

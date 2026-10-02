@@ -330,7 +330,7 @@ func (v *TableView) sized(c int, cell *el.DivEl) *el.DivEl {
 
 func (v *TableView) header(cx *el.Context, c int) el.Element {
 	col := v.cols[c]
-	label := el.Div().Row().Items(el.Center).Gap(4).Child(el.Text(col.title).Bold().TextSize(theme.TextMd).MaxLines(1))
+	label := el.Div().Row().Items(el.Center).Gap(theme.SpaceXs).Child(el.Text(col.title).Bold().TextSize(theme.TextMd).MaxLines(1))
 	if v.sortCol == c {
 		arrow := "↑"
 		if v.desc {
@@ -338,7 +338,7 @@ func (v *TableView) header(cx *el.Context, c int) el.Element {
 		}
 		label.Child(el.Text(arrow).TextSize(theme.TextMd).TextColor(theme.PrimaryText))
 	}
-	cell := v.sized(c, el.Div().Role("columnheader").Name(col.title).Py(10).Px(12).TextColor(theme.Muted)).Child(label)
+	cell := v.sized(c, el.Div().Role("columnheader").Name(col.title).Py(10).Px(theme.SpaceLg).TextColor(theme.Muted)).Child(label)
 	cell.Decorate(func(gtx core.C, draw func()) {
 		if px := gtx.Metric.PxPerDp; px > 0 {
 			v.widths[c] = float32(gtx.Constraints.Max.X) / px
@@ -381,7 +381,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 	}
 	for _, c := range v.visibleColumns() {
 		col := v.cols[c]
-		cell := v.sized(c, el.Div().ID(v.cellID(data, c)).Px(12).Justify(el.Center))
+		cell := v.sized(c, el.Div().ID(v.cellID(data, c)).Px(theme.SpaceLg).Justify(el.Center))
 		if col.width <= 0 {
 			cell.Items(el.Start)
 			if col.numeric {
@@ -457,7 +457,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 	if v.loadError != "" {
 		retry := Button(locale.Current().Retry, v.requestMore)
 		retry.SetDisabled(v.onLoadMore == nil)
-		status = el.Div().Gap(8).Items(el.Center).Child(el.Text(v.loadError).TextColor(theme.Danger), retry.Render(cx))
+		status = el.Div().Gap(theme.SpaceMd).Items(el.Center).Child(el.Text(v.loadError).TextColor(theme.Danger), retry.Render(cx))
 	}
 	if v.loading {
 		status = Spinner().Render(cx)

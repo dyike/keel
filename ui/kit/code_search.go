@@ -296,12 +296,12 @@ func (v *CodeEditorView) searchPanel(cx *el.Context) el.Element {
 			}
 			return true
 		})
-	row := el.Div().Row().Items(el.Center).Gap(2).Child(
+	row := el.Div().Row().Items(el.Center).Gap(theme.SpaceXxs).Child(
 		el.Div().W(el.Dp(220)).Child(searchField(cx, base+"/queryframe", queryID, query)),
 		toggle("Aa", text.MatchCase, &s.matchCase),
 		toggle("W", text.WholeWord, &s.wholeWord),
 		toggle(".*", text.RegularExpression, &s.regex),
-		el.Div().MinW(el.Dp(56)).Px(4).Child(el.Text(count).TextSize(theme.TextSm).TextColor(theme.Muted)),
+		el.Div().MinW(el.Dp(56)).Px(theme.SpaceXs).Child(el.Text(count).TextSize(theme.TextSm).TextColor(theme.Muted)),
 		icon(text.PrevMatch, IconChevronLeft, func() { v.findNext(-1) }),
 		icon(text.NextMatch, IconChevronRight, func() { v.findNext(1) }),
 	)
@@ -309,11 +309,11 @@ func (v *CodeEditorView) searchPanel(cx *el.Context) el.Element {
 		row.Child(icon(text.Replace, IconEdit, func() { s.replace = !s.replace }))
 	}
 	row.Child(icon(text.Close, IconClose, v.CloseSearch))
-	panel := floating(theme.ElevationMd).Role("search").Name(text.Find).P(6).Gap(6).Items(el.Start).Child(row)
+	panel := floating(theme.ElevationMd).Role("search").Name(text.Find).P(theme.SpaceSm).Gap(theme.SpaceSm).Items(el.Start).Child(row)
 	if s.replace && !v.readOnly {
 		repl := fieldText(el.Input().ID(replID).Name(text.Replace).Placeholder(text.Replace).Bind(&s.replacement).
 			OnSubmit(func(string) { v.replaceOne() }))
-		panel.Child(el.Div().Row().Items(el.Center).Gap(4).Child(
+		panel.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceXs).Child(
 			el.Div().W(el.Dp(220)).Child(fieldFrame(base+"/replaceframe", cx.FocusWithin(base+"/replaceframe"), false, false, false).FocusOnPress(replID).Child(repl)),
 			Button(text.Replace, v.replaceOne).Variant(ButtonSecondary).Size(24).Render(cx),
 			Button(text.ReplaceAll, v.replaceAll).Variant(ButtonSecondary).Size(24).Render(cx),

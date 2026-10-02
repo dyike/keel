@@ -34,7 +34,7 @@ func (v *StepperView) SetValue(i int) { v.current = min(max(i, 0), len(v.steps))
 
 func (v *StepperView) Render(cx *el.Context) el.Element {
 	id := autoID("stepper", v)
-	row := el.Div().Role("list").Row().Items(el.Center).Gap(8)
+	row := el.Div().Role("list").Row().Items(el.Center).Gap(theme.SpaceMd)
 	for i, s := range v.steps {
 		i := i
 		state, bg, fg, mark := "upcoming", theme.Subtle, theme.Muted, el.Element(el.Text(strconv.Itoa(i+1)).TextSize(theme.TextMd))
@@ -53,7 +53,7 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 		if i == v.current {
 			label.Bold()
 		}
-		step := el.Div().ID(id+"/"+strconv.Itoa(i)).Role("step").Name(s).Value(state).Row().Items(el.Center).Gap(6).Child(dot, label)
+		step := el.Div().ID(id+"/"+strconv.Itoa(i)).Role("step").Name(s).Value(state).Row().Items(el.Center).Gap(theme.SpaceSm).Child(dot, label)
 		if v.navigable && i < v.current {
 			step.Focusable(true).CursorPointer().OnClick(func() {
 				v.current = i

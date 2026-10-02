@@ -1,6 +1,10 @@
 package kit
 
 import (
+	"image/color"
+	"math"
+	"time"
+
 	"gioui.org/f32"
 	"gioui.org/op"
 	"gioui.org/widget/material"
@@ -8,9 +12,6 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
-	"image/color"
-	"math"
-	"time"
 )
 
 type SpinnerView struct {
@@ -35,7 +36,7 @@ func (v *SpinnerView) Render(cx *el.Context) el.Element {
 		label = locale.Current().Loading
 	}
 	ring := spinnerRing(cx, v.size, theme.PrimaryText)
-	box := el.Div().Role("progressbar").Name(label).Value("indeterminate").Row().Items(el.Center).Gap(8).Child(ring)
+	box := el.Div().Role("progressbar").Name(label).Value("indeterminate").Row().Items(el.Center).Gap(theme.SpaceMd).Child(ring)
 	if label != "" {
 		box.Child(el.Text(label).TextColor(theme.Muted))
 	}

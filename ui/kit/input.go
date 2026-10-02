@@ -97,14 +97,14 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 	}
 	box := fieldFrame(id, cx.FocusWithin(id), v.err != "", v.disabled, v.readOnly).FocusOnPress(v.FocusID())
 	if v.multiline {
-		box.Items(el.Start).Py(8)
+		box.Items(el.Start).Py(theme.SpaceMd)
 	}
 	if v.prefix != nil {
 		box.Child(el.Div().TextColor(theme.Muted).Child(v.prefix.Render(cx)))
 	}
 	box.Child(text)
 	if v.clearable && v.value != "" && !v.disabled && !v.readOnly {
-		box.Child(el.Div().Name(locale.Current().Name(locale.Current().Clear, name)).P(2).Rounded(theme.RadiusSm).
+		box.Child(el.Div().Name(locale.Current().Name(locale.Current().Clear, name)).P(theme.SpaceXxs).Rounded(theme.RadiusSm).
 			CursorPointer().Focusable(false).Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
 			OnClick(func() {
 				v.value = ""

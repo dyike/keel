@@ -193,7 +193,7 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 	next.SetDisabled(v.disabled || !v.choosing && !v.monthAllowed(v.month.AddDate(0, 1, 0)))
 	title := Button(v.monthTitle(), func() { v.choosing = !v.choosing; v.chooseYear = v.month.Year(); v.yearEditing = false }).Variant(ButtonGhost).Size(28)
 	head := el.Div().Row().WFull().Items(el.Center).Child(prev.Render(cx), el.Div().Grow().Items(el.Center).Child(title.Render(cx)), next.Render(cx))
-	body := el.Div().Row().Wrap().Gap(16).WFull()
+	body := el.Div().Row().Wrap().Gap(theme.SpaceXl).WFull()
 	count := max(1, v.months)
 	if v.choosing {
 		body.Child(v.yearMonths(cx))
@@ -203,7 +203,7 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 			body.Child(v.monthGrid(v.month.AddDate(0, i, 0), today, move))
 		}
 	}
-	root := el.Div().Disabled(v.disabled).W(el.Dp(float32(count*252+(count-1)*16))).MaxW(el.Full).Gap(8).Items(el.Stretch).Child(head, body)
+	root := el.Div().Disabled(v.disabled).W(el.Dp(float32(count*252+(count-1)*16))).MaxW(el.Full).Gap(theme.SpaceMd).Items(el.Stretch).Child(head, body)
 	root.OnKey(func(e el.KeyEvent) bool {
 		if key.Name(e.Name) == key.NameEscape && v.pending {
 			if e.State == el.KeyPress {

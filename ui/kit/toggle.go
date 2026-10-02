@@ -38,7 +38,7 @@ func toggleButton(cx *el.Context, id, text string, icon *IconView, on, disabled 
 		fg = theme.Muted
 	}
 	b := el.Div().ID(id).Role("toggle").Name(text).Selected(on).Disabled(disabled).
-		Row().Items(el.Center).Gap(6).H(el.Dp(32)).Px(12).Rounded(theme.RadiusMd).Bg(bg).Border(1, border).TextColor(fg).TextSize(theme.TextControl).
+		Row().Items(el.Center).Gap(theme.SpaceSm).H(el.Dp(32)).Px(theme.SpaceLg).Rounded(theme.RadiusMd).Bg(bg).Border(1, border).TextColor(fg).TextSize(theme.TextControl).
 		Focusable(true).OnClick(fn).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
 	if !disabled {
 		b.CursorPointer().Hover(func(s *el.Style) {

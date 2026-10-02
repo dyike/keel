@@ -218,14 +218,14 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 	if name == "" {
 		name = strings.Join(names, ", ")
 	}
-	head := el.Div().Row().Wrap().Items(el.Center).Gap(12)
+	head := el.Div().Row().Wrap().Items(el.Center).Gap(theme.SpaceLg)
 	if v.title != "" {
 		head.Child(el.Text(v.title).Bold())
 	}
 	head.Child(el.Div().Grow())
 	if len(v.series) > 1 {
 		for i, s := range v.series {
-			head.Child(el.Div().Row().Items(el.Center).Gap(6).Child(
+			head.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceSm).Child(
 				el.Div().Size(el.Dp(10)).Rounded(theme.RadiusFull).Bg(theme.Chart[i%len(theme.Chart)]),
 				el.Text(s.Name).TextSize(theme.TextSm).TextColor(theme.Muted)))
 		}
@@ -253,7 +253,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 		if left+12+160 > v.plotW {
 			left -= 12 + 160 + 12
 		}
-		box.Child(el.Div().Absolute().Left(max(left+12, 0)).Top(max(top-40, 0)).W(el.Dp(min(float32(160), v.plotW))).P(8).Gap(2).Rounded(theme.RadiusMd).
+		box.Child(el.Div().Absolute().Left(max(left+12, 0)).Top(max(top-40, 0)).W(el.Dp(min(float32(160), v.plotW))).P(theme.SpaceMd).Gap(theme.SpaceXxs).Rounded(theme.RadiusMd).
 			Bg(theme.Surface).Border(1, theme.Border).Child(
 			el.Text(v.series[s].Name).TextSize(theme.TextSm).Bold(),
 			el.Text("x "+v.format(p.X)+"   y "+v.format(p.Y)).TextSize(theme.TextSm).TextColor(theme.Muted)))
@@ -269,7 +269,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 			el.Div().W(el.Dp(1)).H(el.Dp(18)).Mx(-.5).NoShrink().Child(el.Div().Absolute().Left(-12).W(el.Dp(56)).Child(el.Text(v.format(t)).TextSize(theme.TextXs).TextColor(theme.Muted).MaxLines(1))))
 		previous = fraction
 	}
-	return el.Div().Disabled(v.disabled).ID(autoID("plot", v)).Role("figure").Name(name).Gap(10).P(12).Rounded(theme.RadiusLg).
+	return el.Div().Disabled(v.disabled).ID(autoID("plot", v)).Role("figure").Name(name).Gap(10).P(theme.SpaceLg).Rounded(theme.RadiusLg).
 		Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {

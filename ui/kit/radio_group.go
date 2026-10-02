@@ -165,9 +165,9 @@ func (v *RadioGroupView) renderItem(cx *el.Context, i int) el.Element {
 		})
 }
 func (v *RadioGroupView) Render(cx *el.Context) el.Element {
-	group := el.Div().Role("radiogroup").Name(v.a11y()).Gap(8).Disabled(v.disabled)
+	group := el.Div().Role("radiogroup").Name(v.a11y()).Gap(theme.SpaceMd).Disabled(v.disabled)
 	if v.horizontal {
-		group.Row().Wrap().Gap(16)
+		group.Row().Wrap().Gap(theme.SpaceXl)
 	}
 	for i := range v.options {
 		group.Child(v.renderItem(cx, i))

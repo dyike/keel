@@ -1,10 +1,11 @@
 package kit
 
 import (
+	"slices"
+
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
-	"slices"
 )
 
 // DialogView is a modal dialog: the page dims, ignores the pointer and loses
@@ -128,7 +129,7 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 	}
 	id := autoID("dialog", v)
 	w, h := cx.ViewportSize()
-	panel := floating(theme.ElevationLg).Rounded(theme.RadiusXl).Role(role).Name(v.title).W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().P(20).Gap(16).Items(el.Stretch)
+	panel := floating(theme.ElevationLg).Rounded(theme.RadiusXl).Role(role).Name(v.title).W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().P(20).Gap(theme.SpaceXl).Items(el.Stretch)
 	layer := el.Modal(panel).Owner(id).OnDismiss(v.close)
 	if v.alert {
 		layer.KeepOnOutsidePress()
@@ -141,7 +142,7 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 		panel.Child(el.Div().ID(id + "/body").MaxH(el.Dp(max(0, h-160))).ScrollY().Items(el.Stretch).Child(v.body.Render(cx)))
 	}
 	if len(v.footer) > 0 {
-		row := el.Div().Gap(8).Justify(el.End)
+		row := el.Div().Gap(theme.SpaceMd).Justify(el.End)
 		if min(w-16, v.width) >= 360 {
 			row.Row()
 		}

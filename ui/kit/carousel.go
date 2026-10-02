@@ -68,7 +68,7 @@ func (v *CarouselView) Render(cx *el.Context) el.Element {
 	if v.current < len(v.slides) && v.slides[v.current] != nil {
 		stage.Child(v.slides[v.current].Render(cx))
 	}
-	dots := el.Div().Row().Gap(6).Justify(el.Center)
+	dots := el.Div().Row().Gap(theme.SpaceSm).Justify(el.Center)
 	for i := range v.slides {
 		i := i
 		c := theme.Border
@@ -78,7 +78,7 @@ func (v *CarouselView) Render(cx *el.Context) el.Element {
 		dots.Child(el.Div().Name(strconv.Itoa(i + 1)).Size(el.Dp(8)).Rounded(theme.RadiusSm).Bg(c).CursorPointer().Focusable(false).
 			OnClick(func() { v.goTo(i) }))
 	}
-	nav := el.Div().Row().Items(el.Center).Gap(8).Child(
+	nav := el.Div().Row().Items(el.Center).Gap(theme.SpaceMd).Child(
 		Button("", func() { v.goTo(v.current - 1) }).Name(text.PrevSlide).Icon(IconChevronLeft).Variant(ButtonGhost).Size(28).Render(cx),
 		el.Div().Grow().Items(el.Center).Child(dots),
 		Button("", func() { v.goTo(v.current + 1) }).Name(text.NextSlide).Icon(IconChevronRight).Variant(ButtonGhost).Size(28).Render(cx),

@@ -94,7 +94,7 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 	if name == "" {
 		name = v.text
 	}
-	box := el.Div().ID(v.id).Role("button").Name(name).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(6).Items(el.Center).Justify(el.Center).
+	box := el.Div().ID(v.id).Role("button").Name(name).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(theme.SpaceSm).Items(el.Center).Justify(el.Center).
 		Rounded(theme.RadiusMd).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
 		Disabled(v.disabled).
 		DisabledStyle(func(s *el.Style) { s.Bg(bg).TextColor(fg) }).
@@ -105,7 +105,13 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 				s.BorderColor(theme.PrimaryText)
 			}
 		})
-	if !v.loading && !v.disabled {
+	if g := theme.PrimaryGradient; v.variant == ButtonPrimary && !v.disabled && !g.IsZero() {
+		box.BgGradient(g)
+		if !v.loading {
+			box.CursorPointer().Hover(func(s *el.Style) { s.BgGradient(shadeGradient(g, 9)) }).
+				Active(func(s *el.Style) { s.BgGradient(shadeGradient(g, 8)) })
+		}
+	} else if !v.loading && !v.disabled {
 		box.CursorPointer().Hover(func(s *el.Style) { s.Bg(hover) }).Active(func(s *el.Style) { s.Bg(active) })
 	}
 	if v.loading {
@@ -131,4 +137,15 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 		box.Child(el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Child(spinnerRing(cx, iconSize, fg)))
 	}
 	return box
+}
+
+// shadeGradient darkens both ends of g to tenths of their brightness, for a
+// gradient button's hover and pressed states.
+func shadeGradient(g theme.Gradient, tenths uint16) theme.Gradient {
+	shade := func(c color.NRGBA) color.NRGBA {
+		c.R, c.G, c.B = uint8(uint16(c.R)*tenths/10), uint8(uint16(c.G)*tenths/10), uint8(uint16(c.B)*tenths/10)
+		return c
+	}
+	g.From, g.To = shade(g.From), shade(g.To)
+	return g
 }

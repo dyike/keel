@@ -8,6 +8,7 @@ package main
 import (
 	"flag"
 	"log"
+	"time"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
@@ -22,15 +23,22 @@ func main() {
 	height := flag.Int("height", 1040, "screenshot height in dp")
 	scale := flag.Float64("scale", 2, "screenshot pixels per dp")
 	matrix := flag.String("matrix", "", "write all component light/dark, narrow/standard, 1x/2x screenshots and an HTML index")
-	palette := flag.String("theme", "light", "light or dark palette")
+	palette := flag.String("theme", "light", "a registered theme: light, dark, nord, aurora, ...")
+	themeDir := flag.String("themes", "", "also load *.json themes from this directory and reload them as they change")
 	flag.Parse()
-	switch *palette {
-	case "light":
-		theme.Apply(theme.Light())
-	case "dark":
-		theme.Apply(theme.Dark())
-	default:
-		log.Fatalf("unknown theme %q", *palette)
+	if *themeDir != "" {
+		w, err := theme.WatchThemes(*themeDir, time.Second, func(names []string, err error) {
+			if err != nil {
+				log.Print(err)
+			}
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer w.Stop()
+	}
+	if err := theme.Use(*palette); err != nil {
+		log.Fatal(err)
 	}
 	if *matrix != "" {
 		if err := renderMatrix(*matrix); err != nil {

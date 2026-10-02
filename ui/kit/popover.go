@@ -62,7 +62,7 @@ func (v *PopoverView) Render(cx *el.Context) el.Element {
 	id := autoID("popover", v)
 	if v.open {
 		w, h := cx.ViewportSize()
-		panel := floating(theme.ElevationMd).ID(id + "/panel").Role("dialog").MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX().P(12)
+		panel := floating(theme.ElevationMd).ID(id + "/panel").Role("dialog").MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX().P(theme.SpaceLg)
 		if v.width > 0 {
 			panel.W(el.Dp(v.width))
 		}

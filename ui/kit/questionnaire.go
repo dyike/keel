@@ -217,11 +217,11 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	q := v.questions[v.page]
 	progress := Progress(text.Progress(v.page+1, n))
 	progress.SetValue(float32(v.page+1) / float32(n))
-	title := el.Div().Row().Gap(4).Child(el.Text(q.Title).TextSize(theme.TextLg).Bold())
+	title := el.Div().Row().Gap(theme.SpaceXs).Child(el.Text(q.Title).TextSize(theme.TextLg).Bold())
 	if q.Required {
 		title.Child(el.Text("*").TextSize(theme.TextLg).TextColor(theme.DangerText))
 	}
-	card := el.Div().Role("group").Name(q.Title).Gap(12).Items(el.Stretch).Child(title)
+	card := el.Div().Role("group").Name(q.Title).Gap(theme.SpaceLg).Items(el.Stretch).Child(title)
 	if q.Description != "" {
 		card.Child(el.Text(q.Description).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
@@ -230,7 +230,7 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	case c.radio != nil:
 		card.Child(c.radio.Render(cx))
 	case c.checks != nil:
-		list := el.Div().Gap(8).Items(el.Start)
+		list := el.Div().Gap(theme.SpaceMd).Items(el.Start)
 		for _, ch := range c.checks {
 			list.Child(ch.Render(cx))
 		}
@@ -252,6 +252,6 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	return el.Div().Disabled(v.disabled).Role("form").Name(text.Progress(v.page+1, n)).Gap(20).Items(el.Stretch).Child(
 		progress.Render(cx),
 		card,
-		el.Div().Row().Gap(8).Justify(el.End).Child(prev.Render(cx), forward.Render(cx)),
+		el.Div().Row().Gap(theme.SpaceMd).Justify(el.End).Child(prev.Render(cx), forward.Render(cx)),
 	)
 }

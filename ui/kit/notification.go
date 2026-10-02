@@ -1,9 +1,10 @@
 package kit
 
 import (
-	"github.com/dyike/keel/ui/locale"
 	"strconv"
 	"time"
+
+	"github.com/dyike/keel/ui/locale"
 
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
@@ -64,7 +65,7 @@ func (v *NotifierView) Render(cx *el.Context) el.Element {
 	id := autoID("notifier", v)
 	if len(v.items) > 0 {
 		w, h := cx.ViewportSize()
-		stack := el.Div().W(el.Dp(320)).MaxW(el.Dp(max(0, w-32))).MaxH(el.Dp(max(0, h-32))).ScrollY().Gap(8).Items(el.Stretch)
+		stack := el.Div().W(el.Dp(320)).MaxW(el.Dp(max(0, w-32))).MaxH(el.Dp(max(0, h-32))).ScrollY().Gap(theme.SpaceMd).Items(el.Stretch)
 		for i, it := range v.items {
 			if i == MaxNotifications {
 				break
@@ -85,11 +86,11 @@ func (v *NotifierView) card(cx *el.Context, base string, n notice) el.Element {
 	if timeout > 0 {
 		cx.Countdown(id, noticeKey{base, n.id, n.revision}, timeout, cx.Hovered(id) || cx.FocusWithin(id), func() { v.Dismiss(n.id) })
 	}
-	text := el.Div().Grow().Gap(4).Child(el.Text(n.Title).Bold().TextColor(n.Tone.color()))
+	text := el.Div().Grow().Gap(theme.SpaceXs).Child(el.Text(n.Title).Bold().TextColor(n.Tone.color()))
 	if n.Body != "" {
 		text.Child(el.Text(n.Body).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
-	return floating(theme.ElevationMd).NoShrink().ID(id).Role("status").Name(n.Title).Value(n.Tone.name()).P(12).Row().Gap(10).Items(el.Start).Child(
+	return floating(theme.ElevationMd).NoShrink().ID(id).Role("status").Name(n.Title).Value(n.Tone.name()).P(theme.SpaceLg).Row().Gap(10).Items(el.Start).Child(
 		el.Div().W(el.Dp(4)).H(el.Dp(20)).Rounded(theme.RadiusFull).Bg(n.Tone.color()),
 		text,
 		Button("", func() { v.Dismiss(n.id) }).Name(locale.Current().Name(locale.Current().Close, n.Title)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx),

@@ -1,14 +1,16 @@
 package kit
 
 import (
-	"gioui.org/io/key"
 	"math"
 	"math/big"
 	"strconv"
 	"strings"
 
+	"gioui.org/io/key"
+
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
+	"github.com/dyike/keel/ui/theme"
 )
 
 // NumberInputView edits a number with − and + buttons. Typing may pass
@@ -190,7 +192,7 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 		})
 	// The 28dp step buttons sit near the edges: 3dp around them keeps the
 	// frame at theme.ControlHeight.
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(4).P(3).
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(theme.SpaceXs).P(3).
 		Child(minus.Render(cx), field, plus.Render(cx))
 	return labelled(v.label, box, v.err)
 }

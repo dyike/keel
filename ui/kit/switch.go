@@ -32,7 +32,7 @@ func (v *SwitchView) Render(cx *el.Context) el.Element {
 	if v.disabled {
 		knob.Bg(theme.Border)
 	}
-	body := el.Div().W(el.Dp(36)).H(el.Dp(20)).NoShrink().Rounded(theme.RadiusFull).Bg(track).Px(2).Row().Items(el.Center).Child(knob)
+	body := el.Div().W(el.Dp(36)).H(el.Dp(20)).NoShrink().Rounded(theme.RadiusFull).Bg(track).Px(theme.SpaceXxs).Row().Items(el.Center).Child(knob)
 	if v.value {
 		body.Justify(el.End)
 	}

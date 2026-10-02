@@ -40,7 +40,7 @@ func (v *TooltipView) Render(cx *el.Context) el.Element {
 	}
 	if (v.shown || focused) && !v.muted && !v.disabled && v.text != "" {
 		w, _ := cx.ViewportSize()
-		tip := el.Div().Role("tooltip").Name(v.text).Px(8).Py(4).Rounded(theme.RadiusMd).Shadow(theme.ElevationSm).MaxW(el.Dp(min(280, max(0, w-16)))).
+		tip := el.Div().Role("tooltip").Name(v.text).Px(theme.SpaceMd).Py(theme.SpaceXs).Rounded(theme.RadiusMd).Shadow(theme.ElevationSm).MaxW(el.Dp(min(280, max(0, w-16)))).
 			Bg(theme.Text).TextColor(theme.Surface).TextSize(theme.TextSm).Child(el.Text(v.text))
 		cx.Overlay(id, el.Anchored(id, tip).Placement(el.Top, el.Center).OnDismiss(func() { v.muted = true }))
 	}

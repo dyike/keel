@@ -1,10 +1,11 @@
 package el
 
 import (
-	"gioui.org/font"
-	"github.com/dyike/keel/ui/theme"
 	"image"
 	"image/color"
+
+	"gioui.org/font"
+	"github.com/dyike/keel/ui/theme"
 
 	"gioui.org/io/pointer"
 	"gioui.org/unit"
@@ -278,7 +279,10 @@ func (s *Styled[T]) Hidden(h bool) *T { s.n.style.hidden = h; return s.self }
 
 // Visuals.
 
-func (s *Styled[T]) Bg(c color.NRGBA) *T { s.n.style.bg = &c; return s.self }
+func (s *Styled[T]) Bg(c color.NRGBA) *T { s.n.style.Bg(c); return s.self }
+
+// BgGradient fills the background with a linear gradient; see Style.BgGradient.
+func (s *Styled[T]) BgGradient(g theme.Gradient) *T { s.n.style.BgGradient(g); return s.self }
 
 // Border draws a line of width dp inside the element's edge.
 func (s *Styled[T]) Border(dp float32, c color.NRGBA) *T {

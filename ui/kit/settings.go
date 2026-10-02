@@ -51,14 +51,14 @@ func (v *SettingsView) Value() string         { return v.nav.Value() }
 func (v *SettingsView) SetValue(title string) { v.nav.SetValue(title) }
 
 func (v *SettingsView) row(cx *el.Context, it SettingItem, narrow bool) el.Element {
-	text := el.Div().Gap(2).Child(el.Text(it.Label))
+	text := el.Div().Gap(theme.SpaceXxs).Child(el.Text(it.Label))
 	if it.Description != "" {
 		text.Child(el.Text(it.Description).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
-	row := el.Div().Role("group").Name(it.Label).Row().Items(el.Center).Gap(16).Py(12).Child(text)
+	row := el.Div().Role("group").Name(it.Label).Row().Items(el.Center).Gap(theme.SpaceXl).Py(theme.SpaceLg).Child(text)
 	if narrow {
 		text.WFull()
-		row.Col().Items(el.Stretch).Gap(8)
+		row.Col().Items(el.Stretch).Gap(theme.SpaceMd)
 	} else {
 		text.Grow().W(el.Dp(0))
 	}
@@ -86,7 +86,7 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 	}
 	v.nav.sections = []sidebarSection{nav}
 	q := strings.ToLower(strings.TrimSpace(v.query))
-	content := el.Div().Grow().W(el.Dp(0)).ScrollY().Px(24).Py(16).Items(el.Stretch)
+	content := el.Div().Grow().W(el.Dp(0)).ScrollY().Px(theme.Space2xl).Py(theme.SpaceXl).Items(el.Stretch)
 	search := searchField(cx, autoID("settings", v)+"/searchbox", autoID("settings", v)+"/search", el.Input().ID(autoID("settings", v)+"/search").Name(text.SearchSettings).Placeholder(text.SearchSettings).Bind(&v.query)).Mb(8)
 	content.Child(search)
 	found := false
@@ -108,14 +108,14 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 			continue
 		}
 		found = true
-		content.Child(el.Div().Pt(8).Pb(4).Child(el.Text(s.title).TextSize(theme.TextLg).Bold()))
+		content.Child(el.Div().Pt(theme.SpaceMd).Pb(theme.SpaceXs).Child(el.Text(s.title).TextSize(theme.TextLg).Bold()))
 		content.Child(el.Div().Role("group").Name(s.title).Items(el.Stretch).Children(rows))
 	}
 	if !found {
-		content.Child(el.Div().Py(24).Child(el.Text(text.NoMatches).TextColor(theme.Muted)))
+		content.Child(el.Div().Py(theme.Space2xl).Child(el.Text(text.NoMatches).TextColor(theme.Muted)))
 	}
 	if narrow {
-		links := el.Div().Role("navigation").Wrap().Gap(4).P(12)
+		links := el.Div().Role("navigation").Wrap().Gap(theme.SpaceXs).P(theme.SpaceLg)
 		for i, s := range v.sections {
 			title := s.title
 			variant := ButtonGhost

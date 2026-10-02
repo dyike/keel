@@ -1,11 +1,14 @@
 package el
 
 import (
-	"gioui.org/io/key"
 	"image"
 	"image/color"
+	"math"
 	"strings"
 	"time"
+
+	"gioui.org/f32"
+	"gioui.org/io/key"
 
 	"gioui.org/font"
 	"gioui.org/gesture"
@@ -366,7 +369,9 @@ func (e *engine) semantics(n *Node) []interface{ Add(*op.Ops) } {
 
 func (e *engine) paintBox(st Style, rect image.Rectangle, radius int) {
 	ops := e.gtx.Ops
-	if st.bg != nil {
+	if g := st.gradient; g != nil {
+		paintGradient(ops, *g, rect, radius)
+	} else if st.bg != nil {
 		paint.FillShape(ops, *st.bg, clip.UniformRRect(rect, radius).Op(ops))
 	}
 	if bw := e.dp(st.borderWidth); bw > 0 {
@@ -723,6 +728,23 @@ func (e *engine) textShift(n *Node) int {
 	}
 	shifts[key] = shift
 	return shift
+}
+
+// paintGradient fills a rounded rectangle with g. The stops sit where the
+// gradient line, through the center at g.Angle, leaves the rectangle, so the
+// corners get the end colors whatever the angle.
+func paintGradient(ops *op.Ops, g theme.Gradient, rect image.Rectangle, radius int) {
+	a := float64(g.Angle) * math.Pi / 180
+	dx, dy := math.Cos(a), math.Sin(a)
+	w, h := float64(rect.Dx()), float64(rect.Dy())
+	half := (math.Abs(w*dx) + math.Abs(h*dy)) / 2
+	cx, cy := float64(rect.Min.X)+w/2, float64(rect.Min.Y)+h/2
+	defer clip.UniformRRect(rect, radius).Push(ops).Pop()
+	paint.LinearGradientOp{
+		Stop1: f32.Pt(float32(cx-dx*half), float32(cy-dy*half)), Color1: g.From,
+		Stop2: f32.Pt(float32(cx+dx*half), float32(cy+dy*half)), Color2: g.To,
+	}.Add(ops)
+	paint.PaintOp{}.Add(ops)
 }
 
 // bgEase is how long a hover or press background takes to change.

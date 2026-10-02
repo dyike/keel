@@ -154,7 +154,7 @@ const typeaheadBlockers = key.ModCtrl | key.ModCommand | key.ModAlt | key.ModSup
 // a transparent border so the focus outline has somewhere to show.
 func listFrame(d *el.DivEl, plain bool) *el.DivEl {
 	if plain {
-		return d.Rounded(theme.RadiusMd).Border(1, color.NRGBA{}).Py(4).Items(el.Stretch)
+		return d.Rounded(theme.RadiusMd).Border(1, color.NRGBA{}).Py(theme.SpaceXs).Items(el.Stretch)
 	}
-	return d.Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface).Py(4).Items(el.Stretch)
+	return d.Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface).Py(theme.SpaceXs).Items(el.Stretch)
 }

@@ -1,9 +1,10 @@
 package kit
 
 import (
+	"time"
+
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
-	"time"
 )
 
 // DisclosureDuration is the duration of an expand/collapse transition.
@@ -47,7 +48,7 @@ func disclosureTrigger(cx *el.Context, id, label string, heading el.View, open, 
 		state = "expanded"
 		icon = IconChevronDown
 	}
-	head := el.Div().ID(id).Role("disclosure").Name(label).Value(state).Disabled(disabled).Row().Items(el.Center).Gap(8).Px(14).Py(12).Focusable(true).
+	head := el.Div().ID(id).Role("disclosure").Name(label).Value(state).Disabled(disabled).Row().Items(el.Center).Gap(theme.SpaceMd).Px(14).Py(theme.SpaceLg).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).OnClick(toggle)
 	if heading == nil {
 		head.Child(el.Text(label).Bold().Grow())

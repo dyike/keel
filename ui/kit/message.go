@@ -22,7 +22,7 @@ func (v *BubbleView) Mine() *BubbleView  { v.mine = true; return v }
 func (v *BubbleView) Render(cx *el.Context) el.Element {
 	box := el.Div().MaxW(el.Frac(0.75)).Rounded(theme.RadiusXl).Px(14).Py(10)
 	if v.mine {
-		box.Bg(theme.Primary).TextColor(theme.OnColor)
+		box.Bg(theme.Primary).BgGradient(theme.PrimaryGradient).TextColor(theme.OnColor)
 	} else {
 		box.Bg(theme.Subtle)
 	}
@@ -104,7 +104,7 @@ func (v *MessageView) OnReaction(fn func(int, bool)) *MessageView { v.onReaction
 func (v *MessageView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
 	state := ""
-	body := el.Div().Gap(8).Items(el.Stretch)
+	body := el.Div().Gap(theme.SpaceMd).Items(el.Stretch)
 	if v.user {
 		body.Child(Bubble(v.content).Mine().Render(cx))
 	} else if v.content != nil {
@@ -123,7 +123,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		if v.failure != "" {
 			detail = text.Detail(detail, v.failure)
 		}
-		status := el.Div().Row().Wrap().Gap(8).Items(el.Center).Child(el.Text(detail).TextSize(theme.TextSm).TextColor(theme.DangerText))
+		status := el.Div().Row().Wrap().Gap(theme.SpaceMd).Items(el.Center).Child(el.Text(detail).TextSize(theme.TextSm).TextColor(theme.DangerText))
 		if v.user {
 			status.Justify(el.End)
 		}
@@ -139,7 +139,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		body.Child(status)
 	}
 	if len(v.actions) > 0 {
-		row := el.Div().Row().Wrap().Gap(4)
+		row := el.Div().Row().Wrap().Gap(theme.SpaceXs)
 		if v.user {
 			row.Justify(el.End)
 		}
@@ -151,7 +151,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		body.Child(row)
 	}
 	if len(v.reactions) > 0 {
-		row := el.Div().Row().Wrap().Gap(4)
+		row := el.Div().Row().Wrap().Gap(theme.SpaceXs)
 		if v.user {
 			row.Justify(el.End)
 		}
@@ -177,6 +177,6 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 	if v.user {
 		return article.Child(body)
 	}
-	body.Grow().W(el.Dp(0)).Pt(4)
+	body.Grow().W(el.Dp(0)).Pt(theme.SpaceXs)
 	return article.Row().Gap(10).Items(el.Start).Child(Avatar(v.author).Size(28).Render(cx), body)
 }

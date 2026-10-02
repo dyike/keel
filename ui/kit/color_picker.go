@@ -326,9 +326,9 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 	preview := el.Div().Size(el.Dp(32)).NoShrink().Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(p.Value())
 	hex := fieldText(el.Input().ID(id + "/hex").Name("HEX").Bind(&p.hex)).Filter("#0123456789abcdefABCDEF").MaxLen(maxLen).
 		OnSubmit(func(string) { p.commitHex() })
-	col.Child(el.Div().Row().Items(el.Center).Gap(8).Child(preview, fieldFrame(id+"/hexbox", focused, false, p.disabled, false).FocusOnPress(id+"/hex").Grow().W(el.Dp(0)).Child(hex)))
+	col.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceMd).Child(preview, fieldFrame(id+"/hexbox", focused, false, p.disabled, false).FocusOnPress(id+"/hex").Grow().W(el.Dp(0)).Child(hex)))
 	if len(p.swatches) > 0 {
-		row := el.Div().Row().Wrap().Gap(6)
+		row := el.Div().Row().Wrap().Gap(theme.SpaceSm)
 		for i, c := range p.swatches {
 			swatch := el.Div().ID(id+"/swatch/"+strconv.Itoa(i)).Role("button").Name(hexOf(c, p.alpha)).Selected(c == p.Value()).
 				Size(el.Dp(24)).NoShrink().Rounded(theme.RadiusSm).Bg(c).Border(1, theme.Border).Center().CursorPointer().Focusable(true).

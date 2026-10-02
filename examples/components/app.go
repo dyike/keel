@@ -36,12 +36,8 @@ type gallery struct {
 
 func newGallery() *gallery {
 	g := &gallery{built: map[string]core.Widget{}, sections: map[string]demoSection{}}
-	g.themes = kit.Select("", theme.Names()...).OnChange(func(name string) {
-		if p, ok := theme.Named(name); ok {
-			theme.Apply(p)
-		}
-	})
-	g.themes.SetValue(currentTheme())
+	g.themes = kit.Select("", theme.Names()...).OnChange(func(name string) { theme.Use(name) })
+	g.themes.SetValue(theme.CurrentName())
 	byCategory := map[string][]kit.SidebarItem{}
 	for _, s := range demoSections {
 		g.sections[s.name] = s
@@ -140,7 +136,7 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	} else {
 		body = el.Div().ID("page/" + name).Grow().MinH(el.Dp(0)).ScrollY().P(8).Items(el.Start).Child(el.Widget(w))
 	}
-	return el.Div().Row().Grow().Items(el.Stretch).Bg(theme.Bg).Child(
+	return el.Div().Row().Grow().Items(el.Stretch).Child(
 		g.nav.Render(cx),
 		el.Div().W(el.Dp(1)).NoShrink().Bg(theme.Border),
 		el.Div().Grow().W(el.Dp(0)).Items(el.Stretch).Child(
@@ -149,15 +145,4 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 			body,
 		),
 	)
-}
-
-// currentTheme names the registered palette now applied, for the picker.
-func currentTheme() string {
-	cur := theme.Current()
-	for _, name := range theme.Names() {
-		if p, _ := theme.Named(name); p == cur {
-			return name
-		}
-	}
-	return "light"
 }

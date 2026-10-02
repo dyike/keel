@@ -53,13 +53,13 @@ func (v *AlertView) Render(cx *el.Context) el.Element {
 	case ToneDanger:
 		name = IconError
 	}
-	text := el.Div().Grow().Gap(6).Child(el.Text(v.title).Bold().TextColor(v.tone.color()))
+	text := el.Div().Grow().Gap(theme.SpaceSm).Child(el.Text(v.title).Bold().TextColor(v.tone.color()))
 	if v.description != "" {
 		text.Child(el.Text(v.description).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
-	body := el.Div().Row().Grow().P(12).Gap(8).Items(el.Start).Child(Icon(name).Color(v.tone.color()).Render(cx), text)
+	body := el.Div().Row().Grow().P(theme.SpaceLg).Gap(theme.SpaceMd).Items(el.Start).Child(Icon(name).Color(v.tone.color()).Render(cx), text)
 	if v.onClose != nil {
-		body.Child(el.Div().ID("close").Name(locale.Current().Name(locale.Current().Close, v.title)).Focusable(true).P(4).OnClick(v.close).Child(Icon(IconClose).Render(cx)))
+		body.Child(el.Div().ID("close").Name(locale.Current().Name(locale.Current().Close, v.title)).Focusable(true).P(theme.SpaceXs).OnClick(v.close).Child(Icon(IconClose).Render(cx)))
 	}
 	return el.Div().Disabled(v.disabled).W(el.Full).Role("alert").Name(v.title).Value(v.tone.name()).Row().Items(el.Stretch).Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface).Child(el.Div().W(el.Dp(4)).NoShrink().Bg(v.tone.color()), body)
 }

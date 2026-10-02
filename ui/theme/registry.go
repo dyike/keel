@@ -22,7 +22,7 @@ var (
 var builtin embed.FS
 
 func init() {
-	for _, name := range []string{"nord", "paper", "solarized-dark", "high-contrast"} {
+	for _, name := range []string{"nord", "paper", "solarized-dark", "high-contrast", "aurora"} {
 		data, err := builtin.ReadFile("themes/" + name + ".json")
 		if err != nil {
 			panic(err)
@@ -37,7 +37,7 @@ func init() {
 
 // Register adds a named palette, or replaces one, for Named and Names; an app
 // offers them in its theme picker. Built in: light, dark, nord, paper,
-// solarized-dark and high-contrast.
+// solarized-dark, high-contrast and aurora (with gradients).
 func Register(name string, p Palette) {
 	if _, ok := themes[name]; !ok {
 		themeNames = append(themeNames, name)
@@ -59,10 +59,12 @@ func Names() []string { return append([]string(nil), themeNames...) }
 
 // ParseTheme reads a theme file: a base palette ("light" or "dark", or any
 // registered name) and the colors it changes, by Palette field name in any
-// case, as #rgb, #rgba, #rrggbb or #rrggbbaa. Chart takes up to eight colors.
+// case, as #rgb, #rgba, #rrggbb or #rrggbbaa. Chart takes up to eight colors;
+// bgGradient and primaryGradient take {"from", "to", "angle"}.
 //
 //	{"name": "Nord", "base": "dark",
-//	 "colors": {"bg": "#2e3440", "surface": "#3b4252", "primary": "#88c0d0"}}
+//	 "colors": {"bg": "#2e3440", "surface": "#3b4252", "primary": "#88c0d0",
+//	            "bgGradient": {"from": "#2e3440", "to": "#3b4252", "angle": 90}}}
 func ParseTheme(data []byte) (name string, p Palette, err error) {
 	var file struct {
 		Name   string                     `json:"name"`
@@ -93,6 +95,14 @@ func ParseTheme(data []byte) (name string, p Palette, err error) {
 		if !ok {
 			return "", Palette{}, fmt.Errorf("theme %q: unknown color %q", file.Name, key)
 		}
+		if f.Type() == reflect.TypeOf(Gradient{}) {
+			g, err := parseGradient(raw)
+			if err != nil {
+				return "", Palette{}, fmt.Errorf("theme %q: %s: %w", file.Name, key, err)
+			}
+			f.Set(reflect.ValueOf(g))
+			continue
+		}
 		if f.Type() == reflect.TypeOf(p.Chart) {
 			var hexes []string
 			if err := json.Unmarshal(raw, &hexes); err != nil || len(hexes) > len(p.Chart) {
@@ -118,6 +128,26 @@ func ParseTheme(data []byte) (name string, p Palette, err error) {
 		f.Set(reflect.ValueOf(c))
 	}
 	return file.Name, p, nil
+}
+
+// parseGradient reads {"from": "#hex", "to": "#hex", "angle": 135}.
+func parseGradient(raw json.RawMessage) (Gradient, error) {
+	var g struct {
+		From, To string
+		Angle    float32
+	}
+	if err := json.Unmarshal(raw, &g); err != nil {
+		return Gradient{}, fmt.Errorf("want {\"from\", \"to\", \"angle\"}")
+	}
+	from, err := parseHex(g.From)
+	if err != nil {
+		return Gradient{}, err
+	}
+	to, err := parseHex(g.To)
+	if err != nil {
+		return Gradient{}, err
+	}
+	return Gradient{From: from, To: to, Angle: g.Angle}, nil
 }
 
 func parseHex(s string) (color.NRGBA, error) {

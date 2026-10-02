@@ -204,9 +204,9 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 	if v.collapsed {
 		width = 56
 	}
-	nav := el.Div().Role("navigation").Name(text.Menu).W(el.Dp(width)).NoShrink().Bg(theme.Bg).Px(12).Py(12).Gap(8).Items(el.Stretch).Disabled(v.disabled)
+	nav := el.Div().Role("navigation").Name(text.Menu).W(el.Dp(width)).NoShrink().When(theme.BgGradient.IsZero(), func(d *el.DivEl) { d.Bg(theme.Bg) }).Px(theme.SpaceLg).Py(theme.SpaceLg).Gap(theme.SpaceMd).Items(el.Stretch).Disabled(v.disabled)
 	if v.collapsed {
-		nav.Px(8)
+		nav.Px(theme.SpaceMd)
 	}
 	if v.height > 0 {
 		nav.H(el.Dp(v.height))
@@ -217,9 +217,9 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 	// Put the 10dp scrollbar hit area in the outer gutter, leaving 2dp
 	// between it and the rows. Extend into the existing navigation padding
 	// so expanded labels keep their available width.
-	body := el.Div().ID(base + "/scroll").Grow().MinH(el.Dp(0)).ScrollY().Gap(4).Items(el.Stretch).Mx(-12).Px(12)
+	body := el.Div().ID(base + "/scroll").Grow().MinH(el.Dp(0)).ScrollY().Gap(theme.SpaceXs).Items(el.Stretch).Mx(-12).Px(theme.SpaceLg)
 	if v.collapsed {
-		body.Mx(-8).Pl(8)
+		body.Mx(-8).Pl(theme.SpaceMd)
 	}
 	_, viewportHeight := cx.ViewportSize()
 	nav.MaxH(el.Dp(viewportHeight))
@@ -251,7 +251,7 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 			body.Child(el.Div().H(el.Dp(28)).Px(10).Justify(el.Center).Child(el.Text(s.title).TextSize(theme.TextSm).TextColor(theme.Muted)))
 			y += 32
 		} else if i > 0 {
-			body.Child(el.Div().H(el.Dp(17)).Px(8).Justify(el.Center).Child(el.Div().H(el.Dp(1)).Bg(theme.Border)))
+			body.Child(el.Div().H(el.Dp(17)).Px(theme.SpaceMd).Justify(el.Center).Child(el.Div().H(el.Dp(1)).Bg(theme.Border)))
 			y += 21
 		}
 		addItems(s.items, 0)

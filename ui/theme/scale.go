@@ -27,6 +27,20 @@ const (
 	TextHeading = 22
 )
 
+// Spacing steps, in dp, for gaps, padding and margins. Most layouts need
+// only Xs to Xl; off-scale values are for optical adjustments such as
+// centering an icon.
+const (
+	SpaceXxs = 2  // hairline gaps: stacked labels, tight icon pairs
+	SpaceXs  = 4  // inside compact controls, between a label and its hint
+	SpaceSm  = 6  // between an icon and its text
+	SpaceMd  = 8  // between controls in a row, list rows
+	SpaceLg  = 12 // control padding, between form fields
+	SpaceXl  = 16 // card padding, between groups
+	Space2xl = 24 // dialog and page padding, between sections
+	Space3xl = 32 // between page regions
+)
+
 // Elevation is a soft shadow under a raised surface, in dp: Offset moves it
 // down, Blur is how far it fades out. Its color is Shadow.
 type Elevation struct{ Offset, Blur float32 }

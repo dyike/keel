@@ -35,13 +35,13 @@ func (v *ProgressView) Render(cx *el.Context) el.Element {
 			phase = float32(cx.Now().UnixMilli()%1500) / 1500
 			cx.Animating()
 		}
-		track.Child(el.Div().W(el.Frac(phase*0.7)).NoShrink(), el.Div().W(el.Frac(0.3)).H(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Primary))
+		track.Child(el.Div().W(el.Frac(phase*0.7)).NoShrink(), el.Div().W(el.Frac(0.3)).H(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Primary).BgGradient(theme.PrimaryGradient))
 	} else {
-		track.Child(el.Div().W(el.Frac(v.value)).H(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Primary))
+		track.Child(el.Div().W(el.Frac(v.value)).H(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Primary).BgGradient(theme.PrimaryGradient))
 	}
 	head := el.Div().Row().TextSize(theme.TextMd).TextColor(theme.Muted).Child(el.Text(v.label).Grow())
 	if !v.indeterminate {
 		head.Child(el.Text(pct))
 	}
-	return el.Div().Role("progressbar").Name(v.label).Value(value).Gap(6).Items(el.Stretch).Child(head, track)
+	return el.Div().Role("progressbar").Name(v.label).Value(value).Gap(theme.SpaceSm).Items(el.Stretch).Child(head, track)
 }

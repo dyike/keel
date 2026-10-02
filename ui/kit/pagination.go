@@ -92,10 +92,10 @@ func (v *PaginationView) Render(cx *el.Context) el.Element {
 	prev.SetDisabled(v.page <= 1)
 	next.SetDisabled(v.page >= v.Pages())
 	row := el.Div().Role("navigation").Value(strconv.Itoa(v.page)+"/"+strconv.Itoa(v.Pages())).
-		Wrap().Items(el.Center).Gap(4).Child(el.Text(text.Total(v.total)).TextColor(theme.Muted).TextSize(theme.TextMd), el.Div().W(el.Dp(4)), prev.Render(cx))
+		Wrap().Items(el.Center).Gap(theme.SpaceXs).Child(el.Text(text.Total(v.total)).TextColor(theme.Muted).TextSize(theme.TextMd), el.Div().W(el.Dp(4)), prev.Render(cx))
 	for _, p := range v.numbers() {
 		if p == 0 {
-			row.Child(el.Text("…").TextColor(theme.Muted).Px(4))
+			row.Child(el.Text("…").TextColor(theme.Muted).Px(theme.SpaceXs))
 			continue
 		}
 		p := p

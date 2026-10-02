@@ -3,6 +3,7 @@ package kit
 import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
+	"github.com/dyike/keel/ui/theme"
 )
 
 // MessageScrollerView virtualizes a conversation with stable message keys.
@@ -22,10 +23,10 @@ func MessageScroller(keys []string, estimate float32, row func(*el.Context, int)
 	v.list = VariableList(keys, estimate, func(cx *el.Context, i int) el.Element {
 		box := el.Div().Px(20).Py(9).Items(el.Stretch)
 		if i == 0 {
-			box.Pt(16)
+			box.Pt(theme.SpaceXl)
 		}
 		if i == v.list.Count()-1 {
-			box.Pb(16)
+			box.Pb(theme.SpaceXl)
 		}
 		if row != nil {
 			box.Child(row(cx, i))

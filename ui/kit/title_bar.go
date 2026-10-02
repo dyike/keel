@@ -70,7 +70,7 @@ func (v *TitleBarView) Render(cx *el.Context) el.Element {
 	w := core.CurrentWindow()
 	controls := w != nil && w.Frameless()
 	mac := v.goos == "darwin"
-	bar := el.Div().Role("banner").Name(v.title).Row().Items(el.Center).H(el.Dp(TitleBarHeight)).Bg(theme.Subtle).Px(8).Gap(8)
+	bar := el.Div().Role("banner").Name(v.title).Row().Items(el.Center).H(el.Dp(TitleBarHeight)).Bg(theme.Subtle).Px(theme.SpaceMd).Gap(theme.SpaceMd)
 	if controls && mac {
 		bar.Child(v.lights(cx, w))
 	}
@@ -121,7 +121,7 @@ func (v *TitleBarView) lights(cx *el.Context, w core.WindowControls) el.Element 
 	if w.Maximized() {
 		zoom = text.Restore
 	}
-	return el.Div().ID(id).Row().Gap(8).Pl(6).Pr(6).Items(el.Center).Child(
+	return el.Div().ID(id).Row().Gap(theme.SpaceMd).Pl(theme.SpaceSm).Pr(theme.SpaceSm).Items(el.Center).Child(
 		light(text.Close, color.NRGBA{R: 0xff, G: 0x5f, B: 0x57, A: 0xff}, "×", w.Close),
 		light(text.Minimize, color.NRGBA{R: 0xfe, G: 0xbc, B: 0x2e, A: 0xff}, "−", w.Minimize),
 		light(zoom, color.NRGBA{R: 0x28, G: 0xc8, B: 0x40, A: 0xff}, "+", w.ToggleMaximize),

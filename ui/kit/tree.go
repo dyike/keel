@@ -259,7 +259,7 @@ func (v *TreeView) row(cx *el.Context, i int) el.Element {
 		}
 	}
 	row := el.Div().Role("treeitem").Name(n.Label).Value(state).Selected(on).Disabled(n.Disabled).
-		Row().Items(el.Center).Gap(4).Pl(float32(8 + 16*r.depth)).Pr(8).Rounded(theme.RadiusSm).Mx(4)
+		Row().Items(el.Center).Gap(theme.SpaceXs).Pl(float32(8 + 16*r.depth)).Pr(theme.SpaceMd).Rounded(theme.RadiusSm).Mx(4)
 	if on {
 		row.Bg(theme.Highlight).TextColor(theme.PrimaryText)
 	}

@@ -51,7 +51,7 @@ func (v *InputGroupView) Render(cx *el.Context) el.Element {
 	if v.suffix != nil {
 		field.Child(el.Div().ID(id + "/suffix").NoShrink().Child(v.suffix.Render(cx)))
 	}
-	root := el.Div().WFull().Gap(6).Disabled(disabled)
+	root := el.Div().WFull().Gap(theme.SpaceSm).Disabled(disabled)
 	label := v.label
 	if label == "" {
 		label = v.input.label
