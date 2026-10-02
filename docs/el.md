@@ -293,3 +293,5 @@ func button(label string, onClick func()) el.Element {
 `OnContextMenu(fn)` 在次键按下时调用，不吞掉主键操作；回调可用 `ClickModifiers`。键盘入口通过 `OnKey` 声明，例如 Shift+F10。锚定浮层在锚点或其祖先禁用、隐藏后关闭，不把浮层自身对背景的输入阻挡视作禁用。
 
 拖动结束时 `DragEvent.Canceled` 区分取消与正常释放。需要在松手后提交变更的组件应在取消时丢弃暂存结果。
+
+`cx.ViewportSize()` 在 Render 阶段返回根视口可用宽高（dp），用于限制命令面板等窗口内浮层的高度，避免键盘滚动目标位于窗口之外。

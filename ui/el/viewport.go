@@ -142,3 +142,14 @@ func (cx *Context) ScrollTo(id string, offset float32) {
 	st.scrollPending = max(int(offset*px+0.5), 0) - st.scrollY
 	cx.root.e.gtx.Execute(op.InvalidateCmd{})
 }
+
+// ViewportSize returns this root's available width and height in dp. It is
+// available during Render, before child layout, for sizing window-bound overlays.
+func (cx *Context) ViewportSize() (width, height float32) {
+	e := &cx.root.e
+	scale := e.m.PxPerDp
+	if scale <= 0 {
+		scale = 1
+	}
+	return float32(e.gtx.Constraints.Max.X) / scale, float32(e.gtx.Constraints.Max.Y) / scale
+}
