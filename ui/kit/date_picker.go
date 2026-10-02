@@ -17,11 +17,13 @@ type DatePickerView struct {
 	label, placeholder, err string
 	cal                     *CalendarView
 	open, disabled          bool
+	months                  int
+	revealed                time.Time
 	onChange                func(start, end time.Time)
 }
 
 func DatePicker(label string) *DatePickerView {
-	v := &DatePickerView{label: label, cal: Calendar()}
+	v := &DatePickerView{label: label, cal: Calendar(), months: 1}
 	v.cal.OnChange(func(start, end time.Time) {
 		v.open, v.err = false, ""
 		if v.onChange != nil {
@@ -30,6 +32,9 @@ func DatePicker(label string) *DatePickerView {
 	})
 	return v
 }
+
+// Months requests consecutive month panels; narrow windows show fewer panels.
+func (v *DatePickerView) Months(n int) *DatePickerView { v.months = max(1, min(12, n)); return v }
 
 // Range picks a span of dates instead of one.
 func (v *DatePickerView) Range() *DatePickerView               { v.cal.Range(); return v }
@@ -51,8 +56,9 @@ func (v *DatePickerView) Value() (start, end time.Time) { return v.cal.Value() }
 func (v *DatePickerView) SetValue(start, end time.Time) { v.cal.SetValue(start, end) }
 func (v *DatePickerView) SetDisabled(on bool) {
 	v.disabled = on
+	v.cal.SetDisabled(on)
 	if on {
-		v.open = false
+		v.close()
 	}
 }
 func (v *DatePickerView) SetError(msg string) { v.err = msg }
@@ -82,18 +88,20 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		border = theme.Danger
 	}
 	setOpen := func(open bool) {
-		v.open = open
-		if open {
-			// Focus the chosen day, or today, before the calendar first renders.
-			v.cal.pending = false
-			if s, _ := v.cal.Value(); !s.IsZero() {
-				v.cal.focus = s
-			} else {
-				v.cal.focus = day(cx.Now())
-			}
-			v.cal.month = monthOf(v.cal.focus)
-			cx.Focus(v.cal.FocusID())
+		v.close()
+		if !open || v.disabled {
+			return
 		}
+		v.open = true
+		focus, _ := v.cal.Value()
+		if focus.IsZero() {
+			focus = day(cx.Now())
+		}
+		if next, ok := v.cal.seek(focus, 1); ok {
+			focus = next
+		}
+		v.cal.focus, v.cal.month = focus, monthOf(focus)
+		cx.Focus(v.cal.FocusID())
 	}
 	field := el.Div().ID(id).WFull().Role("button").Name(v.a11y()).Value(v.text()).Disabled(v.disabled).
 		Row().Items(el.Center).Gap(8).H(el.Dp(36)).Px(10).Rounded(6).Bg(theme.Surface).Border(1, border).
@@ -115,8 +123,36 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		field.CursorPointer()
 	}
 	if v.open {
-		cx.Overlay(id, el.Anchored(id, surface().Role("dialog").Name(v.a11y()).P(12).Child(v.cal.Render(cx))).
-			Modal().TrapFocus().OnDismiss(func() { v.open = false }))
+		width, height := cx.ViewportSize()
+		// Keep panels on one row. A scroller retains access to the calendar
+		// and range controls when the window cannot fit their full height.
+		v.cal.Months(min(v.months, max(1, int((width-24+16)/268))))
+		calendar := v.cal.Render(cx)
+		viewportID := id + "/viewport"
+		if !v.cal.choosing && !v.revealed.Equal(v.cal.focus) {
+			focus := v.cal.focus
+			first := monthOf(focus)
+			week := ((int(first.Weekday())-int(locale.Current().FirstWeekday)+7)%7 + focus.Day() - 1) / 7
+			top := float32(12 + 28 + 8 + 24 + week*32)
+			if v.cal.months > 1 {
+				top += 28
+			}
+			cx.ScrollIntoView(viewportID, top, top+32)
+			// Retry after the first paint creates the scroll viewport, then
+			// focus the now-visible cell rather than a clipped-out target.
+			cx.AfterEnabled(viewportID, v, 0, func() {
+				if !v.open || !v.cal.focus.Equal(focus) {
+					return
+				}
+				cx.ScrollIntoView(viewportID, top, top+32)
+				cx.Focus(v.cal.FocusID())
+				v.revealed = focus
+			})
+		}
+		cx.Overlay(id, el.Anchored(id, surface().ID(viewportID).Role("dialog").Name(v.a11y()).
+			MaxW(el.Dp(max(1, width-16))).MaxH(el.Dp(max(1, height-16))).
+			ScrollY().ScrollX().P(12).Child(calendar)).
+			Modal().TrapFocus().OnDismiss(v.close))
 	}
 	return labelled(v.label, el.Div().Items(el.Start).MinW(el.Dp(200)).Child(field), v.err)
 }
@@ -127,4 +163,12 @@ func (v *DatePickerView) a11y() string {
 		return v.label
 	}
 	return v.name
+}
+
+// close also discards drafts when the anchor is disabled or removed.
+func (v *DatePickerView) close() {
+	v.open = false
+	v.revealed = time.Time{}
+	v.cal.CancelRange()
+	v.cal.choosing, v.cal.yearEditing = false, false
 }
