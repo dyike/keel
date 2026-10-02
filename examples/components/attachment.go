@@ -10,8 +10,10 @@ func init() {
 	registerSection("attachment", "data", func() core.Widget {
 		up := kit.Attachment("季度报表 Q3.xlsx", 2_400_000)
 		up.SetProgress(0.6)
+		up.OnCancel(func() {}).OnRetry(func() {})
 		bad := kit.Attachment("合同扫描.pdf", 18_000_000)
-		bad.SetError("超过 10 MB 上限")
+		bad.SetError("网络中断，请重试")
+		bad.OnRetry(func() {}).OnCancel(func() {})
 		done := kit.Attachment("logo.png", 48_000)
 		removed := false
 		done.OnRemove(func() { removed = true })

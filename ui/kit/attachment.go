@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"math"
 	"strconv"
 
 	"github.com/dyike/keel/ui/el"
@@ -11,12 +12,15 @@ import (
 // AttachmentView is a file card: name, size, upload progress or an error,
 // and optional open and remove actions.
 type AttachmentView struct {
-	name     string
-	size     int64
-	progress float32 // 0..1 while uploading, < 0 when done
-	err      string
-	onOpen   func()
-	onRemove func()
+	name               string
+	size               int64
+	progress           float32 // 0..1 while uploading, < 0 when done
+	err                string
+	onOpen             func()
+	onRemove           func()
+	onCancel           func()
+	onRetry            func()
+	canceled, disabled bool
 }
 
 // Attachment shows a file of size bytes.
@@ -26,8 +30,16 @@ func Attachment(name string, size int64) *AttachmentView {
 func (v *AttachmentView) OnOpen(fn func()) *AttachmentView   { v.onOpen = fn; return v }
 func (v *AttachmentView) OnRemove(fn func()) *AttachmentView { v.onRemove = fn; return v }
 
+func (v *AttachmentView) OnCancel(fn func()) *AttachmentView { v.onCancel = fn; return v }
+func (v *AttachmentView) OnRetry(fn func()) *AttachmentView  { v.onRetry = fn; return v }
+func (v *AttachmentView) SetDisabled(on bool)                { v.disabled = on }
+
 // SetProgress shows an upload at fraction p (0..1); a negative p means done.
 func (v *AttachmentView) SetProgress(p float32) {
+	if math.IsNaN(float64(p)) || math.IsInf(float64(p), 0) {
+		return
+	}
+	v.canceled, v.err = false, ""
 	if p >= 0 {
 		p = min(p, 1)
 	}
@@ -39,6 +51,7 @@ func (v *AttachmentView) SetError(msg string) { v.err = msg }
 
 // FileSize formats a byte count as B, KB, MB or GB.
 func FileSize(n int64) string {
+	n = max(0, n)
 	const k = 1024
 	switch {
 	case n < k:
@@ -55,6 +68,8 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
 	state, detail, color := "", FileSize(v.size), theme.Muted
 	switch {
+	case v.canceled:
+		state, detail = "canceled", text.Canceled
 	case v.err != "":
 		state, detail, color = "error", v.err, theme.DangerText
 	case v.progress >= 0:
@@ -69,11 +84,32 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		info.Child(el.Div().H(el.Dp(4)).Rounded(2).Bg(theme.Subtle).Items(el.Start).Child(
 			el.Div().H(el.Dp(4)).Rounded(2).Bg(theme.Primary).W(el.Frac(v.progress))))
 	}
-	card := surface().Role("attachment").Name(v.name).Value(state).Row().Items(el.Center).Gap(10).P(10).W(el.Dp(280)).MaxW(el.Full).
+	main := el.Div().Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(10).
 		Child(el.Div().Size(el.Dp(36)).NoShrink().Rounded(6).Bg(theme.Highlight).Center().
 			Child(Icon(IconCopy).Size(18).Color(theme.PrimaryText).Render(cx)), info)
-	if v.onOpen != nil {
-		card.CursorPointer().Focusable(true).OnClick(v.onOpen)
+	if v.onOpen != nil && v.progress < 0 && v.err == "" && !v.canceled {
+		main.ID(autoID("attachment", v)+"/open").Role("button").Name(v.name).Border(1, theme.Surface).Rounded(4).CursorPointer().Focusable(true).OnClick(v.onOpen).
+			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
+	}
+	card := surface().ID(autoID("attachment", v)).Disabled(v.disabled).Role("attachment").Name(v.name).Value(state).
+		Row().Items(el.Center).Gap(10).P(10).W(el.Dp(280)).MaxW(el.Full).Child(main)
+	if v.progress >= 0 && v.err == "" && !v.canceled && v.onCancel != nil {
+		card.Child(Button("", func() {
+			if v.disabled || v.progress < 0 || v.canceled || v.err != "" {
+				return
+			}
+			v.canceled, v.progress = true, -1
+			v.onCancel()
+		}).Name(text.Name(text.Cancel, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx))
+	}
+	if (v.err != "" || v.canceled) && v.onRetry != nil {
+		card.Child(Button(text.Retry, func() {
+			if v.disabled || (v.err == "" && !v.canceled) {
+				return
+			}
+			v.SetProgress(0)
+			v.onRetry()
+		}).Name(text.Name(text.Retry, v.name)).Variant(ButtonGhost).Size(24).Render(cx))
 	}
 	if v.onRemove != nil {
 		card.Child(Button("", v.onRemove).Name(text.Name(text.Remove, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx))
