@@ -74,6 +74,7 @@ func (s *scrollbarState) update(gtx core.C, track image.Rectangle, horizontal bo
 				s.grab = size / 2
 			}
 			if focus.focusable {
+				focus.pointerFocus = true
 				gtx.Execute(key.FocusCmd{Tag: focus})
 			}
 			if pos >= start && pos < start+size {

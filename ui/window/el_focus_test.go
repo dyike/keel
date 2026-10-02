@@ -82,6 +82,18 @@ func TestFocusTextColorRestoresCachedTree(t *testing.T) {
 	}
 	check(false)
 	w.click(element(t, w, "color").center())
+	check(false)
+	if err := w.press("space"); err != nil {
+		t.Fatal(err)
+	}
+	check(true)
+	w.click(element(t, w, "color").center())
+	check(false)
+	for _, chord := range []string{"tab", "shift+tab"} {
+		if err := w.press(chord); err != nil {
+			t.Fatal(err)
+		}
+	}
 	check(true)
 	w.click(element(t, w, "other").center())
 	check(false)

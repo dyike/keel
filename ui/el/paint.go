@@ -127,7 +127,7 @@ func (e *engine) paintContent(n *Node) {
 			n.active(&st)
 		}
 	}
-	if n.isFocusable() && n.input == nil && gtx.Focused(state) {
+	if n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus {
 		st.borderWidth, st.borderColor = 2, theme.Primary
 		if n.focus != nil {
 			n.focus(&st)

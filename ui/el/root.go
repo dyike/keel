@@ -126,6 +126,9 @@ type RootWidget struct {
 	e              engine
 	focusID        string
 	focusPending   bool
+
+	pointerDispatch  bool
+	focusFromPointer bool
 }
 
 // Root makes v the whole content of a window: it fills the window, with the
@@ -248,6 +251,8 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 // dispatch runs click handlers for input that arrived since the last frame,
 // before Render, so the frame being drawn already shows their effect.
 func (r *RootWidget) dispatch(gtx core.C) {
+	r.pointerDispatch = true
+	defer func() { r.pointerDispatch = false }()
 	var focusTarget *elemState
 	for _, st := range r.store.states {
 		if !st.clickable || st.disabled || st.blocked || st.frame != r.store.frame {
@@ -272,6 +277,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 				break
 			}
 			if ev.Kind == gesture.KindPress && st.focusable {
+				st.pointerFocus = true
 				focusTarget = st
 			}
 			if ev.Kind != gesture.KindClick {
@@ -296,6 +302,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			case pointer.Press:
 				kind = DragStart
 				if st.focusable {
+					st.pointerFocus = true
 					focusTarget = st
 				}
 			case pointer.Release, pointer.Cancel:

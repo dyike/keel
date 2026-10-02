@@ -37,7 +37,9 @@ func (s *Styled[T]) Focusable(on bool) *T {
 // Tab remains platform focus navigation; use Context.Shortcut for global keys.
 func (s *Styled[T]) OnKey(fn func(KeyEvent) bool) *T { s.n.onKey = fn; return s.self }
 
-// FocusStyle sets a visual focus style, like Hover. It does not change layout.
+// FocusStyle sets a visual keyboard/programmatic focus style, like Hover.
+// Pointer focus on non-input elements does not show it. Inputs always show it.
+// It does not change layout.
 // The default focus style is a 2dp Primary border inside the element bounds.
 func (s *Styled[T]) FocusStyle(fn func(*Style)) *T { s.n.focus = fn; return s.self }
 
@@ -118,7 +120,11 @@ func (cx *Context) Focused(id string) bool {
 // The first visible Focusable element or input with that ID wins. An empty ID clears
 // focus; missing, hidden or off-screen targets leave the current focus alone.
 // Call from Render or its callbacks; IDs should be unique within a root.
-func (cx *Context) Focus(id string) { cx.root.focusID = id; cx.root.focusPending = true }
+func (cx *Context) Focus(id string) {
+	cx.root.focusID = id
+	cx.root.focusPending = true
+	cx.root.focusFromPointer = cx.root.pointerDispatch
+}
 
 func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 	n.effectiveDisabled = disabled || n.disabled || n.style.hidden || n.style.revealSet && n.style.reveal <= 0
@@ -172,6 +178,7 @@ func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
 				if n.input != nil {
 					gtx.Execute(key.FocusCmd{Tag: &st.editor})
 				} else {
+					st.pointerFocus = r.focusFromPointer
 					gtx.Execute(key.FocusCmd{Tag: st})
 				}
 				return true
@@ -188,6 +195,11 @@ func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
 }
 func (r *RootWidget) dispatchKeys(gtx core.C) {
 	for _, st := range r.store.states {
+		// Clear the previous pointer origin before dispatch, never in prepareKeys:
+		// a pointer FocusCmd may still be pending during the second preparation pass.
+		if !gtx.Focused(st) {
+			st.pointerFocus = false
+		}
 		if !st.focusable || st.disabled || st.blocked || st.frame != r.store.frame || st.keyFrame+1 != r.store.frame {
 			continue
 		}
@@ -203,6 +215,7 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 				if !gtx.Focused(st) {
 					continue
 				}
+				st.pointerFocus = false
 				handled := false
 				for node := st; node != nil; node = node.keyParent {
 					if node.onKey != nil {

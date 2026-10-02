@@ -152,7 +152,7 @@ el.Div().ID("save").Focusable(true).
 
 聚焦元素收到无修饰键的 Space / Enter 时，在匹配的按键释放事件中调用一次 `OnClick`；失去焦点后不保留待激活按键。`OnKey(func(el.KeyEvent) bool)` 接收按下和释放事件，从聚焦元素向有处理器的祖先冒泡。返回 `true` 会停止冒泡并取消默认激活。`KeyEvent` 是 el 自己的结构体，包含 string 类型的 Name、KeyPress/KeyRelease 状态和 key.Modifiers。Tab 保留原生导航行为；全局快捷键继续使用 `cx.Shortcut`。
 
-`FocusStyle(func(*el.Style))` 是绘制样式，可改背景、边框色和文字色，不改变尺寸。普通元素默认使用 2dp Primary 焦点边框；输入框沿用自身边框。文字色传递给未显式设置颜色的子元素，失焦后恢复。
+`FocusStyle(func(*el.Style))` 是绘制样式，可改背景、边框色和文字色，不改变尺寸。普通元素通过 Tab、方向键、Space / Enter 或程序主动聚焦时，默认使用 2dp Primary 焦点边框。鼠标点击保留实际焦点和键盘操作能力，但不绘制焦点样式；点击回调中的同步 `cx.Focus` 也遵循此规则。输入框聚焦时始终沿用自身边框。文字色传递给未显式设置颜色的子元素，失焦后恢复。
 
 `cx.Focus("save")` 在本帧绘制后请求焦点，也支持带 ID 的 `Input` / `TextArea`。ID 应在当前 root 内唯一；重复时选择第一个已绘制的匹配目标。目标不存在、隐藏或完全在视口外时保留原焦点；`cx.Focus("")` 清除焦点。只能在 Render 或其事件回调里调用。
 

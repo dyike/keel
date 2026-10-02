@@ -43,6 +43,8 @@ type elemState struct {
 	keyParent  *elemState
 	keyFrame   uint64
 	pressedKey key.Name
+	// Pointer focus keeps keyboard routing without drawing a focus ring.
+	pointerFocus bool
 
 	enabledFrame uint64 // last live, visible, enabled paint
 	frame        uint64 // last frame the element was painted in

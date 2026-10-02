@@ -292,3 +292,103 @@ func TestDisabledClickDoesNotCaptureNextPress(t *testing.T) {
 		t.Fatalf("click after disabled release was lost: calls=%d", calls)
 	}
 }
+
+// FocusStyle is observed at paint time, so these assertions cover the visible
+// result as well as the router focus needed for subsequent keyboard input.
+func TestPointerFocusRingAndKeyboardRecovery(t *testing.T) {
+	painted := map[string]bool{}
+	selected := "a"
+	request := ""
+	var root *RootWidget
+	root = Root(viewFunc(func(cx *Context) Element {
+		if request != "" {
+			cx.Focus(request)
+			request = ""
+		}
+		box := Div()
+		for _, id := range []string{"a", "b", "c"} {
+			id := id
+			box.Child(Div().ID(id).Name(id).H(Dp(40)).Focusable(id == selected || id == "c").
+				FocusStyle(func(s *Style) { painted[id] = true }).
+				OnClick(func() { selected = id; cx.Focus(id) }).
+				OnKey(func(e KeyEvent) bool {
+					if e.Name == string(key.NameRightArrow) && e.State == KeyPress {
+						selected = "b"
+						cx.Focus("b")
+						return true
+					}
+					return false
+				}).Child(Text(id)))
+		}
+		return box
+	}))
+	h := uitest.New(root)
+	check := func(id string, ring bool) {
+		t.Helper()
+		clear(painted)
+		h.Frame()
+		var focused bool
+		for _, st := range root.store.states {
+			if st.id == id {
+				focused = h.Router.Source().Focused(st)
+			}
+		}
+		if !focused || painted[id] != ring {
+			t.Fatalf("%s: focus=%v ring=%v want=%v", id, focused, painted[id], ring)
+		}
+	}
+	h.Click(10, 10)
+	check("a", false)
+	h.Key(key.NameRightArrow, 0)
+	check("b", true)
+	// Clicking an already keyboard-focused row must hide its ring.
+	h.Click(10, 50)
+	check("b", false)
+	h.Router.MoveFocus(key.FocusForward)
+	h.Frame()
+	check("c", true)
+	h.Router.MoveFocus(key.FocusBackward)
+	h.Frame()
+	check("b", true)
+	// Clicking a non-Tab-stop item focuses it through its callback.
+	h.Click(10, 10)
+	check("a", false)
+	h.Key(key.NameSpace, 0)
+	check("a", true)
+	selected = "b"
+	request = "b"
+	h.Frame()
+	check("b", true)
+}
+
+func TestPointerFocusInputStillShowsFocusStyle(t *testing.T) {
+	painted := false
+	input := Input().ID("input").W(Dp(200)).H(Dp(40)).
+		FocusStyle(func(s *Style) { painted = true })
+	root := Root(viewFunc(func(cx *Context) Element { return Div().Child(input) }))
+	h := uitest.New(root)
+	h.Click(20, 20)
+	painted = false
+	h.Frame()
+	if !painted {
+		t.Fatal("pointer-focused input lost its focus style")
+	}
+}
+
+func TestDirectPointerFocusDoesNotPaintRing(t *testing.T) {
+	painted := false
+	calls := 0
+	button := Div().ID("button").H(Dp(40)).Focusable(true).
+		FocusStyle(func(*Style) { painted = true }).OnClick(func() { calls++ })
+	root := Root(viewFunc(func(*Context) Element { return Div().Child(button) }))
+	h := uitest.New(root)
+	h.Click(20, 20)
+	h.Frame()
+	if painted || calls != 1 || !h.Router.Source().Focused(root.store.states[button.node().key]) {
+		t.Fatalf("pointer focus: painted=%v calls=%d focused=%v pointer=%v", painted, calls, h.Router.Source().Focused(root.store.states[button.node().key]), root.store.states[button.node().key].pointerFocus)
+	}
+	h.Key(key.NameSpace, 0)
+	if !painted || calls != 2 {
+		t.Fatal("keyboard activation must restore the ring")
+	}
+}
