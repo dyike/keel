@@ -13,3 +13,5 @@ kit.CopyButton(func() string { return order.ID })
 Agent：角色是 `button`，名字在"复制"和"已复制"之间切换。
 
 验证：`go run ./examples/components -section copy_button`。
+
+连续点击会在每次复制后重新保留完整的 1.5 秒反馈，不沿用上次的截止时间。`SetDisabled(true)` 禁用复制并清除反馈；祖先禁用也会阻止读取文字和写剪贴板。传入 nil 取值函数时点击不会显示“已复制”。
