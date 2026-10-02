@@ -38,6 +38,8 @@ type DockLayout struct {
 	BottomActive                    string    `json:",omitempty"`
 	LeftSize, RightSize, BottomSize float32
 	Hidden                          []string `json:",omitempty"`
+	// Zoomed is the panel maximized over the whole dock, or "".
+	Zoomed string `json:",omitempty"`
 }
 
 // DockView arranges tool panels around a central view, like an IDE. Each
@@ -210,6 +212,9 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 		}
 	}
 	next.LeftTree, next.RightTree, next.BottomTree = trees[0], trees[1], trees[2]
+	if _, ok := v.panels[next.Zoomed]; !ok || hidden[next.Zoomed] {
+		next.Zoomed = ""
+	}
 	v.cancelResize()
 	v.drag = dockDrag{}
 	v.layout = next
@@ -249,6 +254,9 @@ func (v *DockView) SetVisible(id string, on bool) {
 		return
 	}
 	v.layout.Hidden = append(v.layout.Hidden, id)
+	if v.layout.Zoomed == id {
+		v.layout.Zoomed = ""
+	}
 	if s := v.where(id); s >= 0 {
 		v.fixActive(DockSide(s))
 	}
@@ -261,6 +269,9 @@ func (v *DockView) Move(id string, to DockSide) {
 	}
 	v.cancelResize()
 	v.drag = dockDrag{}
+	if v.layout.Zoomed == id {
+		v.layout.Zoomed = ""
+	}
 	for _, s := range []DockSide{DockLeft, DockRight, DockBottom} {
 		*v.tree(s) = removeDockPanel(*v.tree(s), id)
 		ids, _ := v.side(s)
@@ -357,7 +368,7 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 					*selected = id
 					v.changed()
 				}
-			}).Child(el.Text(v.panels[id].Title).MaxLines(1))
+			}).OnDoubleClick(func() { v.toggleZoom(id) }).Child(el.Text(v.panels[id].Title).MaxLines(1))
 		if on {
 			t.Bg(theme.Surface).TextColor(theme.PrimaryText)
 		} else {
@@ -407,6 +418,11 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 				}
 			})
 	}
+	zoom := text.DockZoom
+	if v.layout.Zoomed == cur {
+		zoom = text.DockRestore
+	}
+	m.Separator().Item(zoom, "", func() { v.toggleZoom(cur) })
 	m.Separator().Item(text.Close, "", func() { v.SetVisible(cur, false); v.changed() })
 	m.Trigger(Button("", m.Toggle).Name(text.Name(text.More, v.panels[cur].Title)).Icon(IconChevronDown).Variant(ButtonGhost).Size(24))
 	head := el.Div().Row().Items(el.Center).Gap(4).Px(4).Py(4).Bg(theme.Subtle).Child(tabs, m.Render(cx))
@@ -529,6 +545,24 @@ func (v *DockView) Render(cx *el.Context) el.Element {
 		cx.Focus(v.tabID(v.focusTab))
 		v.focusTab = ""
 	}
+	if z := v.layout.Zoomed; z != "" && v.Visible(z) && v.where(z) >= 0 && findDockGroup(*v.tree(DockSide(v.where(z))), z) != nil {
+		// One panel over the whole dock; its menu, a double click on its
+		// tab or Esc brings the others back.
+		s := DockSide(v.where(z))
+		n := findDockGroup(*v.tree(s), z)
+		n.Active = z
+		_, active := v.side(s)
+		*active = z
+		return el.Div().ID(id).Disabled(v.disabled).Row().Grow().Items(el.Stretch).OnKey(func(e el.KeyEvent) bool {
+			if e.Name != string(key.NameEscape) {
+				return false
+			}
+			if e.State == el.KeyPress {
+				v.toggleZoom(z)
+			}
+			return true
+		}).Child(v.group(cx, s, n))
+	}
 	middle := el.Div().Grow().W(el.Dp(0)).Items(el.Stretch)
 	center := el.Div().Grow().H(el.Dp(0)).Items(el.Stretch)
 	if v.center != nil {
@@ -569,6 +603,31 @@ func (v *DockView) Render(cx *el.Context) el.Element {
 		row.Child(v.handle(DockRight), r)
 	}
 	return row
+}
+
+// Zoom maximizes a shown panel over the whole dock, hiding the center and the
+// other panels until Zoom(""), its menu, a double click on its tab or Esc.
+// The zoomed panel is part of Layout.
+func (v *DockView) Zoom(id string) {
+	if id != "" && (!v.Visible(id) || v.where(id) < 0) {
+		return
+	}
+	v.cancelResize()
+	v.drag = dockDrag{}
+	v.layout.Zoomed = id
+}
+
+// Zoomed is the maximized panel, or "".
+func (v *DockView) Zoomed() string { return v.layout.Zoomed }
+
+func (v *DockView) toggleZoom(id string) {
+	if v.layout.Zoomed == id {
+		v.Zoom("")
+	} else {
+		v.Zoom(id)
+	}
+	v.focusTab = id
+	v.changed()
 }
 
 func (v *DockView) cancelResize() {

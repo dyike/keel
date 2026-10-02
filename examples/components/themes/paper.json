@@ -1,0 +1,20 @@
+{
+  "name": "paper",
+  "base": "light",
+  "colors": {
+    "bg": "#f4efe6",
+    "surface": "#fbf8f2",
+    "border": "#e2d9c8",
+    "text": "#3a3226",
+    "muted": "#75695a",
+    "primary": "#8a5a2b",
+    "primaryHover": "#744a22",
+    "primaryText": "#7a4d22",
+    "subtle": "#ece4d6",
+    "subtleHover": "#e3d8c6",
+    "highlight": "#efe0c8",
+    "codeBg": "#f0e9dc",
+    "codeText": "#3a3226",
+    "shadow": "#4a35202e"
+  }
+}

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"embed"
+	"log"
 	"sort"
 	"strings"
 
@@ -10,6 +12,23 @@ import (
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 )
+
+// themes are extra palettes, beyond light and dark, in theme files.
+//
+//go:embed themes/*.json
+var themeFiles embed.FS
+
+func init() {
+	entries, _ := themeFiles.ReadDir("themes")
+	for _, e := range entries {
+		data, _ := themeFiles.ReadFile("themes/" + e.Name())
+		name, p, err := theme.ParseTheme(data)
+		if err != nil {
+			log.Fatal(err)
+		}
+		theme.Register(name, p)
+	}
+}
 
 // foundations are the sections that demonstrate el itself, not a component.
 var foundations = map[string]bool{"theme": true, "layout": true, "scrollable": true, "focus": true, "time": true, "overlay": true}
@@ -31,11 +50,17 @@ type gallery struct {
 	search   *kit.InputView
 	built    map[string]core.Widget
 	sections map[string]demoSection
-	dark     bool
+	themes   *kit.SelectView
 }
 
 func newGallery() *gallery {
-	g := &gallery{built: map[string]core.Widget{}, sections: map[string]demoSection{}, dark: theme.Current().Bg == theme.Dark().Bg}
+	g := &gallery{built: map[string]core.Widget{}, sections: map[string]demoSection{}}
+	g.themes = kit.Select("", theme.Names()...).OnChange(func(name string) {
+		if p, ok := theme.Named(name); ok {
+			theme.Apply(p)
+		}
+	})
+	g.themes.SetValue(currentTheme())
 	byCategory := map[string][]kit.SidebarItem{}
 	for _, s := range demoSections {
 		g.sections[s.name] = s
@@ -105,10 +130,7 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	if foundations[name] {
 		doc = "docs/el.md"
 	}
-	themeLabel, langLabel := "深色", "English"
-	if g.dark {
-		themeLabel = "浅色"
-	}
+	langLabel := "English"
 	if !strings.HasPrefix(locale.Current().Lang, "zh") {
 		langLabel = "中文"
 	}
@@ -124,14 +146,7 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 				locale.Apply(locale.Chinese())
 			}
 		}).Variant(kit.ButtonGhost).Size(28).Render(cx),
-		kit.Button(themeLabel, func() {
-			g.dark = !g.dark
-			if g.dark {
-				theme.Apply(theme.Dark())
-			} else {
-				theme.Apply(theme.Light())
-			}
-		}).Variant(kit.ButtonSecondary).Size(28).Render(cx),
+		el.Div().W(el.Dp(140)).Child(g.themes.Render(cx)),
 	)
 	// A section that fills its window (an el.Root) gets the whole pane and
 	// scrolls itself; one sized to its content scrolls inside the pane.
@@ -150,4 +165,15 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 			body,
 		),
 	)
+}
+
+// currentTheme names the registered palette now applied, for the picker.
+func currentTheme() string {
+	cur := theme.Current()
+	for _, name := range theme.Names() {
+		if p, _ := theme.Named(name); p == cur {
+			return name
+		}
+	}
+	return "light"
 }

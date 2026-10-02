@@ -45,6 +45,8 @@ theme.Apply(p)
 | `CodeBg` / `CodeText` | `#f0f1f3` / `#1f2328` | 代码块 |
 | `Chart` | 8 个分类色 | 图表系列颜色，按顺序使用；浅色和深色各一套，均通过色觉缺陷校验 |
 
+多主题：`Register(name, p)` 登记调色板，`Named(name)` 取副本，`Names()` 列出全部（内置 light、dark），应用拿它做主题选择器，选中后 `Apply`。`ParseTheme(json)` 读主题文件：`base` 指定继承 light、dark 或已登记的主题，`colors` 只写要改的颜色，键是 Palette 字段名（大小写不限），值是 `#rgb`、`#rgba`、`#rrggbb` 或 `#rrggbbaa`，`chart` 是最多 8 个颜色的数组。示例见 `examples/components/themes/` 里的 nord 和 paper。
+
 `LoadFonts(files...)` 加载字体文件（TTF、OTF、TTC）并重绘所有窗口，Web 版必须用它提供中文字体，见[在浏览器里运行](../../docs/web.md)。
 
 尺寸刻度在 `scale.go`：圆角 `RadiusSm` 4 / `RadiusMd` 6 / `RadiusLg` 8 / `RadiusXl` 12 / `RadiusFull`（药丸和圆），字号 `TextXs` 11 / `TextSm` 12 / `TextMd` 13 / `TextControl` 14 / `TextBody` 15 / `TextLg` 17 / `TextXl` 20 / `TextHeading` 22，阴影层级 `ElevationSm`（提示）/ `ElevationMd`（菜单、弹层、下拉、通知）/ `ElevationLg`（对话框、侧滑面板、命令面板），阴影颜色 `Shadow` 随浅深色切换。`MonoFace` 是等宽字体优先级。
