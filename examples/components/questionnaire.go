@@ -25,7 +25,7 @@ func init() {
 		})
 		disabled := false
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).W(el.Dp(480)).Child(kit.Button("启用 / 禁用问卷", func() { disabled = !disabled; q.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), q.Render(cx), el.Text(result).TextColor(theme.Muted))
+			return el.Div().P(24).Gap(16).W(el.Dp(480)).MaxW(el.Full).Child(kit.Button("启用 / 禁用问卷", func() { disabled = !disabled; q.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), q.Render(cx), el.Text(result).TextColor(theme.Muted))
 		}))
 	})
 }

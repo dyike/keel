@@ -21,7 +21,7 @@ func init() {
 		off := kit.Slider("不可用", 0, 1)
 		off.SetDisabled(true)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).W(el.Dp(320)).Child(volume.Render(cx),
+			return el.Div().P(24).Gap(16).W(el.Dp(320)).MaxW(el.Full).Child(volume.Render(cx),
 				el.Text(fmt.Sprintf("当前音量 %g", volume.Value())).TextColor(theme.Muted), temp.Render(cx), price.Render(cx), level.Render(cx), off.Render(cx))
 		}))
 	})

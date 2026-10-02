@@ -24,7 +24,7 @@ func init() {
 			kit.Series{Name: "渠道", Values: []float64{80, 120, 90, 160}},
 		).Stacked().Title("季度收入构成").Height(180)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).W(el.Dp(620)).Child(sales.Render(cx), orders.Render(cx), stack.Render(cx))
+			return el.Div().P(24).Gap(16).W(el.Dp(620)).MaxW(el.Full).Child(sales.Render(cx), orders.Render(cx), stack.Render(cx))
 		}))
 	})
 }

@@ -36,7 +36,7 @@ func init() {
 			}()
 		})
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(14).W(el.Dp(300)).Child(customer.Render(cx), tag.Render(cx), remote.Render(cx)))
+			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(14).W(el.Dp(300)).MaxW(el.Full).Child(customer.Render(cx), tag.Render(cx), remote.Render(cx)))
 		}))
 	})
 }

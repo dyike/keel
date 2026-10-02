@@ -19,7 +19,7 @@ func init() {
 		}
 		multiple.SetEntries(entries...)
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(14).W(el.Dp(300)).Child(status.Render(cx), city.Render(cx), multiple.Render(cx)))
+			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(14).W(el.Dp(300)).MaxW(el.Full).Child(status.Render(cx), city.Render(cx), multiple.Render(cx)))
 		}))
 	})
 }

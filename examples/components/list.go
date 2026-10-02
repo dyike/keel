@@ -26,7 +26,7 @@ func init() {
 		l.OnSelectionChange(func(values []int) { msg = "选中 " + strconv.Itoa(len(values)) + " 项" })
 		inserted := 0
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(8).W(el.Dp(320)).Child(kit.Button("在开头插入条目", func() {
+			return el.Div().P(24).Gap(8).W(el.Dp(320)).MaxW(el.Full).Child(kit.Button("在开头插入条目", func() {
 				inserted++
 				entry := kit.ListItem{ID: "inserted-" + strconv.Itoa(inserted), Label: "新联系人 " + strconv.Itoa(inserted)}
 				l.SetEntries(append([]kit.ListItem{entry}, l.Entries()...)...)

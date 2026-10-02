@@ -36,11 +36,17 @@ func init() {
 			}
 			return row
 		}))
+		initialized, wasNarrow := false, false
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			_, height := cx.ViewportSize()
+			width, height := cx.ViewportSize()
+			narrow := width < 600
+			if !initialized || narrow != wasNarrow {
+				nav.SetCollapsed(narrow)
+				initialized, wasNarrow = true, narrow
+			}
 			nav.Height(height)
 			titles := map[string]string{"pending": "待处理订单", "completed": "已完成订单", "archived": "归档订单", "inbox": "收件箱", "orders": "订单", "calendar": "日程", "members": "团队成员", "saved": "已收藏", "settings": "偏好设置"}
-			body := el.Div().Grow().Bg(theme.Surface).P(28).Gap(12).Items(el.Stretch)
+			body := el.Div().Grow().W(el.Dp(0)).ScrollY().Bg(theme.Surface).P(28).Gap(12).Items(el.Stretch)
 			body.Child(el.Text("工作台 / "+titles[nav.Value()]).TextSize(12).TextColor(theme.Muted),
 				el.Text(titles[nav.Value()]).TextSize(24).Bold(),
 				el.Text("集中查看团队动态与待办事项。").TextSize(13).TextColor(theme.Muted),

@@ -23,7 +23,7 @@ func init() {
 		).Autoplay(4 * time.Second).Height(160)
 		disabled := false
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Items(el.Start).Child(el.Div().W(el.Dp(480)).Child(car.Render(cx)), kit.Button("启用 / 禁用轮播", func() { disabled = !disabled; car.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx))
+			return el.Div().P(24).Gap(12).Items(el.Start).Child(el.Div().W(el.Dp(480)).MaxW(el.Full).Child(car.Render(cx)), kit.Button("启用 / 禁用轮播", func() { disabled = !disabled; car.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx))
 		}))
 	})
 }

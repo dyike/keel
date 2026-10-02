@@ -17,7 +17,7 @@ func init() {
 		reply := kit.Message("AI 助手", say(answer)).Actions(copy).
 			Reactions(kit.MessageReaction{Name: "有帮助", Count: 2}).OnReaction(func(int, bool) {})
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).W(el.Dp(520)).Child(
+			return el.Div().P(24).Gap(16).W(el.Dp(520)).MaxW(el.Full).Child(
 				kit.Message("我", say("SO-1021 什么时候到？")).User().Render(cx),
 				reply.Render(cx), failed.Render(cx))
 		}))

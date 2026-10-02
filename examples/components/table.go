@@ -41,7 +41,7 @@ func init() {
 		warehouseVisible := true
 		cells := false
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(8).W(el.Dp(600)).Child(
+			return el.Div().P(24).Gap(8).W(el.Dp(600)).MaxW(el.Full).Child(
 				el.Div().Row().Wrap().Gap(8).Child(
 					kit.Button("切换行/单元格选择", func() {
 						cells = !cells

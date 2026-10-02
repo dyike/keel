@@ -25,7 +25,7 @@ func buttonGallery() core.Widget {
 }
 func (v *buttonDemo) Render(cx *el.Context) el.Element {
 	row := func(views ...el.View) el.Element {
-		d := el.Div().Row().Gap(12).Items(el.Center)
+		d := el.Div().Wrap().Gap(12).Items(el.Center)
 		for _, view := range views {
 			d.Child(view.Render(cx))
 		}

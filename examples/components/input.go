@@ -22,7 +22,7 @@ func init() {
 		off.SetValue("SO-1001")
 		off.SetReadOnly(true)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(14).W(el.Dp(360)).Child(search.Render(cx), price.Render(cx), pass.Render(cx), bad.Render(cx), note.Render(cx), off.Render(cx))
+			return el.Div().P(24).Gap(14).W(el.Dp(360)).MaxW(el.Full).Child(search.Render(cx), price.Render(cx), pass.Render(cx), bad.Render(cx), note.Render(cx), off.Render(cx))
 		}))
 	})
 }

@@ -12,7 +12,7 @@ func init() {
 		pie := kit.PieChart(data...).Title("销售地区占比")
 		donut := kit.PieChart(data...).Donut(.6).Title("环形图 · 点击图例切换")
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).W(el.Dp(600)).Child(pie.Render(cx), donut.Render(cx))
+			return el.Div().P(24).Gap(16).W(el.Dp(600)).MaxW(el.Full).Child(pie.Render(cx), donut.Render(cx))
 		}))
 	})
 }

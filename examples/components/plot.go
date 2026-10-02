@@ -25,7 +25,7 @@ func init() {
 		}
 		dots := kit.Plot(kit.PlotSeries{Name: "订单金额 vs 数量", Points: scatter}).Title("散点：悬停查看数值").Height(200)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).W(el.Dp(620)).Child(lines.Render(cx), dots.Render(cx))
+			return el.Div().P(24).Gap(16).W(el.Dp(620)).MaxW(el.Full).Child(lines.Render(cx), dots.Render(cx))
 		}))
 	})
 }

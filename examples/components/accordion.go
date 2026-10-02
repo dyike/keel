@@ -20,7 +20,7 @@ func init() {
 			Add("如何用键盘操作？", txt("Tab 聚焦标题，↑ ↓ 切换标题，Enter 或空格展开，Home / End 跳到首尾。")).
 			Add("可以同时展开吗？ Multiple", txt("这个面板启用了 Multiple，可以同时展开两项。"))
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).W(el.Dp(480)).Child(one.Render(cx), faq.Render(cx))
+			return el.Div().P(24).Gap(16).W(el.Dp(480)).MaxW(el.Full).Child(one.Render(cx), faq.Render(cx))
 		}))
 	})
 }

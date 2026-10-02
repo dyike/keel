@@ -24,7 +24,7 @@ func init() {
 			Field("邮箱", email, func() string { return kit.Required(email.Value(), "请填写邮箱") }).
 			Field("角色", role, func() string { return kit.Required(role.Value(), "请选择角色") })
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(16).W(el.Dp(420)).Child(f.Render(cx), el.Div().Row().Gap(12).Items(el.Center).Child(
+			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(16).W(el.Dp(420)).MaxW(el.Full).Child(f.Render(cx), el.Div().Wrap().Gap(12).Items(el.Center).Child(
 				kit.Button("提交", func() {
 					token := f.BeginSubmit(cx)
 					if token == 0 {

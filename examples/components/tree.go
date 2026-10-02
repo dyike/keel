@@ -18,7 +18,7 @@ func init() {
 		tr.SetNodeDisabled("paint.go", true)
 		tr.OnSelectionChange(func(ids []string) { msg = fmt.Sprintf("选中 %d 个节点", len(ids)) })
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).W(el.Dp(420)).Child(tr.Render(cx), kit.Button("将 go.mod 移入 docs", func() {
+			return el.Div().P(24).Gap(12).W(el.Dp(420)).MaxW(el.Full).Child(tr.Render(cx), kit.Button("将 go.mod 移入 docs", func() {
 				if err := tr.MoveNode("go.mod", "docs", 0); err != nil {
 					msg = err.Error()
 				}

@@ -15,6 +15,8 @@ func init() {
 			kit.Candle{Label: "周四", Open: 105, High: 121, Low: 104, Close: 118},
 			kit.Candle{Label: "周五", Open: 118, High: 120, Low: 106, Close: 109},
 		).Title("开高低收 · 空心上涨 / 实心下跌").Height(280)
-		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().P(24).W(el.Dp(600)).Child(chart.Render(cx)) }))
+		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+			return el.Div().P(24).W(el.Dp(600)).MaxW(el.Full).Child(chart.Render(cx))
+		}))
 	})
 }

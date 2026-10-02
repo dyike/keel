@@ -48,7 +48,7 @@ func init() {
 			table.SetFilter(func(row []string) bool { return strings.Contains(strings.ToLower(strings.Join(row, " ")), query) })
 		})
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().W(el.Dp(540)).P(24).Gap(12).Child(search.Render(cx), table.Render(cx), el.Text(fmt.Sprintf("已加载 %d 行，筛选后 %d 行；滚动到底加载下一页，共 60 行", table.Len(), table.VisibleLen())))
+			return el.Div().W(el.Dp(540)).MaxW(el.Full).P(24).Gap(12).Child(search.Render(cx), table.Render(cx), el.Text(fmt.Sprintf("已加载 %d 行，筛选后 %d 行；滚动到底加载下一页，共 60 行", table.Len(), table.VisibleLen())))
 		}))
 	})
 }
