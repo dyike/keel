@@ -118,3 +118,5 @@ macOS 运行 `window.Main()` 后默认跟随系统“减少动态效果”，包
 ## 视觉验收
 
 字号、尺寸、间距和交互状态的共同约定见 [组件视觉规范](visual-guidelines.md)。
+
+旧组件与本轮接口变更的迁移说明见 [迁移到当前 kit](migration-kit.md)。

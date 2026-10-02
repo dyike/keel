@@ -275,3 +275,48 @@ func TestChat(t *testing.T) {
 	got = call("wait_for", map[string]any{"text": "已停止", "timeout_ms": 10000})
 	expect(t, got, `button "发送"`)
 }
+
+func TestSettingsExample(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds and runs the example app")
+	}
+	call, _ := startServer(t, nil)
+	got := call("launch", map[string]any{"command": "go run ./examples/components -section settings -width 320", "dir": repoRoot()})
+	expect(t, got, `button "通用"`, `button "通知"`, `select "语言 Language"`, `switch "深色模式" unchecked`)
+	expect(t, call("click", map[string]any{"text": "深色模式"}), `switch "深色模式" checked`)
+	got = call("type", map[string]any{"ref": refOf(got, `textbox "搜索设置"`), "text": "邮件"})
+	expect(t, got, `switch "邮件提醒" checked`)
+	expect(t, call("click", map[string]any{"text": "邮件提醒"}), `switch "邮件提醒" unchecked`)
+	call("click", map[string]any{"text": "通用"})
+	call("click", map[string]any{"text": "语言 Language"})
+	got = call("click", map[string]any{"text": "English"})
+	expect(t, got, `textbox "Search settings"`, `value="English"`)
+}
+
+func TestDockExample(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds and runs the example app")
+	}
+	call, _ := startServer(t, nil)
+	got := call("launch", map[string]any{"command": "go run ./examples/components -section dock -width 1000", "dir": repoRoot()})
+	expect(t, got, `tab "文件"`, `tab "搜索"`, `tab "大纲"`, `tab "终端"`, "编辑器 Editor")
+	got = call("click", map[string]any{"text": "更多 搜索"})
+	expect(t, got, `menuitem "停靠到右侧"`)
+	got = call("click", map[string]any{"text": "停靠到右侧"})
+	expect(t, got, `tab "搜索" selected`, `textbox "在文件中搜索"`)
+	call("type", map[string]any{"ref": refOf(got, `textbox "在文件中搜索"`), "text": "hello.go"})
+	call("click", map[string]any{"text": "大纲"})
+	got = call("click", map[string]any{"text": "搜索"})
+	expect(t, got, `value="hello.go"`)
+	call("click", map[string]any{"text": "更多 搜索"})
+	got = call("press_key", map[string]any{"key": "esc"})
+	if strings.Contains(got, `menuitem "停靠到右侧"`) {
+		t.Fatal("Esc left dock menu open", got)
+	}
+	call("click", map[string]any{"text": "更多 搜索"})
+	got = call("click", map[string]any{"text": "关闭"})
+	if strings.Contains(got, `tab "搜索"`) {
+		t.Fatal("closed dock tab remained", got)
+	}
+	expect(t, got, `tab "大纲" selected`)
+}
