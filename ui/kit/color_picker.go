@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -49,7 +50,7 @@ func (p *ColorPickerView) Alpha() *ColorPickerView {
 
 // Swatches offers preset colors under the picker.
 func (p *ColorPickerView) Swatches(colors ...color.NRGBA) *ColorPickerView {
-	p.swatches = colors
+	p.swatches = slices.Clone(colors)
 	return p
 }
 func (p *ColorPickerView) OnChange(fn func(color.NRGBA)) *ColorPickerView { p.onChange = fn; return p }
@@ -89,10 +90,10 @@ func (p *ColorPickerView) changed() {
 }
 
 func (p *ColorPickerView) set(h, s, v, a float64) {
-	if p.disabled {
+	if p.disabled || !finiteNumber(h) || !finiteNumber(s) || !finiteNumber(v) || !finiteNumber(a) {
 		return
 	}
-	h, s, v, a = math.Mod(h+360, 360), clamp01(s), clamp01(v), clamp01(a)
+	h, s, v, a = math.Mod(math.Mod(h, 360)+360, 360), clamp01(s), clamp01(v), clamp01(a)
 	if h == p.h && s == p.s && v == p.v && a == p.a {
 		return
 	}
@@ -216,19 +217,38 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 				return false
 			}
 			if e.State == el.KeyPress {
+				if e.Modifiers.Contain(key.ModShift) {
+					x *= 10
+					y *= 10
+				}
 				apply(x, y)
 			}
 			return true
 		}
 	}
-	thumb := func(left, top float32) el.Element {
-		return el.Div().Absolute().Left(left-7).Top(top-7).Size(el.Dp(14)).Rounded(7).Border(2, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+	thumb := func(x, y float64) func(core.C, func()) {
+		return func(gtx core.C, draw func()) {
+			draw()
+			r := float32(gtx.Dp(6))
+			w, h := float32(gtx.Constraints.Max.X), float32(gtx.Constraints.Max.Y)
+			pad := float32(gtx.Dp(8))
+			xx, yy := min(w-pad, max(pad, float32(x)*w)), min(h-pad, max(pad, float32(y)*h))
+			rect := image.Rect(int(xx-r), int(yy-r), int(xx+r), int(yy+r))
+			path := clip.Ellipse(rect).Path(gtx.Ops)
+			paint.FillShape(gtx.Ops, color.NRGBA{A: 255}, clip.Stroke{Path: path, Width: float32(gtx.Dp(3))}.Op())
+			paint.FillShape(gtx.Ops, color.NRGBA{R: 255, G: 255, B: 255, A: 255}, clip.Stroke{Path: path, Width: float32(gtx.Dp(1))}.Op())
+		}
 	}
 	const svH = 150
-	sv := el.Div().Role("slider").Name(text.ColorShade).Value(strconv.Itoa(int(p.s*100)) + "," + strconv.Itoa(int(p.v*100))).
-		W(el.Dp(pickerWidth)).H(el.Dp(svH)).Rounded(6).Focusable(true).
+	sv := el.Div().ID(id+"/shade").Border(1, theme.Border).Role("slider").Name(text.ColorShade).Value(strconv.Itoa(int(p.s*100)) + "," + strconv.Itoa(int(p.v*100))).
+		WFull().H(el.Dp(svH)).Rounded(6).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
-		OnDrag(func(e el.DragEvent) { p.set(p.h, float64(e.X/e.W), 1-float64(e.Y/e.H), p.a) }).
+		OnDrag(func(e el.DragEvent) {
+			if e.Canceled || e.W <= 0 || e.H <= 0 {
+				return
+			}
+			p.set(p.h, float64(e.X/e.W), 1-float64(e.Y/e.H), p.a)
+		}).
 		OnKey(keys(0.02, 0.02, func(dx, dy float64) { p.set(p.h, p.s+dx, p.v+dy, p.a) })).
 		Child(el.Widget(core.Func(func(gtx core.C) core.D {
 			box := image.Rectangle{Max: gtx.Constraints.Max}
@@ -236,24 +256,51 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 			gradient(gtx, box, color.NRGBA{R: 255, G: 255, B: 255, A: 255}, color.NRGBA{R: 255, G: 255, B: 255}, false)
 			gradient(gtx, box, color.NRGBA{}, color.NRGBA{A: 255}, true)
 			return core.D{Size: box.Max}
-		})).W(el.Dp(pickerWidth)).H(el.Dp(svH)))
-	// Thumbs sit beside the sliders in a plain box: a slider clips to its own
-	// bounds, which would cut a thumb at the edge in half.
-	svBox := el.Div().W(el.Dp(pickerWidth)).H(el.Dp(svH)).Child(sv, thumb(float32(p.s)*pickerWidth, float32(1-p.v)*svH))
-	bar := func(name, value string, x float64, draw func(gtx core.C, box image.Rectangle), drag func(f float64), step func(d float64)) el.Element {
-		slider := el.Div().Role("slider").Name(name).Value(value).W(el.Dp(pickerWidth)).H(el.Dp(14)).Rounded(7).Focusable(true).
+		})).WFull().H(el.Dp(svH)))
+	// Paint thumbs using the laid-out width, with a black/white ring that stays
+	// inside the bounds even at an endpoint.
+	svBox := el.Div().WFull().H(el.Dp(svH)).Child(sv).Decorate(thumb(p.s, 1-p.v))
+	bar := func(slot, name, value string, x float64, draw func(gtx core.C, box image.Rectangle), drag func(f float64), step func(d float64)) el.Element {
+		slider := el.Div().ID(id+"/"+slot).Border(1, theme.Border).Center().Role("slider").Name(name).Value(value).WFull().H(el.Dp(24)).Rounded(7).Focusable(true).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
-			OnDrag(func(e el.DragEvent) { drag(float64(e.X / e.W)) }).
-			OnKey(keys(1, 0, func(dx, _ float64) { step(dx) })).
+			OnDrag(func(e el.DragEvent) {
+				if e.Canceled || e.W <= 0 {
+					return
+				}
+				drag(float64(e.X / e.W))
+			}).
+			OnKey(func(e el.KeyEvent) bool {
+				switch key.Name(e.Name) {
+				case key.NameHome, key.NameEnd:
+					if e.State == el.KeyPress {
+						if key.Name(e.Name) == key.NameHome {
+							drag(0)
+						} else {
+							drag(1)
+						}
+					}
+					return true
+				case key.NamePageUp, key.NamePageDown:
+					if e.State == el.KeyPress {
+						if key.Name(e.Name) == key.NamePageUp {
+							step(10)
+						} else {
+							step(-10)
+						}
+					}
+					return true
+				}
+				return keys(1, 1, func(dx, dy float64) { step(dx + dy) })(e)
+			}).
 			Child(el.Widget(core.Func(func(gtx core.C) core.D {
 				box := image.Rectangle{Max: gtx.Constraints.Max}
 				defer clip.UniformRRect(box, box.Dy()/2).Push(gtx.Ops).Pop()
 				draw(gtx, box)
 				return core.D{Size: box.Max}
-			})).W(el.Dp(pickerWidth)).H(el.Dp(14)))
-		return el.Div().W(el.Dp(pickerWidth)).H(el.Dp(14)).Child(slider, thumb(float32(x)*pickerWidth, 7))
+			})).WFull().H(el.Dp(14)))
+		return el.Div().WFull().H(el.Dp(24)).Child(slider).Decorate(thumb(x, .5))
 	}
-	hue := bar(text.Hue, strconv.Itoa(int(p.h)), p.h/360, func(gtx core.C, box image.Rectangle) {
+	hue := bar("hue", text.Hue, strconv.Itoa(int(p.h)), p.h/360, func(gtx core.C, box image.Rectangle) {
 		w := float32(box.Dx()) / 6
 		for i := 0; i < 6; i++ {
 			r0, g0, b0 := hsvToRGB(float64(i)*60, 1, 1)
@@ -261,10 +308,10 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 			seg := image.Rect(int(float32(i)*w), 0, int(float32(i+1)*w+1), box.Dy())
 			gradient(gtx, seg, color.NRGBA{R: r0, G: g0, B: b0, A: 255}, color.NRGBA{R: r1, G: g1, B: b1, A: 255}, false)
 		}
-	}, func(f float64) { p.set(f*360, p.s, p.v, p.a) }, func(d float64) { p.set(p.h+d*2, p.s, p.v, p.a) })
-	col := el.Div().ID(id).Disabled(p.disabled).Role("group").Name(hexOf(p.Value(), p.alpha)).Gap(10).W(el.Dp(pickerWidth)).Items(el.Stretch).Child(svBox, hue)
+	}, func(f float64) { p.set(min(359.999, max(0, f*360)), p.s, p.v, p.a) }, func(d float64) { p.set(p.h+d*2, p.s, p.v, p.a) })
+	col := el.Div().ID(id).Disabled(p.disabled).Role("group").Name(hexOf(p.Value(), p.alpha)).Gap(10).W(el.Dp(pickerWidth)).MaxW(el.Full).Items(el.Stretch).Child(svBox, hue)
 	if p.alpha {
-		col.Child(bar(text.Opacity, strconv.Itoa(int(math.Round(p.a*100)))+"%", p.a, func(gtx core.C, box image.Rectangle) {
+		col.Child(bar("alpha", text.Opacity, strconv.Itoa(int(math.Round(p.a*100)))+"%", p.a, func(gtx core.C, box image.Rectangle) {
 			paint.FillShape(gtx.Ops, theme.Subtle, clip.Rect(box).Op())
 			c := p.Value()
 			c0 := c
@@ -281,21 +328,20 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 		OnSubmit(func(string) { p.commitHex() })
 	col.Child(el.Div().Row().Items(el.Center).Gap(8).Child(preview, hex))
 	if len(p.swatches) > 0 {
-		row := el.Div().Row().Gap(6)
+		row := el.Div().Row().Wrap().Gap(6)
 		for i, c := range p.swatches {
-			c := c
-			if i > 0 && i%8 == 0 {
-				col.Child(row)
-				row = el.Div().Row().Gap(6)
+			swatch := el.Div().ID(id+"/swatch/"+strconv.Itoa(i)).Role("button").Name(hexOf(c, p.alpha)).Selected(c == p.Value()).
+				Size(el.Dp(24)).NoShrink().Rounded(4).Bg(c).Border(1, theme.Border).Center().CursorPointer().Focusable(true).
+				FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).OnClick(func() {
+				if !p.disabled && c != p.Value() {
+					p.SetValue(c)
+					p.changed()
+				}
+			})
+			if c == p.Value() {
+				swatch.Child(Icon(IconCheck).Size(14).Color(pickerContrast(c)).Render(cx))
 			}
-			row.Child(el.Div().Role("button").Name(hexOf(c, p.alpha)).Size(el.Dp(24)).Rounded(4).Bg(c).Border(1, theme.Border).
-				CursorPointer().Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
-				OnClick(func() {
-					if !p.disabled {
-						p.SetValue(c)
-						p.changed()
-					}
-				}))
+			row.Child(swatch)
 		}
 		col.Child(row)
 	}
@@ -321,4 +367,21 @@ func (p *ColorPickerView) commitHex() {
 		p.changed()
 	}
 	p.hex = hexOf(p.Value(), p.alpha)
+}
+
+// Choose black or white by contrast against the swatch composited on the surface.
+func pickerContrast(c color.NRGBA) color.NRGBA {
+	alpha := float64(c.A) / 255
+	channel := func(x, b uint8) float64 {
+		v := (float64(x)*alpha + float64(b)*(1-alpha)) / 255
+		if v <= .04045 {
+			return v / 12.92
+		}
+		return math.Pow((v+.055)/1.055, 2.4)
+	}
+	lum := .2126*channel(c.R, theme.Surface.R) + .7152*channel(c.G, theme.Surface.G) + .0722*channel(c.B, theme.Surface.B)
+	if lum > .179 {
+		return color.NRGBA{A: 255}
+	}
+	return color.NRGBA{R: 255, G: 255, B: 255, A: 255}
 }
