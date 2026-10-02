@@ -153,7 +153,7 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 			}
 			v.settle()
 		})
-	toggle := el.Div().Name(locale.Current().Name(locale.Current().MoreOptions, v.a11y())).P(2).Rounded(4).
+	toggle := el.Div().Name(locale.Current().Name(locale.Current().MoreOptions, v.a11y())).P(2).Rounded(theme.RadiusSm).
 		Focusable(false).CursorPointer().OnClick(func() {
 		if v.open {
 			v.close()

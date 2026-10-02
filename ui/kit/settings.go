@@ -53,7 +53,7 @@ func (v *SettingsView) SetValue(title string) { v.nav.SetValue(title) }
 func (v *SettingsView) row(cx *el.Context, it SettingItem, narrow bool) el.Element {
 	text := el.Div().Gap(2).Child(el.Text(it.Label))
 	if it.Description != "" {
-		text.Child(el.Text(it.Description).TextSize(13).TextColor(theme.Muted))
+		text.Child(el.Text(it.Description).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
 	row := el.Div().Role("group").Name(it.Label).Row().Items(el.Center).Gap(16).Py(12).Child(text)
 	if narrow {
@@ -108,7 +108,7 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 			continue
 		}
 		found = true
-		content.Child(el.Div().Pt(8).Pb(4).Child(el.Text(s.title).TextSize(17).Bold()))
+		content.Child(el.Div().Pt(8).Pb(4).Child(el.Text(s.title).TextSize(theme.TextLg).Bold()))
 		content.Child(el.Div().Role("group").Name(s.title).Items(el.Stretch).Children(rows))
 	}
 	if !found {

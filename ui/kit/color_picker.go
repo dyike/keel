@@ -241,7 +241,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 	}
 	const svH = 150
 	sv := el.Div().ID(id+"/shade").Border(1, theme.Border).Role("slider").Name(text.ColorShade).Value(strconv.Itoa(int(p.s*100)) + "," + strconv.Itoa(int(p.v*100))).
-		WFull().H(el.Dp(svH)).Rounded(6).Focusable(true).
+		WFull().H(el.Dp(svH)).Rounded(theme.RadiusMd).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnDrag(func(e el.DragEvent) {
 			if e.Canceled || e.W <= 0 || e.H <= 0 {
@@ -261,7 +261,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 	// inside the bounds even at an endpoint.
 	svBox := el.Div().WFull().H(el.Dp(svH)).Child(sv).Decorate(thumb(p.s, 1-p.v))
 	bar := func(slot, name, value string, x float64, draw func(gtx core.C, box image.Rectangle), drag func(f float64), step func(d float64)) el.Element {
-		slider := el.Div().ID(id+"/"+slot).Border(1, theme.Border).Center().Role("slider").Name(name).Value(value).WFull().H(el.Dp(24)).Rounded(7).Focusable(true).
+		slider := el.Div().ID(id+"/"+slot).Border(1, theme.Border).Center().Role("slider").Name(name).Value(value).WFull().H(el.Dp(24)).Rounded(theme.RadiusFull).Focusable(true).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 			OnDrag(func(e el.DragEvent) {
 				if e.Canceled || e.W <= 0 {
@@ -323,7 +323,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 	if p.alpha {
 		maxLen = 9
 	}
-	preview := el.Div().Size(el.Dp(32)).NoShrink().Rounded(6).Border(1, theme.Border).Bg(p.Value())
+	preview := el.Div().Size(el.Dp(32)).NoShrink().Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(p.Value())
 	hex := fieldText(el.Input().ID(id + "/hex").Name("HEX").Bind(&p.hex)).Filter("#0123456789abcdefABCDEF").MaxLen(maxLen).
 		OnSubmit(func(string) { p.commitHex() })
 	col.Child(el.Div().Row().Items(el.Center).Gap(8).Child(preview, fieldFrame(id+"/hexbox", focused, false, p.disabled, false).FocusOnPress(id+"/hex").Grow().W(el.Dp(0)).Child(hex)))
@@ -331,7 +331,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 		row := el.Div().Row().Wrap().Gap(6)
 		for i, c := range p.swatches {
 			swatch := el.Div().ID(id+"/swatch/"+strconv.Itoa(i)).Role("button").Name(hexOf(c, p.alpha)).Selected(c == p.Value()).
-				Size(el.Dp(24)).NoShrink().Rounded(4).Bg(c).Border(1, theme.Border).Center().CursorPointer().Focusable(true).
+				Size(el.Dp(24)).NoShrink().Rounded(theme.RadiusSm).Bg(c).Border(1, theme.Border).Center().CursorPointer().Focusable(true).
 				FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).OnClick(func() {
 				if !p.disabled && c != p.Value() {
 					p.SetValue(c)

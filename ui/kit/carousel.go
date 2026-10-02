@@ -64,7 +64,7 @@ func (v *CarouselView) Render(cx *el.Context) el.Element {
 		cur := v.current
 		cx.AfterEnabled(id, carouselKey{id, cur}, v.autoplay, func() { v.goTo(cur + 1) })
 	}
-	stage := el.Div().H(el.Dp(v.height)).Rounded(8).Bg(theme.Subtle).Items(el.Stretch).Justify(el.Center)
+	stage := el.Div().H(el.Dp(v.height)).Rounded(theme.RadiusLg).Bg(theme.Subtle).Items(el.Stretch).Justify(el.Center)
 	if v.current < len(v.slides) && v.slides[v.current] != nil {
 		stage.Child(v.slides[v.current].Render(cx))
 	}
@@ -75,7 +75,7 @@ func (v *CarouselView) Render(cx *el.Context) el.Element {
 		if i == v.current {
 			c = theme.Primary
 		}
-		dots.Child(el.Div().Name(strconv.Itoa(i + 1)).Size(el.Dp(8)).Rounded(4).Bg(c).CursorPointer().Focusable(false).
+		dots.Child(el.Div().Name(strconv.Itoa(i + 1)).Size(el.Dp(8)).Rounded(theme.RadiusSm).Bg(c).CursorPointer().Focusable(false).
 			OnClick(func() { v.goTo(i) }))
 	}
 	nav := el.Div().Row().Items(el.Center).Gap(8).Child(
@@ -84,7 +84,7 @@ func (v *CarouselView) Render(cx *el.Context) el.Element {
 		Button("", func() { v.goTo(v.current + 1) }).Name(text.NextSlide).Icon(IconChevronRight).Variant(ButtonGhost).Size(28).Render(cx),
 	)
 	return el.Div().ID(id).Disabled(v.disabled).Role("group").Name(strconv.Itoa(v.current+1)+"/"+strconv.Itoa(len(v.slides))).
-		Gap(8).Items(el.Stretch).Rounded(8).Focusable(true).
+		Gap(8).Items(el.Stretch).Rounded(theme.RadiusLg).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
 			d := 0

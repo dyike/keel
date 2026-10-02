@@ -135,7 +135,7 @@ func (v *AccordionView) Content(i int) el.View {
 	})
 }
 func (v *AccordionView) Render(cx *el.Context) el.Element {
-	out := el.Div().Role("group").Items(el.Stretch).Rounded(8).Border(1, theme.Border).Bg(theme.Surface)
+	out := el.Div().Role("group").Items(el.Stretch).Rounded(theme.RadiusLg).Border(1, theme.Border).Bg(theme.Surface)
 	for i := range v.items {
 		if i > 0 {
 			out.Child(el.Div().H(el.Dp(1)).Bg(theme.Border))

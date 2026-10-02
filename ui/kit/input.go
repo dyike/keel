@@ -104,7 +104,7 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 	}
 	box.Child(text)
 	if v.clearable && v.value != "" && !v.disabled && !v.readOnly {
-		box.Child(el.Div().Name(locale.Current().Name(locale.Current().Clear, name)).P(2).Rounded(4).
+		box.Child(el.Div().Name(locale.Current().Name(locale.Current().Clear, name)).P(2).Rounded(theme.RadiusSm).
 			CursorPointer().Focusable(false).Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
 			OnClick(func() {
 				v.value = ""

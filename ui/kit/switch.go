@@ -28,11 +28,11 @@ func (v *SwitchView) Render(cx *el.Context) el.Element {
 	if v.disabled {
 		track = theme.Subtle
 	}
-	knob := el.Div().Size(el.Dp(16)).Rounded(8).Bg(theme.Surface)
+	knob := el.Div().Size(el.Dp(16)).Rounded(theme.RadiusLg).Bg(theme.Surface)
 	if v.disabled {
 		knob.Bg(theme.Border)
 	}
-	body := el.Div().W(el.Dp(36)).H(el.Dp(20)).NoShrink().Rounded(10).Bg(track).Px(2).Row().Items(el.Center).Child(knob)
+	body := el.Div().W(el.Dp(36)).H(el.Dp(20)).NoShrink().Rounded(theme.RadiusFull).Bg(track).Px(2).Row().Items(el.Center).Child(knob)
 	if v.value {
 		body.Justify(el.End)
 	}

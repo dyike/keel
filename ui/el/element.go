@@ -1,6 +1,8 @@
 package el
 
 import (
+	"gioui.org/font"
+	"github.com/dyike/keel/ui/theme"
 	"image"
 	"image/color"
 
@@ -297,7 +299,26 @@ func (s *Styled[T]) Cursor(c pointer.Cursor) *T { s.n.style.cursor = c; return s
 
 func (s *Styled[T]) TextColor(c color.NRGBA) *T { s.n.style.text.color = &c; return s.self }
 func (s *Styled[T]) TextSize(sp float32) *T     { s.n.style.text.size = unit.Sp(sp); return s.self }
-func (s *Styled[T]) Bold() *T                   { b := true; s.n.style.text.bold = &b; return s.self }
+func (s *Styled[T]) Bold() *T                   { w := font.Bold; s.n.style.text.weight = &w; return s.self }
+
+// Medium sets a weight between regular and Bold, for emphasis that should
+// not shout: selected tabs, table headers.
+func (s *Styled[T]) Medium() *T { w := font.Medium; s.n.style.text.weight = &w; return s.self }
+
+// Mono sets theme.MonoFace: code and numbers that must line up.
+func (s *Styled[T]) Mono() *T { on := true; s.n.style.text.mono = &on; return s.self }
+
+// LineHeight sets the distance between lines as a multiple of the text
+// size, e.g. 1.5 for long paragraphs; descendants inherit it.
+func (s *Styled[T]) LineHeight(scale float32) *T { s.n.style.text.lineHeight = scale; return s.self }
+
+// Shadow lifts the element with a soft shadow below it, in theme.Shadow's
+// color: theme.ElevationMd for popovers and menus, ElevationLg for dialogs.
+// The shadow is drawn outside the element and does not change its size.
+func (s *Styled[T]) Shadow(e theme.Elevation) *T { s.n.style.shadow = &e; return s.self }
+
+// Opacity draws the element and its descendants at this alpha, 0..1.
+func (s *Styled[T]) Opacity(a float32) *T { s.n.style.opacity = min(max(a, 0.001), 1); return s.self }
 
 // MaxLines truncates text to n lines with an ellipsis.
 func (s *Styled[T]) MaxLines(n int) *T { s.n.style.text.lines = n; return s.self }

@@ -204,7 +204,7 @@ func (v *FormView) Render(cx *el.Context) el.Element {
 		}
 		control := el.Div().ID(v.fieldID(i)).Grow().Items(el.Stretch).Gap(6).Child(f.control.Render(cx))
 		if _, ok := f.control.(interface{ SetError(string) }); !ok && f.err != "" {
-			control.Child(el.Text(f.err).TextColor(theme.Danger).TextSize(12))
+			control.Child(el.Text(f.err).TextColor(theme.Danger).TextSize(theme.TextSm))
 		}
 		if _, ok := f.control.(interface{ FocusID() string }); !ok {
 			control.Focusable(f.err != "")

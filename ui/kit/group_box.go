@@ -30,7 +30,7 @@ func (v *GroupBoxView) Render(cx *el.Context) el.Element {
 	if v.description != "" {
 		box.Child(el.Text(v.description).TextColor(theme.Muted))
 	}
-	content := el.Div().P(16).Gap(12).Rounded(6).Border(1, theme.Border).Bg(theme.Surface)
+	content := el.Div().P(16).Gap(12).Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface)
 	for _, child := range v.children {
 		if child != nil {
 			content.Child(child.Render(cx))

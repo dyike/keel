@@ -128,14 +128,14 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 	}
 	id := autoID("dialog", v)
 	w, h := cx.ViewportSize()
-	panel := surface().Role(role).Name(v.title).W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().P(20).Gap(16).Items(el.Stretch)
+	panel := floating(theme.ElevationLg).Rounded(theme.RadiusXl).Role(role).Name(v.title).W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().P(20).Gap(16).Items(el.Stretch)
 	layer := el.Modal(panel).Owner(id).OnDismiss(v.close)
 	if v.alert {
 		layer.KeepOnOutsidePress()
 	}
 	cx.Overlay(id, layer)
 	if v.title != "" {
-		panel.Child(el.Text(v.title).TextSize(17).Bold())
+		panel.Child(el.Text(v.title).TextSize(theme.TextLg).Bold())
 	}
 	if v.body != nil {
 		panel.Child(el.Div().ID(id + "/body").MaxH(el.Dp(max(0, h-160))).ScrollY().Items(el.Stretch).Child(v.body.Render(cx)))

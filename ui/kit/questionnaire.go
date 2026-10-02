@@ -217,13 +217,13 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	q := v.questions[v.page]
 	progress := Progress(text.Progress(v.page+1, n))
 	progress.SetValue(float32(v.page+1) / float32(n))
-	title := el.Div().Row().Gap(4).Child(el.Text(q.Title).TextSize(17).Bold())
+	title := el.Div().Row().Gap(4).Child(el.Text(q.Title).TextSize(theme.TextLg).Bold())
 	if q.Required {
-		title.Child(el.Text("*").TextSize(17).TextColor(theme.DangerText))
+		title.Child(el.Text("*").TextSize(theme.TextLg).TextColor(theme.DangerText))
 	}
 	card := el.Div().Role("group").Name(q.Title).Gap(12).Items(el.Stretch).Child(title)
 	if q.Description != "" {
-		card.Child(el.Text(q.Description).TextSize(13).TextColor(theme.Muted))
+		card.Child(el.Text(q.Description).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
 	c := v.control(q)
 	switch {
@@ -241,7 +241,7 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 		card.Child(c.input.Render(cx))
 	}
 	if v.err != "" {
-		card.Child(el.Text(v.err).TextSize(12).TextColor(theme.DangerText))
+		card.Child(el.Text(v.err).TextSize(theme.TextSm).TextColor(theme.DangerText))
 	}
 	prev := Button(text.Previous, func() { v.SetPage(v.page - 1) }).Variant(ButtonSecondary)
 	prev.SetDisabled(v.page == 0)

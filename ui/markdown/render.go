@@ -31,7 +31,7 @@ var (
 	InlineCode   color.NRGBA
 	InlineCodeBg color.NRGBA
 	CodeStyle    = "" // a chroma style name
-	MonoFace     = font.Typeface("Menlo, SF Mono, Go Mono, PingFang SC, " + string(theme.Face))
+	MonoFace     = theme.MonoFace
 	caret        = "▍"
 )
 

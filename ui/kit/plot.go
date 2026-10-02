@@ -226,8 +226,8 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 	if len(v.series) > 1 {
 		for i, s := range v.series {
 			head.Child(el.Div().Row().Items(el.Center).Gap(6).Child(
-				el.Div().Size(el.Dp(10)).Rounded(5).Bg(theme.Chart[i%len(theme.Chart)]),
-				el.Text(s.Name).TextSize(12).TextColor(theme.Muted)))
+				el.Div().Size(el.Dp(10)).Rounded(theme.RadiusFull).Bg(theme.Chart[i%len(theme.Chart)]),
+				el.Text(s.Name).TextSize(theme.TextSm).TextColor(theme.Muted)))
 		}
 	}
 	head.Child(Button(text.ResetView, v.Reset).Variant(ButtonGhost).Size(24).Render(cx))
@@ -239,7 +239,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 			continue
 		}
 		top := float32((1-axisFraction(t, v.y0, v.y1))*float64(v.height)) - 8
-		axis.Child(el.Div().Absolute().Top(top).Right(8).Child(el.Text(v.format(t)).TextSize(11).TextColor(theme.Muted)))
+		axis.Child(el.Div().Absolute().Top(top).Right(8).Child(el.Text(v.format(t)).TextSize(theme.TextXs).TextColor(theme.Muted)))
 	}
 	box := el.Div().Grow().W(el.Dp(0)).H(el.Dp(v.height)).Items(el.Stretch).Child(
 		el.Widget(core.Func(func(gtx core.C) core.D { return v.draw(gtx, xt, yt) })).H(el.Dp(v.height)))
@@ -253,10 +253,10 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 		if left+12+160 > v.plotW {
 			left -= 12 + 160 + 12
 		}
-		box.Child(el.Div().Absolute().Left(max(left+12, 0)).Top(max(top-40, 0)).W(el.Dp(min(float32(160), v.plotW))).P(8).Gap(2).Rounded(6).
+		box.Child(el.Div().Absolute().Left(max(left+12, 0)).Top(max(top-40, 0)).W(el.Dp(min(float32(160), v.plotW))).P(8).Gap(2).Rounded(theme.RadiusMd).
 			Bg(theme.Surface).Border(1, theme.Border).Child(
-			el.Text(v.series[s].Name).TextSize(12).Bold(),
-			el.Text("x "+v.format(p.X)+"   y "+v.format(p.Y)).TextSize(12).TextColor(theme.Muted)))
+			el.Text(v.series[s].Name).TextSize(theme.TextSm).Bold(),
+			el.Text("x "+v.format(p.X)+"   y "+v.format(p.Y)).TextSize(theme.TextSm).TextColor(theme.Muted)))
 	}
 	xs := el.Div().Row().H(el.Dp(18))
 	previous := 0.0
@@ -266,10 +266,10 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 		}
 		fraction := axisFraction(t, v.x0, v.x1)
 		xs.Child(el.Div().W(el.Frac(float32(fraction-previous))).NoShrink(),
-			el.Div().W(el.Dp(1)).H(el.Dp(18)).Mx(-.5).NoShrink().Child(el.Div().Absolute().Left(-12).W(el.Dp(56)).Child(el.Text(v.format(t)).TextSize(11).TextColor(theme.Muted).MaxLines(1))))
+			el.Div().W(el.Dp(1)).H(el.Dp(18)).Mx(-.5).NoShrink().Child(el.Div().Absolute().Left(-12).W(el.Dp(56)).Child(el.Text(v.format(t)).TextSize(theme.TextXs).TextColor(theme.Muted).MaxLines(1))))
 		previous = fraction
 	}
-	return el.Div().Disabled(v.disabled).ID(autoID("plot", v)).Role("figure").Name(name).Gap(10).P(12).Rounded(8).
+	return el.Div().Disabled(v.disabled).ID(autoID("plot", v)).Role("figure").Name(name).Gap(10).P(12).Rounded(theme.RadiusLg).
 		Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {

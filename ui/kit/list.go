@@ -96,7 +96,7 @@ func (v *ListView) activate(i int) {
 
 func (v *ListView) row(cx *el.Context, i int) el.Element {
 	on := v.selectedItem(i)
-	r := el.Div().Role("option").Name(v.items[i]).Selected(on).Disabled(v.itemDisabled[i]).Row().Items(el.Center).Px(10).Rounded(4).Mx(4)
+	r := el.Div().Role("option").Name(v.items[i]).Selected(on).Disabled(v.itemDisabled[i]).Row().Items(el.Center).Px(10).Rounded(theme.RadiusSm).Mx(4)
 	if on {
 		r.Bg(theme.Highlight).TextColor(theme.PrimaryText)
 	}
@@ -158,7 +158,7 @@ func (v *ListView) Render(cx *el.Context) el.Element {
 // a transparent border so the focus outline has somewhere to show.
 func listFrame(d *el.DivEl, plain bool) *el.DivEl {
 	if plain {
-		return d.Rounded(6).Border(1, color.NRGBA{}).Py(4).Items(el.Stretch)
+		return d.Rounded(theme.RadiusMd).Border(1, color.NRGBA{}).Py(4).Items(el.Stretch)
 	}
-	return d.Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Py(4).Items(el.Stretch)
+	return d.Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface).Py(4).Items(el.Stretch)
 }

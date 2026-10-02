@@ -27,11 +27,24 @@ func (e *engine) label(n *Node, text string) material.LabelStyle {
 	ts := n.textStyle
 	lb := material.Label(theme.Material, ts.size, text)
 	lb.Color = *ts.color
-	if ts.bold != nil && *ts.bold {
-		lb.Font.Weight = font.Bold
+	lb.Font = textFont(ts)
+	if ts.lineHeight > 0 {
+		lb.LineHeightScale = ts.lineHeight
 	}
 	lb.MaxLines = ts.lines
 	return lb
+}
+
+// textFont is the font a text style draws with.
+func textFont(ts textStyle) font.Font {
+	f := font.Font{Typeface: theme.Material.Face}
+	if ts.mono != nil && *ts.mono {
+		f.Typeface = theme.MonoFace
+	}
+	if ts.weight != nil {
+		f.Weight = *ts.weight
+	}
+	return f
 }
 
 func (e *engine) measureText(n *Node, maxW int) image.Point {
@@ -92,6 +105,9 @@ func (e *engine) paint(n *Node) {
 	e.origin = abs.Min
 	defer func() { e.origin = saved }()
 	defer op.Offset(pos).Push(gtx.Ops).Pop()
+	if a := n.style.opacity; a > 0 && a < 1 {
+		defer paint.PushOpacity(gtx.Ops, a).Pop()
+	}
 	if n.decorate != nil {
 		g := gtx
 		g.Constraints = layout.Exact(n.size)
@@ -167,6 +183,11 @@ func (e *engine) paintContent(n *Node) {
 	rect := image.Rectangle{Max: n.size}
 	radius := min(e.dp(st.radius), min(n.size.X, n.size.Y)/2)
 
+	// The shadow lies outside the element, so it goes down before the
+	// element's own clip.
+	if n.style.shadow != nil {
+		e.paintShadow(*n.style.shadow, rect, radius)
+	}
 	// Elements that take input or report semantics get their own clip area;
 	// others do not, so their children can overflow them.
 	sem := e.semantics(n)
@@ -347,6 +368,26 @@ func (e *engine) paintBox(st Style, rect image.Rectangle, radius int) {
 		r := image.Rectangle{Min: rect.Min.Add(image.Pt(h, h)), Max: rect.Max.Sub(image.Pt(bw-h, bw-h))}
 		path := clip.UniformRRect(r, max(radius-h, 0)).Path(ops)
 		paint.FillShape(ops, st.borderColor, clip.Stroke{Path: path, Width: float32(bw)}.Op())
+	}
+}
+
+// paintShadow approximates a blurred shadow with rounded rectangles that grow
+// and fade: their translucent layers add up to theme.Shadow under the element
+// and thin out to nothing Blur dp beyond its edge.
+func (e *engine) paintShadow(sh theme.Elevation, rect image.Rectangle, radius int) {
+	ops := e.gtx.Ops
+	blur, offset := e.dp(sh.Blur), e.dp(sh.Offset)
+	if blur <= 0 || theme.Shadow.A == 0 {
+		return
+	}
+	layers := min(max(blur/2, 3), 16)
+	c := theme.Shadow
+	c.A = uint8(max(1, int(theme.Shadow.A)/layers))
+	base := rect.Add(image.Pt(0, offset))
+	for i := 1; i <= layers; i++ {
+		grow := blur * i / layers
+		r := image.Rectangle{Min: base.Min.Sub(image.Pt(grow, grow)), Max: base.Max.Add(image.Pt(grow, grow))}
+		paint.FillShape(ops, c, clip.UniformRRect(r, radius+grow).Op(ops))
 	}
 }
 
@@ -611,9 +652,10 @@ func (e *engine) paintChildren(n *Node) {
 
 // shiftKey identifies a text style whose ink has been measured.
 type shiftKey struct {
-	face font.Typeface
-	px   int
-	bold bool
+	face       font.Typeface
+	px         int
+	weight     font.Weight
+	lineHeight float32
 }
 
 // shifts caches textShift per text style. Touched only under the frame lock.
@@ -626,12 +668,9 @@ var shifts = map[shiftKey]int{}
 // descender of g) further out of the line box.
 func (e *engine) textShift(n *Node) int {
 	ts := n.textStyle
-	face := font.Font{Typeface: theme.Material.Face}
-	if ts.bold != nil && *ts.bold {
-		face.Weight = font.Bold
-	}
+	face := textFont(ts)
 	px := e.m.Sp(ts.size)
-	key := shiftKey{face.Typeface, px, face.Weight == font.Bold}
+	key := shiftKey{face.Typeface, px, face.Weight, ts.lineHeight}
 	if s, ok := shifts[key]; ok {
 		return s
 	}
@@ -640,6 +679,9 @@ func (e *engine) textShift(n *Node) int {
 	// skew metrics read from single glyphs.
 	lb := material.Label(theme.Material, ts.size, "国Ag")
 	lb.Font = face
+	if ts.lineHeight > 0 {
+		lb.LineHeightScale = ts.lineHeight
+	}
 	dims := lb.Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}))
 	boxDescent := dims.Baseline // below the baseline
 	boxAscent := dims.Size.Y - boxDescent

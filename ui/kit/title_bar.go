@@ -81,7 +81,7 @@ func (v *TitleBarView) Render(cx *el.Context) el.Element {
 	if w != nil && !w.Focused() {
 		fg = theme.Muted
 	}
-	title := el.Text(v.title).TextSize(13).Bold().MaxLines(1).TextColor(fg)
+	title := el.Text(v.title).TextSize(theme.TextMd).Bold().MaxLines(1).TextColor(fg)
 	middle := el.Div().Grow().W(el.Dp(0)).H(el.Dp(TitleBarHeight)).Row().Items(el.Center).Child(title)
 	if mac {
 		middle.Justify(el.Center) // macOS centers window titles
@@ -110,7 +110,7 @@ func (v *TitleBarView) lights(cx *el.Context, w core.WindowControls) el.Element 
 		if !w.Focused() && !hover {
 			c = theme.Border
 		}
-		dot := el.Div().Role("button").Name(name).Size(el.Dp(12)).Rounded(6).Bg(c).Center().
+		dot := el.Div().Role("button").Name(name).Size(el.Dp(12)).Rounded(theme.RadiusMd).Bg(c).Center().
 			Focusable(false).OnClick(fn)
 		if hover {
 			dot.Child(el.Text(symbol).TextSize(9).Bold().TextColor(color.NRGBA{A: 0x99}))

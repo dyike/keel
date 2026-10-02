@@ -43,5 +43,5 @@ func (v *CollapsibleView) Content() el.View {
 	})
 }
 func (v *CollapsibleView) Render(cx *el.Context) el.Element {
-	return el.Div().Role("group").Items(el.Stretch).Rounded(8).Border(1, theme.Border).Bg(theme.Surface).Child(v.Trigger().Render(cx), v.Content().Render(cx))
+	return el.Div().Role("group").Items(el.Stretch).Rounded(theme.RadiusLg).Border(1, theme.Border).Bg(theme.Surface).Child(v.Trigger().Render(cx), v.Content().Render(cx))
 }

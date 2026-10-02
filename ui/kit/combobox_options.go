@@ -146,7 +146,7 @@ func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
 	if v.multiple {
 		selected = slices.Contains(v.values, option)
 	}
-	row := el.Div().Role("option").Name(option).Selected(selected).H(el.Dp(28)).My(1).Mx(4).Px(8).Row().Items(el.Center).Rounded(4).CursorPointer().Focusable(false).
+	row := el.Div().Role("option").Name(option).Selected(selected).H(el.Dp(28)).My(1).Mx(4).Px(8).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
 		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(option); cx.Focus(v.FocusID()) }).Child(el.Text(option).Grow().MaxLines(1), checkMark(cx, selected))
 	switch {
 	case selected:
@@ -157,7 +157,7 @@ func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
 	return row
 }
 func (v *ComboboxView) suggestions(cx *el.Context, id string) el.Element {
-	list := surface().ID(id + "/list").Role("listbox").Name(v.a11y()).Py(4).Items(el.Stretch)
+	list := floating(theme.ElevationMd).ID(id + "/list").Role("listbox").Name(v.a11y()).Py(4).Items(el.Stretch)
 	switch {
 	case v.loading:
 		list.Child(el.Div().P(12).Row().Gap(8).Child(Spinner().Render(cx), el.Text(locale.Current().Loading)))

@@ -165,7 +165,7 @@ func (v *MenuView) renderSub(cx *el.Context) {
 
 func (v *MenuView) panel(cx *el.Context) el.Element {
 	w, h := cx.ViewportSize()
-	list := surface().ID(autoID("menu-scroll", v)).Role("menu").Name(v.label()).MinW(el.Dp(min(v.width, max(0, w-16)))).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().Py(4).Items(el.Stretch)
+	list := floating(theme.ElevationMd).ID(autoID("menu-scroll", v)).Role("menu").Name(v.label()).MinW(el.Dp(min(v.width, max(0, w-16)))).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().Py(4).Items(el.Stretch)
 	v.revealItem(cx)
 	for i, it := range v.items {
 		if it.separator {
@@ -206,7 +206,7 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem) el.Element {
 		}
 	}
 	row := el.Div().ID(v.itemID(i)).NoShrink().Role("menuitem").Name(it.label).Row().Items(el.Center).Gap(12).
-		Mx(4).Px(8).H(el.Dp(30)).Rounded(4).Focusable(true).Disabled(v.itemDisabled(i)).
+		Mx(4).Px(8).H(el.Dp(30)).Rounded(theme.RadiusSm).Focusable(true).Disabled(v.itemDisabled(i)).
 		DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).
 		FocusStyle(func(s *el.Style) { s.Bg(theme.Subtle).BorderColor(theme.Subtle) }).
 		OnClick(run).

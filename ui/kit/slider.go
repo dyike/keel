@@ -169,7 +169,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 	if v.disabled {
 		fill = theme.Muted
 	}
-	bar := el.Div().Rounded(2).Bg(theme.Border)
+	bar := el.Div().Rounded(theme.RadiusFull).Bg(theme.Border)
 	if v.vertical > 0 {
 		bar.W(el.Dp(4)).HFull().Child(el.Div().H(el.Frac(1-hi)).NoShrink(), el.Div().W(el.Dp(4)).H(el.Frac(hi-lo)).NoShrink().Bg(fill))
 	} else {
@@ -208,7 +208,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 	}
 	knob := func(x float64, upper bool) el.Element {
 		frac := v.fraction(x)
-		thumb := el.Div().Size(el.Dp(16)).NoShrink().Rounded(8).Bg(theme.Surface).Border(2, fill)
+		thumb := el.Div().Size(el.Dp(16)).NoShrink().Rounded(theme.RadiusLg).Bg(theme.Surface).Border(2, fill)
 		if v.paired {
 			name := locale.Current().LowerValue
 			if upper {
@@ -223,7 +223,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 		}
 		return layer.Top(2).Left(0).Right(16).Row().Child(el.Div().W(el.Frac(frac)).NoShrink(), thumb)
 	}
-	track := el.Div().ID(autoID("slider", v)).Disabled(v.disabled).Rounded(10).Child(bar, knob(v.value, false))
+	track := el.Div().ID(autoID("slider", v)).Disabled(v.disabled).Rounded(theme.RadiusFull).Child(bar, knob(v.value, false))
 	if v.vertical > 0 {
 		track.W(el.Dp(20)).H(el.Dp(v.vertical)).Py(8).Items(el.Center)
 	} else {

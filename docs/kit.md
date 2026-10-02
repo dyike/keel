@@ -20,6 +20,8 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 
 装饰的显示、隐藏和内容变化不应改变宿主尺寸或基线，例如 Badge 计数变化不能让按钮跳动。普通内容变化可以重新排版。窄容器中遵守约束；文本检查中文、拉丁字母、数字、混排、1×/2×缩放，输入光标和选择区使用统一字形度量，不按某个截图硬补偏移。
 
+圆角、字号、阴影只用 `theme` 的刻度（`scale.go`），不写数字：同一种角色在各组件里看起来一样，改设计只改刻度。卡片用 `surface()`，浮在页面上的层（菜单、弹层、下拉、对话框、通知）用 `floating(层级)`，带阴影。
+
 所有文本类字段（Input、NumberInput、Select、Combobox、TimeField、DatePicker、InputGroup、ColorPicker 的十六进制框，以及 Select、Command、Settings 的搜索框）都用 `ui/kit/field.go` 里同一个 `fieldFrame` 画外框：高 `theme.ControlHeight`（36dp）、左右内边距 10dp、圆角 6dp，边框按"错误 → 聚焦 → 常态"取色，禁用和只读用 Subtle 底色。搜索框统一用 `searchField`，前面带搜索图标。包着文本输入的外框都调用 `FocusOnPress`，点外框任何空白处都聚焦文字。改字段外观只改这一处，不在组件里另写边框和内边距；`TestFieldsShareControlHeight` 检查各字段等高。
 
 框架自己的文字（按钮文案、无障碍名称、占位文字、计数）一律在 Render 时从 `locale.Current()` 读取，不在构造时保存，也不写死中文；`internal/deps` 的测试会拦下写死的中文字符串。拼接"动作 + 对象"形式的名称时用 `locale.Current().Name(action, target)`。应用传进来的文字（标题、菜单项）原样使用。

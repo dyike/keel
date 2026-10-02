@@ -18,7 +18,7 @@ func (v *LinkView) SetText(s string)             { v.text = s }
 func (v *LinkView) SetDisabled(on bool)          { v.disabled = on }
 
 func (v *LinkView) Render(cx *el.Context) el.Element {
-	l := el.Div().Role("link").Name(v.text).Disabled(v.disabled).Rounded(2).Focusable(true).
+	l := el.Div().Role("link").Name(v.text).Disabled(v.disabled).Rounded(theme.RadiusSm).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		TextColor(theme.PrimaryText).OnClick(func() {
 		if !v.disabled && v.onClick != nil {

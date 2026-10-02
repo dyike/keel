@@ -57,11 +57,11 @@ func (v *InputGroupView) Render(cx *el.Context) el.Element {
 		label = v.input.label
 	}
 	if label != "" {
-		root.Child(el.Div().Name(label).OnClick(func() { cx.Focus(v.FocusID()) }).Child(el.Text(label).TextSize(13).TextColor(theme.Muted)))
+		root.Child(el.Div().Name(label).OnClick(func() { cx.Focus(v.FocusID()) }).Child(el.Text(label).TextSize(theme.TextMd).TextColor(theme.Muted)))
 	}
 	root.Child(field)
 	if v.Error() != "" {
-		root.Child(el.Text(v.Error()).TextSize(12).TextColor(theme.Danger))
+		root.Child(el.Text(v.Error()).TextSize(theme.TextSm).TextColor(theme.Danger))
 	}
 	return root
 }

@@ -185,7 +185,7 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 		v.list.Height(min(viewport, float32(len(v.rows))*36))
 		results = el.Div().Role("listbox").Name(text.Commands).Items(el.Stretch).Child(v.list.Render(cx))
 	}
-	panel := surface().Role("dialog").Name(text.Commands).W(el.Dp(560)).MaxW(el.Full).Items(el.Stretch).Child(el.Div().P(8).Child(searchField(cx, id+"/searchbox", id+"/search", search)), el.Div().H(el.Dp(1)).Bg(theme.Border), results)
+	panel := floating(theme.ElevationLg).Role("dialog").Name(text.Commands).W(el.Dp(560)).MaxW(el.Full).Items(el.Stretch).Child(el.Div().P(8).Child(searchField(cx, id+"/searchbox", id+"/search", search)), el.Div().H(el.Dp(1)).Bg(theme.Border), results)
 	cx.Overlay(id, el.Modal(el.Div().Pt(top).Items(el.Center).Child(panel)).Placement(el.Top, el.Center).OnDismiss(func() { v.SetValue(false) }))
 	return el.Div().Hidden(true)
 }
@@ -220,11 +220,11 @@ func (v *CommandView) row(cx *el.Context, i int) el.Element {
 	it := entry.item
 	if entry.header {
 		// Fill the 36dp slot and sit at its bottom, next to the group it names.
-		return el.Div().H(el.Dp(36)).Px(16).Pb(4).Justify(el.End).Child(el.Text(it.Title).Bold().TextSize(12).TextColor(theme.Muted))
+		return el.Div().H(el.Dp(36)).Px(16).Pb(4).Justify(el.End).Child(el.Text(it.Title).Bold().TextSize(theme.TextSm).TextColor(theme.Muted))
 	}
 	// Every option is 32dp, centered in its 36dp slot, with or without a
 	// shortcut keycap.
-	row := el.Div().Role("option").Name(it.Title).Selected(i == v.active).Disabled(it.Disabled).H(el.Dp(32)).My(2).Mx(6).Px(10).Rounded(6).Row().Items(el.Center).Gap(8).Focusable(false).Child(el.Text(it.Title).Grow().MaxLines(1))
+	row := el.Div().Role("option").Name(it.Title).Selected(i == v.active).Disabled(it.Disabled).H(el.Dp(32)).My(2).Mx(6).Px(10).Rounded(theme.RadiusMd).Row().Items(el.Center).Gap(8).Focusable(false).Child(el.Text(it.Title).Grow().MaxLines(1))
 	if !it.Disabled {
 		row.CursorPointer().OnClick(func() { v.run(it) })
 		if i == v.active {

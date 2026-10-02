@@ -348,7 +348,7 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 	for _, id := range ids {
 		id := id
 		on := id == *active
-		t := el.Div().ID(v.tabID(id)).NoShrink().Role("tab").Name(v.panels[id].Title).Selected(on).Px(10).Py(6).Rounded(4).TextSize(13).
+		t := el.Div().ID(v.tabID(id)).NoShrink().Role("tab").Name(v.panels[id].Title).Selected(on).Px(10).Py(6).Rounded(theme.RadiusSm).TextSize(theme.TextMd).
 			CursorPointer().Focusable(true).FocusStyle(func(st *el.Style) { st.BorderColor(theme.Primary) }).
 			OnClick(func() {
 				if *active != id {

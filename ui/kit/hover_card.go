@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"github.com/dyike/keel/ui/theme"
 	"time"
 
 	"github.com/dyike/keel/ui/el"
@@ -52,7 +53,7 @@ func (v *HoverCardView) Render(cx *el.Context) el.Element {
 	}
 	if v.open {
 		w, h := cx.ViewportSize()
-		panel := surface().ID(card).Role("dialog").W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX().P(16)
+		panel := floating(theme.ElevationMd).ID(card).Role("dialog").W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX().P(16)
 		cx.Overlay(id, el.Anchored(id, panel).OnDismiss(func() { v.open = false; v.muted = true }))
 		if v.content != nil {
 			panel.Child(v.content.Render(cx))

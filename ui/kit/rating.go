@@ -73,7 +73,7 @@ func (v *RatingView) Render(cx *el.Context) el.Element {
 		name = v.name
 	}
 	row := el.Div().ID(id).Role("slider").Name(name).Value(strconv.FormatFloat(v.value, 'f', -1, 64) + "/" + strconv.Itoa(v.max)).
-		Row().Gap(2).Rounded(4).Disabled(v.disabled).Focusable(interactive).
+		Row().Gap(2).Rounded(theme.RadiusSm).Disabled(v.disabled).Focusable(interactive).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
 			d := 0

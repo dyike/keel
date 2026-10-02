@@ -84,18 +84,18 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 			bg = theme.Subtle
 		}
 	}
-	font, iconSize, padding := float32(14), float32(16), float32(16)
+	font, iconSize, padding := float32(theme.TextControl), float32(16), float32(16)
 	if v.height <= 28 {
-		font, iconSize, padding = 12, 14, 10
+		font, iconSize, padding = theme.TextSm, 14, 10
 	} else if v.height >= 40 {
-		font, iconSize, padding = 16, 20, 22
+		font, iconSize, padding = theme.TextBody, 20, 22
 	}
 	name := v.name
 	if name == "" {
 		name = v.text
 	}
 	box := el.Div().ID(v.id).Role("button").Name(name).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(6).Items(el.Center).Justify(el.Center).
-		Rounded(6).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
+		Rounded(theme.RadiusMd).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
 		Disabled(v.disabled).
 		DisabledStyle(func(s *el.Style) { s.Bg(bg).TextColor(fg) }).
 		FocusStyle(func(s *el.Style) {

@@ -196,7 +196,7 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 		name = strings.Join(names, ", ")
 	}
 	root := el.Div().Disabled(v.disabled).Role("figure").Name(name).Value(strconv.Itoa(len(v.labels))+"x"+strconv.Itoa(len(v.series))).
-		Gap(10).P(12).Rounded(8).Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch)
+		Gap(10).P(12).Rounded(theme.RadiusLg).Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch)
 	head := el.Div().Row().Wrap().Items(el.Center).Gap(12)
 	if v.title != "" {
 		head.Child(el.Text(v.title).Bold())
@@ -223,7 +223,7 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 	axis := el.Div().W(el.Dp(axisWidth)).H(el.Dp(v.height)).NoShrink()
 	for _, t := range ticks {
 		top := float32((1-axisFraction(t, lo, hi))*float64(v.height)) - 8
-		axis.Child(el.Div().Absolute().Top(top).Right(8).Child(el.Text(v.format(t)).TextSize(11).TextColor(theme.Muted)))
+		axis.Child(el.Div().Absolute().Top(top).Right(8).Child(el.Text(v.format(t)).TextSize(theme.TextXs).TextColor(theme.Muted)))
 	}
 	plot := el.Div().Grow().W(el.Dp(0)).H(el.Dp(v.height)).Items(el.Stretch).Child(
 		el.Widget(core.Func(func(gtx core.C) core.D { return v.draw(gtx, lo, hi, ticks) })).H(el.Dp(v.height)))
@@ -250,7 +250,7 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 		}
 		xs.Child(el.Div().W(el.Dp(0)).Flex(1).Items(el.Center).Child(
 			el.Div().W(el.Dp(56)).NoShrink().Items(el.Center).
-				Child(el.Text(v.labels[i]).TextSize(11).TextColor(theme.Muted).MaxLines(1))))
+				Child(el.Text(v.labels[i]).TextSize(theme.TextXs).TextColor(theme.Muted).MaxLines(1))))
 		next = i + 1
 	}
 	if next < len(v.labels) {
@@ -270,17 +270,17 @@ func (v *ChartView) tooltip() el.Element {
 	if left+w > v.plotW {
 		left = center - 12 - w
 	}
-	tip := el.Div().Absolute().Top(8).Left(max(left, 0)).W(el.Dp(w)).P(8).Gap(4).Rounded(6).
+	tip := el.Div().Absolute().Top(8).Left(max(left, 0)).W(el.Dp(w)).P(8).Gap(4).Rounded(theme.RadiusMd).
 		Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch).
-		Child(el.Text(v.labels[v.hover]).TextSize(12).Bold())
+		Child(el.Text(v.labels[v.hover]).TextSize(theme.TextSm).Bold())
 	for i, s := range v.series {
 		if v.hidden[i] {
 			continue
 		}
 		tip.Child(el.Div().Row().Items(el.Center).Gap(6).Child(
-			el.Div().Size(el.Dp(8)).Rounded(4).Bg(theme.Chart[i%len(theme.Chart)]),
-			el.Text(s.Name).TextSize(12).TextColor(theme.Muted).Grow().MaxLines(1),
-			el.Text(v.valueText(s, v.hover)).TextSize(12)))
+			el.Div().Size(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Chart[i%len(theme.Chart)]),
+			el.Text(s.Name).TextSize(theme.TextSm).TextColor(theme.Muted).Grow().MaxLines(1),
+			el.Text(v.valueText(s, v.hover)).TextSize(theme.TextSm)))
 	}
 	return tip
 }

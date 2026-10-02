@@ -103,7 +103,7 @@ func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []st
 		fg = theme.Muted
 	}
 	row := el.Div().ID(base + "/" + it.ID).Role("link").Name(it.Label).Selected(on).Disabled(disabled).
-		Row().Items(el.Center).Gap(10).H(el.Dp(36)).Px(10).Pl(float32(10 + depth*14)).Rounded(8).CursorPointer().TextColor(theme.Text).TextSize(14).
+		Row().Items(el.Center).Gap(10).H(el.Dp(36)).Px(10).Pl(float32(10 + depth*14)).Rounded(theme.RadiusLg).CursorPointer().TextColor(theme.Text).TextSize(theme.TextControl).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnClick(func() {
 			if len(it.Children) > 0 {
@@ -176,8 +176,8 @@ func (v *SidebarView) item(cx *el.Context, base string, it SidebarItem, ids []st
 				count = "99+"
 			}
 			row.Child(el.Div().Role("badge").Name(strconv.Itoa(it.Badge)).Value(count).
-				MinW(el.Dp(24)).H(el.Dp(20)).Center().NoShrink().Rounded(5).
-				TextSize(11).TextColor(theme.Muted).Child(el.Text(count)))
+				MinW(el.Dp(24)).H(el.Dp(20)).Center().NoShrink().Rounded(theme.RadiusSm).
+				TextSize(theme.TextXs).TextColor(theme.Muted).Child(el.Text(count)))
 		}
 		return row
 	}
@@ -246,7 +246,7 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 			continue
 		}
 		if s.title != "" && !v.collapsed {
-			body.Child(el.Div().H(el.Dp(28)).Px(10).Justify(el.Center).Child(el.Text(s.title).TextSize(12).TextColor(theme.Muted)))
+			body.Child(el.Div().H(el.Dp(28)).Px(10).Justify(el.Center).Child(el.Text(s.title).TextSize(theme.TextSm).TextColor(theme.Muted)))
 			y += 32
 		} else if i > 0 {
 			body.Child(el.Div().H(el.Dp(17)).Px(8).Justify(el.Center).Child(el.Div().H(el.Dp(1)).Bg(theme.Border)))

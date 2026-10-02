@@ -144,7 +144,7 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 				v.revealed = focus
 			})
 		}
-		cx.Overlay(id, el.Anchored(id, surface().ID(viewportID).Role("dialog").Name(v.a11y()).
+		cx.Overlay(id, el.Anchored(id, floating(theme.ElevationMd).ID(viewportID).Role("dialog").Name(v.a11y()).
 			MaxW(el.Dp(max(1, width-16))).MaxH(el.Dp(max(1, height-16))).
 			ScrollY().ScrollX().P(12).Child(calendar)).
 			Modal().TrapFocus().OnDismiss(v.close))

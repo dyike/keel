@@ -180,7 +180,7 @@ func (v *ToolbarView) button(cx *el.Context, id string, i int, it ToolbarItem, b
 		fg = theme.Muted
 	}
 	b := el.Div().ID(id + "/" + strconv.Itoa(i)).Role("button").Name(it.Label).Disabled(it.Disabled).
-		Row().Items(el.Center).Gap(6).H(el.Dp(v.height)).Px(10).Rounded(6).TextColor(fg).TextSize(14).
+		Row().Items(el.Center).Gap(6).H(el.Dp(v.height)).Px(10).Rounded(theme.RadiusMd).TextColor(fg).TextSize(theme.TextControl).
 		Focusable(i == v.active).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnClick(func() {
 			if v.disabled || it.Disabled {

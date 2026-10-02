@@ -65,8 +65,8 @@ func (v *OtpInputView) Render(cx *el.Context) el.Element {
 		case focused && !v.disabled && i == min(len(digits), v.length-1):
 			border = theme.Primary
 		}
-		cell := el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(box)).H(el.Dp(48)).Rounded(6).Border(1, border).Bg(theme.Surface).Center().
-			Child(el.Text(ch).TextSize(20).Bold())
+		cell := el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(box)).H(el.Dp(48)).Rounded(theme.RadiusMd).Border(1, border).Bg(theme.Surface).Center().
+			Child(el.Text(ch).TextSize(theme.TextXl).Bold())
 		if v.disabled {
 			cell.Bg(theme.Subtle).TextColor(theme.Muted)
 		}

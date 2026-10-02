@@ -182,11 +182,11 @@ func (v *SelectView) optionRow(cx *el.Context, i int) el.Element {
 	row := v.rows[i]
 	if row.index < 0 {
 		// Fill the 30dp slot and sit at its bottom, next to the group it names.
-		return el.Div().H(el.Dp(30)).Px(12).Pb(4).Justify(el.End).Child(el.Text(row.group).Bold().TextSize(12).TextColor(theme.Muted))
+		return el.Div().H(el.Dp(30)).Px(12).Pb(4).Justify(el.End).Child(el.Text(row.group).Bold().TextSize(theme.TextSm).TextColor(theme.Muted))
 	}
 	option := v.entries[row.index]
 	selected := v.picked(option.Value)
-	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(28)).My(1).Mx(4).Px(8).Row().Items(el.Center).Rounded(4).Focusable(false).Child(el.Text(option.Label).Grow().MaxLines(1), checkMark(cx, selected))
+	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(28)).My(1).Mx(4).Px(8).Row().Items(el.Center).Rounded(theme.RadiusSm).Focusable(false).Child(el.Text(option.Label).Grow().MaxLines(1), checkMark(cx, selected))
 	if selected {
 		item.Bg(theme.Highlight)
 	}
@@ -214,7 +214,7 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 			v.virtual.ScrollTo(cx, v.active)
 		}
 	}
-	panel := surface().Role("listbox").Name(v.a11y()).Py(4).Items(el.Stretch)
+	panel := floating(theme.ElevationMd).Role("listbox").Name(v.a11y()).Py(4).Items(el.Stretch)
 	_, height := cx.ViewportSize()
 	available := max(float32(1), min(float32(240), height-100))
 	if v.searchable {

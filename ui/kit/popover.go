@@ -1,6 +1,9 @@
 package kit
 
-import "github.com/dyike/keel/ui/el"
+import (
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/theme"
+)
 
 // PopoverView shows content next to a trigger. The trigger opens it itself,
 // so it keeps its own Tab stop and keyboard handling:
@@ -59,7 +62,7 @@ func (v *PopoverView) Render(cx *el.Context) el.Element {
 	id := autoID("popover", v)
 	if v.open {
 		w, h := cx.ViewportSize()
-		panel := surface().ID(id + "/panel").Role("dialog").MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX().P(12)
+		panel := floating(theme.ElevationMd).ID(id + "/panel").Role("dialog").MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX().P(12)
 		if v.width > 0 {
 			panel.W(el.Dp(v.width))
 		}

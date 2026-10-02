@@ -227,13 +227,13 @@ func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) e
 	week := el.Div().WFull().Row()
 	for i := 0; i < 7; i++ {
 		wd := (int(text.FirstWeekday) + i) % 7
-		week.Child(el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(24)).Center().Child(el.Text(text.Weekdays[wd]).TextSize(12).TextColor(theme.Muted)))
+		week.Child(el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(24)).Center().Child(el.Text(text.Weekdays[wd]).TextSize(theme.TextSm).TextColor(theme.Muted)))
 	}
 	title := text.Month(month.Year(), month.Month())
 	grid := el.Div().W(el.Dp(252)).MaxW(el.Full).NoShrink().Role("grid").Name(title)
 	if v.months > 1 {
 		// Same weight as the header button text: the header names the range.
-		grid.Child(el.Div().H(el.Dp(28)).Center().Child(el.Text(title).TextSize(13)))
+		grid.Child(el.Div().H(el.Dp(28)).Center().Child(el.Text(title).TextSize(theme.TextMd)))
 	}
 	grid.Child(week)
 	first := month.AddDate(0, 0, -((int(month.Weekday()) - int(text.FirstWeekday) + 7) % 7))
@@ -277,7 +277,7 @@ func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func
 	faint.A = 0x66
 	label := locale.Current().Date(d)
 	c := el.Div().ID(v.cellID(d)).Role("gridcell").Name(label).Selected(chosen || between).
-		W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(ch)).Rounded(6).Bg(bg).TextColor(fg).Center().
+		W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(ch)).Rounded(theme.RadiusMd).Bg(bg).TextColor(fg).Center().
 		Focusable(d.Equal(v.focus)).Disabled(!ok).DisabledStyle(func(s *el.Style) { s.TextColor(faint) }).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		Child(el.Text(strconv.Itoa(d.Day())))

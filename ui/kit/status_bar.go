@@ -32,7 +32,7 @@ func (v *StatusBarView) Render(cx *el.Context) el.Element {
 			right.Child(e.Render(cx))
 		}
 	}
-	return el.Div().W(el.Full).H(el.Dp(24)).Role("status").TextSize(12).TextColor(theme.Muted).Bg(theme.Surface).Child(
+	return el.Div().W(el.Full).H(el.Dp(24)).Role("status").TextSize(theme.TextSm).TextColor(theme.Muted).Bg(theme.Surface).Child(
 		el.Div().Absolute().Top(0).Left(0).Right(0).H(el.Dp(1)).Bg(theme.Border),
 		el.Div().W(el.Full).H(el.Full).Row().Px(8).Gap(8).Items(el.Center).Child(left, right),
 	)

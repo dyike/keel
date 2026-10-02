@@ -140,7 +140,7 @@ func (v *PieChartView) Render(cx *el.Context) el.Element {
 		box.Child(el.Widget(core.Func(func(gtx core.C) core.D { return v.draw(gtx, parts) })).H(el.Dp(v.height)).WFull())
 	}
 	if v.hover >= 0 && v.hover < len(v.data) && parts[v.hover] > 0 {
-		box.Child(el.Text(v.data[v.hover].Name + "  " + v.valueText(v.hover) + "  " + pieShare(parts[v.hover])).TextSize(12))
+		box.Child(el.Text(v.data[v.hover].Name + "  " + v.valueText(v.hover) + "  " + pieShare(parts[v.hover])).TextSize(theme.TextSm))
 	} else {
 		box.Child(el.Div().H(el.Dp(16)))
 	}

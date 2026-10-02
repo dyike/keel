@@ -27,14 +27,15 @@ var (
 	PrimaryHover = RGB(0x1d4ed8)
 	DangerHover  = RGB(0xb91c1c)
 	SubtleHover  = RGB(0xe2e5e9)
-	Success      = RGB(0x15803d)        // positive status
-	Warning      = RGB(0xa16207)        // caution status
-	Info         = RGB(0x0369a1)        // informational status
-	Danger       = RGB(0xdc2626)        // danger buttons
-	Subtle       = RGB(0xeceef1)        // secondary buttons
-	OnColor      = RGB(0xffffff)        // text on Primary and Danger
-	Highlight    = RGB(0xdbeafe)        // selected rows and options
-	Scrim        = color.NRGBA{A: 0x66} // dims the window behind a dialog
+	Success      = RGB(0x15803d)                                   // positive status
+	Warning      = RGB(0xa16207)                                   // caution status
+	Info         = RGB(0x0369a1)                                   // informational status
+	Danger       = RGB(0xdc2626)                                   // danger buttons
+	Subtle       = RGB(0xeceef1)                                   // secondary buttons
+	OnColor      = RGB(0xffffff)                                   // text on Primary and Danger
+	Highlight    = RGB(0xdbeafe)                                   // selected rows and options
+	Scrim        = color.NRGBA{A: 0x66}                            // dims the window behind a dialog
+	Shadow       = color.NRGBA{R: 0x10, G: 0x18, B: 0x28, A: 0x2e} // tints raised surfaces' shadows
 	// Chart is the categorical order for data series; see Palette.Chart.
 	Chart = Light().Chart
 )
@@ -53,6 +54,10 @@ const (
 // Face lists font families in priority order. Pinning a CJK family avoids tofu
 // from a system fallback font that lacks some simplified Chinese glyphs.
 const Face font.Typeface = "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, Noto Sans SC, Go"
+
+// MonoFace lists monospaced families for code, numbers in columns and
+// keycaps; CJK falls back to Face's fonts.
+const MonoFace font.Typeface = "SF Mono, Menlo, Cascadia Mono, Consolas, DejaVu Sans Mono, Go Mono, PingFang SC, Microsoft YaHei, Noto Sans CJK SC"
 
 // Material is the underlying Gio theme: text shaper and icons.
 var Material = newMaterial()

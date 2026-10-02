@@ -34,7 +34,7 @@ func (v *TagView) SetDisabled(b bool)              { v.disabled = b }
 func (v *TagView) Render(cx *el.Context) el.Element {
 	c, name := v.tone.color(), v.tone.name()
 
-	box := el.Div().Role("tag").Name(v.text).Value(name).Disabled(v.disabled).Row().Items(el.Center).Rounded(12).Bg(tint(c, 24))
+	box := el.Div().Role("tag").Name(v.text).Value(name).Disabled(v.disabled).Row().Items(el.Center).Rounded(theme.RadiusFull).Bg(tint(c, 24))
 	label := el.Div().Px(8).Py(4).Child(el.Text(v.text).TextSize(float32(theme.SmallSize)).TextColor(c))
 	if v.selectable {
 		box.Selected(v.selected)

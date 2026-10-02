@@ -329,13 +329,13 @@ func (v *TableView) sized(c int, cell *el.DivEl) *el.DivEl {
 
 func (v *TableView) header(cx *el.Context, c int) el.Element {
 	col := v.cols[c]
-	label := el.Div().Row().Items(el.Center).Gap(4).Child(el.Text(col.title).Bold().TextSize(13).MaxLines(1))
+	label := el.Div().Row().Items(el.Center).Gap(4).Child(el.Text(col.title).Bold().TextSize(theme.TextMd).MaxLines(1))
 	if v.sortCol == c {
 		arrow := "↑"
 		if v.desc {
 			arrow = "↓"
 		}
-		label.Child(el.Text(arrow).TextSize(13).TextColor(theme.PrimaryText))
+		label.Child(el.Text(arrow).TextSize(theme.TextMd).TextColor(theme.PrimaryText))
 	}
 	cell := v.sized(c, el.Div().Role("columnheader").Name(col.title).Py(10).Px(12).TextColor(theme.Muted)).Child(label)
 	cell.Decorate(func(gtx core.C, draw func()) {
@@ -465,7 +465,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 		When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Child(head, el.Div().H(el.Dp(1)).NoShrink().Bg(theme.Border), body)
 	table := el.Div().ID(autoID("table", v)).ScrollX().Role("table").Value(locale.Current().Rows(len(v.order))).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
-		Rounded(6).Border(1, theme.Border).Bg(theme.Surface).Items(el.Stretch).
+		Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
 			if key.Name(e.Name) == key.NameF10 && e.Modifiers == key.ModShift && (v.rowMenu != nil || v.cellMenu != nil) {
@@ -508,7 +508,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 	// Status belongs to the viewport, not the horizontally scrolling content.
 	overlay := el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Child(status)
 	if v.loadError != "" {
-		overlay.Bg(theme.Surface).Rounded(6).Border(1, theme.Border)
+		overlay.Bg(theme.Surface).Rounded(theme.RadiusMd).Border(1, theme.Border)
 	}
 	return wrapper.Child(overlay)
 }

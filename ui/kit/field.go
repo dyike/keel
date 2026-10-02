@@ -14,7 +14,7 @@ func check(id, role, label, name string, selected, disabled bool, mark el.Elemen
 		name = label
 	}
 	row := el.Div().ID(id).Role(role).Name(name).Selected(selected).Disabled(disabled).
-		Row().Items(el.Center).Gap(8).Py(2).Rounded(4).Focusable(true).OnClick(toggle).
+		Row().Items(el.Center).Gap(8).Py(2).Rounded(theme.RadiusSm).Focusable(true).OnClick(toggle).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		Child(mark)
 	if !disabled {
@@ -34,11 +34,11 @@ func labelled(label string, control el.Element, errMsg string) el.Element {
 	}
 	box := el.Div().Gap(6).Items(el.Stretch)
 	if label != "" {
-		box.Child(el.Text(label).TextSize(13).TextColor(theme.Muted))
+		box.Child(el.Text(label).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
 	box.Child(control)
 	if errMsg != "" {
-		box.Child(el.Text(errMsg).TextSize(12).TextColor(theme.DangerText))
+		box.Child(el.Text(errMsg).TextSize(theme.TextSm).TextColor(theme.DangerText))
 	}
 	return box
 }
@@ -61,7 +61,7 @@ func fieldFrame(id string, focused, invalid, disabled, readOnly bool) *el.DivEl 
 		bg = theme.Subtle
 	}
 	return el.Div().ID(id).WFull().MinH(el.Dp(float32(theme.ControlHeight))).Row().Items(el.Center).Gap(8).Px(10).Py(4).
-		Rounded(6).Border(1, border).Bg(bg).Disabled(disabled)
+		Rounded(theme.RadiusMd).Border(1, border).Bg(bg).Disabled(disabled)
 }
 
 // fieldText strips el.Input's own box so the text sits inside a fieldFrame

@@ -37,7 +37,7 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 	row := el.Div().Role("list").Row().Items(el.Center).Gap(8)
 	for i, s := range v.steps {
 		i := i
-		state, bg, fg, mark := "upcoming", theme.Subtle, theme.Muted, el.Element(el.Text(strconv.Itoa(i+1)).TextSize(13))
+		state, bg, fg, mark := "upcoming", theme.Subtle, theme.Muted, el.Element(el.Text(strconv.Itoa(i+1)).TextSize(theme.TextMd))
 		switch {
 		case i < v.current:
 			state, bg, fg = "done", theme.Primary, theme.OnColor
@@ -45,7 +45,7 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 		case i == v.current:
 			state, bg, fg = "current", theme.Primary, theme.OnColor
 		}
-		dot := el.Div().Size(el.Dp(24)).NoShrink().Rounded(12).Bg(bg).TextColor(fg).Center().Child(mark)
+		dot := el.Div().Size(el.Dp(24)).NoShrink().Rounded(theme.RadiusFull).Bg(bg).TextColor(fg).Center().Child(mark)
 		label := el.Text(s).MaxLines(1)
 		if i > v.current {
 			label.TextColor(theme.Muted)
@@ -67,7 +67,7 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 			if i <= v.current {
 				line = theme.Primary
 			}
-			row.Child(el.Div().W(el.Dp(32)).H(el.Dp(2)).Rounded(1).Bg(line))
+			row.Child(el.Div().W(el.Dp(32)).H(el.Dp(2)).Rounded(theme.RadiusFull).Bg(line))
 		}
 		row.Child(step)
 	}

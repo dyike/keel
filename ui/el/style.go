@@ -1,6 +1,8 @@
 package el
 
 import (
+	"gioui.org/font"
+	"github.com/dyike/keel/ui/theme"
 	"image/color"
 
 	"gioui.org/io/pointer"
@@ -93,15 +95,19 @@ type Style struct {
 	borderColor             color.NRGBA
 	cursor                  pointer.Cursor
 	hidden                  bool
+	shadow                  *theme.Elevation
+	opacity                 float32 // 0 is unset: fully opaque
 	text                    textStyle
 }
 
 // textStyle is inherited by descendants unless they set their own.
 type textStyle struct {
-	color *color.NRGBA
-	size  unit.Sp
-	bold  *bool
-	lines int
+	color      *color.NRGBA
+	size       unit.Sp
+	weight     *font.Weight
+	mono       *bool
+	lineHeight float32 // multiple of the size; 0 keeps the font's own
+	lines      int
 }
 
 func (t textStyle) inherit(parent textStyle) textStyle {
@@ -111,8 +117,14 @@ func (t textStyle) inherit(parent textStyle) textStyle {
 	if t.size == 0 {
 		t.size = parent.size
 	}
-	if t.bold == nil {
-		t.bold = parent.bold
+	if t.weight == nil {
+		t.weight = parent.weight
+	}
+	if t.mono == nil {
+		t.mono = parent.mono
+	}
+	if t.lineHeight == 0 {
+		t.lineHeight = parent.lineHeight
 	}
 	if t.lines == 0 {
 		t.lines = parent.lines

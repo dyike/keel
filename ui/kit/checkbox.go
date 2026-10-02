@@ -30,7 +30,7 @@ func (v *CheckboxView) SetLabel(s string)   { v.label = s }
 
 func (v *CheckboxView) Render(cx *el.Context) el.Element {
 	on := v.value || v.mixed
-	box := el.Div().Size(el.Dp(18)).NoShrink().Rounded(4).Center()
+	box := el.Div().Size(el.Dp(18)).NoShrink().Rounded(theme.RadiusSm).Center()
 	switch {
 	case v.disabled:
 		box.Bg(theme.Subtle).Border(1, theme.Border)
@@ -44,7 +44,7 @@ func (v *CheckboxView) Render(cx *el.Context) el.Element {
 		mark = theme.Muted
 	}
 	if v.mixed {
-		box.Child(el.Div().W(el.Dp(10)).H(el.Dp(2)).Rounded(1).Bg(mark))
+		box.Child(el.Div().W(el.Dp(10)).H(el.Dp(2)).Rounded(theme.RadiusFull).Bg(mark))
 	} else if v.value {
 		box.Child(Icon(IconDone).Size(14).Color(mark).Render(cx))
 	}

@@ -20,7 +20,7 @@ func Bubble(content el.View) *BubbleView { return &BubbleView{content: content} 
 func (v *BubbleView) Mine() *BubbleView  { v.mine = true; return v }
 
 func (v *BubbleView) Render(cx *el.Context) el.Element {
-	box := el.Div().MaxW(el.Frac(0.75)).Rounded(12).Px(14).Py(10)
+	box := el.Div().MaxW(el.Frac(0.75)).Rounded(theme.RadiusXl).Px(14).Py(10)
 	if v.mine {
 		box.Bg(theme.Primary).TextColor(theme.OnColor)
 	} else {
@@ -112,7 +112,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 	}
 	if v.state == MessageSending {
 		state = "sending"
-		status := el.Div().Row().Child(el.Text(text.Sending).TextSize(12).TextColor(theme.Muted))
+		status := el.Div().Row().Child(el.Text(text.Sending).TextSize(theme.TextSm).TextColor(theme.Muted))
 		if v.user {
 			status.Justify(el.End)
 		}
@@ -123,7 +123,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		if v.failure != "" {
 			detail = text.Detail(detail, v.failure)
 		}
-		status := el.Div().Row().Wrap().Gap(8).Items(el.Center).Child(el.Text(detail).TextSize(12).TextColor(theme.DangerText))
+		status := el.Div().Row().Wrap().Gap(8).Items(el.Center).Child(el.Text(detail).TextSize(theme.TextSm).TextColor(theme.DangerText))
 		if v.user {
 			status.Justify(el.End)
 		}

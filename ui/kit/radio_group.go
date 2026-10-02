@@ -127,11 +127,11 @@ func (v *RadioGroupView) renderItem(cx *el.Context, i int) el.Element {
 	} else if on {
 		ring = theme.Primary
 	}
-	inner := el.Div().Size(el.Dp(16)).Rounded(8).Bg(fill).Center()
+	inner := el.Div().Size(el.Dp(16)).Rounded(theme.RadiusLg).Bg(fill).Center()
 	if on {
-		inner.Child(el.Div().Size(el.Dp(8)).Rounded(4).Bg(ring))
+		inner.Child(el.Div().Size(el.Dp(8)).Rounded(theme.RadiusSm).Bg(ring))
 	}
-	dot := el.Div().Size(el.Dp(18)).NoShrink().Rounded(9).Bg(ring).Center().Child(inner)
+	dot := el.Div().Size(el.Dp(18)).NoShrink().Rounded(theme.RadiusFull).Bg(ring).Center().Child(inner)
 	return check(v.itemID(o), "radio", o, "", on, disabled, dot, func() { v.choose(o); cx.Focus(v.itemID(o)) }).Focusable(i == v.tabStop()).
 		OnKey(func(e el.KeyEvent) bool {
 			if e.Modifiers != 0 {

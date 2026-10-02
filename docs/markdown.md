@@ -78,7 +78,7 @@ el.Div().Child(doc.Render(cx))
 | `CodeHover` | `#e2e5e9` | 代码块按钮悬停与选中背景 |
 | `InlineCode` | `#1f2328` | 行内代码颜色 |
 | `CodeStyle` | `github` | chroma 高亮风格名 |
-| `MonoFace` | Menlo, SF Mono, Go Mono, 苹方… | 代码字体，中文回退到苹方 |
+| `MonoFace` | `theme.MonoFace` | 代码字体，中文回退到 `theme.Face` 里的中文字体 |
 
 标题、正文颜色和字号跟随 `ui/theme`。
 

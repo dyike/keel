@@ -87,10 +87,10 @@ func (v *NotifierView) card(cx *el.Context, base string, n notice) el.Element {
 	}
 	text := el.Div().Grow().Gap(4).Child(el.Text(n.Title).Bold().TextColor(n.Tone.color()))
 	if n.Body != "" {
-		text.Child(el.Text(n.Body).TextSize(13).TextColor(theme.Muted))
+		text.Child(el.Text(n.Body).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
-	return surface().NoShrink().ID(id).Role("status").Name(n.Title).Value(n.Tone.name()).P(12).Row().Gap(10).Items(el.Start).Child(
-		el.Div().W(el.Dp(4)).H(el.Dp(20)).Rounded(2).Bg(n.Tone.color()),
+	return floating(theme.ElevationMd).NoShrink().ID(id).Role("status").Name(n.Title).Value(n.Tone.name()).P(12).Row().Gap(10).Items(el.Start).Child(
+		el.Div().W(el.Dp(4)).H(el.Dp(20)).Rounded(theme.RadiusFull).Bg(n.Tone.color()),
 		text,
 		Button("", func() { v.Dismiss(n.id) }).Name(locale.Current().Name(locale.Current().Close, n.Title)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx),
 	)

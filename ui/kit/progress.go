@@ -27,7 +27,7 @@ func (v *ProgressView) SetLabel(s string)        { v.label = s }
 func (v *ProgressView) Render(cx *el.Context) el.Element {
 	pct := strconv.Itoa(int(v.value*100+0.5)) + "%"
 	value := pct
-	track := el.Div().H(el.Dp(8)).Rounded(4).Bg(theme.Subtle).Row()
+	track := el.Div().H(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Subtle).Row()
 	if v.indeterminate {
 		value = "indeterminate"
 		phase := float32(0.3)
@@ -35,11 +35,11 @@ func (v *ProgressView) Render(cx *el.Context) el.Element {
 			phase = float32(cx.Now().UnixMilli()%1500) / 1500
 			cx.Animating()
 		}
-		track.Child(el.Div().W(el.Frac(phase*0.7)).NoShrink(), el.Div().W(el.Frac(0.3)).H(el.Dp(8)).Rounded(4).Bg(theme.Primary))
+		track.Child(el.Div().W(el.Frac(phase*0.7)).NoShrink(), el.Div().W(el.Frac(0.3)).H(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Primary))
 	} else {
-		track.Child(el.Div().W(el.Frac(v.value)).H(el.Dp(8)).Rounded(4).Bg(theme.Primary))
+		track.Child(el.Div().W(el.Frac(v.value)).H(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Primary))
 	}
-	head := el.Div().Row().TextSize(13).TextColor(theme.Muted).Child(el.Text(v.label).Grow())
+	head := el.Div().Row().TextSize(theme.TextMd).TextColor(theme.Muted).Child(el.Text(v.label).Grow())
 	if !v.indeterminate {
 		head.Child(el.Text(pct))
 	}

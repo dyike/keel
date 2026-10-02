@@ -78,17 +78,17 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	}
 	info := el.Div().Grow().W(el.Dp(0)).Gap(4).Items(el.Stretch).Child(
 		el.Text(v.name).MaxLines(1),
-		el.Text(detail).TextSize(12).TextColor(color).MaxLines(1),
+		el.Text(detail).TextSize(theme.TextSm).TextColor(color).MaxLines(1),
 	)
 	if v.progress >= 0 && v.err == "" {
-		info.Child(el.Div().H(el.Dp(4)).Rounded(2).Bg(theme.Subtle).Items(el.Start).Child(
-			el.Div().H(el.Dp(4)).Rounded(2).Bg(theme.Primary).W(el.Frac(v.progress))))
+		info.Child(el.Div().H(el.Dp(4)).Rounded(theme.RadiusFull).Bg(theme.Subtle).Items(el.Start).Child(
+			el.Div().H(el.Dp(4)).Rounded(theme.RadiusFull).Bg(theme.Primary).W(el.Frac(v.progress))))
 	}
 	main := el.Div().Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(10).
-		Child(el.Div().Size(el.Dp(36)).NoShrink().Rounded(6).Bg(theme.Highlight).Center().
+		Child(el.Div().Size(el.Dp(36)).NoShrink().Rounded(theme.RadiusMd).Bg(theme.Highlight).Center().
 			Child(Icon(IconCopy).Size(18).Color(theme.PrimaryText).Render(cx)), info)
 	if v.onOpen != nil && v.progress < 0 && v.err == "" && !v.canceled {
-		main.ID(autoID("attachment", v)+"/open").Role("button").Name(v.name).Border(1, theme.Surface).Rounded(4).CursorPointer().Focusable(true).OnClick(v.onOpen).
+		main.ID(autoID("attachment", v)+"/open").Role("button").Name(v.name).Border(1, theme.Surface).Rounded(theme.RadiusSm).CursorPointer().Focusable(true).OnClick(v.onOpen).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
 	}
 	card := surface().ID(autoID("attachment", v)).Disabled(v.disabled).Role("attachment").Name(v.name).Value(state).

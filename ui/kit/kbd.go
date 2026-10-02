@@ -26,5 +26,5 @@ func (v *KbdView) Render(cx *el.Context) el.Element {
 		border = color.NRGBA{}
 	}
 	return el.Text(core.ShortcutLabel(v.shortcut, runtime.GOOS)).Name(v.shortcut).
-		TextColor(theme.Muted).Px(6).Py(3).Border(1, border).Rounded(4).MaxW(el.Full).MaxLines(1)
+		TextColor(theme.Muted).Px(6).Py(3).Border(1, border).Rounded(theme.RadiusSm).MaxW(el.Full).MaxLines(1)
 }

@@ -41,9 +41,9 @@ func (v *BadgeView) badge() el.Element {
 	b := el.Div().Role("badge").Name(strconv.Itoa(v.count)).Bg(v.tone.solid()).TextColor(theme.OnColor)
 	if v.dot {
 		value = "dot"
-		b.Size(el.Dp(8)).Rounded(4)
+		b.Size(el.Dp(8)).Rounded(theme.RadiusSm)
 	} else {
-		b.H(el.Dp(18)).MinW(el.Dp(18)).Px(5).Rounded(9).Center().TextSize(11).Child(el.Text(label).Bold())
+		b.H(el.Dp(18)).MinW(el.Dp(18)).Px(5).Rounded(theme.RadiusFull).Center().TextSize(theme.TextXs).Child(el.Text(label).Bold())
 	}
 	return b.Value(value)
 }

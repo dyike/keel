@@ -189,7 +189,7 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		if v.onClose != nil {
 			// Beside the tab, not inside it: a click on the button must not
 			// also select the tab it is closing.
-			head.Pr(6).Child(el.Div().Name(locale.Current().Name(locale.Current().Close, p.title)).P(2).Rounded(4).
+			head.Pr(6).Child(el.Div().Name(locale.Current().Name(locale.Current().Close, p.title)).P(2).Rounded(theme.RadiusSm).
 				Focusable(false).CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
 				OnClick(func() {
 					if !v.disabled {
