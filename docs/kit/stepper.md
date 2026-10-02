@@ -14,3 +14,5 @@ steps.SetValue(1) // 到第二步
 Agent：容器角色 `list`，每一步是 `step`，`value` 为 `done` / `current` / `upcoming`。
 
 验证：`go run ./examples/components -section stepper`，加 `-theme dark` 检查深色。
+
+步骤多于可见宽度时提供横向滚动，保留步骤顺序和连接线。可导航的已完成步骤支持键盘聚焦；`SetDisabled` 禁止滚动和步骤修改。构造时复制标签切片。末项滚动后点击、禁用与 1× / 2× 有回归测试。

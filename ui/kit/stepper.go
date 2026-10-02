@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/dyike/keel/ui/el"
@@ -13,14 +14,17 @@ type StepperView struct {
 	steps     []string
 	current   int
 	navigable bool
+	disabled  bool
 	onChange  func(int)
 }
 
-func Stepper(steps ...string) *StepperView { return &StepperView{steps: steps} }
+func Stepper(steps ...string) *StepperView { return &StepperView{steps: slices.Clone(steps)} }
 
 // Navigable lets the user click a finished step to return to it.
 func (v *StepperView) Navigable() *StepperView            { v.navigable = true; return v }
 func (v *StepperView) OnChange(fn func(int)) *StepperView { v.onChange = fn; return v }
+
+func (v *StepperView) SetDisabled(on bool) { v.disabled = on }
 
 // Value is the index of the current step; len(steps) means all are done.
 func (v *StepperView) Value() int { return v.current }
@@ -51,7 +55,7 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 		}
 		step := el.Div().ID(id+"/"+strconv.Itoa(i)).Role("step").Name(s).Value(state).Row().Items(el.Center).Gap(6).Child(dot, label)
 		if v.navigable && i < v.current {
-			step.CursorPointer().OnClick(func() {
+			step.Focusable(true).CursorPointer().OnClick(func() {
 				v.current = i
 				if v.onChange != nil {
 					v.onChange(i)
@@ -67,5 +71,5 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 		}
 		row.Child(step)
 	}
-	return row
+	return el.Div().ID(id + "/scroll").WFull().Disabled(v.disabled).ScrollX().Child(row)
 }
