@@ -92,7 +92,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 - [Command](kit/command.md)：命令面板。
 - [Message](kit/message.md)、[Bubble](kit/bubble.md)、[MessageScroller](kit/message_scroller.md)、[Attachment](kit/attachment.md)：对话界面。
 
-基础组件：[Tabs](kit/tabs.md)、[Accordion](kit/accordion.md)、[Collapsible](kit/collapsible.md)、[Badge](kit/badge.md)、[Progress](kit/progress.md)、[Link](kit/link.md)、[Image](kit/image.md)。
+基础组件：[Tabs](kit/tabs.md)、[Accordion](kit/accordion.md)、[Collapsible](kit/collapsible.md)、[Badge](kit/badge.md)、[Progress](kit/progress.md)、[ProgressCircle](kit/progress_circle.md)、[Link](kit/link.md)、[Image](kit/image.md)。
 
 应用外壳：[TitleBar](kit/title_bar.md)、[Sidebar](kit/sidebar.md)、[Toolbar](kit/toolbar.md)、[Resizable](kit/resizable.md)、[Dock](kit/dock.md)、[Settings](kit/settings.md)、[Carousel](kit/carousel.md)。
 

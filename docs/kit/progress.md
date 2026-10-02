@@ -13,3 +13,5 @@ p.SetIndeterminate(true)  // 不知道总量时显示来回滑动的进度块
 Agent：角色 `progressbar`，`value` 是百分比或 `indeterminate`。
 
 验证：`go run ./examples/components -section progress`，加 `-theme dark` 检查深色。
+
+圆形进度及中心内容见 [ProgressCircle](progress_circle.md)。
