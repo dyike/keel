@@ -45,13 +45,16 @@ func texGroupAt(src []rune, i int) (string, int, bool) {
 	return string(src[start:i]), i + 1, true
 }
 func (p *mathReader) matrix(env string) *mathExpr {
-	switch env {
-	case "matrix", "pmatrix", "bmatrix", "Bmatrix", "vmatrix", "Vmatrix", "cases", "aligned":
-	default:
+	shape, ok := environment(env)
+	if !ok {
 		p.bad = true
 		return &mathExpr{}
 	}
-	n := &mathExpr{kind: "matrix", value: env}
+	switch env {
+	case "array", "subarray", "alignat", "alignat*", "alignedat":
+		p.groupText() // the column spec or count
+	}
+	n := &mathExpr{kind: "matrix", value: shape}
 	row := &mathExpr{kind: "row"}
 	stack := []string{env}
 	braces := 0

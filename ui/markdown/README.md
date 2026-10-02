@@ -2,7 +2,7 @@
 
 把 Markdown 渲染成 `ui/el` 元素，针对 AI 聊天的流式输出优化：普通文档只重新解析正在写的块；含脚注、引用定义或宏时共享整篇解析上下文，临时补全未闭合的语法，写完的块复用元素和布局。
 
-- **依赖**：`el`、`core`、`theme`、`locale`，以及内部的 `ui/internal/imageload`（图片）和经 el 间接依赖的 `ui/internal/editorstyle`；第三方：goldmark（解析）、chroma（代码高亮）、Gio text.Shaper（字形排版）。
+- **依赖**：`el`、`core`、`theme`、`locale`，以及内部的 `ui/internal/imageload`（图片）和经 el 间接依赖的 `ui/internal/editorstyle`；第三方：goldmark（解析）、golang.org/x/net/html（HTML）、chroma（代码高亮）、Gio text.Shaper（字形排版）。
 - **被谁依赖**：应用代码。
 
 | 文件 | 内容 |
@@ -12,6 +12,8 @@
 | `render.go` | 中间结构 → el 元素；富文本、代码高亮、块缓存 |
 | `code.go` | 代码卡片、语言与操作图标、悬停提示、换行切换和横向滚动 |
 | `math_parse.go` | 数学分隔符与常用 TeX 子集解析、源码回退 |
+| `math_more.go` | 扩展 TeX：更多符号与函数、数学字母表、重音、二项式、括号、颜色、方框、更多环境 |
+| `html.go` | 行内 HTML 标签样式、HTML 块转 Markdown 块 |
 | `math_macros.go`、`math_structures.go` | 文档宏、嵌套矩阵与配对分隔符 |
 | `math_delimiters.go` | 自动伸缩分隔符绘制 |
 | `references.go` | 文档级解析、脚注跳转与返回 |

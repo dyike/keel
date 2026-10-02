@@ -39,18 +39,19 @@ import (
 
 // run is a stretch of text in one style.
 type run struct {
-	text    string
-	font    font.Font
-	size    unit.Sp
-	color   color.NRGBA
-	bg      *color.NRGBA // e.g. inline code
-	strike  bool
-	link    string
-	math    *mathExpr
-	display bool
-	anchor  string
-	rise    unit.Sp
-	image   *imageload.View
+	text      string
+	font      font.Font
+	size      unit.Sp
+	color     color.NRGBA
+	bg        *color.NRGBA // e.g. inline code
+	strike    bool
+	underline bool
+	link      string
+	math      *mathExpr
+	display   bool
+	anchor    string
+	rise      unit.Sp
+	image     *imageload.View
 }
 
 // piece is the part of a run placed on one line.
@@ -317,7 +318,7 @@ func (r *richText) paint(gtx layout.Context) {
 		case rn.strike:
 			yy := p.baseline - em*3/10
 			paint.FillShape(ops, rn.color, clip.Rect(image.Rect(p.rect.Min.X, yy, p.rect.Max.X, yy+thick)).Op())
-		case rn.link != "" && r.link(p.run).Hovered():
+		case rn.underline || rn.link != "" && r.link(p.run).Hovered():
 			yy := p.baseline + em/8
 			paint.FillShape(ops, rn.color, clip.Rect(image.Rect(p.rect.Min.X, yy, p.rect.Max.X, yy+thick)).Op())
 		}

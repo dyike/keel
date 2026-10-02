@@ -148,7 +148,12 @@ func (p *mathReader) row(end rune) *mathExpr {
 			}
 			continue
 		}
-		n.children = append(n.children, p.atom())
+		a := p.atom()
+		if a.kind == "colorswitch" { // \color{c} colors the rest of the group
+			n.children = append(n.children, &mathExpr{kind: "color", value: a.value, children: []*mathExpr{p.row(end)}})
+			return n
+		}
+		n.children = append(n.children, a)
 	}
 }
 func (p *mathReader) arg() *mathExpr {
@@ -211,6 +216,9 @@ func (p *mathReader) atom() *mathExpr {
 		if c == '-' {
 			c = '−'
 		}
+		if c == '\'' {
+			c = '′'
+		}
 		if c == '&' || c == '^' || c == '_' {
 			p.bad = true
 		}
@@ -224,6 +232,9 @@ func (p *mathReader) atom() *mathExpr {
 		p.i++
 	}
 	cmd := string(p.src[start:p.i])
+	if e, ok := p.moreCommand(cmd); ok {
+		return e
+	}
 	switch cmd {
 	case "frac", "dfrac", "tfrac":
 		return &mathExpr{kind: "fraction", children: []*mathExpr{p.arg(), p.arg()}}
@@ -255,6 +266,9 @@ func (p *mathReader) atom() *mathExpr {
 		return p.matrix(p.groupText())
 	}
 	if s, ok := mathSymbols[cmd]; ok {
+		if largeSymbols[s] {
+			return &mathExpr{kind: "large", value: s}
+		}
 		kind := "operator"
 		if utf8.RuneCountInString(s) == 1 && unicode.IsLetter([]rune(s)[0]) {
 			kind = "variable"

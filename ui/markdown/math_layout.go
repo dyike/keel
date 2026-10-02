@@ -63,6 +63,9 @@ func layoutMath(gtx layout.Context, shaper *text.Shaper, n *mathExpr, rn run, di
 	small.size *= 0.72
 	child := func(n *mathExpr) mathBox { return layoutMath(gtx, shaper, n, rn, display) }
 	script := func(n *mathExpr) mathBox { return layoutMath(gtx, shaper, n, small, false) }
+	if b, ok := layoutMore(gtx, shaper, n, rn, display); ok {
+		return b
+	}
 	switch n.kind {
 	case "row":
 		var parts []mathPlacement
@@ -120,8 +123,10 @@ func layoutMath(gtx layout.Context, shaper *text.Shaper, n *mathExpr, rn run, di
 		if n.sub != nil {
 			sub = script(n.sub)
 		}
-		// Display sums and products place limits above and below the operator.
-		if display && n.children[0].kind == "large" && n.children[0].value != "∫" && n.children[0].value != "∮" {
+		// Display sums, products and \lim place limits above and below the
+		// operator; braces always take their label there.
+		b0 := n.children[0]
+		if display && limitsBase(b0) || b0.kind == "accent" && (b0.value == "overbrace" || b0.value == "underbrace") {
 			w := max(base.w, sup.w, sub.w)
 			parts := []mathPlacement{{base, (w - base.w) / 2, 0}}
 			a, d := base.a, base.d
@@ -222,15 +227,25 @@ func layoutMatrix(gtx layout.Context, shaper *text.Shaper, n *mathExpr, rn run, 
 	a := h/2 + em/4
 	d := h - a
 	lead := em/2 + gap
-	if n.value == "matrix" || n.value == "aligned" {
+	if n.value == "matrix" || n.value == "aligned" || n.value == "gathered" {
 		lead = 0
+	}
+	// Columns sit an em apart; aligned pairs ("lhs &= rhs") touch, and the
+	// pairs sit two em apart.
+	colGap := func(j int) int {
+		switch {
+		case j == 0:
+			return 0
+		case n.value == "aligned" && j%2 == 1:
+			return 0
+		case n.value == "aligned":
+			return 2 * em
+		}
+		return em
 	}
 	w := lead
 	for j, cw := range widths {
-		w += cw
-		if j > 0 {
-			w += em
-		}
+		w += cw + colGap(j)
 	}
 	w += lead
 	parts := []mathPlacement{}
@@ -250,7 +265,7 @@ func layoutMatrix(gtx layout.Context, shaper *text.Shaper, n *mathExpr, rn run, 
 				pad = 0
 			}
 			parts = append(parts, mathPlacement{b, x + pad, y})
-			x += widths[j] + em
+			x += widths[j] + colGap(j+1)
 		}
 		y += desc[i] + gap
 	}

@@ -37,21 +37,21 @@ func TestMathMacroExpansion(t *testing.T) {
 	}
 }
 func TestMathMacrosAcrossDocumentAndStreaming(t *testing.T) {
-	d := New("$$\\newcommand{\\square}[1]{#1^2}$$\n\nUse $\\square{x}$.")
+	d := New("$$\\newcommand{\\sqr}[1]{#1^2}$$\n\nUse $\\sqr{x}$.")
 	bs := documentBlocks(d)
 	if !d.contextual || len(bs) != 2 || bs[1].spans[1].math == nil {
 		t.Fatal("document macro not visible to later formula")
 	}
 	d.SetStreaming(true)
-	d.Append("\n\n$\\square{y")
-	if got := plain(documentBlocks(d)[2].spans); got != "$\\square{y" {
+	d.Append("\n\n$\\sqr{y")
+	if got := plain(documentBlocks(d)[2].spans); got != "$\\sqr{y" {
 		t.Fatalf("unfinished macro swallowed source: %q", got)
 	}
 	d.Append("}$")
 	if documentBlocks(d)[2].spans[0].math == nil {
 		t.Fatal("completed macro not rendered")
 	}
-	d.SetSource("$\\square{x}$")
+	d.SetSource("$\\sqr{x}$")
 	if documentBlocks(d)[0].spans[0].math != nil {
 		t.Fatal("macro leaked into replacement document")
 	}

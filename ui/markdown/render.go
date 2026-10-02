@@ -111,6 +111,12 @@ func (d *Doc) block(b *block, last bool) el.Element {
 		return d.table(b)
 	case rule:
 		return el.Div().H(el.Dp(1)).Bg(theme.Border).My(4)
+	case group:
+		content := el.Div().Gap(12)
+		for i := range b.children {
+			content.Child(d.block(&b.children[i], last && i == len(b.children)-1))
+		}
+		return content
 	}
 	return nil
 }
@@ -256,6 +262,15 @@ func newRich(spans []span, size unit.Sp, bold bool, c color.NRGBA, onLink func(s
 		if s.superscript {
 			rn.size = size * 0.75
 			rn.rise = size * 0.3
+		}
+		if s.subscript {
+			rn.size = size * 0.75
+			rn.rise = -size * 0.15
+		}
+		rn.underline = s.underline
+		if s.mark {
+			bg := theme.Highlight
+			rn.bg = &bg
 		}
 		if s.bold || bold {
 			rn.font.Weight = font.Bold

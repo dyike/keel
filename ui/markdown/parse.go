@@ -31,6 +31,7 @@ const (
 	rule
 	footnoteList
 	footnoteItem
+	group // several blocks from one HTML block, drawn one after another
 )
 
 type block struct {
@@ -75,7 +76,8 @@ type span struct {
 	math                       *mathExpr
 	display                    bool
 	anchor                     string
-	superscript                bool
+	superscript, subscript     bool
+	underline, mark            bool // from HTML <u> and <mark>
 	imageURL                   string
 	imageAlt                   string
 }
@@ -142,7 +144,16 @@ func convert(n ast.Node, src []byte, macros mathMacros) (block, bool) {
 	case *ast.ThematicBreak:
 		return block{kind: rule}, true
 	case *ast.HTMLBlock:
-		return block{kind: codeBlock, lang: "html", code: lines(n, src)}, true
+		// An HTML block may hold several blocks; the first goes here and the
+		// rest follow it as a quote-less group.
+		bs := htmlBlocks(lines(n, src) + closure(n, src))
+		switch len(bs) {
+		case 0:
+			return block{}, false
+		case 1:
+			return bs[0], true
+		}
+		return block{kind: group, children: bs}, true
 	case *east.Table:
 		return block{kind: table, tbl: tableOf(n, src, macros)}, true
 	}
@@ -208,7 +219,7 @@ func inlines(n ast.Node, src []byte, style span, macros mathMacros) []span {
 		}
 		if k := len(out) - 1; k >= 0 {
 			last := &out[k]
-			if last.imageURL == "" && s.imageURL == "" && last.anchor == "" && s.anchor == "" && last.superscript == s.superscript && last.math == nil && s.math == nil && last.bold == s.bold && last.italic == s.italic && last.code == s.code && last.strike == s.strike && last.link == s.link {
+			if last.imageURL == "" && s.imageURL == "" && last.anchor == "" && s.anchor == "" && last.superscript == s.superscript && last.subscript == s.subscript && last.underline == s.underline && last.mark == s.mark && last.math == nil && s.math == nil && last.bold == s.bold && last.italic == s.italic && last.code == s.code && last.strike == s.strike && last.link == s.link {
 				last.text += s.text
 				return
 			}
@@ -217,6 +228,7 @@ func inlines(n ast.Node, src []byte, style span, macros mathMacros) []span {
 	}
 	var walk func(n ast.Node, st span)
 	walk = func(n ast.Node, st span) {
+		var tags htmlInline // inline HTML tags style their later siblings
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			switch c := c.(type) {
 			case *east.FootnoteLink:
@@ -294,13 +306,20 @@ func inlines(n ast.Node, src []byte, style span, macros mathMacros) []span {
 			case *east.TaskCheckBox:
 				// drawn as the list marker instead
 			case *ast.RawHTML:
-				s := st
-				s.code = true
+				var raw strings.Builder
 				for i := 0; i < c.Segments.Len(); i++ {
 					seg := c.Segments.At(i)
-					s.text += string(seg.Value(src))
+					raw.Write(seg.Value(src))
 				}
-				add(s)
+				next, insert, ok := tags.tag(raw.String(), st)
+				if !ok { // not a known element, e.g. the <T> in List<T>
+					s := st
+					s.text = raw.String()
+					add(s)
+					continue
+				}
+				add(insert)
+				st = next
 			default:
 				walk(c, st)
 			}
