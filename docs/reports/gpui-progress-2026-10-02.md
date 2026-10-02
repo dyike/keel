@@ -1,12 +1,27 @@
 # GPUI Kit 实现进度 · 2026-10-02
 
-更新日期：2026-10-03（原报告 2026-10-02，代码基准 `bc54e85`）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
+更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-“已有”表示 Keel 提供可复用的基础组件，并不表示与 GPUI Kit 功能完全一致；“部分”表示已有实现，但仍缺本表列出的关键能力；“未实现”表示缺少通用实现。最后一列列出建议补齐的能力，不是对源站全部配置项的逐项认证。
+本轮结果：**38 项主体已有、36 项部分覆盖、3 项用途不同**。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+
+- **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
+- **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
+- **用途不同**：旧表拿同名或近似效果代替了不同用途的组件，需重新建立对应关系。
+
+本轮是文档与源码静态复核，检查了跨文件扩展接口；没有重跑 77 项真机交互，也没有逐项证明视觉一致。缺口指组件当前未提供的接口/行为，应用通过 `el` 自行组合不自动算作 kit 已封装。GPUI 文档示例不等于上游源码和所有平台均已验证。
+
+## 本轮更正与重点差距
+
+1. Marker、Plot、Shimmer 三项不能继续算“同等组件已有”：分别是消息标记行 vs 几何图形、底层绘图工具集 vs 成品图、文字扫光 vs 骨架屏扫光。
+2. 数据与输入组件仍有实质差距：Chart 缺雷达/桑基图；DatePicker 缺时间联动和预设；Input/Textarea 缺原子 token，Input 另缺格式 mask；Progress 缺圆形进度。
+3. Editor 已有多光标、查找替换、折叠和括号配对，但没有编辑跟踪装饰集合、开放语言规则与完整搜索会话。`OnComplete`/`OnHover`/`OnDefinition` 是应用接口，LSP 客户端仍由应用提供；本轮不把它当作已证实的上游内置能力差距。
+4. TextView 已有 Markdown/HTML/扩展 TeX，但富文本折叠预览、流式逐段淡入、区间高亮/定位和插件仍缺。完整 TeX/CSS 是 Keel 的边界，不能无依据当作 GPUI 已有功能。
+5. Dock、主题、状态栏和 Kbd 的近期补齐继续保留完成记录。Dock 分离由应用开窗、恢复布局不会重开分离窗口；主题机制已有，预设数量和 token 格式仍不同。
+6. 旧表夸大了 Badge 图标/尺寸、DescriptionList 响应式列数、Kbd 尺寸、Switch 尺寸/加载、Toggle 尺寸、Textarea 最大行数；均按当前接口改正。
 
 ## 当前实施清单
 
-原差距实施清单：原 A–F 共 36 项，35 项已完成，F3 的完整原生场景验收仍未完成。后续新增能力单列记录，不混入原清单分母；清单完成率不等于 GPUI Kit 功能对齐率。
+历史实施清单（沿用原验收口径，本轮未重新执行）：原 A–F 共 36 项，35 项已完成，F3 的完整原生场景验收仍未完成。后续新增能力单列记录，不混入原清单分母；清单完成率不等于 GPUI Kit 功能对齐率。
 
 - [x] WebAssembly：`28a0e80`，浏览器 hello 示例已验证中文、输入、复选框和按钮；构建需 `-tags osusergo`，见 [Web](../../docs/web.md)。
 - [x] 视觉基础：`83c50ed`，圆角/字号/阴影刻度、透明度、字重/等宽/行高与 kit 样式迁移；间距刻度 `08daebf` 已统一。
@@ -14,92 +29,103 @@
 - [x] 多主题基础：`bf9f69d`，主题注册、JSON 配色、运行时切换、Nord/Paper 示例；目录监听、渐变配置 `08daebf` 已完成。
 - [x] CodeEditor 基础：`4f22179`，行号、高亮、撤销重做、输入法、自动缩进、诊断/补全/悬停接口；高级能力见下表。
 - [x] 编辑器验证与补全修复：`bc54e85`，真机确认补全出现和回车接受；回归测试覆盖 Agent 补全项、回车/点击接受与关闭。20 万行已实际载入并验证滚动、末尾跳转和输入，未采集帧率或输入延迟。
-- [x] 后续补齐（2026-10-03）：编辑器多光标/查找替换/折叠/括号 `56fa4f6`；局部主题与内置主题 `cc8e536`；Windows、Linux 原生能力 `643ceb6`（仅交叉编译验证）；无样式基础层 `d4d38b5`；状态栏溢出与动作键位 `3c4e511`；主题渐变/间距/目录监听 `08daebf`；HTML 与扩展 TeX `2bd4c61`；Dock 中心文档与跨窗口（本次提交）。
-- [ ] 完整原生验收：仍需复核标题栏、系统偏好、多窗口等；代码编辑器真机可运行不代表 F3 全部通过。
+- [x] 后续补齐（2026-10-03）：编辑器多光标/查找替换/折叠/括号 `56fa4f6`；局部主题与内置主题 `cc8e536`；Windows、Linux 原生能力 `643ceb6`（仅交叉编译验证）；无样式基础层 `d4d38b5`；状态栏溢出与动作键位 `3c4e511`；主题渐变/间距/目录监听 `08daebf`；HTML 与扩展 TeX `2bd4c61`；Dock 中心文档与跨窗口接口 `b66875e`。
+- [x] 新窗口初始居中：`2fe8d1d`，macOS 标准/无边框窗口与后续不强制回中已做原生验证。
+- [ ] 完整原生验收：标题栏、系统偏好与跨平台多窗口仍未全部通过；窗口居中局部验收不代表 F3 完成。
 - 系统读屏 / VoiceOver：**暂缓**，未接入，不计为已完成。
 
 ## 当前组件对照
 
-保留原 77 项目录口径，仓库位置已更新到当前实现。多个目录项可由同一组件或底层能力承接；“—”表示此表没有登记进一步缺口，不表示已认证源站全部 API。原生验证限制见 F3。
+保留源站 77 项目录口径，每行链接对应官方文档与 Keel 主实现文件。跨文件实现的审计线索见表后；Table/DataTable 等不能仅按组件数量判断对齐。
 
-| GPUI Kit 组件 | 状态 | Keel 当前能力 / 位置 | 待补齐 |
+| GPUI Kit 组件 | 本轮状态 | Keel 已完成能力 / 主实现 | 已确认的差异与边界 |
 | --- | --- | --- | --- |
-| [Accordion](https://gpui-kit.com/component/accordion/) | 已有 | [单项/多项、自定义标题、动画、键盘、禁用](../../ui/kit/accordion.go) | — |
-| [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | — |
-| [Alert](https://gpui-kit.com/component/alert/) | 已有 | [行内提示、级别、关闭按钮](../../ui/kit/alert.go) | — |
-| [Attachment](https://gpui-kit.com/component/attachment/) | 已有 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | — |
-| [Avatar](https://gpui-kit.com/component/avatar/) | 已有 | [图片/首字母回退、尺寸、状态标记](../../ui/kit/avatar.go) | — |
-| [Badge](https://gpui-kit.com/component/badge/) | 已有 | [数字、圆点、图标、尺寸、颜色、角标](../../ui/kit/badge.go) | — |
-| [Bubble](https://gpui-kit.com/component/bubble/) | 已有 | [可复用聊天气泡、用户操作栏](../../ui/kit/message.go) | — |
-| [Button](https://gpui-kit.com/component/button/) | 已有 | [主/次要/危险、禁用、尺寸、图标、加载](../../ui/kit/button.go) | — |
-| [Calendar](https://gpui-kit.com/component/calendar/) | 已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | — |
-| [Carousel](https://gpui-kit.com/component/carousel/) | 已有 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | — |
-| [Chart](https://gpui-kit.com/component/chart/) | 已有 | [折线/柱状/面积，另有饼图/环图/蜡烛图、图例与数据表](../../ui/kit/chart.go) | — |
-| [Checkbox](https://gpui-kit.com/component/checkbox/) | 已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | — |
-| [Clipboard](https://gpui-kit.com/component/clipboard/) | 已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | — |
-| [Collapsible](https://gpui-kit.com/component/collapsible/) | 已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | — |
-| [ColorPicker](https://gpui-kit.com/component/color-picker/) | 已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | — |
-| [Combobox](https://gpui-kit.com/component/combobox/) | 已有 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | — |
-| [Command](https://gpui-kit.com/component/command/) | 已有 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | — |
-| [DataTable](https://gpui-kit.com/component/data-table/) | 已有 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | — |
-| [DatePicker](https://gpui-kit.com/component/date-picker/) | 已有 | [日期输入、日历弹层、范围、取消草稿、键盘](../../ui/kit/date_picker.go) | — |
-| [DescriptionList](https://gpui-kit.com/component/description-list/) | 已有 | [标签/值布局、响应式列数](../../ui/kit/description_list.go) | — |
-| [Dialog](https://gpui-kit.com/component/dialog/) | 已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | — |
-| [Dock](https://gpui-kit.com/component/dock/) | 已有 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | — |
-| [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | — |
-| [Editor](https://gpui-kit.com/component/editor/) | 已有 | [行号、局部重高亮、多光标/矩形选择、查找替换、折叠、语法感知括号配对、诊断/补全/悬停/定义跳转接口](../../ui/kit/code_editor.go) | 未接入 Tree-sitter（用 chroma 词法与局部重高亮代替）；LSP 客户端由应用提供 |
-| [Empty](https://gpui-kit.com/component/empty/) | 已有 | [空状态标题、说明与操作](../../ui/kit/empty.go) | — |
-| [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | — |
-| [Form](https://gpui-kit.com/component/form/) | 已有 | [字段组织、校验、错误聚焦、异步提交/取消](../../ui/kit/form.go) | — |
-| [GroupBox](https://gpui-kit.com/component/group-box/) | 已有 | [标题、描述与内容分组](../../ui/kit/group_box.go) | — |
-| [HoverCard](https://gpui-kit.com/component/hover-card/) | 已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | — |
-| [Icon](https://gpui-kit.com/component/icon/) | 已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 按应用需要扩充图标 |
-| [Image](https://gpui-kit.com/component/image/) | 已有 | [异步缓存、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | — |
-| [Input Group](https://gpui-kit.com/component/input-group/) | 已有 | [独立组合容器、前后内容、统一边框、标签聚焦](../../ui/kit/input_group.go) | — |
-| [Input](https://gpui-kit.com/component/input/) | 已有 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | — |
-| [Kbd](https://gpui-kit.com/component/kbd/) | 已有 | [平台键帽、动态文案、尺寸、无边框、`KbdFor` 按动作显示键位表绑定](../../ui/kit/kbd.go) | — |
-| [Label](https://gpui-kit.com/component/label/) | 已有 | [Text、字号/颜色、For 标签关联聚焦](../../ui/el/element.go) | — |
-| [List](https://gpui-kit.com/component/list/) | 已有 | [列表项、稳定 ID、单项禁用、多选/范围、键盘、拖动](../../ui/kit/list.go) | — |
-| [Marker](https://gpui-kit.com/component/marker/) | 已有 | [标记形状、大小和颜色](../../ui/kit/marker.go) | — |
-| [Menu](https://gpui-kit.com/component/menu/) | 已有 | [菜单、子菜单、分隔线、长内容、方向键、焦点恢复](../../ui/kit/menu.go) | — |
-| [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 已有 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | — |
-| [Message](https://gpui-kit.com/component/message/) | 已有 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | — |
-| [Notification](https://gpui-kit.com/component/notification/) | 已有 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | — |
-| [NumberInput](https://gpui-kit.com/component/number-input/) | 已有 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | — |
-| [OtpInput](https://gpui-kit.com/component/otp-input/) | 已有 | [分格输入、粘贴、退格、焦点移动、窄布局](../../ui/kit/otp_input.go) | — |
-| [Pagination](https://gpui-kit.com/component/pagination/) | 已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | — |
-| [Plot](https://gpui-kit.com/component/plot/) | 已有 | [缩放、平移、数据拾取、键盘、异常数据保护](../../ui/kit/plot.go) | — |
-| [Popover](https://gpui-kit.com/component/popover/) | 已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | — |
-| [Progress](https://gpui-kit.com/component/progress/) | 已有 | [确定进度、不确定动画、模式切换](../../ui/kit/progress.go) | — |
-| [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 已有 | [题型、答案模型、校验、分页、禁用与提交快照](../../ui/kit/questionnaire.go) | — |
-| [Radio](https://gpui-kit.com/component/radio/) | 已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | — |
-| [Rating](https://gpui-kit.com/component/rating/) | 已有 | [评分、半星/小数展示、只读、键盘](../../ui/kit/rating.go) | — |
-| [Resizable](https://gpui-kit.com/component/resizable/) | 已有 | [横纵分割、最小尺寸、拖动、键盘、取消与禁用](../../ui/kit/resizable.go) | — |
-| [Root View](https://gpui-kit.com/component/root/) | 已有 | [根布局、统一浮层宿主、窗口快捷键](../../ui/el/root.go) | — |
-| [Scrollable](https://gpui-kit.com/component/scrollable/) | 已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位与尾部跟随](../../ui/el/viewport.go) | 通过 el 组合，没有独立 kit.Scrollable 类型 |
-| [Select](https://gpui-kit.com/component/select/) | 已有 | [过滤、分组、多选、禁用项、万条虚拟化](../../ui/kit/select.go) | — |
-| [Settings](https://gpui-kit.com/component/settings/) | 已有 | [设置分组、导航、搜索、窄布局](../../ui/kit/settings.go) | — |
-| [Sheet](https://gpui-kit.com/component/sheet/) | 已有 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | — |
-| [Shimmer](https://gpui-kit.com/component/shimmer/) | 已有 | [Skeleton 的扫光选项、减少动画](../../ui/kit/skeleton.go) | — |
-| [Sidebar](https://gpui-kit.com/component/sidebar/) | 已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动](../../ui/kit/sidebar.go) | — |
-| [Skeleton](https://gpui-kit.com/component/skeleton/) | 已有 | [占位形状、尺寸、加载展示](../../ui/kit/skeleton.go) | — |
-| [Slider](https://gpui-kit.com/component/slider/) | 已有 | [单值/双端范围、横向/竖向、步长、拖动与键盘](../../ui/kit/slider.go) | — |
-| [Spinner](https://gpui-kit.com/component/spinner/) | 已有 | [不确定动画、减少动画、可访问名称](../../ui/kit/spinner.go) | — |
-| [StatusBar](https://gpui-kit.com/component/status-bar/) | 已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | — |
-| [Stepper](https://gpui-kit.com/component/stepper/) | 已有 | [步骤状态、导航、键盘、横向滚动与禁用](../../ui/kit/stepper.go) | — |
-| [Switch](https://gpui-kit.com/component/switch/) | 已有 | [布尔开关、尺寸、加载、禁用](../../ui/kit/switch.go) | — |
-| [Table](https://gpui-kit.com/component/table/) | 已有 | [排序、行选择、单元格插槽、列宽调整；高级能力同 DataTable](../../ui/kit/table.go) | — |
-| [Tabs](https://gpui-kit.com/component/tabs/) | 已有 | [页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | — |
-| [Tag](https://gpui-kit.com/component/tag/) | 已有 | [颜色、移除、选中](../../ui/kit/tag.go) | — |
-| [TextView](https://gpui-kit.com/component/text-view/) | 已有 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 不是完整 TeX 引擎；不支持 CSS 样式 |
-| [Textarea](https://gpui-kit.com/component/textarea/) | 已有 | [多行、只读、自动高度、最大可见行数、错误恢复](../../ui/kit/input.go) | — |
-| [Theme](https://gpui-kit.com/component/theme/) | 已有 | [语义配色、间距/字号/圆角/阴影刻度、浅深切换、注册与 JSON 主题、局部作用域、渐变、目录监听](../../ui/theme/registry.go) | — |
-| [TimeField](https://gpui-kit.com/component/time-field/) | 已有 | [时分秒、步进/进位、12/24 小时、Tab 与本地化](../../ui/kit/time_field.go) | — |
-| [TitleBar](https://gpui-kit.com/component/title-bar/) | 已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 实现已有，原生行为验收仍待 F3 |
-| [Toggle](https://gpui-kit.com/component/toggle/) | 已有 | [状态按钮、图标、尺寸、单选/多选组](../../ui/kit/toggle_group.go) | — |
-| [Toolbar](https://gpui-kit.com/component/toolbar/) | 已有 | [左右区域、尺寸、工具分组、溢出与键盘](../../ui/kit/toolbar.go) | — |
-| [Tooltip](https://gpui-kit.com/component/tooltip/) | 已有 | [通用提示、键盘焦点、延迟与取消](../../ui/kit/tooltip.go) | — |
-| [Tree](https://gpui-kit.com/component/tree/) | 已有 | [虚拟化、展开、多选、单项禁用、键盘、动态数据与拖动](../../ui/kit/tree.go) | 拖动时自动滚动/展开未实现 |
-| [VirtualList](https://gpui-kit.com/component/virtual-list/) | 已有 | [等高及可变高度实现、稳定 key、尺寸缓存、插入保持锚点](../../ui/kit/variable_list.go) | — |
+| [Accordion](https://gpui-kit.com/component/accordion/) | 主体已有 | [单项/多项、自定义标题、动画、键盘、禁用](../../ui/kit/accordion.go) | 配置差异：没有独立的边框开关与 small/large 尺寸档；自定义标题可用 Heading。 |
+| [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 行为/配置差异：Persistent 只禁止点击遮罩关闭，Esc 仍关闭；没有独立 keyboard 开关。内置确认按钮先关闭再执行回调，不能用返回值阻止关闭；可自组 Footer。 |
+| [Alert](https://gpui-kit.com/component/alert/) | 主体已有 | [行内提示、级别、关闭按钮](../../ui/kit/alert.go) | 配置差异：缺 banner、尺寸、替换图标接口；正文为字符串，不能直接传 Markdown/任意内容。 |
+| [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 缺媒体/图片预览槽、横纵布局、附件组；当前是文件名/大小卡片，已有上传进度与失败操作。 |
+| [Avatar](https://gpui-kit.com/component/avatar/) | 部分 | [图片/首字母回退、尺寸、状态标记](../../ui/kit/avatar.go) | 缺 AvatarGroup 的叠放、数量上限与 +N；单头像仅接收已解码 image.Image，无头像专用 URL 加载接口。 |
+| [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字、圆点、上限、Tone 与角标容器](../../ui/kit/badge.go) | 配置差异：有 count/dot/max/Tone；没有图标徽标、大小档和任意颜色接口，旧表这两项写多了。 |
+| [Bubble](https://gpui-kit.com/component/bubble/) | 部分 | [可复用内容气泡、Mine 对齐](../../ui/kit/message.go) | 缺 ghost 等外观变体、气泡组和独立反应槽；当前只接 content + Mine，操作/反应在 Message 层。 |
+| [Button](https://gpui-kit.com/component/button/) | 主体已有 | [主/次要/危险、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 配置差异：仅 Primary/Secondary/Ghost/Danger 四种；缺专用 link/text/outline/compact、自定义变体与任意 child 接口。Tooltip 可外部组合。 |
+| [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
+| [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 缺竖向轨道、同屏多项、可组合前后控件；Keel 每次只显示一张，另有自动播放。 |
+| [Chart](https://gpui-kit.com/component/chart/) | 部分 | [折线/柱状/面积/饼图/环图/蜡烛图、图例与数据表](../../ui/kit/chart.go) | 缺 RadarChart、SankeyChart；已有折线/柱/面积/饼环/蜡烛图。轴域、刻度数量、参考线、线型和 tooltip 内容的公共配置较少。 |
+| [Checkbox](https://gpui-kit.com/component/checkbox/) | 主体已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | 主体覆盖，另有半选。缺组件级尺寸配置和 GPUI 的 tab_index/tab_stop 配置入口。 |
+| [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 动态取值与复制反馈已有；缺 on_copied 和自定义触发内容插槽。 |
+| [Collapsible](https://gpui-kit.com/component/collapsible/) | 主体已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | 主体覆盖：拆分 Trigger/Content、状态控制与动画；本轮未发现新的主要功能缺口。 |
+| [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 颜色编辑主体已有；GPUI 自带触发器/弹层，Keel 是内联选择器，弹层需组合 Popover；缺触发图标、标签与尺寸配置。 |
+| [Combobox](https://gpui-kit.com/component/combobox/) | 部分 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 缺分组、单项禁用、自定义行/触发器、footer；目前候选数据是 string 列表。多选与异步搜索已完成。 |
+| [Command](https://gpui-kit.com/component/command/) | 部分 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 缺内联模式、关闭搜索的模式、自定义行/header/footer；当前固定为带搜索的模态命令面板。 |
+| [DataTable](https://gpui-kit.com/component/data-table/) | 部分 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | 主要数据表能力已有；缺独立整列选择模式、列级 selectable/resizable/movable 限制，以及 stripe/密度等公开配置。 |
+| [DatePicker](https://gpui-kit.com/component/date-picker/) | 部分 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 缺日期+时间联动、快捷日期/范围预设、组件级 date_format 与清空按钮；已有独立 TimeField 不等于 DatePicker 已集成。 |
+| [DescriptionList](https://gpui-kit.com/component/description-list/) | 部分 | [单列标签/值、富值插槽、标签宽度](../../ui/kit/description_list.go) | 缺多列、跨列 span、纵向布局和 separator。当前是单列标签/值行；旧表“响应式列数”不成立。 |
+| [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 主体覆盖；缺独立遮罩显示/Esc/关闭按钮开关。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
+| [Dock](https://gpui-kit.com/component/dock/) | 部分 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | 中心/边缘嵌套分割、拖放、最大化已完成；缺 GPUI 的面板工厂注册/面板自有状态恢复和独立 DockSkin。分离由 OnDetach 交给应用开窗，恢复布局不会重开分离窗口。 |
+| [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 主体已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | 主体覆盖，另有分体动作；缺公开 anchor、loading 和内部按钮配置透传。 |
+| [Editor](https://gpui-kit.com/component/editor/) | 部分 | [行号、局部重高亮、多光标/矩形选择、查找替换、折叠、语法感知括号配对、诊断/补全/悬停/定义跳转接口](../../ui/kit/code_editor.go) | 缺可随编辑跟踪的文本/几何装饰集合、可替换语言编辑规则、完整自定义搜索会话 API；高亮为 chroma，非 Tree-sitter。多光标、查找替换、折叠、括号配对已完成。 |
+| [Empty](https://gpui-kit.com/component/empty/) | 主体已有 | [空状态标题、说明与操作](../../ui/kit/empty.go) | 主体覆盖；媒体限内置图标，缺 Avatar/图片等独立 media 槽，任意内容可放 Action 或外部组合。 |
+| [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 主体已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | 弹层通过 el.Layer.TrapFocus/Modal 覆盖；GPUI 还可在普通容器上独立包裹 FocusTrap，Keel 当前入口绑定浮层。 |
+| [Form](https://gpui-kit.com/component/form/) | 部分 | [字段组织、校验、错误聚焦、异步提交/取消](../../ui/kit/form.go) | 缺多列网格、字段 col_span/col_start、字段描述/必填标识/可见性的声明式配置；已有校验、聚焦与异步提交状态。 |
+| [GroupBox](https://gpui-kit.com/component/group-box/) | 主体已有 | [标题、描述与内容分组](../../ui/kit/group_box.go) | 主体覆盖；缺 fill/outline 变体、边框之外的独立 footer 槽与 title/content 样式细化。 |
+| [HoverCard](https://gpui-kit.com/component/hover-card/) | 主体已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | 主体覆盖；开关延时固定 700/300ms，缺实例级时间和定位配置。 |
+| [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。Keel 缺直接 SVG 加载和组件级旋转。 |
+| [Image](https://gpui-kit.com/component/image/) | 主体已有 | [异步缓存、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | 加载/缓存/适配/预览/重试已有；缺公开的自定义 loading/fallback 内容槽。 |
+| [Input Group](https://gpui-kit.com/component/input-group/) | 部分 | [独立组合容器、前后内容、统一边框、标签聚焦](../../ui/kit/input_group.go) | 只有左右 Prefix/Suffix；缺 GPUI 上下 block addon 布局、独立 addon/button 配置。可以包 TextArea，但不具备同等复合布局。 |
+| [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 缺格式化 mask、原子 inline token、可拦截富剪贴板的 on_paste 和专用上下文菜单配置；Filter 是字符白名单，不能当作 mask。 |
+| [Kbd](https://gpui-kit.com/component/kbd/) | 主体已有 | [平台键帽、Plain、KbdFor 动作键位](../../ui/kit/kbd.go) | 平台键帽、Plain、KbdFor 动作绑定已完成；没有独立尺寸接口，旧表的“尺寸”应删除。 |
+| [Label](https://gpui-kit.com/component/label/) | 部分 | [Text、字号/颜色、For 标签关联聚焦](../../ui/el/element.go) | el.Text 能排版和关联字段；缺 GPUI Label 的匹配区间高亮、masked 和 secondary 文案的专用接口。 |
+| [List](https://gpui-kit.com/component/list/) | 部分 | [列表项、稳定 ID、单项禁用、多选/范围、键盘、拖动](../../ui/kit/list.go) | 缺分组头、自定义行/图标/行内操作、内建搜索与加载更多入口；当前是可选择、可拖动的文字列表。 |
+| [Marker](https://gpui-kit.com/component/marker/) | 用途不同 | [几何标记、大小与颜色](../../ui/kit/marker.go) | 用途不同：GPUI 是带图标/文字、分隔线/边框、加载状态的消息标记行；Keel Marker 只绘制点/方块等几何标记，不能计作对齐。 |
+| [Menu](https://gpui-kit.com/component/menu/) | 部分 | [菜单、子菜单、分隔线、长内容、方向键、焦点恢复](../../ui/kit/menu.go) | 缺图标/勾选项、组标题、任意自定义行与链接项 API；已有子菜单、快捷键、禁用、滚动和焦点行为。 |
+| [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 部分 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；缺公开按消息跳转/初始未读定位、跟随状态查询和自定义跳转按钮。 |
+| [Message](https://gpui-kit.com/component/message/) | 部分 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 缺独立 avatar/header/footer 插槽、MessageGroup 和 ghost/content_inset 配置；当前是作者文字+内容+操作/反应。 |
+| [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 缺系统通知投递、位置选择、操作按钮与任意富内容；当前只有应用内右上角标题/正文通知队列。 |
+| [NumberInput](https://gpui-kit.com/component/number-input/) | 部分 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 缺金额/千分位 mask、动态 step_by、前后内容槽；固定步长、精度、范围与输入草稿已有。 |
+| [OtpInput](https://gpui-kit.com/component/otp-input/) | 部分 | [分格输入、粘贴、退格、焦点移动、窄布局](../../ui/kit/otp_input.go) | 缺 masked PIN、分组间隔 groups 和尺寸配置；已有长度、粘贴、输入完成回调。 |
+| [Pagination](https://gpui-kit.com/component/pagination/) | 主体已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | 主体覆盖；缺 compact、visible_pages 与尺寸档接口。 |
+| [Plot](https://gpui-kit.com/component/plot/) | 用途不同 | [成品散点/折线图、缩放、平移、拾取](../../ui/kit/plot.go) | 用途不同：GPUI 提供 ScaleLinear/Band/Point/Ordinal、Bar/Line/Area/Pie/Stack/Axis 等公共绘图基础件；Keel Plot 是可缩放平移的成品散点/折线图。 |
+| [Popover](https://gpui-kit.com/component/popover/) | 主体已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | 主体覆盖；缺箭头、实例 offset 与 mouse_button 配置；低层 Anchored 可设 Offset。 |
+| [Progress](https://gpui-kit.com/component/progress/) | 部分 | [确定进度、不确定动画、模式切换](../../ui/kit/progress.go) | 条形确定/不确定进度已有；缺 GPUI 同页的 ProgressCircle（带真实进度与内嵌内容）。Spinner 不等于圆形进度条。 |
+| [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 部分 | [题型、答案模型、校验、分页、禁用与提交快照](../../ui/kit/questionnaire.go) | 缺单题条件禁用、跳过状态、自定义/外部校验、同题选项+自由输入、完整进度状态和快捷键配置；现有五种题型、必填校验与分页保留。 |
+| [Radio](https://gpui-kit.com/component/radio/) | 主体已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | 单选主体覆盖；组内 Item 可单独放置。缺任意富标签和组件级大小配置。 |
+| [Rating](https://gpui-kit.com/component/rating/) | 主体已有 | [评分、半星/小数展示、只读、键盘](../../ui/kit/rating.go) | 行为差异：GPUI 再点已填星会减分，Keel 直接设为该星序号；缺大小/颜色配置。Keel 另支持小数展示，交互仍是整星。 |
+| [Resizable](https://gpui-kit.com/component/resizable/) | 部分 | [横纵分割、最小尺寸、拖动、键盘、取消与禁用](../../ui/kit/resizable.go) | 缺独立多面板 group、最大尺寸、条件显隐/把手外观配置；Keel 为双面板，可嵌套组合更多面板。 |
+| [Root View](https://gpui-kit.com/component/root/) | 主体已有 | [根布局、统一浮层宿主、窗口快捷键](../../ui/el/root.go) | 架构差异：Keel 已有 root/overlay/focus/shortcut；Dialog/Sheet/Notifier 需应用挂载，GPUI 0.7 根视图自动挂载这些层。 |
+| [Scrollable](https://gpui-kit.com/component/scrollable/) | 主体已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位与尾部跟随](../../ui/el/viewport.go) | 双轴滚动、滚动条与定位已有，通过 el 组合；缺组件级 Always/Hover/Scrolling 显示策略。没有独立类型本身不计功能缺失。 |
+| [Select](https://gpui-kit.com/component/select/) | 主体已有 | [过滤、分组、多选、禁用项、万条虚拟化](../../ui/kit/select.go) | 单选主体覆盖，另有多选；缺自定义行/空内容/标题前缀、清空按钮与菜单宽高配置。分组、禁用项已实现。 |
+| [Settings](https://gpui-kit.com/component/settings/) | 部分 | [设置分组、导航、搜索、窄布局](../../ui/kit/settings.go) | 缺页面下的多 Group 模型、resettable 重置、组 footer、独立搜索 keywords 和 Markdown 描述；已有分区导航、搜索与窄布局。 |
+| [Sheet](https://gpui-kit.com/component/sheet/) | 部分 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 缺拖动调整尺寸、独立 footer、顶部 margin、遮罩显示/点击关闭配置；四方向抽屉主体已有。 |
+| [Shimmer](https://gpui-kit.com/component/shimmer/) | 用途不同 | [Skeleton 占位块扫光、减少动画](../../ui/kit/skeleton.go) | 用途不同：GPUI ShimmerText 保留可读文字并让高光扫过文字；Keel Skeleton.Shimmer 只扫过占位几何。缺文字效果与 duration/spread/reverse/once 配置。 |
+| [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动](../../ui/kit/sidebar.go) | 主体覆盖；缺右侧布局开关、自定义 item suffix/上下文菜单接口。已有 Badge 和固定 Header/Footer。 |
+| [Skeleton](https://gpui-kit.com/component/skeleton/) | 主体已有 | [占位形状、尺寸、加载展示](../../ui/kit/skeleton.go) | 主体覆盖；缺 secondary 色阶与任意圆角配置，当前圆形/圆角矩形和宽高可配。 |
+| [Slider](https://gpui-kit.com/component/slider/) | 部分 | [单值/双端范围、横向/竖向、步长、拖动与键盘](../../ui/kit/slider.go) | 缺对数刻度和交互结束 Release 回调；已有单值/范围、横纵向、步长、键盘。 |
+| [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称](../../ui/kit/spinner.go) | 主体覆盖；缺自定义图标和颜色接口。 |
+| [StatusBar](https://gpui-kit.com/component/status-bar/) | 主体已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | 左右内容与自定义 View 已覆盖；Keel 另有优先级溢出菜单，本轮未发现新的主要功能缺口。 |
+| [Stepper](https://gpui-kit.com/component/stepper/) | 部分 | [步骤状态、导航、键盘、横向滚动与禁用](../../ui/kit/stepper.go) | 缺竖向布局、步骤图标、单步禁用与尺寸配置；现有水平步骤与导航。 |
+| [Switch](https://gpui-kit.com/component/switch/) | 主体已有 | [布尔开关、标签、禁用与键盘](../../ui/kit/switch.go) | 布尔开关主体已有；缺大小/颜色/标签侧配置。当前无 Loading 接口，旧表误记；GPUI 此页也未将 loading 列为能力。 |
+| [Table](https://gpui-kit.com/component/table/) | 部分 | [排序、行选择、单元格插槽、列宽调整；高级能力同 DataTable](../../ui/kit/table.go) | GPUI Table 是轻量 Header/Body/Footer/Caption 组合表，DataTable 才负责数据交互；Keel 两项共用 TableView，缺独立 footer/caption/任意行组合。 |
+| [Tabs](https://gpui-kit.com/component/tabs/) | 部分 | [页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 页状态/关闭/溢出/拖排已完成；缺 underline/pill/outline/segmented 变体、单页禁用与单标签图标/自定义内容。 |
+| [Tag](https://gpui-kit.com/component/tag/) | 主体已有 | [颜色、移除、选中](../../ui/kit/tag.go) | 主体覆盖，另有选择/移除；缺 outline、任意颜色/圆角/大小与 child 配置。 |
+| [TextView](https://gpui-kit.com/component/text-view/) | 部分 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 缺富文本整体 max_lines/is_clamped、逐流式增量淡入、公开区间高亮/跳转、Markdown 插件与代码块操作扩展接口。HTML/扩展 TeX 已完成。 |
+| [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、错误显示](../../ui/kit/input.go) | 缺 inline token 和 auto_grow(min,max) 的最大行数控制；Rows 只设最小高度，旧表“最大可见行数”不成立。 |
+| [Theme](https://gpui-kit.com/component/theme/) | 主体已有 | [语义配色、间距/字号/圆角/阴影刻度、浅深切换、注册与 JSON 主题、局部作用域、渐变、目录监听](../../ui/theme/registry.go) | 核心主题机制已完成；Keel 7 套内置（含 light/dark），GPUI 文档称 20+。Keel 渐变 JSON 为 from/to/angle，仅 Bg/Primary；GPUI 是可选背景 token 的 CSS 两色渐变，配置不兼容。 |
+| [TimeField](https://gpui-kit.com/component/time-field/) | 主体已有 | [时分秒、步进/进位、12/24 小时、Tab 与本地化](../../ui/kit/time_field.go) | 分段、时分秒、12/24 小时、键盘修改已完成；缺组件级尺寸档。本轮未重做真机键盘验收。 |
+| [TitleBar](https://gpui-kit.com/component/title-bar/) | 主体已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 自绘标题栏与窗口控制已实现；macOS 窗口初始居中已实测。标题栏全部系统行为及 Windows/Linux 真机验收仍待完成。 |
+| [Toggle](https://gpui-kit.com/component/toggle/) | 主体已有 | [状态按钮、图标、单选/多选组](../../ui/kit/toggle_group.go) | 单个开关按钮/单多选组已有；缺 ghost/outline/segmented 外观和大小档，旧表“尺寸”不成立。 |
+| [Toolbar](https://gpui-kit.com/component/toolbar/) | 主体已有 | [左右区域、尺寸、工具分组、溢出与键盘](../../ui/kit/toolbar.go) | 主体覆盖；命令用 ToolbarItem，自定义内容用 Leading/Trailing，缺任意位置插入 compound 自定义组的接口。 |
+| [Tooltip](https://gpui-kit.com/component/tooltip/) | 主体已有 | [通用提示、键盘焦点、延迟与取消](../../ui/kit/tooltip.go) | 纯文本、悬停/键盘焦点提示已有；缺富内容、动作键位自动展示与公开位置配置。 |
+| [Tree](https://gpui-kit.com/component/tree/) | 部分 | [虚拟化、展开、多选、单项禁用、键盘、动态数据与拖动](../../ui/kit/tree.go) | 缺公开行渲染器（图标/操作）和逐节点动态子项更新/展开加载回调；可整树 SetRoots。拖动自动滚动/展开仍缺，但不把它当作本页已证实的 GPUI 差距。 |
+| [VirtualList](https://gpui-kit.com/component/virtual-list/) | 部分 | [等高及可变高度实现、稳定 key、尺寸缓存、插入保持锚点](../../ui/kit/variable_list.go) | 纵向等高/变高、尺寸缓存、锚点已有；缺横向虚拟列表与虚拟化轴切换。普通横向滚动不等于横向虚拟化。 |
 
 验证记录见 [组件验收](component-acceptance-2026-10-02.md)。
+
+## 跨文件复核线索
+
+- 选择与异步：`combobox_options.go`、`command_search.go`、`select_options.go`、`list_items.go`、`tree_items.go`，均位于 `ui/kit`；因此多选/异步等没有被误判为未实现。
+- 数据表：`ui/kit/table_{cells,columns,data,menu,selection}.go`；图表另读 `pie_chart.go`、`candlestick_chart.go`。
+- 编辑器：`ui/kit/code_search.go`（公开搜索入口和 10,000 个匹配上限）、`code_editor_input.go`（内置配对表）、`code_fold.go`、`code_highlight.go`。搜索/替换存在，但自定义搜索控制接口不等同于 GPUI SearchSession。
+- Dock：`ui/kit/dock_tree.go`、`dock_drag.go`、`dock_detach.go`；主题：`ui/theme/registry.go`、`watch.go`、`themes/*.json`。
+- 文本与底层：`ui/markdown/markdown.go`、`html.go`、`render.go`、`ui/el/element.go`、`overlay.go`、`viewport.go`；头尾、分段等扩展见 `sidebar_items.go`、`tabs_reorder.go`、`time_field_segments.go`。
+
+本轮只更新比较报告，未新增组件、未重做性能跑分。性能、视觉和系统读屏需独立验收，不能由上述组件覆盖数推导。
