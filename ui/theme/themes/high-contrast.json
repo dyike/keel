@@ -1,0 +1,26 @@
+{
+  "name": "high-contrast",
+  "base": "light",
+  "colors": {
+    "bg": "#ffffff",
+    "surface": "#ffffff",
+    "border": "#1a1a1a",
+    "text": "#000000",
+    "muted": "#3d3d3d",
+    "primary": "#0030c0",
+    "primaryHover": "#00238f",
+    "primaryText": "#0030c0",
+    "danger": "#b00000",
+    "dangerHover": "#8a0000",
+    "dangerText": "#b00000",
+    "success": "#006400",
+    "warning": "#7a4d00",
+    "info": "#00507a",
+    "subtle": "#e8e8e8",
+    "subtleHover": "#d6d6d6",
+    "highlight": "#ffe680",
+    "codeBg": "#f5f5f5",
+    "codeText": "#000000",
+    "shadow": "#00000040"
+  }
+}

@@ -53,3 +53,5 @@ Agent：角色 `table`，`value` 是行数（如"36 行"）；表头是 `columnh
 分页加载使用 `OnLoadMore(fn)` 和 `SetHasMore(true)`：距离底部两行以内自动请求，组件在回调前设为 loading，同一份数据最多自动请求一次。异步结果通过 `core.Update` 交付：`SetRows` 更新全部已加载数据，`SetLoading(false)` 结束请求，末页再 `SetHasMore(false)`。失败调用 `SetLoadError(message)`，停止自动重试，用户点击重试后重新调用 `OnLoadMore`。禁用或隐藏时不自动加载。筛选后内容不足一屏也会继续分页，应用必须正确标记末页。示例 `go run ./examples/components -section table_data` 模拟首次加载失败、重试和三页数据；状态提示始终位于视口内。
 
 `RowMenu(func(row int) *MenuView)` / `CellMenu(func(row, column int) *MenuView)` 在右键请求时构造菜单，参数始终是源数据索引。单元格菜单优先，返回 nil 则使用行菜单；菜单贴着目标单元格弹出。右键已选中的行/格会保留现有多选，未选中的目标先成为选区。Shift+F10 为活动行/格打开菜单；Esc、外部点击或执行命令关闭，键盘打开后恢复原焦点。目标被筛掉、隐藏或禁用时关闭菜单。菜单复用 `Menu` 的子菜单与键盘导航。
+
+性能：30 万行的表格在测试里建表、排序、跳到末尾不到一秒，滚动每帧约 1 毫秒（`TestTableThreeHundredThousandRows`、`BenchmarkTableFrame300k`）。

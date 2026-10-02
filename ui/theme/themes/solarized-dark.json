@@ -1,0 +1,25 @@
+{
+  "name": "solarized-dark",
+  "base": "dark",
+  "colors": {
+    "bg": "#002b36",
+    "surface": "#073642",
+    "border": "#224650",
+    "text": "#c3cccc",
+    "muted": "#8a9a9c",
+    "primary": "#268bd2",
+    "primaryHover": "#1f78b8",
+    "primaryText": "#5cb0ea",
+    "danger": "#dc322f",
+    "dangerHover": "#b92925",
+    "dangerText": "#f07673",
+    "success": "#a3b833",
+    "warning": "#d6a520",
+    "info": "#2aa198",
+    "subtle": "#0d4250",
+    "subtleHover": "#164d5b",
+    "highlight": "#12455a",
+    "codeBg": "#00242e",
+    "codeText": "#c3cccc"
+  }
+}

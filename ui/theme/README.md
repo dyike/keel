@@ -45,7 +45,7 @@ theme.Apply(p)
 | `CodeBg` / `CodeText` | `#f0f1f3` / `#1f2328` | 代码块 |
 | `Chart` | 8 个分类色 | 图表系列颜色，按顺序使用；浅色和深色各一套，均通过色觉缺陷校验 |
 
-多主题：`Register(name, p)` 登记调色板，`Named(name)` 取副本，`Names()` 列出全部（内置 light、dark），应用拿它做主题选择器，选中后 `Apply`。`ParseTheme(json)` 读主题文件：`base` 指定继承 light、dark 或已登记的主题，`colors` 只写要改的颜色，键是 Palette 字段名（大小写不限），值是 `#rgb`、`#rgba`、`#rrggbb` 或 `#rrggbbaa`，`chart` 是最多 8 个颜色的数组。示例见 `examples/components/themes/` 里的 nord 和 paper。
+多主题：`Register(name, p)` 登记调色板，`Named(name)` 取副本，`Names()` 列出全部（内置 light、dark、nord、paper、solarized-dark、high-contrast，后四个是 `themes/` 里的主题文件），应用拿它做主题选择器，选中后 `Apply`。`ParseTheme(json)` 读主题文件：`base` 指定继承 light、dark 或已登记的主题，`colors` 只写要改的颜色，键是 Palette 字段名（大小写不限），值是 `#rgb`、`#rgba`、`#rrggbb` 或 `#rrggbbaa`，`chart` 是最多 8 个颜色的数组。`Scope(p)` 给窗口的一部分换调色板并返回恢复函数，供 `el.Themed` 使用；它不重绘，也不改 `Revision`。
 
 `LoadFonts(files...)` 加载字体文件（TTF、OTF、TTC）并重绘所有窗口，Web 版必须用它提供中文字体，见[在浏览器里运行](../../docs/web.md)。
 

@@ -29,12 +29,12 @@ func TestParseThemeOverridesBase(t *testing.T) {
 
 func TestRegisterAndNamed(t *testing.T) {
 	_, p, _ := ParseTheme([]byte(`{"name": "Paper", "colors": {"bg": "#fbf7ef"}}`))
-	Register("paper", p)
-	Register("paper", p) // replacing keeps one entry
-	if got, ok := Named("paper"); !ok || got.Bg != RGB(0xfbf7ef) {
+	Register("test-paper", p)
+	Register("test-paper", p) // replacing keeps one entry
+	if got, ok := Named("test-paper"); !ok || got.Bg != RGB(0xfbf7ef) {
 		t.Fatal("named")
 	}
-	if names := Names(); !slices.Equal(names[:2], []string{"light", "dark"}) || slices.Index(names, "paper") != len(names)-1 || len(slices.Compact(slices.Sorted(slices.Values(names)))) != len(names) {
+	if names := Names(); !slices.Equal(names[:6], []string{"light", "dark", "nord", "paper", "solarized-dark", "high-contrast"}) || slices.Index(names, "test-paper") != len(names)-1 || len(slices.Compact(slices.Sorted(slices.Values(names)))) != len(names) {
 		t.Fatalf("names %v", names)
 	}
 	if _, ok := Named("missing"); ok {

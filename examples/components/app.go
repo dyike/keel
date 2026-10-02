@@ -1,8 +1,6 @@
 package main
 
 import (
-	"embed"
-	"log"
 	"sort"
 	"strings"
 
@@ -12,23 +10,6 @@ import (
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 )
-
-// themes are extra palettes, beyond light and dark, in theme files.
-//
-//go:embed themes/*.json
-var themeFiles embed.FS
-
-func init() {
-	entries, _ := themeFiles.ReadDir("themes")
-	for _, e := range entries {
-		data, _ := themeFiles.ReadFile("themes/" + e.Name())
-		name, p, err := theme.ParseTheme(data)
-		if err != nil {
-			log.Fatal(err)
-		}
-		theme.Register(name, p)
-	}
-}
 
 // foundations are the sections that demonstrate el itself, not a component.
 var foundations = map[string]bool{"theme": true, "layout": true, "scrollable": true, "focus": true, "time": true, "overlay": true}

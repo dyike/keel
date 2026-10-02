@@ -248,6 +248,17 @@ func button(label string, onClick func()) el.Element {
 
 需要自己的状态、而且状态要跨帧保存的组件，写成视图（struct + Render）。
 
+## 局部主题
+
+`cx.Themed(palette, view)` 用另一套调色板渲染一个视图：它渲染和绘制时都换用这套颜色，所以里面的 kit 组件和自己画的内容都跟着变，窗口其余部分仍用全局主题。适合浅色窗口里的深色侧栏、主题预览。返回的盒子会拉伸子元素，要铺满颜色就给它设背景。
+
+```go
+nord, _ := theme.Named("nord")
+cx.Themed(nord, sidebar).Bg(nord.Bg)
+```
+
+用 `cx.Cache` 缓存的元素按全局主题版本失效，局部主题里的内容不要跨主题复用缓存。
+
 ## 放进窗口和嵌入 Gio
 
 - **整个窗口用 el**：`window.Options{Content: el.Root(view)}`。`Root` 占满窗口，窗口不再加边距和外层滚动；页面要滚动时，给根 `Div` 加 `ScrollY()`。浮层（对话框、菜单）用 `cx.Overlay` 声明，不需要 `window.Options.Overlay`。

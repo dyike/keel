@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 	"image/color"
@@ -15,8 +16,28 @@ var (
 	themes     = map[string]func() Palette{"light": Light, "dark": Dark}
 )
 
+// builtin are the theme files Keel registers besides light and dark.
+//
+//go:embed themes/*.json
+var builtin embed.FS
+
+func init() {
+	for _, name := range []string{"nord", "paper", "solarized-dark", "high-contrast"} {
+		data, err := builtin.ReadFile("themes/" + name + ".json")
+		if err != nil {
+			panic(err)
+		}
+		n, p, err := ParseTheme(data)
+		if err != nil {
+			panic(err)
+		}
+		Register(n, p)
+	}
+}
+
 // Register adds a named palette, or replaces one, for Named and Names; an app
-// offers them in its theme picker. "light" and "dark" are built in.
+// offers them in its theme picker. Built in: light, dark, nord, paper,
+// solarized-dark and high-contrast.
 func Register(name string, p Palette) {
 	if _, ok := themes[name]; !ok {
 		themeNames = append(themeNames, name)

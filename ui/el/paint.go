@@ -118,6 +118,9 @@ func (e *engine) paint(n *Node) {
 }
 
 func (e *engine) paintContent(n *Node) {
+	if n.palette != nil {
+		defer theme.Scope(*n.palette)()
+	}
 	savedGtx := e.gtx
 	if n.effectiveDisabled || e.blockInput {
 		e.gtx = e.gtx.Disabled()

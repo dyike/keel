@@ -39,7 +39,8 @@ type Node struct {
 
 	onClick       func()
 	onContextMenu func()
-	focusOnPress  string // ID to focus on a press no child takes
+	focusOnPress  string         // ID to focus on a press no child takes
+	palette       *theme.Palette // Themed: colors for this subtree
 	onDoubleClick func()
 	onDrag        func(DragEvent)
 	role, name    string
@@ -424,4 +425,19 @@ func (s *Styled[T]) Reveal(fraction float32) *T {
 	s.n.style.reveal = max(0, min(1, fraction))
 	s.n.style.revealSet = true
 	return s.self
+}
+
+// Themed renders a view with another palette, for a part of the window in
+// different colors: a dark sidebar in a light window, a preview of a theme.
+// The palette applies while the view renders and while it paints, so kit
+// components and custom drawing inside follow it; the rest of the window
+// keeps the global theme. The wrapper stretches its child; set its
+// background to fill the area.
+func (cx *Context) Themed(p theme.Palette, v View) *DivEl {
+	restore := theme.Scope(p)
+	child := v.Render(cx)
+	restore()
+	d := Div().Items(Stretch).Child(child)
+	d.n.palette = &p
+	return d
 }

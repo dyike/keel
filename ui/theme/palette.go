@@ -66,6 +66,22 @@ func Revision() uint64 { return revision }
 // never acquires the frame lock itself, so callbacks cannot deadlock on it.
 // Fonts, the text shaper and the Material pointer remain unchanged.
 func Apply(p Palette) {
+	set(p)
+	revision++
+	loop.InvalidateAll()
+}
+
+// Scope sets the palette for a part of the window and returns the function
+// that puts the previous one back. el.Themed uses it around a subtree's
+// Render and paint, so the rest of the window keeps its colors; it does not
+// redraw anything. Call it under the frame lock and always restore.
+func Scope(p Palette) (restore func()) {
+	prev := Current()
+	set(p)
+	return func() { set(prev) }
+}
+
+func set(p Palette) {
 	PrimaryText, DangerText, CodeBg, CodeText = p.PrimaryText, p.DangerText, p.CodeBg, p.CodeText
 	Bg, Surface, Border, Text, Muted = p.Bg, p.Surface, p.Border, p.Text, p.Muted
 	Primary, PrimaryHover, Danger, DangerHover = p.Primary, p.PrimaryHover, p.Danger, p.DangerHover
@@ -74,6 +90,4 @@ func Apply(p Palette) {
 	Shadow = p.Shadow
 	Chart = p.Chart
 	Material.Palette = material.Palette{Fg: Text, Bg: Surface, ContrastBg: Primary, ContrastFg: OnColor}
-	revision++
-	loop.InvalidateAll()
 }
