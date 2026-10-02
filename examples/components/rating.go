@@ -9,10 +9,12 @@ import (
 func init() {
 	registerSection("rating", "controls", func() core.Widget {
 		mine := kit.Rating("你的评分", 5)
-		avg := kit.Rating("平均 4/5", 5).ReadOnly()
-		avg.SetValue(4)
+		avg := kit.Rating("平均 3.7/5", 5).ReadOnly()
+		avg.SetScore(3.7)
+		half := kit.Rating("平均 4.5/5", 5).ReadOnly()
+		half.SetScore(4.5)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(14).Items(el.Start).Child(mine.Render(cx), avg.Render(cx))
+			return el.Div().P(24).Gap(14).Items(el.Start).Child(mine.Render(cx), avg.Render(cx), half.Render(cx))
 		}))
 	})
 }
