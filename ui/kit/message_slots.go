@@ -37,6 +37,9 @@ func (v *MessageView) metadata(cx *el.Context, id string, view el.View, override
 	if v.surface != nil && v.surface.variant == BubbleGhost {
 		inset = false
 	}
+	if mixed, ok := v.content.(*MessageContentView); ok && mixed != nil {
+		inset = !mixed.hasGhost()
+	}
 	if override != nil {
 		inset = *override
 	}

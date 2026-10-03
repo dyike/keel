@@ -104,6 +104,8 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 			}
 		}
 		content.Child(v.bubble.Render(cx))
+	} else if mixed, ok := v.content.(*MessageContentView); ok && mixed != nil {
+		content.Child(mixed.render(cx, end, v.user))
 	} else if v.user {
 		if v.bubble == nil {
 			v.bubble = Bubble(v.content).Mine()

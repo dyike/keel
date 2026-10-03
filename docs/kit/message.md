@@ -46,7 +46,7 @@ msg.HeaderInset(true).FooterInset(false)
 msg.ResetContentInsets() // 恢复自动规则
 ```
 
-显式 Ghost 气泡自动取消头尾缩进；`HeaderInset`、`FooterInset` 分别覆盖继承规则。普通 Content 内部的自定义 View 不参与 Ghost 检测。入口接受单个 Bubble，多段内容可在该气泡内部组合；尚无上游多个 typed bubble 混排并合并元数据的 MessageContent 部件。
+显式 Ghost 气泡自动取消头尾缩进；`HeaderInset`、`FooterInset` 分别覆盖继承规则。普通 Content 内部的自定义 View 不参与 Ghost 检测。该入口接受单个 Bubble；多个气泡与附件混排使用 [MessageContent](message_content.md)，直接气泡共同参与 Ghost 继承。
 
 `Alignment(el.Start/el.End)` 独立控制左右位置，覆盖 User 的默认靠右布局；`ResetAlignment()` 恢复默认。头像、头尾、状态、操作和反应跟随位置，显式气泡也跟随。User 仍决定默认气泡色和是否显示默认头像，改对齐不会改变这些设置。其他 Align 值忽略。普通正文靠右时按自身宽度布局，撑满宽度的控件仍占满正文列。
 
