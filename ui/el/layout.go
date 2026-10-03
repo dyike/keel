@@ -3,6 +3,7 @@ package el
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"gioui.org/io/input"
 	"gioui.org/layout"
@@ -61,6 +62,9 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 	bw := e.dp(s.borderWidth)
 	boxX, boxY := pl+pr+2*bw, pt+pb+2*bw
 	w, h = e.clampW(n, w, availW), e.clampH(n, h, availH)
+	if w >= 0 && h < 0 && s.aspectRatio > 0 {
+		h = e.clampH(n, int(min(float64(inf), math.Round(float64(w)/float64(s.aspectRatio)))), availH)
+	}
 
 	innerW, innerH := -1, -1
 	if w >= 0 {

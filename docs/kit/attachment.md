@@ -19,9 +19,9 @@ Agent：角色 `attachment`，名字是文件名；`value` 为空、"上传中 6
 
 `SetProgress` 清除此前错误和取消状态。进度大于 1 截为 1，NaN/Inf 忽略，负数标记完成。负文件大小显示为 0 B。只有完成且无错误的附件可以打开，取消和移除不会触发打开回调。`SetDisabled(true)` 禁止卡片内全部操作。取消、重试按钮的可访问名称包含文件名；取消状态的 Agent 值为 `canceled`。
 
-`Media(view)` 用展示型 View 替换默认文件图标；nil 恢复图标。可传入 `kit.Image(pixels, alt).Size(width, height).Fit(kit.ImageCover)` 显示图片，图片加载仍由应用负责。媒体使用内容自身尺寸，最大宽度受卡片约束；横向预览宜用小缩略图，给文件名和操作留出空间。
+`Media(view)` 用展示型 View 替换默认文件图标；nil 恢复图标。可传入 `kit.Image(pixels, alt).Size(width, height).Fit(kit.ImageCover)` 显示图片，图片加载仍由应用负责。横向媒体使用内容自身尺寸，最大宽度受卡片约束；横向预览宜用小缩略图，给文件名和操作留出空间。竖排默认使用方形预览，见下文。
 
-`Vertical(true)` 将媒体放在文字上方、操作放在底部，`Vertical(false)` 恢复默认横排。打开期间切换布局保持打开区域的键盘身份；上传/失败时预览不会触发 OnOpen，取消、重试、移除保持独立。Media 用于展示，打开交互交给附件 OnOpen，避免在预览内嵌套按钮或另一个可点击图片。此接口自动添加媒体状态遮罩；上传/处理中标题显示文字扫光，尺寸档见下文。
+`Vertical(true)` 将媒体放在文字上方、操作叠加在卡片右上角，`Vertical(false)` 恢复默认横排。打开期间切换布局保持打开区域的键盘身份；上传/失败时预览不会触发 OnOpen，取消、重试、移除保持独立。Media 用于展示，打开交互交给附件 OnOpen，避免在预览内嵌套按钮或另一个可点击图片。此接口自动添加媒体状态遮罩；上传/处理中标题显示文字扫光，尺寸档见下文。
 
 `AttachmentGroup(items ...el.View)` 将附件排列为可横向滚动的一行，不压缩卡片宽度。`Gap(dp)` 设置非负间距，默认 SpaceSm；`Name` 设置组的可访问名称。组宽度填满父容器，各项顶对齐。
 
@@ -46,7 +46,7 @@ Pending 显示“待上传”，Processing 显示“处理中”；上传和处�
 
 `Size(AttachmentSize...)` 选择 XSmall、Small、Medium、Large 四档，默认 Medium。卡片宽度分别为 176/200/232/272dp，默认媒体边长 28/32/38/44dp，标题字号 11/12/13/14sp；最小高度为 40/48/56/64dp，内容较多时继续增高。内边距、间距和内置操作按钮随档位调整。
 
-默认 Medium 宽度从原来的 280dp 调整为 232dp。`PartStyle` 在尺寸默认值后应用，可覆盖宽度和媒体尺寸；自定义 Media/Content/Actions 中显式设置的尺寸保持不变。竖排仍使用内容自身的预览比例，操作区仍位于底部，与上游默认方形预览及右上角操作布局不同。
+默认 Medium 宽度从原来的 280dp 调整为 232dp。`PartStyle` 在尺寸默认值后应用，可覆盖宽度和媒体尺寸；自定义 Media/Content/Actions 中显式设置的尺寸保持不变。竖排默认方形预览和右上角操作；自定义比例见 MediaAspectRatio。
 
 默认状态外观：Pending 使用虚线边框，Failed 使用 DangerText 边框；完成后恢复普通边框。未提供自定义 Media 时，失败显示危险色背景和图标：有 OnRetry 用错误图标，无 OnRetry 用禁止图标。自定义媒体上传时覆盖暗色遮罩和白色进度环，处理中显示不确定进度环；失败时遮罩加深，有 OnRetry 显示圆形重试按钮，否则显示禁止图标。完成、待上传和取消状态恢复原预览。遮罩不改变媒体尺寸，裁剪跟随 Media 分区圆角。媒体重试与操作区重试共用状态校验，先进入 0% 上传再通知应用，遵守卡片及祖先禁用；仅完成状态可打开。
 
@@ -74,3 +74,11 @@ a.Description("上一版本已上传").
 // 卡片仍处于失败状态，描述采用普通颜色；重试操作仍可用。
 a.ClearPartStatus(kit.AttachmentPartDescription).ClearDescription()
 ```
+
+`MediaAspectRatio(width/height)` 配置竖排预览比例，默认 1；例如 2 为宽度两倍于高度。0 恢复媒体自然尺寸，负值与非有限值忽略。竖排预览填满卡片内宽，已加载的 kit.Image 默认居中裁剪覆盖预览，不修改原 Image 实例；其他自定义 View 保持自身尺寸并居中。PartStyle(Media) 的显式高度优先于比例，也可用 AspectRatio 覆盖比例。
+
+竖排操作区叠加在卡片右上角，默认偏移随尺寸档内边距变化；自定义 Root 内边距后，可用 PartStyle(Actions) 调整 Top/Right。操作背景取 Surface，按钮遵守禁用且不触发打开，横竖切换保留按钮焦点。操作区按内容宽度收缩，过多操作可能遮挡预览，应用应限制数量或用 PartStyle(Actions) 配置换行。
+
+布局变化：原竖排自然预览及底部操作改为上述默认值。需要保留自然预览时设置 MediaAspectRatio(0)。独立示例：`go run ./examples/components -section attachment_vertical`。
+
+底层 el 的 `AspectRatio(ratio)` 在宽度已解析、高度自动时按宽高比推导高度；显式高度和最大/最小高度限制优先，0 清除比例。它不为两个轴均自动的内容推导尺寸。

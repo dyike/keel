@@ -25,6 +25,7 @@ type AttachmentView struct {
 	styles             [6]func(*el.DivEl)
 	density            AttachmentSize
 	vertical           bool
+	mediaRatio         *float32
 	size               int64
 	status             AttachmentStatus
 	progress           float32 // 0..1 while uploading, < 0 when done
@@ -131,13 +132,21 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 			media.Child(Icon(IconCopy).Size(metrics.media / 2).Color(theme.PrimaryText).Render(cx))
 		}
 	} else {
-		media.Role("group").MaxW(el.Full).Child(v.media.Render(cx))
+		if v.vertical && v.previewRatio() > 0 {
+			media.Child(el.Div().ID(id + "/preview").Absolute().Top(0).Left(0).WFull().HFull().Center().Child(v.verticalMedia(cx)))
+		} else {
+			media.Child(v.media.Render(cx))
+		}
+		media.Role("group").MaxW(el.Full)
 		if overlay := v.mediaStatus(cx, id, status); overlay != nil {
 			media.Child(overlay)
 		}
 	}
 	if v.mediaOverlay != nil {
 		media.Role("group").Child(el.Div().ID(id + "/media-overlay").Absolute().Top(0).Left(0).WFull().HFull().Center().Child(v.mediaOverlay.Render(cx)))
+	}
+	if v.vertical && v.previewRatio() > 0 {
+		media.WFull().H(el.Auto).AspectRatio(v.previewRatio()).Role("group")
 	}
 	media = v.part(AttachmentPartMedia, id+"/media", media)
 	main := el.Div().ID(id + "/main").Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(metrics.gap)
@@ -166,7 +175,7 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	}
 	actions := el.Div().ID(id + "/actions").Row().NoShrink().Gap(theme.SpaceXs).Items(el.Center)
 	if v.vertical {
-		actions.Wrap().Justify(el.End)
+		actions.Absolute().Top(metrics.padding).Right(metrics.padding).MaxW(el.Full).Justify(el.End).Bg(theme.Surface).Rounded(theme.RadiusSm)
 	}
 	actions = v.part(AttachmentPartActions, id+"/actions", actions)
 	hasCustom := false

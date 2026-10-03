@@ -1,6 +1,9 @@
 package kit
 
 import (
+	"gioui.org/layout"
+	giowidget "gioui.org/widget"
+	"github.com/dyike/keel/ui/core"
 	"image/color"
 
 	"github.com/dyike/keel/ui/el"
@@ -53,4 +56,31 @@ func (v *AttachmentView) retry() {
 	}
 	v.SetProgress(0)
 	v.onRetry()
+}
+
+// MediaAspectRatio controls vertical previews (width/height), default 1.
+// Zero restores natural content sizing; invalid values are ignored.
+func (v *AttachmentView) MediaAspectRatio(ratio float32) *AttachmentView {
+	if ratio >= 0 && finiteNumber(float64(ratio)) {
+		v.mediaRatio = &ratio
+	}
+	return v
+}
+func (v *AttachmentView) previewRatio() float32 {
+	if v.mediaRatio != nil {
+		return *v.mediaRatio
+	}
+	return 1
+}
+
+// Images cover the preview without mutating the application-owned ImageView.
+// Arbitrary media keeps its own dimensions and is centered inside the viewport.
+func (v *AttachmentView) verticalMedia(cx *el.Context) el.Element {
+	if imageView, ok := v.media.(*ImageView); ok && imageView.img != nil {
+		src := imageView.op
+		return el.Widget(core.Func(func(gtx core.C) core.D {
+			return giowidget.Image{Src: src, Fit: giowidget.Cover, Position: layout.Center, Scale: 1 / gtx.Metric.PxPerDp}.Layout(gtx)
+		})).ID(autoID("image", imageView)).Role("image").Name(imageView.alt).Value("loaded").Disabled(imageView.disabled).WFull().HFull()
+	}
+	return v.media.Render(cx)
 }

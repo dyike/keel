@@ -3,6 +3,7 @@ package el
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"gioui.org/font"
 	"github.com/dyike/keel/ui/theme"
@@ -223,6 +224,15 @@ func (s *Styled[T]) MinW(l Length) *T { s.n.style.minW = l; return s.self }
 func (s *Styled[T]) MinH(l Length) *T { s.n.style.minH = l; return s.self }
 func (s *Styled[T]) MaxW(l Length) *T { s.n.style.maxW = l; return s.self }
 func (s *Styled[T]) MaxH(l Length) *T { s.n.style.maxH = l; return s.self }
+
+// AspectRatio derives an automatic height from a resolved width (width/height).
+// Explicit heights take precedence. Zero clears the ratio; invalid values are ignored.
+func (s *Styled[T]) AspectRatio(ratio float32) *T {
+	if ratio >= 0 && !math.IsInf(float64(ratio), 0) {
+		s.n.style.aspectRatio = ratio
+	}
+	return s.self
+}
 
 // WFull and HFull fill the parent's content box.
 func (s *Styled[T]) WFull() *T { return s.W(Full) }

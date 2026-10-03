@@ -78,6 +78,7 @@ type Style struct {
 	colSpan                 int
 	row                     bool // lay children out left to right; default top to bottom
 	w, h, minW, minH        Length
+	aspectRatio             float32
 	maxW, maxH              Length
 	pad, margin             Edges
 	gap                     float32
