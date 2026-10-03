@@ -28,6 +28,7 @@ type SwitchView struct {
 	color           *color.NRGBA
 	labelLeft       bool
 	motion          valueMotion
+	quietFocus      bool
 }
 
 func Switch(label string, on bool) *SwitchView           { return &SwitchView{label: label, value: on} }
@@ -35,6 +36,10 @@ func (v *SwitchView) OnChange(fn func(bool)) *SwitchView { v.onChange = fn; retu
 func (v *SwitchView) Value() bool                        { return v.value }
 func (v *SwitchView) SetValue(on bool)                   { v.value = on }
 func (v *SwitchView) SetDisabled(on bool)                { v.disabled = on }
+
+// FocusRing controls the keyboard/programmatic focus outline, enabled by default.
+// Disabling it preserves focus and keyboard activation for custom focus treatments.
+func (v *SwitchView) FocusRing(on bool) *SwitchView { v.quietFocus = !on; return v }
 
 // Size selects a 36×20dp (medium) or 28×16dp (small) track.
 func (v *SwitchView) Size(size SwitchSize) *SwitchView {
@@ -86,12 +91,16 @@ func (v *SwitchView) Render(cx *el.Context) el.Element {
 	}
 	spacer := el.Div().W(el.Dp(max(0, width-knobSize-2*theme.SpaceXxs) * position)).NoShrink()
 	body := el.Div().ID("track").W(el.Dp(width)).H(el.Dp(height)).NoShrink().Rounded(theme.RadiusFull).Bg(track).Px(theme.SpaceXxs).Row().Items(el.Center).Child(spacer, knob)
-	return checkLabelSide(autoID("switch", v), "switch", v.label, v.name, v.value, v.disabled, body, func() {
+	row := checkLabelSide(autoID("switch", v), "switch", v.label, v.name, v.value, v.disabled, body, func() {
 		v.value = !v.value
 		if v.onChange != nil {
 			v.onChange(v.value)
 		}
 	}, v.labelLeft)
+	if v.quietFocus {
+		row.FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}) })
+	}
+	return row
 }
 
 func (v *SwitchView) setName(s string) { v.name = s }
