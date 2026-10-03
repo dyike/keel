@@ -17,6 +17,7 @@ var allowed = map[string][]string{
 	"ui/theme":                {"ui/internal/loop"},
 	"ui/locale":               {"ui/internal/loop"},
 	"ui/base":                 {},
+	"ui/plot":                 {"ui/core", "ui/theme", "ui/internal/loop"},
 	"ui/kit":                  {"ui/base", "ui/core", "ui/theme", "ui/locale", "ui/el", "ui/internal/loop", "ui/internal/editorstyle"},
 	"ui/window":               {"ui/core", "ui/theme", "ui/internal/loop"},
 	"ui/el":                   {"ui/core", "ui/theme", "ui/locale", "ui/internal/loop", "ui/internal/editorstyle"},

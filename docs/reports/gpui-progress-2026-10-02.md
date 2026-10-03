@@ -2,7 +2,7 @@
 
 更新日期：2026-10-04（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**71 项主体已有、5 项部分覆盖、1 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**72 项主体已有、5 项部分覆盖、0 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -12,7 +12,7 @@
 
 ## 本轮更正与重点差距
 
-1. 初次复核更正 Marker、Plot、Shimmer 的用途混淆；第六十五批新增 ShimmerText 后，文字扫光已建立独立实现，第一百五十三批新增 StatusMarker 后，消息状态行已建立独立实现；Plot 的用途差异仍保留。
+1. 初次复核更正 Marker、Plot、Shimmer 的用途混淆；第六十五批新增 ShimmerText 后，文字扫光已建立独立实现，第一百五十三批新增 StatusMarker 后，消息状态行已建立独立实现；第一百五十四批新增 ui/plot 公共绘图基础件后，Plot 也已建立独立实现。
 2. 数据与输入组件仍有实质差距：Chart 已补雷达/桑基图，仍有高级轴布局、柱图样式和动画差异；DatePicker 已补日期时间联动、时刻预设及范围时间存取；Input/Textarea 缺原子 token，Input 另缺格式 mask；Progress 的圆形进度缺口已在第一批补齐。
 3. Editor 已补齐编辑跟踪装饰集合、可替换语言规则和自定义搜索会话；装饰坐标、跨行轮廓与文本样式仍有差异，详见组件条目。`OnComplete`/`OnHover`/`OnDefinition` 是应用接口，LSP 客户端仍由应用提供；本轮不把它当作已证实的上游内置能力差距。
 4. TextView 已有 Markdown/HTML/扩展 TeX，但富文本折叠预览、流式逐段淡入、区间高亮/定位和插件仍缺。完整 TeX/CSS 是 Keel 的边界，不能无依据当作 GPUI 已有功能。
@@ -257,7 +257,9 @@
 
 - [x] 第一百五十二批（`eca8955`）：集中补齐 Editor 跟踪装饰集合、语言编辑规则和自定义搜索会话。四种装饰独立持有，随输入、替换、撤销/重做与 SetValue 变换，按可见行查询索引；语言规则支持全局/实例替换、多字符配对、语法排除和 Enter 正则缩进。自定义搜索不打开面板，可跳转/替换，全部替换越过展示上限并合并为一次撤销。测试覆盖 Unicode 范围、边界插入/删除、集合隔离、随机区间索引、规则原子更新、多字符输入、搜索状态及 10,002 处跨行替换的撤销/重做；浅深色虚拟窗口四种装饰像素与 Agent 输入验证通过。全仓构建、UI/native vet、全量测试通过；原生真机未验收。
 
-- [x] 第一百五十三批：新增 StatusMarker，集中补齐消息状态行用途：Plain/Separator/Border、Start/Center/End、图标和富内容/直接子项、Spinner/Shimmer、分区样式、ID/Role。el 新增可继承 TextAlign，使普通文字和扫光文字使用相同行内对齐。测试覆盖 1×/2× 分隔线位置和窄布局、加载/样式切换保留输入焦点、子操作及禁用继承，浅深色虚拟窗口验证文字/富内容动画、减少动画和 Agent。全仓构建、UI/native vet、全量测试通过；真机未验收。
+- [x] 第一百五十三批（`fd0b4f6`）：新增 StatusMarker，集中补齐消息状态行用途：Plain/Separator/Border、Start/Center/End、图标和富内容/直接子项、Spinner/Shimmer、分区样式、ID/Role。el 新增可继承 TextAlign，使普通文字和扫光文字使用相同行内对齐。测试覆盖 1×/2× 分隔线位置和窄布局、加载/样式切换保留输入焦点、子操作及禁用继承，浅深色虚拟窗口验证文字/富内容动画、减少动画和 Agent。全仓构建、UI/native vet、全量测试通过；真机未验收。
+
+- [x] 第一百五十四批：新增 ui/plot 公共比例尺与绘图基础件，集中补齐 Plot 的用途缺口。提供 Linear/Band/Point/Ordinal、正负分离 Stack、保留源索引的 Pie，以及裁剪画布上的 Bar/Line/Area/Arc/Axis/Dot/CrossLine；支持反向比例尺、条带间距、线曲线/点和四方向轴。示例组合正负堆叠柱、趋势线、参考线与环图。测试覆盖极值/常量/反向映射、分类副本与未知项、堆叠溢出、饼图角度守恒、浅深底色像素、原点平移/裁剪、环孔及非法几何。新增模块依赖规则和架构说明；全仓构建、UI/native vet、全量测试通过，真机未验收。
 
 ## 当前实施清单
 
@@ -324,7 +326,7 @@
 | [NumberInput](https://gpui-kit.com/component/number-input/) | 主体已有 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 第一百一十四批补齐动态 StepBy 和 Prefix/Suffix；第一百一十五批补齐 OnStep 纯步进事件；第一百一十六批补齐 Size/Appearance。第一百四十三批补齐 ThousandsSeparator 和即时半角转换，登记缺口关闭。小数分隔固定为点，金额用 Decimals/Prefix 组合；分组符删除后会重新生成。规范化编辑有独立 100 次撤销历史，程序赋值重置；真机输入法组合与视觉尚未验收。 |
 | [OtpInput](https://gpui-kit.com/component/otp-input/) | 主体已有 | [分格输入、粘贴、完成回调、密码遮罩、分组、尺寸与窄布局](../../ui/kit/otp_input.go) | 第二批已补齐 Masked/Groups/Size；默认两组，不能整除时前组多一位。此表登记的三个缺口已关闭。 |
 | [Pagination](https://gpui-kit.com/component/pagination/) | 主体已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | 第三十三批已补齐紧凑模式、数字按钮上限、尺寸和整体禁用。Size 为连续 dp；VisiblePages 正值限制在 3–101，0 恢复 Keel 原窗口策略，默认策略与上游五按钮不同。 |
-| [Plot](https://gpui-kit.com/component/plot/) | 用途不同 | [成品散点/折线图、缩放、平移、拾取](../../ui/kit/plot.go) | 用途不同：GPUI 提供 ScaleLinear/Band/Point/Ordinal、Bar/Line/Area/Pie/Stack/Axis 等公共绘图基础件；Keel Plot 是可缩放平移的成品散点/折线图。 |
+| [Plot](https://gpui-kit.com/component/plot/) | 主体已有 | [ui/plot 四类比例尺、Stack/Pie 布局、Bar/Line/Area/Arc/Axis/Dot/CrossLine](../../ui/plot) | 第一百五十四批建立公共底层绘图实现；kit.Plot 保留成品交互图用途。采用即时像素画布和预投影几何，不复制上游数据提取器接口；刻度均匀分布，平滑线为逐段 smoothstep，圆弧为采样轮廓。提示与可访问数据描述由应用组合，不自动提供主题悬停动画；现有 kit 图表尚未迁移至公共包。浅深底色像素、裁剪和数值布局验证通过，真机未验收。 |
 | [Popover](https://gpui-kit.com/component/popover/) | 主体已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | 第二十八、二十九批已补齐实例 Offset、默认外观开关及面板样式。第三十至三十二批补齐左/右/中键选择及箭头。箭头用纯色背景，边框/阴影/渐变不延伸到箭头；Keel 在空间不足时翻转，上游保持锚点方向并限制位置，定位策略不同。 |
 | [Progress](https://gpui-kit.com/component/progress/) | 主体已有 | [条形确定/不确定进度](../../ui/kit/progress.go)、[圆形进度与中心内容](../../ui/kit/progress_circle.go) | 第一、二十六、二十七批已补齐圆形进度、条形样式及数值过渡。Keel 数值范围 0–1，条形默认带标签/百分比；图形过渡 200ms，语义立即报告目标值，减少动画立即归位。 |
 | [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 主体已有 | [条件禁用、跳过、混合答案、自定义/外部校验、进度和完成事件](../../ui/kit/questionnaire.go) | 第一百四十六、四十七批补齐状态、字母/数字选项快捷键、方向键/Cmd+Enter 导航、逐选项禁用和 schema 默认答案恢复。仍无 compound parts/统一尺寸接口，快捷键提示由应用呈现，文本输入中普通方向键保留编辑行为。外部错误由应用显式清除，真机视觉/输入法未验收。 |

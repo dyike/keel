@@ -11,6 +11,7 @@ github.com/dyike/keel
 │   ├── theme/            颜色、字号、字体
 │   ├── locale/           框架自己显示的文字：确定、复制、关闭……
 │   ├── el/               GPUI 风格：视图、链式样式元素、flexbox
+│   ├── plot/             公共比例尺、图形布局与即时绘图
 │   ├── kit/              组件：Button、Input、Table、Dialog、Chart …（一个组件一个文件）
 │   ├── window/           窗口：Open、Main、快捷键、截图
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
@@ -39,6 +40,7 @@ ui:
   kit ───────► el ──┐
   kit ───────► base（组件行为，不依赖其他模块）
   markdown ──► el   ├──► theme、locale
+  plot ─────────────┤
   window ───────────┤
                     └──► core
 
@@ -73,6 +75,7 @@ native:
 | `ui/theme` | 视觉参数、全局调色板切换、局部主题作用域与重绘通知 | 组件 |
 | `ui/locale` | 框架自己显示或报告给 Agent 的文字，运行时切换语言 | 应用自己的文案、翻译系统 |
 | `ui/base` | 组件的行为：键盘导航、首字母跳转、多选、打开状态 | 任何绘制、颜色、Gio 以外的 Keel 依赖 |
+| `ui/plot` | 比例尺、堆叠/饼图布局、即时绘图基础件 | 成品图表、输入处理、窗口管理 |
 | `ui/kit` | 基于 el 和 base 的组件 | Gio 输入和浮层基础设施、窗口管理 |
 | `ui/window` | 与窗口绑定的东西：生命周期、快捷键、根视图、截图 | 具体组件 |
 | `ui/el` | 元素、样式、布局引擎、元素状态、视图 | 业务组件（它们在应用里写成函数或视图） |
@@ -174,3 +177,5 @@ kit.Button("刷新", func() {
 - 最后一个窗口关闭后，进程调用 `os.Exit(0)` 退出。`main` 里 `window.Main()` 之后的代码不会执行，要做清理放进 `OnClose`。
 
 `native/notification` 仅依赖 `native` 和 `native/internal/sys`，通过异步完成回调返回权限/投递结果，不引用 UI 或 Gio。macOS 系统调用由主队列发起，Go 完成回调在独立 goroutine 执行；UI 回写使用 `core.Update`。kit.Notifier 通过公开 NoticeSystemBackend 接口接入，由应用层适配 native/notification，模块之间不直接引用。
+
+`ui/plot` 面向自定义图表，直接依赖 core 和 theme（主题字体），不依赖 kit、el 或 window；应用可将绘制嵌入 Widget。成品 Chart/Plot 保留在 kit，现有绘制实现尚未迁移到公共包。
