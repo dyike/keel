@@ -57,7 +57,8 @@
 - [x] 第三十四批（`d70fc17`）：Switch 增加 Small/Medium 尺寸、Color/ClearColor 和 LabelSide；自定义选中色在自身禁用时降低 alpha，切换标签位置保留键盘焦点。测试覆盖 1×/2× 布局、标签点击、键盘、禁用继承、回调与颜色像素；全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。重新核对上游后，将滑块动画、焦点环及 Tab 配置补记为未完成。
 - [x] 第三十五批（`bd8826a`）：Switch 增加 180ms 滑块过渡，快速反向从当前显示位置衔接；首次显示/减少动画直接归位，值和语义立即更新。帧时钟像素测试覆盖大小两档、开始/中间位置、反向衔接、最终归位和减少动画；全量构建、vet、测试通过。
 - [x] 第三十六批（`98b70ba`）：Switch 增加 FocusRing，关闭/恢复焦点轮廓不改变尺寸与键盘操作。窗口像素测试覆盖 Tab 聚焦、隐藏/恢复、Space/Enter 切换和禁用；全量构建、vet、测试通过。轮廓仍沿整行绘制，轨道级轮廓与 Tab 配置继续记录为差异。
-- [x] 第三十七批：el 和 Switch 增加 TabStop/TabIndex；显式配置启用单 root 顺序遍历，负索引或关闭停靠时保留鼠标/程序聚焦。窗口测试覆盖升序/同值树序、输入框、隐藏/禁用、动态配置、Tab/Shift+Tab 与模态初始焦点及循环；全量构建、vet、测试通过。跨独立 Embed/原生 Gio 排序及直接 Router.MoveFocus 不在此入口范围。
+- [x] 第三十七批（`b13354e`）：el 和 Switch 增加 TabStop/TabIndex；显式配置启用单 root 顺序遍历，负索引或关闭停靠时保留鼠标/程序聚焦。窗口测试覆盖升序/同值树序、输入框、隐藏/禁用、动态配置、Tab/Shift+Tab 与模态初始焦点及循环；全量构建、vet、测试通过。跨独立 Embed/原生 Gio 排序及直接 Router.MoveFocus 不在此入口范围。
+- [x] 第三十八批：Checkbox 增加 Size/TextSize 与 TabStop/TabIndex；勾号和半选横线随方框缩放。测试覆盖 1×/2×、尺寸恢复、半选语义、键盘焦点、禁用、Tab 排序/跳过与反向遍历；全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -92,7 +93,7 @@
 | [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
 | [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 缺竖向轨道、同屏多项、可组合前后控件；Keel 每次只显示一张，另有自动播放。 |
 | [Chart](https://gpui-kit.com/component/chart/) | 部分 | [折线/柱状/面积/饼图/环图/蜡烛图、图例与数据表](../../ui/kit/chart.go) | 缺 RadarChart、SankeyChart；已有折线/柱/面积/饼环/蜡烛图。轴域、刻度数量、参考线、线型和 tooltip 内容的公共配置较少。 |
-| [Checkbox](https://gpui-kit.com/component/checkbox/) | 主体已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | 主体覆盖，另有半选。缺组件级尺寸配置和 GPUI 的 tab_index/tab_stop 配置入口。 |
+| [Checkbox](https://gpui-kit.com/component/checkbox/) | 主体已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | 第三十八批已补齐 Size/TextSize、TabIndex/TabStop，保留半选能力。尺寸使用连续 dp/sp，Tab 排序限单 el root；焦点轮廓仍沿整行。 |
 | [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 第五批已补齐 OnCopied、Content 与反馈状态查询；回调表示已提交写入请求，非操作系统成功确认。此表登记缺口已关闭。 |
 | [Collapsible](https://gpui-kit.com/component/collapsible/) | 主体已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | 主体覆盖：拆分 Trigger/Content、状态控制与动画；本轮未发现新的主要功能缺口。 |
 | [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 颜色编辑主体已有；GPUI 自带触发器/弹层，Keel 是内联选择器，弹层需组合 Popover；缺触发图标、标签与尺寸配置。 |

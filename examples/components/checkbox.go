@@ -25,8 +25,11 @@ func init() {
 		sync()
 		off := kit.Checkbox("不可用", true)
 		off.SetDisabled(true)
+		small := kit.Checkbox("小尺寸", true).Size(14).TextSize(12)
+		large := kit.Checkbox("大尺寸 · 半选", false).Size(28).TextSize(20)
+		large.SetMixed(true)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(10).Items(el.Start).Child(all.Render(cx), el.Div().Pl(24).Gap(8).Child(a.Render(cx), b.Render(cx)), off.Render(cx))
+			return el.Div().P(24).Gap(10).Items(el.Start).Child(all.Render(cx), el.Div().Pl(24).Gap(8).Child(a.Render(cx), b.Render(cx)), off.Render(cx), small.Render(cx), large.Render(cx))
 		}))
 	})
 }
