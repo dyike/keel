@@ -287,7 +287,11 @@ func TestSettingsExample(t *testing.T) {
 	got = call("type", map[string]any{"ref": refOf(got, `textbox "搜索设置"`), "text": "邮件"})
 	expect(t, got, `switch "邮件提醒" checked`)
 	expect(t, call("click", map[string]any{"text": "邮件提醒"}), `switch "邮件提醒" unchecked`)
+	// Search now filters navigation; clearing it keeps the matching page selected.
+	got = call("type", map[string]any{"ref": refOf(got, `textbox "搜索设置"`), "text": "", "clear": true})
+	expect(t, got, `button "通用"`, `switch "邮件提醒" unchecked`)
 	call("click", map[string]any{"text": "通用"})
+	expect(t, call("click", map[string]any{"text": "重置此页"}), `switch "深色模式" unchecked`)
 	call("click", map[string]any{"text": "语言 Language"})
 	got = call("click", map[string]any{"text": "English"})
 	expect(t, got, `textbox "Search settings"`, `value="English"`)

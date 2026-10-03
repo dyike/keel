@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**59 项主体已有、16 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**60 项主体已有、15 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -231,7 +231,9 @@
 
 - [x] 第一百三十九批（`61f68da`）：按组件集中收尾 Tree。新增可见行上下文/自定义内容，保留缩进、箭头、选中/禁用语义，子按钮不连带选择；行高/缩进可配置，拖动按实际行高定位。SetChildren 原子验证/深复制局部子树，保留有效选择/展开并隔离其他分支请求；提供 Node 快照、标签更新和独立 ScrollTo。OnExpand 覆盖用户箭头/键盘/双击，自定义 Toggle；Lazy + OnLoad + token 结果/错误支持同步或异步加载、重试、折叠/禁用/模型替换失效。测试覆盖错误原子性、所有权、回调重入、多分支请求、子动作隔离、禁用及 1×/2× 万条虚拟行定位。全仓构建、UI/native vet、全量测试通过；未做真机视觉验收。Tree 调整为主体已有。
 
-- [x] 第一百四十批：集中补齐 VirtualList/VariableList 横向虚拟化及轴切换。新增 Horizontal、Width、ScrollToEnd，底层新增 ScrollToX；定位、尺寸缓存、前后预构建和内容缩减跟随主轴。等尺寸列表保留首项附近偏移及子元素身份；变尺寸列表保留稳定 key，清除旧轴测量并按新轴重新测量，横向插入仍保持阅读锚点。示例增加横向卡片和方向切换。1×/2× 下验证 10 万项有限构建、末项露出、变宽测量、插入/缩减、轴切换、输入状态、Fill 和首次挂载前定位；全仓构建、UI/native vet、全量测试通过。未做真机触控板/视觉验收。VirtualList 调整为主体已有。
+- [x] 第一百四十批（`802303d`）：集中补齐 VirtualList/VariableList 横向虚拟化及轴切换。新增 Horizontal、Width、ScrollToEnd，底层新增 ScrollToX；定位、尺寸缓存、前后预构建和内容缩减跟随主轴。等尺寸列表保留首项附近偏移及子元素身份；变尺寸列表保留稳定 key，清除旧轴测量并按新轴重新测量，横向插入仍保持阅读锚点。示例增加横向卡片和方向切换。1×/2× 下验证 10 万项有限构建、末项露出、变宽测量、插入/缩减、轴切换、输入状态、Fill 和首次挂载前定位；全仓构建、UI/native vet、全量测试通过。未做真机触控板/视觉验收。VirtualList 调整为主体已有。
+
+- [x] 第一百四十一批：集中补齐 Settings 登记缺口。新增 Page/SettingGroup、组外 footer、关键词搜索、页面重置、标题附加内容、组样式覆盖、自定义行、纵向行和整行禁用；DescriptionContent 可接现有 Markdown 视图。搜索保留仍匹配的页面，否则切换到首个匹配页，空组隐藏，清空查询保留选择；重置执行全页未禁用行的应用回调。组/行/关键词/样式配置复制，搜索保留原行身份。单元窗口测试覆盖过滤/页尾、数据所有权、重置、富内容及禁用；原 1×/2× 窄布局测试和组件示例端到端切页/搜索/重置/语言切换通过。全仓构建、UI/native vet、全量测试通过；未做真机视觉验收。Settings 调整为主体已有。
 
 ## 当前实施清单
 
@@ -308,7 +310,7 @@
 | [Root View](https://gpui-kit.com/component/root/) | 主体已有 | [根布局、统一浮层宿主、窗口快捷键](../../ui/el/root.go) | 架构差异：Keel 已有 root/overlay/focus/shortcut；Dialog/Sheet/Notifier 需应用挂载，GPUI 0.7 根视图自动挂载这些层。 |
 | [Scrollable](https://gpui-kit.com/component/scrollable/) | 主体已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位与尾部跟随](../../ui/el/viewport.go) | 双轴滚动、滚动条与定位已有，通过 el 组合；缺组件级 Always/Hover/Scrolling 显示策略。没有独立类型本身不计功能缺失。 |
 | [Select](https://gpui-kit.com/component/select/) | 主体已有 | [过滤、分组、多选、禁用项、万条虚拟化](../../ui/kit/select.go) | 单选主体覆盖，另有多选；缺自定义行/空内容/标题前缀、清空按钮与菜单宽高配置。分组、禁用项已实现。 |
-| [Settings](https://gpui-kit.com/component/settings/) | 部分 | [设置分组、导航、搜索、窄布局](../../ui/kit/settings.go) | 缺页面下的多 Group 模型、resettable 重置、组 footer、独立搜索 keywords 和 Markdown 描述；已有分区导航、搜索与窄布局。 |
+| [Settings](https://gpui-kit.com/component/settings/) | 主体已有 | [多页面/多分组、重置、页尾、关键词、富描述、自定义行与禁用](../../ui/kit/settings.go) | 第一百四十一批关闭登记主要缺口。Markdown 通过 DescriptionContent 组合，搜索文本由 Description 提供；默认值由 Reset 回调维护。尺寸使用 RowSpacing 和控件自身配置，未提供 GPUI 四档统一 Size；导航仅到页面，不含分组导航。接口与默认外观不完全相同，真机视觉未验收。 |
 | [Sheet](https://gpui-kit.com/component/sheet/) | 主体已有 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 第五十一批补齐独立 Footer 及 Keyboard/Overlay/OverlayClosable/CloseButton。第五十二批补齐 MarginTop 及动画裁剪。第五十三批补齐 PanelStyle 面板样式。第五十四批补齐四方向拖动调整尺寸及回调；当前登记缺口已关闭。把手默认开启，用户最小尺寸 80dp，最大为可用窗口尺寸，支持键盘和取消恢复；不表示各平台真机验收完成。 |
 | [Shimmer](https://gpui-kit.com/component/shimmer/) | 主体已有 | [可读文字扫光、周期、宽度、反向、单次、重播、减少动画](../../ui/kit/shimmer_text.go) | 第六十五批新增独立 ShimmerText；文字保持字体/字重/行高与截断，单次结束恢复普通文字。默认 2 秒、半宽 0.3、主题 PrimaryText 高光，支持自定义配色。彩色位图字形保留原色，不参与高光着色。 |
 | [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动](../../ui/kit/sidebar.go) | 主体覆盖；缺右侧布局开关、自定义 item suffix/上下文菜单接口。已有 Badge 和固定 Header/Footer。 |
