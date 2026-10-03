@@ -17,16 +17,17 @@ import (
 // (16dp a press, Home / End for the limits). The first pane keeps its size
 // when the window resizes; the second takes the rest.
 type ResizableView struct {
-	first, second  el.View
-	vertical       bool
-	disabled       bool
-	size           float32 // first pane, dp
-	min1, min2     float32
-	max1, max2     float32
-	measured       bool
-	total, painted float32 // container and first pane size as last painted
-	grab           float32
-	onChange       func(float32)
+	first, second             el.View
+	vertical                  bool
+	disabled                  bool
+	hiddenFirst, hiddenSecond bool
+	size                      float32 // first pane, dp
+	min1, min2                float32
+	max1, max2                float32
+	measured                  bool
+	total, painted            float32 // container and first pane size as last painted
+	grab                      float32
+	onChange                  func(float32)
 }
 
 func Resizable(first, second el.View) *ResizableView {
@@ -68,7 +69,7 @@ func (v *ResizableView) clamp(dp float32) float32 {
 	if v.max1 > 0 {
 		hi = max(v.min1, v.max1)
 	}
-	if v.measured {
+	if v.measured && !v.hiddenFirst && !v.hiddenSecond {
 		available := max(v.total-handleSize, 0)
 		hi = min(hi, max(available-v.min2, 0))
 		if v.max2 > 0 {
@@ -80,7 +81,7 @@ func (v *ResizableView) clamp(dp float32) float32 {
 }
 
 func (v *ResizableView) set(dp float32) {
-	if v.disabled {
+	if v.disabled || v.hiddenFirst || v.hiddenSecond {
 		return
 	}
 	dp = v.clamp(dp)
@@ -94,7 +95,9 @@ func (v *ResizableView) set(dp float32) {
 }
 
 func (v *ResizableView) Render(cx *el.Context) el.Element {
-	v.size = v.clamp(v.size)
+	if !v.hiddenFirst && !v.hiddenSecond {
+		v.size = v.clamp(v.size)
+	}
 	v.painted = v.size
 	along := func(e el.DragEvent) float32 {
 		if v.vertical {
@@ -158,6 +161,27 @@ func (v *ResizableView) Render(cx *el.Context) el.Element {
 			two.H(el.Dp(second))
 		} else {
 			two.W(el.Dp(second))
+		}
+	}
+	if v.hiddenFirst || v.hiddenSecond {
+		handle.Hidden(true)
+		one.Hidden(v.hiddenFirst)
+		two.Hidden(v.hiddenSecond)
+		if !v.hiddenFirst {
+			one.Grow()
+			if v.vertical {
+				one.H(el.Dp(0))
+			} else {
+				one.W(el.Dp(0))
+			}
+		}
+		if !v.hiddenSecond {
+			two.Grow()
+			if v.vertical {
+				two.H(el.Dp(0))
+			} else {
+				two.W(el.Dp(0))
+			}
 		}
 	}
 	if v.first != nil {

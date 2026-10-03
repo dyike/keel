@@ -130,7 +130,8 @@
 - [x] 第八十五批（`51401b6`）：Toggle 与 ToggleGroup 增加 ghost/outline 外观及 XSmall/Small/Medium/Large 四档尺寸，保留原默认外观。窗口测试覆盖 12 种样式/尺寸切换后的键盘焦点、单项与组尺寸一致、禁用、多选和动态组样式；像素测试覆盖透明底、描边及选中底色。构建、vet、全量测试与浅色 1×/深色 2× 截图检查通过。segmented 和组内独立部件配置仍待完成。
 - [x] 第八十六批（`bbb3fc8`）：ToggleGroup 增加 Segmented、Gap 和 ResetGap，连接模式保留首尾外侧圆角，中间接缝只画一次，焦点项保留完整轮廓；正间距恢复独立按钮。测试覆盖 1×/2×、窄布局、非法间距、祖先禁用、模式/间距/尺寸切换的键盘焦点与多选回调，以及端点圆角和连接处像素。构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过。组内图标和逐项配置继续保留为缺口。
 - [x] 第八十七批（`2129028`）：ToggleGroup 增加 Item，保存 Toggle 展示配置快照，支持图标/显示文字/逐项禁用及外观尺寸覆盖；nil 清除，未知选项忽略，纯图标项使用选项值作为 Agent 名称。未显式配置的样式继承组，源 Toggle 的值和回调不参与组状态。测试覆盖 1×/2× 继承/覆盖、源对象及选项切片隔离、替换后焦点、禁用跳过、程序选择与组回调隔离；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。
-- [x] 第八十八批：Resizable 增加 Max(first, second)，0 解除限制；非法上限忽略，上限低于 Min 时以 Min 为准。两侧达到上限后保留尾部空白；测量改变请求下一帧收敛。Min/SetValue 同时防止非有限值污染布局。测试覆盖横纵方向、1×/2×、拖动/Home/End、窗口缩小/放大、矛盾范围、重置、配置不回调、禁用及 Agent 尺寸语义。构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过；多面板、显隐和把手外观继续待补。
+- [x] 第八十八批（`afb3cbf`）：Resizable 增加 Max(first, second)，0 解除限制；非法上限忽略，上限低于 Min 时以 Min 为准。两侧达到上限后保留尾部空白；测量改变请求下一帧收敛。Min/SetValue 同时防止非有限值污染布局。测试覆盖横纵方向、1×/2×、拖动/Home/End、窗口缩小/放大、矛盾范围、重置、配置不回调、禁用及 Agent 尺寸语义。构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过；多面板、显隐和把手外观继续待补。
+- [x] 第八十九批：Resizable 增加 Visible(first, second)，单侧显示时填满并隐藏把手，两侧隐藏时不展示内容；隐藏期间保留分隔尺寸，恢复双侧按当前约束收敛。测试覆盖横纵方向、1×/2×、四种显隐组合、窗口变化、无多余回调、隐藏输入不可操作、恢复后输入内容及可见侧焦点保持、Agent 不暴露隐藏内容。构建、vet 和全量测试通过。多面板 group 与把手外观仍待完成。
 
 ## 当前实施清单
 
@@ -203,7 +204,7 @@
 | [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 部分 | [题型、答案模型、校验、分页、禁用与提交快照](../../ui/kit/questionnaire.go) | 缺单题条件禁用、跳过状态、自定义/外部校验、同题选项+自由输入、完整进度状态和快捷键配置；现有五种题型、必填校验与分页保留。 |
 | [Radio](https://gpui-kit.com/component/radio/) | 主体已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | 第三十九批已补齐 Size/TextSize 与按选项配置的富标签 Content，独立 Item 共享配置。第四十批增加 ItemSize，逐项覆盖尺寸/字号，0 继承组配置；尺寸采用连续 dp/sp。第四十一批补齐组级 TabStop/TabIndex 和逐项 ItemTab/ClearItemTab；默认单停靠点，显式逐项配置可覆盖。排序限单 el root，跨原生 Gio/独立 Embed 不支持。 |
 | [Rating](https://gpui-kit.com/component/rating/) | 主体已有 | [评分、已填星减分、尺寸/颜色、半星/小数展示、只读与键盘](../../ui/kit/rating.go) | 第二十四批已关闭登记缺口；按上游源码明确为点已填第 i 星设 i−1 分，并非总分减一。Size 为 dp，默认 22；小数只用于展示，编辑仍选整星。 |
-| [Resizable](https://gpui-kit.com/component/resizable/) | 部分 | [横纵分割、最小尺寸、拖动、键盘、取消与禁用](../../ui/kit/resizable.go) | 第八十八批补齐两侧 Max，覆盖拖动、键盘、程序赋值及窗口变化；上限不足以填满容器时尾部留空。仍缺独立多面板 group、条件显隐/把手外观配置；Keel 为双面板，可嵌套组合更多面板。 |
+| [Resizable](https://gpui-kit.com/component/resizable/) | 部分 | [横纵分割、最小尺寸、拖动、键盘、取消与禁用](../../ui/kit/resizable.go) | 第八十八批补齐两侧 Max，覆盖拖动、键盘、程序赋值及窗口变化；上限不足以填满容器时尾部留空。第八十九批补齐 Visible 双面板独立显隐，单侧填满、隐藏分隔条并保留内容和分隔尺寸。仍缺独立多面板 group 和把手外观配置；Keel 为双面板，可嵌套组合更多面板。 |
 | [Root View](https://gpui-kit.com/component/root/) | 主体已有 | [根布局、统一浮层宿主、窗口快捷键](../../ui/el/root.go) | 架构差异：Keel 已有 root/overlay/focus/shortcut；Dialog/Sheet/Notifier 需应用挂载，GPUI 0.7 根视图自动挂载这些层。 |
 | [Scrollable](https://gpui-kit.com/component/scrollable/) | 主体已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位与尾部跟随](../../ui/el/viewport.go) | 双轴滚动、滚动条与定位已有，通过 el 组合；缺组件级 Always/Hover/Scrolling 显示策略。没有独立类型本身不计功能缺失。 |
 | [Select](https://gpui-kit.com/component/select/) | 主体已有 | [过滤、分组、多选、禁用项、万条虚拟化](../../ui/kit/select.go) | 单选主体覆盖，另有多选；缺自定义行/空内容/标题前缀、清空按钮与菜单宽高配置。分组、禁用项已实现。 |

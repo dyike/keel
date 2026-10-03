@@ -19,8 +19,9 @@ func init() {
 		outer := kit.Resizable(pane("拖动中间的分隔条，或聚焦后按方向键"), inner).Min(120, 160).Max(260, 0)
 		outer.SetValue(220)
 		disabled := false
+		showSidebar := true
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Items(el.Stretch).Child(kit.Button("启用 / 禁用分隔面板", func() { disabled = !disabled; outer.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), el.Div().H(el.Dp(360)).Border(1, theme.Border).Items(el.Stretch).Child(outer.Render(cx)))
+			return el.Div().P(24).Gap(12).Items(el.Stretch).Child(kit.Button("启用 / 禁用分隔面板", func() { disabled = !disabled; outer.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button("显示 / 隐藏侧栏", func() { showSidebar = !showSidebar; outer.Visible(showSidebar, true) }).Render(cx), el.Div().H(el.Dp(360)).Border(1, theme.Border).Items(el.Stretch).Child(outer.Render(cx)))
 		}))
 	})
 }
