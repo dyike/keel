@@ -78,3 +78,56 @@ func TestPopoverBoundsScrollingAndDisabled(t *testing.T) {
 		t.Fatal("disabled popover opened")
 	}
 }
+
+func TestPopoverOffsetUpdates(t *testing.T) {
+	p := Popover(text("Preview")).Width(60)
+	p.Trigger(Button("Target", p.Toggle))
+	changes := 0
+	p.OnChange(func(bool) { changes++ })
+	h := uitest.New(el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
+		return el.Div().P(100).Items(el.Start).Child(p.Render(cx))
+	})))
+	click(t, h, "Target")
+	for _, gap := range []float32{4, 12, 0, -4} {
+		if gap != 4 {
+			p.Offset(gap)
+		}
+		for _, side := range []el.Side{el.Top, el.Bottom, el.Left, el.Right} {
+			p.Placement(side, el.Start)
+			h.Frame()
+			n, ok := semanticNode(h, "dialog")
+			if !ok {
+				t.Fatal("lost panel")
+			}
+			a, b := bounds(h, "Target"), n.Desc.Bounds
+			var distance int
+			switch side {
+			case el.Top:
+				distance = a.Min.Y - b.Max.Y
+			case el.Bottom:
+				distance = b.Min.Y - a.Max.Y
+			case el.Left:
+				distance = a.Min.X - b.Max.X
+			case el.Right:
+				distance = b.Min.X - a.Max.X
+			}
+			if distance != int(gap) {
+				t.Fatalf("side %v gap %v: anchor %v panel %v", side, gap, a, b)
+			}
+		}
+	}
+	for _, invalid := range []float32{float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))} {
+		p.Offset(invalid)
+		if p.offset != -4 {
+			t.Fatal("invalid offset accepted")
+		}
+	}
+	if changes != 1 || !p.Value() {
+		t.Fatal("position updates changed open state", changes)
+	}
+	h.Key(key.NameEscape, 0)
+	h.Frame()
+	if p.Value() || changes != 2 {
+		t.Fatal("Esc did not dismiss repositioned panel")
+	}
+}

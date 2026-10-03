@@ -27,7 +27,7 @@ func newPopoverGallery() *popoverGallery {
 			el.Input().ID("popover-query").Placeholder("客户名称或单号 123").Bind(&g.query),
 			el.Text("点外部或按 Esc 关闭，下面的按钮照常响应。").TextSize(12).TextColor(theme.Muted),
 		)
-	})).Width(280)
+	})).Width(280).Offset(12)
 	g.filters.Trigger(kit.Button("筛选", g.filters.Toggle).Variant(kit.ButtonSecondary).Icon(kit.IconSearch))
 	return g
 }

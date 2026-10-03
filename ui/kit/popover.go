@@ -19,15 +19,26 @@ type PopoverView struct {
 	side             el.Side
 	align            el.Align
 	width            float32
+	offset           float32
 	onChange         func(bool)
 }
 
-func Popover(content el.View) *PopoverView { return &PopoverView{content: content} }
+func Popover(content el.View) *PopoverView { return &PopoverView{content: content, offset: 4} }
 
 // Trigger sets the view the popover is anchored to.
 func (v *PopoverView) Trigger(t el.View) *PopoverView { v.trigger = t; return v }
 func (v *PopoverView) Placement(side el.Side, align el.Align) *PopoverView {
 	v.side, v.align = side, align
+	return v
+}
+
+// Offset sets the gap from the trigger in dp, 4 by default. Zero makes the
+// panel touch the trigger; negative values overlap it. Non-finite values
+// are ignored. Viewport avoidance remains active.
+func (v *PopoverView) Offset(dp float32) *PopoverView {
+	if finiteNumber(float64(dp)) {
+		v.offset = dp
+	}
 	return v
 }
 
@@ -66,7 +77,7 @@ func (v *PopoverView) Render(cx *el.Context) el.Element {
 		if v.width > 0 {
 			panel.W(el.Dp(v.width))
 		}
-		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).OnDismiss(func() { v.change(false) }))
+		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).Offset(v.offset).OnDismiss(func() { v.change(false) }))
 		if v.content != nil {
 			panel.Child(v.content.Render(cx))
 		}
