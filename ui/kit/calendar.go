@@ -17,6 +17,7 @@ import (
 // Week layout, day and month names come from ui/locale.
 type CalendarView struct {
 	months                int
+	firstWeekday          *time.Weekday
 	draft                 time.Time
 	rangeError            bool
 	choosing, yearEditing bool
@@ -33,6 +34,24 @@ type CalendarView struct {
 }
 
 func Calendar() *CalendarView { return &CalendarView{months: 1} }
+
+// FirstWeekday overrides the locale's first weekday. Invalid values are ignored.
+// The override controls weekday headers, day layout and Home/End navigation.
+func (v *CalendarView) FirstWeekday(day time.Weekday) *CalendarView {
+	if day >= time.Sunday && day <= time.Saturday {
+		v.firstWeekday = &day
+	}
+	return v
+}
+
+// ResetFirstWeekday restores the current locale's week layout.
+func (v *CalendarView) ResetFirstWeekday() *CalendarView { v.firstWeekday = nil; return v }
+func (v *CalendarView) weekStart() time.Weekday {
+	if v.firstWeekday != nil {
+		return *v.firstWeekday
+	}
+	return locale.Current().FirstWeekday
+}
 
 // Range picks a span: the first click sets one end, the second the other.
 func (v *CalendarView) Range() *CalendarView { v.rangeMode = true; return v }
@@ -226,7 +245,7 @@ func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) e
 	const cw, ch = 36, 32
 	week := el.Div().WFull().Row()
 	for i := 0; i < 7; i++ {
-		wd := (int(text.FirstWeekday) + i) % 7
+		wd := (int(v.weekStart()) + i) % 7
 		week.Child(el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(24)).Center().Child(el.Text(text.Weekdays[wd]).TextSize(theme.TextSm).TextColor(theme.Muted)))
 	}
 	title := text.Month(month.Year(), month.Month())
@@ -236,7 +255,7 @@ func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) e
 		grid.Child(el.Div().H(el.Dp(28)).Center().Child(el.Text(title).TextSize(theme.TextMd)))
 	}
 	grid.Child(week)
-	first := month.AddDate(0, 0, -((int(month.Weekday()) - int(text.FirstWeekday) + 7) % 7))
+	first := month.AddDate(0, 0, -((int(month.Weekday()) - int(v.weekStart()) + 7) % 7))
 	for w := 0; w < 6; w++ {
 		row := el.Div().WFull().Row()
 		for i := 0; i < 7; i++ {
@@ -304,9 +323,9 @@ func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func
 			case key.NamePageDown:
 				to = calendarMonthDay(d, 1)
 			case key.NameHome:
-				to = d.AddDate(0, 0, -((int(d.Weekday()) - int(locale.Current().FirstWeekday) + 7) % 7))
+				to = d.AddDate(0, 0, -((int(d.Weekday()) - int(v.weekStart()) + 7) % 7))
 			case key.NameEnd:
-				to = d.AddDate(0, 0, 6-(int(d.Weekday())-int(locale.Current().FirstWeekday)+7)%7)
+				to = d.AddDate(0, 0, 6-(int(d.Weekday())-int(v.weekStart())+7)%7)
 			default:
 				return false
 			}

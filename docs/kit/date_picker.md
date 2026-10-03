@@ -47,3 +47,5 @@ trip.Presets(kit.DatePickerPreset{
 `DateValue()` 始终返回日期部分；`SetDateValue(start,end)` 更换日期并保留两端时钟。`DateTimeValue()` / `SetDateTimeValue(start,end)` 存取完整日期时间，支持单日期和范围，不自动打开时间输入、不触发回调。范围的空 End 使用 Start，反向范围连同时刻排序；未配置时间精度时保留纳秒，配置分钟／秒精度后两端按该精度截断。空日期保持零值，清空保留时钟。
 
 兼容行为：范围的 `Value` / `SetValue` 仍只读取／更换日期；单日期 WithTime 的 Value / SetValue 包含时间。用户选择日期、完成范围或选择预设时，OnChange 包含保存的时刻。默认范围文本只显示日期；需要时刻时指定完整 Format。`DefaultTime` 同时设置两端时钟。时间按日期所属时区的本地钟面组合，夏令时不存在／重复时刻沿用 Go time.Date 的处理规则。
+
+`FirstWeekday(time.Monday)` 单独配置弹层日历的周起始日；`ResetFirstWeekday()` 恢复跟随当前 locale，非法值忽略。打开期间可修改，已选日期与范围草稿保留，表头、日期网格、Home/End 和焦点日期的滚动定位同时更新。

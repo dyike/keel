@@ -197,7 +197,9 @@
 
 - [x] 第一百二十二批（`19e2745`）：DatePickerPreset 增加 IncludeTime，单日期时间模式可按 Start 的时分秒选择快捷预设，午夜也可显式覆盖；默认日期预设继续保留时钟。日期规则先校验，拒绝时不改变日期/时钟；精度截断、时区、回调、错误清除及焦点返回均有测试，构建、vet、全量测试通过；未做真机视觉验收。新增字段需要旧的位置参数构造改用命名字段。复核上游发现范围日期虽不编辑时间，但可通过程序存取带时间的范围值；Keel 这项数据接口仍待补，继续标为部分。
 
-- [x] 第一百二十三批：新增日期与日期时间的独立存取接口，范围保留两端时钟，日期变更及普通预设保留时刻，IncludeTime 预设替换两端时刻；反向范围连同时刻排序，缺省 End 使用 Start，精度配置作用于两端。保留范围 Value 的纯日期兼容行为，OnChange 返回完整日期时间。测试覆盖范围提交/草稿隔离、排序、时区、精度、零值、默认时钟和显示格式；构建、vet、全量测试及新增秒精度回归测试通过，未做真机视觉验收。DatePicker 登记的主要缺口关闭，调整为主体已有；独立周起始日配置仍与上游不同。
+- [x] 第一百二十三批（`fac868d`）：新增日期与日期时间的独立存取接口，范围保留两端时钟，日期变更及普通预设保留时刻，IncludeTime 预设替换两端时刻；反向范围连同时刻排序，缺省 End 使用 Start，精度配置作用于两端。保留范围 Value 的纯日期兼容行为，OnChange 返回完整日期时间。测试覆盖范围提交/草稿隔离、排序、时区、精度、零值、默认时钟和显示格式；构建、vet、全量测试及新增秒精度回归测试通过，未做真机视觉验收。DatePicker 登记的主要缺口关闭，调整为主体已有；独立周起始日配置仍与上游不同。
+
+- [x] 第一百二十四批：Calendar/DatePicker 增加 FirstWeekday 和 ResetFirstWeekday；星期表头、日期列、Home/End 和弹层焦点滚动使用统一周起始日。配置变化保留选中日期与范围草稿，不触发回调，非法值忽略。测试覆盖周日/周一/周三、1×/2× 表头网格对齐、键盘导航及弹层中切换/恢复和 Esc 取消草稿；重复配置不重复定位焦点。构建、vet、全量测试和最后调整后的日历/日期选择器回归测试通过，未做真机视觉验收。
 
 ## 当前实施清单
 
@@ -238,7 +240,7 @@
 | [Combobox](https://gpui-kit.com/component/combobox/) | 部分 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 缺分组、单项禁用、自定义行/触发器、footer；目前候选数据是 string 列表。多选与异步搜索已完成。 |
 | [Command](https://gpui-kit.com/component/command/) | 部分 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 缺内联模式、关闭搜索的模式、自定义行/header/footer；当前固定为带搜索的模态命令面板。 |
 | [DataTable](https://gpui-kit.com/component/data-table/) | 部分 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | 主要数据表能力已有；缺独立整列选择模式、列级 selectable/resizable/movable 限制，以及 stripe/密度等公开配置。 |
-| [DatePicker](https://gpui-kit.com/component/date-picker/) | 主体已有 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。第一百二十三批补齐 DateValue/SetDateValue 与 DateTimeValue/SetDateTimeValue，范围独立保存起止时刻，预设和回调携带时刻。范围日历只编辑日期；兼容旧 Value 的纯日期行为，日期格式使用 Go 布局。周起始日仍随 locale，不提供 DatePicker 独立覆盖。 |
+| [DatePicker](https://gpui-kit.com/component/date-picker/) | 主体已有 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。第一百二十三批补齐 DateValue/SetDateValue 与 DateTimeValue/SetDateTimeValue，范围独立保存起止时刻，预设和回调携带时刻。范围日历只编辑日期；兼容旧 Value 的纯日期行为，日期格式使用 Go 布局。第一百二十四批补齐独立 FirstWeekday 和恢复 locale 的 ResetFirstWeekday。 |
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 主体已有 | [多列/跨列、横纵标签、富值插槽、分隔线、边框、字号与标签宽度](../../ui/kit/description_list.go) | 第八批已关闭登记缺口。Columns 由调用方设置，不按窗口宽度自动切换；默认仍为无边框单列，保留原用法。 |
 | [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
 | [Dock](https://gpui-kit.com/component/dock/) | 部分 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | 中心/边缘嵌套分割、拖放、最大化已完成；缺 GPUI 的面板工厂注册/面板自有状态恢复和独立 DockSkin。分离由 OnDetach 交给应用开窗，恢复布局不会重开分离窗口。 |

@@ -70,6 +70,27 @@ func (v *DatePickerView) Appearance(on bool) *DatePickerView { v.plain = !on; re
 // Months requests consecutive month panels; narrow windows show fewer panels.
 func (v *DatePickerView) Months(n int) *DatePickerView { v.months = max(1, min(12, n)); return v }
 
+// FirstWeekday overrides the locale week layout for this picker's calendar.
+// Invalid values are ignored; dates and range drafts are preserved.
+func (v *DatePickerView) FirstWeekday(day time.Weekday) *DatePickerView {
+	previous := v.cal.weekStart()
+	v.cal.FirstWeekday(day)
+	if previous != v.cal.weekStart() {
+		v.revealed = time.Time{}
+	}
+	return v
+}
+
+// ResetFirstWeekday restores the locale week layout.
+func (v *DatePickerView) ResetFirstWeekday() *DatePickerView {
+	previous := v.cal.weekStart()
+	v.cal.ResetFirstWeekday()
+	if previous != v.cal.weekStart() {
+		v.revealed = time.Time{}
+	}
+	return v
+}
+
 // Range picks a span of dates instead of one.
 func (v *DatePickerView) Range() *DatePickerView               { v.cal.Range(); return v }
 func (v *DatePickerView) Placeholder(s string) *DatePickerView { v.placeholder = s; return v }
@@ -225,7 +246,7 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		if !v.cal.choosing && !v.revealed.Equal(v.cal.focus) {
 			focus := v.cal.focus
 			first := monthOf(focus)
-			week := ((int(first.Weekday())-int(locale.Current().FirstWeekday)+7)%7 + focus.Day() - 1) / 7
+			week := ((int(first.Weekday())-int(v.cal.weekStart())+7)%7 + focus.Day() - 1) / 7
 			top := float32(12 + 28 + 8 + 24 + week*32)
 			if v.cal.months > 1 {
 				top += 28

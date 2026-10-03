@@ -11,7 +11,7 @@ func init() {
 	registerSection("date_picker", "inputs", func() core.Widget {
 		due := kit.DatePicker("交货日期").Placeholder("选择日期").Format("2006-01-02").Clearable(true).Size(28)
 		trip := kit.DatePicker("出差日期 Range").Range().Months(2).Placeholder("开始 – 结束").Clearable(true).Size(48).Appearance(false)
-		appointment := kit.DatePicker("预约时间").TimeSeconds().TimeHour12(false).DefaultTime(9 * time.Hour).Clearable(true)
+		appointment := kit.DatePicker("预约时间").FirstWeekday(time.Monday).TimeSeconds().TimeHour12(false).DefaultTime(9 * time.Hour).Clearable(true)
 		today := time.Now()
 		appointment.Presets(kit.DatePickerPreset{ID: "tomorrow-morning", Label: "明早 09:30", Start: time.Date(today.Year(), today.Month(), today.Day()+1, 9, 30, 0, 0, today.Location()), IncludeTime: true})
 		due.Presets(kit.DatePickerPreset{ID: "today", Label: "今天", Start: today}, kit.DatePickerPreset{ID: "tomorrow", Label: "明天", Start: today.AddDate(0, 0, 1)})
