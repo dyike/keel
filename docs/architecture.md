@@ -20,6 +20,7 @@ github.com/dyike/keel
 │   ├── screen/           显示器列表、截图
 │   ├── input/            合成鼠标、键盘事件
 │   ├── hotkey/           全局快捷键
+│   ├── notification/     系统通知（不依赖 UI）
 │   ├── internal/sys/     cgo 绑定，所有 Objective-C 代码只在这里
 │   └── native.go         共用的错误值
 ├── cmd/
@@ -171,3 +172,5 @@ kit.Button("刷新", func() {
 - `Close`、`Raise` 会等窗口画出第一帧后才真正执行。Gio v0.10.3 在 macOS 上有个 bug：原生窗口还没建好就被关闭，进程会崩溃。人手点不了这么快，Agent 可以，所以 Keel 在这里等一下。回归测试是 `ui/window/testdata/reopen`。
 - 关闭窗口（用户点关闭，或调用 `w.Close()`）后，`OnClose` 在锁内执行，`w.Closed()` 变成 `true`。关闭的窗口不能重新打开，需要时重新 `window.Open`。
 - 最后一个窗口关闭后，进程调用 `os.Exit(0)` 退出。`main` 里 `window.Main()` 之后的代码不会执行，要做清理放进 `OnClose`。
+
+`native/notification` 仅依赖 `native` 和 `native/internal/sys`，通过异步完成回调返回权限/投递结果，不引用 UI 或 Gio。macOS 系统调用由主队列发起，Go 完成回调在独立 goroutine 执行；UI 回写使用 `core.Update`。当前尚未连接 kit.Notifier。

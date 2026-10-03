@@ -117,3 +117,7 @@ defer unregister()
 `cmd` 在 Windows 和 Linux 上是 Windows 键（Super）。跨平台的快捷键通常写成 macOS 用 `cmd`、其他平台用 `ctrl`。
 
 macOS 上需要 `window.Main()` 在运行：快捷键事件由主线程的事件循环派发。Windows 和 Linux 有自己的消息线程，不受这个限制。macOS 上不开窗口的纯后台程序暂时用不了，见[常见问题](troubleshooting.md#全局快捷键没反应)。
+
+## notification：系统通知
+
+`native/notification` 提供 Available、RequestPermission、Post 和 Remove，完成回调在独立 goroutine 执行。当前只实现 macOS .app 的授权、按 ID 投递/替换和撤回；其他平台明确返回不支持。尚未接入 kit.Notifier、前台展示和点击响应，完整用法与验收步骤见 [模块文档](../native/notification/README.md)。
