@@ -60,6 +60,8 @@ type elemState struct {
 	onDoubleClick func()
 	drag          gesture.Drag
 	onDrag        func(DragEvent)
+	onScroll      *scrollHandler
+	scrollTag     struct{}
 	size          image.Point // painted size in px, for drag events
 	clickable     bool        // registered a click area last frame
 	// FocusOnPress, and an input's padding: a press here focuses pressFocus,

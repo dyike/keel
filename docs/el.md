@@ -355,3 +355,9 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 `cx.LastSize(id)` 在 Render 中读取同 root 上次绘制的元素尺寸（dp），首次或被裁掉时返回零；包含禁用帧的几何更新。`cx.LayoutSize(element)` 用于 Decorate 中读取当前布局尺寸。窗口尺寸变化后，依赖 LastSize 的布局通常需再绘制一帧收敛。
 
 `cx.PixelScale()` 返回当前每 dp 的物理像素数，可在 Render 中用于与布局一致的像素舍入，未设置时为 1。
+
+### 自定义滚动事件
+
+`OnScroll(xRange, yRange, fn)` 接收 dp 单位的 ScrollEvent，范围使用 `el.ScrollRange{Min: ..., Max: ...}`。零范围不接收该轴，超出范围的位移由 Gio 路由给外层；子滚动区域优先。nil 移除回调，禁用/隐藏祖先阻止事件。范围按像素尺度换算，非有限端点按 0 处理，端点限制在 ±1,000,000dp。
+
+此事件不暴露滚轮/触控板类型或手势结束相位。可用于受控 ScrollOffset 容器；处理时更新应用状态，再由下一帧应用偏移。

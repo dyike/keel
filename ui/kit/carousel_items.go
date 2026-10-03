@@ -15,7 +15,7 @@ import (
 func (v *CarouselView) ItemsPerView(count int) *CarouselView {
 	if count > 0 {
 		if v.perView != count || v.basis != 0 {
-			v.drag.active = false
+			v.cancelGestures()
 		}
 		v.perView = count
 		v.basis = 0
@@ -29,7 +29,7 @@ func (v *CarouselView) ItemsPerView(count int) *CarouselView {
 func (v *CarouselView) Basis(fraction float32) *CarouselView {
 	if fraction >= 0 && fraction <= 1 && finiteNumber(float64(fraction)) {
 		if v.basis != fraction {
-			v.drag.active = false
+			v.cancelGestures()
 		}
 		v.basis = fraction
 	}
@@ -44,7 +44,7 @@ func (v *CarouselView) ItemBasis(index int, fraction float32) *CarouselView {
 		return v
 	}
 	if v.itemBasis[index] != fraction {
-		v.drag.active = false
+		v.cancelGestures()
 	}
 	if fraction == 0 {
 		delete(v.itemBasis, index)
@@ -66,7 +66,7 @@ func (v *CarouselView) ItemSize(index int, dp float32) *CarouselView {
 		return v
 	}
 	if v.itemSizes[index] != dp {
-		v.drag.active = false
+		v.cancelGestures()
 	}
 	if dp == 0 {
 		delete(v.itemSizes, index)
@@ -84,7 +84,7 @@ func (v *CarouselView) ItemSize(index int, dp float32) *CarouselView {
 func (v *CarouselView) Gap(dp float32) *CarouselView {
 	if dp >= 0 && finiteNumber(float64(dp)) {
 		if v.gap != dp {
-			v.drag.active = false
+			v.cancelGestures()
 		}
 		v.gap = dp
 	}
@@ -157,6 +157,7 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 		points[i] = min(points[i], maximum)
 	}
 	geometry := &carouselGeometry{points: points, maximum: maximum, vertical: v.vertical}
+	v.scrollInput(cx, stage, id, geometry)
 	if v.draggable {
 		stage.OnDrag(func(e el.DragEvent) { v.handleDrag(e, geometry) })
 	}
@@ -173,9 +174,16 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 		if v.current < len(points) {
 			target = points[v.current]
 		}
+		if v.scroll.active {
+			if !gtx.Enabled() || v.scroll.vertical != v.vertical || v.scroll.maximum != maximum {
+				v.scroll.active = false
+			} else {
+				target = v.scroll.offset
+			}
+		}
 		if v.drag.active {
 			if !gtx.Enabled() || v.drag.vertical != v.vertical || v.drag.maximum != maximum {
-				v.drag.active = false
+				v.cancelGestures()
 			} else {
 				target = v.drag.offset
 			}

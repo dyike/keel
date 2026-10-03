@@ -15,32 +15,34 @@ import (
 // Autoplay advances on a timer,
 // paused while the pointer is over it and off with reduced motion.
 type CarouselView struct {
-	slides    []el.View
-	current   int
-	autoplay  time.Duration
-	disabled  bool
-	height    float32
-	vertical  bool
-	looping   bool
-	onChange  func(int)
-	perView   int
-	basis     float32
-	itemBasis map[int]float32
-	itemSizes map[int]float32
-	gap       float32
-	draggable bool
-	drag      carouselDrag
+	slides                []el.View
+	current               int
+	autoplay              time.Duration
+	disabled              bool
+	height                float32
+	vertical              bool
+	looping               bool
+	onChange              func(int)
+	perView               int
+	basis                 float32
+	itemBasis             map[int]float32
+	itemSizes             map[int]float32
+	gap                   float32
+	draggable             bool
+	drag                  carouselDrag
+	scrollable, wheelStep bool
+	scroll                carouselScroll
 }
 
 func Carousel(slides ...el.View) *CarouselView {
-	return &CarouselView{slides: slides, height: 200, looping: true, perView: 1, gap: theme.SpaceMd, draggable: true}
+	return &CarouselView{slides: slides, height: 200, looping: true, perView: 1, gap: theme.SpaceMd, draggable: true, scrollable: true}
 }
 
 // Height sets the slide area height in dp, 200 by default.
 func (v *CarouselView) Height(dp float32) *CarouselView {
 	if dp > 0 && finiteNumber(float64(dp)) {
 		if v.height != dp {
-			v.drag.active = false
+			v.cancelGestures()
 		}
 		v.height = dp
 	}
@@ -51,7 +53,7 @@ func (v *CarouselView) Height(dp float32) *CarouselView {
 // Up/Down replace Left/Right; changing orientation preserves selection and focus.
 func (v *CarouselView) Vertical(on bool) *CarouselView {
 	if v.vertical != on {
-		v.drag.active = false
+		v.cancelGestures()
 	}
 	v.vertical = on
 	return v
@@ -61,7 +63,7 @@ func (v *CarouselView) Vertical(on bool) *CarouselView {
 // Switching modes does not change selection or emit OnChange.
 func (v *CarouselView) Loop(on bool) *CarouselView {
 	if v.looping != on {
-		v.drag.active = false
+		v.cancelGestures()
 	}
 	v.looping = on
 	return v
@@ -88,19 +90,19 @@ func (v *CarouselView) OnChange(fn func(int)) *CarouselView    { v.onChange = fn
 func (v *CarouselView) SetDisabled(on bool) {
 	v.disabled = on
 	if on {
-		v.drag.active = false
+		v.cancelGestures()
 	}
 }
 func (v *CarouselView) Value() int { return v.current }
 
 // SetValue shows slide i without calling OnChange.
 func (v *CarouselView) SetValue(i int) {
-	v.drag.active = false
+	v.cancelGestures()
 	v.current = min(max(i, 0), max(len(v.slides)-1, 0))
 }
 
 func (v *CarouselView) goTo(i int) {
-	v.drag.active = false
+	v.cancelGestures()
 	if v.disabled || len(v.slides) == 0 {
 		return
 	}
@@ -129,12 +131,12 @@ func (v *CarouselView) Render(cx *el.Context) el.Element { return v.render(cx, t
 func (v *CarouselView) render(cx *el.Context, navigation bool) el.Element {
 	id := autoID("carousel", v)
 	text := locale.Current()
-	if !v.drag.active && v.CanNext() && v.autoplay > 0 && !cx.Hovered(id) && !el.ReducedMotion() {
+	if !v.drag.active && !v.scroll.active && v.CanNext() && v.autoplay > 0 && !cx.Hovered(id) && !el.ReducedMotion() {
 		cur := v.current
 		cx.AfterEnabled(id, carouselKey{id, cur}, v.autoplay, func() { v.goTo(cur + 1) })
 	}
 	stage := el.Div().ID(id + "/stage").H(el.Dp(v.height)).Rounded(theme.RadiusLg).Bg(theme.Subtle).Items(el.Stretch).Justify(el.Center)
-	if v.draggable || v.perView > 1 || v.basis > 0 || len(v.itemBasis) > 0 || len(v.itemSizes) > 0 {
+	if v.scrollable || v.draggable || v.perView > 1 || v.basis > 0 || len(v.itemBasis) > 0 || len(v.itemSizes) > 0 {
 		v.multiStage(cx, stage, id+"/stage")
 	} else if v.current < len(v.slides) && v.slides[v.current] != nil {
 		stage.Child(v.slides[v.current].Render(cx))

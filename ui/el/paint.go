@@ -140,7 +140,7 @@ func (e *engine) paintContent(n *Node) {
 	}
 	st := n.style // a copy: hover and active variants change it for this frame only
 	var state *elemState
-	if n.id != "" || n.interactive() || (n.style.scrollY || n.style.scrollX) || n.input != nil {
+	if n.id != "" || n.interactive() || n.onScroll != nil || (n.style.scrollY || n.style.scrollX) || n.input != nil {
 		state = e.store.get(n.key)
 	}
 	if state != nil && gtx.Enabled() {
@@ -261,6 +261,13 @@ func (e *engine) paintContent(n *Node) {
 				st.cursor.Add(gtx.Ops)
 			}
 		}
+	}
+
+	if state != nil && n.onScroll != nil && !n.effectiveDisabled && !e.blockInput {
+		area := clip.Rect(rect).Push(gtx.Ops)
+		gtx.Event(n.onScroll.filter(&state.scrollTag, gtx.Metric))
+		event.Op(gtx.Ops, &state.scrollTag)
+		defer area.Pop()
 	}
 
 	// A press on the box that no child takes focuses its text: an input's own

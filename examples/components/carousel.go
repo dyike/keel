@@ -27,8 +27,9 @@ func init() {
 		pages := []el.View{car.PaginationItem(0, nil), car.PaginationItem(1, nil), car.PaginationItem(2, nil)}
 		disabled := false
 		vertical := false
+		wheelStep := false
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Items(el.Start).Child(el.Div().W(el.Dp(480)).MaxW(el.Full).Gap(theme.SpaceMd).Child(content.Render(cx), el.Div().Row().Wrap().Items(el.Center).Gap(theme.SpaceSm).Child(previous.Render(cx), pages[0].Render(cx), pages[1].Render(cx), pages[2].Render(cx), next.Render(cx))), kit.Button("切换横向 / 竖向", func() { vertical = !vertical; car.Vertical(vertical) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button("启用 / 禁用轮播", func() { disabled = !disabled; car.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx))
+			return el.Div().P(24).Gap(12).Items(el.Start).Child(el.Div().W(el.Dp(480)).MaxW(el.Full).Gap(theme.SpaceMd).Child(content.Render(cx), el.Div().Row().Wrap().Items(el.Center).Gap(theme.SpaceSm).Child(previous.Render(cx), pages[0].Render(cx), pages[1].Render(cx), pages[2].Render(cx), next.Render(cx))), kit.Button("切换横向 / 竖向", func() { vertical = !vertical; car.Vertical(vertical) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button("切换连续 / 逐项滚动", func() { wheelStep = !wheelStep; car.WheelStep(wheelStep) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button("启用 / 禁用轮播", func() { disabled = !disabled; car.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx))
 		}))
 	})
 }

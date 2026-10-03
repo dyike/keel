@@ -37,6 +37,7 @@ func (v *CarouselView) handleDrag(e el.DragEvent, g *carouselGeometry) {
 	}
 	switch e.Kind {
 	case el.DragStart:
+		v.scroll.active = false
 		v.drag = carouselDrag{active: true, vertical: g.vertical, start: position,
 			origin: g.points[v.current], offset: g.points[v.current], maximum: g.maximum}
 	case el.DragMove, el.DragEnd:

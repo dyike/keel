@@ -151,7 +151,7 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 	n.effectiveDisabled = disabled || n.disabled || n.style.hidden || n.style.revealSet && n.style.reveal <= 0
 	n.disabledRoot = n.effectiveDisabled && !disabled
 	st := r.store.states[n.key]
-	if n.id != "" || n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() || n.style.scrollX || n.style.scrollY {
+	if n.id != "" || n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() || n.onScroll != nil || n.style.scrollX || n.style.scrollY {
 		st = r.store.get(n.key)
 	}
 	if st != nil && r.e.gtx.Enabled() {
@@ -162,6 +162,7 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 		st.onKey, st.keyParent = n.onKey, parent
 		st.onContextMenu, st.contextButton = n.onContextMenu, n.contextButton
 		st.onClick, st.onDoubleClick, st.onDrag = n.onClick, n.onDoubleClick, n.onDrag
+		st.onScroll = n.onScroll
 		if st.disabled {
 			st.pressedKey = ""
 			st.click = gesture.Click{}

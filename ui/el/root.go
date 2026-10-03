@@ -284,6 +284,22 @@ func (r *RootWidget) dispatch(gtx core.C) {
 				}
 			}
 		}
+		if st.onScroll != nil && !st.disabled && !st.blocked && st.frame == r.store.frame {
+			for {
+				ev, ok := gtx.Event(st.onScroll.filter(&st.scrollTag, gtx.Metric))
+				if !ok {
+					break
+				}
+				if e, ok := ev.(pointer.Event); ok && e.Kind == pointer.Scroll {
+					scale := gtx.Metric.PxPerDp
+					if scale <= 0 {
+						scale = 1
+					}
+					fn := st.onScroll.fn
+					core.Call(gtx, func() { r.callbacks = true; fn(ScrollEvent{X: e.Scroll.X / scale, Y: e.Scroll.Y / scale}) })
+				}
+			}
+		}
 		if !st.clickable || st.disabled || st.blocked || st.frame != r.store.frame {
 			continue
 		}
