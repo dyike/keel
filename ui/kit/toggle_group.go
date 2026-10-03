@@ -16,6 +16,8 @@ type ToggleGroupView struct {
 	multiple, disabled bool
 	onChange           func([]string)
 	appearance         toggleAppearance
+	segmented          bool
+	gap                *float32
 }
 
 func ToggleGroup(options ...string) *ToggleGroupView  { return &ToggleGroupView{options: options} }
@@ -59,10 +61,23 @@ func (v *ToggleGroupView) toggle(o string) {
 
 func (v *ToggleGroupView) Render(cx *el.Context) el.Element {
 	id := autoID("togglegroup", v)
-	row := el.Div().Role("group").Row().Gap(theme.SpaceXs)
+	gap := float32(theme.SpaceXs)
+	if v.segmented {
+		gap = 0
+	}
+	if v.gap != nil {
+		gap = *v.gap
+	}
+	row := el.Div().Role("group").Row().Gap(gap)
 	for i, o := range v.options {
 		o := o
-		row.Child(styledToggleButton(cx, v.appearance, id+"/"+strconv.Itoa(i), o, nil, slices.Contains(v.value, o), v.disabled, func() { v.toggle(o) }))
+		itemID := id + "/" + strconv.Itoa(i)
+		on := slices.Contains(v.value, o)
+		button := styledToggleButton(cx, v.appearance, itemID, o, nil, on, v.disabled, func() { v.toggle(o) })
+		if v.segmented && gap == 0 {
+			decorateToggleSegment(button, cx, itemID, i == 0, i == len(v.options)-1, on, v.appearance.variant)
+		}
+		row.Child(button)
 	}
 	return row
 }
