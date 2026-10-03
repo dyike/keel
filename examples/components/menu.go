@@ -22,12 +22,12 @@ func newMenuGallery() *menuGallery {
 	g := &menuGallery{last: "尚未选择"}
 	do := func(s string) func() { return func() { g.last = "已执行：" + s } }
 	export := kit.Menu().Item("PDF 文档", "", do("导出 PDF")).Item("CSV 表格", "", do("导出 CSV"))
-	g.menu = kit.Menu().
+	g.menu = kit.Menu().Label("编辑操作").
 		IconItem("复制", "mod+c", kit.IconCopy, do("复制")).
 		Item("粘贴", "mod+v", do("粘贴")).
 		Item("撤销 123", "mod+z", do("撤销")).
 		Separator().
-		Sub("导出", export).
+		Label("文件操作").Sub("导出", export).
 		Item("删除", "delete", do("删除")).
 		CheckItem("显示详情", "", true, func(on bool) { g.last = fmt.Sprintf("显示详情：%v", on) })
 	g.menu.SetItemDisabled("粘贴", true)

@@ -18,6 +18,7 @@ type menuItem struct {
 	action             func()
 	sub                *MenuView
 	separator          bool
+	heading            bool
 	disabled           bool
 	icon               IconName
 	checkable, checked bool
@@ -127,7 +128,7 @@ func (v *MenuView) ItemChecked(label string) (bool, bool) {
 // SetItemIcon updates all matching non-separator items, including submenus.
 func (v *MenuView) SetItemIcon(label string, icon IconName) {
 	for i := range v.items {
-		if v.items[i].label == label && !v.items[i].separator {
+		if v.items[i].label == label && !v.items[i].separator && !v.items[i].heading {
 			v.items[i].icon = icon
 		}
 	}
@@ -137,6 +138,15 @@ func (v *MenuView) SetItemIcon(label string, icon IconName) {
 func (v *MenuView) CheckSide(side el.Side) *MenuView {
 	if side == el.Left || side == el.Right {
 		v.checkRight = side == el.Right
+	}
+	return v
+}
+
+// Label adds a non-interactive section heading. Empty labels are ignored.
+// Headings retain a row of space but are skipped by keyboard navigation/search.
+func (v *MenuView) Label(label string) *MenuView {
+	if label != "" {
+		v.items = append(v.items, menuItem{label: label, heading: true})
 	}
 	return v
 }
@@ -203,7 +213,7 @@ func (v *MenuView) closeSub() {
 }
 func (v *MenuView) itemDisabled(i int) bool {
 	it := v.items[i]
-	return it.disabled || it.sub != nil && it.sub.disabled
+	return it.heading || it.disabled || it.sub != nil && it.sub.disabled
 }
 
 // Toggle opens or closes the menu; pass it as the trigger's click handler.
@@ -259,6 +269,12 @@ func (v *MenuView) panel(cx *el.Context) el.Element {
 	for i, it := range v.items {
 		if it.separator {
 			list.Child(el.Div().NoShrink().H(el.Dp(1)).My(4).Bg(theme.Border))
+			continue
+		}
+		if it.heading {
+			list.Child(el.Div().ID(v.itemID(i)).Role("heading").Name(it.label).NoShrink().H(el.Dp(30)).
+				Mx(4).Px(theme.SpaceMd).Justify(el.Center).
+				Child(el.Text(it.label).TextSize(theme.TextSm).TextColor(theme.Muted).Bold().MaxLines(1)))
 			continue
 		}
 		list.Child(v.row(cx, i, it, leading))

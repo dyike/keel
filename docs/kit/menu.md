@@ -44,3 +44,5 @@ DropdownButton 的这两个方法直接配置传入的 Menu；普通模式锚定
 `CheckItem(label, shortcut, checked, onChange)` 添加勾选项。点击/Enter/Space 切换内部状态，关闭整个菜单链，再调用 onChange(bool)；禁用项不切换。`SetItemChecked(label, checked)` 不触发回调；`ItemChecked(label)` 返回状态和是否找到。更新方法作用于当前菜单中所有同名项，查询返回首个匹配项，建议使用唯一标签。
 
 `CheckSide(el.Left/Right)` 设置当前菜单的勾号位置；默认左侧替代该项图标，右侧可同时显示图标。未知方向忽略，子菜单单独配置。Agent 中角色为 menuitemcheckbox，并报告 checked 状态。
+
+`Label(text)` 插入不可交互的分组标题，空文字忽略。标题使用次级色和较小的粗体字，固定占 30dp 行高，长文字单行截断；不响应点击，也不会成为方向键、Home/End 或文字搜索的目标。长菜单定位计入标题高度。标题的 Agent 角色为 heading；它只是视觉分节标题，不创建独立子菜单或嵌套 group。
