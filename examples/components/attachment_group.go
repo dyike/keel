@@ -10,8 +10,13 @@ func init() {
 	registerSection("attachment_group", "data", func() core.Widget {
 		first := kit.Attachment("报告.pdf", 2048)
 		second := kit.Attachment("图片.png", 4096)
-		group := kit.AttachmentGroup(first, second).Name("附件").Gap(12)
-		second.OnRemove(func() { group.SetItems(first) })
+		pending := kit.Attachment("待上传.zip", 8192)
+		pending.SetStatus(kit.AttachmentStatusPending)
+		processing := kit.Attachment("处理中.mp4", 16000)
+		processing.SetStatus(kit.AttachmentStatusProcessing)
+		processing.OnCancel(func() {}).OnRetry(func() {})
+		group := kit.AttachmentGroup(first, second, pending, processing).Name("附件").Gap(12)
+		second.OnRemove(func() { group.SetItems(first, pending, processing) })
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(12).Child(el.Text("横向滚动查看；移除按钮更新附件组"), group.Render(cx))
 		}))

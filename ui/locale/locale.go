@@ -39,6 +39,9 @@ type Strings struct {
 	Canceled                                        string
 	Sending, SendFailed                             string
 	Latest, Uploading                               string
+	AttachmentPending                               string
+	AttachmentProcessing                            string
+	AttachmentFailed                                string
 	More, Resize                                    string
 	CollapseSidebar, ExpandSidebar                  string
 	PrevSlide, NextSlide                            string
@@ -103,6 +106,7 @@ func Chinese() Strings {
 		Commands: "命令面板", SearchCommands: "搜索命令…",
 		Canceled: "已取消", Sending: "发送中", SendFailed: "发送失败",
 		Latest: "回到最新", Uploading: "上传中",
+		AttachmentPending: "待上传", AttachmentProcessing: "处理中", AttachmentFailed: "上传失败",
 		More: "更多", Resize: "调整大小", CollapseSidebar: "收起侧栏", ExpandSidebar: "展开侧栏",
 		PrevSlide: "上一张", NextSlide: "下一张",
 		DockSplitRight: "向右拆分", DockSplitBelow: "向下拆分", DockZoom: "最大化", DockRestore: "还原", CodeEditor: "代码编辑器", Find: "查找", Replace: "替换", ReplaceAll: "全部替换", PrevMatch: "上一个匹配", NextMatch: "下一个匹配", MatchCase: "区分大小写", WholeWord: "全字匹配", RegularExpression: "正则表达式", InvalidPattern: "表达式无效", FoldRegion: "折叠", UnfoldRegion: "展开", DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", DockCenter: "移到中间", DockDetach: "在新窗口打开", SearchSettings: "搜索设置",
@@ -139,6 +143,7 @@ func English() Strings {
 		Commands: "Command palette", SearchCommands: "Type a command…",
 		Canceled: "Canceled", Sending: "Sending", SendFailed: "Send failed",
 		Latest: "Jump to latest", Uploading: "Uploading",
+		AttachmentPending: "Ready to upload", AttachmentProcessing: "Processing", AttachmentFailed: "Upload failed",
 		More: "More", Resize: "Resize", CollapseSidebar: "Collapse sidebar", ExpandSidebar: "Expand sidebar",
 		PrevSlide: "Previous slide", NextSlide: "Next slide",
 		DockSplitRight: "Split right", DockSplitBelow: "Split below", DockZoom: "Maximize", DockRestore: "Restore", CodeEditor: "Code editor", Find: "Find", Replace: "Replace", ReplaceAll: "Replace all", PrevMatch: "Previous match", NextMatch: "Next match", MatchCase: "Match case", WholeWord: "Whole word", RegularExpression: "Regular expression", InvalidPattern: "Invalid pattern", FoldRegion: "Fold", UnfoldRegion: "Unfold", DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", DockCenter: "Move to center", DockDetach: "Open in new window", SearchSettings: "Search settings",

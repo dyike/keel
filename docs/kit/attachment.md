@@ -31,3 +31,9 @@ Agent：角色 `attachment`，名字是文件名；`value` 为空、"上传中 6
 files := kit.AttachmentGroup(report, photo).Name("附件").Gap(12)
 photo.OnRemove(func() { files.SetItems(report) })
 ```
+
+`SetStatus(AttachmentStatus...)` 设置显式生命周期，`Status()` 读取当前有效状态。默认 Complete；可用 Pending、Uploading、Processing、Failed、Complete，以及 Keel 保留的 Canceled。状态值提供 IsPending/IsUploading/IsProcessing/IsFailed/IsComplete/IsInProgress 查询，IsInProgress 包含上传和处理。
+
+Pending 显示“待上传”，Processing 显示“处理中”；上传和处理中默认媒体图标替换为转圈，可取消。Failed 无错误说明时显示“上传失败”，可重试；仅 Complete 可打开。文字随 locale 切换，Agent 新增 pending/processing 值，旧有上传、error、canceled 和空值保持兼容。
+
+显式 SetStatus 清除错误和取消状态；进入 Uploading 保留有效进度或从 0 开始，其他状态清除进度。SetProgress 非负值进入 Uploading（包括 1），负值进入 Complete；完成传输后还需处理时显式设 Processing。SetError 临时覆盖当前状态，清空错误恢复此前状态；显式 Failed 需 SetStatus 或重试退出。取消状态继续优先于错误显示。所有程序状态更新不调用操作回调，重试先进入 0% 上传再通知应用。
