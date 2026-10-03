@@ -65,3 +65,39 @@ func TestDialogOverlayPixelsAndCloseFocus(t *testing.T) {
 		t.Fatal("scrim not restored")
 	}
 }
+
+func TestDialogCancelVetoRetainsFocus(t *testing.T) {
+	allowed := false
+	d := kit.Dialog("Guard").BeforeCancel(func() bool { return allowed })
+	field := kit.Checkbox("Inside", false)
+	d.Body(field)
+	var cx *el.Context
+	w := openTest(t, Options{Width: 420, Height: 300, Content: el.Root(el.ViewFunc(func(ctx *el.Context) el.Element {
+		cx = ctx
+		return el.Div().Child(kit.Button("Outside", nil).Render(ctx), d.Render(ctx))
+	}))})
+	d.SetValue(true)
+	w.render()
+	w.render()
+	w.click(element(t, w, "Inside").center())
+	if err := w.press("esc"); err != nil {
+		t.Fatal(err)
+	}
+	w.render()
+	if !d.Value() || !cx.Focused(field.FocusID()) {
+		t.Fatal("veto lost modal focus")
+	}
+	if err := w.press("space"); err != nil {
+		t.Fatal(err)
+	}
+	if field.Value() {
+		t.Fatal("focused control stopped responding")
+	}
+	allowed = true
+	if err := w.press("esc"); err != nil {
+		t.Fatal(err)
+	}
+	if d.Value() {
+		t.Fatal("allowed cancel did not close")
+	}
+}

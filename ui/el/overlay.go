@@ -38,6 +38,7 @@ type Layer struct {
 	keepOnOutside                bool
 	keepOnEscape                 bool
 	dismiss                      func()
+	beforeDismiss                func() bool
 }
 
 func Anchored(anchorID string, content Element) *Layer {
@@ -72,6 +73,9 @@ func (l *Layer) MatchAnchorWidth() *Layer   { l.matchWidth = true; return l }
 func (l *Layer) Modal() *Layer              { l.modal = true; return l }
 func (l *Layer) TrapFocus() *Layer          { l.trap = true; return l }
 func (l *Layer) OnDismiss(fn func()) *Layer { l.dismiss = fn; return l }
+
+// BeforeDismiss may reject Esc/outside dismissal. Owner removal bypasses it.
+func (l *Layer) BeforeDismiss(fn func() bool) *Layer { l.beforeDismiss = fn; return l }
 
 // KeepOnOutsidePress stops presses outside the layer from calling OnDismiss;
 // Esc still does. A destructive confirmation uses it so a stray click on the
@@ -202,9 +206,16 @@ func (r *RootWidget) blockTree(n *Node, blocked bool) {
 		r.blockTree(c.node(), blocked)
 	}
 }
-func (r *RootWidget) dismissLayer(st *layerState, l *Layer) {
+func (r *RootWidget) dismissLayer(st *layerState, l *Layer, forced bool) {
 	if !r.e.gtx.Enabled() || st.dismissed {
 		return
+	}
+	if !forced && l.beforeDismiss != nil {
+		allowed := false
+		core.Call(r.e.gtx, func() { r.callbacks = true; allowed = l.beforeDismiss() })
+		if !allowed {
+			return
+		}
 	}
 	st.dismissed = true
 	if l.dismiss != nil {
@@ -228,7 +239,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 				break
 			}
 			if k, ok := ev.(key.Event); ok && k.State == key.Press && !d.layer.keepOnEscape {
-				r.dismissLayer(d.state, d.layer)
+				r.dismissLayer(d.state, d.layer, false)
 			}
 		}
 		break
@@ -247,7 +258,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 			p := ev.(pointer.Event).Position
 			pos := image.Pt(int(p.X), int(p.Y))
 			if !d.layer.keepOnOutside && !pos.In(st.bounds) && !pos.In(st.arrowBounds) && (d.layer.modal || !pos.In(st.anchor)) {
-				r.dismissLayer(st, d.layer)
+				r.dismissLayer(st, d.layer, false)
 			}
 		}
 	}
@@ -316,7 +327,7 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 		n := l.content.node()
 		anchor, found := r.e.anchors[l.anchor]
 		if !d.eligible || (!l.centered && !found) || n.style.hidden {
-			r.dismissLayer(st, l)
+			r.dismissLayer(st, l, true)
 			continue
 		}
 		if l.matchWidth && !l.centered {

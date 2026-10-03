@@ -36,6 +36,8 @@ type DialogView struct {
 	keyboardOff, overlayOff, closeButton bool
 	overlayClosable                      *bool
 	beforeConfirm                        func() bool
+	beforeCancel                         func() bool
+	canceling                            bool
 	confirming                           bool
 	generation                           uint64
 	onCancel                             func() // message dialogs: run on Esc, scrim or the cancel button
@@ -82,6 +84,30 @@ func (v *DialogView) Persistent() *DialogView { v.alert = true; return v }
 
 // close is a user dismissal: Esc, the scrim, or a cancel button.
 func (v *DialogView) close() {
+	if v.canCancel() {
+		v.closeAccepted()
+	}
+}
+
+// BeforeCancel may reject user dismissal; nil removes the guard. It does not
+// prevent programmatic closing or cleanup when the owner disappears.
+func (v *DialogView) BeforeCancel(fn func() bool) *DialogView { v.beforeCancel = fn; return v }
+
+func (v *DialogView) canCancel() bool {
+	if !v.open || v.canceling {
+		return false
+	}
+	if v.beforeCancel == nil {
+		return true
+	}
+	generation := v.generation
+	v.canceling = true
+	defer func() { v.canceling = false }()
+	allowed := v.beforeCancel()
+	return allowed && v.open && generation == v.generation
+}
+
+func (v *DialogView) closeAccepted() {
 	if !v.open {
 		return
 	}
@@ -171,7 +197,7 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 	id := autoID("dialog", v)
 	w, h := cx.ViewportSize()
 	panel := floating(theme.ElevationLg).Rounded(theme.RadiusXl).Role(role).Name(v.title).W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().P(20).Gap(theme.SpaceXl).Items(el.Stretch)
-	layer := el.Modal(panel).Owner(id).OnDismiss(v.close).Scrim(!v.overlayOff)
+	layer := el.Modal(panel).Owner(id).BeforeDismiss(v.canCancel).OnDismiss(v.closeAccepted).Scrim(!v.overlayOff)
 	if v.keyboardOff {
 		layer.KeepOnEscape()
 	}

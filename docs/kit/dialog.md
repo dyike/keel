@@ -51,3 +51,7 @@ dlg.Confirm("提交", "确认提交？", submit)
 ```
 
 校验回调中若调用 SetValue、SetDisabled 或打开另一条标准消息，旧确认操作不会继续关闭或执行 onOK。校验不会自动启动 goroutine，也不会自动显示加载状态。
+
+`BeforeCancel(func() bool)` 在 Esc、遮罩、取消按钮和标题关闭按钮执行前运行。false 保持模态与焦点，不调用 OnClose，用户可再次尝试；true 继续原关闭流程。nil 清除，标准消息复用时保留。回调内 SetValue/禁用/替换消息会中止旧取消操作。
+
+程序调用 SetValue(false)、SetDisabled(true) 不经过取消校验。所属元素隐藏、禁用或移除时的浮层清理也绕过校验，并沿用 OnClose 通知；校验不能让脱离视图树的对话框继续存在。底层 `el.Layer.BeforeDismiss` 提供相同的用户关闭校验入口。
