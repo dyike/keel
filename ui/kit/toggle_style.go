@@ -22,31 +22,36 @@ const (
 )
 
 type toggleAppearance struct {
-	variant ToggleVariant
-	size    ToggleSize
+	variant             ToggleVariant
+	size                ToggleSize
+	variantSet, sizeSet bool
 }
 
 func (v *ToggleView) Variant(variant ToggleVariant) *ToggleView {
 	if variant <= ToggleOutline {
 		v.appearance.variant = variant
+		v.appearance.variantSet = true
 	}
 	return v
 }
 func (v *ToggleGroupView) Variant(variant ToggleVariant) *ToggleGroupView {
 	if variant <= ToggleOutline {
 		v.appearance.variant = variant
+		v.appearance.variantSet = true
 	}
 	return v
 }
 func (v *ToggleView) Size(size ToggleSize) *ToggleView {
 	if size <= ToggleSizeLarge {
 		v.appearance.size = size
+		v.appearance.sizeSet = true
 	}
 	return v
 }
 func (v *ToggleGroupView) Size(size ToggleSize) *ToggleGroupView {
 	if size <= ToggleSizeLarge {
 		v.appearance.size = size
+		v.appearance.sizeSet = true
 	}
 	return v
 }

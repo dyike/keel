@@ -128,7 +128,8 @@
 - [x] 第八十三批（`6ba1d64`）：Carousel 默认接收沿轴连续滚动，停顿 140ms 后吸附并同步选中；增加 Scrollable 和显式 WheelStep，滚动起始边界交给父容器，内部已开始的滚动保留到结束。el 增加带轴范围的 OnScroll。Gio 无设备类型/结束相位，当前使用停顿判定，不宣称原生手势结束或自动滚轮识别。双轴 1×/2× 测试覆盖连续位移、停顿重计时、吸附回调、程序切换取消、逐事件模式和滚动关闭；嵌套测试覆盖起始边界交给父容器及活动滚动不外泄；底层测试覆盖范围余量、跨轴路由和祖先禁用。构建、vet、全量测试及浅色 1×/深色 2× 静态截图检查通过；真机触控板手感未验收。
 - [x] 第八十四批（`ddca536`）：新增 Label 的 Secondary、Masked、Highlights、HighlightPrefix、HighlightColor 和 Style；底层 el.Text.Ranges 保留整段字体塑形及换行。测试覆盖中文 rune 区间、全部/前缀/清除匹配、动态遮罩和 Agent 语义、实际高亮像素，以及窄宽度中文/组合字符/双向文字与普通文本的同色像素一致性。浅色 1×/深色 2× 截图已检查；构建、vet 和全量测试通过。遮罩按 rune 计数，彩色位图字形不着色。
 - [x] 第八十五批（`51401b6`）：Toggle 与 ToggleGroup 增加 ghost/outline 外观及 XSmall/Small/Medium/Large 四档尺寸，保留原默认外观。窗口测试覆盖 12 种样式/尺寸切换后的键盘焦点、单项与组尺寸一致、禁用、多选和动态组样式；像素测试覆盖透明底、描边及选中底色。构建、vet、全量测试与浅色 1×/深色 2× 截图检查通过。segmented 和组内独立部件配置仍待完成。
-- [x] 第八十六批：ToggleGroup 增加 Segmented、Gap 和 ResetGap，连接模式保留首尾外侧圆角，中间接缝只画一次，焦点项保留完整轮廓；正间距恢复独立按钮。测试覆盖 1×/2×、窄布局、非法间距、祖先禁用、模式/间距/尺寸切换的键盘焦点与多选回调，以及端点圆角和连接处像素。构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过。组内图标和逐项配置继续保留为缺口。
+- [x] 第八十六批（`bbb3fc8`）：ToggleGroup 增加 Segmented、Gap 和 ResetGap，连接模式保留首尾外侧圆角，中间接缝只画一次，焦点项保留完整轮廓；正间距恢复独立按钮。测试覆盖 1×/2×、窄布局、非法间距、祖先禁用、模式/间距/尺寸切换的键盘焦点与多选回调，以及端点圆角和连接处像素。构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过。组内图标和逐项配置继续保留为缺口。
+- [x] 第八十七批：ToggleGroup 增加 Item，保存 Toggle 展示配置快照，支持图标/显示文字/逐项禁用及外观尺寸覆盖；nil 清除，未知选项忽略，纯图标项使用选项值作为 Agent 名称。未显式配置的样式继承组，源 Toggle 的值和回调不参与组状态。测试覆盖 1×/2× 继承/覆盖、源对象及选项切片隔离、替换后焦点、禁用跳过、程序选择与组回调隔离；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。
 
 ## 当前实施清单
 
@@ -223,7 +224,7 @@
 | [Theme](https://gpui-kit.com/component/theme/) | 主体已有 | [语义配色、间距/字号/圆角/阴影刻度、浅深切换、注册与 JSON 主题、局部作用域、渐变、目录监听](../../ui/theme/registry.go) | 核心主题机制已完成；Keel 7 套内置（含 light/dark），GPUI 文档称 20+。Keel 渐变 JSON 为 from/to/angle，仅 Bg/Primary；GPUI 是可选背景 token 的 CSS 两色渐变，配置不兼容。 |
 | [TimeField](https://gpui-kit.com/component/time-field/) | 主体已有 | [时分秒、步进/进位、12/24 小时、Tab 与本地化](../../ui/kit/time_field.go) | 分段、时分秒、12/24 小时、键盘修改已完成；缺组件级尺寸档。本轮未重做真机键盘验收。 |
 | [TitleBar](https://gpui-kit.com/component/title-bar/) | 主体已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 自绘标题栏与窗口控制已实现；macOS 窗口初始居中已实测。标题栏全部系统行为及 Windows/Linux 真机验收仍待完成。 |
-| [Toggle](https://gpui-kit.com/component/toggle/) | 主体已有 | [状态按钮、图标、单选/多选组、ghost/outline 和四档尺寸](../../ui/kit/toggle_group.go) | 第八十五批补齐 Toggle 与 ToggleGroup 的 Variant、Size，默认保留原有 Surface 加边框外观。尺寸同步调整高度/字号/图标/留白；样式切换保留焦点与选择。第八十六批补齐 Segmented、Gap/ResetGap，零间距共享接缝、首尾外侧圆角，正间距恢复独立按钮。仍缺组内图标/独立配置的部件组合入口；不计为全部对齐。 |
+| [Toggle](https://gpui-kit.com/component/toggle/) | 主体已有 | [状态按钮、图标、单选/多选组、ghost/outline 和四档尺寸](../../ui/kit/toggle_group.go) | 第八十五批补齐 Toggle 与 ToggleGroup 的 Variant、Size，默认保留原有 Surface 加边框外观。尺寸同步调整高度/字号/图标/留白；样式切换保留焦点与选择。第八十六批补齐 Segmented、Gap/ResetGap，零间距共享接缝、首尾外侧圆角，正间距恢复独立按钮。第八十七批补齐 Item 配置快照，支持组内图标、独立显示文字、禁用及显式外观/尺寸覆盖；登记缺口已关闭。组持有选择与回调，源 Toggle 的值/回调不透传，混合尺寸不自动拉齐；不表示 API 和默认样式完全相同。 |
 | [Toolbar](https://gpui-kit.com/component/toolbar/) | 主体已有 | [左右区域、尺寸、工具分组、溢出与键盘](../../ui/kit/toolbar.go) | 主体覆盖；命令用 ToolbarItem，自定义内容用 Leading/Trailing，缺任意位置插入 compound 自定义组的接口。 |
 | [Tooltip](https://gpui-kit.com/component/tooltip/) | 主体已有 | [通用提示、键盘焦点、延迟与取消](../../ui/kit/tooltip.go) | 第四批已补齐 Content、Action、Placement/Offset；动作键位自动跟随改绑，富内容不可交互。此表登记缺口已关闭。 |
 | [Tree](https://gpui-kit.com/component/tree/) | 部分 | [虚拟化、展开、多选、单项禁用、键盘、动态数据与拖动](../../ui/kit/tree.go) | 缺公开行渲染器（图标/操作）和逐节点动态子项更新/展开加载回调；可整树 SetRoots。拖动自动滚动/展开仍缺，但不把它当作本页已证实的 GPUI 差距。 |

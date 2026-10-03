@@ -18,9 +18,12 @@ type ToggleGroupView struct {
 	appearance         toggleAppearance
 	segmented          bool
 	gap                *float32
+	items              map[string]ToggleView
 }
 
-func ToggleGroup(options ...string) *ToggleGroupView  { return &ToggleGroupView{options: options} }
+func ToggleGroup(options ...string) *ToggleGroupView {
+	return &ToggleGroupView{options: slices.Clone(options)}
+}
 func (v *ToggleGroupView) Multiple() *ToggleGroupView { v.multiple = true; return v }
 func (v *ToggleGroupView) OnChange(fn func(values []string)) *ToggleGroupView {
 	v.onChange = fn
@@ -73,9 +76,22 @@ func (v *ToggleGroupView) Render(cx *el.Context) el.Element {
 		o := o
 		itemID := id + "/" + strconv.Itoa(i)
 		on := slices.Contains(v.value, o)
-		button := styledToggleButton(cx, v.appearance, itemID, o, nil, on, v.disabled, func() { v.toggle(o) })
+		text, icon, disabled, appearance := o, (*IconView)(nil), v.disabled, v.appearance
+		if item, ok := v.items[o]; ok {
+			text, icon, disabled = item.text, item.icon, disabled || item.disabled
+			if item.appearance.variantSet {
+				appearance.variant = item.appearance.variant
+			}
+			if item.appearance.sizeSet {
+				appearance.size = item.appearance.size
+			}
+		}
+		button := styledToggleButton(cx, appearance, itemID, text, icon, on, disabled, func() { v.toggle(o) })
+		if text == "" {
+			button.Name(o)
+		}
 		if v.segmented && gap == 0 {
-			decorateToggleSegment(button, cx, itemID, i == 0, i == len(v.options)-1, on, v.appearance.variant)
+			decorateToggleSegment(button, cx, itemID, i == 0, i == len(v.options)-1, on, appearance.variant)
 		}
 		row.Child(button)
 	}

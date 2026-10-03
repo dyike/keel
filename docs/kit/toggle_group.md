@@ -21,3 +21,16 @@ Agent：容器角色 `group`，每个按钮是 `toggle`。
 `Segmented(true)` 连接相邻按钮，默认间距为 0，首尾外侧保留圆角，中间接缝使用单个描边；Ghost 保留无描边外观和每项焦点轮廓。单项组保留四个圆角，空组不绘制按钮。
 
 `Gap(dp)` 设置有限非负间距；分段组设正值后各项恢复四角圆角。`ResetGap()` 恢复分段组 0、普通组 SpaceXs 的默认间距。`Segmented(false)` 恢复普通组；显式 Gap 不因模式切换而丢失。切换模式/间距不会改变选中值或焦点，不触发回调。默认仍为单选，可调用 Multiple 开启多选。
+
+逐项配置使用 `Item(value, toggle)`：
+
+```go
+g := kit.ToggleGroup("star", "inbox").Multiple().Variant(kit.ToggleOutline).
+    Item("star", kit.Toggle("", false).Icon(kit.IconStar)).
+    Item("inbox", kit.Toggle("收件箱", false).Icon(kit.IconInbox))
+g.SetValue("star")
+```
+
+value 仍是构造时的选项值，与显示文案分离。纯图标项的 Agent 名称回退到 value。Item 保存配置快照，源 Toggle 后续修改需再次调用 Item 才生效；源 Toggle 的 Value 和 OnChange 不参与组状态。组回调仍返回选项值，按原选项顺序排列。
+
+显式逐项 Size/Variant 覆盖组配置，包括显式 Medium/Default；未配置则继承组值。逐项禁用与组禁用叠加，不清除已有选中值，也不阻止程序 SetValue。`Item(value, nil)` 清除覆盖，未知 value 忽略。替换配置保留该项身份与焦点。连接分段组建议统一高度，混合尺寸仍按各项高度绘制，不自动拉齐。
