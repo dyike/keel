@@ -27,6 +27,10 @@ type Notice struct {
 	Content el.View
 	// Action renders below the body. Call Dismiss explicitly to close on action.
 	Action el.View
+	// OnClick activates the card without dismissing it; child controls act independently.
+	OnClick func()
+	// OnClose runs once after removal, including timeout and programmatic Dismiss.
+	OnClose func()
 }
 
 type notice struct {
@@ -58,7 +62,12 @@ func (v *NotifierView) Notify(n Notice) int {
 func (v *NotifierView) Dismiss(id int) {
 	for i, it := range v.items {
 		if it.id == id {
-			v.items = append(v.items[:i], v.items[i+1:]...)
+			copy(v.items[i:], v.items[i+1:])
+			v.items[len(v.items)-1] = notice{}
+			v.items = v.items[:len(v.items)-1]
+			if it.OnClose != nil {
+				it.OnClose()
+			}
 			return
 		}
 	}
@@ -117,11 +126,28 @@ func (v *NotifierView) card(cx *el.Context, base string, n notice) el.Element {
 		action.Child(n.Action.Render(cx))
 	}
 	text.Child(action.Hidden(n.Action == nil))
-	return floating(theme.ElevationMd).NoShrink().ID(id).Role("status").Name(n.Title).Value(n.Tone.name()).P(theme.SpaceLg).Row().Gap(10).Items(el.Start).Child(
+	card := floating(theme.ElevationMd).NoShrink().ID(id).Role("status").Name(n.Title).Value(n.Tone.name()).P(theme.SpaceLg).Row().Gap(10).Items(el.Start)
+	if n.OnClick != nil {
+		// A sibling hit surface lets interactive content consume clicks without
+		// also activating the notification's background.
+		card.Child(el.Div().ID(id + "/activate").Absolute().Top(0).Left(0).W(el.Full).H(el.Full).
+			Role("button").Name(n.Title).Focusable(true).CursorPointer().OnClick(func() {
+			for _, current := range v.items {
+				if current.id == n.id {
+					if current.OnClick != nil {
+						current.OnClick()
+					}
+					return
+				}
+			}
+		}))
+	}
+	card.Child(
 		el.Div().W(el.Dp(4)).H(el.Dp(20)).Rounded(theme.RadiusFull).Bg(n.Tone.color()),
 		text,
 		Button("", func() { v.Dismiss(n.id) }).Name(locale.Current().Name(locale.Current().Close, n.Title)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx),
 	)
+	return card
 }
 
 type noticeKey struct {

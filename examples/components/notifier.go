@@ -12,10 +12,13 @@ import (
 func init() {
 	registerSection("notifier", "overlays", func() core.Widget {
 		n := kit.Notifier()
+		g := &notifierGallery{n: n}
 		n.Notify(kit.Notice{Title: "默认位置", Body: "这条通知跟随容器的位置设置。", Timeout: -1})
 		var richID int
 		richID = n.Notify(kit.Notice{
-			Title: "富内容与操作", Placement: kit.NoticeBottomLeft, Timeout: -1,
+			OnClick: func() { g.status = "通知点击回调已执行" },
+			OnClose: func() { g.status = "通知关闭回调已执行" },
+			Title:   "富内容与操作", Placement: kit.NoticeBottomLeft, Timeout: -1,
 			Content: el.ViewFunc(func(cx *el.Context) el.Element {
 				return el.Div().Gap(8).Child(
 					el.Text("下载完成，可以打开文件。"),
@@ -24,13 +27,14 @@ func init() {
 			}),
 			Action: kit.Button("完成并关闭", func() { n.Dismiss(richID) }).Variant(kit.ButtonSecondary),
 		})
-		return el.Root(&notifierGallery{n: n})
+		return el.Root(g)
 	})
 }
 
 type notifierGallery struct {
-	n     *kit.NotifierView
-	count int
+	n      *kit.NotifierView
+	count  int
+	status string
 }
 
 func (g *notifierGallery) Render(cx *el.Context) el.Element {
@@ -61,6 +65,7 @@ func (g *notifierGallery) Render(cx *el.Context) el.Element {
 				})
 			}()
 		}).Render(cx),
+		el.Text(g.status),
 		g.n.Render(cx),
 	)
 }

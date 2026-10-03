@@ -155,7 +155,9 @@
 
 - [x] 第一百零一批（`acb1394`）：Notification 补齐八方位、Notifier 默认位置、单条 Notice 位置覆盖和每个位置独立的五条可见队列。默认位置变化保留剩余超时，Update 仍重启该条计时；非法值回退规则已文档化。测试覆盖 1×/2× 八方位边距和居中、独立排队与释放、覆盖不随默认移动、关闭及超时连续性；构建、vet、全量测试通过，浅色 1×/深色 2× 离屏截图已检查。多栈不自动互相避让；系统通知、富内容、操作及点击/关闭回调仍待补。
 
-- [x] 第一百零二批：Notice 新增 Content 和 Action，支持富正文、交互控件及完整 Button 配置；nil 恢复 Body 或隐藏操作区。正文与操作区使用稳定身份，Update 保留存续 View 的焦点/状态，排队内容延迟到可见时渲染。测试覆盖 1×/2× 窄布局、替换/恢复、点击与显式关闭、禁用继承、键盘操作和焦点暂停倒计时、操作槽变化后的输入焦点。构建、vet、全量测试及浅色 1×/深色 2× 离屏截图检查通过；跨位置移动不保留子控件键盘焦点，已记录此边界；系统通知与整条点击/关闭回调继续待补。
+- [x] 第一百零二批（`a1f6e06`）：Notice 新增 Content 和 Action，支持富正文、交互控件及完整 Button 配置；nil 恢复 Body 或隐藏操作区。正文与操作区使用稳定身份，Update 保留存续 View 的焦点/状态，排队内容延迟到可见时渲染。测试覆盖 1×/2× 窄布局、替换/恢复、点击与显式关闭、禁用继承、键盘操作和焦点暂停倒计时、操作槽变化后的输入焦点。构建、vet、全量测试及浅色 1×/深色 2× 离屏截图检查通过；跨位置移动不保留子控件键盘焦点，已记录此边界；系统通知与整条点击/关闭回调继续待补。
+
+- [x] 第一百零三批：Notice 新增 OnClick 和 OnClose。独立背景点击区域支持标题/普通正文点击及 Enter/Space，富内容操作和关闭按钮不会连带触发整条点击。关闭按钮、超时、显式 Dismiss 及排队取消统一在移除后通知一次；Update 不触发关闭，回调使用最新值，重复关闭安全，回调允许新增通知。测试覆盖 1×/2× 点击与键盘、子按钮隔离、整体禁用、更新/重复/排队关闭、回调重入和超时新增；窗口 Agent 快照与点击测试、构建、vet、全量测试通过。系统通知继续待补。
 
 ## 当前实施清单
 
@@ -218,7 +220,7 @@
 | [Menu](https://gpui-kit.com/component/menu/) | 部分 | [菜单、子菜单、分隔线、长内容、方向键、焦点恢复](../../ui/kit/menu.go) | 第四十七批已补齐图标、勾选项及勾号左右位置，含状态更新/查询与 Agent checked。第四十八批补齐不可交互的组标题 Label。第四十九批补齐 ContentItem/SetItemContent 展示内容行及变高定位。第五十批补齐 Link、外链图标开关、系统打开及应用回调。快捷键仍取动作首个绑定，缺按触发器焦点上下文解析绑定；默认系统打开未做各平台真机验收。 |
 | [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 主体已有 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；第九十二批补齐按稳定消息 ID 跳转、首次渲染前定位和跟随/上滚状态查询。未读身份由应用维护；SetFollow(false) 后显式跳到末尾不会开启自动跟随。第九十三批补齐 LatestButton/LatestLabel/LatestRenderer/LatestTransition，支持隐藏、文案、完整 Button 外观配置及淡入淡出；登记缺口已关闭。默认保留右下角文字按钮和 150ms 过渡，与上游圆形图标按钮不同；不表示视觉和 API 完全相同。 |
 | [Message](https://gpui-kit.com/component/message/) | 主体已有 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 第九十四批补齐 Avatar/Header/Footer/Content 独立插槽及默认头像恢复，头尾支持交互；插槽变化保留正文身份。第九十五批新增 MessageGroup，支持间距/样式、动态重排和组级禁用，保留消息行输入与焦点。第九十六批补齐显式 Bubble、Ghost 自动头尾缩进及独立 HeaderInset/FooterInset 覆盖与恢复。第九十七批补齐 Alignment/ResetAlignment，位置独立于 User 的默认气泡色和头像策略。第九十八批补齐九分区 PartStyle，支持独立样式、恢复默认与额外禁用。第九十九批新增 MessageContent，支持多气泡/普通 View 混排、对齐及 Ghost 元数据继承、重排和禁用。第一百批补齐头像按正文容器底边对齐，首帧与动态增高使用当前布局，尾部不影响对齐线；登记缺口已关闭。默认头像为 28dp，助手自动头像、User 默认主色气泡及内建状态/反应属于 Keel 约定，不表示所有 API/默认视觉相同。 |
-| [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 第一百零一批补齐八方位、容器默认位置、单条覆盖和各位置独立队列；移动默认位置保留剩余超时。默认位置属于 Notifier 实例而非全局主题。第一百零二批补齐 Content 富内容与 Action 独立操作槽，保留子控件焦点、禁用继承和超时暂停；操作是否关闭由回调决定。仍缺系统通知投递、整条点击和关闭回调。 |
+| [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 第一百零一批补齐八方位、容器默认位置、单条覆盖和各位置独立队列；移动默认位置保留剩余超时。默认位置属于 Notifier 实例而非全局主题。第一百零二批补齐 Content 富内容与 Action 独立操作槽，保留子控件焦点、禁用继承和超时暂停；操作是否关闭由回调决定。第一百零三批补齐 OnClick 和 OnClose；通知背景支持键盘激活，子操作不连带触发，关闭先移除再回调。仍缺系统通知投递。 |
 | [NumberInput](https://gpui-kit.com/component/number-input/) | 部分 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 缺金额/千分位 mask、动态 step_by、前后内容槽；固定步长、精度、范围与输入草稿已有。 |
 | [OtpInput](https://gpui-kit.com/component/otp-input/) | 主体已有 | [分格输入、粘贴、完成回调、密码遮罩、分组、尺寸与窄布局](../../ui/kit/otp_input.go) | 第二批已补齐 Masked/Groups/Size；默认两组，不能整除时前组多一位。此表登记的三个缺口已关闭。 |
 | [Pagination](https://gpui-kit.com/component/pagination/) | 主体已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | 第三十三批已补齐紧凑模式、数字按钮上限、尺寸和整体禁用。Size 为连续 dp；VisiblePages 正值限制在 3–101，0 恢复 Keel 原窗口策略，默认策略与上游五按钮不同。 |

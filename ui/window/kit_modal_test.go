@@ -1,6 +1,7 @@
 package window
 
 import (
+	"gioui.org/f32"
 	"testing"
 
 	"github.com/dyike/keel/ui/el"
@@ -108,5 +109,37 @@ func TestKitCopyButtonCustomContentSnapshot(t *testing.T) {
 	cb.SetDisabled(true)
 	if e := element(t, w, "复制"); !e.Disabled {
 		t.Fatalf("disabled: %+v", e)
+	}
+}
+
+func TestKitNotifierCallbacksSnapshot(t *testing.T) {
+	n := kit.Notifier()
+	clicked, closed, actions := 0, 0, 0
+	n.Notify(kit.Notice{Title: "Clickable notice", Body: "Open details", Timeout: -1,
+		OnClick: func() { clicked++ }, OnClose: func() { closed++ },
+		Action: kit.Button("Notice action", func() { actions++ }),
+	})
+	w := openTest(t, Options{Width: 480, Height: 320, Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().Child(n.Render(cx)) }))})
+	var found bool
+	for _, e := range w.snapshot() {
+		if e.Name == "Clickable notice" && e.Role == "button" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("missing card action semantics")
+	}
+	e := element(t, w, "Clickable notice")
+	w.click(f32.Pt(float32(e.X+50), float32(e.Y+20)))
+	if clicked != 1 {
+		t.Fatal("card click")
+	}
+	w.click(element(t, w, "Notice action").center())
+	if actions != 1 || clicked != 1 {
+		t.Fatal("child isolation")
+	}
+	w.click(element(t, w, "关闭 Clickable notice").center())
+	if closed != 1 || clicked != 1 || n.Len() != 0 {
+		t.Fatal("close callback")
 	}
 }
