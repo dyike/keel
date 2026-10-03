@@ -52,7 +52,8 @@
 - [x] 第二十九批（`2182b86`）：Popover 增加 Appearance 与 PanelStyle，默认装饰可关闭，面板可配置配色、边框、圆角和间距。保留稳定身份、dialog 语义、窗口约束与滚动；1×/2× 测试覆盖样式恢复、输入状态与焦点，像素测试覆盖配色与重置；全量构建、vet、测试通过。
 - [x] 第三十批（`3acdc4b`）：Popover 增加 RightClick，右键切换开关，保留触发元素左键/键盘行为；可动态关闭右键处理。测试覆盖重复切换、回调次数、Esc、组件及祖先禁用；全量构建、vet、测试通过。任意鼠标按键选择与箭头仍待完成。
 - [x] 第三十一批（`8c16322`）：Popover 增加 MouseButton，支持左/右/中键与手动模式；RightClick 沿用兼容入口。底层新增 OnMousePress，保留子元素事件和禁用继承。测试覆盖三种按键的交叉过滤、重复开关、动态恢复手动模式、非法值、多键同时按下和禁用；全量构建、vet、测试通过。
-- [x] 第三十二批：Popover 增加 Arrow，箭头跟随实际方向翻转，按对齐方式定位并避开圆角；Offset 测量到尖端。箭头独立于内容滚动，命中区域不会触发外部关闭；几何/交互测试覆盖翻转、窄面板、箭头点击，像素测试覆盖四方向、自定义颜色与关闭；全量构建、vet、测试通过。箭头使用纯色背景，不单独绘制边框/阴影或采样渐变。
+- [x] 第三十二批（`7468891`）：Popover 增加 Arrow，箭头跟随实际方向翻转，按对齐方式定位并避开圆角；Offset 测量到尖端。箭头独立于内容滚动，命中区域不会触发外部关闭；几何/交互测试覆盖翻转、窄面板、箭头点击，像素测试覆盖四方向、自定义颜色与关闭；全量构建、vet、测试通过。箭头使用纯色背景，不单独绘制边框/阴影或采样渐变。
+- [x] 第三十三批：Pagination 增加 Compact、VisiblePages、Size 和 SetDisabled；稳定按钮身份保留切换模式后的焦点。测试覆盖页码预算/省略号、最大整数、1×/2× 尺寸、紧凑导航、键盘、禁用继承和总数收敛；默认页码策略保持兼容。全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -119,7 +120,7 @@
 | [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 缺系统通知投递、位置选择、操作按钮与任意富内容；当前只有应用内右上角标题/正文通知队列。 |
 | [NumberInput](https://gpui-kit.com/component/number-input/) | 部分 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 缺金额/千分位 mask、动态 step_by、前后内容槽；固定步长、精度、范围与输入草稿已有。 |
 | [OtpInput](https://gpui-kit.com/component/otp-input/) | 主体已有 | [分格输入、粘贴、完成回调、密码遮罩、分组、尺寸与窄布局](../../ui/kit/otp_input.go) | 第二批已补齐 Masked/Groups/Size；默认两组，不能整除时前组多一位。此表登记的三个缺口已关闭。 |
-| [Pagination](https://gpui-kit.com/component/pagination/) | 主体已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | 主体覆盖；缺 compact、visible_pages 与尺寸档接口。 |
+| [Pagination](https://gpui-kit.com/component/pagination/) | 主体已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | 第三十三批已补齐紧凑模式、数字按钮上限、尺寸和整体禁用。Size 为连续 dp；VisiblePages 正值限制在 3–101，0 恢复 Keel 原窗口策略，默认策略与上游五按钮不同。 |
 | [Plot](https://gpui-kit.com/component/plot/) | 用途不同 | [成品散点/折线图、缩放、平移、拾取](../../ui/kit/plot.go) | 用途不同：GPUI 提供 ScaleLinear/Band/Point/Ordinal、Bar/Line/Area/Pie/Stack/Axis 等公共绘图基础件；Keel Plot 是可缩放平移的成品散点/折线图。 |
 | [Popover](https://gpui-kit.com/component/popover/) | 主体已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | 第二十八、二十九批已补齐实例 Offset、默认外观开关及面板样式。第三十至三十二批补齐左/右/中键选择及箭头。箭头用纯色背景，边框/阴影/渐变不延伸到箭头；Keel 在空间不足时翻转，上游保持锚点方向并限制位置，定位策略不同。 |
 | [Progress](https://gpui-kit.com/component/progress/) | 主体已有 | [条形确定/不确定进度](../../ui/kit/progress.go)、[圆形进度与中心内容](../../ui/kit/progress_circle.go) | 第一、二十六、二十七批已补齐圆形进度、条形样式及数值过渡。Keel 数值范围 0–1，条形默认带标签/百分比；图形过渡 200ms，语义立即报告目标值，减少动画立即归位。 |
