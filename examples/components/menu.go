@@ -30,6 +30,9 @@ func newMenuGallery() *menuGallery {
 		Label("文件操作").Sub("导出", export).
 		Item("删除", "delete", do("删除")).
 		CheckItem("显示详情", "", true, func(on bool) { g.last = fmt.Sprintf("显示详情：%v", on) })
+	g.menu.ContentItem("项目详情", "", el.ViewFunc(func(cx *el.Context) el.Element {
+		return el.Div().Gap(theme.SpaceXs).Child(el.Text("项目详情").Bold(), el.Text("查看项目状态与最近活动").TextSize(theme.TextSm).TextColor(theme.Muted))
+	}), do("项目详情"))
 	g.menu.SetItemDisabled("粘贴", true)
 	g.menu.Trigger(kit.Button("更多操作", g.menu.Toggle).Variant(kit.ButtonSecondary))
 	g.long = kit.Menu()

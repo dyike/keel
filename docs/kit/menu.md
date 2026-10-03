@@ -46,3 +46,7 @@ DropdownButton 的这两个方法直接配置传入的 Menu；普通模式锚定
 `CheckSide(el.Left/Right)` 设置当前菜单的勾号位置；默认左侧替代该项图标，右侧可同时显示图标。未知方向忽略，子菜单单独配置。Agent 中角色为 menuitemcheckbox，并报告 checked 状态。
 
 `Label(text)` 插入不可交互的分组标题，空文字忽略。标题使用次级色和较小的粗体字，固定占 30dp 行高，长文字单行截断；不响应点击，也不会成为方向键、Home/End 或文字搜索的目标。长菜单定位计入标题高度。标题的 Agent 角色为 heading；它只是视觉分节标题，不创建独立子菜单或嵌套 group。
+
+`ContentItem(label, shortcut, content, action)` 添加自定义内容行，可组合多行文字、说明、图标等展示元素；不要嵌套按钮/输入框。label 保留为可访问名称和文字搜索依据。整行点击、Enter/Space 都执行同一个 action，并关闭菜单链。
+
+`SetItemContent(label, content)` 可替换当前菜单同名普通项、勾选项或子菜单入口的显示内容；nil 恢复文字。行身份保持不变，禁用、勾选、快捷键和子菜单箭头沿用原项配置。自定义行最小高度 30dp，按内容增高；长菜单按实际布局高度定位，滚动到可见位置后才转移键盘焦点。

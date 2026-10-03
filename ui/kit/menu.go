@@ -8,6 +8,8 @@ import (
 	"github.com/dyike/keel/ui/locale"
 
 	"gioui.org/io/key"
+	"gioui.org/op"
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 )
@@ -23,6 +25,7 @@ type menuItem struct {
 	icon               IconName
 	checkable, checked bool
 	onCheck            func(bool)
+	content            el.View
 }
 
 // MenuView is a list of commands in a layer next to its trigger:
@@ -34,19 +37,20 @@ type menuItem struct {
 // → opens a submenu, ← or Esc closes one level. Running any item closes the
 // whole menu. Shortcuts are only displayed, never registered.
 type MenuView struct {
-	trigger    el.View
-	items      []menuItem
-	open       bool
-	openSub    int // index of the open submenu, -1 none
-	parent     *MenuView
-	width      float32
-	disabled   bool
-	reveal     int
-	find       base.Typeahead
-	side       el.Side
-	align      el.Align
-	offset     float32
-	checkRight bool
+	trigger      el.View
+	items        []menuItem
+	open         bool
+	openSub      int // index of the open submenu, -1 none
+	parent       *MenuView
+	width        float32
+	disabled     bool
+	reveal       int
+	find         base.Typeahead
+	side         el.Side
+	align        el.Align
+	offset       float32
+	checkRight   bool
+	focusPending bool
 }
 
 func Menu() *MenuView { return &MenuView{openSub: -1, width: 220, reveal: -1, offset: 4} }
@@ -92,6 +96,22 @@ func (v *MenuView) ActionItem(label, keymapAction string, fn func()) *MenuView {
 func (v *MenuView) Item(label, shortcut string, action func()) *MenuView {
 	v.items = append(v.items, menuItem{label: label, shortcut: shortcut, action: action})
 	return v
+}
+
+// ContentItem adds a command with arbitrary display-only content. Label remains
+// its accessible name and typeahead key. Nil content falls back to the label.
+func (v *MenuView) ContentItem(label, shortcut string, content el.View, action func()) *MenuView {
+	v.items = append(v.items, menuItem{label: label, shortcut: shortcut, content: content, action: action})
+	return v
+}
+
+// SetItemContent changes matching actionable rows without changing their IDs.
+func (v *MenuView) SetItemContent(label string, content el.View) {
+	for i := range v.items {
+		if v.items[i].label == label && !v.items[i].separator && !v.items[i].heading {
+			v.items[i].content = content
+		}
+	}
 }
 
 // IconItem adds an ordinary command with a leading icon.
@@ -187,6 +207,7 @@ func (v *MenuView) SetValue(open bool) {
 	v.open = open && !v.disabled
 	v.closeSub()
 	v.reveal = -1
+	v.focusPending = false
 	v.find.Reset()
 	if v.open {
 		v.reveal = v.step(-1, 1)
@@ -261,25 +282,61 @@ func (v *MenuView) renderSub(cx *el.Context) {
 func (v *MenuView) panel(cx *el.Context) el.Element {
 	w, h := cx.ViewportSize()
 	list := floating(theme.ElevationMd).ID(autoID("menu-scroll", v)).Role("menu").Name(v.label()).MinW(el.Dp(min(v.width, max(0, w-16)))).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().Py(theme.SpaceXs).Items(el.Stretch)
-	v.revealItem(cx)
+	rows := make([]el.Element, len(v.items))
 	leading := false
 	for _, it := range v.items {
 		leading = leading || it.icon != IconNone || it.checkable && !v.checkRight
 	}
 	for i, it := range v.items {
 		if it.separator {
-			list.Child(el.Div().NoShrink().H(el.Dp(1)).My(4).Bg(theme.Border))
+			rows[i] = el.Div().NoShrink().H(el.Dp(1)).My(4).Bg(theme.Border)
+			list.Child(rows[i])
 			continue
 		}
 		if it.heading {
-			list.Child(el.Div().ID(v.itemID(i)).Role("heading").Name(it.label).NoShrink().H(el.Dp(30)).
+			rows[i] = el.Div().ID(v.itemID(i)).Role("heading").Name(it.label).NoShrink().H(el.Dp(30)).
 				Mx(4).Px(theme.SpaceMd).Justify(el.Center).
-				Child(el.Text(it.label).TextSize(theme.TextSm).TextColor(theme.Muted).Bold().MaxLines(1)))
+				Child(el.Text(it.label).TextSize(theme.TextSm).TextColor(theme.Muted).Bold().MaxLines(1))
+			list.Child(rows[i])
 			continue
 		}
-		list.Child(v.row(cx, i, it, leading))
+		rows[i] = v.row(cx, i, it, leading)
+		list.Child(rows[i])
 	}
-	return list
+	return list.Decorate(func(gtx core.C, draw func()) {
+		draw()
+		if v.reveal < 0 || v.reveal >= len(rows) || !gtx.Enabled() {
+			return
+		}
+		top := float32(theme.SpaceXs)
+		for i, row := range rows {
+			_, height := cx.LayoutSize(row)
+			if v.items[i].separator {
+				height += 8
+			}
+			if i == v.reveal {
+				id := autoID("menu-scroll", v)
+				before, viewport, _ := cx.ScrollState(id)
+				if viewport <= 0 {
+					gtx.Execute(op.InvalidateCmd{})
+					return
+				}
+				cx.ScrollIntoView(id, top, top+height)
+				after, _, _ := cx.ScrollState(id)
+				if before != after {
+					gtx.Execute(op.InvalidateCmd{})
+					return
+				}
+				if v.focusPending {
+					cx.Focus(v.itemID(i))
+					gtx.Execute(op.InvalidateCmd{})
+				}
+				v.reveal, v.focusPending = -1, false
+				return
+			}
+			top += height
+		}
+	})
 }
 
 func (v *MenuView) label() string {
@@ -346,7 +403,12 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Elem
 		}
 		row.Child(slot)
 	}
-	row.Child(el.Text(it.label).ID("label").Grow().MaxLines(1))
+	if it.content != nil {
+		row.H(el.Auto).MinH(el.Dp(30)).Py(theme.SpaceXs)
+		row.Child(el.Div().ID("label").Grow().MinW(el.Dp(0)).Child(it.content.Render(cx)))
+	} else {
+		row.Child(el.Text(it.label).ID("label").Grow().MaxLines(1))
+	}
 	if it.checkable && v.checkRight {
 		slot := el.Div().ID("check").Size(el.Dp(16)).NoShrink().Center()
 		if it.checked {
@@ -413,28 +475,5 @@ func navKey(e el.KeyEvent) bool {
 }
 
 func (v *MenuView) focusItem(cx *el.Context, i int) {
-	v.reveal = i
-	v.revealItem(cx)
-	cx.Focus(v.itemID(i))
-}
-func (v *MenuView) revealItem(cx *el.Context) {
-	if v.reveal < 0 || v.reveal >= len(v.items) {
-		return
-	}
-	id := autoID("menu-scroll", v)
-	_, height, _ := cx.ScrollState(id)
-	if height <= 0 {
-		cx.AfterEnabled(id, "reveal", 0, func() {})
-		return
-	}
-	top := float32(4)
-	for i := 0; i < v.reveal; i++ {
-		if v.items[i].separator {
-			top += 9
-		} else {
-			top += 30
-		}
-	}
-	cx.ScrollIntoView(id, top, top+30)
-	v.reveal = -1
+	v.reveal, v.focusPending = i, true
 }
