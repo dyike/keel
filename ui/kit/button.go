@@ -102,7 +102,7 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 }
 
 // renderWithRadius lets composite controls refine corners without mutating the button.
-func (v *ButtonView) renderWithRadius(cx *el.Context, radius float32) el.Element {
+func (v *ButtonView) renderWithRadius(cx *el.Context, radius float32) *el.DivEl {
 	bg, hover, fg := theme.Primary, theme.PrimaryHover, theme.OnColor
 	switch v.variant {
 	case ButtonSecondary:

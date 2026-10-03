@@ -87,7 +87,15 @@ func (v *CarouselView) goTo(i int) {
 	}
 }
 
-func (v *CarouselView) Render(cx *el.Context) el.Element {
+// Content renders the keyboard-focusable slide area without built-in controls.
+// Mount either Content or the full Carousel once for each CarouselView.
+func (v *CarouselView) Content() el.View {
+	return el.ViewFunc(func(cx *el.Context) el.Element { return v.render(cx, false) })
+}
+
+func (v *CarouselView) Render(cx *el.Context) el.Element { return v.render(cx, true) }
+
+func (v *CarouselView) render(cx *el.Context, navigation bool) el.Element {
 	id := autoID("carousel", v)
 	text := locale.Current()
 	if v.CanNext() && v.autoplay > 0 && !cx.Hovered(id) && !el.ReducedMotion() {
@@ -131,6 +139,10 @@ func (v *CarouselView) Render(cx *el.Context) el.Element {
 	previousButton.SetDisabled(!v.CanPrevious())
 	nextButton.SetDisabled(!v.CanNext())
 	nav.Child(previousButton.Render(cx), indicators, nextButton.Render(cx))
+	nav.Hidden(!navigation)
+	if !navigation {
+		stage.WFull()
+	}
 	return root.
 		OnKey(func(e el.KeyEvent) bool {
 			next, previous := key.NameRightArrow, key.NameLeftArrow

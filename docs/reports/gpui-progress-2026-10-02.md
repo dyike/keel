@@ -113,7 +113,9 @@
 
 - [x] 第七十六批（`f206f5a`）：Carousel 增加 Vertical，竖向导航使用上下箭头和纵向指示点；左右/上下方向键按轴工作，Home/End 到首尾，方向切换保留选择与键盘身份。Height 拒绝非有限值，竖向指示区可滚动。1×/2× 窄布局、轴切换、键盘、首尾循环、禁用及定时/悬停暂停测试通过；浅色 1×/深色 2× 截图已检查；构建、vet、全量测试通过。
 
-- [x] 第七十七批：Carousel 增加 Loop、Previous/Next、CanPrevious/CanNext；默认保持循环，非循环首尾停止并禁用对应按钮。空/单项前后按钮禁用，空轮播计数改为 0/0。自动播放到末项停止，返回后重新计时；测试覆盖双轴、按钮/键盘/公开接口、回调计数、禁用、空/单项、循环恢复、定时器和 Agent 禁用语义；构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过。
+- [x] 第七十七批（`0002739`）：Carousel 增加 Loop、Previous/Next、CanPrevious/CanNext；默认保持循环，非循环首尾停止并禁用对应按钮。空/单项前后按钮禁用，空轮播计数改为 0/0。自动播放到末项停止，返回后重新计时；测试覆盖双轴、按钮/键盘/公开接口、回调计数、禁用、空/单项、循环恢复、定时器和 Agent 禁用语义；构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过。
+
+- [x] 第七十八批：Carousel 增加 Content、PreviousControl、NextControl、PaginationItem，可独立布局并共享状态；支持普通 Button 配置，保留源实例，自动同步边界/禁用和分页选中语义。测试覆盖配置隔离、回调次数、边界、无效分页、加载、自身/祖先禁用、分页选中语义、方向切换焦点、独立内容键盘与自动播放；构建、vet、全量测试通过，浅色 1×/深色 2× 截图已检查。外部控件悬停不暂停内容区计时，父容器禁用按实际树继承。
 
 ## 当前实施清单
 
@@ -145,7 +147,7 @@
 | [Bubble](https://gpui-kit.com/component/bubble/) | 主体已有 | [可复用气泡、外观、对齐和独立反应槽](../../ui/kit/bubble.go) | 第七十三批补齐七种显式外观、独立对齐、Content/Reactions 槽、上下位置/左右对齐及三分区样式；默认 Auto 保留 Mine 主色和 75% 宽度。第七十四批补齐 BubbleGroup 的纵向排列、间距/样式、动态更新和组级禁用。第七十五批补齐 ReactionActions 直接按钮的胶囊圆角、紧凑内边距和窄布局换行，登记缺口已关闭。反应区采用紧邻内容边缘的流式布局；默认 Auto/75% 与上游 Filled/80% 不同，不表示外观和组合 API 完全相同。 |
 | [Button](https://gpui-kit.com/component/button/) | 主体已有 | [九种变体、描边/紧凑、自定义内容/配色、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 第十一批已关闭登记的变体、样式和内容缺口。Outline/Compact 为叠加配置；自定义内容限展示元素。Tooltip 可外部组合，本项不表示与上游所有组合接口完全相同。 |
 | [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
-| [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 第七十六批补齐 Vertical 的竖向导航布局、上下方向键、Home/End 及方向切换焦点保留。第七十七批补齐 Loop、非循环边界禁用、公开 Previous/Next 和 CanPrevious/CanNext、末项自动播放停止与返回后重启。仍缺同屏多项、独立组合控件及拖动/触控板吸附轨道；当前单项切换，有自动播放。 |
+| [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 第七十六批补齐 Vertical 的竖向导航布局、上下方向键、Home/End 及方向切换焦点保留。第七十七批补齐 Loop、非循环边界禁用、公开 Previous/Next 和 CanPrevious/CanNext、末项自动播放停止与返回后重启。第七十八批补齐独立内容区、前后控件和分页项及 Button 外观/内容配置。仍缺同屏多项及拖动/触控板吸附轨道；当前单项切换，有自动播放。 |
 | [Chart](https://gpui-kit.com/component/chart/) | 部分 | [折线/柱状/面积/饼图/环图/蜡烛图、图例与数据表](../../ui/kit/chart.go) | 缺 RadarChart、SankeyChart；已有折线/柱/面积/饼环/蜡烛图。轴域、刻度数量、参考线、线型和 tooltip 内容的公共配置较少。 |
 | [Checkbox](https://gpui-kit.com/component/checkbox/) | 主体已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | 第三十八批已补齐 Size/TextSize、TabIndex/TabStop，保留半选能力。尺寸使用连续 dp/sp，Tab 排序限单 el root；焦点轮廓仍沿整行。 |
 | [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 第五批已补齐 OnCopied、Content 与反馈状态查询；回调表示已提交写入请求，非操作系统成功确认。此表登记缺口已关闭。 |
