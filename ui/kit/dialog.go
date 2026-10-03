@@ -35,6 +35,9 @@ type DialogView struct {
 	onClose                              func()
 	keyboardOff, overlayOff, closeButton bool
 	overlayClosable                      *bool
+	beforeConfirm                        func() bool
+	confirming                           bool
+	generation                           uint64
 	onCancel                             func() // message dialogs: run on Esc, scrim or the cancel button
 }
 
@@ -46,6 +49,7 @@ func (v *DialogView) OnClose(fn func()) *DialogView       { v.onClose = fn; retu
 func (v *DialogView) SetTitle(s string)                   { v.title = s }
 func (v *DialogView) Value() bool                         { return v.open }
 func (v *DialogView) SetValue(open bool) {
+	v.generation++
 	v.open = open && !v.disabled
 	if !v.open {
 		v.opened = false
@@ -92,6 +96,14 @@ func (v *DialogView) close() {
 	}
 }
 
+// BeforeConfirm runs before a standard message's OK action. False keeps the
+// dialog open and skips onOK. Nil removes the guard. It persists across message
+// reuse; custom Footer actions remain owned by the application.
+func (v *DialogView) BeforeConfirm(fn func() bool) *DialogView {
+	v.beforeConfirm = fn
+	return v
+}
+
 // Confirm asks a question with 取消 and 确定; onOK runs only on 确定.
 // Focus starts on 确定, so Enter confirms.
 func (v *DialogView) Confirm(title, message string, onOK func()) {
@@ -113,11 +125,26 @@ func (v *DialogView) message(title, message, okText string, variant ButtonVarian
 	if v.disabled {
 		return
 	}
+	v.generation++
 	v.opened = false
 	id := autoID("dialog", v)
 	v.title, v.alert, v.open, v.onCancel = title, variant == ButtonDanger, true, nil
 	v.body = el.ViewFunc(func(*el.Context) el.Element { return el.Text(message).TextColor(theme.Muted) })
 	ok := Button(okText, func() {
+		if !v.open || v.disabled || v.confirming {
+			return
+		}
+		generation := v.generation
+		if v.beforeConfirm != nil {
+			allowed := func() bool {
+				v.confirming = true
+				defer func() { v.confirming = false }()
+				return v.beforeConfirm()
+			}()
+			if !allowed || !v.open || v.disabled || generation != v.generation {
+				return
+			}
+		}
 		v.open, v.onCancel = false, nil
 		if onOK != nil {
 			onOK()

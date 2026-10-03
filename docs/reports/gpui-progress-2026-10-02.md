@@ -62,7 +62,8 @@
 - [x] 第三十九批（`cf93625`）：RadioGroup 增加 Size/TextSize 与按选项配置的 Content；圆环和选中点按比例缩放，富标签保留原值、名称和键盘身份，独立 Item 共享配置。测试覆盖 1×/2×、替换/恢复后的焦点、描述点击、禁用跳过、祖先禁用、重排及删除清理；全量构建、vet、测试和浅色 1×/深色 2× 截图检查通过。逐项尺寸与组件级 Tab 配置仍待补齐。
 - [x] 第四十批（`65ffdfe`）：RadioGroup 增加 ItemSize，支持逐项圆点/字号覆盖和分别继承组配置；重排保留，删除清理。1×/2× 测试覆盖尺寸隔离、恢复继承、动态组字号、焦点、非法值及生命周期；构建、vet、全量测试和浅深色截图检查通过。组件级 Tab 配置仍待补齐。
 - [x] 第四十一批（`14defb2`）：RadioGroup 增加 TabStop/TabIndex 和逐项 ItemTab/ClearItemTab；默认单停靠点，显式逐项配置可覆盖，删除选项清理覆盖。窗口测试覆盖正反向、组跳过、负索引、鼠标选择、方向键、未选中项停靠且不改变值、禁用与配置清理；构建、vet、全量测试通过。排序范围限单 el root。
-- [x] 第四十二批：Dialog 增加 Keyboard、Overlay、OverlayClosable、CloseButton，适用于普通及警告对话框；隐藏遮罩保持模态，禁止 Esc 不会穿透关闭下层。关闭按钮默认隐藏并使用本地化名称；正文/页脚身份稳定。测试覆盖独立关闭路径、嵌套、遮罩像素与焦点返回后再打开；构建、vet、全量测试通过。确认回调阻止关闭仍待补齐。
+- [x] 第四十二批（`ea1ec2d`）：Dialog 增加 Keyboard、Overlay、OverlayClosable、CloseButton，适用于普通及警告对话框；隐藏遮罩保持模态，禁止 Esc 不会穿透关闭下层。关闭按钮默认隐藏并使用本地化名称；正文/页脚身份稳定。测试覆盖独立关闭路径、嵌套、遮罩像素与焦点返回后再打开；构建、vet、全量测试通过。确认回调阻止关闭仍待补齐。
+- [x] 第四十三批：Dialog 增加 BeforeConfirm，标准确认/危险确认/提示可同步拒绝确认，保留打开状态与焦点并跳过原 onOK；nil 清除，复用保留。回调中显式改变打开状态、禁用或替换消息时中止旧确认。测试覆盖回车重试、程序重开、点击、取消隔离及消息替换；构建、vet、全量测试通过。取消路径的可拒绝回调仍待完成。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -87,7 +88,7 @@
 | GPUI Kit 组件 | 本轮状态 | Keel 已完成能力 / 主实现 | 已确认的差异与边界 |
 | --- | --- | --- | --- |
 | [Accordion](https://gpui-kit.com/component/accordion/) | 主体已有 | [单项/多项、自定义标题、动画、键盘、禁用、边框开关与四档尺寸](../../ui/kit/accordion.go) | 第十八批已关闭登记缺口；无边框保留背景和圆角，默认 Medium 保留字号继承。自定义标题和正文的显式字号优先。 |
-| [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐 Keyboard、Overlay、OverlayClosable、CloseButton；Persistent 默认只禁止遮罩关闭，显式配置可覆盖。内置确认按钮先关闭再执行回调，不能用返回值阻止关闭；可自组 Footer。 |
+| [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐 Keyboard、Overlay、OverlayClosable、CloseButton；Persistent 默认只禁止遮罩关闭，显式配置可覆盖。第四十三批增加 BeforeConfirm，可返回 false 保持打开并跳过 onOK；允许后仍先关闭再执行原回调。取消路径的可拒绝回调尚未提供；可自组 Footer。 |
 | [Alert](https://gpui-kit.com/component/alert/) | 主体已有 | [行内/横幅提示、级别、四档尺寸、可替换图标、富正文、关闭按钮](../../ui/kit/alert.go) | 第十五批已关闭登记缺口；Content 可组合 Markdown 与操作按钮。横幅没有独立标题行，无正文时使用标题作为消息；自定义内容的内部样式由内容自身控制。 |
 | [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 缺媒体/图片预览槽、横纵布局、附件组；当前是文件名/大小卡片，已有上传进度与失败操作。 |
 | [Avatar](https://gpui-kit.com/component/avatar/) | 主体已有 | [图片/首字母回退、URL 加载与重试、尺寸、状态标记](../../ui/kit/avatar.go)、[叠放头像组/上限/+N/省略号](../../ui/kit/avatar_group.go) | 第七批已关闭原登记缺口；加载不跨实例缓存。外观仍为圆形和主题色回退，GPUI 的自定义占位图标、边框/圆角等样式接口及配色算法不同。 |

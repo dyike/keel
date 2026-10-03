@@ -42,3 +42,12 @@ Agent：普通对话框的角色是 `dialog`，`ConfirmDanger` 和 `Persistent()
 - `CloseButton(true)` 显示标题栏关闭按钮，调用与取消/Esc 相同的关闭逻辑。默认隐藏，保留旧布局；按钮名称随语言切换。无标题也能显示。
 
 关闭按钮、标题、正文和页脚使用稳定身份；切换显示配置不会重建正文输入状态。上述配置不限制程序调用 `SetValue(false)`，也不限制自定义 Footer 按钮。
+
+`BeforeConfirm(func() bool)` 在标准 Confirm / ConfirmDanger / Alert 的确定操作前运行。返回 false 保持打开、保留焦点且不执行原 onOK，适用于同步校验或等待后台任务；返回 true 后按原顺序先关闭再执行 onOK，不调用 OnClose。nil 清除校验，复用标准消息时保留配置。取消/Esc/遮罩/关闭按钮不受此校验影响；自定义 Footer 仍由应用控制。
+
+```go
+dlg.BeforeConfirm(func() bool { return formIsValid() })
+dlg.Confirm("提交", "确认提交？", submit)
+```
+
+校验回调中若调用 SetValue、SetDisabled 或打开另一条标准消息，旧确认操作不会继续关闭或执行 onOK。校验不会自动启动 goroutine，也不会自动显示加载状态。
