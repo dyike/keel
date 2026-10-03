@@ -10,6 +10,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
+	"gioui.org/widget"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/loop"
@@ -43,7 +44,9 @@ type Window struct {
 	focused                   bool
 	nativeView, lastTitleView uintptr
 	titleArea, lastTitleArea  [4]float32
-	maximized                 bool          // guarded by the frame lock; from the platform's config
+	maximized                 bool // guarded by the frame lock; from the platform's config
+	deco                      widget.Decorations
+	drawsTitle                bool          // Keel draws the title bar; see decorations.go
 	shown                     chan struct{} // closed at the first frame or at destruction
 }
 
@@ -57,7 +60,7 @@ func Open(o Options) *Window {
 		return w
 	}
 	w.win = new(gioapp.Window)
-	w.win.Option(gioapp.Title(o.Title), gioapp.Size(unit.Dp(w.opts.Width), unit.Dp(w.opts.Height)), gioapp.Decorated(!o.Frameless))
+	w.win.Option(gioapp.Title(o.Title), gioapp.Size(unit.Dp(w.opts.Width), unit.Dp(w.opts.Height)), gioapp.Decorated(askDecorations(o.Frameless)))
 	loop.Register(w, w.win.Invalidate)
 	if automating() {
 		openVirtual(w, false) // shadow of the real window, driven by agents
@@ -180,6 +183,9 @@ func (w *Window) run() {
 				w.maximized = m
 				w.win.Invalidate() // title bars show maximize or restore
 			}
+			if w.updateDecorations(e.Config.Decorated, e.Config.Mode == gioapp.Fullscreen) {
+				w.win.Invalidate()
+			}
 			loop.Unlock()
 		case gioapp.FrameEvent:
 			gtx := gioapp.NewContext(&ops, e)
@@ -209,6 +215,8 @@ func (w *Window) layout(gtx core.C) {
 	w.titleArea = [4]float32{}
 	defer func() { syncTitleBar(w) }()
 	w.handleShortcuts(gtx)
+	gtx, below := w.belowTitleBar(gtx)
+	defer below()
 	w.root.Layout(gtx, w.opts.Content)
 	if w.opts.Overlay != nil {
 		o := gtx

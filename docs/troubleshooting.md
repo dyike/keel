@@ -6,6 +6,14 @@ Gio 自带的 Go 字体没有中文，中文靠系统字体回退。自动回退
 
 `theme.Face` 固定了字体优先级：苹方 → 冬青黑体 → 微软雅黑 → Noto Sans CJK。在 Linux 上显示方框，说明这几种都没装，装上 Noto CJK 字体即可（Debian/Ubuntu：`fonts-noto-cjk`）。要用别的字体，改 `theme.Face`，把字体族名放在最前面。
 
+## Linux（WSLg、GNOME Wayland）标题栏里的中文显示成方框
+
+有些 Wayland 合成器不画标题栏，交给程序自己画，比如 WSLg 和 GNOME。Gio 遇到这种情况会自己画一个，但它用的主题不含 keel 加载的字体，所以中文标题变成方框，颜色也不随主题变。
+
+keel 现在会关掉 Gio 自己画的标题栏，在合成器不提供标题栏时，由 keel 用当前主题和字体来画：标题用 keel 的字体排版，背景是 `theme.Subtle`，最小化、最大化、关闭按钮、拖动移动、双击最大化都可用。X11、KDE 等会画标题栏的环境不受影响；`Frameless` 窗口仍由应用自己画（如 `kit.TitleBar`）。
+
+如果标题栏里的中文仍是方框，说明系统里没有中文字体，安装 `fonts-noto-cjk`，或用 `theme.LoadFonts` 加载字体文件。
+
 ## Windows 上 g、y 的下半截被切掉
 
 纯文字元素（没有自定义 Role、Name、选中状态）不再自己画裁剪区，由 Gio 的 Label 报告语义并按字形超出量留边，所以下伸部分不会被切。曾经的写法是按 macOS 苹方调出的固定下移量（字号 × 0.22），苹方行框下方空白多，看不出问题；Windows 的微软雅黑行框贴着字形，下移后 g、y 超出文字框，被文字框的语义裁剪区切掉。回归测试 `TestTextShiftKeepsDescendersInBox` 用 Go 字体在任何系统上复现这种紧凑行框。
