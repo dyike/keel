@@ -17,6 +17,8 @@ type RadioGroupView struct {
 	disabled       bool
 	optionDisabled map[string]bool
 	onChange       func(string)
+	size, textSize float32
+	content        map[string]el.View
 }
 
 func RadioGroup(label string, options ...string) *RadioGroupView {
@@ -27,6 +29,46 @@ func RadioGroup(label string, options ...string) *RadioGroupView {
 func (v *RadioGroupView) Horizontal() *RadioGroupView                    { v.horizontal = true; return v }
 func (v *RadioGroupView) OnChange(fn func(value string)) *RadioGroupView { v.onChange = fn; return v }
 func (v *RadioGroupView) Value() string                                  { return v.value }
+
+// Size sets the indicator diameter in dp (12–64); zero restores 18dp.
+func (v *RadioGroupView) Size(dp float32) *RadioGroupView {
+	if dp >= 0 && finiteNumber(float64(dp)) {
+		v.size = dp
+		if dp > 0 {
+			v.size = min(64, max(12, dp))
+		}
+	}
+	return v
+}
+
+// TextSize sets inherited option text size in sp (8–128); zero restores inheritance.
+func (v *RadioGroupView) TextSize(sp float32) *RadioGroupView {
+	if sp >= 0 && finiteNumber(float64(sp)) {
+		v.textSize = sp
+		if sp > 0 {
+			v.textSize = min(128, max(8, sp))
+		}
+	}
+	return v
+}
+
+// Content replaces an option's visible label with display-only content.
+// The option string remains its value and accessible name. Nil restores the
+// text label; unknown options are ignored. Removed options discard their content.
+func (v *RadioGroupView) Content(value string, content el.View) *RadioGroupView {
+	if v.index(value) < 0 {
+		return v
+	}
+	if content == nil {
+		delete(v.content, value)
+	} else {
+		if v.content == nil {
+			v.content = map[string]el.View{}
+		}
+		v.content[value] = content
+	}
+	return v
+}
 
 // SetValue chooses an option ("" clears) without calling OnChange.
 func (v *RadioGroupView) SetValue(s string) {
@@ -48,6 +90,11 @@ func (v *RadioGroupView) SetOptions(options ...string) {
 	for o := range v.optionDisabled {
 		if !seen[o] {
 			delete(v.optionDisabled, o)
+		}
+	}
+	for o := range v.content {
+		if !seen[o] {
+			delete(v.content, o)
 		}
 	}
 	if v.index(v.value) < 0 {
@@ -127,12 +174,20 @@ func (v *RadioGroupView) renderItem(cx *el.Context, i int) el.Element {
 	} else if on {
 		ring = theme.Primary
 	}
-	inner := el.Div().Size(el.Dp(16)).Rounded(theme.RadiusLg).Bg(fill).Center()
-	if on {
-		inner.Child(el.Div().Size(el.Dp(8)).Rounded(theme.RadiusSm).Bg(ring))
+	size := v.size
+	if size == 0 {
+		size = 18
 	}
-	dot := el.Div().Size(el.Dp(18)).NoShrink().Rounded(theme.RadiusFull).Bg(ring).Center().Child(inner)
-	return check(v.itemID(o), "radio", o, "", on, disabled, dot, func() { v.choose(o); cx.Focus(v.itemID(o)) }).Focusable(i == v.tabStop()).
+	inner := el.Div().Size(el.Dp(size * 16 / 18)).Rounded(theme.RadiusFull).Bg(fill).Center()
+	if on {
+		inner.Child(el.Div().Size(el.Dp(size * 8 / 18)).Rounded(theme.RadiusFull).Bg(ring))
+	}
+	dot := el.Div().Size(el.Dp(size)).NoShrink().Rounded(theme.RadiusFull).Bg(ring).Center().Child(inner)
+	label := o
+	if v.content[o] != nil {
+		label = ""
+	}
+	row := check(v.itemID(o), "radio", label, o, on, disabled, dot, func() { v.choose(o); cx.Focus(v.itemID(o)) }).Focusable(i == v.tabStop()).
 		OnKey(func(e el.KeyEvent) bool {
 			if e.Modifiers != 0 {
 				return false
@@ -163,6 +218,13 @@ func (v *RadioGroupView) renderItem(cx *el.Context, i int) el.Element {
 			}
 			return true
 		})
+	if content := v.content[o]; content != nil {
+		row.Child(el.Div().ID("label").Child(content.Render(cx)))
+	}
+	if v.textSize > 0 {
+		row.TextSize(v.textSize)
+	}
+	return row
 }
 func (v *RadioGroupView) Render(cx *el.Context) el.Element {
 	group := el.Div().Role("radiogroup").Name(v.a11y()).Gap(theme.SpaceMd).Disabled(v.disabled)
