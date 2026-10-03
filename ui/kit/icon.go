@@ -51,6 +51,7 @@ const (
 	IconExternalLink
 	IconBan
 	IconRetry
+	IconChevronUp
 )
 
 // IconView wraps a Gio vector icon. Labels belong to its containing control.
@@ -61,6 +62,7 @@ type IconView struct {
 }
 
 var iconData = [...][]byte{
+	IconChevronUp:    icons.NavigationExpandLess,
 	IconRetry:        icons.NavigationRefresh,
 	IconBan:          icons.ContentBlock,
 	IconCheck:        icons.ActionCheckCircle,

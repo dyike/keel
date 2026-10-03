@@ -6,7 +6,7 @@
 car := kit.Carousel(slide1, slide2, slide3).Height(200).Autoplay(4 * time.Second)
 ```
 
-- 点击按钮或指示点切换；轮播获得焦点后，← → 切换，首尾循环。
+- 点击按钮或指示点切换；轮播获得焦点后，横向用 ← →、竖向用 ↑ ↓ 切换，首尾循环；Home/End 选择第一张/最后一张。
 - `Autoplay(d)` 每隔 d 切到下一张。指针悬停在轮播上时暂停；开启减少动画时不自动播放。
 - `SetDisabled(true)` 禁止按钮、指示点和按键切换，同时停止自动播放并移除焦点；父容器禁用、内容离开视口或被模态层遮挡时也暂停自动播放，恢复后重新计时。
 - `Value()` / `SetValue(i)`（不触发回调），`OnChange(fn)`。
@@ -15,3 +15,7 @@ car := kit.Carousel(slide1, slide2, slide3).Height(200).Autoplay(4 * time.Second
 Agent：容器角色 `group`，名字是"当前/总数"（如 2/3）；按钮名为"上一张""下一张"，指示点的名字是序号。
 
 验证：`go run ./examples/components -section carousel`，加 `-theme dark` 检查深色。
+
+`Vertical(true)` 把导航放到内容右侧：上箭头、纵向指示点和下箭头。`Vertical(false)` 恢复内容下方的水平导航。Height 仍控制内容高度（默认 200dp），导航至少保留 72dp；非正或非有限高度忽略。指示点区域可竖向滚动，以容纳较多项目。切换方向保留当前索引及已有键盘焦点，不触发 OnChange；自动播放、悬停暂停、禁用和减少动画规则保持不变。
+
+本组件当前仍是单项切换，不提供拖动/触控板吸附轨道或同屏多项。导航默认循环，尚无非循环边界模式；前后按钮和指示点暂不能独立组合。
