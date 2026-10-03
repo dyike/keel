@@ -152,7 +152,7 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 			view = max(view, viewport)
 		}
 	}
-	atEnd := v.followEnd && (!painted || off+view >= content-4) || v.end != v.endApplied
+	atEnd := v.reveal == "" && (v.followEnd && (!painted || off+view >= content-4) || v.end != v.endApplied)
 	preserveAnchor := v.anchor != "" && v.reveal == "" && (v.restore || off == v.lastOffset)
 	total := v.sums.prefix(len(v.keys))
 	if v.restore {
@@ -180,8 +180,8 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 	}
 	first := v.sums.at(max(off-view, 0))
 	last := min(len(v.keys), v.sums.at(off+2*view)+1)
-	box := el.Div().ID(id).ScrollY().Focusable(true).Disabled(v.disabled).Items(el.Stretch).ScrollToEndOn(v.end)
-	if v.followEnd {
+	box := el.Div().ID(id).ScrollY().Focusable(true).Disabled(v.disabled).Items(el.Stretch)
+	if v.followEnd && v.reveal == "" {
 		box.StickToBottom()
 	}
 	if v.role != "" {
@@ -209,7 +209,6 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 		if !gtx.Enabled() {
 			return
 		}
-		v.endApplied = v.end
 		actual, _, _ := cx.ScrollState(id)
 		heights := make([]float32, len(built))
 		start := leading
@@ -249,6 +248,9 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 		if changed {
 			v.restore = true
 			gtx.Execute(op.InvalidateCmd{})
+		}
+		if atEnd && painted && !changed {
+			v.endApplied = v.end
 		}
 		if i, ok := v.indices[v.reveal]; ok && painted && !changed && i >= first && i < last {
 			v.reveal = ""

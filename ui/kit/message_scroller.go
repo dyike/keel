@@ -42,7 +42,7 @@ func (v *MessageScrollerView) OnReachTop(fn func()) *MessageScrollerView { v.onR
 // SetKeys copies the new order, retaining measurements and the visible anchor.
 // Call after inserting, appending, removing or reordering messages.
 func (v *MessageScrollerView) SetKeys(keys []string) { v.list.SetKeys(keys) }
-func (v *MessageScrollerView) ScrollToEnd()          { v.list.end++ }
+func (v *MessageScrollerView) ScrollToEnd()          { v.list.reveal = ""; v.list.end++ }
 func (v *MessageScrollerView) SetFollow(on bool)     { v.list.followEnd = on }
 func (v *MessageScrollerView) SetDisabled(on bool)   { v.list.SetDisabled(on) }
 

@@ -40,11 +40,13 @@ func init() {
 			return el.Div().Child(
 				el.Text("向上滚到顶部加载更早的消息，视图不会跳动").TextColor(theme.Muted).Px(20).Py(10),
 				sc.Render(cx),
-				el.Div().P(12).Child(kit.Button("发送新消息", func() {
-					msgs = append(msgs, "新消息 #"+strconv.Itoa(len(msgs)))
-					sc.SetKeys(msgs)
-					sc.ScrollToEnd()
-				}).Render(cx)))
+				el.Div().Row().Gap(8).P(12).Child(
+					kit.Button("跳到消息 #25", func() { sc.ScrollToMessage("消息 #25") }).Render(cx),
+					kit.Button("发送新消息", func() {
+						msgs = append(msgs, "新消息 #"+strconv.Itoa(len(msgs)))
+						sc.SetKeys(msgs)
+						sc.ScrollToEnd()
+					}).Render(cx)))
 		}))
 	})
 }

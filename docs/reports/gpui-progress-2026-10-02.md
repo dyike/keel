@@ -133,7 +133,9 @@
 - [x] 第八十八批（`afb3cbf`）：Resizable 增加 Max(first, second)，0 解除限制；非法上限忽略，上限低于 Min 时以 Min 为准。两侧达到上限后保留尾部空白；测量改变请求下一帧收敛。Min/SetValue 同时防止非有限值污染布局。测试覆盖横纵方向、1×/2×、拖动/Home/End、窗口缩小/放大、矛盾范围、重置、配置不回调、禁用及 Agent 尺寸语义。构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过；多面板、显隐和把手外观继续待补。
 - [x] 第八十九批（`58f9f87`）：Resizable 增加 Visible(first, second)，单侧显示时填满并隐藏把手，两侧隐藏时不展示内容；隐藏期间保留分隔尺寸，恢复双侧按当前约束收敛。测试覆盖横纵方向、1×/2×、四种显隐组合、窗口变化、无多余回调、隐藏输入不可操作、恢复后输入内容及可见侧焦点保持、Agent 不暴露隐藏内容。构建、vet 和全量测试通过。多面板 group 与把手外观仍待完成。
 - [x] 第九十批（`f8e07ef`）：Resizable 把手默认视觉改为 1dp 细线，悬停/聚焦、按下、拖动分别为 2/3/4dp，保留 6dp 命中区。HandleAppearance 可改线宽、配色与过渡时长，遵守减少动画；取消拖动不再使用取消事件坐标调整面板。测试覆盖横纵状态、取消、禁用、零时长自定义及实际线宽/命中区像素；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。运动曲线使用现有 valueMotion，颜色即时切换，不宣称与上游动画完全一致。
-- [x] 第九十一批：新增 ResizableGroup 与 ResizablePanel，支持横纵多面板、稳定 ID、逐项初始/最小/最大尺寸、显隐、SetPanels 重排、Sizes/SetSizes、用户调整回调和把手外观。相邻拖动保持其他面板尺寸，窗口变化从末端分配余量，最小尺寸不足时按比例压缩；自动尺寸面板首帧通过伸展占据剩余空间。测试覆盖横纵 1×/2× 拖动和键盘范围、禁用、回调副本、容量不足/过剩、显隐/重排及输入状态/焦点、首帧自动分配。构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过。
+- [x] 第九十一批（`ee95d6a`）：新增 ResizableGroup 与 ResizablePanel，支持横纵多面板、稳定 ID、逐项初始/最小/最大尺寸、显隐、SetPanels 重排、Sizes/SetSizes、用户调整回调和把手外观。相邻拖动保持其他面板尺寸，窗口变化从末端分配余量，最小尺寸不足时按比例压缩；自动尺寸面板首帧通过伸展占据剩余空间。测试覆盖横纵 1×/2× 拖动和键盘范围、禁用、回调副本、容量不足/过剩、显隐/重排及输入状态/焦点、首帧自动分配。构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过。
+
+- [x] 第九十二批：MessageScroller 增加 ScrollToMessage、IsScrolledUp 和 IsFollowingTail，支持首次渲染前按稳定 ID 定位。消息跳转与末尾跳转以最后有效请求为准，未知 ID 保留原请求；跳转期间抑制尾部吸附，变高测量收敛后完成定位。测试覆盖 1×/2× 首次定位、已可见消息不移动、插入历史保持位置、请求顺序、从末尾跳转、手动到底恢复跟随和关闭自动跟随后显式跳到末尾；构建、vet、全量测试通过。示例增加消息跳转按钮；自定义最新按钮与进出动画仍待补齐。
 
 ## 当前实施清单
 
@@ -194,7 +196,7 @@
 | [List](https://gpui-kit.com/component/list/) | 部分 | [列表项、稳定 ID、单项禁用、多选/范围、键盘、拖动](../../ui/kit/list.go) | 缺分组头、自定义行/图标/行内操作、内建搜索与加载更多入口；当前是可选择、可拖动的文字列表。 |
 | [Marker](https://gpui-kit.com/component/marker/) | 用途不同 | [几何标记、大小与颜色](../../ui/kit/marker.go) | 用途不同：GPUI 是带图标/文字、分隔线/边框、加载状态的消息标记行；Keel Marker 只绘制点/方块等几何标记，不能计作对齐。 |
 | [Menu](https://gpui-kit.com/component/menu/) | 部分 | [菜单、子菜单、分隔线、长内容、方向键、焦点恢复](../../ui/kit/menu.go) | 第四十七批已补齐图标、勾选项及勾号左右位置，含状态更新/查询与 Agent checked。第四十八批补齐不可交互的组标题 Label。第四十九批补齐 ContentItem/SetItemContent 展示内容行及变高定位。第五十批补齐 Link、外链图标开关、系统打开及应用回调。快捷键仍取动作首个绑定，缺按触发器焦点上下文解析绑定；默认系统打开未做各平台真机验收。 |
-| [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 部分 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；缺公开按消息跳转/初始未读定位、跟随状态查询和自定义跳转按钮。 |
+| [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 部分 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；第九十二批补齐按稳定消息 ID 跳转、首次渲染前定位和跟随/上滚状态查询。未读身份由应用维护；SetFollow(false) 后显式跳到末尾不会开启自动跟随。仍缺自定义跳转按钮及其进出动画配置。 |
 | [Message](https://gpui-kit.com/component/message/) | 部分 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 缺独立 avatar/header/footer 插槽、MessageGroup 和 ghost/content_inset 配置；当前是作者文字+内容+操作/反应。 |
 | [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 缺系统通知投递、位置选择、操作按钮与任意富内容；当前只有应用内右上角标题/正文通知队列。 |
 | [NumberInput](https://gpui-kit.com/component/number-input/) | 部分 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 缺金额/千分位 mask、动态 step_by、前后内容槽；固定步长、精度、范围与输入草稿已有。 |
