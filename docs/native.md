@@ -120,4 +120,4 @@ macOS 上需要 `window.Main()` 在运行：快捷键事件由主线程的事件
 
 ## notification：系统通知
 
-`native/notification` 提供 Available、RequestPermission、Post 和 Remove，完成回调在独立 goroutine 执行。当前实现 macOS .app 的授权、按 ID 投递/替换和撤回，以及 Linux 桌面 D-Bus 后端；Windows 和其他未支持平台明确返回不支持。尚未接入 kit.Notifier、前台展示和点击响应，完整用法与验收步骤见 [模块文档](../native/notification/README.md)。
+`native/notification` 提供 Available、RequestPermission、Post 和 Remove，完成回调在独立 goroutine 执行。当前实现 macOS .app 的授权、按 ID 投递/替换和撤回，以及 Linux 桌面 D-Bus 后端；Windows 和其他未支持平台明确返回不支持。kit.Notifier 通过应用适配器接入，前台展示控制和系统点击响应仍未完成，完整用法与验收步骤见 [模块文档](../native/notification/README.md)。

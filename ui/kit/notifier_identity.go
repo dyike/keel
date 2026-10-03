@@ -32,14 +32,18 @@ func (v *NotifierView) DismissKey(key string) bool {
 	return false
 }
 
-// Clear removes all notices present at entry, then calls their OnClose callbacks
+// Clear removes all notices present at entry, retracts their system deliveries,
+// and calls OnClose for any remaining in-app notices
 // in queue order. Notices added by callbacks survive unless explicitly removed
 // by another callback. The return value counts the removed notices.
 func (v *NotifierView) Clear() int {
 	items := v.items
 	v.items = nil
 	for _, current := range items {
-		if current.OnClose != nil {
+		if current.systemPosted {
+			v.systemRequest(current, true)
+		}
+		if current.inApp() && current.OnClose != nil {
 			current.OnClose()
 		}
 	}

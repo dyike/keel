@@ -15,7 +15,7 @@ core.Update(func() { n.Notify(kit.Notice{Title: "同步完成"}) })
 - 超时：`Timeout` 为 0 时用 `kit.NotificationTimeout`（5 秒）；为负数时不自动消失。
 - 悬停：指针停在通知上时，这条通知不会消失；移开后继续剩余时间，键盘焦点进入通知或通知被禁用/遮挡时也暂停。
 - 数量：每个位置最多同时显示 `kit.MaxNotifications`（5）条，超出的排队，前面的消失后依次显示。
-- `Notify` 返回 id，`Dismiss(id)` 移除指定通知（不论在显示还是排队），`Len()` 返回显示加排队的总数。
+- `Notify` 返回 id，`Dismiss(id)` 移除指定通知（不论在显示还是排队），`Len()` 返回管理中的通知总数；纯应用内模式为显示加排队，系统模式还包含仅系统通知及应用内已超时但等待撤回的记录。
 - 每条通知都有关闭按钮。通知不抢焦点，也不处理 Esc，下面的对话框仍然可以用 Esc 关闭。
 - `Notify`、`Update`、`Dismiss` 必须在 UI 帧锁内调用，也就是在回调里，或者用 `core.Update` 包起来。需要 `el.Root`。
 
@@ -58,7 +58,7 @@ id = n.Notify(kit.Notice{
 
 `Notice.OnClick` 在通知背景、标题或普通正文被点击时执行，不自动关闭通知。设置后增加一个以 Title 命名的 button 操作区域，支持 Tab 聚焦及 Enter/Space 激活，外层仍保留 status 语义。富内容和操作按钮独立处理各自点击，关闭按钮不会执行 OnClick。移除回调后恢复普通通知。
 
-`Notice.OnClose` 在通知从队列移除后同步执行一次，覆盖关闭按钮、超时、显式 Dismiss 和排队中取消；重复或未知 ID 不触发。回调可安全再次 Dismiss 同一 ID、更新其他通知或新增通知。Update 替换回调但不触发关闭；最终关闭使用最新回调。卸载 Notifier 不等同于 Dismiss，不触发 OnClose。回调运行在 UI 帧锁内，后台工作应异步执行，回写时用 core.Update。
+`Notice.OnClose` 在应用内通知关闭后同步执行一次，覆盖关闭按钮、超时、显式 Dismiss 和排队中取消（仅系统模式除外）；重复或未知 ID 不触发。回调可安全再次 Dismiss 同一 ID、更新其他通知或新增通知。Update 替换回调但不触发关闭；最终关闭使用最新回调。卸载 Notifier 不等同于 Dismiss，不触发 OnClose。回调运行在 UI 帧锁内，后台工作应异步执行，回写时用 core.Update。
 
 
 `NotifyKey(key, Notice)` 用业务字符串标识通知，作用域限当前 Notifier。重复发送同一非空 key 会原位替换，返回原 ID、保留队列位置并重启超时，不触发旧 OnClose。Notice 的正文、操作、回调和位置都会被新值替换。空 key 等同普通 Notify，每次新增。
@@ -71,4 +71,27 @@ n.DismissKey("download/report")
 
 `Update(id, Notice)` 保留业务 key；`DismissKey(key)` 删除显示中或排队中的对应通知并返回是否找到，空 key 返回 false。删除后重新发送同一 key 会分配新 ID，旧超时不会影响新通知。不同业务应自行设置 key 前缀，避免同一容器内冲突；不使用 Rust 类型作为标识。
 
-`Clear()` 先移除调用时的全部通知，再按原队列顺序执行各自的 OnClose，返回移除数量。回调中新增的通知保留，除非后续回调显式删除它；重复清空不会重复通知已移除项。以上方法同样要求在 UI 帧锁内调用。当前只管理应用内通知，尚未接入系统通知中心。
+`Clear()` 先移除调用时的全部通知，再按原队列顺序执行各自的 OnClose，返回移除数量。回调中新增的通知保留，除非后续回调显式删除它；重复清空不会重复通知已移除项。以上方法同样要求在 UI 帧锁内调用。系统通知的撤回行为见下文。
+
+
+系统投递通过 `NoticeSystemBackend` 接入，kit 不直接依赖原生模块。接口的 `Post(id,title,body,done)` 和 `Remove(id,done)` 在工作 goroutine 执行，必须每次完成后调用 done（失败也要调用）。Notifier 串行等待每次完成，再执行下一条请求；后端不得直接修改 UI。原生适配器和权限申请见 `examples/notification`。
+
+```go
+n := kit.Notifier().SystemBackend(backend, func(r kit.NoticeSystemResult) {
+    // 已在 UI 帧锁内，可以展示 r.Err；Removing 区分投递和撤回。
+})
+n.NotifyKey("download", kit.Notice{
+    Title: "下载完成", Body: "report.pdf 已保存。",
+    Delivery: kit.NoticeInAppAndSystem,
+})
+```
+
+- `NoticeInApp` 仅应用内，`NoticeSystemOnly` 仅系统，`NoticeInAppAndSystem` 两者同时。`NoticeDeliveryDefault` 使用容器默认；`Notifier.Delivery(mode)` 只影响后续 Notify/Update，不迁移已有通知，初始默认仅应用内。
+- 系统正文只取 Title/Body；富内容、按钮和 Tone 不发送。标题正文都空时跳过系统请求。系统模式不自动申请权限；应用应先完成平台授权。
+- 两者同时投递时，应用内超时只隐藏卡片并触发一次 OnClose，保留系统通知和业务 key；重新发送同 key 会更新同一系统 ID 并重新显示卡片。Dismiss/DismissKey/Clear 才请求撤回，隐藏卡片不会重复触发 OnClose。仅系统通知不触发 OnClose，不占应用内五条可见队列。
+- 系统 ID 使用随机容器前缀与通知序号，避免不同容器/进程互相覆盖；不跨启动恢复，跨启动撤回需应用自行管理原生接口。
+- 已有通知保留创建时的后端；更换 SystemBackend 只影响新通知，结果回调在请求排队时捕获。请在首次 Notify 前配置后端。切换已有通知到仅应用内，或更新为空系统正文，会撤回先前系统通知。
+- 缺后端返回 `ErrNoticeSystemUnavailable`，不会静默视为成功。`SystemError()` 是最近已完成请求的错误，成功会清空；结果回调在后续 UI 帧执行。投递失败时，两者模式仍显示应用内卡片；仅系统模式不自动改成应用内。
+- 关闭窗口/卸载 Notifier 不会自动撤回系统通知；需要时显式 Clear。后端不调用 done 会阻塞该容器后续系统请求。
+
+系统通知点击响应、应用/窗口激活仍未连接。当前测试验证投递状态机和请求顺序，不等于 macOS/Linux 通知中心的真实展示验收。
