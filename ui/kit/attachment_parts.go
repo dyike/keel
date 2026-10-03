@@ -21,7 +21,8 @@ const (
 // With OnOpen configured, use display content here and interactive controls in Actions.
 func (v *AttachmentView) Content(view el.View) *AttachmentView { v.content = view; return v }
 
-// Actions adds custom controls before the built-in cancel/retry/remove controls.
+// Actions adds custom controls before the built-in cancel/retry controls.
+// The remove control is a separate corner button.
 // The slice is copied; nil entries are ignored. Empty arguments clear custom controls.
 func (v *AttachmentView) Actions(views ...el.View) *AttachmentView {
 	v.actions = slices.Clone(views)

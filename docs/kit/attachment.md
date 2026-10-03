@@ -40,7 +40,7 @@ Pending 显示“待上传”，Processing 显示“处理中”；上传和处�
 
 `Content(view)` 替换默认文件名、状态描述和进度条；nil 恢复默认。启用 OnOpen 时这里应使用展示内容，交互控件放进 `Actions(views...)`。自定义元信息自行读取 Status 并显示所需状态，卡片本身的 Agent 名称和生命周期值保持不变。
 
-`Actions` 复制传入切片，忽略 nil，在内置取消/重试/移除之前添加控件。空参数清除自定义控件；清除 OnCancel/OnRetry/OnRemove 回调可去掉对应内置按钮。自定义操作不触发 OnOpen，遵守卡片和祖先禁用状态。
+`Actions` 复制传入切片，忽略 nil，在内置取消/重试之前添加控件。内置移除按钮独立放在卡片右上角。空参数清除自定义控件；清除 OnCancel/OnRetry/OnRemove 回调可去掉对应内置按钮。自定义操作不触发 OnOpen，遵守卡片和祖先禁用状态。
 
 `PartStyle(part, func(*el.DivEl))` 调整 Root、Media、Content、Title、Description、Actions 六个分区，常量统一以 AttachmentPart 开头。可设置背景、边框、圆角、间距、字号和颜色，也可用 Hidden 隐藏可选区域。样式在默认值之后应用，nil 恢复默认；元素每帧重建，不应保存引用或在样式回调里添加子内容。Root 的 ID、角色、名称、生命周期值及窗口最大宽度由组件保持。Title/Description 只作用于默认元信息，Content 自定义时由应用控制内部样式。
 
@@ -112,4 +112,4 @@ photo.RetryMedia()
 a.TitleShimmer(kit.ShimmerStyle{Duration: 3*time.Second, Spread: .45, Reverse: true})
 ```
 
-`RemoveOnHover(on)` 控制内置移除按钮的显示：桌面默认开启，鼠标进入附件或键盘焦点进入其内部时显示；离开且失去焦点后隐藏。隐藏只改变绘制透明度，保留布局、语义和 Tab 停靠点，不影响取消、重试及自定义操作。Android/iOS 默认常显，触屏网页或混合输入应用可显式调用 `RemoveOnHover(false)` 常显。`ShowActions(false)` 仍会移除整个操作区的布局和交互。当前按钮位置沿用操作区，尚未改为带外伸留白的独立圆形角标。
+`RemoveOnHover(on)` 控制内置移除按钮的显示：桌面默认开启，鼠标进入附件或键盘焦点进入其内部时显示；离开且失去焦点后隐藏。隐藏只改变绘制透明度，保留布局、语义和 Tab 停靠点，不影响取消、重试及自定义操作。Android/iOS 默认常显，触屏网页或混合输入应用可显式调用 `RemoveOnHover(false)` 常显。`ShowActions(false)` 仍会移除整个操作区的布局和交互。内置移除按钮使用 Surface 背景、细边框和圆形轮廓，中心落在卡片右上角，顶部/右侧各预留半个按钮的外伸空间；透明隐藏时仍保留这部分空间。按钮直径随尺寸档为 20/22/24/28dp，卡片宽度仍指表面宽度，整体占位额外增加半个按钮宽度，窄窗口优先缩小表面。取消/重试和自定义操作继续位于 Actions，PartStyle(Actions) 不再影响移除角标；ShowActions(false) 同时隐藏操作区和角标。PartStyle(Root) 仍配置卡片表面，Hidden 会连同角标隐藏，表面配色/圆角不改变角标自身外观。

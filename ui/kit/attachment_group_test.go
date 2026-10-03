@@ -30,7 +30,7 @@ func TestAttachmentGroupScrollAndRemoval(t *testing.T) {
 		h.Frame()
 		h.Frame()
 		offset, view, total := cx.ScrollStateX(autoID("attachment-group", group))
-		if view != 300 || total != 476 || offset != 176 {
+		if view != 300 || total != 488 || offset != 188 {
 			t.Fatal("group geometry", scale, offset, view, total)
 		}
 		click(t, h, "last")

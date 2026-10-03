@@ -33,7 +33,7 @@ func init() {
 			MediaSource("data:image/png;base64," + base64.StdEncoding.EncodeToString(encoded.Bytes()))
 		failed := kit.Attachment("图片加载失败", 0).Size(kit.AttachmentSizeSmall).MediaSource("data:image/png;base64,invalid")
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).Child(el.Text("方形和自定义宽高比；操作区在右上角"), el.Div().Row().Wrap().Gap(12).Items(el.Start).Child(square.Render(cx), wide.Render(cx), tile.Render(cx), metadata.Render(cx), actions.Render(cx), source.Render(cx), failed.Render(cx)))
+			return el.Div().P(24).Gap(16).Child(el.Text("方形和宽屏预览；纯图片右上角为独立移除角标"), el.Div().Row().Wrap().Gap(12).Items(el.Start).Child(square.Render(cx), wide.Render(cx), tile.Render(cx), metadata.Render(cx), actions.Render(cx), source.Render(cx), failed.Render(cx)))
 		}))
 	})
 }

@@ -26,8 +26,9 @@ func TestAttachmentVerticalPreviewAndActions(t *testing.T) {
 			t.Fatal("image not filling preview", picture, media)
 		}
 		remove := bounds(h, locale.Current().Name(locale.Current().Remove, "photo.png"))
-		if remove.Max.X != media.Max.X || remove.Min.Y != media.Min.Y {
-			t.Fatal("actions not top trailing", remove, media)
+		card := bounds(h, "photo.png")
+		if remove.Min.X+remove.Dx()/2 != card.Max.X || remove.Min.Y+remove.Dy()/2 != card.Min.Y {
+			t.Fatal("remove not centered on card corner", remove, card)
 		}
 		click(t, h, locale.Current().Name(locale.Current().Remove, "photo.png"))
 		if removed != 1 || opened != 0 {

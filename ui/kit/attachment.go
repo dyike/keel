@@ -247,16 +247,31 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	if (status.IsFailed() || status == AttachmentStatusCanceled) && v.onRetry != nil {
 		actions.Child(Button(text.Retry, v.retry).Name(text.Name(text.Retry, v.name)).Variant(ButtonGhost).Size(metrics.action).Render(cx))
 	}
-	if v.onRemove != nil {
-		remove := Button("", v.onRemove).ID(id + "/remove").Name(text.Name(text.Remove, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(metrics.action).Render(cx)
-		visibility := el.Div().ID(id + "/remove-visibility").Child(remove)
-		if v.removeOnHover && !cx.Hovered(id) && !cx.FocusWithin(id) {
-			visibility.Opacity(0)
-		}
-		actions.Child(visibility)
-	}
-	if hasCustom || v.onRemove != nil || (status.IsInProgress() && v.onCancel != nil) || ((status.IsFailed() || status == AttachmentStatusCanceled) && v.onRetry != nil) {
+	if hasCustom || (status.IsInProgress() && v.onCancel != nil) || ((status.IsFailed() || status == AttachmentStatusCanceled) && v.onRetry != nil) {
 		card.Child(actions)
 	}
-	return v.part(AttachmentPartRoot, id, card).Role("attachment").Name(v.name).Value(state).Disabled(v.disabled).MaxW(el.Full)
+	card = v.part(AttachmentPartRoot, id, card).Role("attachment").Name(v.name).Value(state).Disabled(v.disabled).MaxW(el.Full)
+	frameID := id + "/frame"
+	frame := el.Div().ID(frameID).Items(el.Start).MaxW(el.Full).Disabled(v.disabled).Hidden(card.IsHidden()).Child(card)
+	if v.onRemove != nil && !v.hideActions {
+		// Reserve the half-disc outside the surface even while it is transparent.
+		// Keep the frame in the tree even without removal so descendants keep focus.
+		frame.Pt(metrics.action / 2).Pr(metrics.action / 2)
+		remove := el.Div().ID(id+"/remove").Absolute().Top(0).Right(0).
+			Size(el.Dp(metrics.action)).Rounded(theme.RadiusFull).Bg(theme.Surface).Border(1, theme.Border).
+			Center().Role("button").Name(text.Name(text.Remove, v.name)).Focusable(true).CursorPointer().
+			OnClick(func() {
+				if !v.disabled && v.onRemove != nil {
+					v.onRemove()
+				}
+			}).
+			Hover(func(s *el.Style) { s.Bg(theme.Subtle) }).
+			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
+			Child(Icon(IconClose).Size(metrics.action * .6).Color(theme.Text).Render(cx))
+		if v.removeOnHover && !cx.Hovered(frameID) && !cx.FocusWithin(frameID) {
+			remove.Opacity(0)
+		}
+		frame.Child(remove)
+	}
+	return el.Div().ID(id + "/outer").Items(el.Start).MaxW(el.Full).Child(frame)
 }

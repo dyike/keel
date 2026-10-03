@@ -292,6 +292,10 @@ func (s *Styled[T]) Right(dp float32) *T  { s.n.style.right = &dp; return s.self
 func (s *Styled[T]) Bottom(dp float32) *T { s.n.style.bottom = &dp; return s.self }
 func (s *Styled[T]) Left(dp float32) *T   { s.n.style.left = &dp; return s.self }
 
+// IsHidden reports the element's declared visibility, before ancestor inheritance.
+// Composite views can use it to keep adjoining controls hidden with their body.
+func (s *Styled[T]) IsHidden() bool { return s.n.style.hidden }
+
 // Hidden removes the element from layout and paint.
 func (s *Styled[T]) Hidden(h bool) *T { s.n.style.hidden = h; return s.self }
 
