@@ -43,7 +43,7 @@ func (v *MessageView) metadata(cx *el.Context, id string, view el.View, override
 	if inset {
 		row.Px(theme.SpaceLg)
 	}
-	if v.user {
+	if v.isEnd() {
 		row.Justify(el.End)
 	}
 	return row.Child(view.Render(cx))
@@ -71,4 +71,23 @@ func (v *MessageView) FooterInset(on bool) *MessageView { v.footerInset = &on; r
 func (v *MessageView) ResetContentInsets() *MessageView {
 	v.headerInset, v.footerInset = nil, nil
 	return v
+}
+
+// Alignment sets placement independently of User's default surface and avatar.
+// Only Start and End are accepted; invalid values leave the current setting.
+func (v *MessageView) Alignment(align el.Align) *MessageView {
+	if align == el.Start || align == el.End {
+		end := align == el.End
+		v.alignEnd = &end
+	}
+	return v
+}
+
+// ResetAlignment restores Start for incoming messages and End for User.
+func (v *MessageView) ResetAlignment() *MessageView { v.alignEnd = nil; return v }
+func (v *MessageView) isEnd() bool {
+	if v.alignEnd != nil {
+		return *v.alignEnd
+	}
+	return v.user
 }

@@ -38,6 +38,7 @@ type MessageView struct {
 	avatar, header, footer   el.View
 	avatarSet                bool
 	user                     bool
+	alignEnd                 *bool
 	actions                  []el.View
 	state                    MessageState
 	failure                  string
@@ -83,6 +84,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
 	state := ""
 	id := autoID("message", v)
+	end := v.isEnd()
 	body := el.Div().ID(id + "/body").Gap(theme.SpaceMd).Items(el.Stretch)
 	if v.header != nil {
 		body.Child(v.metadata(cx, id+"/header", v.header, v.headerInset))
@@ -93,22 +95,31 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 			v.bubble = &BubbleView{}
 		}
 		*v.bubble = *v.surface
-		v.bubble.mine = v.user
+		v.bubble.mine = end
+		if v.bubble.variant == BubbleAuto {
+			v.bubble.variant = BubbleSecondary
+			if v.user {
+				v.bubble.variant = BubbleFilled
+			}
+		}
 		content.Child(v.bubble.Render(cx))
 	} else if v.user {
 		if v.bubble == nil {
 			v.bubble = Bubble(v.content).Mine()
 		}
-		*v.bubble = BubbleView{content: v.content, mine: true, reactionAlign: el.End}
+		*v.bubble = BubbleView{content: v.content, mine: end, variant: BubbleFilled, reactionAlign: el.End}
 		content.Child(v.bubble.Render(cx))
 	} else if v.content != nil {
+		if end {
+			content.Items(el.End)
+		}
 		content.Child(v.content.Render(cx))
 	}
 	body.Child(content.Hidden(v.content == nil))
 	if v.state == MessageSending {
 		state = "sending"
 		status := el.Div().ID(id + "/status").Row().Child(el.Text(text.Sending).TextSize(theme.TextSm).TextColor(theme.Muted))
-		if v.user {
+		if end {
 			status.Justify(el.End)
 		}
 		body.Child(status)
@@ -119,7 +130,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 			detail = text.Detail(detail, v.failure)
 		}
 		status := el.Div().ID(id + "/status").Row().Wrap().Gap(theme.SpaceMd).Items(el.Center).Child(el.Text(detail).TextSize(theme.TextSm).TextColor(theme.DangerText))
-		if v.user {
+		if end {
 			status.Justify(el.End)
 		}
 		if v.retry != nil {
@@ -135,7 +146,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 	}
 	if len(v.actions) > 0 {
 		row := el.Div().ID(id + "/actions").Row().Wrap().Gap(theme.SpaceXs)
-		if v.user {
+		if end {
 			row.Justify(el.End)
 		}
 		for _, a := range v.actions {
@@ -147,7 +158,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 	}
 	if len(v.reactions) > 0 {
 		row := el.Div().ID(id + "/reactions").Row().Wrap().Gap(theme.SpaceXs)
-		if v.user {
+		if end {
 			row.Justify(el.End)
 		}
 		for i, r := range v.reactions {
@@ -182,7 +193,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 	identity := el.Div().ID(id + "/avatar").NoShrink().Child(avatar.Render(cx))
 	body.Grow().W(el.Dp(0)).Pt(theme.SpaceXs)
 	article.Row().Gap(10).Items(el.Start)
-	if v.user {
+	if end {
 		return article.Child(body, identity)
 	}
 	return article.Child(identity, body)
