@@ -23,3 +23,13 @@ Agent：面板的角色是 `dialog`，里面的元素单独列出；页面其余
 内容中可以继续放 Menu、Select 等浮层组件。父面板先登记，内部浮层显示在上方；Esc 从最里面逐层关闭。示例的“选择预设”可验证这条路径。
 
 `Offset(dp)` 设置触发元素与面板的间距，默认 4dp；0 表示贴合，负数允许重叠，NaN/无穷值忽略。打开时修改会在下一帧重新定位，不触发 OnChange。靠近窗口边缘仍会翻转或限制位置，实际间距可能受可用空间约束。
+
+`Appearance(false)` 移除默认背景、边框、圆角、阴影和内边距；默认开启。定位、滚动和关闭行为保留。
+
+```go
+filters.Appearance(false).PanelStyle(func(panel *el.DivEl) {
+    panel.Bg(theme.Surface).Border(1, theme.Primary).Rounded(theme.RadiusMd).P(12)
+})
+```
+
+`PanelStyle` 每帧在默认外观和 Width 之后调用，nil 移除自定义样式；不要保留元素引用。面板 ID、dialog 角色、窗口尺寸上限和滚动由组件最后设置。打开期间修改外观保留内容状态和焦点；回调中读取主题颜色可随主题切换更新。

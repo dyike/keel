@@ -21,6 +21,8 @@ type PopoverView struct {
 	width            float32
 	offset           float32
 	onChange         func(bool)
+	plain            bool
+	panelStyle       func(*el.DivEl)
 }
 
 func Popover(content el.View) *PopoverView { return &PopoverView{content: content, offset: 4} }
@@ -39,6 +41,18 @@ func (v *PopoverView) Offset(dp float32) *PopoverView {
 	if finiteNumber(float64(dp)) {
 		v.offset = dp
 	}
+	return v
+}
+
+// Appearance controls the default background, border, radius, shadow and padding.
+// It is enabled by default; disabling it leaves positioning and behavior intact.
+func (v *PopoverView) Appearance(on bool) *PopoverView { v.plain = !on; return v }
+
+// PanelStyle refines the panel after appearance defaults and Width, each frame.
+// Nil removes the refinement. Do not retain the element. Identity, dialog role,
+// viewport limits and scrolling are maintained by the popover.
+func (v *PopoverView) PanelStyle(fn func(*el.DivEl)) *PopoverView {
+	v.panelStyle = fn
 	return v
 }
 
@@ -73,10 +87,17 @@ func (v *PopoverView) Render(cx *el.Context) el.Element {
 	id := autoID("popover", v)
 	if v.open {
 		w, h := cx.ViewportSize()
-		panel := floating(theme.ElevationMd).ID(id + "/panel").Role("dialog").MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX().P(theme.SpaceLg)
+		panel := el.Div()
+		if !v.plain {
+			panel = floating(theme.ElevationMd).P(theme.SpaceLg)
+		}
 		if v.width > 0 {
 			panel.W(el.Dp(v.width))
 		}
+		if v.panelStyle != nil {
+			v.panelStyle(panel)
+		}
+		panel.ID(id + "/panel").Role("dialog").MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX()
 		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).Offset(v.offset).OnDismiss(func() { v.change(false) }))
 		if v.content != nil {
 			panel.Child(v.content.Render(cx))

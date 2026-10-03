@@ -131,3 +131,46 @@ func TestPopoverOffsetUpdates(t *testing.T) {
 		t.Fatal("Esc did not dismiss repositioned panel")
 	}
 }
+
+func TestPopoverAppearanceAndStylePreserveContent(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		input := Input("Search")
+		p := Popover(input).Width(180)
+		p.Trigger(Button("Open", p.Toggle))
+		h := renderView(p, 240, scale)
+		click(t, h, "Open")
+		h.Frame()
+		n, _ := semanticNode(h, "dialog")
+		original := n.Desc.Bounds
+		clickClass(t, h, "Editor", "Search")
+		h.Type("a")
+		p.Appearance(false)
+		h.Frame()
+		n, ok := semanticNode(h, "dialog")
+		if !ok || n.Desc.Bounds.Dy() >= original.Dy() {
+			t.Fatal("default padding retained")
+		}
+		p.PanelStyle(func(e *el.DivEl) { e.P(24).ID("ignored").Role("ignored").MaxW(el.Dp(900)) })
+		h.Frame()
+		n, ok = semanticNode(h, "dialog")
+		if !ok || n.Desc.Bounds.Dy() <= original.Dy() || n.Desc.Bounds.Max.X > 240*scale {
+			t.Fatal("panel refinement or bounds lost", n)
+		}
+		h.Key(key.NameRightArrow, 0)
+		h.Key(key.NameDeleteBackward, 0)
+		if input.Value() != "" {
+			t.Fatal("style update lost input focus", input.Value())
+		}
+		p.Appearance(true).PanelStyle(nil)
+		h.Frame()
+		n, ok = semanticNode(h, "dialog")
+		if !ok || n.Desc.Bounds.Size() != original.Size() {
+			t.Fatal("default style not restored", n.Desc.Bounds, original)
+		}
+		h.Key(key.NameEscape, 0)
+		h.Frame()
+		if p.Value() {
+			t.Fatal("styled panel did not close")
+		}
+	}
+}
