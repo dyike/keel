@@ -33,3 +33,13 @@ filters.Appearance(false).PanelStyle(func(panel *el.DivEl) {
 ```
 
 `PanelStyle` 每帧在默认外观和 Width 之后调用，nil 移除自定义样式；不要保留元素引用。面板 ID、dialog 角色、窗口尺寸上限和滚动由组件最后设置。打开期间修改外观保留内容状态和焦点；回调中读取主题颜色可随主题切换更新。
+
+`RightClick(true)` 让触发区域的右键按下直接调用 Toggle，再次右键关闭；false 恢复默认行为。左键和键盘仍执行触发元素自己的回调，不额外增加 Tab 停靠点。触发元素不要再注册调用 Toggle 的右键回调，以免执行两次。禁用自身或父容器时右键也不会打开面板。
+
+```go
+info := kit.Popover(details).RightClick(true)
+// 左键和键盘也能打开，作为右键操作的替代入口。
+info.Trigger(kit.Button("详情", info.Toggle))
+```
+
+只希望鼠标右键打开时，可为触发按钮提供不同的左键回调；键盘替代入口由应用提供。当前尚不支持任意鼠标按键选择。

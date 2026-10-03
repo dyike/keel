@@ -174,3 +174,52 @@ func TestPopoverAppearanceAndStylePreserveContent(t *testing.T) {
 		}
 	}
 }
+
+func TestPopoverRightClickTrigger(t *testing.T) {
+	primary, changes := 0, 0
+	p := Popover(text("Preview")).RightClick(true).OnChange(func(bool) { changes++ })
+	p.Trigger(Button("Target", func() { primary++ }))
+	disabled := false
+	h := uitest.New(el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
+		return el.Div().P(10).Disabled(disabled).Items(el.Start).Child(p.Render(cx))
+	})))
+	click(t, h, "Target")
+	if primary != 1 || p.Value() {
+		t.Fatal("primary behavior changed")
+	}
+	tableRightClick(t, h, "Target")
+	if !p.Value() || !shown(h, "Preview") || changes != 1 || primary != 1 {
+		t.Fatal("right-click did not exclusively open", changes, primary)
+	}
+	tableRightClick(t, h, "Target")
+	if p.Value() || changes != 2 {
+		t.Fatal("repeat right-click did not close", changes)
+	}
+	p.RightClick(false)
+	h.Frame()
+	tableRightClick(t, h, "Target")
+	if p.Value() || changes != 2 {
+		t.Fatal("disabled right-click handler retained")
+	}
+	p.RightClick(true)
+	h.Frame()
+	tableRightClick(t, h, "Target")
+	h.Key(key.NameEscape, 0)
+	h.Frame()
+	if p.Value() || changes != 4 {
+		t.Fatal("Esc did not close", changes)
+	}
+	disabled = true
+	h.Frame()
+	tableRightClick(t, h, "Target")
+	if p.Value() || changes != 4 {
+		t.Fatal("ancestor disabled bypassed")
+	}
+	disabled = false
+	p.SetDisabled(true)
+	h.Frame()
+	tableRightClick(t, h, "Target")
+	if p.Value() {
+		t.Fatal("disabled popover opened")
+	}
+}

@@ -13,6 +13,7 @@ func init() {
 
 type popoverGallery struct {
 	filters *kit.PopoverView
+	context *kit.PopoverView
 	query   string
 }
 
@@ -31,6 +32,10 @@ func newPopoverGallery() *popoverGallery {
 		panel.Rounded(theme.RadiusMd).Border(1, theme.Primary)
 	})
 	g.filters.Trigger(kit.Button("筛选", g.filters.Toggle).Variant(kit.ButtonSecondary).Icon(kit.IconSearch))
+	g.context = kit.Popover(el.ViewFunc(func(*el.Context) el.Element {
+		return el.Text("右键打开的面板，按 Esc 或点外部关闭。")
+	})).RightClick(true).Width(260)
+	g.context.Trigger(kit.Button("右键查看详情", g.context.Toggle).Variant(kit.ButtonSecondary))
 	return g
 }
 
@@ -38,5 +43,6 @@ func (g *popoverGallery) Render(cx *el.Context) el.Element {
 	return el.Div().P(24).Gap(12).Items(el.Start).Child(
 		el.Text("Popover").TextSize(20).Bold(),
 		g.filters.Render(cx),
+		g.context.Render(cx),
 	)
 }

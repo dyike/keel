@@ -22,6 +22,7 @@ type PopoverView struct {
 	offset           float32
 	onChange         func(bool)
 	plain            bool
+	rightClick       bool
 	panelStyle       func(*el.DivEl)
 }
 
@@ -33,6 +34,11 @@ func (v *PopoverView) Placement(side el.Side, align el.Align) *PopoverView {
 	v.side, v.align = side, align
 	return v
 }
+
+// RightClick toggles the popover on secondary presses over its trigger.
+// Primary and keyboard actions remain owned by the trigger. The default is false.
+// Do not also wire Toggle to the trigger's context-menu handler.
+func (v *PopoverView) RightClick(on bool) *PopoverView { v.rightClick = on; return v }
 
 // Offset sets the gap from the trigger in dp, 4 by default. Zero makes the
 // panel touch the trigger; negative values overlap it. Non-finite values
@@ -103,7 +109,11 @@ func (v *PopoverView) Render(cx *el.Context) el.Element {
 			panel.Child(v.content.Render(cx))
 		}
 	}
-	return el.Div().Disabled(v.disabled).Child(anchor(id, cx, v.trigger))
+	target := anchor(id, cx, v.trigger).Focusable(false)
+	if v.rightClick {
+		target.OnContextMenu(v.Toggle)
+	}
+	return el.Div().Disabled(v.disabled).Child(target)
 }
 
 func (v *PopoverView) SetDisabled(on bool) {

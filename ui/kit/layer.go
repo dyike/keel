@@ -23,7 +23,7 @@ func floating(level theme.Elevation) *el.DivEl { return surface().Shadow(level) 
 
 // anchor wraps a trigger in a non-interactive box that layers can anchor to.
 // It adds no Tab stop and no click handler of its own.
-func anchor(id string, cx *el.Context, v el.View) el.Element {
+func anchor(id string, cx *el.Context, v el.View) *el.DivEl {
 	box := el.Div().ID(id).Items(el.Start)
 	if v != nil {
 		box.Child(v.Render(cx))
