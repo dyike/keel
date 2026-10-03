@@ -185,9 +185,29 @@ func (v *NumberInputView) set(x float64) {
 	}
 }
 
+// normalizeNumberText accepts full-width numeric input without rewriting the
+// live editor buffer. Keeping normalization at numeric boundaries preserves
+// the editor's caret, composition and undo history while typing.
+func normalizeNumberText(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r >= '０' && r <= '９':
+			return '0' + r - '０'
+		case r == '＋':
+			return '+'
+		case r == '－':
+			return '-'
+		case r == '．' || r == '。':
+			return '.'
+		default:
+			return r
+		}
+	}, strings.TrimSpace(s))
+}
+
 // commit turns the typed text into the value, or restores the old one.
 func (v *NumberInputView) commit() {
-	if x, err := strconv.ParseFloat(strings.TrimSpace(v.text), 64); err == nil {
+	if x, err := strconv.ParseFloat(normalizeNumberText(v.text), 64); err == nil {
 		v.set(x)
 	} else {
 		v.text = v.format(v.value)
@@ -195,7 +215,7 @@ func (v *NumberInputView) commit() {
 }
 
 func (v *NumberInputView) draftValue() float64 {
-	if x, err := strconv.ParseFloat(strings.TrimSpace(v.text), 64); err == nil && finiteNumber(x) {
+	if x, err := strconv.ParseFloat(normalizeNumberText(v.text), 64); err == nil && finiteNumber(x) {
 		return v.normalize(x)
 	}
 	return v.value
@@ -275,7 +295,7 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 	draft := v.draftValue()
 	minus.SetDisabled(v.disabled || draft <= v.lo)
 	plus.SetDisabled(v.disabled || draft >= v.hi)
-	field := fieldText(el.Input().ID(v.FocusID()).Name(v.a11y()).Bind(&v.text).Filter("0123456789.-")).MinW(el.Dp(40)).
+	field := fieldText(el.Input().ID(v.FocusID()).Name(v.a11y()).Bind(&v.text).Filter("0123456789.+-０１２３４５６７８９＋－．。")).MinW(el.Dp(40)).
 		OnSubmit(func(string) { v.commit() }).
 		OnKey(func(e el.KeyEvent) bool {
 			steps := map[key.Name]int64{key.NameUpArrow: 1, key.NameDownArrow: -1, key.NamePageUp: 10, key.NamePageDown: -10}
