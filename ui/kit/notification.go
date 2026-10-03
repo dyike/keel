@@ -50,15 +50,16 @@ type notice struct {
 // callbacks (or core.Update from other goroutines). Hovering or focusing a notice pauses
 // its remaining timeout; notices never take focus or Esc.
 type NotifierView struct {
-	items         []notice
-	next          int
-	placement     NoticePlacement
-	delivery      NoticeDelivery
-	systemBackend NoticeSystemBackend
-	systemResult  func(NoticeSystemResult)
-	systemError   error
-	systemPrefix  string
-	outbox        noticeOutbox
+	items          []notice
+	next           int
+	placement      NoticePlacement
+	delivery       NoticeDelivery
+	systemBackend  NoticeSystemBackend
+	systemResult   func(NoticeSystemResult)
+	systemError    error
+	systemActivate func()
+	systemPrefix   string
+	outbox         noticeOutbox
 }
 
 func Notifier() *NotifierView { return &NotifierView{} }
@@ -75,20 +76,28 @@ func (v *NotifierView) Notify(n Notice) int {
 
 // Dismiss removes a notice, shown or waiting.
 func (v *NotifierView) Dismiss(id int) {
-	for i, it := range v.items {
-		if it.id == id {
+	n, ok := v.removeNotice(id)
+	if !ok {
+		return
+	}
+	if n.systemPosted {
+		v.systemRequest(n, true)
+	}
+	if n.inApp() && n.OnClose != nil {
+		n.OnClose()
+	}
+}
+
+func (v *NotifierView) removeNotice(id int) (notice, bool) {
+	for i, n := range v.items {
+		if n.id == id {
 			copy(v.items[i:], v.items[i+1:])
 			v.items[len(v.items)-1] = notice{}
 			v.items = v.items[:len(v.items)-1]
-			if it.systemPosted {
-				v.systemRequest(it, true)
-			}
-			if it.inApp() && it.OnClose != nil {
-				it.OnClose()
-			}
-			return
+			return n, true
 		}
 	}
+	return notice{}, false
 }
 
 // Len reports all managed notices, including system-only and expired in-app

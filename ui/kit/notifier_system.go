@@ -27,6 +27,37 @@ type NoticeSystemBackend interface {
 	Remove(id string, done func(error))
 }
 
+// NoticeSystemInteractiveBackend optionally adds system click delivery. activated
+// may run on any goroutine; kit forwards it to the UI frame lock.
+type NoticeSystemInteractiveBackend interface {
+	NoticeSystemBackend
+	PostInteractive(id, title, body string, activated func(), done func(error))
+}
+
+// OnSystemActivate sets the application's window activation hook (e.g. Raise).
+// It runs before the notice's close and click callbacks, on the UI frame lock.
+func (v *NotifierView) OnSystemActivate(fn func()) *NotifierView { v.systemActivate = fn; return v }
+
+func (v *NotifierView) activateSystem(id int) {
+	for _, current := range v.items {
+		if current.id != id || !current.systemPosted || current.Delivery == NoticeInApp {
+			continue
+		}
+		n, _ := v.removeNotice(id) // detach before any user callback, preventing reentrancy
+		v.systemRequest(n, true)
+		if v.systemActivate != nil {
+			v.systemActivate()
+		}
+		if n.inApp() && n.OnClose != nil {
+			n.OnClose()
+		}
+		if n.OnClick != nil {
+			n.OnClick()
+		}
+		return
+	}
+}
+
 // NoticeSystemResult reports a completed backend request on the UI frame lock.
 type NoticeSystemResult struct {
 	ID       int
@@ -98,6 +129,8 @@ func (v *NotifierView) systemRequest(n notice, remove bool) {
 		}
 		if remove {
 			backend.Remove(id, complete)
+		} else if interactive, ok := backend.(NoticeSystemInteractiveBackend); ok {
+			interactive.PostInteractive(id, n.Title, n.Body, func() { core.Update(func() { v.activateSystem(n.id) }) }, complete)
 		} else {
 			backend.Post(id, n.Title, n.Body, complete)
 		}

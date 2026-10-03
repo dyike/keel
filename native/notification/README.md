@@ -21,7 +21,7 @@ notification.Remove("download/report", func(err error) {})
 - 完成回调在独立 goroutine 执行，可传 nil。UI 修改应放进 `core.Update`；不要等待异步完成时阻塞主线程。
 - 同一 ID 的操作应等待前一次完成后再执行，避免异步投递和撤回交错。Remove 同时撤回待投递与已送达项；系统没有撤回完成确认，回调成功仅表示已发出撤回调用。
 - macOS 必须运行应用事件循环；权限对话框、专注模式、系统设置和签名信任影响实际显示。macOS 已注册通知中心 delegate，为本模块通知请求前台 Banner/List；系统设置仍可禁止展示。未实现指定应用窗口激活和跨启动回调恢复。
-- kit.Notifier 通过 NoticeSystemBackend 接入；`examples/notification` 提供适配器，处理仅系统/应用内加系统、同 ID 更新和撤回。kit 的系统点击响应仍未接入，独立原生 Message.OnClick 已在 macOS 实现。
+- kit.Notifier 通过 NoticeSystemBackend 接入；`examples/notification` 提供适配器，处理仅系统/应用内加系统、同 ID 更新和撤回。macOS 示例通过 NoticeSystemInteractiveBackend 接入 kit 点击、关闭和 Window.Raise；Linux 示例仍使用基础投递。
 
 可手动运行 `examples/notification`。先构建应用包，再打开它：
 

@@ -94,4 +94,11 @@ n.NotifyKey("download", kit.Notice{
 - 缺后端返回 `ErrNoticeSystemUnavailable`，不会静默视为成功。`SystemError()` 是最近已完成请求的错误，成功会清空；结果回调在后续 UI 帧执行。投递失败时，两者模式仍显示应用内卡片；仅系统模式不自动改成应用内。
 - 关闭窗口/卸载 Notifier 不会自动撤回系统通知；需要时显式 Clear。后端不调用 done 会阻塞该容器后续系统请求。
 
-系统通知点击响应、应用/窗口激活仍未连接。当前测试验证投递状态机和请求顺序，不等于 macOS/Linux 通知中心的真实展示验收。
+支持点击响应的后端可实现 NoticeSystemInteractiveBackend，见下文。当前测试验证投递状态机和请求顺序，不等于 macOS/Linux 通知中心的真实展示验收。
+
+
+`NoticeSystemInteractiveBackend` 在基本后端上增加 `PostInteractive(id,title,body,activated,done)`。后端收到系统打开动作后调用 activated，kit 自动切回 UI 帧处理；即使 Notice.OnClick 为空也会处理打开动作。普通后端继续通过 Post 投递，无法提供系统点击响应。
+
+`OnSystemActivate(fn)` 设置应用的窗口唤起回调，例如 `func(){ if !w.Closed() { w.Raise() } }`。响应先从管理列表取出通知、安排系统撤回，再依次调用窗口唤起、尚未执行过的应用内 OnClose、最新 Notice.OnClick。重复响应、已删除通知和已切换为纯应用内的通知被忽略。应用内已超时仍可响应系统打开动作，但不重复调用 OnClose；仅系统模式不调用 OnClose。
+
+示例在 macOS 选择支持点击的原生适配器并连接 Window.Raise；Linux 当前仍使用基础投递后端。窗口实际能否置前由操作系统决定，原生点击和窗口唤起仍待真实系统验收。

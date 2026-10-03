@@ -8,6 +8,7 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/window"
+	"runtime"
 )
 
 type demo struct {
@@ -50,7 +51,7 @@ func (d *demo) Render(cx *el.Context) el.Element {
 }
 func (d *demo) send(mode kit.NoticeDelivery) {
 	d.count++
-	d.notifier.NotifyKey("demo", kit.Notice{Title: "Keel 通知", Body: fmt.Sprintf("第 %d 次投递；应用内 5 秒后消失，系统通知保留。", d.count), Delivery: mode})
+	d.notifier.NotifyKey("demo", kit.Notice{Title: "Keel 通知", Body: fmt.Sprintf("第 %d 次投递；应用内 5 秒后消失，系统通知保留。", d.count), Delivery: mode, OnClick: func() { d.status = "系统通知已打开对应任务" }})
 }
 
 type systemBackend struct{}
@@ -60,6 +61,12 @@ func (systemBackend) Post(id, title, body string, done func(error)) {
 }
 func (systemBackend) Remove(id string, done func(error)) { notification.Remove(id, done) }
 
+type interactiveBackend struct{ systemBackend }
+
+func (interactiveBackend) PostInteractive(id, title, body string, activated func(), done func(error)) {
+	notification.Post(notification.Message{ID: id, Title: title, Body: body, OnClick: activated}, done)
+}
+
 func main() {
 	check := flag.Bool("check", false, "print platform/bundle support without asking permission")
 	flag.Parse()
@@ -68,13 +75,22 @@ func main() {
 		return
 	}
 	d := &demo{status: fmt.Sprintf("当前进程支持：%v", notification.Available())}
-	d.notifier = kit.Notifier().SystemBackend(systemBackend{}, func(r kit.NoticeSystemResult) {
+	var backend kit.NoticeSystemBackend = systemBackend{}
+	if runtime.GOOS == "darwin" {
+		backend = interactiveBackend{}
+	}
+	d.notifier = kit.Notifier().SystemBackend(backend, func(r kit.NoticeSystemResult) {
 		if r.Err != nil {
 			d.status = r.Err.Error()
 		} else {
 			d.status = fmt.Sprintf("通知 %d 系统请求完成，撤回：%v", r.ID, r.Removing)
 		}
 	})
-	window.Open(window.Options{Title: "Keel 系统通知", Width: 520, Height: 460, Content: el.Root(d)})
+	w := window.Open(window.Options{Title: "Keel 系统通知", Width: 520, Height: 460, Content: el.Root(d)})
+	d.notifier.OnSystemActivate(func() {
+		if !w.Closed() {
+			w.Raise()
+		}
+	})
 	window.Main()
 }
