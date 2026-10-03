@@ -49,3 +49,15 @@ msg.ResetContentInsets() // 恢复自动规则
 显式 Ghost 气泡自动取消头尾缩进；`HeaderInset`、`FooterInset` 分别覆盖继承规则。普通 Content 内部的自定义 View 不参与 Ghost 检测。入口接受单个 Bubble，多段内容可在该气泡内部组合；尚无上游多个 typed bubble 混排并合并元数据的 MessageContent 部件。
 
 `Alignment(el.Start/el.End)` 独立控制左右位置，覆盖 User 的默认靠右布局；`ResetAlignment()` 恢复默认。头像、头尾、状态、操作和反应跟随位置，显式气泡也跟随。User 仍决定默认气泡色和是否显示默认头像，改对齐不会改变这些设置。其他 Align 值忽略。普通正文靠右时按自身宽度布局，撑满宽度的控件仍占满正文列。
+
+`PartStyle(part, func(*el.DivEl))` 在每帧默认布局之后配置分区样式，nil 恢复默认，非法 part 忽略。可选分区：Root（外层）、Stack（正文列）、Avatar、Header、Content、Footer、Status、Actions、Reactions，对应常量均以 `MessagePart` 开头。头尾样式在自动缩进及显式覆盖后执行，可进一步调整内边距。
+
+```go
+msg.PartStyle(kit.MessagePartRoot, func(e *el.DivEl) {
+    e.P(theme.SpaceLg).Bg(theme.Subtle).Rounded(theme.RadiusMd)
+}).PartStyle(kit.MessagePartStack, func(e *el.DivEl) {
+    e.Gap(theme.SpaceSm)
+})
+```
+
+回调只修改当帧元素，不应保留它或追加子项。组件保留内部 ID、外层 article 的名称/状态及整体禁用；分区可额外禁用自身，不能绕过祖先禁用。Content 样式作用于正文容器，气泡表面仍由 Bubble 的样式接口控制。

@@ -31,7 +31,7 @@ func (v *MessageView) Content(view el.View) *MessageView {
 	return v
 }
 
-func (v *MessageView) metadata(cx *el.Context, id string, view el.View, override *bool) el.Element {
+func (v *MessageView) metadata(cx *el.Context, id string, view el.View, override *bool) *el.DivEl {
 	row := el.Div().ID(id).Row().Wrap().Gap(theme.SpaceXs).TextSize(theme.TextXs).TextColor(theme.Muted)
 	inset := v.user || v.surface != nil
 	if v.surface != nil && v.surface.variant == BubbleGhost {

@@ -39,6 +39,7 @@ type MessageView struct {
 	avatarSet                bool
 	user                     bool
 	alignEnd                 *bool
+	styles                   [9]func(*el.DivEl)
 	actions                  []el.View
 	state                    MessageState
 	failure                  string
@@ -87,7 +88,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 	end := v.isEnd()
 	body := el.Div().ID(id + "/body").Gap(theme.SpaceMd).Items(el.Stretch)
 	if v.header != nil {
-		body.Child(v.metadata(cx, id+"/header", v.header, v.headerInset))
+		body.Child(v.part(MessagePartHeader, id+"/header", v.metadata(cx, id+"/header", v.header, v.headerInset)))
 	}
 	content := el.Div().ID(id + "/content").Items(el.Stretch)
 	if v.surface != nil {
@@ -115,14 +116,14 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		}
 		content.Child(v.content.Render(cx))
 	}
-	body.Child(content.Hidden(v.content == nil))
+	body.Child(v.part(MessagePartContent, id+"/content", content.Hidden(v.content == nil)))
 	if v.state == MessageSending {
 		state = "sending"
 		status := el.Div().ID(id + "/status").Row().Child(el.Text(text.Sending).TextSize(theme.TextSm).TextColor(theme.Muted))
 		if end {
 			status.Justify(el.End)
 		}
-		body.Child(status)
+		body.Child(v.part(MessagePartStatus, id+"/status", status))
 	} else if v.state == MessageFailed {
 		state = "failed"
 		detail := text.SendFailed
@@ -142,7 +143,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 				v.retry()
 			}).Variant(ButtonGhost).Size(28).Render(cx))
 		}
-		body.Child(status)
+		body.Child(v.part(MessagePartStatus, id+"/status", status))
 	}
 	if len(v.actions) > 0 {
 		row := el.Div().ID(id + "/actions").Row().Wrap().Gap(theme.SpaceXs)
@@ -154,7 +155,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 				row.Child(a.Render(cx))
 			}
 		}
-		body.Child(row)
+		body.Child(v.part(MessagePartActions, id+"/actions", row))
 	}
 	if len(v.reactions) > 0 {
 		row := el.Div().ID(id + "/reactions").Row().Wrap().Gap(theme.SpaceXs)
@@ -177,10 +178,10 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 				v.onReaction(i, r.Active)
 			}))
 		}
-		body.Child(row)
+		body.Child(v.part(MessagePartReactions, id+"/reactions", row))
 	}
 	if v.footer != nil {
-		body.Child(v.metadata(cx, id+"/footer", v.footer, v.footerInset))
+		body.Child(v.part(MessagePartFooter, id+"/footer", v.metadata(cx, id+"/footer", v.footer, v.footerInset)))
 	}
 	article := el.Div().ID(id).W(el.Full).MinW(el.Dp(0)).Role("article").Name(v.author).Value(state).Disabled(v.disabled).Items(el.Stretch)
 	avatar := v.avatar
@@ -188,13 +189,21 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		avatar = Avatar(v.author).Size(28)
 	}
 	if avatar == nil {
-		return article.Child(body)
+		article.Child(v.part(MessagePartStack, id+"/body", body))
+	} else {
+		identity := v.part(MessagePartAvatar, id+"/avatar", el.Div().NoShrink().Child(avatar.Render(cx)))
+		body.Grow().W(el.Dp(0)).Pt(theme.SpaceXs)
+		body = v.part(MessagePartStack, id+"/body", body)
+		article.Row().Gap(10).Items(el.Start)
+		if end {
+			article.Child(body, identity)
+		} else {
+			article.Child(identity, body)
+		}
 	}
-	identity := el.Div().ID(id + "/avatar").NoShrink().Child(avatar.Render(cx))
-	body.Grow().W(el.Dp(0)).Pt(theme.SpaceXs)
-	article.Row().Gap(10).Items(el.Start)
-	if end {
-		return article.Child(body, identity)
+	article = v.part(MessagePartRoot, id, article).Role("article").Name(v.author).Value(state)
+	if v.disabled {
+		article.Disabled(true)
 	}
-	return article.Child(identity, body)
+	return article
 }
