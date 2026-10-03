@@ -75,14 +75,19 @@ func (v *ComboboxView) choose(value string) {
 	}
 	old := v.value
 	if v.multiple {
-		added := !slices.Contains(v.values, value)
-		if added {
+		if slices.Contains(v.values, value) {
+			v.values = slices.DeleteFunc(v.values, func(s string) bool { return s == value })
+			v.value = ""
+			if len(v.values) > 0 {
+				v.value = v.values[len(v.values)-1]
+			}
+		} else {
 			v.values = append(v.values, value)
+			v.value = value
 		}
-		v.value = value
 		v.text = ""
 		v.open = true
-		if added && v.onValues != nil {
+		if v.onValues != nil {
 			v.onValues(v.Values())
 		}
 		v.searchChanged()
