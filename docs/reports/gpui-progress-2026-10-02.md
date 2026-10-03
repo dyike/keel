@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**56 项主体已有、19 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**57 项主体已有、18 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -225,7 +225,9 @@
 
 - [x] 第一百三十六批（`d969857`）：Command 增加内联/无搜索模式、Header/Footer/Empty 插槽、自定义候选及统一行高；保留模态默认行为。内联可显式聚焦，执行不关闭；无搜索模式停止 OnSearch 并使旧结果失效。页头页尾跨加载/失败/空结果保留，自定义行中的子按钮不连带执行命令，万条候选仍按视口构建。测试覆盖模式切换、外部交互/焦点、禁用、异步旧结果拒绝、插槽和嵌套操作；构建、vet、全量测试通过，未做真机视觉验收。组件继续为部分；可变行高、更多事件和搜索配置仍待补齐。
 
-- [x] 第一百三十七批：Command 增加关键词别名、原始条目索引和选择/查询/确认/取消事件；关键词切片复制，过滤不改变事件索引，自定义行按原始索引保持身份。确认先 Action 后回调，参数/监听快照不受 Action 重入影响；选择回调替换数据后不执行旧命令。Esc 先清除非空查询再取消，外部点击直接取消，程序关闭静默；底层 Layer 增加 OnEscape，单行输入的 OnKey 支持 Esc，使内联和模态路径都可工作。测试覆盖事件顺序、禁用跳过、无选择、别名所有权、重入、无 Action 确认、外部取消及图层 Esc 优先级；构建、vet、全量测试通过，未做真机视觉验收。组件继续为部分。
+- [x] 第一百三十七批（`38faac6`）：Command 增加关键词别名、原始条目索引和选择/查询/确认/取消事件；关键词切片复制，过滤不改变事件索引，自定义行按原始索引保持身份。确认先 Action 后回调，参数/监听快照不受 Action 重入影响；选择回调替换数据后不执行旧命令。Esc 先清除非空查询再取消，外部点击直接取消，程序关闭静默；底层 Layer 增加 OnEscape，单行输入的 OnKey 支持 Esc，使内联和模态路径都可工作。测试覆盖事件顺序、禁用跳过、无选择、别名所有权、重入、无 Action 确认、外部取消及图层 Esc 优先级；构建、vet、全量测试通过，未做真机视觉验收。组件继续为部分。
+
+- [x] 第一百三十八批：按组件集中收尾 Command。AutoRowHeight 复用变高虚拟列表，支持实际内容测量、宽度/缩放/主题/模型失效、统一高度切换及远端键盘定位；Separator 过滤首尾/连续分隔并跳过导航，分隔区内部排序。新增悬停选择、方向键循环、ActionName 改绑提示/执行、Icon/Checked、Placeholder/MaxHeight/Bordered/PanelStyle 和查询/选择/计数/加载状态读写。指针不执行命令，静止指针不覆盖键盘高亮；命名动作只在面板聚焦且可用时注册。新增 1×/2× 万条变高定位、窗口变窄测量、分隔过滤、悬停、状态与改绑测试。UI/native/examples/cmd/internal/deps 构建与测试、UI/native vet 通过；全仓构建受独立未跟踪 internal/site 的 copyDemo 缺失阻挡，未修改该目录。登记主要缺口关闭，Command 调整为主体已有；未做真机视觉验收。
 
 ## 当前实施清单
 
@@ -264,7 +266,7 @@
 | [Collapsible](https://gpui-kit.com/component/collapsible/) | 主体已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | 主体覆盖：拆分 Trigger/Content、状态控制与动画；本轮未发现新的主要功能缺口。 |
 | [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 颜色编辑主体已有；GPUI 自带触发器/弹层，Keel 是内联选择器，弹层需组合 Popover；缺触发图标、标签与尺寸配置。 |
 | [Combobox](https://gpui-kit.com/component/combobox/) | 主体已有 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 第一百二十五批补齐 DisableOption，点击/键盘/提交跳过禁用值，配置跨过滤与异步更新保留。第一百二十七批补齐持久 Footer 操作区。第一百三十一批补齐 RenderItem 和统一 RowHeight，支持富内容/行内操作及稳定值身份。第一百三十二批补齐 SetGroups/SetGroupResults 分组及虚拟标题。第一百三十五批补齐 RenderTrigger、状态快照、独立开关/清空动作及面板内搜索，登记主要缺口关闭。自定义触发器自行绘制默认标签/清空入口，候选采用统一行高，程序赋值允许当前候选外的值，这些仍是与上游的接口约定差异。第一百三十四批补齐 OnConfirm 用户关闭确认事件；第一百三十三批补齐 Searchable 关闭搜索模式。第一百二十九批补齐 Size 和 CheckIcon。第一百二十六批补齐多选候选再次选择取消；第一百二十八批补齐 Clearable 单选/多选清空按钮。第一百三十批补齐 ComboboxItem 的稳定值/显示名称/禁用及结构化异步结果；多选标签与异步搜索已有。 |
-| [Command](https://gpui-kit.com/component/command/) | 部分 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 第一百三十六批补齐 Inline、Searchable、Header/Footer/Empty 和 RenderItem/RowHeight；内联不抢焦点、执行后保留，关闭搜索停止查询请求。第一百三十七批补齐 Keywords、原始索引、OnSelect/OnQuery/OnConfirm/OnCancel，以及 Esc 先清词再取消。仍缺按内容测量的可变行高、独立分隔项、指针悬停选择通知和动作绑定提示。 |
+| [Command](https://gpui-kit.com/component/command/) | 主体已有 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 第一百三十六批补齐 Inline、Searchable、Header/Footer/Empty 和 RenderItem/RowHeight；内联不抢焦点、执行后保留，关闭搜索停止查询请求。第一百三十七批补齐 Keywords、原始索引、OnSelect/OnQuery/OnConfirm/OnCancel，以及 Esc 先清词再取消。第一百三十八批集中补齐变高虚拟化、分隔项过滤、悬停选择、动作绑定提示/执行、图标/勾选、面板配置和状态读写，登记主要缺口关闭。自动高度按可见行测量，其余行估算；保留模糊排序、扁平索引及单 root 动作解析，与上游全行测量、IndexPath 和焦点域绑定不同。 |
 | [DataTable](https://gpui-kit.com/component/data-table/) | 部分 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | 主要数据表能力已有；缺独立整列选择模式、列级 selectable/resizable/movable 限制，以及 stripe/密度等公开配置。 |
 | [DatePicker](https://gpui-kit.com/component/date-picker/) | 主体已有 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。第一百二十三批补齐 DateValue/SetDateValue 与 DateTimeValue/SetDateTimeValue，范围独立保存起止时刻，预设和回调携带时刻。范围日历只编辑日期；兼容旧 Value 的纯日期行为，日期格式使用 Go 布局。第一百二十四批补齐独立 FirstWeekday 和恢复 locale 的 ResetFirstWeekday。 |
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 主体已有 | [多列/跨列、横纵标签、富值插槽、分隔线、边框、字号与标签宽度](../../ui/kit/description_list.go) | 第八批已关闭登记缺口。Columns 由调用方设置，不按窗口宽度自动切换；默认仍为无边框单列，保留原用法。 |

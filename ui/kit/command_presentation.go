@@ -50,6 +50,7 @@ func (v *CommandView) Empty(content el.View) *CommandView { v.empty = content; r
 // semantics. Reuse stateful children; nested actions do not execute the command.
 func (v *CommandView) RenderItem(fn func(CommandItem, bool) el.View) *CommandView {
 	v.renderItem = fn
+	v.InvalidateRows()
 	return v
 }
 
@@ -61,6 +62,8 @@ func (v *CommandView) RowHeight(dp float32) *CommandView {
 	}
 	v.rowHeight = dp
 	v.list.rowH = v.itemHeight()
+	v.variable.estimate = v.itemHeight()
+	v.InvalidateRows()
 	if v.active >= 0 {
 		v.list.reveal = v.active
 	}
@@ -94,3 +97,22 @@ func (v *CommandView) confirmActive() {
 		v.run(v.rows[v.active])
 	}
 }
+
+// Placeholder replaces the localized search hint. Empty restores the default.
+func (v *CommandView) Placeholder(text string) *CommandView { v.placeholder = text; return v }
+
+// MaxHeight caps the results viewport in dp. Zero restores 360dp. The actual
+// height also respects the window and supplementary header/footer areas.
+func (v *CommandView) MaxHeight(dp float32) *CommandView {
+	if dp >= 0 && finiteNumber(float64(dp)) {
+		v.maxHeight = dp
+	}
+	return v
+}
+
+// Bordered controls the default frame border, rounding and shadow.
+func (v *CommandView) Bordered(on bool) *CommandView { v.borderless = !on; return v }
+
+// PanelStyle refines each freshly built panel, e.g. width and background.
+// Do not retain the element. Nil removes the customization.
+func (v *CommandView) PanelStyle(fn func(*el.DivEl)) *CommandView { v.panelStyle = fn; return v }

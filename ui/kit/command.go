@@ -2,6 +2,8 @@ package kit
 
 import (
 	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/core"
+	"image/color"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,9 +21,16 @@ import (
 // Keywords adds extra fuzzy-search terms. Constructors and SetItems copy the slice.
 type CommandItem struct {
 	Title, Group, Shortcut string
-	Action                 func()
-	Disabled               bool
-	Keywords               []string
+	// ActionName resolves the default row hint through core.Bindings.
+	// Register the same Action with cx.Action to enable it outside this palette.
+	ActionName string
+	Icon       IconName
+	Checked    bool
+	Action     func()
+	Disabled   bool
+	Keywords   []string
+	// Separator introduces a non-interactive divider; other fields are ignored.
+	Separator bool
 }
 
 // CommandView is a command palette: a search box over a list of commands that
@@ -31,10 +40,18 @@ type CommandItem struct {
 // shortcut yourself: cx.Shortcut("mod+k", palette.Toggle).
 type CommandView struct {
 	list                                *VirtualListView
+	variable                            *VariableListView
+	autoRows, revealActive              bool
 	inline, nonsearchable, pendingFocus bool
 	header, footer, empty               el.View
 	renderItem                          func(CommandItem, bool) el.View
 	rowHeight                           float32
+	maxHeight                           float32
+	placeholder                         string
+	borderless                          bool
+	panelStyle                          func(*el.DivEl)
+	hoveredRow, lastHovered             int
+	themeRevision                       uint64
 	onSelect, onConfirm                 func(int)
 	onCancel                            func()
 	onQuery                             func(string)
@@ -56,7 +73,7 @@ type CommandView struct {
 }
 
 func Command(items ...CommandItem) *CommandView {
-	v := &CommandView{items: cloneCommandItems(items), active: -1, selected: -1}
+	v := &CommandView{items: cloneCommandItems(items), active: -1, selected: -1, lastHovered: -1}
 	v.list = VirtualList(0, 36, v.row).ItemKey(func(i int) string {
 		prefix := "item:"
 		if v.rows[i].header {
@@ -64,11 +81,13 @@ func Command(items ...CommandItem) *CommandView {
 		}
 		return prefix + strconv.Itoa(v.rows[i].index)
 	})
+	v.variable = VariableList(nil, 36, v.row)
 	return v
 }
 func (v *CommandView) SetItems(items ...CommandItem) {
 	v.items = cloneCommandItems(items)
 	v.revision++
+	v.variable.Invalidate()
 	v.active = -1
 }
 func (v *CommandView) Value() bool { return v.open }
@@ -90,6 +109,8 @@ func (v *CommandView) SetValue(open bool) {
 	v.request++ // Invalidate results from an earlier opening.
 	if open {
 		v.query = ""
+		v.selected = -1
+		v.lastHovered = -1
 		v.active = -1
 		v.cached = false
 		v.searchChanged()
@@ -135,7 +156,20 @@ func fuzzy(query, text string) (score int, ok bool) {
 func (v *CommandView) matches() []int {
 	type scored struct{ index, score int }
 	var out []scored
+	var indices []int
+	flush := func() {
+		slices.SortStableFunc(out, func(a, b scored) int { return b.score - a.score })
+		for _, entry := range out {
+			indices = append(indices, entry.index)
+		}
+		out = out[:0]
+	}
 	for index, it := range v.items {
+		if it.Separator {
+			flush()
+			indices = append(indices, index)
+			continue
+		}
 		score, ok := fuzzy(v.query, it.Title)
 		for _, keyword := range it.Keywords {
 			if s, match := fuzzy(v.query, keyword); match && (!ok || s > score) {
@@ -146,11 +180,7 @@ func (v *CommandView) matches() []int {
 			out = append(out, scored{index, score})
 		}
 	}
-	slices.SortStableFunc(out, func(a, b scored) int { return b.score - a.score })
-	indices := make([]int, len(out))
-	for i, s := range out {
-		indices[i] = s.index
-	}
+	flush()
 	return indices
 }
 
@@ -178,18 +208,33 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 	id := autoID("command", v)
 	_, height := cx.ViewportSize()
 	top := min(float32(80), height/8)
-	viewport := max(float32(1), min(float32(360), height-top-72))
+	limit := v.maxHeight
+	if limit == 0 {
+		limit = 360
+	}
+	viewport := max(float32(1), min(limit, height-top-72))
+	if v.themeRevision != theme.Revision() {
+		v.variable.Invalidate()
+		v.themeRevision = theme.Revision()
+	}
+	v.hoveredRow = -1
 	text := locale.Current()
 	v.buildRows()
 	v.list.SetCount(len(v.rows))
 	if v.active < 0 || v.active >= len(v.rows) || v.rowDisabled(v.active) {
 		v.selectActive(base.List{Count: len(v.rows), Disabled: v.rowDisabled}.First())
 		if v.active >= 0 {
-			v.list.ScrollTo(cx, v.active)
+			v.scrollTo(cx, v.active)
 		}
 	}
-	v.queueSelection(cx)
+	if v.revealActive {
+		v.scrollTo(cx, v.active)
+		v.revealActive = false
+	}
 	keyHandler := func(e el.KeyEvent) bool {
+		if v.boundKey(e) {
+			return true
+		}
 		if e.Modifiers != 0 {
 			return false
 		}
@@ -205,19 +250,23 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 			}
 			return true
 		}
-		i, ok := base.List{Count: len(v.rows), Disabled: v.rowDisabled}.Key(e.Name, v.active)
+		i, ok := base.List{Count: len(v.rows), Disabled: v.rowDisabled, Wrap: true}.Key(e.Name, v.active)
 		if !ok {
 			return false
 		}
 		if e.State == el.KeyPress && i >= 0 {
 			v.selectActive(i)
-			v.list.ScrollTo(cx, i)
+			v.scrollTo(cx, i)
 			v.notifySelection()
 		}
 		return true
 	}
-	search := el.Input().ID(id + "/search").Name(text.SearchCommands).Placeholder(text.SearchCommands).Bind(&v.query).
-		OnChange(func(string) { v.queryChanged(); cx.ScrollTo(v.list.ID(), 0) }).
+	placeholder := v.placeholder
+	if placeholder == "" {
+		placeholder = text.SearchCommands
+	}
+	search := el.Input().ID(id + "/search").Name(text.SearchCommands).Placeholder(placeholder).Bind(&v.query).
+		OnChange(func(string) { v.queryChanged(); cx.ScrollTo(v.listID(), 0) }).
 		OnSubmit(func(string) { v.confirmActive() }).OnKey(keyHandler)
 	// Bound supplementary content separately so a long header/footer cannot hide
 	// the list. The conservative reservation does not require a measurement pass.
@@ -241,11 +290,35 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 			results = el.Div().MaxH(el.Dp(viewport)).ScrollY().Child(v.empty.Render(cx))
 		}
 	default:
-		v.list.SetCount(len(v.rows))
-		v.list.Height(min(viewport, float32(len(v.rows))*v.itemHeight()))
-		results = el.Div().Role("listbox").Name(text.Commands).Items(el.Stretch).Child(v.list.Render(cx))
+		results = el.Div().Role("listbox").Name(text.Commands).Items(el.Stretch).Child(v.renderList(cx, viewport))
+	}
+	hovered := -1
+	if v.hoveredRow >= 0 {
+		hovered = v.rows[v.hoveredRow].index
+	}
+	if hovered != v.lastHovered && v.hoveredRow >= 0 {
+		v.selectActive(v.hoveredRow)
+	}
+	v.lastHovered = hovered
+	v.queueSelection(cx)
+	// Resolve bindings each render so hints and handlers follow rebinding.
+	for _, entry := range v.rows {
+		if entry.header || entry.item.Separator || entry.item.Disabled || entry.item.ActionName == "" || !cx.FocusWithin(id+"/panel") || !cx.Enabled(id+"/panel") {
+			continue
+		}
+		cx.Action(entry.item.ActionName, func() {
+			if cx.Enabled(id+"/panel") && cx.FocusWithin(id+"/panel") {
+				v.run(entry)
+			}
+		})
 	}
 	panel := floating(theme.ElevationLg).ID(id + "/panel").Role("group").Name(text.Commands).Disabled(v.disabled).W(el.Dp(560)).MaxW(el.Full).Items(el.Stretch)
+	if v.borderless {
+		panel.Border(0, color.NRGBA{}).Rounded(0).Shadow(theme.Elevation{})
+	}
+	if v.panelStyle != nil {
+		v.panelStyle(panel)
+	}
 	if v.nonsearchable {
 		panel.Focusable(true).OnKey(keyHandler)
 	}
@@ -295,26 +368,72 @@ func (v *CommandView) buildRows() {
 	}
 	v.rows = v.rows[:0]
 	group := ""
+	pending := -1
 	for _, index := range indices {
 		item := v.items[index]
+		if item.Separator {
+			pending = index
+			continue
+		}
+		if pending >= 0 && len(v.rows) > 0 {
+			v.rows = append(v.rows, commandRow{item: CommandItem{Separator: true}, index: pending})
+			group = ""
+		}
+		pending = -1
 		if item.Group != "" && item.Group != group {
 			v.rows = append(v.rows, commandRow{item: CommandItem{Title: item.Group}, header: true, index: index})
 		}
 		group = item.Group
 		v.rows = append(v.rows, commandRow{item: item, index: index})
 	}
-
+	keys := make([]string, len(v.rows))
+	for i, row := range v.rows {
+		prefix := "item:"
+		if row.header {
+			prefix = "group:"
+		}
+		if row.item.Separator {
+			prefix = "separator:"
+		}
+		keys[i] = prefix + strconv.Itoa(row.index)
+	}
+	v.variable.SetKeys(keys)
+	// Preserve original model coordinates when entries are refreshed or filtered.
+	if v.active < 0 && v.selected >= 0 {
+		for i, row := range v.rows {
+			if !v.rowDisabled(i) && row.index == v.selected {
+				v.active = i
+				break
+			}
+		}
+	}
 }
-func (v *CommandView) rowDisabled(i int) bool { return v.rows[i].header || v.rows[i].item.Disabled }
+func (v *CommandView) rowDisabled(i int) bool {
+	return v.rows[i].header || v.rows[i].item.Separator || v.rows[i].item.Disabled
+}
 func (v *CommandView) row(cx *el.Context, i int) el.Element {
 	entry := v.rows[i]
 	it := entry.item
+	if it.Separator {
+		height := v.itemHeight()
+		if v.autoRows {
+			height = 9
+		}
+		return el.Div().Role("separator").H(el.Dp(height)).Px(theme.SpaceMd).Justify(el.Center).Child(el.Div().H(el.Dp(1)).Bg(theme.Border))
+	}
 	if entry.header {
 		// Group headings share the configured virtual slot height.
 		return el.Div().H(el.Dp(v.itemHeight())).Px(theme.SpaceXl).Pb(theme.SpaceXs).Justify(el.End).Child(el.Text(it.Title).Bold().TextSize(theme.TextSm).TextColor(theme.Muted))
 	}
 	// Keep a 2dp margin on each side of the virtual slot.
-	row := el.Div().Role("option").Name(it.Title).Selected(i == v.active).Disabled(it.Disabled).H(el.Dp(max(1, v.itemHeight()-4))).My(2).Mx(6).Px(10).Rounded(theme.RadiusMd).Row().Items(el.Center).Gap(theme.SpaceMd).Focusable(false)
+	rowID := autoID("command", v) + "/item:" + strconv.Itoa(entry.index)
+	if !it.Disabled && !v.loading && v.searchError == "" && cx.Hovered(rowID) {
+		v.hoveredRow = i
+	}
+	row := el.Div().ID(rowID).Role("option").Name(it.Title).Selected(i == v.active).Disabled(it.Disabled).H(el.Dp(max(1, v.itemHeight()-4))).My(2).Mx(6).Px(10).Rounded(theme.RadiusMd).Row().Items(el.Center).Gap(theme.SpaceMd).Focusable(false)
+	if v.autoRows {
+		row.H(el.Auto).MinH(el.Dp(max(1, v.itemHeight()-4)))
+	}
 	if !it.Disabled {
 		row.Child(el.Div().ID("activate").Absolute().Top(0).Left(0).W(el.Full).H(el.Full).OnClick(func() {
 			revision, request := v.revision, v.request
@@ -334,6 +453,9 @@ func (v *CommandView) row(cx *el.Context, i int) el.Element {
 	if content != nil {
 		row.Child(el.Div().ID("content").Grow().MinW(el.Dp(0)).Child(content.Render(cx)))
 	} else {
+		if it.Icon != IconNone {
+			row.Child(Icon(it.Icon).Size(16).Render(cx))
+		}
 		row.Child(el.Text(it.Title).Grow().MaxLines(1))
 	}
 	if !it.Disabled {
@@ -344,8 +466,19 @@ func (v *CommandView) row(cx *el.Context, i int) el.Element {
 			row.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 		}
 	}
-	if content == nil && it.Shortcut != "" {
-		row.Child(Kbd(it.Shortcut).Render(cx))
+	if content == nil {
+		shortcut := it.Shortcut
+		if it.ActionName != "" {
+			shortcut = ""
+			if bindings := core.Bindings(it.ActionName); len(bindings) > 0 {
+				shortcut = bindings[0]
+			}
+		}
+		if shortcut != "" {
+			row.Child(Kbd(shortcut).Render(cx))
+		} else if it.Checked {
+			row.Child(Icon(IconDone).Size(16).Render(cx))
+		}
 	}
 	return row
 }

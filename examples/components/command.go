@@ -10,11 +10,13 @@ import (
 
 func init() {
 	registerSection("command", "overlays", func() core.Widget {
+		core.Bind("demo.command.new", "mod+n")
 		msg := "按 ⌘K / Ctrl+K 或点击按钮打开命令面板"
 		do := func(s string) func() { return func() { msg = "已执行：" + s } }
 		items := []kit.CommandItem{
-			kit.CommandItem{Title: "新建订单", Group: "订单", Shortcut: "mod+n", Action: do("新建订单")},
+			kit.CommandItem{Title: "新建订单", Group: "订单", ActionName: "demo.command.new", Icon: kit.IconPlus, Action: do("新建订单")},
 			kit.CommandItem{Title: "导出 CSV（暂无权限）", Group: "订单", Disabled: true, Action: do("导出 CSV")},
+			kit.CommandItem{Separator: true},
 			kit.CommandItem{Title: "打开设置", Keywords: []string{"preferences", "settings"}, Group: "偏好", Shortcut: "mod+,", Action: do("打开设置")},
 			kit.CommandItem{Title: "切换深色模式 Dark mode", Group: "偏好", Action: func() { theme.Apply(theme.Dark()) }},
 			kit.CommandItem{Title: "New window", Shortcut: "mod+shift+n", Action: do("New window")},
@@ -23,12 +25,12 @@ func init() {
 			title := fmt.Sprintf("命令 %05d", i)
 			items = append(items, kit.CommandItem{Title: title, Group: "更多", Action: do(title)})
 		}
-		cmd := kit.Command(items...).OnCancel(func() { msg = "已关闭命令面板" }).OnConfirm(func(index int) { msg += fmt.Sprintf("（条目 %d）", index) }).Header(el.ViewFunc(func(*el.Context) el.Element {
+		cmd := kit.Command(items...).AutoRowHeight(true).Placeholder("搜索命令或 settings").OnCancel(func() { msg = "已关闭命令面板" }).OnConfirm(func(index int) { msg += fmt.Sprintf("（条目 %d）", index) }).Header(el.ViewFunc(func(*el.Context) el.Element {
 			return el.Div().P(12).Child(el.Text("搜索并执行命令"))
 		})).Footer(el.ViewFunc(func(*el.Context) el.Element {
 			return el.Div().P(12).Child(el.Text("↑↓ 选择 · Enter 执行 · Esc 关闭").TextColor(theme.Muted))
 		}))
-		quick := kit.Command(items[:3]...).Searchable(false).Inline(true).RowHeight(48).
+		quick := kit.Command(items[:4]...).Searchable(false).Inline(true).AutoRowHeight(true).MaxHeight(240).Bordered(false).
 			RenderItem(func(item kit.CommandItem, active bool) el.View {
 				return el.ViewFunc(func(*el.Context) el.Element {
 					return el.Div().Child(el.Text(item.Title), el.Text("快速操作").TextSize(theme.TextSm).TextColor(theme.Muted))
