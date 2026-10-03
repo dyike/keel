@@ -35,3 +35,7 @@ details.PanelStyle(func(panel *el.DivEl) {
     panel.Bg(theme.Surface).Border(1, theme.Border).P(24).Gap(theme.SpaceLg)
 })
 ```
+
+`Resizable(bool)` 控制内侧边缘的 6dp 调整把手，默认开启。左右面板拖动宽度，上下面板拖动高度；把手支持 Tab 聚焦，方向键沿对应轴移动 16dp，Home/End 调到最小/最大尺寸。用户调整范围为 80dp 到可用窗口尺寸；窗口不足 80dp 时以实际空间为限，垂直方向扣除 MarginTop。
+
+`PanelSize()` 返回请求尺寸；`OnResize(func(float32))` 通知用户调整结果，程序调用 Size 不触发。调整从屏幕上的实际尺寸开始；取消指针拖动恢复起始尺寸（仍受当前窗口约束）。关闭、禁用调整或程序设置尺寸会结束当前拖动。应用可在回调中保存尺寸；重新打开仍保留尺寸。默认新增把手会增加一个键盘停靠点，可用 Resizable(false) 恢复固定尺寸行为。

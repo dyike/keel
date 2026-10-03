@@ -20,18 +20,22 @@ const SheetSlide = 200 * time.Millisecond
 // details, a long form. It closes on Esc, a press on the scrim, or its close
 // button, and returns focus where it was.
 type SheetView struct {
-	side                                          el.Side
-	title                                         string
-	body                                          el.View
-	size                                          float32
-	marginTop                                     float32
-	panelStyle                                    func(*el.DivEl)
-	open                                          bool
-	disabled                                      bool
-	openedAt                                      time.Time
-	onClose                                       func()
-	footer                                        []el.View
-	keyboardOff, overlayOff, outsideOff, closeOff bool
+	side                                                el.Side
+	title                                               string
+	body                                                el.View
+	size                                                float32
+	marginTop                                           float32
+	panelStyle                                          func(*el.DivEl)
+	resizeOff                                           bool
+	resizing                                            bool
+	resizeGrab, resizeStart, resizePainted, resizeLimit float32
+	onResize                                            func(float32)
+	open                                                bool
+	disabled                                            bool
+	openedAt                                            time.Time
+	onClose                                             func()
+	footer                                              []el.View
+	keyboardOff, overlayOff, outsideOff, closeOff       bool
 }
 
 // Sheet creates a sheet against side (el.Right, el.Left, el.Top, el.Bottom).
@@ -49,6 +53,7 @@ func (v *SheetView) SetValue(open bool) {
 	v.open = open && !v.disabled
 	if !v.open {
 		v.openedAt = time.Time{}
+		v.resizing = false
 	}
 }
 
@@ -62,6 +67,7 @@ func (v *SheetView) CloseButton(on bool) *SheetView     { v.closeOff = !on; retu
 // Size sets the width (left/right) or height (top/bottom) in dp, 360 by default.
 func (v *SheetView) Size(dp float32) *SheetView {
 	if dp > 0 && finiteNumber(float64(dp)) {
+		v.resizing = false
 		v.size = dp
 	}
 	return v
@@ -147,25 +153,34 @@ func (v *SheetView) Render(cx *el.Context) el.Element {
 		}
 		panel.Child(footer)
 	}
-	if progress < 1 {
+	if !v.resizeOff {
+		panel.Child(v.resizeHandle(id, cx))
+	}
+	panel.Decorate(func(gtx core.C, draw func()) {
+		w, h := cx.LayoutSize(panel)
+		v.resizePainted = w
+		if !horizontal {
+			v.resizePainted = h
+		}
+		if progress >= 1 {
+			draw()
+			return
+		}
 		// Slide in from the edge: shift painting and hit areas together.
 		remaining := 1 - progress
-		panel.Decorate(func(gtx core.C, draw func()) {
-			w, h := cx.LayoutSize(panel)
-			size := w
-			if !horizontal {
-				size = h
-			}
-			scale := gtx.Metric.PxPerDp
-			if scale <= 0 {
-				scale = 1
-			}
-			d := scale * size * remaining * remaining // ease out using the fitted size
-			off := map[el.Side]image.Point{el.Right: {int(d), 0}, el.Left: {-int(d), 0}, el.Bottom: {0, int(d)}, el.Top: {0, -int(d)}}[v.side]
-			defer op.Offset(off).Push(gtx.Ops).Pop()
-			draw()
-		})
-	}
+		size := w
+		if !horizontal {
+			size = h
+		}
+		scale := gtx.Metric.PxPerDp
+		if scale <= 0 {
+			scale = 1
+		}
+		d := scale * size * remaining * remaining // ease out using the fitted size
+		off := map[el.Side]image.Point{el.Right: {int(d), 0}, el.Left: {-int(d), 0}, el.Bottom: {0, int(d)}, el.Top: {0, -int(d)}}[v.side]
+		defer op.Offset(off).Push(gtx.Ops).Pop()
+		draw()
+	})
 	return el.Div().ID(id).Absolute().Size(el.Dp(0)).Disabled(v.disabled)
 }
 

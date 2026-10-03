@@ -31,7 +31,7 @@ func newSheetGallery() *sheetGallery {
 
 func (g *sheetGallery) Render(cx *el.Context) el.Element {
 	return el.Div().P(24).Gap(12).Items(el.Start).Child(
-		el.Text("Sheet：从窗口边缘滑入，Esc 或点遮罩关闭").Bold(),
+		el.Text("Sheet：拖动内侧边缘调整尺寸，Esc 或点遮罩关闭").Bold(),
 		el.Div().Row().Gap(8).Child(
 			kit.Button("右侧详情", func() { g.right.SetValue(true) }).Render(cx),
 			kit.Button("底部面板", func() { g.bottom.SetValue(true) }).Variant(kit.ButtonSecondary).Render(cx),
