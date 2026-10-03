@@ -13,7 +13,17 @@ func init() {
 	registerSection("notifier", "overlays", func() core.Widget {
 		n := kit.Notifier()
 		n.Notify(kit.Notice{Title: "默认位置", Body: "这条通知跟随容器的位置设置。", Timeout: -1})
-		n.Notify(kit.Notice{Title: "左下角覆盖", Body: "这条通知固定在左下角。", Placement: kit.NoticeBottomLeft, Timeout: -1})
+		var richID int
+		richID = n.Notify(kit.Notice{
+			Title: "富内容与操作", Placement: kit.NoticeBottomLeft, Timeout: -1,
+			Content: el.ViewFunc(func(cx *el.Context) el.Element {
+				return el.Div().Gap(8).Child(
+					el.Text("下载完成，可以打开文件。"),
+					kit.Tag("report.pdf").Render(cx),
+				)
+			}),
+			Action: kit.Button("完成并关闭", func() { n.Dismiss(richID) }).Variant(kit.ButtonSecondary),
+		})
 		return el.Root(&notifierGallery{n: n})
 	})
 }

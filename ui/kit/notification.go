@@ -23,6 +23,10 @@ type Notice struct {
 	Tone        Tone
 	Timeout     time.Duration
 	Placement   NoticePlacement
+	// Content replaces Body when non-nil; Title remains the accessible name.
+	Content el.View
+	// Action renders below the body. Call Dismiss explicitly to close on action.
+	Action el.View
 }
 
 type notice struct {
@@ -100,10 +104,19 @@ func (v *NotifierView) card(cx *el.Context, base string, n notice) el.Element {
 	if timeout > 0 {
 		cx.Countdown(id, noticeKey{base, n.id, n.revision}, timeout, cx.Hovered(id) || cx.FocusWithin(id), func() { v.Dismiss(n.id) })
 	}
-	text := el.Div().Grow().Gap(theme.SpaceXs).Child(el.Text(n.Title).Bold().TextColor(n.Tone.color()))
-	if n.Body != "" {
-		text.Child(el.Text(n.Body).TextSize(theme.TextMd).TextColor(theme.Muted))
+	text := el.Div().ID(id + "/text").Grow().MinW(el.Dp(0)).Gap(theme.SpaceXs).Child(el.Text(n.Title).Bold().TextColor(n.Tone.color()))
+	body := el.Div().ID(id + "/body").W(el.Full).MinW(el.Dp(0))
+	if n.Content != nil {
+		body.Child(n.Content.Render(cx))
+	} else if n.Body != "" {
+		body.Child(el.Text(n.Body).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
+	text.Child(body.Hidden(n.Content == nil && n.Body == ""))
+	action := el.Div().ID(id + "/action").W(el.Full).MinW(el.Dp(0)).Items(el.Start)
+	if n.Action != nil {
+		action.Child(n.Action.Render(cx))
+	}
+	text.Child(action.Hidden(n.Action == nil))
 	return floating(theme.ElevationMd).NoShrink().ID(id).Role("status").Name(n.Title).Value(n.Tone.name()).P(theme.SpaceLg).Row().Gap(10).Items(el.Start).Child(
 		el.Div().W(el.Dp(4)).H(el.Dp(20)).Rounded(theme.RadiusFull).Bg(n.Tone.color()),
 		text,

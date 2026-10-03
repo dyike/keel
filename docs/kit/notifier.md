@@ -35,3 +35,22 @@ n.Notify(kit.Notice{Title: "下载完成", Placement: kit.NoticeBottomLeft})
 ```
 
 默认位置属于 Notifier 实例，不写入全局主题。多个位置的通知栈分别限制在窗口范围内，不自动避让其他栈；窄窗口同时启用多个位置时可能重叠。
+
+
+`Notice.Content` 接受任意 `el.View`，非 nil 时替换 Body，Title 仍显示并作为通知的可访问名称；nil 恢复普通正文。可放富文本、图片或交互控件。`Notice.Action` 是正文下方的独立 View 槽，可放一个完整配置的 Button，或组合多个操作。点击操作不会自动关闭通知，需要时在回调里调用 `Dismiss(id)`。
+
+```go
+var id int
+id = n.Notify(kit.Notice{
+    Title: "连接中断", Timeout: -1,
+    Content: kit.Label("请检查网络后重试。"),
+    Action: kit.Button("重试", func() {
+        retry()
+        n.Dismiss(id)
+    }).Variant(kit.ButtonPrimary),
+})
+```
+
+正文和操作区保留独立稳定身份；Update 可替换或清空这两个槽。复用有状态 View 时应保持实例稳定，不要把同一个交互实例同时放进多条通知。自定义内容应适应通知可用宽度。焦点进入任一子控件都会暂停倒计时，所属容器禁用会同时禁用内容和操作；排队通知在实际显示后才渲染内容。
+
+不同位置属于不同浮层；移动通知到另一个位置时不保留子控件键盘焦点。需要连续编辑的通知应保持位置固定。
