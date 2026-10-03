@@ -1,6 +1,11 @@
 package kit
 
-import "testing"
+import (
+	"gioui.org/io/key"
+	"github.com/dyike/keel/ui/el"
+	"math"
+	"testing"
+)
 
 func TestTagWrapsAndUpdates(t *testing.T) {
 	for _, scale := range []int{1, 2} {
@@ -60,5 +65,51 @@ func TestTagSelectionRemovalAndDisabled(t *testing.T) {
 	click(t, h, "移除 标签")
 	if removes != 2 {
 		t.Fatal("restore failed")
+	}
+}
+
+func TestTagRichContentSizeAndInheritedDisable(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		changes, removes := 0, 0
+		disabled := false
+		v := Tag("Rich").Outline(true).Rounded(0).Size(32).Content(text("Custom label")).Selectable().OnChange(func(bool) { changes++ }).OnRemove(func() { removes++ })
+		h := renderView(viewFunc(func(cx *el.Context) el.Element { return el.Div().Disabled(disabled).Child(v.Render(cx)) }), 110, scale)
+		n, ok := semanticNode(h, "tag:neutral")
+		if !ok || n.Desc.Bounds.Dx() > 110*scale || n.Desc.Bounds.Dy() < 32*scale || !shown(h, "Custom label") {
+			t.Fatal("rich layout", n)
+		}
+		click(t, h, "切换 Rich")
+		h.Key(key.NameSpace, 0)
+		if changes != 2 || v.Value() {
+			t.Fatal("rich keyboard selection")
+		}
+		click(t, h, "移除 Rich")
+		if removes != 1 || changes != 2 {
+			t.Fatal("rich removal selected")
+		}
+		disabled = true
+		h.Frame()
+		click(t, h, "切换 Rich")
+		click(t, h, "移除 Rich")
+		if changes != 2 || removes != 1 {
+			t.Fatal("inherited disable")
+		}
+		disabled = false
+		v.SetValue(true)
+		v.Content(nil)
+		h.Frame()
+		if shown(h, "Custom label") || changes != 2 {
+			t.Fatal("reset or setter callback")
+		}
+		v.Size(float32(math.NaN())).Size(-1).Rounded(-1).Rounded(float32(math.Inf(1)))
+		if v.height != 32 || *v.radius != 0 {
+			t.Fatal("invalid style accepted")
+		}
+		v.Size(20)
+		h.Frame()
+		n, _ = semanticNode(h, "tag:neutral")
+		if n.Desc.Bounds.Dy() >= 32*scale {
+			t.Fatal("small size did not shrink", n.Desc.Bounds)
+		}
 	}
 }

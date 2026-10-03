@@ -17,7 +17,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Empty](../../docs/kit/empty.md) | 空状态说明 |
 | [Avatar](../../docs/kit/avatar.md) | 固定尺寸头像和姓名回退 |
 | [AvatarGroup](../../docs/kit/avatar_group.md) | 叠放头像组、人数上限与溢出标记 |
-| [Tag](../../docs/kit/tag.md) | 可选择、可移除标签 |
+| [Tag](../../docs/kit/tag.md) | 可选择/移除标签，描边、尺寸、圆角、自定义内容与配色 |
 | [DescriptionList](../../docs/kit/description_list.md) | 多列/跨列、横纵标签、自定义值与分隔线 |
 | [GroupBox](../../docs/kit/group_box.md) | 带标题的视图分组 |
 | [StatusBar](../../docs/kit/status_bar.md) | 固定 24dp 左右状态栏 |
