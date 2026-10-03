@@ -13,10 +13,12 @@ func init() {
 		set := func(s string) func() { return func() { msg = s } }
 		export := kit.DropdownButton("导出", kit.Menu().Item("PDF", "", set("导出 PDF")).Item("CSV", "", set("导出 CSV"))).Variant(kit.ButtonSecondary)
 		save := kit.DropdownButton("保存", kit.Menu().Item("另存为…", "mod+shift+s", set("另存为")).Item("保存全部", "", set("保存全部"))).Split(set("保存"))
+		busy := kit.DropdownButton("保存中", kit.Menu().Item("查看记录", "", set("查看记录"))).Button(kit.Button("保存中", nil).Icon(kit.IconDone).Loading(true).Variant(kit.ButtonSecondary).Size(40))
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(12).Items(el.Start).Child(
 				el.Text("DropdownButton：整体打开菜单，或分体（主操作 + 箭头）").Bold(),
 				el.Div().Row().Gap(12).Child(export.Render(cx), save.Render(cx)),
+				busy.Render(cx),
 				el.Text(msg).TextColor(theme.Muted),
 			)
 		}))
