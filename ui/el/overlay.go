@@ -2,6 +2,7 @@ package el
 
 import (
 	"image"
+	"math"
 
 	"gioui.org/io/event"
 	"gioui.org/io/key"
@@ -31,6 +32,7 @@ type Layer struct {
 	side                         Side
 	align                        Align
 	offset                       float32
+	topInset                     float32
 	arrow                        bool
 	matchWidth                   bool
 	modal, centered, trap, scrim bool
@@ -53,6 +55,16 @@ func Modal(content Element) *Layer {
 // e.g. a sheet: Modal(panel).Placement(Right, Start).
 func (l *Layer) Placement(side Side, align Align) *Layer {
 	l.side, l.align, l.edge = side, align, l.centered
+	return l
+}
+
+// TopInset reserves space above an edge-positioned modal, in dp. The inset
+// is capped at the root height. Other layer placements ignore it. The scrim
+// still covers the root; painting and input stay below the inset, even in animation.
+func (l *Layer) TopInset(dp float32) *Layer {
+	if dp >= 0 && !math.IsNaN(float64(dp)) && !math.IsInf(float64(dp), 0) {
+		l.topInset = dp
+	}
 	return l
 }
 
@@ -339,15 +351,25 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 			// search field) would otherwise take the whole root.
 			n.style.w = Dp(float32(anchor.Dx()) / scale)
 		}
-		r.e.layout(n, maxSize.X, maxSize.Y, base)
+		available := maxSize
+		inset := 0
+		if l.edge {
+			scale := r.e.m.PxPerDp
+			if scale <= 0 {
+				scale = 1
+			}
+			inset = min(maxSize.Y, r.e.dp(min(l.topInset, float32(maxSize.Y)/scale)))
+			available.Y -= inset
+		}
+		r.e.layout(n, available.X, available.Y, base)
 		r.e.place(n)
 		actualSide := l.side
 		if l.edge {
-			n.pos = layerPosition(image.Rectangle{Max: maxSize}, n.size, maxSize, l.side, l.align, 0)
+			n.pos = layerPosition(image.Rectangle{Max: available}, n.size, available, l.side, l.align, 0)
 			// Inside the root rectangle: Bottom/Right mean against that edge.
 			switch l.side {
 			case Bottom:
-				n.pos.Y = maxSize.Y - n.size.Y
+				n.pos.Y = available.Y - n.size.Y
 			case Top:
 				n.pos.Y = 0
 			case Left:
@@ -355,7 +377,7 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 			case Right:
 				n.pos.X = maxSize.X - n.size.X
 			}
-			n.pos = image.Pt(max(0, n.pos.X), max(0, n.pos.Y))
+			n.pos = image.Pt(max(0, n.pos.X), max(0, n.pos.Y)+inset)
 		} else if l.centered {
 			n.pos = image.Pt(max(0, (maxSize.X-n.size.X)/2), max(0, (maxSize.Y-n.size.Y)/2))
 		} else {
@@ -404,7 +426,9 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 		if i < modal {
 			core.Role("el-inert").Add(gtx.Ops)
 		}
+		contentClip := clip.Rect{Min: image.Pt(0, inset), Max: maxSize}.Push(gtx.Ops)
 		r.e.paint(n)
+		contentClip.Pop()
 		if arrow != nil {
 			arrow.paint(gtx.Ops, n.style)
 		}

@@ -24,6 +24,7 @@ type SheetView struct {
 	title                                         string
 	body                                          el.View
 	size                                          float32
+	marginTop                                     float32
 	open                                          bool
 	disabled                                      bool
 	openedAt                                      time.Time
@@ -65,6 +66,15 @@ func (v *SheetView) Size(dp float32) *SheetView {
 	return v
 }
 
+// MarginTop reserves space above the panel in dp; zero restores full height.
+// Invalid values are ignored. The modal scrim still covers the whole window.
+func (v *SheetView) MarginTop(dp float32) *SheetView {
+	if dp >= 0 && finiteNumber(float64(dp)) {
+		v.marginTop = dp
+	}
+	return v
+}
+
 func (v *SheetView) close() {
 	if !v.open {
 		return
@@ -101,7 +111,7 @@ func (v *SheetView) Render(cx *el.Context) el.Element {
 		header.Child(Button("", v.close).ID(id + "/close").Name(locale.Current().Close).Icon(IconClose).Variant(ButtonGhost).Size(28).Render(cx))
 	}
 	panel.Child(header)
-	layer := el.Modal(panel).Owner(id).Placement(v.side, el.Start).OnDismiss(v.close).Scrim(!v.overlayOff)
+	layer := el.Modal(panel).Owner(id).Placement(v.side, el.Start).TopInset(v.marginTop).OnDismiss(v.close).Scrim(!v.overlayOff)
 	if v.keyboardOff {
 		layer.KeepOnEscape()
 	}
