@@ -173,7 +173,9 @@
 
 - [x] 第一百一十批（`e9606b1`）：Linux 系统通知支持 Message.OnClick，要求服务声明 actions，投递 default 动作并接收 ActionInvoked；当前 owner 校验、单次消费、关闭/撤回/普通替换/重启清理回调，失败替换保留旧回调。顺序信号处理保留打开与关闭次序，用户回调在锁外独立 goroutine 执行。协议测试覆盖能力缺失、动作参数、外部/未知/重复/关闭后信号和回调生命周期，native race、构建、vet、全量测试及跨平台包构建通过。Linux 示例接入 kit 交互后端；未真机验收，ActivationToken、Windows 后端仍待补。
 
-- [x] 第一百一十一批（验收示例）：通知示例保留最近 12 条事件并支持滚动，记录窗口置前请求、应用内关闭、业务打开及系统请求结果，避免撤回完成文案覆盖点击结果；普通卡片点击不再误称系统点击。文档补充预期顺序和超时／仅系统模式区别。构建、vet、全量测试通过；真实 .app 已确认事件记录显示，权限请求返回 native: operation failed: status 7，尚未进入系统投递验收。此批不代表系统通知真机验收完成，Notification 仍为部分。
+- [x] 第一百一十一批（`5a0600b`，验收示例）：通知示例保留最近 12 条事件并支持滚动，记录窗口置前请求、应用内关闭、业务打开及系统请求结果，避免撤回完成文案覆盖点击结果；普通卡片点击不再误称系统点击。文档补充预期顺序和超时／仅系统模式区别。构建、vet、全量测试通过；真实 .app 已确认事件记录显示，权限请求返回 native: operation failed: status 7，尚未进入系统投递验收。此批不代表系统通知真机验收完成，Notification 仍为部分。
+
+- [x] 第一百一十二批（macOS 通知错误）：权限申请和投递保留 NSError 的 domain、code 与本地化说明，NotificationsNotAllowed 正确包装 ErrPermissionDenied，其他错误包装 ErrFailed，支持 errors.Is。真实 .app 已复现并读到 UNErrorDomain (1)，修正此前一律 status 7 的误分类；错误分类测试覆盖同码不同域、未知错误及负系统码；构建、vet、全量测试及 native race 测试通过。成功授权、通知展示与点击仍未验收，Notification 继续为部分。
 
 ## 当前实施清单
 

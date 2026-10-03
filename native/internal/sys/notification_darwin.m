@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 extern void keel_notification_done(uintptr_t token, int code);
+extern void keel_notification_failed(uintptr_t token, const char *domain, int64_t code, const char *description);
 extern void keel_notification_clicked(const char *id);
 
 @interface KeelNotificationDelegate : NSObject <UNUserNotificationCenterDelegate>
@@ -50,7 +51,11 @@ void keel_notification_permission(uintptr_t token) {
         [UNUserNotificationCenter.currentNotificationCenter
             requestAuthorizationWithOptions:UNAuthorizationOptionAlert
             completionHandler:^(BOOL granted, NSError *error) {
-                keel_notification_done(token, error ? 7 : (granted ? 0 : 1));
+                if (error) {
+                    keel_notification_failed(token, error.domain.UTF8String, (int64_t)error.code, error.localizedDescription.UTF8String);
+                } else {
+                    keel_notification_done(token, granted ? 0 : 1);
+                }
             }];
     });
 }
@@ -75,7 +80,11 @@ void keel_notification_post(const char *id, const char *title, const char *body,
                 }
                 UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:nil];
                 [center addNotificationRequest:request withCompletionHandler:^(NSError *error) {
-                    keel_notification_done(token, error ? 7 : 0);
+                    if (error) {
+                        keel_notification_failed(token, error.domain.UTF8String, (int64_t)error.code, error.localizedDescription.UTF8String);
+                    } else {
+                        keel_notification_done(token, 0);
+                    }
                 }];
             }];
         });

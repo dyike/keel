@@ -16,7 +16,7 @@ notification.Remove("download/report", func(err error) {})
 ```
 
 - `Available()` 只检查平台实现和应用包身份，不检查授权、签名信任或系统展示策略。
-- `RequestPermission` 申请 alert 权限；`Post` 不自动弹权限提示，未授权返回 `ErrPermissionDenied`。
+- `RequestPermission` 申请 alert 权限；`Post` 不自动弹权限提示，未授权返回 `ErrPermissionDenied`。macOS 的 NSError 保留 domain、code 和本地化说明；`UNErrorDomain` 的 NotificationsNotAllowed 映射为 `ErrPermissionDenied`，其他系统错误包装 `ErrFailed`，用 `errors.Is` 判断分类，不要比较完整错误字符串。
 - ID 在整个应用内共享，非空且不能包含 NUL；正文或标题至少一个非空，所有字符串必须是合法 UTF-8。相同 ID 重新投递由系统替换已有请求。
 - 完成回调在独立 goroutine 执行，可传 nil。UI 修改应放进 `core.Update`；不要等待异步完成时阻塞主线程。
 - 同一 ID 的操作应等待前一次完成后再执行，避免异步投递和撤回交错。Remove 同时撤回待投递与已送达项；系统没有撤回完成确认，回调成功仅表示已发出撤回调用。
@@ -69,4 +69,6 @@ macOS 可设置 `Message.OnClick`。收到系统默认打开动作后，回调�
 
 Linux 默认动作使用 `default` 标识，监听 ActionInvoked 并消费对应业务 ID 的回调一次；仅接受当前服务 owner 的信号。NotificationClosed、成功 Remove、无回调替换和服务重启都会释放注册。信号使用顺序处理器，保留打开后关闭的处理顺序；回调在连接锁外的独立 goroutine 执行，可以继续投递或撤回。失败替换不丢失原有回调。当前没有接入 ActivationToken，无法保证 Wayland 上点击后窗口置前。
 
-2026-10-03 开发验收：临时签名 .app 的示例窗口和事件记录显示正常；权限请求返回 `native: operation failed: status 7`。因此本次未验证成功授权、系统横幅、替换／撤回或点击置前；该错误尚未保留系统原始错误信息，需要继续排查。
+2026-10-03 开发验收：临时签名 .app 的示例窗口和事件记录显示正常；权限请求返回 `native: operation failed: status 7`。因此本次未验证成功授权、系统横幅、替换／撤回或点击置前；后续保留系统错误详情后，复现为 `UNErrorDomain (1): Notifications are not allowed for this application`，已修正为权限错误分类。该信息不能单独区分系统设置、应用身份或签名问题，成功授权仍待验收。
+
+错误分类依据：[Apple notificationsNotAllowed](https://developer.apple.com/documentation/usernotifications/unerror/code/notificationsnotallowed)。

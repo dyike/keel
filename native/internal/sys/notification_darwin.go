@@ -13,6 +13,8 @@ void keel_notification_remove(const char *id, uintptr_t token);
 */
 import "C"
 import (
+	"fmt"
+	"github.com/dyike/keel/native"
 	"runtime/cgo"
 	"unsafe"
 )
@@ -50,6 +52,25 @@ func keel_notification_done(token C.uintptr_t, code C.int) {
 	done := h.Value().(func(error))
 	h.Delete()
 	done(status(code))
+}
+
+//export keel_notification_failed
+func keel_notification_failed(token C.uintptr_t, domain *C.char, code C.int64_t, description *C.char) {
+	h := cgo.Handle(token)
+	done := h.Value().(func(error))
+	h.Delete()
+	// Copy borrowed NSError strings before returning to Objective-C.
+	done(notificationFailure(C.GoString(domain), int64(code), C.GoString(description)))
+}
+
+func notificationFailure(domain string, code int64, description string) error {
+	cause := native.ErrFailed
+	// UNErrorCodeNotificationsNotAllowed is 1. Check the domain as codes
+	// from unrelated NSError domains can have the same numeric value.
+	if domain == "UNErrorDomain" && code == 1 {
+		cause = native.ErrPermissionDenied
+	}
+	return fmt.Errorf("%w: %s (%d): %s", cause, domain, code, description)
 }
 
 //export keel_notification_clicked
