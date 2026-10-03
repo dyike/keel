@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"testing"
 )
@@ -38,6 +39,54 @@ func TestKbdNarrowAndLiteralLabels(t *testing.T) {
 			if !ok || n.Desc.Bounds.Dx() > 80*scale || n.Desc.Bounds.Dy() <= 0 {
 				t.Fatalf("bad keycap: %+v", n)
 			}
+		}
+	}
+}
+
+func TestKbdExplicitSizeStyleAndBinding(t *testing.T) {
+	defer core.Bind("test.kbd.size")
+	for _, scale := range []int{1, 2} {
+		core.Bind("test.kbd.size", "ctrl+s")
+		v := KbdFor("test.kbd.size")
+		h := renderView(viewFunc(func(cx *el.Context) el.Element { return el.Div().TextSize(24).Child(v.Render(cx)) }), 200, scale)
+		inherited := bounds(h, "ctrl+s")
+		v.Size(12)
+		h.Frame()
+		small := bounds(h, "ctrl+s")
+		if small.Dy() >= inherited.Dy() {
+			t.Fatal("explicit size did not override parent")
+		}
+		v.Size(24)
+		h.Frame()
+		large := bounds(h, "ctrl+s")
+		if large.Dy() <= small.Dy() {
+			t.Fatal("explicit size not applied")
+		}
+		v.Plain()
+		h.Frame()
+		if bounds(h, "ctrl+s") != large {
+			t.Fatal("plain changed size")
+		}
+		v.Style(func(e *el.TextEl) { e.P(20) })
+		h.Frame()
+		if bounds(h, "ctrl+s").Dy() <= large.Dy() {
+			t.Fatal("style not applied")
+		}
+		v.Style(nil).Size(0)
+		h.Frame()
+		if bounds(h, "ctrl+s") != inherited {
+			t.Fatal("defaults not restored")
+		}
+		v.Size(16)
+		core.Bind("test.kbd.size", "ctrl+k")
+		h.Frame()
+		if shown(h, "ctrl+s") || !shown(h, "ctrl+k") {
+			t.Fatal("rebind failed")
+		}
+		core.Bind("test.kbd.size")
+		h.Frame()
+		if shown(h, "ctrl+k") {
+			t.Fatal("unbound keycap remained")
 		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/theme"
 )
 
 func init() { registerSection("kbd", "controls", kbdGallery) }
@@ -24,6 +25,7 @@ func kbdGallery() core.Widget {
 			el.Text("Kbd 快捷键键帽").TextSize(24).Bold(),
 			el.Text("随父元素字号变化；仅展示，不注册快捷键。"),
 			row(12), row(16), row(24),
+			el.Div().Wrap().Gap(12).Items(el.Center).Child(kit.Kbd("mod+s").Size(12).Render(cx), kit.Kbd("mod+k").Size(24).Style(func(e *el.TextEl) { e.Bg(theme.Subtle).TextColor(theme.PrimaryText) }).Render(cx)),
 			el.Div().Wrap().Gap(12).Child(kit.Kbd("esc").Render(cx), kit.Kbd("alt+backspace").Render(cx), kit.Kbd("ctrl+up").Render(cx)),
 			el.Div().W(el.Dp(140)).Child(kit.Kbd("未解析的中文 English 123 长文案").Render(cx)),
 			el.Text("动作绑定：按下键帽上的键触发动作，改键后键帽和处理器一起变").TextSize(16).Bold(),

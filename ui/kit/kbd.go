@@ -13,6 +13,8 @@ import (
 type KbdView struct {
 	shortcut, action string
 	plain            bool
+	size             float32
+	style            func(*el.TextEl)
 }
 
 // KbdFor displays the first chord bound to a keymap action (core.Bind), and
@@ -24,6 +26,19 @@ func Kbd(shortcut string) *KbdView { return &KbdView{shortcut: shortcut} }
 
 // Plain hides the keycap outline, preserving its spacing.
 func (v *KbdView) Plain() *KbdView { v.plain = true; return v }
+
+// Size sets the font size in sp and scales padding with it. Zero restores
+// inherited text size and default padding. Values outside 0–128 are ignored.
+func (v *KbdView) Size(sp float32) *KbdView {
+	if sp >= 0 && sp <= 128 {
+		v.size = sp
+	}
+	return v
+}
+
+// Style refines the newly built keycap after defaults; nil restores defaults.
+// Do not retain the element. The shortcut remains its accessible name.
+func (v *KbdView) Style(fn func(*el.TextEl)) *KbdView { v.style = fn; return v }
 func (v *KbdView) Render(cx *el.Context) el.Element {
 	shortcut := v.shortcut
 	if v.action != "" {
@@ -37,6 +52,14 @@ func (v *KbdView) Render(cx *el.Context) el.Element {
 	if v.plain {
 		border = color.NRGBA{}
 	}
-	return el.Text(core.ShortcutLabel(shortcut, runtime.GOOS)).Name(shortcut).
+	cap := el.Text(core.ShortcutLabel(shortcut, runtime.GOOS)).Name(shortcut).
 		TextColor(theme.Muted).Px(theme.SpaceSm).Py(3).Border(1, border).Rounded(theme.RadiusSm).MaxW(el.Full).MaxLines(1)
+	if v.size > 0 {
+		ratio := v.size / theme.TextBody
+		cap.TextSize(v.size).Px(theme.SpaceSm * ratio).Py(3 * ratio)
+	}
+	if v.style != nil {
+		v.style(cap)
+	}
+	return cap.Name(shortcut)
 }

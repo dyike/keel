@@ -10,7 +10,7 @@ el.Div().Row().Items(el.Center).TextSize(16).Child(
 )
 ```
 
-`Kbd(shortcut string)` 返回 `*KbdView`。唯一配置项 `Plain()` 隐藏边框并保留间距；不提供 Size，调用方通过父元素 TextSize 设置字号。默认边框 1dp、圆角 4dp、水平内边距 6dp、垂直内边距 3dp。窄容器中保持单行并截断。
+`Kbd(shortcut string)` 返回 `*KbdView`。`Plain()` 隐藏边框并保留间距。`Size(sp)` 设置字号并按比例调整内边距；0 恢复字号继承和默认内边距，负值、NaN、无穷和大于 128 的值忽略。`Style(func(*el.TextEl))` 在每帧默认样式之后调整背景、文字/边框颜色、圆角、间距等；nil 恢复默认。回调不要保留元素引用，Agent 名称始终使用原 shortcut。默认边框 1dp、圆角 4dp、水平内边距 6dp、垂直内边距 3dp。窄容器中保持单行并截断。
 
 格式化由 `core.ShortcutLabel(s, goos string) string` 提供，kit 和窗口快捷键共用。语法同 core.ParseShortcut；mod 在 macOS 显示为 Command，在 Windows / Linux 显示为 Ctrl。无法解析的文案原样显示，便于使用自定义键名。该函数只格式化，不查询动作绑定。
 

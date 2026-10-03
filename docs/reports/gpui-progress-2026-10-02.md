@@ -44,7 +44,8 @@
 - [x] 第二十一批（`2f6f1c2`）：Empty 增加 Media，支持头像、图片与任意 View；nil 恢复图标，IconNone 隐藏回退。媒体、标题、说明和操作区使用稳定身份，测试覆盖媒体替换后的输入与焦点、1×/2× 窄布局、主题切换、Agent 语义与操作按钮；全量构建、vet、测试及浅深色截图检查通过。
 - [x] 第二十二批（`5b8fbce`）：Empty 增加 Heading、DescriptionContent、Footer 与七个分区的 PartStyle；富内容可恢复原字符串，尾部独立于 Action。覆盖窄布局、替换/恢复后的输入焦点、尾部操作与禁用继承、富内容主题切换；全量构建、vet、测试及浅深色截图检查通过。
 - [x] 第二十三批（`41a9982`）：Skeleton 增加 Secondary 与 Rounded，整体透明度减半、任意有限非负圆角并按短边限制；Circle/Rounded 后调用者生效。像素测试覆盖浅深主题、直角/圆角/极大圆角、普通/次级的脉冲与扫光、减少动画及装饰语义；全量构建、vet、测试和浅色 1×/深色 2× 截图通过。
-- [x] 第二十四批：Rating 增加 Size/Color，并按上游 0.7 源码对齐已填星点击：点第 i 颗已填星设置 i−1 分，否则设置 i 分；悬停预览对应目标。覆盖 1×/2× 尺寸、清零、键盘、只读/禁用继承、Agent 数值及自定义颜色/小数填充像素；全量构建、vet、测试及浅深色截图检查通过。
+- [x] 第二十四批（`260995a`）：Rating 增加 Size/Color，并按上游 0.7 源码对齐已填星点击：点第 i 颗已填星设置 i−1 分，否则设置 i 分；悬停预览对应目标。覆盖 1×/2× 尺寸、清零、键盘、只读/禁用继承、Agent 数值及自定义颜色/小数填充像素；全量构建、vet、测试及浅深色截图检查通过。
+- [x] 第二十五批：Kbd 增加 Size 与 Style；独立字号同步缩放内边距，0 恢复继承，样式回调可调颜色/背景/边框。覆盖 1×/2×、Plain 尺寸、样式恢复、动作改绑/解绑；全量构建、vet、测试及浅深色截图检查通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -101,7 +102,7 @@
 | [Image](https://gpui-kit.com/component/image/) | 主体已有 | [已解码图片、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | 已解码图片的绘制/适配/预览/重试已有；缺自定义 loading/fallback 槽和组件级 URL 加载/缓存。第七批复核更正：之前把应用/Markdown 的加载缓存算到了 kit.Image。 |
 | [Input Group](https://gpui-kit.com/component/input-group/) | 主体已有 | [四方向/多附加内容、TextArea 组合、统一边框、标签聚焦与按钮操作](../../ui/kit/input_group.go) | 第九批已补齐 block addon 和独立附加内容配置；按钮直接使用 kit.Button。Textarea 最大行数/Token 与 Button 变体差异仍见各自条目，不计作已完成。 |
 | [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 缺格式化 mask、原子 inline token、可拦截富剪贴板的 on_paste 和专用上下文菜单配置；Filter 是字符白名单，不能当作 mask。 |
-| [Kbd](https://gpui-kit.com/component/kbd/) | 主体已有 | [平台键帽、Plain、KbdFor 动作键位](../../ui/kit/kbd.go) | 平台键帽、Plain、KbdFor 动作绑定已完成；没有独立尺寸接口，旧表的“尺寸”应删除。 |
+| [Kbd](https://gpui-kit.com/component/kbd/) | 主体已有 | [平台键帽、Plain、动作键位、独立字号与自定义样式](../../ui/kit/kbd.go) | 第二十五批已补齐登记的尺寸缺口及样式回调；Size 单位 sp，默认仍继承。KbdFor 读取动作首个绑定，不提供上游按焦点/上下文查询绑定的独立入口。 |
 | [Label](https://gpui-kit.com/component/label/) | 部分 | [Text、字号/颜色、For 标签关联聚焦](../../ui/el/element.go) | el.Text 能排版和关联字段；缺 GPUI Label 的匹配区间高亮、masked 和 secondary 文案的专用接口。 |
 | [List](https://gpui-kit.com/component/list/) | 部分 | [列表项、稳定 ID、单项禁用、多选/范围、键盘、拖动](../../ui/kit/list.go) | 缺分组头、自定义行/图标/行内操作、内建搜索与加载更多入口；当前是可选择、可拖动的文字列表。 |
 | [Marker](https://gpui-kit.com/component/marker/) | 用途不同 | [几何标记、大小与颜色](../../ui/kit/marker.go) | 用途不同：GPUI 是带图标/文字、分隔线/边框、加载状态的消息标记行；Keel Marker 只绘制点/方块等几何标记，不能计作对齐。 |
