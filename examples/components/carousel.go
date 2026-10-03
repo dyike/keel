@@ -20,7 +20,7 @@ func init() {
 			slide("欢迎使用 Keel", "用 Go 写桌面界面，不需要 HTML。"),
 			slide("组件 Components", "70 多个 kit 组件，支持深色和多语言。"),
 			slide("Agent 测试", "keel-mcp 让 Agent 像用户一样操作界面。"),
-		).Autoplay(4*time.Second).Height(180).Loop(false).Basis(2.0/3).ItemBasis(1, 0.5)
+		).Autoplay(4*time.Second).Height(180).Loop(false).Basis(2.0/3).ItemBasis(1, 0.5).ItemSize(0, 260).ItemSize(2, 640)
 		content := car.Content()
 		previous := car.PreviousControl(kit.Button("上一项", nil).Variant(kit.ButtonSecondary))
 		next := car.NextControl(kit.Button("下一项", nil).Variant(kit.ButtonSecondary))

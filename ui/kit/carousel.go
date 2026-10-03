@@ -26,6 +26,7 @@ type CarouselView struct {
 	perView   int
 	basis     float32
 	itemBasis map[int]float32
+	itemSizes map[int]float32
 	gap       float32
 }
 
@@ -107,7 +108,7 @@ func (v *CarouselView) render(cx *el.Context, navigation bool) el.Element {
 		cx.AfterEnabled(id, carouselKey{id, cur}, v.autoplay, func() { v.goTo(cur + 1) })
 	}
 	stage := el.Div().ID(id + "/stage").H(el.Dp(v.height)).Rounded(theme.RadiusLg).Bg(theme.Subtle).Items(el.Stretch).Justify(el.Center)
-	if v.perView > 1 || v.basis > 0 || len(v.itemBasis) > 0 {
+	if v.perView > 1 || v.basis > 0 || len(v.itemBasis) > 0 || len(v.itemSizes) > 0 {
 		v.multiStage(cx, stage, id+"/stage")
 	} else if v.current < len(v.slides) && v.slides[v.current] != nil {
 		stage.Child(v.slides[v.current].Render(cx))

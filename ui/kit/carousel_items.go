@@ -49,6 +49,25 @@ func (v *CarouselView) ItemBasis(index int, fraction float32) *CarouselView {
 	return v
 }
 
+// ItemSize sets the main-axis size in dp for one zero-based item, excluding
+// gaps. It overrides ItemBasis and the default fraction, and may exceed the
+// viewport. Zero restores the proportional size. Invalid inputs are ignored.
+// Resizing or changing orientation preserves the dp value and selection.
+func (v *CarouselView) ItemSize(index int, dp float32) *CarouselView {
+	if index < 0 || index >= len(v.slides) || dp < 0 || !finiteNumber(float64(dp)) {
+		return v
+	}
+	if dp == 0 {
+		delete(v.itemSizes, index)
+	} else {
+		if v.itemSizes == nil {
+			v.itemSizes = make(map[int]float32)
+		}
+		v.itemSizes[index] = dp
+	}
+	return v
+}
+
 // Gap sets the spacing in dp between items in multi-item mode. Invalid values
 // are ignored. The effective gap shrinks in viewports too small to fit it.
 func (v *CarouselView) Gap(dp float32) *CarouselView {
@@ -85,6 +104,9 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 			fraction = override
 		}
 		sizes[i] = max(0, (viewport+gap)*fraction-gap)
+		if fixed, ok := v.itemSizes[i]; ok {
+			sizes[i] = fixed
+		}
 	}
 	stage.Justify(el.Start).Gap(gap)
 	if v.vertical {
