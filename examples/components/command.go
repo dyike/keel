@@ -23,11 +23,21 @@ func init() {
 			title := fmt.Sprintf("命令 %05d", i)
 			items = append(items, kit.CommandItem{Title: title, Group: "更多", Action: do(title)})
 		}
-		cmd := kit.Command(items...)
+		cmd := kit.Command(items...).Header(el.ViewFunc(func(*el.Context) el.Element {
+			return el.Div().P(12).Child(el.Text("搜索并执行命令"))
+		})).Footer(el.ViewFunc(func(*el.Context) el.Element {
+			return el.Div().P(12).Child(el.Text("↑↓ 选择 · Enter 执行 · Esc 关闭").TextColor(theme.Muted))
+		}))
+		quick := kit.Command(items[:3]...).Searchable(false).Inline(true).RowHeight(48).
+			RenderItem(func(item kit.CommandItem, active bool) el.View {
+				return el.ViewFunc(func(*el.Context) el.Element {
+					return el.Div().Child(el.Text(item.Title), el.Text("快速操作").TextSize(theme.TextSm).TextColor(theme.Muted))
+				})
+			})
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			cx.Shortcut("mod+k", cmd.Toggle)
 			return el.Div().P(24).Gap(12).Items(el.Start).Child(
-				kit.Button("打开命令面板", cmd.Toggle).Render(cx), el.Text(msg).TextColor(theme.Muted), cmd.Render(cx))
+				kit.Button("打开命令面板", cmd.Toggle).Render(cx), el.Text(msg).TextColor(theme.Muted), quick.Render(cx), cmd.Render(cx))
 		}))
 	})
 }

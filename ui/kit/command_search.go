@@ -15,13 +15,13 @@ func (v *CommandView) searchChanged() {
 	v.request++
 	v.active = -1
 	v.searchError = ""
-	v.loading = v.onSearch != nil
-	if v.onSearch != nil {
+	v.loading = v.onSearch != nil && !v.nonsearchable
+	if v.onSearch != nil && !v.nonsearchable {
 		v.onSearch(v.query, v.request)
 	}
 }
 func (v *CommandView) SetResults(token uint64, items ...CommandItem) bool {
-	if !v.open || token != v.request || v.onSearch == nil {
+	if !v.open || v.nonsearchable || token != v.request || v.onSearch == nil {
 		return false
 	}
 	v.SetItems(items...)
@@ -30,7 +30,7 @@ func (v *CommandView) SetResults(token uint64, items ...CommandItem) bool {
 	return true
 }
 func (v *CommandView) SetSearchError(token uint64, message string) bool {
-	if !v.open || token != v.request || v.onSearch == nil {
+	if !v.open || v.nonsearchable || token != v.request || v.onSearch == nil {
 		return false
 	}
 	v.loading = false
