@@ -141,7 +141,9 @@
 
 - [x] 第九十四批（`bba46be`）：Message 增加 Avatar/Header/Footer/Content 独立插槽及 DefaultAvatar，支持隐藏和恢复头像、用户侧头像、交互式头尾及正文替换。各分区稳定身份，消息整行占满可用宽度，修复非拉伸父容器下正文压成零宽的问题。窗口测试覆盖动态插入/移除后的输入与焦点、顺序、尾部操作、禁用继承、用户头像位置和仅元数据消息。构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。MessageGroup、ghost/content inset、头像正文底边对齐仍待补齐。
 
-- [x] 第九十五批：新增 MessageGroup 完整消息行分组，支持 Gap、Style、Name、SetItems/Items 及组级禁用。分组保留消息本身的头像、元数据和对齐，不自动合并发送人或隐藏信息。测试覆盖 1×/2× 窄布局、切片副本、重排输入/焦点、非法间距、样式恢复、禁用与移除后的 Agent 快照；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。Message 的 ghost/content inset 及头像底边对齐继续待补。
+- [x] 第九十五批（`d89eb60`）：新增 MessageGroup 完整消息行分组，支持 Gap、Style、Name、SetItems/Items 及组级禁用。分组保留消息本身的头像、元数据和对齐，不自动合并发送人或隐藏信息。测试覆盖 1×/2× 窄布局、切片副本、重排输入/焦点、非法间距、样式恢复、禁用与移除后的 Agent 快照；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。Message 的 ghost/content inset 及头像底边对齐继续待补。
+
+- [x] 第九十六批：Message 增加显式 Bubble 与 HeaderInset/FooterInset/ResetContentInsets，普通气泡头尾自动缩进，Ghost 自动取消；覆盖值优先。气泡以内部稳定实例复制渲染，对齐跟随消息且不修改源对象；Content 恢复普通正文模式。测试覆盖 1×/2× 布局、独立覆盖/恢复、源实例隔离、Ghost/Outline/默认用户气泡切换后的输入焦点和禁用；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。多个 typed bubble 混排的元数据继承、分区样式、独立对齐和头像正文底边定位继续待补。
 
 ## 当前实施清单
 
@@ -203,7 +205,7 @@
 | [Marker](https://gpui-kit.com/component/marker/) | 用途不同 | [几何标记、大小与颜色](../../ui/kit/marker.go) | 用途不同：GPUI 是带图标/文字、分隔线/边框、加载状态的消息标记行；Keel Marker 只绘制点/方块等几何标记，不能计作对齐。 |
 | [Menu](https://gpui-kit.com/component/menu/) | 部分 | [菜单、子菜单、分隔线、长内容、方向键、焦点恢复](../../ui/kit/menu.go) | 第四十七批已补齐图标、勾选项及勾号左右位置，含状态更新/查询与 Agent checked。第四十八批补齐不可交互的组标题 Label。第四十九批补齐 ContentItem/SetItemContent 展示内容行及变高定位。第五十批补齐 Link、外链图标开关、系统打开及应用回调。快捷键仍取动作首个绑定，缺按触发器焦点上下文解析绑定；默认系统打开未做各平台真机验收。 |
 | [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 主体已有 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；第九十二批补齐按稳定消息 ID 跳转、首次渲染前定位和跟随/上滚状态查询。未读身份由应用维护；SetFollow(false) 后显式跳到末尾不会开启自动跟随。第九十三批补齐 LatestButton/LatestLabel/LatestRenderer/LatestTransition，支持隐藏、文案、完整 Button 外观配置及淡入淡出；登记缺口已关闭。默认保留右下角文字按钮和 150ms 过渡，与上游圆形图标按钮不同；不表示视觉和 API 完全相同。 |
-| [Message](https://gpui-kit.com/component/message/) | 部分 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 第九十四批补齐 Avatar/Header/Footer/Content 独立插槽及默认头像恢复，头尾支持交互；插槽变化保留正文身份。第九十五批新增 MessageGroup，支持间距/样式、动态重排和组级禁用，保留消息行输入与焦点。仍缺 ghost/content_inset 配置；头像目前顶部对齐，尚未对齐上游正文底边定位。 |
+| [Message](https://gpui-kit.com/component/message/) | 部分 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 第九十四批补齐 Avatar/Header/Footer/Content 独立插槽及默认头像恢复，头尾支持交互；插槽变化保留正文身份。第九十五批新增 MessageGroup，支持间距/样式、动态重排和组级禁用，保留消息行输入与焦点。第九十六批补齐显式 Bubble、Ghost 自动头尾缩进及独立 HeaderInset/FooterInset 覆盖与恢复。仍缺多 typed bubble 混排元数据继承、消息分区样式和独立对齐配置；头像目前顶部对齐，尚未对齐上游正文底边定位。 |
 | [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 缺系统通知投递、位置选择、操作按钮与任意富内容；当前只有应用内右上角标题/正文通知队列。 |
 | [NumberInput](https://gpui-kit.com/component/number-input/) | 部分 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 缺金额/千分位 mask、动态 step_by、前后内容槽；固定步长、精度、范围与输入草稿已有。 |
 | [OtpInput](https://gpui-kit.com/component/otp-input/) | 主体已有 | [分格输入、粘贴、完成回调、密码遮罩、分组、尺寸与窄布局](../../ui/kit/otp_input.go) | 第二批已补齐 Masked/Groups/Size；默认两组，不能整除时前组多一位。此表登记的三个缺口已关闭。 |

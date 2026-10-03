@@ -35,4 +35,15 @@ msg.Avatar(kit.Avatar("Alice").Size(32)).
     Footer(kit.Button("回复", reply))
 ```
 
-插入、删除头像或头尾时，正文的身份保持稳定，输入内容和焦点不变。头尾没有默认水平缩进；完整消息行可用 [MessageGroup](message_group.md) 分组；ghost/content inset 配置尚未提供。
+插入、删除头像或头尾时，正文的身份保持稳定，输入内容和焦点不变。普通用户气泡和显式 Bubble 的头尾默认使用 `theme.SpaceLg` 水平缩进；普通助手正文保持无缩进。完整消息行可用 [MessageGroup](message_group.md) 分组。
+
+`Bubble(surface)` 安装显式气泡，避免 User 消息再包一层气泡。组件以副本渲染，气泡对齐跟随消息；修改原气泡的变体会在下一帧体现，不会反向修改原实例。传 nil 清空正文；`Content(view)` 恢复普通正文模式（User 自动包气泡）。
+
+```go
+surface := kit.Bubble(answer).Variant(kit.BubbleGhost)
+msg.Bubble(surface).Header(kit.Label("系统消息")).Footer(kit.Label("刚刚"))
+msg.HeaderInset(true).FooterInset(false)
+msg.ResetContentInsets() // 恢复自动规则
+```
+
+显式 Ghost 气泡自动取消头尾缩进；`HeaderInset`、`FooterInset` 分别覆盖继承规则。普通 Content 内部的自定义 View 不参与 Ghost 检测。入口接受单个 Bubble，多段内容可在该气泡内部组合；尚无上游多个 typed bubble 混排并合并元数据的 MessageContent 部件。

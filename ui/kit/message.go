@@ -30,19 +30,21 @@ type MessageReaction struct {
 // right without an avatar; others show full width beside the author's avatar,
 // which suits long Markdown answers.
 type MessageView struct {
-	author                 string
-	bubble                 *BubbleView
-	content                el.View
-	avatar, header, footer el.View
-	avatarSet              bool
-	user                   bool
-	actions                []el.View
-	state                  MessageState
-	failure                string
-	disabled               bool
-	retry                  func()
-	reactions              []MessageReaction
-	onReaction             func(int, bool)
+	author                   string
+	bubble                   *BubbleView
+	surface                  *BubbleView
+	headerInset, footerInset *bool
+	content                  el.View
+	avatar, header, footer   el.View
+	avatarSet                bool
+	user                     bool
+	actions                  []el.View
+	state                    MessageState
+	failure                  string
+	disabled                 bool
+	retry                    func()
+	reactions                []MessageReaction
+	onReaction               func(int, bool)
 }
 
 // Message creates a message from author; its avatar shows author's initials.
@@ -83,14 +85,22 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 	id := autoID("message", v)
 	body := el.Div().ID(id + "/body").Gap(theme.SpaceMd).Items(el.Stretch)
 	if v.header != nil {
-		body.Child(v.metadata(cx, id+"/header", v.header))
+		body.Child(v.metadata(cx, id+"/header", v.header, v.headerInset))
 	}
 	content := el.Div().ID(id + "/content").Items(el.Stretch)
-	if v.user {
+	if v.surface != nil {
+		if v.bubble == nil {
+			v.bubble = &BubbleView{}
+		}
+		*v.bubble = *v.surface
+		v.bubble.mine = v.user
+		content.Child(v.bubble.Render(cx))
+	} else if v.user {
 		if v.bubble == nil {
 			v.bubble = Bubble(v.content).Mine()
 		}
-		content.Child(v.bubble.Content(v.content).Render(cx))
+		*v.bubble = BubbleView{content: v.content, mine: true, reactionAlign: el.End}
+		content.Child(v.bubble.Render(cx))
 	} else if v.content != nil {
 		content.Child(v.content.Render(cx))
 	}
@@ -159,7 +169,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		body.Child(row)
 	}
 	if v.footer != nil {
-		body.Child(v.metadata(cx, id+"/footer", v.footer))
+		body.Child(v.metadata(cx, id+"/footer", v.footer, v.footerInset))
 	}
 	article := el.Div().ID(id).W(el.Full).MinW(el.Dp(0)).Role("article").Name(v.author).Value(state).Disabled(v.disabled).Items(el.Stretch)
 	avatar := v.avatar

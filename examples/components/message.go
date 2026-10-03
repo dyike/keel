@@ -19,10 +19,13 @@ func init() {
 			Header(say("AI 助手 · 刚刚")).
 			Footer(say("订单数据已同步")).Actions(copy).
 			Reactions(kit.MessageReaction{Name: "有帮助", Count: 2}).OnReaction(func(int, bool) {})
+		notice := kit.Message("系统", nil).Avatar(nil).
+			Bubble(kit.Bubble(say("这段对话已保存到订单记录。")).Variant(kit.BubbleGhost)).
+			Header(kit.Label("系统消息")).Footer(kit.Label("仅当前团队可见"))
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(16).W(el.Dp(520)).MaxW(el.Full).Child(
 				kit.Message("我", say("SO-1021 什么时候到？")).User().Render(cx),
-				reply.Render(cx), failed.Render(cx))
+				reply.Render(cx), failed.Render(cx), notice.Render(cx))
 		}))
 	})
 }
