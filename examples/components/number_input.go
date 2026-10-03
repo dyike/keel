@@ -19,8 +19,16 @@ func init() {
 				return 0.5
 			}).Prefix(el.ViewFunc(func(*el.Context) el.Element { return el.Text("¥") })).
 			Suffix(el.ViewFunc(func(*el.Context) el.Element { return el.Text("元") }))
+		packs := kit.NumberInput("包装数量（12 件/箱）").Range(0, 1200)
+		packs.OnStep(func(e kit.NumberStepEvent) {
+			delta := float64(e.Count) * 12
+			if e.Action == kit.NumberStepActionDecrement {
+				delta = -delta
+			}
+			packs.SetValue(e.Value + delta)
+		})
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(14).W(el.Dp(240)).MaxW(el.Full).Child(qty.Render(cx), price.Render(cx), el.Text(fmt.Sprintf("实际值：%g", price.Value())), kit.Button("填入 1.236（保留两位）", func() { price.SetValue(1.236) }).Render(cx))
+			return el.Div().P(24).Gap(14).W(el.Dp(240)).MaxW(el.Full).Child(qty.Render(cx), price.Render(cx), packs.Render(cx), el.Text(fmt.Sprintf("实际值：%g", price.Value())), kit.Button("填入 1.236（保留两位）", func() { price.SetValue(1.236) }).Render(cx))
 		}))
 	})
 }

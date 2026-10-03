@@ -31,3 +31,7 @@ price.StepBy(func(value float64, action kit.NumberStepAction) float64 {
 })
 price.Suffix(kit.Button("帮助", showHelp))
 ```
+
+应用需要接管增减时，设置 `OnStep(func(kit.NumberStepEvent))`。事件包含有效草稿 `Value`、方向 `Action` 和步数 `Count`（普通按钮／方向键为 1，PageUp／PageDown 为 10）。此模式不自动提交草稿、不调用动态策略、不触发 `OnChange`；回调可用 `SetValue` 更新显示，也可暂不更新。无效草稿使用最近已提交值，文字保持原样；普通回车／失焦提交行为不变。
+
+`OnStep(nil)` 恢复先前固定／动态策略；合法 `Step` 或任何 `StepBy` 调用退出事件模式。范围边界仍禁止向外步进，禁用状态不会派发事件。回调里的 `SetValue` 沿用程序赋值规则，因此不会额外产生 `OnChange`。

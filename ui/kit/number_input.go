@@ -21,6 +21,15 @@ const (
 	NumberStepActionDecrement
 )
 
+// NumberStepEvent requests an application-managed step. Value is the normalized
+// draft (or the committed value for invalid text). Count is positive: one for
+// arrows/buttons, ten for PageUp/PageDown. Action supplies the direction.
+type NumberStepEvent struct {
+	Value  float64
+	Action NumberStepAction
+	Count  int64
+}
+
 // NumberInputView edits a number with − and + buttons. Typing may pass
 // through out-of-range text; Enter or leaving the field clamps it to the
 // range and applies the configured decimal precision. ↑ ↓ step like the buttons; PageUp and
@@ -35,6 +44,7 @@ type NumberInputView struct {
 	onChange          func(float64)
 	stepBy            func(float64, NumberStepAction) float64
 	prefix, suffix    el.View
+	onStep            func(NumberStepEvent)
 }
 
 func NumberInput(label string) *NumberInputView {
@@ -58,6 +68,7 @@ func (v *NumberInputView) Step(s float64) *NumberInputView {
 	if s > 0 && !math.IsInf(s, 0) {
 		v.step = s
 		v.stepBy = nil
+		v.onStep = nil
 	}
 	return v
 }
@@ -68,6 +79,16 @@ func (v *NumberInputView) Step(s float64) *NumberInputView {
 // the last fixed Step. The callback should not mutate this NumberInput.
 func (v *NumberInputView) StepBy(fn func(float64, NumberStepAction) float64) *NumberInputView {
 	v.stepBy = fn
+	v.onStep = nil
+	return v
+}
+
+// OnStep replaces built-in stepping with an application callback. It does not
+// commit the draft or emit OnChange; the callback may use SetValue. nil restores
+// the previous fixed/dynamic strategy. Step and StepBy leave this mode.
+// Range boundaries and disabled state still prevent outward actions.
+func (v *NumberInputView) OnStep(fn func(NumberStepEvent)) *NumberInputView {
+	v.onStep = fn
 	return v
 }
 
@@ -170,6 +191,19 @@ func (v *NumberInputView) move(count int64) {
 		return
 	}
 	base := v.draftValue()
+	if v.onStep != nil {
+		if count > 0 && base >= v.hi || count < 0 && base <= v.lo {
+			return
+		}
+		action := NumberStepActionIncrement
+		amount := count
+		if count < 0 {
+			action = NumberStepActionDecrement
+			amount = -count
+		}
+		v.onStep(NumberStepEvent{Value: base, Action: action, Count: amount})
+		return
+	}
 	step := v.step
 	if v.stepBy != nil {
 		direction := NumberStepActionIncrement
