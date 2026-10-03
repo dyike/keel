@@ -9,6 +9,15 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
+type AccordionSize uint8
+
+const (
+	AccordionSizeMedium AccordionSize = iota
+	AccordionSizeXSmall
+	AccordionSizeSmall
+	AccordionSizeLarge
+)
+
 type accordionItem struct {
 	title    string
 	body     el.View
@@ -21,13 +30,37 @@ type accordionItem struct {
 // at a time unless Multiple. Headers take focus: ↑ ↓ Home End move between
 // them, Enter or Space toggles.
 type AccordionView struct {
-	items    []accordionItem
-	open     []int
-	multiple bool
-	disabled bool
-	onChange func(open []int)
+	items      []accordionItem
+	open       []int
+	multiple   bool
+	disabled   bool
+	onChange   func(open []int)
+	borderless bool
+	size       AccordionSize
 }
 
+// Bordered controls the outer border and section separators, on by default.
+func (v *AccordionView) Bordered(on bool) *AccordionView { v.borderless = !on; return v }
+
+// Size sets the title, chevron, spacing and inherited body text scale.
+func (v *AccordionView) Size(size AccordionSize) *AccordionView {
+	if size <= AccordionSizeLarge {
+		v.size = size
+	}
+	return v
+}
+func (v *AccordionView) style() disclosureStyle {
+	s := defaultDisclosureStyle()
+	switch v.size {
+	case AccordionSizeXSmall:
+		s = disclosureStyle{theme.SpaceMd, theme.SpaceSm, theme.SpaceMd, theme.TextSm, 12, theme.SpaceXs}
+	case AccordionSizeSmall:
+		s = disclosureStyle{theme.SpaceLg, theme.SpaceMd, theme.SpaceLg, theme.TextMd, 14, theme.SpaceSm}
+	case AccordionSizeLarge:
+		s = disclosureStyle{theme.SpaceXl, theme.SpaceXl, theme.SpaceXl, theme.TextLg, 20, theme.SpaceLg}
+	}
+	return s
+}
 func Accordion() *AccordionView { return &AccordionView{} }
 func (v *AccordionView) Add(title string, body el.View) *AccordionView {
 	v.items = append(v.items, accordionItem{title: title, body: body})
@@ -101,7 +134,7 @@ func (v *AccordionView) Trigger(i int) el.View {
 			}
 			return from
 		}
-		return disclosureTrigger(cx, v.triggerID(i), it.title, it.heading, slices.Contains(v.open, i), v.disabled || it.disabled, func() { v.toggle(i) }).
+		return disclosureTrigger(cx, v.triggerID(i), it.title, it.heading, slices.Contains(v.open, i), v.disabled || it.disabled, func() { v.toggle(i) }, v.style()).
 			OnKey(func(e el.KeyEvent) bool {
 				j := i
 				switch key.Name(e.Name) {
@@ -131,14 +164,17 @@ func (v *AccordionView) Content(i int) el.View {
 			return el.Div().Hidden(true)
 		}
 		it := &v.items[i]
-		return disclosureContent(cx, autoID("accordion", v)+"/content/"+strconv.Itoa(i), v.triggerID(i), it.body, slices.Contains(v.open, i), v.disabled || it.disabled, &it.motion)
+		return disclosureContent(cx, autoID("accordion", v)+"/content/"+strconv.Itoa(i), v.triggerID(i), it.body, slices.Contains(v.open, i), v.disabled || it.disabled, &it.motion, v.style())
 	})
 }
 func (v *AccordionView) Render(cx *el.Context) el.Element {
-	out := el.Div().Role("group").Items(el.Stretch).Rounded(theme.RadiusLg).Border(1, theme.Border).Bg(theme.Surface)
+	out := el.Div().Role("group").Items(el.Stretch).Rounded(theme.RadiusLg).Bg(theme.Surface)
+	if !v.borderless {
+		out.Border(1, theme.Border)
+	}
 	for i := range v.items {
 		if i > 0 {
-			out.Child(el.Div().H(el.Dp(1)).Bg(theme.Border))
+			out.Child(el.Div().H(el.Dp(1)).Bg(theme.Border).Hidden(v.borderless))
 		}
 		out.Child(v.Trigger(i).Render(cx), v.Content(i).Render(cx))
 	}

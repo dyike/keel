@@ -65,7 +65,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Attachment](../../docs/kit/attachment.md) | 附件卡片 |
 | [Tabs](../../docs/kit/tabs.md) | 四种外观、图标/富标签、单项禁用、宽度上限、滚动/溢出与拖动重排 |
 | [Collapsible](../../docs/kit/collapsible.md) | 独立触发器与内容、可中断展开动画 |
-| [Accordion](../../docs/kit/accordion.md) | 折叠面板 |
+| [Accordion](../../docs/kit/accordion.md) | 折叠面板、四档尺寸、边框开关 |
 | [Badge](../../docs/kit/badge.md) | 数字/圆点/图标角标、尺寸与自定义颜色 |
 | [ProgressCircle](../../docs/kit/progress_circle.md) | 圆形进度、中心内容与不确定状态 |
 | [Progress](../../docs/kit/progress.md) | 进度条 |

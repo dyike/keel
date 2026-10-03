@@ -34,12 +34,12 @@ func (v *CollapsibleView) toggle() {
 }
 func (v *CollapsibleView) Trigger() el.View {
 	return el.ViewFunc(func(cx *el.Context) el.Element {
-		return disclosureTrigger(cx, autoID("collapsible", v)+"/trigger", v.label, v.heading, v.open, v.disabled, v.toggle)
+		return disclosureTrigger(cx, autoID("collapsible", v)+"/trigger", v.label, v.heading, v.open, v.disabled, v.toggle, defaultDisclosureStyle())
 	})
 }
 func (v *CollapsibleView) Content() el.View {
 	return el.ViewFunc(func(cx *el.Context) el.Element {
-		return disclosureContent(cx, autoID("collapsible", v)+"/content", autoID("collapsible", v)+"/trigger", v.body, v.open, v.disabled, &v.motion)
+		return disclosureContent(cx, autoID("collapsible", v)+"/content", autoID("collapsible", v)+"/trigger", v.body, v.open, v.disabled, &v.motion, defaultDisclosureStyle())
 	})
 }
 func (v *CollapsibleView) Render(cx *el.Context) el.Element {

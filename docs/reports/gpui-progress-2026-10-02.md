@@ -37,7 +37,8 @@
 - [x] 第十四批（`61b303f`）：Tag 的 Outline、Size、Rounded、Content、Appearance；支持主题派生及自定义背景/前景/边框/选中背景。保留选择/移除行为，覆盖窄布局、1×/2×、键盘、祖先禁用、程序赋值、Agent 与颜色/圆角像素测试；浅深色截图已检查。
 - [x] 第十五批（`7097862`）：Alert 的 Banner、四档 Size、Icon/IconNone 与 Content；支持 Markdown/操作按钮，横幅省略独立标题行并保留可访问名称。覆盖尺寸与窄布局、图标间距、正文操作/关闭隔离、祖先禁用、恢复与 Agent；浅深色截图已检查。
 - [x] 第十六批（`43206c1`）：GroupBox 增加 Normal/Fill/Outline 外观、框外 Footer、TitleStyle 与 ContentStyle；保留原 Surface 默认。正文保持稳定身份，覆盖外观切换、标题增删后的输入与焦点、1×/2× 窄布局、footer 交互及 Agent 样式隔离；浅深色截图已检查。
-- [x] 第十七批：Badge 的 Icon、Size、Color 与 Name；图标放右下角并加 Surface 边框，数字/圆点保持右上角且不改变子组件布局。自定义底色自动选择黑白前景。覆盖模式切换、零值、数字上限、1×/2×、子组件点击、Agent 与像素测试；浅深色截图已检查。
+- [x] 第十七批（`a715aad`）：Badge 的 Icon、Size、Color 与 Name；图标放右下角并加 Surface 边框，数字/圆点保持右上角且不改变子组件布局。自定义底色自动选择黑白前景。覆盖模式切换、零值、数字上限、1×/2×、子组件点击、Agent 与像素测试；浅深色截图已检查。
+- [x] 第十八批：Accordion 的 Bordered 与四档 Size；边框开关同时控制外框和分节线，尺寸统一调整间距、箭头和继承字号。保留默认字号继承及 Collapsible 原行为；覆盖 1×/2× 布局、状态保留、自定义标题、键盘跳过禁用项与 Agent 快照。全量构建、vet、测试通过，浅色 1×/深色 2× 截图已检查。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -61,7 +62,7 @@
 
 | GPUI Kit 组件 | 本轮状态 | Keel 已完成能力 / 主实现 | 已确认的差异与边界 |
 | --- | --- | --- | --- |
-| [Accordion](https://gpui-kit.com/component/accordion/) | 主体已有 | [单项/多项、自定义标题、动画、键盘、禁用](../../ui/kit/accordion.go) | 配置差异：没有独立的边框开关与 small/large 尺寸档；自定义标题可用 Heading。 |
+| [Accordion](https://gpui-kit.com/component/accordion/) | 主体已有 | [单项/多项、自定义标题、动画、键盘、禁用、边框开关与四档尺寸](../../ui/kit/accordion.go) | 第十八批已关闭登记缺口；无边框保留背景和圆角，默认 Medium 保留字号继承。自定义标题和正文的显式字号优先。 |
 | [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 行为/配置差异：Persistent 只禁止点击遮罩关闭，Esc 仍关闭；没有独立 keyboard 开关。内置确认按钮先关闭再执行回调，不能用返回值阻止关闭；可自组 Footer。 |
 | [Alert](https://gpui-kit.com/component/alert/) | 主体已有 | [行内/横幅提示、级别、四档尺寸、可替换图标、富正文、关闭按钮](../../ui/kit/alert.go) | 第十五批已关闭登记缺口；Content 可组合 Markdown 与操作按钮。横幅没有独立标题行，无正文时使用标题作为消息；自定义内容的内部样式由内容自身控制。 |
 | [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 缺媒体/图片预览槽、横纵布局、附件组；当前是文件名/大小卡片，已有上传进度与失败操作。 |
