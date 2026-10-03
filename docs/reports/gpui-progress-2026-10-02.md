@@ -171,7 +171,9 @@
 
 - [x] 第一百零九批（`ba3a118`）：新增 NoticeSystemInteractiveBackend 和 OnSystemActivate，系统响应自动进入 UI 帧，先移除通知并安排撤回，再依次执行窗口唤起、应用内关闭和最新业务点击。重复/已删除/切回应用内的响应忽略，超时卡片保留系统打开能力且不重复关闭。测试覆盖两种系统模式、回调顺序、重复/过期响应、更新后最新回调、重入新增与模式切换；通知 race、构建、vet、全量测试通过。macOS 示例接入真实 Message.OnClick 和 Window.Raise；真实系统点击/置前未验收，Linux 点击和 Windows 后端仍待补。
 
-- [x] 第一百一十批：Linux 系统通知支持 Message.OnClick，要求服务声明 actions，投递 default 动作并接收 ActionInvoked；当前 owner 校验、单次消费、关闭/撤回/普通替换/重启清理回调，失败替换保留旧回调。顺序信号处理保留打开与关闭次序，用户回调在锁外独立 goroutine 执行。协议测试覆盖能力缺失、动作参数、外部/未知/重复/关闭后信号和回调生命周期，native race、构建、vet、全量测试及跨平台包构建通过。Linux 示例接入 kit 交互后端；未真机验收，ActivationToken、Windows 后端仍待补。
+- [x] 第一百一十批（`e9606b1`）：Linux 系统通知支持 Message.OnClick，要求服务声明 actions，投递 default 动作并接收 ActionInvoked；当前 owner 校验、单次消费、关闭/撤回/普通替换/重启清理回调，失败替换保留旧回调。顺序信号处理保留打开与关闭次序，用户回调在锁外独立 goroutine 执行。协议测试覆盖能力缺失、动作参数、外部/未知/重复/关闭后信号和回调生命周期，native race、构建、vet、全量测试及跨平台包构建通过。Linux 示例接入 kit 交互后端；未真机验收，ActivationToken、Windows 后端仍待补。
+
+- [x] 第一百一十一批（验收示例）：通知示例保留最近 12 条事件并支持滚动，记录窗口置前请求、应用内关闭、业务打开及系统请求结果，避免撤回完成文案覆盖点击结果；普通卡片点击不再误称系统点击。文档补充预期顺序和超时／仅系统模式区别。构建、vet、全量测试通过；真实 .app 已确认事件记录显示，权限请求返回 native: operation failed: status 7，尚未进入系统投递验收。此批不代表系统通知真机验收完成，Notification 仍为部分。
 
 ## 当前实施清单
 

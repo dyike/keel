@@ -9,13 +9,23 @@ import (
 	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/window"
 	"runtime"
+	"strings"
 )
 
 type demo struct {
 	status   string
+	events   []string
 	busy     bool
 	count    int
 	notifier *kit.NotifierView
+}
+
+func (d *demo) record(message string) {
+	d.status = message
+	d.events = append(d.events, message)
+	if len(d.events) > 12 {
+		d.events = append([]string(nil), d.events[len(d.events)-12:]...)
+	}
 }
 
 func (d *demo) done(operation string) func(error) {
@@ -23,15 +33,15 @@ func (d *demo) done(operation string) func(error) {
 		core.Update(func() {
 			d.busy = false
 			if err != nil {
-				d.status = operation + ": " + err.Error()
+				d.record(operation + ": " + err.Error())
 			} else {
-				d.status = operation + "：请求已完成"
+				d.record(operation + "：请求已完成")
 			}
 		})
 	}
 }
 func (d *demo) Render(cx *el.Context) el.Element {
-	return el.Div().P(24).Gap(16).Child(
+	return el.Div().P(24).Gap(16).ScrollY().Child(
 		el.Text("系统通知测试").Bold(),
 		el.Text("先申请权限，再投递。相同 ID 会替换。切到其他应用后观察通知中心。"),
 		el.Div().Disabled(d.busy).Gap(8).Child(
@@ -42,16 +52,18 @@ func (d *demo) Render(cx *el.Context) el.Element {
 			kit.Button("清除所有通知", func() { d.notifier.Clear() }).Render(cx),
 			kit.Button("原生点击回调", func() {
 				d.busy = true
-				notification.Post(notification.Message{ID: "keel.native.click-demo", Title: "点击此通知", Body: "前台也请求显示；点击后示例会显示回调结果。", OnClick: func() { core.Update(func() { d.status = "收到系统通知点击回调" }) }}, d.done("可点击通知"))
+				notification.Post(notification.Message{ID: "keel.native.click-demo", Title: "点击此通知", Body: "前台也请求显示；点击后示例会显示回调结果。", OnClick: func() { core.Update(func() { d.record("收到系统通知点击回调") }) }}, d.done("可点击通知"))
 			}).Render(cx),
 		),
 		el.Text(d.status),
+		el.Text("最近事件（从旧到新）").Bold(),
+		el.Text(strings.Join(d.events, "\n")),
 		d.notifier.Render(cx),
 	)
 }
 func (d *demo) send(mode kit.NoticeDelivery) {
 	d.count++
-	d.notifier.NotifyKey("demo", kit.Notice{Title: "Keel 通知", Body: fmt.Sprintf("第 %d 次投递；应用内 5 秒后消失，系统通知保留。", d.count), Delivery: mode, OnClick: func() { d.status = "系统通知已打开对应任务" }})
+	d.notifier.NotifyKey("demo", kit.Notice{Title: "Keel 通知", Body: fmt.Sprintf("第 %d 次投递；应用内 5 秒后消失，系统通知保留。", d.count), Delivery: mode, OnClick: func() { d.record("已打开对应任务") }, OnClose: func() { d.record("应用内通知已关闭") }})
 }
 
 type systemBackend struct{}
@@ -81,14 +93,15 @@ func main() {
 	}
 	d.notifier = kit.Notifier().SystemBackend(backend, func(r kit.NoticeSystemResult) {
 		if r.Err != nil {
-			d.status = r.Err.Error()
+			d.record(r.Err.Error())
 		} else {
-			d.status = fmt.Sprintf("通知 %d 系统请求完成，撤回：%v", r.ID, r.Removing)
+			d.record(fmt.Sprintf("通知 %d 系统请求完成，撤回：%v", r.ID, r.Removing))
 		}
 	})
 	w := window.Open(window.Options{Title: "Keel 系统通知", Width: 520, Height: 460, Content: el.Root(d)})
 	d.notifier.OnSystemActivate(func() {
 		if !w.Closed() {
+			d.record("请求窗口置前")
 			w.Raise()
 		}
 	})
