@@ -24,7 +24,11 @@ func init() {
 			kit.Attachment("Large.pdf", 1024).Size(kit.AttachmentSizeLarge),
 		}
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			box := el.Div().P(24).Gap(12).Child(el.Text("横向滚动查看；移除按钮更新附件组"), group.Render(cx))
+			paging := el.Div().Row().Gap(8).Child(
+				kit.Button("前一屏", func() { offset, width, _ := group.ScrollState(cx); group.ScrollTo(offset - width) }).Render(cx),
+				kit.Button("后一屏", func() { offset, width, _ := group.ScrollState(cx); group.ScrollTo(offset + width) }).Render(cx),
+			)
+			box := el.Div().P(24).Gap(12).Child(el.Text("横向滚动查看；移除按钮更新附件组"), paging, group.Render(cx))
 			for _, a := range sizes {
 				box.Child(a.Render(cx))
 			}

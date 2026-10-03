@@ -1,6 +1,8 @@
 package kit
 
 import (
+	"gioui.org/op"
+	"github.com/dyike/keel/ui/core"
 	"slices"
 
 	"github.com/dyike/keel/ui/el"
@@ -10,10 +12,12 @@ import (
 // AttachmentGroupView arranges attachments in a horizontally scrollable row.
 // Upload state, selection, opening and removal remain owned by the application.
 type AttachmentGroupView struct {
-	items    []el.View
-	gap      float32
-	disabled bool
-	name     string
+	items         []el.View
+	gap           float32
+	disabled      bool
+	name          string
+	scrollTarget  float32
+	scrollPending bool
 }
 
 // AttachmentGroup copies the items; individual view instances remain shared.
@@ -44,11 +48,44 @@ func (v *AttachmentGroupView) Gap(dp float32) *AttachmentGroupView {
 	return v
 }
 
+// ScrollTo requests an absolute horizontal offset in dp. It also works before
+// first paint; the next painted content clamps it to the available range.
+// Negative offsets mean the start. Non-finite values are ignored.
+func (v *AttachmentGroupView) ScrollTo(dp float32) {
+	if !finiteNumber(float64(dp)) {
+		return
+	}
+	v.scrollTarget = max(0, dp)
+	v.scrollPending = true
+}
+
+// ScrollState reports offset, viewport width and content width in dp for this root.
+// Before first paint the values are zero. Programmatic scrolling does not select items.
+func (v *AttachmentGroupView) ScrollState(cx *el.Context) (offset, viewport, content float32) {
+	return cx.ScrollStateX(autoID("attachment-group", v))
+}
+
 func (v *AttachmentGroupView) Render(cx *el.Context) el.Element {
 	row := el.Div().ID(autoID("attachment-group", v)).Role("group").Name(v.name).
 		Disabled(v.disabled).W(el.Full).ScrollX().Row().Items(el.Start).Gap(v.gap).Pb(theme.SpaceSm)
 	for _, item := range v.items {
 		row.Child(el.Div().NoShrink().Child(item.Render(cx)))
 	}
-	return row
+	return row.Decorate(func(gtx core.C, draw func()) {
+		draw()
+		if !v.scrollPending || !gtx.Enabled() {
+			return
+		}
+		before, view, content := v.ScrollState(cx)
+		if view <= 0 {
+			return
+		}
+		target := min(v.scrollTarget, max(0, content-view))
+		cx.ScrollIntoViewX(autoID("attachment-group", v), target, target+view)
+		v.scrollPending = false
+		after, _, _ := v.ScrollState(cx)
+		if before != after {
+			gtx.Execute(op.InvalidateCmd{})
+		}
+	})
 }
