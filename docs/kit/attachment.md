@@ -105,3 +105,9 @@ photo.MediaSource("https://example.com/photo.png")
 if err := photo.MediaError(); err != nil { /* 显示错误详情 */ }
 photo.RetryMedia()
 ```
+
+`TitleShimmer(ShimmerStyle)` 独立配置默认标题的扫光周期、宽度、反向和单次播放，可与 ShimmerText.Style 共享同一配置值。传 ShimmerStyle{} 恢复默认，非法周期/宽度使用默认值。配置变化重启标题动画，每帧重复设置同一配置不会重启；隐藏标题、完成上传或减少动画时显示静态文字。PartStatus(Title) 继续决定标题的有效状态，自定义 Content 自行组合 ShimmerText。
+
+```go
+a.TitleShimmer(kit.ShimmerStyle{Duration: 3*time.Second, Spread: .45, Reverse: true})
+```

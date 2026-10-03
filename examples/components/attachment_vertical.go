@@ -9,6 +9,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"time"
 )
 
 func init() {
@@ -21,6 +22,7 @@ func init() {
 		}
 		square := kit.Attachment("默认方形.png", 64000).Size(kit.AttachmentSizeSmall).Vertical(true).Media(kit.Image(pixels, "方形预览")).OnRemove(func() {})
 		wide := kit.Attachment("宽屏预览.png", 64000).Size(kit.AttachmentSizeSmall).Vertical(true).MediaAspectRatio(2).Media(kit.Image(pixels, "宽屏预览")).OnCancel(func() {})
+		wide.TitleShimmer(kit.ShimmerStyle{Duration: 3 * time.Second, Spread: .45, Reverse: true})
 		wide.SetProgress(.6)
 		tile := kit.Attachment("纯图片", 64000).Size(kit.AttachmentSizeSmall).Vertical(true).ShowContent(false).Media(kit.Image(pixels, "纯图片预览")).OnOpen(func() {}).OnRemove(func() {})
 		metadata := kit.Attachment("只有元信息.txt", 1024).Size(kit.AttachmentSizeSmall).ShowMedia(false)

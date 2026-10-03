@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"slices"
 	"testing"
 	"time"
@@ -136,7 +137,7 @@ func TestAttachmentTitleShimmerLifecycle(t *testing.T) {
 	defer core.Update(func() { theme.SetReducedMotion(old) })
 	core.Update(func() { theme.SetReducedMotion(false) })
 	now := time.Unix(1000, 0)
-	a := kit.Attachment("MMMMMMMMMMMMM", 0)
+	a := kit.Attachment("MMMMMMMMMMMMM", 0).TitleShimmer(kit.ShimmerStyle{Duration: 4 * time.Second, Once: true})
 	a.SetProgress(.5)
 	root := el.Embed(a)
 	w := openTest(t, Options{Width: 320, Height: 160, Content: core.Func(func(gtx core.C) core.D { gtx.Now = now; return root.Layout(gtx) })})
@@ -173,10 +174,76 @@ func TestAttachmentTitleShimmerLifecycle(t *testing.T) {
 	if slices.Equal(before, sample()) {
 		t.Fatal("upload title does not shimmer")
 	}
+	now = now.Add(3 * time.Second)
+	if !slices.Equal(before, sample()) {
+		t.Fatal("title style once/duration ignored")
+	}
+	a.TitleShimmer(kit.ShimmerStyle{})
+	sample()
+	now = now.Add(time.Second)
+	if slices.Equal(before, sample()) {
+		t.Fatal("title default style did not restore looping sweep")
+	}
 	a.SetStatus(kit.AttachmentStatusComplete)
 	complete := sample()
 	now = now.Add(time.Second)
 	if !slices.Equal(complete, sample()) {
 		t.Fatal("completed title still animates")
+	}
+}
+
+func TestShimmerStyleReapplicationAndRestart(t *testing.T) {
+	old := theme.ReducedMotion
+	defer core.Update(func() { theme.SetReducedMotion(old) })
+	core.Update(func() { theme.SetReducedMotion(false) })
+	now := time.Unix(1000, 0)
+	style := kit.ShimmerStyle{Duration: time.Second, Spread: .4, Once: true}
+	v := kit.ShimmerText("MMMM MMMM").Size(32).Color(color.NRGBA{R: 80, A: 255}).Highlight(color.NRGBA{R: 255, A: 255})
+	root := el.Embed(el.ViewFunc(func(cx *el.Context) el.Element { return v.Style(style).Render(cx) }))
+	w := openTest(t, Options{Width: 300, Height: 100, Content: core.Func(func(gtx core.C) core.D { gtx.Now = now; return root.Layout(gtx) })})
+	capture := func() []byte {
+		t.Helper()
+		b, err := w.screenshot()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return b
+	}
+	first := capture()
+	now = now.Add(400 * time.Millisecond)
+	mid := capture()
+	if bytes.Equal(first, mid) {
+		t.Fatal("reapplying style restarted every frame")
+	}
+	if !bytes.Equal(mid, capture()) {
+		t.Fatal("same style changed pixels")
+	}
+	style.Reverse = true
+	if !bytes.Equal(first, capture()) {
+		t.Fatal("style change did not restart")
+	}
+	now = now.Add(400 * time.Millisecond)
+	if bytes.Equal(mid, capture()) {
+		t.Fatal("reverse style ignored")
+	}
+	style.Duration = 2 * time.Second
+	if !bytes.Equal(first, capture()) {
+		t.Fatal("duration style change did not restart")
+	}
+	now = now.Add(time.Second)
+	if bytes.Equal(first, capture()) {
+		t.Fatal("duration applied as old period")
+	}
+	now = now.Add(time.Second)
+	if !bytes.Equal(first, capture()) {
+		t.Fatal("once style did not finish")
+	}
+	style = kit.ShimmerStyle{Duration: -1, Spread: float32(math.NaN())}
+	if !bytes.Equal(first, capture()) {
+		t.Fatal("invalid style did not restore defaults")
+	}
+	now = now.Add(800 * time.Millisecond)
+	if bytes.Equal(first, capture()) {
+		t.Fatal("invalid style reapplied as restart")
 	}
 }

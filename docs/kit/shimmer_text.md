@@ -15,3 +15,11 @@ loading.Restart()
 彩色位图字形（例如部分 emoji）保留原色，不参与高光着色。组件保持文本语义与布局尺寸，不承担加载任务，也不提供文字选择。底层 `el.Text(...).Shimmer(phase, spread, color)` 只负责绘制，便于应用自定义时间控制。
 
 运行示例：`go run ./examples/components -section shimmer_text`。
+
+`ShimmerStyle` 是可复用的动画配置值，含 Duration、Spread、Reverse、Once；`Style(config)` 一次替换四项配置，正文、字号、颜色等保持不变。零值恢复默认值；非正 Duration、超出 (0,1] 或非有限 Spread 使用默认值。有效配置变化会从下一帧重新播放，重复应用相同配置不会重启动画。逐项 Duration/Spread 等原有方法仍保留原来的行为。
+
+```go
+motion := kit.ShimmerStyle{Duration: 3*time.Second, Spread: .45, Reverse: true, Once: false}
+text.Style(motion)
+attachment.TitleShimmer(motion)
+```
