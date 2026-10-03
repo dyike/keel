@@ -23,6 +23,7 @@ func newSheetGallery() *sheetGallery {
 		})
 	}
 	g := &sheetGallery{right: kit.Sheet(el.Right, "订单详情").MarginTop(32).Body(body()), bottom: kit.Sheet(el.Bottom, "批量操作").Size(220).Body(body())}
+	g.right.PanelStyle(func(e *el.DivEl) { e.P(24).Gap(theme.SpaceLg).Border(1, theme.Border) })
 	g.right.Footer(kit.Button("完成", func() { g.right.SetValue(false) }))
 	g.bottom.Footer(kit.Button("关闭面板", func() { g.bottom.SetValue(false) }))
 	return g

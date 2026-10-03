@@ -27,3 +27,11 @@ Sheet 的正文可以包含 Menu、Popover 等浮层；父层先登记，Esc 从
 `Keyboard(bool)`、`Overlay(bool)`、`OverlayClosable(bool)`、`CloseButton(bool)` 分别控制 Esc、遮罩颜色、外部点击关闭和标题关闭按钮，默认均开启。隐藏遮罩仍保持模态阻挡和焦点约束；关闭按钮不受 Keyboard/OverlayClosable 限制。配置可在打开期间更新，程序 SetValue(false) 始终可用。
 
 `MarginTop(dp)` 给面板顶部预留空间，例如 `MarginTop(32)` 避开标题栏。四个方向均在剩余窗口区域内布局；顶部面板从预留区下沿滑入，底部面板仍贴底，左右面板缩短高度。绘制和点击区域同步裁剪，动画不会覆盖预留区。默认 0，负数和非有限值忽略；超出窗口高度时面板完全裁剪，仍可按 Esc 关闭。遮罩和模态阻挡继续覆盖整个窗口，点击顶部预留区按 OverlayClosable 处理。
+
+`PanelStyle(func(*el.DivEl))` 在默认外观之后配置面板配色、文字颜色、边框、圆角、阴影、内边距和内容间距；`PanelStyle(nil)` 恢复默认。回调每帧接收新元素，不应保存引用。面板身份和 Size/窗口约束在回调后设置，正文与操作继续通过 Body/Footer 提供。显式设置颜色的子组件保持自身颜色，未设置的文字继承面板颜色。
+
+```go
+details.PanelStyle(func(panel *el.DivEl) {
+    panel.Bg(theme.Surface).Border(1, theme.Border).P(24).Gap(theme.SpaceLg)
+})
+```

@@ -25,6 +25,7 @@ type SheetView struct {
 	body                                          el.View
 	size                                          float32
 	marginTop                                     float32
+	panelStyle                                    func(*el.DivEl)
 	open                                          bool
 	disabled                                      bool
 	openedAt                                      time.Time
@@ -66,6 +67,14 @@ func (v *SheetView) Size(dp float32) *SheetView {
 	return v
 }
 
+// PanelStyle refines the panel's default colors, border, padding and gap each
+// frame. Do not retain the element. Size, bounds and dialog identity are applied
+// afterward; use Body and Footer for content. Nil restores the default style.
+func (v *SheetView) PanelStyle(fn func(*el.DivEl)) *SheetView {
+	v.panelStyle = fn
+	return v
+}
+
 // MarginTop reserves space above the panel in dp; zero restores full height.
 // Invalid values are ignored. The modal scrim still covers the whole window.
 func (v *SheetView) MarginTop(dp float32) *SheetView {
@@ -100,7 +109,11 @@ func (v *SheetView) Render(cx *el.Context) el.Element {
 	}
 	horizontal := v.side == el.Left || v.side == el.Right
 	id := autoID("sheet", v)
-	panel := el.Div().Role("dialog").Name(v.title).Bg(theme.Surface).Shadow(theme.ElevationLg).P(20).Gap(theme.SpaceXl).Items(el.Stretch)
+	panel := el.Div().Bg(theme.Surface).Shadow(theme.ElevationLg).P(20).Gap(theme.SpaceXl).Items(el.Stretch)
+	if v.panelStyle != nil {
+		v.panelStyle(panel)
+	}
+	panel.ID(id + "/panel").Role("dialog").Name(v.title)
 	if horizontal {
 		panel.W(el.Dp(v.size)).MaxW(el.Full).H(el.Full)
 	} else {
