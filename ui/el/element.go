@@ -297,6 +297,9 @@ func (s *Styled[T]) Border(dp float32, c color.NRGBA) *T {
 	return s.self
 }
 
+// BorderDashed draws 4dp dashes with 3dp gaps; false restores a solid border.
+func (s *Styled[T]) BorderDashed(on bool) *T { s.n.style.BorderDashed(on); return s.self }
+
 // Rounded rounds the corners by dp; backgrounds, borders and hit areas follow.
 func (s *Styled[T]) Rounded(dp float32) *T { s.n.style.radius = dp; return s.self }
 

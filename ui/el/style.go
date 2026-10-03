@@ -96,6 +96,7 @@ type Style struct {
 	gradient                *theme.Gradient // painted instead of bg when set
 	borderWidth, radius     float32
 	borderColor             color.NRGBA
+	borderDashed            bool
 	cursor                  pointer.Cursor
 	hidden                  bool
 	shadow                  *theme.Elevation
@@ -154,3 +155,6 @@ func (s *Style) TextColor(c color.NRGBA) *Style   { s.text.color = &c; return s 
 func rgb(c uint32) color.NRGBA {
 	return color.NRGBA{R: uint8(c >> 16), G: uint8(c >> 8), B: uint8(c), A: 0xff}
 }
+
+// BorderDashed switches the border between dashed and solid.
+func (s *Style) BorderDashed(on bool) *Style { s.borderDashed = on; return s }

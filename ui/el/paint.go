@@ -380,6 +380,9 @@ func (e *engine) paintBox(st Style, rect image.Rectangle, radius int) {
 		h := bw / 2
 		r := image.Rectangle{Min: rect.Min.Add(image.Pt(h, h)), Max: rect.Max.Sub(image.Pt(bw-h, bw-h))}
 		path := clip.UniformRRect(r, max(radius-h, 0)).Path(ops)
+		if st.borderDashed {
+			path = dashedBorderPath(ops, r, float32(max(radius-h, 0)), float32(e.dp(4)), float32(e.dp(3)))
+		}
 		paint.FillShape(ops, st.borderColor, clip.Stroke{Path: path, Width: float32(bw)}.Op())
 	}
 }

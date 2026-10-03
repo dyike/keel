@@ -23,6 +23,10 @@ func init() {
 			}
 		}
 		done := kit.Attachment("logo.png", 48_000).Vertical(true).Media(kit.Image(preview, "图片预览").Size(240, 100).Fit(kit.ImageCover).Rounded(8))
+		pending := kit.Attachment("待上传.txt", 512)
+		pending.SetStatus(kit.AttachmentStatusPending)
+		rejected := kit.Attachment("不支持的文件.exe", 2048)
+		rejected.SetError("不支持此文件类型")
 		removed := false
 		done.OnRemove(func() { removed = true })
 		done.Actions(kit.Button("查看版本", func() {}).Variant(kit.ButtonGhost)).PartStyle(kit.AttachmentPartRoot, func(e *el.DivEl) { e.P(12) })
@@ -31,7 +35,7 @@ func init() {
 			if removed {
 				group.SetItems(up, bad)
 			}
-			return el.Div().P(24).Gap(10).Child(el.Text("横向滚动查看附件；移除后保留其他上传状态"), group.Render(cx))
+			return el.Div().P(24).Gap(10).Child(el.Text("横向滚动查看附件；移除后保留其他上传状态"), group.Render(cx), pending.Render(cx), rejected.Render(cx))
 		}))
 	})
 }

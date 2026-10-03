@@ -47,3 +47,7 @@ Pending 显示“待上传”，Processing 显示“处理中”；上传和处�
 `Size(AttachmentSize...)` 选择 XSmall、Small、Medium、Large 四档，默认 Medium。卡片宽度分别为 176/200/232/272dp，默认媒体边长 28/32/38/44dp，标题字号 11/12/13/14sp；最小高度为 40/48/56/64dp，内容较多时继续增高。内边距、间距和内置操作按钮随档位调整。
 
 默认 Medium 宽度从原来的 280dp 调整为 232dp。`PartStyle` 在尺寸默认值后应用，可覆盖宽度和媒体尺寸；自定义 Media/Content/Actions 中显式设置的尺寸保持不变。竖排仍使用内容自身的预览比例，操作区仍位于底部，与上游默认方形预览及右上角操作布局不同。
+
+默认状态外观：Pending 使用虚线边框，Failed 使用 DangerText 边框；完成后恢复普通边框。未提供自定义 Media 时，失败显示危险色背景和图标：有 OnRetry 用错误图标，无 OnRetry 用禁止图标。图片或自定义媒体保持原样，状态遮罩另行补齐。
+
+分区样式在状态默认值之后应用，可通过 Root 的 `Border` 覆盖颜色/宽度，`BorderDashed(false)` 恢复实线；Media 可覆盖背景。底层 el 的 BorderDashed 同样适用于其他元素和状态样式，保持原有边框宽度与圆角，虚线为 4dp 实段和 3dp 间隔。

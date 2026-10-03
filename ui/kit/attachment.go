@@ -121,6 +121,14 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		media.Size(el.Dp(metrics.media))
 		if status.IsInProgress() {
 			media.Child(Spinner().Size(metrics.media / 2).Label("").Render(cx))
+		} else if status.IsFailed() {
+			icon := IconError
+			if v.onRetry == nil {
+				icon = IconBan
+			}
+			tint := theme.DangerText
+			tint.A = 24
+			media.Bg(tint).Child(Icon(icon).Size(metrics.media / 2).Color(theme.DangerText).Render(cx))
 		} else {
 			media.Child(Icon(IconCopy).Size(metrics.media / 2).Color(theme.PrimaryText).Render(cx))
 		}
@@ -141,6 +149,12 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	}
 	card := surface().ID(id).Disabled(v.disabled).Role("attachment").Name(v.name).Value(state).
 		Row().Items(el.Center).Gap(metrics.gap).P(metrics.padding).W(el.Dp(metrics.width)).MinH(el.Dp(metrics.height)).MaxW(el.Full).Child(main)
+	if status.IsPending() {
+		card.BorderDashed(true)
+	}
+	if status.IsFailed() {
+		card.Border(1, theme.DangerText)
+	}
 	if v.vertical {
 		card.Col().Items(el.Stretch)
 	}
