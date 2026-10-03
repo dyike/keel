@@ -15,6 +15,7 @@ type ToggleGroupView struct {
 	value              []string
 	multiple, disabled bool
 	onChange           func([]string)
+	appearance         toggleAppearance
 }
 
 func ToggleGroup(options ...string) *ToggleGroupView  { return &ToggleGroupView{options: options} }
@@ -61,7 +62,7 @@ func (v *ToggleGroupView) Render(cx *el.Context) el.Element {
 	row := el.Div().Role("group").Row().Gap(theme.SpaceXs)
 	for i, o := range v.options {
 		o := o
-		row.Child(toggleButton(cx, id+"/"+strconv.Itoa(i), o, nil, slices.Contains(v.value, o), v.disabled, func() { v.toggle(o) }))
+		row.Child(styledToggleButton(cx, v.appearance, id+"/"+strconv.Itoa(i), o, nil, slices.Contains(v.value, o), v.disabled, func() { v.toggle(o) }))
 	}
 	return row
 }

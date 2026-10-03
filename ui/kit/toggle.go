@@ -1,6 +1,8 @@
 package kit
 
 import (
+	"image/color"
+
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 )
@@ -11,6 +13,7 @@ type ToggleView struct {
 	icon            *IconView
 	value, disabled bool
 	onChange        func(bool)
+	appearance      toggleAppearance
 }
 
 func Toggle(text string, on bool) *ToggleView            { return &ToggleView{text: text, value: on} }
@@ -21,7 +24,7 @@ func (v *ToggleView) SetValue(on bool)                   { v.value = on }
 func (v *ToggleView) SetDisabled(on bool)                { v.disabled = on }
 
 func (v *ToggleView) Render(cx *el.Context) el.Element {
-	return toggleButton(cx, autoID("toggle", v), v.text, v.icon, v.value, v.disabled, func() {
+	return styledToggleButton(cx, v.appearance, autoID("toggle", v), v.text, v.icon, v.value, v.disabled, func() {
 		v.value = !v.value
 		if v.onChange != nil {
 			v.onChange(v.value)
@@ -30,15 +33,29 @@ func (v *ToggleView) Render(cx *el.Context) el.Element {
 }
 
 func toggleButton(cx *el.Context, id, text string, icon *IconView, on, disabled bool, fn func()) *el.DivEl {
+	return styledToggleButton(cx, toggleAppearance{}, id, text, icon, on, disabled, fn)
+}
+
+func styledToggleButton(cx *el.Context, appearance toggleAppearance, id, text string, icon *IconView, on, disabled bool, fn func()) *el.DivEl {
+	height, font, iconSize, padding := appearance.metrics()
 	bg, fg, border := theme.Surface, theme.Text, theme.Border
+	if appearance.variant == ToggleGhost {
+		bg, border = color.NRGBA{}, color.NRGBA{}
+	}
+	if appearance.variant == ToggleOutline {
+		bg = color.NRGBA{}
+	}
 	if on {
-		bg, fg, border = theme.Highlight, theme.PrimaryText, theme.Primary
+		bg, fg = theme.Highlight, theme.PrimaryText
+		if appearance.variant != ToggleGhost {
+			border = theme.Primary
+		}
 	}
 	if disabled {
 		fg = theme.Muted
 	}
 	b := el.Div().ID(id).Role("toggle").Name(text).Selected(on).Disabled(disabled).
-		Row().Items(el.Center).Gap(theme.SpaceSm).H(el.Dp(32)).Px(theme.SpaceLg).Rounded(theme.RadiusMd).Bg(bg).Border(1, border).TextColor(fg).TextSize(theme.TextControl).
+		Row().Items(el.Center).Gap(theme.SpaceSm).H(el.Dp(height)).Px(padding).Rounded(theme.RadiusMd).Bg(bg).Border(1, border).TextColor(fg).TextSize(font).
 		Focusable(true).OnClick(fn).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
 	if !disabled {
 		b.CursorPointer().Hover(func(s *el.Style) {
@@ -49,7 +66,7 @@ func toggleButton(cx *el.Context, id, text string, icon *IconView, on, disabled 
 	}
 	if icon != nil {
 		ic := *icon
-		b.Child(ic.Size(16).Color(fg).Render(cx))
+		b.Child(ic.Size(iconSize).Color(fg).Render(cx))
 	}
 	if text != "" {
 		b.Child(el.Text(text))
