@@ -22,3 +22,12 @@ Agent：角色 `attachment`，名字是文件名；`value` 为空、"上传中 6
 `Media(view)` 用展示型 View 替换默认文件图标；nil 恢复图标。可传入 `kit.Image(pixels, alt).Size(width, height).Fit(kit.ImageCover)` 显示图片，图片加载仍由应用负责。媒体使用内容自身尺寸，最大宽度受卡片约束；横向预览宜用小缩略图，给文件名和操作留出空间。
 
 `Vertical(true)` 将媒体放在文字上方、操作放在底部，`Vertical(false)` 恢复默认横排。打开期间切换布局保持打开区域的键盘身份；上传/失败时预览不会触发 OnOpen，取消、重试、移除保持独立。Media 用于展示，打开交互交给附件 OnOpen，避免在预览内嵌套按钮或另一个可点击图片。此接口不自动添加图片状态遮罩、扫光或尺寸档。
+
+`AttachmentGroup(items ...el.View)` 将附件排列为可横向滚动的一行，不压缩卡片宽度。`Gap(dp)` 设置非负间距，默认 SpaceSm；`Name` 设置组的可访问名称。组宽度填满父容器，各项顶对齐。
+
+`SetItems` 替换列表，`Items` 返回副本，两者隔离切片修改并忽略 nil 条目；附件实例仍共享，保持自身上传状态和回调。同一实例不要在组中重复渲染。`SetDisabled` 禁止组内操作，不修改附件自身禁用设置。移除由应用调用 SetItems 完成；组只负责排列与滚动，不接管文件选择或上传任务。
+
+```go
+files := kit.AttachmentGroup(report, photo).Name("附件").Gap(12)
+photo.OnRemove(func() { files.SetItems(report) })
+```

@@ -25,12 +25,12 @@ func init() {
 		done := kit.Attachment("logo.png", 48_000).Vertical(true).Media(kit.Image(preview, "图片预览").Size(240, 100).Fit(kit.ImageCover).Rounded(8))
 		removed := false
 		done.OnRemove(func() { removed = true })
+		group := kit.AttachmentGroup(up, bad, done).Name("附件").Gap(12)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			box := el.Div().P(24).Gap(10).Items(el.Start).Child(up.Render(cx), bad.Render(cx))
-			if !removed {
-				box.Child(done.Render(cx))
+			if removed {
+				group.SetItems(up, bad)
 			}
-			return box
+			return el.Div().P(24).Gap(10).Child(el.Text("横向滚动查看附件；移除后保留其他上传状态"), group.Render(cx))
 		}))
 	})
 }
