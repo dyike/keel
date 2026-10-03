@@ -24,3 +24,15 @@ msg.Reactions(kit.MessageReaction{Name: "有帮助", Count: 2}).
 ```
 
 反应使用可切换按钮，点击更新当前用户的选中状态与计数，再调用回调。`Reactions` 复制数据；后续服务端结果可再次调用它覆盖。未提供回调的反应只读。Agent 可读取 `article` 的 `sending` / `failed` 状态，以及反应按钮的选中状态。
+
+`Avatar(view)` 替换头像，传 nil 隐藏；`DefaultAvatar()` 恢复默认：助手显示姓名首字母，用户消息不显示头像。用户消息显式配置头像时放在右侧。头像目前按消息顶部对齐，与 GPUI 的正文底边对齐不同。
+
+`Header(view)` 放在正文上方，`Footer(view)` 放在状态、操作和反应区之后；传 nil 清除。头尾支持任意 View 和可交互控件，默认继承小号、弱化文字样式，用户消息靠右。`Content(view)` 独立替换正文，nil 清空正文但保留其他分区。消息禁用状态覆盖所有插槽。
+
+```go
+msg.Avatar(kit.Avatar("Alice").Size(32)).
+    Header(kit.Label("Alice · 10:24")).
+    Footer(kit.Button("回复", reply))
+```
+
+插入、删除头像或头尾时，正文的身份保持稳定，输入内容和焦点不变。头尾没有默认水平缩进；MessageGroup、ghost/content inset 配置尚未提供。

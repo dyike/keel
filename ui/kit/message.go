@@ -30,17 +30,19 @@ type MessageReaction struct {
 // right without an avatar; others show full width beside the author's avatar,
 // which suits long Markdown answers.
 type MessageView struct {
-	author     string
-	bubble     *BubbleView
-	content    el.View
-	user       bool
-	actions    []el.View
-	state      MessageState
-	failure    string
-	disabled   bool
-	retry      func()
-	reactions  []MessageReaction
-	onReaction func(int, bool)
+	author                 string
+	bubble                 *BubbleView
+	content                el.View
+	avatar, header, footer el.View
+	avatarSet              bool
+	user                   bool
+	actions                []el.View
+	state                  MessageState
+	failure                string
+	disabled               bool
+	retry                  func()
+	reactions              []MessageReaction
+	onReaction             func(int, bool)
 }
 
 // Message creates a message from author; its avatar shows author's initials.
@@ -78,18 +80,24 @@ func (v *MessageView) OnReaction(fn func(int, bool)) *MessageView { v.onReaction
 func (v *MessageView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
 	state := ""
-	body := el.Div().Gap(theme.SpaceMd).Items(el.Stretch)
+	id := autoID("message", v)
+	body := el.Div().ID(id + "/body").Gap(theme.SpaceMd).Items(el.Stretch)
+	if v.header != nil {
+		body.Child(v.metadata(cx, id+"/header", v.header))
+	}
+	content := el.Div().ID(id + "/content").Items(el.Stretch)
 	if v.user {
 		if v.bubble == nil {
 			v.bubble = Bubble(v.content).Mine()
 		}
-		body.Child(v.bubble.Content(v.content).Render(cx))
+		content.Child(v.bubble.Content(v.content).Render(cx))
 	} else if v.content != nil {
-		body.Child(v.content.Render(cx))
+		content.Child(v.content.Render(cx))
 	}
+	body.Child(content.Hidden(v.content == nil))
 	if v.state == MessageSending {
 		state = "sending"
-		status := el.Div().Row().Child(el.Text(text.Sending).TextSize(theme.TextSm).TextColor(theme.Muted))
+		status := el.Div().ID(id + "/status").Row().Child(el.Text(text.Sending).TextSize(theme.TextSm).TextColor(theme.Muted))
 		if v.user {
 			status.Justify(el.End)
 		}
@@ -100,7 +108,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		if v.failure != "" {
 			detail = text.Detail(detail, v.failure)
 		}
-		status := el.Div().Row().Wrap().Gap(theme.SpaceMd).Items(el.Center).Child(el.Text(detail).TextSize(theme.TextSm).TextColor(theme.DangerText))
+		status := el.Div().ID(id + "/status").Row().Wrap().Gap(theme.SpaceMd).Items(el.Center).Child(el.Text(detail).TextSize(theme.TextSm).TextColor(theme.DangerText))
 		if v.user {
 			status.Justify(el.End)
 		}
@@ -116,7 +124,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		body.Child(status)
 	}
 	if len(v.actions) > 0 {
-		row := el.Div().Row().Wrap().Gap(theme.SpaceXs)
+		row := el.Div().ID(id + "/actions").Row().Wrap().Gap(theme.SpaceXs)
 		if v.user {
 			row.Justify(el.End)
 		}
@@ -128,7 +136,7 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		body.Child(row)
 	}
 	if len(v.reactions) > 0 {
-		row := el.Div().Row().Wrap().Gap(theme.SpaceXs)
+		row := el.Div().ID(id + "/reactions").Row().Wrap().Gap(theme.SpaceXs)
 		if v.user {
 			row.Justify(el.End)
 		}
@@ -150,10 +158,22 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		}
 		body.Child(row)
 	}
-	article := el.Div().Role("article").Name(v.author).Value(state).Disabled(v.disabled).Items(el.Stretch)
-	if v.user {
+	if v.footer != nil {
+		body.Child(v.metadata(cx, id+"/footer", v.footer))
+	}
+	article := el.Div().ID(id).W(el.Full).MinW(el.Dp(0)).Role("article").Name(v.author).Value(state).Disabled(v.disabled).Items(el.Stretch)
+	avatar := v.avatar
+	if !v.avatarSet && !v.user {
+		avatar = Avatar(v.author).Size(28)
+	}
+	if avatar == nil {
 		return article.Child(body)
 	}
+	identity := el.Div().ID(id + "/avatar").NoShrink().Child(avatar.Render(cx))
 	body.Grow().W(el.Dp(0)).Pt(theme.SpaceXs)
-	return article.Row().Gap(10).Items(el.Start).Child(Avatar(v.author).Size(28).Render(cx), body)
+	article.Row().Gap(10).Items(el.Start)
+	if v.user {
+		return article.Child(body, identity)
+	}
+	return article.Child(identity, body)
 }

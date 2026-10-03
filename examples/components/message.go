@@ -14,7 +14,10 @@ func init() {
 		failed := kit.Message("我", say("请优先处理这笔订单")).User()
 		failed.SetState(kit.MessageFailed, "网络中断")
 		failed.OnRetry(func() { failed.SetState(kit.MessageReady, "") })
-		reply := kit.Message("AI 助手", say(answer)).Actions(copy).
+		reply := kit.Message("AI 助手", say(answer)).
+			Avatar(kit.Avatar("AI").Size(32)).
+			Header(say("AI 助手 · 刚刚")).
+			Footer(say("订单数据已同步")).Actions(copy).
 			Reactions(kit.MessageReaction{Name: "有帮助", Count: 2}).OnReaction(func(int, bool) {})
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(16).W(el.Dp(520)).MaxW(el.Full).Child(
