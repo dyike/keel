@@ -24,6 +24,8 @@ func init() {
 				msg.User()
 			}
 			return msg.Render(cx)
+		}).LatestLabel("查看新消息").LatestRenderer(func(b *kit.ButtonView) *kit.ButtonView {
+			return b.Variant(kit.ButtonPrimary).Outline(true).Size(32)
 		}).OnReachTop(func() {
 			if older == 0 {
 				return

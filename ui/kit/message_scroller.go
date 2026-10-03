@@ -2,24 +2,29 @@ package kit
 
 import (
 	"github.com/dyike/keel/ui/el"
-	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
+	"time"
 )
 
 // MessageScrollerView virtualizes a conversation with stable message keys.
 // It follows the bottom while the user is there and preserves the visible
 // message when history is prepended or an earlier message changes height.
 type MessageScrollerView struct {
-	list       *VariableListView
-	atTop      bool
-	onReachTop func()
+	list           *VariableListView
+	atTop          bool
+	onReachTop     func()
+	latestHidden   bool
+	latestLabel    string
+	latestRenderer func(*ButtonView) *ButtonView
+	latestDuration time.Duration
+	latestMotion   valueMotion
 }
 
 // MessageScroller renders only the visible rows and nearby overscan. Keys are
 // unique, nonempty IDs in oldest-first order. estimate is a positive height in
 // dp until a message has been measured; its content can have any natural height.
 func MessageScroller(keys []string, estimate float32, row func(*el.Context, int) el.Element) *MessageScrollerView {
-	v := &MessageScrollerView{}
+	v := &MessageScrollerView{latestDuration: 150 * time.Millisecond}
 	v.list = VariableList(keys, estimate, func(cx *el.Context, i int) el.Element {
 		box := el.Div().Px(20).Py(9).Items(el.Stretch)
 		if i == 0 {
@@ -62,8 +67,6 @@ func (v *MessageScrollerView) Render(cx *el.Context) el.Element {
 		v.atTop = false
 	}
 	wrap := el.Div().Grow().Items(el.Stretch).Child(v.list.Render(cx))
-	if view > 0 && off+view < content-4 {
-		wrap.Child(el.Div().Absolute().Right(20).Bottom(16).Child(Button(locale.Current().Latest, v.ScrollToEnd).Icon(IconChevronDown).Variant(ButtonSecondary).Size(28).Render(cx)))
-	}
+	v.renderLatest(cx, wrap, view > 0 && off+view < content-4)
 	return wrap.Disabled(v.list.disabled)
 }

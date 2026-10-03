@@ -29,3 +29,13 @@ IDs 按从旧到新排列，必须非空且唯一，重复值会在修改前 pan
 消息中的 Markdown 仍由调用方保存为 Doc，选择范围和流式解析状态不会因虚拟化重建。单篇回答内拖选到视口边缘可继续滚动，释放后停止；不同消息的文本选择相互独立。
 
 Agent：容器角色 log，当前可见的消息逐条列出。验证：`go run ./examples/components -section message_scroller`；完整流式与选择流程用 `go run ./examples/chat`。
+
+“回到最新”按钮默认启用，`LatestButton(false)` 隐藏它而不改变滚动状态；`LatestLabel` 设置文字及可访问名称，空字符串恢复当前语言。`LatestRenderer` 接收每帧新建的默认 Button，可修改变体、图标、尺寸、Content 和 Appearance，也可返回另一 Button。组件复制返回值，保留内部 ID 和跳转动作；nil 配置或返回 nil 恢复默认。自定义内容限展示元素。
+
+```go
+sc.LatestLabel("查看新消息").LatestRenderer(func(b *kit.ButtonView) *kit.ButtonView {
+    return b.Variant(kit.ButtonPrimary).Outline(true).Size(32)
+}).LatestTransition(250 * time.Millisecond)
+```
+
+按钮默认使用 150ms 淡入淡出；`LatestTransition(0)` 立即切换，负时长忽略，减少动画优先。退出期间立即禁止交互，结束后移除。默认保留右下角文字按钮，与 GPUI 的圆形图标按钮外观不同。
