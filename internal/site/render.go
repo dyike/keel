@@ -18,6 +18,7 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
+	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	gmhtml "github.com/yuin/goldmark/renderer/html"
@@ -41,7 +42,8 @@ func (s *site) render(p *page) error {
 	ctx := parser.NewContext(parser.WithIDs(&githubIDs{seen: map[string]int{}}))
 	doc := md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	var plain strings.Builder
-	var title ast.Node // the page title, printed by the layout instead
+	var title ast.Node     // the page title, printed by the layout instead
+	var dropped []ast.Node // rows and items that point at unpublished pages
 	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -58,12 +60,13 @@ func (s *site) render(p *page) error {
 				p.TOC = append(p.TOC, heading{n.Level, string(ids), t})
 			}
 		case *ast.Link:
+			if s.unpublishedLink(p, string(n.Destination)) {
+				dropped = append(dropped, container(n))
+				return ast.WalkSkipChildren, nil
+			}
 			n.Destination = []byte(s.link(p, string(n.Destination)))
 		case *ast.Image:
 			n.Destination = []byte(s.link(p, string(n.Destination)))
-		case *ast.Text:
-			plain.Write(n.Segment.Value(src))
-			plain.WriteByte(' ')
 		}
 		return ast.WalkContinue, nil
 	})
@@ -76,6 +79,19 @@ func (s *site) render(p *page) error {
 	if title != nil {
 		title.Parent().RemoveChild(title.Parent(), title)
 	}
+	for _, n := range dropped {
+		if n.Parent() != nil {
+			n.Parent().RemoveChild(n.Parent(), n)
+		}
+	}
+	// Search text is what the page shows, after the removals.
+	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if t, ok := n.(*ast.Text); ok && entering {
+			plain.Write(t.Segment.Value(src))
+			plain.WriteByte(' ')
+		}
+		return ast.WalkContinue, nil
+	})
 	var b bytes.Buffer
 	if err := md.Renderer().Render(&b, src, doc); err != nil {
 		return err
@@ -83,6 +99,32 @@ func (s *site) render(p *page) error {
 	p.HTML = template.HTML(b.String())
 	p.Text = strings.Join(strings.Fields(plain.String()), " ")
 	return nil
+}
+
+// unpublishedLink reports whether dest leads to a page kept off the site.
+func (s *site) unpublishedLink(p *page, dest string) bool {
+	u, err := url.Parse(dest)
+	if err != nil || u.Scheme != "" || u.Host != "" || u.Path == "" {
+		return false
+	}
+	return isUnpublished(path.Clean(path.Join(path.Dir(p.Src), u.Path)))
+}
+
+// container is what to drop with a link to an unpublished page: its table
+// row or list item, or else its paragraph.
+func container(n ast.Node) ast.Node {
+	for c := n.Parent(); c != nil; c = c.Parent() {
+		switch c.(type) {
+		case *east.TableRow, *ast.ListItem:
+			return c
+		}
+	}
+	for c := n.Parent(); c != nil; c = c.Parent() {
+		if _, ok := c.(*ast.Paragraph); ok {
+			return c
+		}
+	}
+	return n
 }
 
 func nodeText(n ast.Node, src []byte) string {

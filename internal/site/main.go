@@ -80,6 +80,19 @@ type navGroup struct {
 // excluded directories hold working notes and dependencies, not documentation.
 var excluded = []string{".git", "work", "node_modules", "_site", "testdata"}
 
+// unpublished paths stay in the repository but not on the site: progress
+// reports are working records, not documentation.
+var unpublished = []string{"docs/reports/"}
+
+func isUnpublished(rel string) bool {
+	for _, p := range unpublished {
+		if strings.HasPrefix(rel, p) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *site) build(demo string) error {
 	s.pages, s.sections, s.copies = map[string]*page{}, map[string]bool{}, map[string]bool{}
 	if err := s.collect(); err != nil {
@@ -161,7 +174,7 @@ func (s *site) collect() error {
 		if !strings.HasSuffix(rel, ".md") {
 			return nil
 		}
-		if !strings.HasPrefix(rel, "docs/") && path.Base(rel) != "README.md" {
+		if !strings.HasPrefix(rel, "docs/") && path.Base(rel) != "README.md" || isUnpublished(rel) {
 			return nil
 		}
 		pg := &page{Src: rel, Out: outPath(rel), Group: groupOf(rel)}
@@ -185,8 +198,6 @@ func groupOf(src string) string {
 		return ""
 	case strings.HasPrefix(src, "docs/kit/"):
 		return "组件"
-	case strings.HasPrefix(src, "docs/reports/"):
-		return "报告"
 	case strings.HasPrefix(src, "docs/"):
 		return "指南"
 	case strings.HasPrefix(src, "examples/"):
@@ -250,7 +261,7 @@ func (s *site) buildNav() {
 		sort.Slice(g, func(i, j int) bool { return strings.ToLower(g[i].Title) < strings.ToLower(g[j].Title) })
 	}
 	guide = append(guide, groups["指南"]...)
-	s.nav = []navGroup{{"指南", guide}, {"组件", groups["组件"]}, {"模块", groups["模块"]}, {"示例", groups["示例"]}, {"报告", groups["报告"]}}
+	s.nav = []navGroup{{"指南", guide}, {"组件", groups["组件"]}, {"模块", groups["模块"]}, {"示例", groups["示例"]}}
 }
 
 func (s *site) write(rel string, data []byte) error {
