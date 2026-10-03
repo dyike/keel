@@ -35,4 +35,4 @@ msg.Avatar(kit.Avatar("Alice").Size(32)).
     Footer(kit.Button("回复", reply))
 ```
 
-插入、删除头像或头尾时，正文的身份保持稳定，输入内容和焦点不变。头尾没有默认水平缩进；MessageGroup、ghost/content inset 配置尚未提供。
+插入、删除头像或头尾时，正文的身份保持稳定，输入内容和焦点不变。头尾没有默认水平缩进；完整消息行可用 [MessageGroup](message_group.md) 分组；ghost/content inset 配置尚未提供。
