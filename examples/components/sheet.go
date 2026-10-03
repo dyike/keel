@@ -22,7 +22,10 @@ func newSheetGallery() *sheetGallery {
 				kit.DescriptionList().Item("负责人", "张三").Item("创建时间", "2026-10-01 09:30").Render(cx), menu.Render(cx))
 		})
 	}
-	return &sheetGallery{right: kit.Sheet(el.Right, "订单详情").Body(body()), bottom: kit.Sheet(el.Bottom, "批量操作").Size(220).Body(body())}
+	g := &sheetGallery{right: kit.Sheet(el.Right, "订单详情").Body(body()), bottom: kit.Sheet(el.Bottom, "批量操作").Size(220).Body(body())}
+	g.right.Footer(kit.Button("完成", func() { g.right.SetValue(false) }))
+	g.bottom.Footer(kit.Button("关闭面板", func() { g.bottom.SetValue(false) }))
+	return g
 }
 
 func (g *sheetGallery) Render(cx *el.Context) el.Element {

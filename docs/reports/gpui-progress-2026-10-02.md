@@ -70,7 +70,8 @@
 - [x] 第四十七批（`e7558d0`）：Menu 增加 IconItem、CheckItem、图标/勾选状态更新与查询、CheckSide；统一前置标记列，勾选后关闭菜单链再通知应用。Agent 增加 menuitemcheckbox 的 checked 状态。测试覆盖回车/点击、禁用、程序赋值、重新打开、子菜单关闭链及 Agent 状态；构建、vet、全量测试通过。组标题、自定义行及链接项仍待完成。
 - [x] 第四十八批（`c756970`）：Menu 增加 Label 分组标题，空标题忽略，单行截断，不参与点击、方向键和文字搜索；长菜单定位计入标题行高。测试覆盖 heading 语义、点击隔离、键盘/搜索跳过以及 30 组菜单的 End 定位与执行；构建、vet、全量测试通过。自定义行和链接项仍待补齐。
 - [x] 第四十九批（`e284361`）：Menu 增加 ContentItem/SetItemContent，多行展示内容按实际高度布局，保留可访问名称、搜索、禁用及原操作；滚动定位改为测量实际行高并在可见后转移焦点。测试覆盖内容点击、替换恢复、禁用以及 1×/2× 变高菜单的 Home/End 定位与执行；构建、vet、全量测试通过。链接项仍待补齐。
-- [x] 第五十批：Menu 增加 Link、ExternalLinkIcon、OnLink/OnLinkError 及子菜单回调继承，默认通过 core.OpenURL 打开 HTTP/HTTPS/mailto；URL 写入语义值。测试覆盖键盘/点击、禁用、菜单关闭、回调覆盖及非法地址；构建、vet、全量测试和 core 的 Windows/Linux/wasm 交叉构建通过。未执行系统浏览器真机打开验收；快捷键焦点上下文解析仍待补齐。
+- [x] 第五十批（`c1f89c9`）：Menu 增加 Link、ExternalLinkIcon、OnLink/OnLinkError 及子菜单回调继承，默认通过 core.OpenURL 打开 HTTP/HTTPS/mailto；URL 写入语义值。测试覆盖键盘/点击、禁用、菜单关闭、回调覆盖及非法地址；构建、vet、全量测试和 core 的 Windows/Linux/wasm 交叉构建通过。未执行系统浏览器真机打开验收；快捷键焦点上下文解析仍待补齐。
+- [x] 第五十一批：Sheet 增加独立 Footer 和 Keyboard/Overlay/OverlayClosable/CloseButton，正文独立滚动，页脚复制切片并支持换行。测试覆盖四方向长正文下页脚可见/执行、关闭按钮动态恢复、Esc 配置和切片隔离；构建、vet、全量测试通过。仍缺拖动调整尺寸和顶部间距；页脚需保留足够面板高度。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -149,7 +150,7 @@
 | [Scrollable](https://gpui-kit.com/component/scrollable/) | 主体已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位与尾部跟随](../../ui/el/viewport.go) | 双轴滚动、滚动条与定位已有，通过 el 组合；缺组件级 Always/Hover/Scrolling 显示策略。没有独立类型本身不计功能缺失。 |
 | [Select](https://gpui-kit.com/component/select/) | 主体已有 | [过滤、分组、多选、禁用项、万条虚拟化](../../ui/kit/select.go) | 单选主体覆盖，另有多选；缺自定义行/空内容/标题前缀、清空按钮与菜单宽高配置。分组、禁用项已实现。 |
 | [Settings](https://gpui-kit.com/component/settings/) | 部分 | [设置分组、导航、搜索、窄布局](../../ui/kit/settings.go) | 缺页面下的多 Group 模型、resettable 重置、组 footer、独立搜索 keywords 和 Markdown 描述；已有分区导航、搜索与窄布局。 |
-| [Sheet](https://gpui-kit.com/component/sheet/) | 部分 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 缺拖动调整尺寸、独立 footer、顶部 margin、遮罩显示/点击关闭配置；四方向抽屉主体已有。 |
+| [Sheet](https://gpui-kit.com/component/sheet/) | 部分 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 第五十一批补齐独立 Footer 及 Keyboard/Overlay/OverlayClosable/CloseButton。仍缺拖动调整尺寸和顶部 margin；四方向抽屉主体已有。 |
 | [Shimmer](https://gpui-kit.com/component/shimmer/) | 用途不同 | [Skeleton 占位块扫光、减少动画](../../ui/kit/skeleton.go) | 用途不同：GPUI ShimmerText 保留可读文字并让高光扫过文字；Keel Skeleton.Shimmer 只扫过占位几何。缺文字效果与 duration/spread/reverse/once 配置。 |
 | [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动](../../ui/kit/sidebar.go) | 主体覆盖；缺右侧布局开关、自定义 item suffix/上下文菜单接口。已有 Badge 和固定 Header/Footer。 |
 | [Skeleton](https://gpui-kit.com/component/skeleton/) | 主体已有 | [占位形状、尺寸、次级色阶、自定义圆角与加载动画](../../ui/kit/skeleton.go) | 第二十三批已关闭登记缺口；保留 Keel 的 1.5 秒明暗脉冲/可选扫光及减少动画，默认颜色来自 Subtle/SubtleHover，与上游独立 skeleton token、2 秒透明度动画不同。 |
