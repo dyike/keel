@@ -59,7 +59,7 @@ func (v *TabsView) dragTab(cx *el.Context, i int, visible []int, e el.DragEvent)
 			break
 		}
 	}
-	if from < 0 {
+	if from < 0 || v.pages[from].Disabled {
 		return
 	}
 	x := v.offsets[from] + e.X

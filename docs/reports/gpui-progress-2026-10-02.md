@@ -31,7 +31,8 @@
 - [x] 第八批（`40f241c`）：DescriptionList 多列/跨列、纵向标签、满行分隔线、边框与字号；el.Grid 增加 ColSpan。覆盖跨列换行/最小宽度、1×/2× 窄布局、富内容交互及 Agent 重排；浅深色截图已检查。
 - [x] 第九批（`a6c142c`）：InputGroup 四方向 Addon、多附加内容、稳定 ID 替换/移除与 TextArea 组合。按钮沿用 kit.Button 的样式/尺寸/加载/禁用配置。覆盖布局顺序、文字聚焦、按钮焦点、Tab、只读、禁用继承、动态内容及 Agent；浅深色截图已检查。
 - [x] 第十批（`ad5ea79`）：Slider 对数刻度、OnRelease/OnRangeRelease；覆盖单值/双端和横纵向映射、键盘重复、取消、禁用、非法/极端范围、Agent 回调及浅深色截图。正步长仍按数值对齐，无正步长的对数键盘操作按轨道百分比移动。
-- [x] 第十一批：Button 新增 Link/Text/Success/Warning/Info，支持叠加 Outline/Compact、自定义 Content 与 Appearance、正方形图标按钮。自定义内容加载时保持尺寸并显示进度环；语义底色自动选择黑白文字。覆盖键盘/加载焦点、1×/2× 布局和像素测试，浅深色截图已检查。
+- [x] 第十一批（`5043522`）：Button 新增 Link/Text/Success/Warning/Info，支持叠加 Outline/Compact、自定义 Content 与 Appearance、正方形图标按钮。自定义内容加载时保持尺寸并显示进度环；语义底色自动选择黑白文字。覆盖键盘/加载焦点、1×/2× 布局和像素测试，浅深色截图已检查。
+- [x] 第十二批：Tabs 增加 Underline/Pill/Outline/Segmented 外观、TabItem 图标/自定义标签、SetItem 与单项禁用。点击、关闭、键盘、拖动和溢出菜单遵守禁用状态；禁用当前项自动选择可用项，程序更新不触发回调。覆盖 1×/2× 布局、状态保留、Agent 和浅深色截图。新发现的最大标签宽度与滚动标签栏接口仍记为未完成。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -120,7 +121,7 @@
 | [Stepper](https://gpui-kit.com/component/stepper/) | 主体已有 | [横纵步骤、图标/富内容、尺寸、导航、键盘、滚动与单步禁用](../../ui/kit/stepper.go) | 第六批已补齐 Vertical、Size、StepperItem 与 SetItemDisabled。此表登记缺口已关闭；导航仍限已完成步骤，GPUI 文档的文本居中布局未提供独立开关。 |
 | [Switch](https://gpui-kit.com/component/switch/) | 主体已有 | [布尔开关、标签、禁用与键盘](../../ui/kit/switch.go) | 布尔开关主体已有；缺大小/颜色/标签侧配置。当前无 Loading 接口，旧表误记；GPUI 此页也未将 loading 列为能力。 |
 | [Table](https://gpui-kit.com/component/table/) | 部分 | [排序、行选择、单元格插槽、列宽调整；高级能力同 DataTable](../../ui/kit/table.go) | GPUI Table 是轻量 Header/Body/Footer/Caption 组合表，DataTable 才负责数据交互；Keel 两项共用 TableView，缺独立 footer/caption/任意行组合。 |
-| [Tabs](https://gpui-kit.com/component/tabs/) | 部分 | [页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 页状态/关闭/溢出/拖排已完成；缺 underline/pill/outline/segmented 变体、单页禁用与单标签图标/自定义内容。 |
+| [Tabs](https://gpui-kit.com/component/tabs/) | 部分 | [四种外观、图标/富标签、单项禁用、页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 第十二批已关闭外观、禁用和标签内容缺口；复核当前文档新增记录：缺独立 max_width、可滚动标签栏/滚动控制接口。当前按可用宽度截断标签，并自动收进溢出菜单。 |
 | [Tag](https://gpui-kit.com/component/tag/) | 主体已有 | [颜色、移除、选中](../../ui/kit/tag.go) | 主体覆盖，另有选择/移除；缺 outline、任意颜色/圆角/大小与 child 配置。 |
 | [TextView](https://gpui-kit.com/component/text-view/) | 部分 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 缺富文本整体 max_lines/is_clamped、逐流式增量淡入、公开区间高亮/跳转、Markdown 插件与代码块操作扩展接口。HTML/扩展 TeX 已完成。 |
 | [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、错误显示](../../ui/kit/input.go) | 缺 inline token 和 auto_grow(min,max) 的最大行数控制；Rows 只设最小高度，旧表“最大可见行数”不成立。 |

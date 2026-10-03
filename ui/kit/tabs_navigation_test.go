@@ -69,7 +69,7 @@ func TestTabsDragAndCancellation(t *testing.T) {
 	ax, ay := center(bounds(h, "AAA"))
 	cx, cy := center(bounds(h, "CCC"))
 	h.Drag(ax, ay, cx, cy)
-	if v.pages[2].title != "AAA" || v.Value() != 2 || calls != 1 {
+	if v.pages[2].Title != "AAA" || v.Value() != 2 || calls != 1 {
 		t.Fatalf("drag order %#v current %d calls %d", v.pages, v.Value(), calls)
 	}
 	var context *el.Context

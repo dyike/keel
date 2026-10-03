@@ -13,10 +13,28 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
+type TabsVariant uint8
+
+const (
+	TabsUnderline TabsVariant = iota
+	TabsPill
+	TabsOutline
+	TabsSegmented
+)
+
+// TabItem describes a page and its label. Content replaces the visible title;
+// use display-only content. Title remains the accessible and overflow name.
+type TabItem struct {
+	Title    string
+	Page     el.View
+	Icon     IconName
+	Content  el.View
+	Disabled bool
+}
+
 type tabPage struct {
-	id    uint64
-	title string
-	page  el.View
+	id uint64
+	TabItem
 }
 
 // TabsView switches between pages. Only the current page renders; each page
@@ -35,6 +53,7 @@ type TabsView struct {
 	disabled, focusPending bool
 	height                 float32
 	leading, trailing      el.View
+	variant                TabsVariant
 	reorder                bool
 	onMove                 func(int, int)
 	dragID                 uint64
@@ -43,9 +62,14 @@ type TabsView struct {
 
 func Tabs() *TabsView { return &TabsView{more: Menu(), height: 40} }
 func (v *TabsView) Add(title string, page el.View) *TabsView {
+	return v.AddItem(TabItem{Title: title, Page: page})
+}
+
+func (v *TabsView) AddItem(item TabItem) *TabsView {
 	v.nextID++
-	v.pages = append(v.pages, tabPage{id: v.nextID, title: title, page: page})
+	v.pages = append(v.pages, tabPage{id: v.nextID, TabItem: item})
 	v.widths = append(v.widths, 0)
+	v.repairSelection()
 	return v
 }
 
@@ -66,6 +90,7 @@ func (v *TabsView) Remove(i int) {
 	if v.current > i || v.current >= len(v.pages) {
 		v.current = max(v.current-1, 0)
 	}
+	v.repairSelection()
 }
 
 // Len is the number of tabs.
@@ -120,10 +145,15 @@ func (v *TabsView) OnChange(fn func(index int)) *TabsView { v.onChange = fn; ret
 func (v *TabsView) Value() int                            { return v.current }
 
 // SetValue shows tab i without calling OnChange.
-func (v *TabsView) SetValue(i int) { v.current = min(max(i, 0), max(len(v.pages)-1, 0)) }
+func (v *TabsView) SetValue(i int) {
+	i = min(max(i, 0), max(len(v.pages)-1, 0))
+	if len(v.pages) == 0 || !v.pages[i].Disabled {
+		v.current = i
+	}
+}
 
 func (v *TabsView) choose(cx *el.Context, i int) {
-	if v.disabled || i < 0 || i >= len(v.pages) {
+	if v.disabled || i < 0 || i >= len(v.pages) || v.pages[i].Disabled {
 		return
 	}
 	v.focusPending = true
@@ -139,6 +169,9 @@ func (v *TabsView) choose(cx *el.Context, i int) {
 
 func (v *TabsView) Render(cx *el.Context) el.Element {
 	bar := el.Div().Role("tablist").Row()
+	if v.variant == TabsSegmented {
+		bar.Bg(theme.Subtle).Rounded(theme.RadiusMd)
+	}
 	v.offsets = map[int]float32{}
 	x := float32(0)
 	visible := v.visible()
@@ -147,8 +180,8 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		v.offsets[i] = x
 		x += v.tabWidth(i)
 		on := i == v.current
-		tab := el.Div().ID(v.tabID(i)).Role("tab").Name(p.title).Selected(on).
-			Px(14).H(el.Dp(v.height - 2)).CursorPointer().TextColor(theme.Muted).Focusable(on).
+		tab := el.Div().ID(v.tabID(i)).Role("tab").Name(p.Title).Selected(on).
+			Px(14).H(el.Dp(v.height - 2)).CursorPointer().TextColor(theme.Muted).Focusable(on).Disabled(p.Disabled).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 			Hover(func(s *el.Style) { s.TextColor(theme.Text) }).
 			OnClick(func() { v.choose(cx, i) }).
@@ -164,13 +197,13 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 					}
 					return true
 				case key.NameRightArrow:
-					j = (i + 1) % len(v.pages)
+					j = v.nextEnabled(i, 1)
 				case key.NameLeftArrow:
-					j = (i - 1 + len(v.pages)) % len(v.pages)
+					j = v.nextEnabled(i, -1)
 				case key.NameHome:
-					j = 0
+					j = v.nextEnabled(-1, 1)
 				case key.NameEnd:
-					j = len(v.pages) - 1
+					j = v.nextEnabled(len(v.pages), -1)
 				default:
 					ok = false
 				}
@@ -179,21 +212,33 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 				}
 				return ok
 			}).
-			Row().Items(el.Center).Gap(theme.SpaceSm).Child(el.Text(p.title).Grow().MinW(el.Dp(0)).MaxLines(1))
+			Row().Items(el.Center).Gap(theme.SpaceSm)
+		if p.Icon != IconNone {
+			c := theme.Muted
+			if on && !p.Disabled {
+				c = theme.PrimaryText
+			}
+			tab.Child(Icon(p.Icon).Size(16).Color(c).Render(cx))
+		}
+		if p.Content != nil {
+			tab.Child(el.Div().Grow().MinW(el.Dp(0)).MaxW(el.Full).Child(p.Content.Render(cx)))
+		} else {
+			tab.Child(el.Text(p.Title).Grow().MinW(el.Dp(0)).MaxLines(1))
+		}
 		if v.avail > 0 {
 			tab.MaxW(el.Dp(max(24, v.avail-60)))
 		}
-		if v.reorder {
+		if v.reorder && !p.Disabled {
 			tab.OnDrag(func(e el.DragEvent) { v.dragTab(cx, i, visible, e) })
 		}
-		head := el.Div().Row().Items(el.Center).Child(tab)
+		head := el.Div().Row().Items(el.Center).Disabled(p.Disabled).Child(tab)
 		if v.onClose != nil {
 			// Beside the tab, not inside it: a click on the button must not
 			// also select the tab it is closing.
-			head.Pr(theme.SpaceSm).Child(el.Div().Name(locale.Current().Name(locale.Current().Close, p.title)).P(theme.SpaceXxs).Rounded(theme.RadiusSm).
+			head.Pr(theme.SpaceSm).Child(el.Div().Name(locale.Current().Name(locale.Current().Close, p.Title)).P(theme.SpaceXxs).Rounded(theme.RadiusSm).
 				Focusable(false).CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
 				OnClick(func() {
-					if !v.disabled {
+					if !v.disabled && !p.Disabled {
 						v.onClose(i)
 					}
 				}).Child(Icon(IconClose).Size(12).Color(theme.Muted).Render(cx)))
@@ -201,7 +246,26 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		underline := el.Div().H(el.Dp(2))
 		if on {
 			tab.TextColor(theme.PrimaryText)
-			underline.Bg(theme.Primary)
+			if v.variant == TabsUnderline {
+				underline.Bg(theme.Primary)
+			}
+		}
+		switch v.variant {
+		case TabsPill:
+			head.Rounded(theme.RadiusFull)
+			if on {
+				head.Bg(theme.Highlight)
+			}
+		case TabsOutline:
+			head.Rounded(theme.RadiusMd).Border(1, theme.Border)
+			if on {
+				head.Border(1, theme.Primary).Bg(theme.Highlight)
+			}
+		case TabsSegmented:
+			head.Rounded(theme.RadiusMd)
+			if on {
+				head.Bg(theme.Surface).Shadow(theme.ElevationSm)
+			}
 		}
 		bar.Child(el.Div().ID(v.tabID(i)+"/head").NoShrink().Items(el.Stretch).Child(head, underline).Decorate(func(gtx core.C, draw func()) {
 			if px := gtx.Metric.PxPerDp; px > 0 && i < len(v.widths) {
@@ -218,13 +282,13 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		v.more.items = nil
 		for i := range v.pages {
 			if !slices.Contains(visible, i) {
-				v.more.Item(v.pages[i].title, "", func() { v.choose(cx, i) })
+				v.more.items = append(v.more.items, menuItem{label: v.pages[i].Title, disabled: v.pages[i].Disabled, action: func() { v.choose(cx, i) }})
 			}
 		}
 		v.more.Trigger(Button("", v.more.Toggle).Name(locale.Current().More).Icon(IconChevronDown).Variant(ButtonGhost).Size(v.height - 2))
 		bar.Child(v.more.Render(cx))
 	}
-	if v.focusPending && len(v.pages) > 0 && !v.disabled {
+	if v.focusPending && len(v.pages) > 0 && !v.disabled && !v.pages[v.current].Disabled {
 		cx.Focus(v.tabID(v.current))
 		v.focusPending = false
 	}
@@ -246,9 +310,65 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 	if v.trailing != nil {
 		header.Child(el.Div().ID(id + "/trailing").NoShrink().Child(v.trailing.Render(cx)))
 	}
-	out := el.Div().Disabled(v.disabled).Gap(theme.SpaceXl).Items(el.Stretch).Child(el.Div().Items(el.Stretch).Child(header, el.Div().H(el.Dp(1)).Bg(theme.Border)))
-	if v.current < len(v.pages) && v.pages[v.current].page != nil {
-		out.Child(el.Div().ID(v.tabID(v.current) + "/panel").Role("tabpanel").Name(v.pages[v.current].title).Items(el.Stretch).Child(v.pages[v.current].page.Render(cx)))
+	headerBox := el.Div().Items(el.Stretch).Child(header)
+	if v.variant == TabsUnderline {
+		headerBox.Child(el.Div().H(el.Dp(1)).Bg(theme.Border))
+	}
+	out := el.Div().Disabled(v.disabled).Gap(theme.SpaceXl).Items(el.Stretch).Child(headerBox)
+	if v.current < len(v.pages) && v.pages[v.current].Page != nil {
+		out.Child(el.Div().ID(v.tabID(v.current) + "/panel").Role("tabpanel").Name(v.pages[v.current].Title).Items(el.Stretch).Child(v.pages[v.current].Page.Render(cx)))
 	}
 	return out
+}
+
+// Variant selects the tab appearance. Underline is the default.
+func (v *TabsView) Variant(variant TabsVariant) *TabsView {
+	if variant <= TabsSegmented {
+		v.variant = variant
+	}
+	return v
+}
+
+// SetItem changes a tab without replacing its stable identity or firing callbacks.
+func (v *TabsView) SetItem(i int, item TabItem) {
+	if i < 0 || i >= len(v.pages) {
+		return
+	}
+	v.pages[i].TabItem = item
+	v.widths[i] = 0
+	v.repairSelection()
+}
+
+// SetItemDisabled skips this tab in pointer, keyboard, overflow and drag interaction.
+// Disabling the selected tab selects the next enabled tab without OnChange.
+// If all tabs are disabled, the current page remains displayed without a tab stop.
+func (v *TabsView) SetItemDisabled(i int, disabled bool) {
+	if i < 0 || i >= len(v.pages) {
+		return
+	}
+	v.pages[i].Disabled = disabled
+	if disabled && v.dragID == v.pages[i].id {
+		v.dragID = 0
+	}
+	v.repairSelection()
+}
+
+func (v *TabsView) nextEnabled(start, delta int) int {
+	n := len(v.pages)
+	for k := 0; k < n; k++ {
+		start = (start + delta + n) % n
+		if !v.pages[start].Disabled {
+			return start
+		}
+	}
+	return -1
+}
+func (v *TabsView) repairSelection() {
+	if len(v.pages) == 0 || !v.pages[v.current].Disabled {
+		return
+	}
+	if i := v.nextEnabled(v.current, 1); i >= 0 {
+		v.current = i
+		v.focusPending = true
+	}
 }

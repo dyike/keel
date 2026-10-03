@@ -1,11 +1,14 @@
 # Tabs
 
-标签页。
+支持下划线、胶囊、描边和分段外观的标签页。
 
 ```go
 tabs := kit.Tabs().Add("基本", basicForm).Add("通知", notifySettings).OnChange(onTab)
 ```
 
+- `Variant(TabsUnderline/TabsPill/TabsOutline/TabsSegmented)` 选择外观，默认保留原下划线样式。颜色随主题切换。
+- `AddItem(TabItem{Title, Page, Icon, Content, Disabled})` 添加图标或富标签。Content 替换可见标题，应为展示元素；Title 仍用于 Agent 名称和溢出菜单。富标签在有限宽度内布局，文字截断需内容自行设置 MaxLines。
+- `SetItem(i, item)` 更新条目并保留稳定身份；`SetItemDisabled(i, bool)` 单项禁用。禁用项不能点击、关闭或拖动，方向键及溢出菜单跳过它。禁用当前项自动选择下一个可用项；全部禁用时保留当前页，标签不进入 Tab 导航，页面内容仍保留可用。重新启用一个条目后恢复选择。程序修改不触发 OnChange；SetValue 不选择禁用项。
 - 只渲染当前页。每一页都是应用自己持有的 View，切换后状态还在。
 - Tab 键聚焦到当前标签，← → 切换，首尾循环，Home / End 跳到首尾。
 - 标签放不下时，多出来的收进末尾的"更多"菜单，当前选中的标签始终保留在栏内，可继续用方向键操作；长标题会截断。和 Toolbar 一样，标签页要放在有宽度约束的位置。
