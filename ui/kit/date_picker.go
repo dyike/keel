@@ -18,6 +18,8 @@ type DatePickerView struct {
 	cal                     *CalendarView
 	open, disabled          bool
 	months                  int
+	dateFormat              string
+	clearable               bool
 	revealed                time.Time
 	onChange                func(start, end time.Time)
 }
@@ -40,6 +42,13 @@ func (v *DatePickerView) Months(n int) *DatePickerView { v.months = max(1, min(1
 func (v *DatePickerView) Range() *DatePickerView               { v.cal.Range(); return v }
 func (v *DatePickerView) Placeholder(s string) *DatePickerView { v.placeholder = s; return v }
 
+// Format sets a Go time layout for both endpoints. Empty restores locale.Date.
+// It changes display only, without changing selection or firing OnChange.
+func (v *DatePickerView) Format(layout string) *DatePickerView { v.dateFormat = layout; return v }
+
+// Clearable shows an independent clear button when a date is selected.
+func (v *DatePickerView) Clearable(on bool) *DatePickerView { v.clearable = on; return v }
+
 // Bounds limits selectable dates; a zero time leaves that side open.
 func (v *DatePickerView) Bounds(min, max time.Time) *DatePickerView { v.cal.Bounds(min, max); return v }
 func (v *DatePickerView) DisableDates(fn func(time.Time) bool) *DatePickerView {
@@ -48,6 +57,7 @@ func (v *DatePickerView) DisableDates(fn func(time.Time) bool) *DatePickerView {
 }
 
 // OnChange runs when the user picks a date or completes a range (start == end for one date).
+// Clearing sends two zero times.
 func (v *DatePickerView) OnChange(fn func(start, end time.Time)) *DatePickerView {
 	v.onChange = fn
 	return v
@@ -71,6 +81,9 @@ func (v *DatePickerView) text() string {
 		return ""
 	}
 	f := locale.Current().Date
+	if v.dateFormat != "" {
+		f = func(t time.Time) string { return t.Format(v.dateFormat) }
+	}
 	if v.cal.rangeMode && !end.IsZero() && !end.Equal(start) {
 		return f(start) + " – " + f(end)
 	}
@@ -79,6 +92,7 @@ func (v *DatePickerView) text() string {
 
 func (v *DatePickerView) Render(cx *el.Context) el.Element {
 	id := v.FocusID()
+	frameID := id + "/frame"
 	shown, color := v.text(), theme.Text
 	if shown == "" {
 		shown, color = v.placeholder, theme.Muted
@@ -99,9 +113,8 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		v.cal.focus, v.cal.month = focus, monthOf(focus)
 		cx.Focus(v.cal.FocusID())
 	}
-	field := fieldFrame(id, false, v.err != "", v.disabled, false).Role("button").Name(v.a11y()).Value(v.text()).
+	field := el.Div().ID(id).Row().Items(el.Center).Gap(theme.SpaceMd).Grow().MinW(el.Dp(0)).Disabled(v.disabled).Role("button").Name(v.a11y()).Value(v.text()).
 		Focusable(true).OnClick(func() { setOpen(!v.open) }).
-		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
 			if key.Name(e.Name) != key.NameDownArrow {
 				return false
@@ -116,6 +129,21 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		field.TextColor(theme.Muted)
 	} else {
 		field.CursorPointer()
+	}
+	frame := fieldFrame(frameID, cx.FocusWithin(frameID), v.err != "", v.disabled, false).Child(field)
+	start, _ := v.Value()
+	if v.clearable && !start.IsZero() {
+		clear := Button("", func() {
+			v.close()
+			v.cal.SetValue(time.Time{}, time.Time{})
+			v.err = ""
+			cx.Focus(id)
+			if v.onChange != nil {
+				v.onChange(time.Time{}, time.Time{})
+			}
+		}).ID(id + "/clear").Name(locale.Current().Name(locale.Current().Clear, v.a11y())).Icon(IconClose).Variant(ButtonGhost).Size(24)
+		clear.SetDisabled(v.disabled)
+		frame.Child(clear.Render(cx))
 	}
 	if v.open {
 		width, height := cx.ViewportSize()
@@ -144,12 +172,12 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 				v.revealed = focus
 			})
 		}
-		cx.Overlay(id, el.Anchored(id, floating(theme.ElevationMd).ID(viewportID).Role("dialog").Name(v.a11y()).
+		cx.Overlay(id, el.Anchored(frameID, floating(theme.ElevationMd).ID(viewportID).Role("dialog").Name(v.a11y()).
 			MaxW(el.Dp(max(1, width-16))).MaxH(el.Dp(max(1, height-16))).
 			ScrollY().ScrollX().P(theme.SpaceLg).Child(calendar)).
 			Modal().TrapFocus().OnDismiss(v.close))
 	}
-	return labelled(v.label, el.Div().Items(el.Start).MinW(el.Dp(200)).Child(field), v.err)
+	return labelled(v.label, el.Div().Items(el.Start).MinW(el.Dp(200)).Child(frame), v.err)
 }
 
 func (v *DatePickerView) setName(s string) { v.name = s }

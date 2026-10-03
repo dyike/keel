@@ -15,3 +15,7 @@ trip := kit.DatePicker("出差日期").Range().Months(2)
 Agent：字段是 `button`，名字是标签，`value` 是显示的日期；打开后是名为标签的 `dialog`，里面是 Calendar 的 `grid`。
 
 验证：`go run ./examples/components -section date_picker`，加 `-theme dark` 检查深色。
+
+`Format(layout)` 使用 Go 的时间布局同时格式化单日期和范围两端，例如 `Format("2006-01-02")`；传空字符串恢复当前 locale 的日期格式。只改变显示，不修改日期、不触发回调，格式语法与 GPUI 的 chrono 格式不同。
+
+`Clearable(true)` 在有日期时显示独立清空按钮；鼠标或键盘清空会关闭弹层、丢弃范围草稿、移除错误，并回调一次 `OnChange(time.Time{}, time.Time{})`，焦点返回日期触发器。清空不会误打开日历，禁用状态继承到清空按钮；`Clearable(false)` 隐藏按钮，程序 SetValue 不触发回调。
