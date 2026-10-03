@@ -567,6 +567,15 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		st.scrollY = st.scrollbarY.update(gtx, yTrack, false, st.scrollY, viewport.Dy(), total, e.dp(24), st)
 	}
 
+	if offset := n.style.controlledScroll; offset != nil {
+		if n.style.scrollX {
+			st.scrollX = min(max(e.dp(offset[0]), 0), maxX)
+		}
+		if n.style.scrollY {
+			st.scrollY = min(max(e.dp(offset[1]), 0), maxScroll)
+		}
+	}
+
 	if gtx.Enabled() && (st.scrollX != previousX || st.scrollY != previousY) {
 		// Virtual content is built before paint; rebuild at the new offset.
 		gtx.Execute(op.InvalidateCmd{})

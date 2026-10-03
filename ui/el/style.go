@@ -87,6 +87,7 @@ type Style struct {
 	justify, align          Align
 	alignSet                bool
 	scrollX, scrollY        bool
+	controlledScroll        *[2]float32
 	pinX                    int // -1 left, +1 right of nearest horizontal viewport
 	pinOffset               float32
 	stickBottom             bool

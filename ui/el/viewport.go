@@ -124,6 +124,18 @@ func (cx *Context) LayoutSize(element Element) (width, height float32) {
 	return float32(size.X) / px, float32(size.Y) / px
 }
 
+// LastSize returns the last painted border-box size of an identified element,
+// in dp. Read during Render; zero means the element has not been painted or was
+// clipped out. Unlike scroll state, geometry also updates on disabled frames.
+func (cx *Context) LastSize(id string) (width, height float32) {
+	b := cx.root.e.anchors[id]
+	scale := cx.root.e.m.PxPerDp
+	if scale <= 0 {
+		scale = 1
+	}
+	return float32(b.Dx()) / scale, float32(b.Dy()) / scale
+}
+
 // ScrollTo sets a ScrollY offset in dp on its next paint. The new content
 // size clamps it then, so callers can preserve an anchor as content changes.
 // It does nothing before the container's first paint or in read-only layout.

@@ -347,3 +347,9 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 范围限单个 el root，不跨独立 Embed 或原生 Gio 控件。直接调用 Router.MoveFocus 绕过此规则，应使用正常 Tab 事件；控件显式消费 Tab 时保留其操作行为。
 
 `WrapFit()` 与 Wrap 一样支持换行；自动宽度时按每行内容收紧，适合按钮胶囊等需要贴合内容的容器。显式或拉伸宽度仍使用常规行对齐及 Grow 分配。调用 Wrap() 恢复填满可用行宽的默认行为。
+
+### 受控滚动与上一帧尺寸
+
+`ScrollX/ScrollY` 可配合 `ScrollOffset(x, y)` 使用绝对 dp 偏移；绘制时按内容边界限制，禁用时仍显示指定位置。指定偏移时覆盖滚轮和滚动条输入，省略即可恢复普通滚动；非有限值忽略。应由应用状态持续提供目标位置。
+
+`cx.LastSize(id)` 在 Render 中读取同 root 上次绘制的元素尺寸（dp），首次或被裁掉时返回零；包含禁用帧的几何更新。`cx.LayoutSize(element)` 用于 Decorate 中读取当前布局尺寸。窗口尺寸变化后，依赖 LastSize 的布局通常需再绘制一帧收敛。
