@@ -101,3 +101,68 @@ func TestRadioSizeValidation(t *testing.T) {
 		t.Fatal("maximum clamp")
 	}
 }
+
+func TestRadioItemSizeInheritanceAndFocus(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		v := RadioGroup("Plan", "A", "B").Size(18).TextSize(14)
+		h := renderView(v, 240, scale)
+		base := bounds(h, "A").Size()
+		baseB := bounds(h, "B").Size()
+		click(t, h, "A")
+		v.ItemSize("A", 40, 28)
+		h.Frame()
+		large := bounds(h, "A").Size()
+		if large.X <= base.X || large.Y <= base.Y || bounds(h, "B").Dy() != baseB.Y {
+			t.Fatal("per-item sizes not isolated", base, large)
+		}
+		v.Size(12).TextSize(10)
+		h.Frame()
+		if bounds(h, "A").Size() != large {
+			t.Fatal("group changed explicit override")
+		}
+		h.Key(key.NameRightArrow, 0)
+		if v.Value() != "B" {
+			t.Fatal("resize lost focus")
+		}
+		v.ItemSize("A", 0, 0)
+		h.Frame()
+		inherited := bounds(h, "A").Size()
+		v.ItemSize("A", 12, 10)
+		h.Frame()
+		if bounds(h, "A").Size() != inherited {
+			t.Fatal("inheritance not restored")
+		}
+		v.ItemSize("A", 40, 0)
+		h.Frame()
+		before := bounds(h, "A").Dx()
+		v.TextSize(28)
+		h.Frame()
+		if bounds(h, "A").Dx() <= before {
+			t.Fatal("zero font did not inherit")
+		}
+	}
+}
+
+func TestRadioItemSizeValidationAndLifecycle(t *testing.T) {
+	v := RadioGroup("Plan", "A", "B").ItemSize("A", 28, 20)
+	for _, bad := range []float32{-1, float32(math.NaN()), float32(math.Inf(1))} {
+		v.ItemSize("A", bad, 12).ItemSize("A", 12, bad)
+	}
+	v.ItemSize("missing", 28, 20)
+	if len(v.itemSizes) != 1 || v.itemSizes["A"] != [2]float32{28, 20} {
+		t.Fatal("invalid override changed state")
+	}
+	v.SetOptions("B", "A")
+	if v.itemSizes["A"] != [2]float32{28, 20} {
+		t.Fatal("reorder lost override")
+	}
+	v.ItemSize("A", 1, 1000)
+	if v.itemSizes["A"] != [2]float32{12, 128} {
+		t.Fatal("limits ignored")
+	}
+	v.SetOptions("B")
+	v.SetOptions("A", "B")
+	if len(v.itemSizes) != 0 {
+		t.Fatal("removed override resurrected")
+	}
+}

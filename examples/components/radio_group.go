@@ -19,7 +19,7 @@ func init() {
 					el.Text(plan.description).TextSize(theme.TextSm).TextColor(theme.Muted))
 			}))
 		}
-		size := kit.RadioGroup("尺寸", "S", "M", "L").Horizontal().Size(14).TextSize(12)
+		size := kit.RadioGroup("尺寸", "S", "M", "L").Horizontal().Size(14).TextSize(12).ItemSize("M", 18, 14).ItemSize("L", 28, 20)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(16).Items(el.Start).Child(pay.Render(cx), size.Render(cx),
 				el.Div().Role("radiogroup").Name("套餐").Gap(12).Child(

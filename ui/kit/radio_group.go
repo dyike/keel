@@ -19,6 +19,7 @@ type RadioGroupView struct {
 	onChange       func(string)
 	size, textSize float32
 	content        map[string]el.View
+	itemSizes      map[string][2]float32
 }
 
 func RadioGroup(label string, options ...string) *RadioGroupView {
@@ -49,6 +50,30 @@ func (v *RadioGroupView) TextSize(sp float32) *RadioGroupView {
 			v.textSize = min(128, max(8, sp))
 		}
 	}
+	return v
+}
+
+// ItemSize overrides an option's indicator diameter (dp) and inherited font
+// size (sp). Each zero value inherits the group's setting. Unknown options or
+// negative/non-finite sizes are ignored; positive sizes use the group limits.
+func (v *RadioGroupView) ItemSize(value string, dp, sp float32) *RadioGroupView {
+	if v.index(value) < 0 || dp < 0 || sp < 0 || !finiteNumber(float64(dp)) || !finiteNumber(float64(sp)) {
+		return v
+	}
+	if dp == 0 && sp == 0 {
+		delete(v.itemSizes, value)
+		return v
+	}
+	if dp > 0 {
+		dp = min(64, max(12, dp))
+	}
+	if sp > 0 {
+		sp = min(128, max(8, sp))
+	}
+	if v.itemSizes == nil {
+		v.itemSizes = map[string][2]float32{}
+	}
+	v.itemSizes[value] = [2]float32{dp, sp}
 	return v
 }
 
@@ -95,6 +120,11 @@ func (v *RadioGroupView) SetOptions(options ...string) {
 	for o := range v.content {
 		if !seen[o] {
 			delete(v.content, o)
+		}
+	}
+	for o := range v.itemSizes {
+		if !seen[o] {
+			delete(v.itemSizes, o)
 		}
 	}
 	if v.index(v.value) < 0 {
@@ -174,7 +204,15 @@ func (v *RadioGroupView) renderItem(cx *el.Context, i int) el.Element {
 	} else if on {
 		ring = theme.Primary
 	}
-	size := v.size
+	size, textSize := v.size, v.textSize
+	if sizes := v.itemSizes[o]; sizes != [2]float32{} {
+		if sizes[0] > 0 {
+			size = sizes[0]
+		}
+		if sizes[1] > 0 {
+			textSize = sizes[1]
+		}
+	}
 	if size == 0 {
 		size = 18
 	}
@@ -221,8 +259,8 @@ func (v *RadioGroupView) renderItem(cx *el.Context, i int) el.Element {
 	if content := v.content[o]; content != nil {
 		row.Child(el.Div().ID("label").Child(content.Render(cx)))
 	}
-	if v.textSize > 0 {
-		row.TextSize(v.textSize)
+	if textSize > 0 {
+		row.TextSize(textSize)
 	}
 	return row
 }

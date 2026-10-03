@@ -23,10 +23,11 @@ Agent：组的角色是 `radiogroup`，每个选项是 `radio`，`checked` 表�
 
 ```go
 plans := kit.RadioGroup("套餐", "基础", "专业").Size(28).TextSize(20)
+plans.ItemSize("基础", 18, 14)
 plans.Content("专业", el.ViewFunc(func(cx *el.Context) el.Element {
     return el.Div().Child(el.Text("专业版").Bold(),
         el.Text("支持团队协作").TextSize(theme.TextSm).TextColor(theme.Muted))
 }))
 ```
 
-当前仍使用组内单个 Tab 停靠点，未提供组件级 TabStop/TabIndex。尺寸和字号配置作用于整个组，不提供逐项尺寸覆盖。
+当前仍使用组内单个 Tab 停靠点，未提供组件级 TabStop/TabIndex。`ItemSize(value, dp, sp)` 可逐项覆盖圆点和字号，各参数为 0 时继承组配置；`ItemSize(value, 0, 0)` 清除覆盖。正值沿用组的上下限，未知选项或任一负值/非有限值忽略整个调用。重排保留覆盖，删除选项会清理。独立 Item 同样生效。
