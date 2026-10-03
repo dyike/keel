@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**40 项主体已有、34 项部分覆盖、3 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**41 项主体已有、33 项部分覆盖、3 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -25,7 +25,8 @@
 - [x] 第二批（`11fd62f`）：OtpInput 的遮罩、分组与尺寸配置；遮罩同时覆盖可见数字和 Agent 语义值，编辑回调保留原始数字。测试覆盖分组边界、1×/2× 窄布局、程序赋值不触发回调；浅深色截图已检查。
 - [x] 第三批（`edac67d`）：HoverCard 的 OpenDelay/CloseDelay、Placement 和 Offset；自定义及零延时、等待中改延时、四方向定位、Esc 和 Agent 快照通过测试，已打开卡片的浅深色截图已检查。
 - [x] 第四批（`7a25711`）：Tooltip 的富内容、动作键位和定位/间距配置；快捷键随改绑更新，内容不接受点击，Agent 展开富内容与键位；相关测试和浅深色弹层截图已检查。
-- [x] 第五批：Clipboard 的 OnCopied、Content 和 Copied；回调接收实际提交的原文，自定义内容保留键盘操作、禁用继承与连续复制计时。含回调/空取值/计时测试、Agent 快照及浅深色截图检查。
+- [x] 第五批（`a118ee5`）：Clipboard 的 OnCopied、Content 和 Copied；回调接收实际提交的原文，自定义内容保留键盘操作、禁用继承与连续复制计时。含回调/空取值/计时测试、Agent 快照及浅深色截图检查。
+- [x] 第六批：Stepper 的竖向布局、步骤图标、单步禁用与尺寸；另支持富内容条目。覆盖切片隔离、更新索引收敛、键盘跳过禁用、祖先禁用、窄窗口纵向滚动及 Agent 状态；浅深色截图已检查。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -111,7 +112,7 @@
 | [Slider](https://gpui-kit.com/component/slider/) | 部分 | [单值/双端范围、横向/竖向、步长、拖动与键盘](../../ui/kit/slider.go) | 缺对数刻度和交互结束 Release 回调；已有单值/范围、横纵向、步长、键盘。 |
 | [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称](../../ui/kit/spinner.go) | 主体覆盖；缺自定义图标和颜色接口。 |
 | [StatusBar](https://gpui-kit.com/component/status-bar/) | 主体已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | 左右内容与自定义 View 已覆盖；Keel 另有优先级溢出菜单，本轮未发现新的主要功能缺口。 |
-| [Stepper](https://gpui-kit.com/component/stepper/) | 部分 | [步骤状态、导航、键盘、横向滚动与禁用](../../ui/kit/stepper.go) | 缺竖向布局、步骤图标、单步禁用与尺寸配置；现有水平步骤与导航。 |
+| [Stepper](https://gpui-kit.com/component/stepper/) | 主体已有 | [横纵步骤、图标/富内容、尺寸、导航、键盘、滚动与单步禁用](../../ui/kit/stepper.go) | 第六批已补齐 Vertical、Size、StepperItem 与 SetItemDisabled。此表登记缺口已关闭；导航仍限已完成步骤，GPUI 文档的文本居中布局未提供独立开关。 |
 | [Switch](https://gpui-kit.com/component/switch/) | 主体已有 | [布尔开关、标签、禁用与键盘](../../ui/kit/switch.go) | 布尔开关主体已有；缺大小/颜色/标签侧配置。当前无 Loading 接口，旧表误记；GPUI 此页也未将 loading 列为能力。 |
 | [Table](https://gpui-kit.com/component/table/) | 部分 | [排序、行选择、单元格插槽、列宽调整；高级能力同 DataTable](../../ui/kit/table.go) | GPUI Table 是轻量 Header/Body/Footer/Caption 组合表，DataTable 才负责数据交互；Keel 两项共用 TableView，缺独立 footer/caption/任意行组合。 |
 | [Tabs](https://gpui-kit.com/component/tabs/) | 部分 | [页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 页状态/关闭/溢出/拖排已完成；缺 underline/pill/outline/segmented 变体、单页禁用与单标签图标/自定义内容。 |

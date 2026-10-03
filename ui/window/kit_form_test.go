@@ -112,3 +112,22 @@ func TestKitFormSnapshot(t *testing.T) {
 	w.click(element(t, w, "提交").center())
 	element(t, w, "请填写姓名")
 }
+
+func TestKitVerticalStepperSnapshot(t *testing.T) {
+	st := kit.Stepper().Vertical().Size(32).Navigable()
+	st.SetEntries(kit.StepperItem{Label: "Locked", Icon: kit.IconLock, Disabled: true}, kit.StepperItem{Label: "Ready", Icon: kit.IconInbox})
+	st.SetValue(2)
+	w := openTest(t, Options{Width: 320, Height: 300, Content: kitPage(st).Content})
+	locked, ready := element(t, w, "Locked"), element(t, w, "Ready")
+	if locked.Role != "step" || locked.Value != "done" || !locked.Disabled || ready.Disabled || ready.Y <= locked.Y {
+		t.Fatalf("steps: %+v %+v", locked, ready)
+	}
+	w.click(locked.center())
+	if st.Value() != 2 {
+		t.Fatal("disabled step changed")
+	}
+	w.click(ready.center())
+	if st.Value() != 1 || element(t, w, "Ready").Value != "current" {
+		t.Fatal("step did not become current")
+	}
+}

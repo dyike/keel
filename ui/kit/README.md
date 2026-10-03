@@ -49,7 +49,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Calendar](../../docs/kit/calendar.md) | 日历、范围 |
 | [DatePicker](../../docs/kit/date_picker.md) | 日期字段 |
 | [Rating](../../docs/kit/rating.md) | 星级评分 |
-| [Stepper](../../docs/kit/stepper.md) | 步骤进度 |
+| [Stepper](../../docs/kit/stepper.md) | 横纵步骤进度、图标、尺寸、单步禁用 |
 | [Form](../../docs/kit/form.md) | 表单与校验 |
 | [VirtualList](../../docs/kit/virtual_list.md) | 等高虚拟列表 |
 | [VariableList](../../docs/kit/variable_list.md) | 自然高度虚拟列表、稳定 key 与阅读位置保持 |

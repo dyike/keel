@@ -82,7 +82,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 - [Select](kit/select.md)、[Combobox](kit/combobox.md)：下拉选择、可筛选输入。
 - [NumberInput](kit/number_input.md)、[OtpInput](kit/otp_input.md)、[TimeField](kit/time_field.md)：数字、验证码、时间。
 - [Calendar](kit/calendar.md)、[DatePicker](kit/date_picker.md)：日期与日期范围。
-- [Slider](kit/slider.md)、[Rating](kit/rating.md)、[Stepper](kit/stepper.md)：数值、评分、步骤。
+- [Slider](kit/slider.md)、[Rating](kit/rating.md)、[Stepper](kit/stepper.md)：数值、评分、横纵步骤（图标、尺寸、单步禁用）。
 - [Form](kit/form.md)：两列表单与统一校验。
 
 数据与长内容：
