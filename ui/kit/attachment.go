@@ -14,6 +14,7 @@ import (
 type AttachmentView struct {
 	name               string
 	media              el.View
+	imageSource        *attachmentImageSource
 	mediaProgress      *ProgressCircleView
 	mediaOverlay       el.View
 	titleShimmer       *ShimmerTextView
@@ -54,7 +55,12 @@ func (v *AttachmentView) SetDisabled(on bool)                { v.disabled = on }
 // Media replaces the file icon with a display view (for example kit.Image).
 // Nil restores the default icon. Media should not contain interactive controls;
 // the completed attachment's OnOpen handles activation of the whole preview.
-func (v *AttachmentView) Media(view el.View) *AttachmentView { v.media = view; return v }
+func (v *AttachmentView) Media(view el.View) *AttachmentView {
+	v.stopMediaLoad()
+	v.imageSource = nil
+	v.media = view
+	return v
+}
 
 // Vertical stacks the preview above metadata and actions. False restores the row.
 func (v *AttachmentView) Vertical(on bool) *AttachmentView { v.vertical = on; return v }
@@ -121,7 +127,15 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	}
 
 	media := el.Div().ID(id + "/media").NoShrink().Rounded(theme.RadiusMd).Bg(theme.Highlight).Center()
-	if v.media == nil {
+	if v.imageSource != nil {
+		media.Role("group").Child(v.sourceMedia(cx))
+		if !v.vertical || v.previewRatio() == 0 {
+			media.Size(el.Dp(metrics.media))
+		}
+		if overlay := v.mediaStatus(cx, id, status); overlay != nil {
+			media.Child(overlay)
+		}
+	} else if v.media == nil {
 		media.Size(el.Dp(metrics.media))
 		if status.IsInProgress() && !v.hideMedia {
 			media.Child(Spinner().Size(metrics.media / 2).Label("").Render(cx))

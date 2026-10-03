@@ -19,7 +19,7 @@ Agent：角色 `attachment`，名字是文件名；`value` 为空、"上传中 6
 
 `SetProgress` 清除此前错误和取消状态。进度大于 1 截为 1，NaN/Inf 忽略，负数标记完成。负文件大小显示为 0 B。只有完成且无错误的附件可以打开，取消和移除不会触发打开回调。`SetDisabled(true)` 禁止卡片内全部操作。取消、重试按钮的可访问名称包含文件名；取消状态的 Agent 值为 `canceled`。
 
-`Media(view)` 用展示型 View 替换默认文件图标；nil 恢复图标。可传入 `kit.Image(pixels, alt).Size(width, height).Fit(kit.ImageCover)` 显示图片，图片加载仍由应用负责。横向媒体使用内容自身尺寸，最大宽度受卡片约束；横向预览宜用小缩略图，给文件名和操作留出空间。竖排默认使用方形预览，见下文。
+`Media(view)` 用展示型 View 替换默认文件图标；nil 恢复图标。可传入 `kit.Image(pixels, alt).Size(width, height).Fit(kit.ImageCover)` 显示图片，也可用 MediaSource 由组件加载图片。横向媒体使用内容自身尺寸，最大宽度受卡片约束；横向预览宜用小缩略图，给文件名和操作留出空间。竖排默认使用方形预览，见下文。
 
 `Vertical(true)` 将媒体放在文字上方、操作叠加在卡片右上角，`Vertical(false)` 恢复默认横排。打开期间切换布局保持打开区域的键盘身份；上传/失败时预览不会触发 OnOpen，取消、重试、移除保持独立。Media 用于展示，打开交互交给附件 OnOpen，避免在预览内嵌套按钮或另一个可点击图片。此接口自动添加媒体状态遮罩；上传/处理中标题显示文字扫光，尺寸档见下文。
 
@@ -92,4 +92,16 @@ photo.Vertical(true).ShowContent(false) // 纯图片卡片
 file.ShowMedia(false)                  // 只有元信息和操作
 file.ShowMedia(false).ShowContent(false) // 只有操作区
 photo.ShowContent(true)                // 恢复元信息
+```
+
+`MediaSource(source)` 从 HTTP(S)、data URL 或本地路径后台加载预览，复用 core.DecodeImage 的格式与大小限制。重复设置同一来源不重新请求；`RetryMedia()` 显式重载，`MediaSource("")` 恢复默认图标。`Media(view)` 会取消来源加载并使用给定 View。切换来源会取消旧请求，版本校验阻止迟到结果覆盖新预览；单次请求有 15 秒期限，不跨实例缓存。移除卡片时应用可调用 MediaSource("") 取消尚未完成的请求。
+
+`MediaLoading()`、`MediaError()` 查询加载结果。预览加载不改变附件上传状态，也不调用 OnRetry；加载失败时媒体中的重试按钮只重载图片。附件本身处于上传、处理中或失败时，优先显示生命周期遮罩和上传操作；应用仍可显式调用 RetryMedia 重载图片。禁用卡片或祖先会禁用图片重试按钮。
+
+URL 预览在横排（或自然尺寸模式）使用尺寸档对应的固定缩略图，竖排按 MediaAspectRatio 填满并居中裁剪；加载、失败、成功不改变预览尺寸。加载中报告 image/loading，成功报告 image/loaded，失败媒体组报告 image-error。解码和真实传输在后台，状态更新经 core.Update 回到 UI；应用从后台调用这些配置方法时也应使用 core.Update。
+
+```go
+photo.MediaSource("https://example.com/photo.png")
+if err := photo.MediaError(); err != nil { /* 显示错误详情 */ }
+photo.RetryMedia()
 ```
