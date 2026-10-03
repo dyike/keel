@@ -177,7 +177,9 @@
 
 - [x] 第一百一十二批（`e1e6855`，macOS 通知错误）：权限申请和投递保留 NSError 的 domain、code 与本地化说明，NotificationsNotAllowed 正确包装 ErrPermissionDenied，其他错误包装 ErrFailed，支持 errors.Is。真实 .app 已复现并读到 UNErrorDomain (1)，修正此前一律 status 7 的误分类；错误分类测试覆盖同码不同域、未知错误及负系统码；构建、vet、全量测试及 native race 测试通过。成功授权、通知展示与点击仍未验收，Notification 继续为部分。
 
-- [x] 第一百一十三批：TextArea 增加 AutoGrow(minRows, maxRows)，按真实软换行和换行符测量高度，上限后内部滚动，缩短内容收回高度；相同行数固定高度，Rows 恢复旧模式。el.TextArea 同步提供底层能力，支持无 Bind 的编辑状态；字体行距按实际排版测量，行数乘法防溢出。测试覆盖 1×/2×、长文本封顶与缩回、窄宽重排、无绑定输入、固定行数、只读、模式切换焦点及单行隔离。构建、vet、全量测试通过。Textarea 的最大行数缺口关闭，原子 token 继续待补。
+- [x] 第一百一十三批（`f32e2ec`）：TextArea 增加 AutoGrow(minRows, maxRows)，按真实软换行和换行符测量高度，上限后内部滚动，缩短内容收回高度；相同行数固定高度，Rows 恢复旧模式。el.TextArea 同步提供底层能力，支持无 Bind 的编辑状态；字体行距按实际排版测量，行数乘法防溢出。测试覆盖 1×/2×、长文本封顶与缩回、窄宽重排、无绑定输入、固定行数、只读、模式切换焦点及单行隔离。构建、vet、全量测试通过。Textarea 的最大行数缺口关闭，原子 token 继续待补。
+
+- [x] 第一百一十四批：NumberInput 增加 StepBy，按有效草稿和增减方向计算动态步长；PageUp/Down 一次计算后乘十，非法结果取消且保留草稿，Step/StepBy(nil) 可恢复固定策略。新增 Prefix/Suffix 富内容槽，步进按钮使用稳定 ID，增删插槽保留输入焦点。测试覆盖方向边界、草稿和单次回调、非法结果、运行时策略替换、1×/2× 键盘与插槽交互及禁用；构建、vet、全量测试通过。金额/千分位 mask 仍待补；此次官方文档复核另确认全角数字归一化、尺寸/外观配置及纯步进事件模式尚未覆盖。
 
 ## 当前实施清单
 
@@ -241,7 +243,7 @@
 | [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 主体已有 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；第九十二批补齐按稳定消息 ID 跳转、首次渲染前定位和跟随/上滚状态查询。未读身份由应用维护；SetFollow(false) 后显式跳到末尾不会开启自动跟随。第九十三批补齐 LatestButton/LatestLabel/LatestRenderer/LatestTransition，支持隐藏、文案、完整 Button 外观配置及淡入淡出；登记缺口已关闭。默认保留右下角文字按钮和 150ms 过渡，与上游圆形图标按钮不同；不表示视觉和 API 完全相同。 |
 | [Message](https://gpui-kit.com/component/message/) | 主体已有 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 第九十四批补齐 Avatar/Header/Footer/Content 独立插槽及默认头像恢复，头尾支持交互；插槽变化保留正文身份。第九十五批新增 MessageGroup，支持间距/样式、动态重排和组级禁用，保留消息行输入与焦点。第九十六批补齐显式 Bubble、Ghost 自动头尾缩进及独立 HeaderInset/FooterInset 覆盖与恢复。第九十七批补齐 Alignment/ResetAlignment，位置独立于 User 的默认气泡色和头像策略。第九十八批补齐九分区 PartStyle，支持独立样式、恢复默认与额外禁用。第九十九批新增 MessageContent，支持多气泡/普通 View 混排、对齐及 Ghost 元数据继承、重排和禁用。第一百批补齐头像按正文容器底边对齐，首帧与动态增高使用当前布局，尾部不影响对齐线；登记缺口已关闭。默认头像为 28dp，助手自动头像、User 默认主色气泡及内建状态/反应属于 Keel 约定，不表示所有 API/默认视觉相同。 |
 | [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 第一百零一批补齐八方位、容器默认位置、单条覆盖和各位置独立队列；移动默认位置保留剩余超时。默认位置属于 Notifier 实例而非全局主题。第一百零二批补齐 Content 富内容与 Action 独立操作槽，保留子控件焦点、禁用继承和超时暂停；操作是否关闭由回调决定。第一百零三批补齐 OnClick 和 OnClose；通知背景支持键盘激活，子操作不连带触发，关闭先移除再回调。第一百零四批补齐 NotifyKey/DismissKey 稳定业务标识和 Clear，重复发送原位替换、保留 ID/队列位置，清除按快照回调。标识使用容器内字符串而非 Rust 类型。第一百零五批新增独立 native/notification macOS 授权、投递/替换、撤回接口与手动示例；第一百零六批新增 Linux D-Bus 投递/替换/撤回、关闭信号清理及服务重启隔离。第一百零七批通过 NoticeSystemBackend 接入 kit 三种投递模式、串行异步请求、超时保留系统通知、显式撤回、原位替换及错误回报。第一百零八批新增 macOS 原生前台展示和 Message.OnClick，已有 delegate 返回冲突；回调注册支持失败恢复和单次消费。第一百零九批通过交互后端接通 kit 系统点击、关闭和 OnSystemActivate 窗口唤起钩子，macOS 示例连接 Window.Raise。第一百一十批接入 Linux ActionInvoked 默认点击、能力检查、顺序信号处理及回调清理，示例使用交互后端。Linux ActivationToken 和 Windows 后端仍缺，真实通知中心投递/撤回/点击和窗口置前未验收。 |
-| [NumberInput](https://gpui-kit.com/component/number-input/) | 部分 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 缺金额/千分位 mask、动态 step_by、前后内容槽；固定步长、精度、范围与输入草稿已有。 |
+| [NumberInput](https://gpui-kit.com/component/number-input/) | 部分 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 第一百一十四批补齐动态 StepBy 和 Prefix/Suffix；仍缺金额/千分位 mask、全角数字归一化、尺寸/外观配置及关闭内置更新后的纯步进事件模式。固定步长、精度、范围与输入草稿已有。 |
 | [OtpInput](https://gpui-kit.com/component/otp-input/) | 主体已有 | [分格输入、粘贴、完成回调、密码遮罩、分组、尺寸与窄布局](../../ui/kit/otp_input.go) | 第二批已补齐 Masked/Groups/Size；默认两组，不能整除时前组多一位。此表登记的三个缺口已关闭。 |
 | [Pagination](https://gpui-kit.com/component/pagination/) | 主体已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | 第三十三批已补齐紧凑模式、数字按钮上限、尺寸和整体禁用。Size 为连续 dp；VisiblePages 正值限制在 3–101，0 恢复 Keel 原窗口策略，默认策略与上游五按钮不同。 |
 | [Plot](https://gpui-kit.com/component/plot/) | 用途不同 | [成品散点/折线图、缩放、平移、拾取](../../ui/kit/plot.go) | 用途不同：GPUI 提供 ScaleLinear/Band/Point/Ordinal、Bar/Line/Area/Pie/Stack/Axis 等公共绘图基础件；Keel Plot 是可缩放平移的成品散点/折线图。 |

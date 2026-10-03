@@ -11,7 +11,14 @@ func init() {
 	registerSection("number_input", "inputs", func() core.Widget {
 		qty := kit.NumberInput("数量（1–99）").Range(1, 99)
 		qty.SetValue(1)
-		price := kit.NumberInput("单价").Range(0, 1e6).Step(0.1).Decimals(2)
+		price := kit.NumberInput("单价").Range(0, 1e6).Decimals(2).
+			StepBy(func(value float64, action kit.NumberStepAction) float64 {
+				if value < 1 || value == 1 && action == kit.NumberStepActionDecrement {
+					return 0.1
+				}
+				return 0.5
+			}).Prefix(el.ViewFunc(func(*el.Context) el.Element { return el.Text("¥") })).
+			Suffix(el.ViewFunc(func(*el.Context) el.Element { return el.Text("元") }))
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(14).W(el.Dp(240)).MaxW(el.Full).Child(qty.Render(cx), price.Render(cx), el.Text(fmt.Sprintf("实际值：%g", price.Value())), kit.Button("填入 1.236（保留两位）", func() { price.SetValue(1.236) }).Render(cx))
 		}))

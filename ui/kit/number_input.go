@@ -13,6 +13,14 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
+// NumberStepAction identifies the requested direction for StepBy.
+type NumberStepAction int
+
+const (
+	NumberStepActionIncrement NumberStepAction = iota
+	NumberStepActionDecrement
+)
+
 // NumberInputView edits a number with − and + buttons. Typing may pass
 // through out-of-range text; Enter or leaving the field clamps it to the
 // range and applies the configured decimal precision. ↑ ↓ step like the buttons; PageUp and
@@ -25,6 +33,8 @@ type NumberInputView struct {
 	decimals          int
 	disabled, focused bool
 	onChange          func(float64)
+	stepBy            func(float64, NumberStepAction) float64
+	prefix, suffix    el.View
 }
 
 func NumberInput(label string) *NumberInputView {
@@ -47,9 +57,25 @@ func (v *NumberInputView) Range(min, max float64) *NumberInputView {
 func (v *NumberInputView) Step(s float64) *NumberInputView {
 	if s > 0 && !math.IsInf(s, 0) {
 		v.step = s
+		v.stepBy = nil
 	}
 	return v
 }
+
+// StepBy calculates a positive step from the normalized draft and direction.
+// It runs once per action; PageUp/PageDown multiply that step by ten.
+// Invalid results cancel the action without committing the draft. nil restores
+// the last fixed Step. The callback should not mutate this NumberInput.
+func (v *NumberInputView) StepBy(fn func(float64, NumberStepAction) float64) *NumberInputView {
+	v.stepBy = fn
+	return v
+}
+
+// Prefix places content between the decrement button and text. nil removes it.
+func (v *NumberInputView) Prefix(content el.View) *NumberInputView { v.prefix = content; return v }
+
+// Suffix places content between the text and increment button. nil removes it.
+func (v *NumberInputView) Suffix(content el.View) *NumberInputView { v.suffix = content; return v }
 
 // Decimals rounds values to 0–15 decimal places; -1 (default) keeps precision.
 // Exact range endpoints take precedence when they need more decimal places.
@@ -140,12 +166,26 @@ func (v *NumberInputView) draftValue() float64 {
 // move commits the draft and the increment as one user change. Decimal
 // arithmetic avoids accumulating binary rounding noise for steps such as 0.1.
 func (v *NumberInputView) move(count int64) {
+	if v.disabled || count == 0 {
+		return
+	}
 	base := v.draftValue()
+	step := v.step
+	if v.stepBy != nil {
+		direction := NumberStepActionIncrement
+		if count < 0 {
+			direction = NumberStepActionDecrement
+		}
+		step = v.stepBy(base, direction)
+		if !finiteNumber(step) || step <= 0 || v.disabled {
+			return
+		}
+	}
 	decimal := func(x float64) *big.Rat {
 		r, _ := new(big.Rat).SetString(strconv.FormatFloat(x, 'f', -1, 64))
 		return r
 	}
-	delta := new(big.Rat).Mul(decimal(v.step), new(big.Rat).SetInt64(count))
+	delta := new(big.Rat).Mul(decimal(step), new(big.Rat).SetInt64(count))
 	x, _ := new(big.Rat).Add(decimal(base), delta).Float64()
 	if math.IsInf(x, 1) {
 		x = math.Min(v.hi, math.MaxFloat64)
@@ -172,8 +212,8 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 	}
 	text := locale.Current()
 	step := func(count int64) func() { return func() { v.move(count) } }
-	minus := Button("", step(-1)).Name(text.Name(text.Decrease, v.a11y())).Icon(IconMinus).Variant(ButtonGhost).Size(28)
-	plus := Button("", step(1)).Name(text.Name(text.Increase, v.a11y())).Icon(IconPlus).Variant(ButtonGhost).Size(28)
+	minus := Button("", step(-1)).ID(id + "/decrease").Name(text.Name(text.Decrease, v.a11y())).Icon(IconMinus).Variant(ButtonGhost).Size(28)
+	plus := Button("", step(1)).ID(id + "/increase").Name(text.Name(text.Increase, v.a11y())).Icon(IconPlus).Variant(ButtonGhost).Size(28)
 	draft := v.draftValue()
 	minus.SetDisabled(v.disabled || draft <= v.lo)
 	plus.SetDisabled(v.disabled || draft >= v.hi)
@@ -193,7 +233,15 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 	// The 28dp step buttons sit near the edges: 3dp around them keeps the
 	// frame at theme.ControlHeight.
 	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(theme.SpaceXs).P(3).
-		Child(minus.Render(cx), field, plus.Render(cx))
+		Child(minus.Render(cx))
+	if v.prefix != nil {
+		box.Child(el.Div().ID(id + "/prefix").Child(v.prefix.Render(cx)))
+	}
+	box.Child(field)
+	if v.suffix != nil {
+		box.Child(el.Div().ID(id + "/suffix").Child(v.suffix.Render(cx)))
+	}
+	box.Child(plus.Render(cx))
 	return labelled(v.label, box, v.err)
 }
 

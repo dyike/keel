@@ -17,3 +17,17 @@ price := kit.NumberInput("单价").Range(0, 1e6).Step(0.5).Decimals(2)
 Agent：输入框角色 `textbox`，`value` 是显示的文字；两个按钮名为"减少 标签""增加 标签"。
 
 验证：`go run ./examples/components -section number_input`，加 `-theme dark` 检查深色。
+
+`StepBy(func(value float64, action kit.NumberStepAction) float64)` 根据当前有效草稿及方向计算正步长，方向为 `NumberStepActionIncrement` 或 `NumberStepActionDecrement`。每次按钮／键盘动作调用一次，PageUp／PageDown 将该次步长乘十，不逐步重新求值。返回零、负值或非有限值会取消本次动作并保留草稿；回调不应修改同一个 NumberInput。`StepBy(nil)` 恢复最近一次固定步长，合法的 `Step` 调用会替换动态策略。渲染、程序赋值和单纯输入不调用策略。
+
+`Prefix(view)` / `Suffix(view)` 在文字前后放置货币符号、单位或操作按钮，位于 − / + 按钮内侧；传 nil 移除。动态增删不会改变编辑器身份或内容，子控件继承整体禁用状态。插槽与步进按钮占用固定内容宽度，窄窗口应避免放置过宽的自定义内容。
+
+```go
+price.StepBy(func(value float64, action kit.NumberStepAction) float64 {
+    if value < 1 || value == 1 && action == kit.NumberStepActionDecrement {
+        return 0.1
+    }
+    return 0.5
+})
+price.Suffix(kit.Button("帮助", showHelp))
+```
