@@ -60,7 +60,8 @@
 - [x] 第三十七批（`b13354e`）：el 和 Switch 增加 TabStop/TabIndex；显式配置启用单 root 顺序遍历，负索引或关闭停靠时保留鼠标/程序聚焦。窗口测试覆盖升序/同值树序、输入框、隐藏/禁用、动态配置、Tab/Shift+Tab 与模态初始焦点及循环；全量构建、vet、测试通过。跨独立 Embed/原生 Gio 排序及直接 Router.MoveFocus 不在此入口范围。
 - [x] 第三十八批（`0decad0`）：Checkbox 增加 Size/TextSize 与 TabStop/TabIndex；勾号和半选横线随方框缩放。测试覆盖 1×/2×、尺寸恢复、半选语义、键盘焦点、禁用、Tab 排序/跳过与反向遍历；全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。
 - [x] 第三十九批（`cf93625`）：RadioGroup 增加 Size/TextSize 与按选项配置的 Content；圆环和选中点按比例缩放，富标签保留原值、名称和键盘身份，独立 Item 共享配置。测试覆盖 1×/2×、替换/恢复后的焦点、描述点击、禁用跳过、祖先禁用、重排及删除清理；全量构建、vet、测试和浅色 1×/深色 2× 截图检查通过。逐项尺寸与组件级 Tab 配置仍待补齐。
-- [x] 第四十批：RadioGroup 增加 ItemSize，支持逐项圆点/字号覆盖和分别继承组配置；重排保留，删除清理。1×/2× 测试覆盖尺寸隔离、恢复继承、动态组字号、焦点、非法值及生命周期；构建、vet、全量测试和浅深色截图检查通过。组件级 Tab 配置仍待补齐。
+- [x] 第四十批（`65ffdfe`）：RadioGroup 增加 ItemSize，支持逐项圆点/字号覆盖和分别继承组配置；重排保留，删除清理。1×/2× 测试覆盖尺寸隔离、恢复继承、动态组字号、焦点、非法值及生命周期；构建、vet、全量测试和浅深色截图检查通过。组件级 Tab 配置仍待补齐。
+- [x] 第四十一批：RadioGroup 增加 TabStop/TabIndex 和逐项 ItemTab/ClearItemTab；默认单停靠点，显式逐项配置可覆盖，删除选项清理覆盖。窗口测试覆盖正反向、组跳过、负索引、鼠标选择、方向键、未选中项停靠且不改变值、禁用与配置清理；构建、vet、全量测试通过。排序范围限单 el root。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -132,7 +133,7 @@
 | [Popover](https://gpui-kit.com/component/popover/) | 主体已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | 第二十八、二十九批已补齐实例 Offset、默认外观开关及面板样式。第三十至三十二批补齐左/右/中键选择及箭头。箭头用纯色背景，边框/阴影/渐变不延伸到箭头；Keel 在空间不足时翻转，上游保持锚点方向并限制位置，定位策略不同。 |
 | [Progress](https://gpui-kit.com/component/progress/) | 主体已有 | [条形确定/不确定进度](../../ui/kit/progress.go)、[圆形进度与中心内容](../../ui/kit/progress_circle.go) | 第一、二十六、二十七批已补齐圆形进度、条形样式及数值过渡。Keel 数值范围 0–1，条形默认带标签/百分比；图形过渡 200ms，语义立即报告目标值，减少动画立即归位。 |
 | [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 部分 | [题型、答案模型、校验、分页、禁用与提交快照](../../ui/kit/questionnaire.go) | 缺单题条件禁用、跳过状态、自定义/外部校验、同题选项+自由输入、完整进度状态和快捷键配置；现有五种题型、必填校验与分页保留。 |
-| [Radio](https://gpui-kit.com/component/radio/) | 主体已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | 第三十九批已补齐 Size/TextSize 与按选项配置的富标签 Content，独立 Item 共享配置。第四十批增加 ItemSize，逐项覆盖尺寸/字号，0 继承组配置；尺寸采用连续 dp/sp。组件级 TabStop/TabIndex 仍待补齐。 |
+| [Radio](https://gpui-kit.com/component/radio/) | 主体已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | 第三十九批已补齐 Size/TextSize 与按选项配置的富标签 Content，独立 Item 共享配置。第四十批增加 ItemSize，逐项覆盖尺寸/字号，0 继承组配置；尺寸采用连续 dp/sp。第四十一批补齐组级 TabStop/TabIndex 和逐项 ItemTab/ClearItemTab；默认单停靠点，显式逐项配置可覆盖。排序限单 el root，跨原生 Gio/独立 Embed 不支持。 |
 | [Rating](https://gpui-kit.com/component/rating/) | 主体已有 | [评分、已填星减分、尺寸/颜色、半星/小数展示、只读与键盘](../../ui/kit/rating.go) | 第二十四批已关闭登记缺口；按上游源码明确为点已填第 i 星设 i−1 分，并非总分减一。Size 为 dp，默认 22；小数只用于展示，编辑仍选整星。 |
 | [Resizable](https://gpui-kit.com/component/resizable/) | 部分 | [横纵分割、最小尺寸、拖动、键盘、取消与禁用](../../ui/kit/resizable.go) | 缺独立多面板 group、最大尺寸、条件显隐/把手外观配置；Keel 为双面板，可嵌套组合更多面板。 |
 | [Root View](https://gpui-kit.com/component/root/) | 主体已有 | [根布局、统一浮层宿主、窗口快捷键](../../ui/el/root.go) | 架构差异：Keel 已有 root/overlay/focus/shortcut；Dialog/Sheet/Notifier 需应用挂载，GPUI 0.7 根视图自动挂载这些层。 |

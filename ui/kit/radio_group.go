@@ -20,6 +20,41 @@ type RadioGroupView struct {
 	size, textSize float32
 	content        map[string]el.View
 	itemSizes      map[string][2]float32
+	tabStopEnabled *bool
+	tabIndex       *int
+	itemTabs       map[string]radioTab
+}
+
+type radioTab struct {
+	stop  bool
+	index int
+}
+
+// TabStop controls Tab entry into the group without disabling selection.
+func (v *RadioGroupView) TabStop(on bool) *RadioGroupView { v.tabStopEnabled = &on; return v }
+
+// TabIndex sets the group's position in a single el root's Tab order.
+// Negative values skip Tab entry. Arrow navigation is unchanged.
+func (v *RadioGroupView) TabIndex(index int) *RadioGroupView { v.tabIndex = &index; return v }
+
+// ItemTab explicitly configures an individual option's Tab participation,
+// overriding group settings and the default single-stop radio behavior.
+// Mouse and arrow selection remain available. Unknown options are ignored.
+func (v *RadioGroupView) ItemTab(value string, stop bool, index int) *RadioGroupView {
+	if v.index(value) < 0 {
+		return v
+	}
+	if v.itemTabs == nil {
+		v.itemTabs = map[string]radioTab{}
+	}
+	v.itemTabs[value] = radioTab{stop, index}
+	return v
+}
+
+// ClearItemTab restores group settings and the default single-stop behavior.
+func (v *RadioGroupView) ClearItemTab(value string) *RadioGroupView {
+	delete(v.itemTabs, value)
+	return v
 }
 
 func RadioGroup(label string, options ...string) *RadioGroupView {
@@ -125,6 +160,11 @@ func (v *RadioGroupView) SetOptions(options ...string) {
 	for o := range v.itemSizes {
 		if !seen[o] {
 			delete(v.itemSizes, o)
+		}
+	}
+	for o := range v.itemTabs {
+		if !seen[o] {
+			delete(v.itemTabs, o)
 		}
 	}
 	if v.index(v.value) < 0 {
@@ -261,6 +301,16 @@ func (v *RadioGroupView) renderItem(cx *el.Context, i int) el.Element {
 	}
 	if textSize > 0 {
 		row.TextSize(textSize)
+	}
+
+	if v.tabStopEnabled != nil {
+		row.TabStop(*v.tabStopEnabled)
+	}
+	if v.tabIndex != nil {
+		row.TabIndex(*v.tabIndex)
+	}
+	if tab, ok := v.itemTabs[o]; ok {
+		row.Focusable(true).TabStop(tab.stop).TabIndex(tab.index)
 	}
 	return row
 }
