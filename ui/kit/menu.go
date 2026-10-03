@@ -26,6 +26,8 @@ type menuItem struct {
 	checkable, checked bool
 	onCheck            func(bool)
 	content            el.View
+	url                string
+	link               bool
 }
 
 // MenuView is a list of commands in a layer next to its trigger:
@@ -51,6 +53,9 @@ type MenuView struct {
 	offset       float32
 	checkRight   bool
 	focusPending bool
+	onLink       func(string)
+	onLinkError  func(error)
+	hideLinkIcon bool
 }
 
 func Menu() *MenuView { return &MenuView{openSub: -1, width: 220, reveal: -1, offset: 4} }
@@ -96,6 +101,38 @@ func (v *MenuView) ActionItem(label, keymapAction string, fn func()) *MenuView {
 func (v *MenuView) Item(label, shortcut string, action func()) *MenuView {
 	v.items = append(v.items, menuItem{label: label, shortcut: shortcut, action: action})
 	return v
+}
+
+// Link adds an external link command. It closes the menu before opening the URL.
+func (v *MenuView) Link(label, url string) *MenuView {
+	v.items = append(v.items, menuItem{label: label, url: url, link: true})
+	return v
+}
+
+// OnLink replaces system URL opening. Submenus inherit the nearest configured
+// ancestor handler. Nil restores inheritance/default opening.
+func (v *MenuView) OnLink(fn func(string)) *MenuView { v.onLink = fn; return v }
+
+// OnLinkError receives default URL validation/launch errors, with ancestor fallback.
+func (v *MenuView) OnLinkError(fn func(error)) *MenuView { v.onLinkError = fn; return v }
+
+func (v *MenuView) ExternalLinkIcon(on bool) *MenuView { v.hideLinkIcon = !on; return v }
+
+func (v *MenuView) openLink(url string) {
+	for menu := v; menu != nil; menu = menu.parent {
+		if menu.onLink != nil {
+			menu.onLink(url)
+			return
+		}
+	}
+	if err := core.OpenURL(url); err != nil {
+		for menu := v; menu != nil; menu = menu.parent {
+			if menu.onLinkError != nil {
+				menu.onLinkError(err)
+				return
+			}
+		}
+	}
 }
 
 // ContentItem adds a command with arbitrary display-only content. Label remains
@@ -372,6 +409,10 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Elem
 			return
 		}
 		v.root().SetValue(false)
+		if it.link {
+			v.openLink(it.url)
+			return
+		}
 		if it.action != nil {
 			it.action()
 		}
@@ -382,6 +423,9 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Elem
 		FocusStyle(func(s *el.Style) { s.Bg(theme.Subtle).BorderColor(theme.Subtle) }).
 		OnClick(run).
 		OnKey(func(e el.KeyEvent) bool { return v.key(cx, i, e) })
+	if it.link {
+		row.Value(it.url)
+	}
 	if it.checkable {
 		row.Role("menuitemcheckbox").Selected(it.checked)
 	}
@@ -421,6 +465,8 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Elem
 	}
 	if it.sub != nil {
 		row.Value("submenu").Child(Icon(IconChevronRight).Size(14).Color(theme.Muted).Render(cx))
+	} else if it.link && !v.hideLinkIcon {
+		row.Child(Icon(IconExternalLink).Size(14).Color(theme.Muted).Render(cx))
 	} else if it.keymapAction != "" {
 		row.Child(KbdFor(it.keymapAction).Plain().Render(cx))
 	} else if it.shortcut != "" {

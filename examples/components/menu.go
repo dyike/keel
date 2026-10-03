@@ -33,6 +33,7 @@ func newMenuGallery() *menuGallery {
 	g.menu.ContentItem("项目详情", "", el.ViewFunc(func(cx *el.Context) el.Element {
 		return el.Div().Gap(theme.SpaceXs).Child(el.Text("项目详情").Bold(), el.Text("查看项目状态与最近活动").TextSize(theme.TextSm).TextColor(theme.Muted))
 	}), do("项目详情"))
+	g.menu.Link("Keel 文档", "https://github.com/dyike/keel")
 	g.menu.SetItemDisabled("粘贴", true)
 	g.menu.Trigger(kit.Button("更多操作", g.menu.Toggle).Variant(kit.ButtonSecondary))
 	g.long = kit.Menu()

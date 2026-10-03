@@ -69,7 +69,8 @@
 - [x] 第四十六批（`0b5f614`）：Menu/DropdownButton 增加 Placement/Offset，四方向、三种对齐和有限正负间距，打开期间可重新定位；普通按钮锚定整体，分体按钮锚定箭头，子菜单保留原策略。测试覆盖方向/对齐/间距组合、非法值、边缘翻转限制和 Esc 后焦点恢复；构建、vet、全量测试通过。
 - [x] 第四十七批（`e7558d0`）：Menu 增加 IconItem、CheckItem、图标/勾选状态更新与查询、CheckSide；统一前置标记列，勾选后关闭菜单链再通知应用。Agent 增加 menuitemcheckbox 的 checked 状态。测试覆盖回车/点击、禁用、程序赋值、重新打开、子菜单关闭链及 Agent 状态；构建、vet、全量测试通过。组标题、自定义行及链接项仍待完成。
 - [x] 第四十八批（`c756970`）：Menu 增加 Label 分组标题，空标题忽略，单行截断，不参与点击、方向键和文字搜索；长菜单定位计入标题行高。测试覆盖 heading 语义、点击隔离、键盘/搜索跳过以及 30 组菜单的 End 定位与执行；构建、vet、全量测试通过。自定义行和链接项仍待补齐。
-- [x] 第四十九批：Menu 增加 ContentItem/SetItemContent，多行展示内容按实际高度布局，保留可访问名称、搜索、禁用及原操作；滚动定位改为测量实际行高并在可见后转移焦点。测试覆盖内容点击、替换恢复、禁用以及 1×/2× 变高菜单的 Home/End 定位与执行；构建、vet、全量测试通过。链接项仍待补齐。
+- [x] 第四十九批（`e284361`）：Menu 增加 ContentItem/SetItemContent，多行展示内容按实际高度布局，保留可访问名称、搜索、禁用及原操作；滚动定位改为测量实际行高并在可见后转移焦点。测试覆盖内容点击、替换恢复、禁用以及 1×/2× 变高菜单的 Home/End 定位与执行；构建、vet、全量测试通过。链接项仍待补齐。
+- [x] 第五十批：Menu 增加 Link、ExternalLinkIcon、OnLink/OnLinkError 及子菜单回调继承，默认通过 core.OpenURL 打开 HTTP/HTTPS/mailto；URL 写入语义值。测试覆盖键盘/点击、禁用、菜单关闭、回调覆盖及非法地址；构建、vet、全量测试和 core 的 Windows/Linux/wasm 交叉构建通过。未执行系统浏览器真机打开验收；快捷键焦点上下文解析仍待补齐。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -130,7 +131,7 @@
 | [Label](https://gpui-kit.com/component/label/) | 部分 | [Text、字号/颜色、For 标签关联聚焦](../../ui/el/element.go) | el.Text 能排版和关联字段；缺 GPUI Label 的匹配区间高亮、masked 和 secondary 文案的专用接口。 |
 | [List](https://gpui-kit.com/component/list/) | 部分 | [列表项、稳定 ID、单项禁用、多选/范围、键盘、拖动](../../ui/kit/list.go) | 缺分组头、自定义行/图标/行内操作、内建搜索与加载更多入口；当前是可选择、可拖动的文字列表。 |
 | [Marker](https://gpui-kit.com/component/marker/) | 用途不同 | [几何标记、大小与颜色](../../ui/kit/marker.go) | 用途不同：GPUI 是带图标/文字、分隔线/边框、加载状态的消息标记行；Keel Marker 只绘制点/方块等几何标记，不能计作对齐。 |
-| [Menu](https://gpui-kit.com/component/menu/) | 部分 | [菜单、子菜单、分隔线、长内容、方向键、焦点恢复](../../ui/kit/menu.go) | 第四十七批已补齐图标、勾选项及勾号左右位置，含状态更新/查询与 Agent checked。第四十八批补齐不可交互的组标题 Label。第四十九批补齐 ContentItem/SetItemContent 展示内容行及变高定位。仍缺链接项 API；已有子菜单、快捷键、禁用、滚动和焦点行为。 |
+| [Menu](https://gpui-kit.com/component/menu/) | 部分 | [菜单、子菜单、分隔线、长内容、方向键、焦点恢复](../../ui/kit/menu.go) | 第四十七批已补齐图标、勾选项及勾号左右位置，含状态更新/查询与 Agent checked。第四十八批补齐不可交互的组标题 Label。第四十九批补齐 ContentItem/SetItemContent 展示内容行及变高定位。第五十批补齐 Link、外链图标开关、系统打开及应用回调。快捷键仍取动作首个绑定，缺按触发器焦点上下文解析绑定；默认系统打开未做各平台真机验收。 |
 | [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 部分 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；缺公开按消息跳转/初始未读定位、跟随状态查询和自定义跳转按钮。 |
 | [Message](https://gpui-kit.com/component/message/) | 部分 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 缺独立 avatar/header/footer 插槽、MessageGroup 和 ghost/content_inset 配置；当前是作者文字+内容+操作/反应。 |
 | [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 缺系统通知投递、位置选择、操作按钮与任意富内容；当前只有应用内右上角标题/正文通知队列。 |

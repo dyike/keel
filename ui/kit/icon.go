@@ -48,6 +48,7 @@ const (
 	IconTrash
 	IconEdit
 	IconMore // three dots, for overflow menus
+	IconExternalLink
 )
 
 // IconView wraps a Gio vector icon. Labels belong to its containing control.
@@ -88,6 +89,7 @@ var iconData = [...][]byte{
 	IconTrash:        icons.ActionDelete,
 	IconEdit:         icons.EditorModeEdit,
 	IconMore:         icons.NavigationMoreHoriz,
+	IconExternalLink: icons.ActionOpenInNew,
 }
 
 // decoded caches parsed icons: Icon is called on every Render. Only touched

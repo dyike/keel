@@ -50,3 +50,7 @@ DropdownButton 的这两个方法直接配置传入的 Menu；普通模式锚定
 `ContentItem(label, shortcut, content, action)` 添加自定义内容行，可组合多行文字、说明、图标等展示元素；不要嵌套按钮/输入框。label 保留为可访问名称和文字搜索依据。整行点击、Enter/Space 都执行同一个 action，并关闭菜单链。
 
 `SetItemContent(label, content)` 可替换当前菜单同名普通项、勾选项或子菜单入口的显示内容；nil 恢复文字。行身份保持不变，禁用、勾选、快捷键和子菜单箭头沿用原项配置。自定义行最小高度 30dp，按内容增高；长菜单按实际布局高度定位，滚动到可见位置后才转移键盘焦点。
+
+`Link(label, url)` 添加链接项，保留 menuitem 角色，语义 value 为 URL；点击或键盘执行后先关闭整条菜单链，再打开链接。默认通过 `core.OpenURL` 调用平台浏览器/邮件处理程序，仅接受绝对 HTTP、HTTPS 和 mailto URL。`SetItemIcon` 可添加前置图标，`ExternalLinkIcon(false)` 隐藏右侧外链图标。
+
+`OnLink(func(string))` 可接管打开行为和 URL 策略，子菜单优先使用自己的回调，否则沿父菜单查找。默认打开失败时通过 `OnLinkError(func(error))` 通知，同样沿父菜单查找；未配置时忽略错误。默认入口只报告校验和进程启动错误，不表示网页加载成功。Web 使用 window.open，受浏览器弹窗策略限制。
