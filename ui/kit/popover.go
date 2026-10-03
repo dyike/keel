@@ -23,6 +23,7 @@ type PopoverView struct {
 	offset           float32
 	onChange         func(bool)
 	plain            bool
+	arrow            bool
 	mouseButton      pointer.Buttons
 	panelStyle       func(*el.DivEl)
 }
@@ -66,6 +67,10 @@ func (v *PopoverView) Offset(dp float32) *PopoverView {
 	}
 	return v
 }
+
+// Arrow shows a pointer toward the trigger, following placement and flips.
+// Offset measures to its tip; the panel is placed another 6dp away.
+func (v *PopoverView) Arrow(on bool) *PopoverView { v.arrow = on; return v }
 
 // Appearance controls the default background, border, radius, shadow and padding.
 // It is enabled by default; disabling it leaves positioning and behavior intact.
@@ -121,7 +126,7 @@ func (v *PopoverView) Render(cx *el.Context) el.Element {
 			v.panelStyle(panel)
 		}
 		panel.ID(id + "/panel").Role("dialog").MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX()
-		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).Offset(v.offset).OnDismiss(func() { v.change(false) }))
+		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).Offset(v.offset).Arrow(v.arrow).OnDismiss(func() { v.change(false) }))
 		if v.content != nil {
 			panel.Child(v.content.Render(cx))
 		}

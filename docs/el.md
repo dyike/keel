@@ -337,3 +337,5 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 ### 鼠标按下监听
 
 `OnMousePress(button, fn)` 观察左键、右键或中键按下，使用 `pointer.ButtonPrimary/Secondary/Tertiary`。监听覆盖交互子元素，但不阻止它们接收事件，也不增加 Tab 停靠点；禁用容器会禁用监听。0 清除监听，非法按键值忽略，多键同时按下不触发。它与 `OnContextMenu(fn)` 共用一个处理器，后者等同于选择右键，最后设置者生效。键盘操作继续使用 `OnKey` 或子组件回调。
+
+锚定浮层可用 `el.Anchored(...).Arrow(true)` 绘制 6dp 指示箭头，跟随实际弹出方向；Offset 测量到箭头尖端。箭头取面板纯色背景，未设置时使用主题 Surface，渐变、边框和阴影不延伸到箭头。Modal 不显示箭头。

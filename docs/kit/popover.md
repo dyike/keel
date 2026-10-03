@@ -51,3 +51,7 @@ info.MouseButton(pointer.ButtonTertiary) // gioui.org/io/pointer
 ```
 
 监听不会吞掉触发元素自身的事件。选择左键自动打开时，不要再将 Toggle 绑定到按钮左键回调，否则会在按下和释放时各切换一次。自动监听不增加 Tab 停靠点，键盘替代入口仍由触发元素提供。
+
+`Arrow(true)` 显示指向触发器的箭头，默认关闭。箭头深 6dp，面板相应增加 6dp 间距，Offset 测量到尖端。方向跟随实际定位翻转，沿面板边缘按 Start/Center/End 对齐并避开圆角；窄面板会缩小箭头。窗口边缘可能裁剪箭头。箭头独立于内容滚动，点击箭头不会关闭面板。
+
+箭头使用 PanelStyle 设置的纯色背景，未设置时取当前主题 Surface；不单独绘制阴影或边框，也不采样渐变背景。Appearance(false) 不会自动关闭箭头，可独立调用 Arrow(false)。

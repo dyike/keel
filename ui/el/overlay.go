@@ -31,6 +31,7 @@ type Layer struct {
 	side                         Side
 	align                        Align
 	offset                       float32
+	arrow                        bool
 	matchWidth                   bool
 	modal, centered, trap, scrim bool
 	edge                         bool // a Modal placed against a root edge
@@ -60,6 +61,10 @@ func (l *Layer) Owner(id string) *Layer { l.owner = id; return l }
 
 func (l *Layer) Offset(dp float32) *Layer { l.offset = dp; return l }
 
+// Arrow adds a 6dp pointer to an anchored layer. Offset measures to its tip.
+// It follows the actual placement, including flips, and uses the panel background.
+func (l *Layer) Arrow(on bool) *Layer { l.arrow = on; return l }
+
 // MatchAnchorWidth sizes the layer to its anchor's width, as a dropdown
 // matches its trigger.
 func (l *Layer) MatchAnchorWidth() *Layer   { l.matchWidth = true; return l }
@@ -85,6 +90,7 @@ type layerState struct {
 	layer             *Layer
 	tree              *Node
 	bounds, anchor    image.Rectangle
+	arrowBounds       image.Rectangle
 	returnFocus       event.Tag
 	active, dismissed bool
 }
@@ -236,7 +242,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 			}
 			p := ev.(pointer.Event).Position
 			pos := image.Pt(int(p.X), int(p.Y))
-			if !d.layer.keepOnOutside && !pos.In(st.bounds) && (d.layer.modal || !pos.In(st.anchor)) {
+			if !d.layer.keepOnOutside && !pos.In(st.bounds) && !pos.In(st.arrowBounds) && (d.layer.modal || !pos.In(st.anchor)) {
 				r.dismissLayer(st, d.layer)
 			}
 		}
@@ -245,6 +251,11 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 
 // layerPosition flips only when the opposite side fits, then clamps both axes.
 func layerPosition(anchor image.Rectangle, size, root image.Point, side Side, align Align, gap int) image.Point {
+	pos, _ := layerPlacement(anchor, size, root, side, align, gap)
+	return pos
+}
+
+func layerPlacement(anchor image.Rectangle, size, root image.Point, side Side, align Align, gap int) (image.Point, Side) {
 	cross := func(lo, hi, length int) int {
 		switch align {
 		case Center:
@@ -277,8 +288,9 @@ func layerPosition(anchor image.Rectangle, size, root image.Point, side Side, al
 	opposite := map[Side]Side{Bottom: Top, Top: Bottom, Left: Right, Right: Left}[side]
 	if other := candidate(opposite); !fits(p) && fits(other) {
 		p = other
+		side = opposite
 	}
-	return image.Pt(max(0, min(p.X, root.X-size.X)), max(0, min(p.Y, root.Y-size.Y)))
+	return image.Pt(max(0, min(p.X, root.X-size.X)), max(0, min(p.Y, root.Y-size.Y))), side
 }
 
 func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.Tag) {
@@ -314,6 +326,7 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 		}
 		r.e.layout(n, maxSize.X, maxSize.Y, base)
 		r.e.place(n)
+		actualSide := l.side
 		if l.edge {
 			n.pos = layerPosition(image.Rectangle{Max: maxSize}, n.size, maxSize, l.side, l.align, 0)
 			// Inside the root rectangle: Bottom/Right mean against that edge.
@@ -331,10 +344,20 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 		} else if l.centered {
 			n.pos = image.Pt(max(0, (maxSize.X-n.size.X)/2), max(0, (maxSize.Y-n.size.Y)/2))
 		} else {
-			n.pos = layerPosition(anchor, n.size, maxSize, l.side, l.align, r.e.dp(l.offset))
+			gap := r.e.dp(l.offset)
+			if l.arrow {
+				gap += r.e.dp(6)
+			}
+			n.pos, actualSide = layerPlacement(anchor, n.size, maxSize, l.side, l.align, gap)
 		}
 		st.layer, st.tree, st.anchor = l, n, anchor
 		st.bounds = image.Rectangle{Min: n.pos, Max: n.pos.Add(n.size)}
+		st.arrowBounds = image.Rectangle{}
+		var arrow *layerArrow
+		if l.arrow && !l.centered {
+			arrow = newLayerArrow(st.bounds, anchor, actualSide, l.align, r.e.dp(6), r.e.dp(n.style.radius))
+			st.arrowBounds = arrow.bounds
+		}
 		if !st.active {
 			st.returnFocus = priorFocus
 			st.dismissed = false
@@ -358,7 +381,7 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 				pass.Pop()
 			}
 			// Content is an opaque hit area, even between its interactive children.
-			surface := clip.Rect(st.bounds).Push(gtx.Ops)
+			surface := clip.Rect(st.bounds.Union(st.arrowBounds)).Push(gtx.Ops)
 			gtx.Event(pointer.Filter{Target: &st.surface, Kinds: pointer.Press | pointer.Release})
 			event.Op(gtx.Ops, &st.surface)
 			surface.Pop()
@@ -367,6 +390,9 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 			core.Role("el-inert").Add(gtx.Ops)
 		}
 		r.e.paint(n)
+		if arrow != nil {
+			arrow.paint(gtx.Ops, n.style)
+		}
 		area.Pop()
 		call := macro.Stop()
 		if r.fill {
