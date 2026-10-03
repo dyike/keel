@@ -7,6 +7,7 @@ import (
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 )
 
@@ -15,6 +16,8 @@ type TreeNode struct {
 	ID, Label string
 	Children  []*TreeNode
 	Disabled  bool
+	// Lazy marks a branch whose children have not yet been loaded.
+	Lazy bool
 }
 
 type treeRow struct {
@@ -28,6 +31,12 @@ type treeRow struct {
 // parent, Home / End jump, Enter activates. Only visible rows are built.
 type TreeView struct {
 	multi, reorderable bool
+	renderItem         func(TreeItemContext) el.View
+	indent             float32
+	onExpand           func(string, bool)
+	onLoad             func(string, uint64)
+	loads              map[string]treeLoad
+	loadToken          uint64
 	selection          base.Selection[string]
 	typeahead          base.Typeahead
 	dragID             string
@@ -46,7 +55,7 @@ type TreeView struct {
 }
 
 func Tree(roots ...*TreeNode) *TreeView {
-	v := &TreeView{open: map[string]bool{}}
+	v := &TreeView{open: map[string]bool{}, loads: map[string]treeLoad{}, indent: 16}
 	v.list = VirtualList(0, 28, v.row).ItemKey(func(i int) string { return v.rows[i].node.ID })
 	v.SetRoots(roots...)
 	return v
@@ -59,50 +68,26 @@ func (v *TreeView) Fill() *TreeView             { v.list.Fill(); return v }
 func (v *TreeView) Plain() *TreeView                        { v.plain = true; return v }
 func (v *TreeView) OnChange(fn func(id string)) *TreeView   { v.onChange = fn; return v }
 func (v *TreeView) OnActivate(fn func(id string)) *TreeView { v.onActive = fn; return v }
-func (v *TreeView) SetDisabled(on bool)                     { v.disabled = on }
-func (v *TreeView) Expanded(id string) bool                 { return v.open[id] }
-func (v *TreeView) SetExpanded(id string, open bool) {
-	if _, ok := v.nodes[id]; ok {
-		v.open[id] = open
+func (v *TreeView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		clear(v.loads)
 	}
 }
+func (v *TreeView) Expanded(id string) bool          { return v.open[id] }
+func (v *TreeView) SetExpanded(id string, open bool) { v.expand(id, open, false) }
 
 // SetRoots deep-copies the nodes and preserves selection/expansion by ID.
 // Nil nodes are skipped. Empty or duplicate IDs (including cycles) panic before
 // modifying the tree. Removed selections and expansion entries are discarded.
 func (v *TreeView) SetRoots(roots ...*TreeNode) {
-	nodes := make(map[string]*TreeNode)
-	var clone func([]*TreeNode) []*TreeNode
-	clone = func(source []*TreeNode) []*TreeNode {
-		var out []*TreeNode
-		for _, node := range source {
-			if node == nil {
-				continue
-			}
-			if node.ID == "" {
-				panic("kit.Tree: empty node ID")
-			}
-			if _, ok := nodes[node.ID]; ok {
-				panic("kit.Tree: duplicate node ID " + node.ID)
-			}
-			copy := *node
-			nodes[node.ID] = &copy
-			copy.Children = clone(node.Children)
-			out = append(out, &copy)
-		}
-		return out
+	owned, nodes, err := cloneTree(roots)
+	if err != nil {
+		panic(err.Error())
 	}
-	owned := clone(roots)
-	v.roots, v.nodes = owned, nodes
-	for id := range v.open {
-		if _, ok := nodes[id]; !ok {
-			delete(v.open, id)
-		}
-	}
-	selection := v.selection
-	selection.Keep(func(id string) bool { return nodes[id] != nil })
-	v.SetValue(v.selected)
-	v.selection = selection
+	clear(v.loads)
+	v.install(owned, nodes)
+	v.expandAncestors(v.selected)
 }
 
 // Value is the selected node's ID, or "".
@@ -120,19 +105,7 @@ func (v *TreeView) SetValue(id string) {
 	} else {
 		v.selection.Set()
 	}
-	var walk func(nodes []*TreeNode) bool
-	walk = func(nodes []*TreeNode) bool {
-		for _, n := range nodes {
-			if n.ID == id || walk(n.Children) {
-				if n.ID != id {
-					v.open[n.ID] = true
-				}
-				return true
-			}
-		}
-		return false
-	}
-	walk(v.roots)
+	v.expandAncestors(id)
 }
 
 func (v *TreeView) flatten() {
@@ -209,10 +182,10 @@ func (v *TreeView) key(cx *el.Context, e el.KeyEvent) bool {
 			return true
 		}
 		r := v.rows[i]
-		has := len(r.node.Children) > 0
+		has := len(r.node.Children) > 0 || r.node.Lazy
 		switch {
 		case key.Name(e.Name) == key.NameRightArrow && has && !v.open[r.node.ID]:
-			v.open[r.node.ID] = true
+			v.expand(r.node.ID, true, true)
 		case key.Name(e.Name) == key.NameRightArrow && has:
 			for next := i + 1; next < len(v.rows) && v.rows[next].depth > r.depth; next++ {
 				if !v.rows[next].node.Disabled {
@@ -221,7 +194,7 @@ func (v *TreeView) key(cx *el.Context, e el.KeyEvent) bool {
 				}
 			}
 		case key.Name(e.Name) == key.NameLeftArrow && has && v.open[r.node.ID]:
-			v.open[r.node.ID] = false
+			v.expand(r.node.ID, false, true)
 		case key.Name(e.Name) == key.NameLeftArrow:
 			for parent := r.parent; parent >= 0; parent = v.rows[parent].parent {
 				if !v.rows[parent].node.Disabled {
@@ -252,14 +225,14 @@ func (v *TreeView) row(cx *el.Context, i int) el.Element {
 	r := v.rows[i]
 	n, on := r.node, v.selectedNode(r.node.ID)
 	state := ""
-	if len(n.Children) > 0 {
+	if len(n.Children) > 0 || n.Lazy {
 		state = "collapsed"
 		if v.open[n.ID] {
 			state = "expanded"
 		}
 	}
 	row := el.Div().Role("treeitem").Name(n.Label).Value(state).Selected(on).Disabled(n.Disabled).
-		Row().Items(el.Center).Gap(theme.SpaceXs).Pl(float32(8 + 16*r.depth)).Pr(theme.SpaceMd).Rounded(theme.RadiusSm).Mx(4)
+		H(el.Dp(v.list.rowH)).Row().Items(el.Center).Gap(theme.SpaceXs).Pl(8 + v.indent*float32(r.depth)).Pr(theme.SpaceMd).Rounded(theme.RadiusSm).Mx(4)
 	if on {
 		row.Bg(theme.Highlight).TextColor(theme.PrimaryText)
 	}
@@ -271,26 +244,51 @@ func (v *TreeView) row(cx *el.Context, i int) el.Element {
 		}
 		twisty.Child(Icon(icon).Size(16).Color(theme.Muted).Render(cx))
 		if !v.disabled && !n.Disabled {
-			twisty.CursorPointer().Focusable(false).OnClick(func() { v.open[n.ID] = !v.open[n.ID] })
+			twisty.Name(locale.Current().MoreOptions + " " + n.Label).CursorPointer().Focusable(false).OnClick(func() { v.expand(n.ID, !v.open[n.ID], true) })
 		}
 	}
+
 	if !v.disabled && !n.Disabled {
-		row.CursorPointer().
-			OnClick(func() { v.selectNode(cx, i, cx.ClickModifiers()); cx.Focus(autoID("tree", v)) }).
-			OnDoubleClick(func() {
-				if len(n.Children) > 0 {
-					v.open[n.ID] = !v.open[n.ID]
-				}
-				v.activate()
-			})
+		activate := el.Div().ID("activate").Absolute().Top(0).Left(0).W(el.Full).H(el.Full).OnClick(func() { v.selectID(cx, n.ID) }).OnDoubleClick(func() {
+			if current := v.nodes[n.ID]; current != nil && (len(current.Children) > 0 || current.Lazy) {
+				v.expand(n.ID, !v.open[n.ID], true)
+			}
+			v.activate()
+		})
+		if v.reorderable {
+			activate.OnDrag(func(e el.DragEvent) { v.dragNode(v.index(n.ID), e) })
+		}
+		row.Child(activate).CursorPointer()
 		if !on {
 			row.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 		}
 	}
-	if v.reorderable && !v.disabled && !n.Disabled {
-		row.OnDrag(func(e el.DragEvent) { v.dragNode(i, e) })
+	var content el.View
+	if v.renderItem != nil {
+		enabled := func() bool {
+			return !v.disabled && v.nodes[n.ID] != nil && !v.nodes[n.ID].Disabled && cx.Enabled(autoID("tree", v))
+		}
+		content = v.renderItem(TreeItemContext{ID: n.ID, Label: n.Label, Index: i, Depth: r.depth, Expanded: v.open[n.ID], Selected: on, Disabled: v.disabled || n.Disabled, HasChildren: len(n.Children) > 0 || n.Lazy, Loading: v.NodeLoading(n.ID), Error: v.NodeError(n.ID), Toggle: func() {
+			if enabled() {
+				v.expand(n.ID, !v.open[n.ID], true)
+			}
+		}, Retry: func() {
+			if enabled() {
+				v.ReloadNode(n.ID)
+			}
+		}})
 	}
-	return row.Child(twisty, el.Text(n.Label).MaxLines(1).Grow())
+	row.Child(twisty)
+	if content != nil {
+		return row.Child(el.Div().ID("content").Grow().MinW(el.Dp(0)).Child(content.Render(cx)))
+	}
+	row.Child(el.Text(n.Label).MaxLines(1).Grow())
+	if v.NodeLoading(n.ID) {
+		row.Child(Spinner().Render(cx))
+	} else if message := v.NodeError(n.ID); message != "" {
+		row.Child(el.Text(message).TextColor(theme.Danger).MaxLines(1), Button(locale.Current().Retry, func() { v.ReloadNode(n.ID) }).Size(24).Render(cx))
+	}
+	return row
 }
 
 func (v *TreeView) Render(cx *el.Context) el.Element {

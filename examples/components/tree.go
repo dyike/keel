@@ -5,6 +5,7 @@ import (
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
+	"time"
 )
 
 func init() {
@@ -13,7 +14,35 @@ func init() {
 			return &kit.TreeNode{ID: id, Label: id, Children: kids}
 		}
 		msg := "Ctrl/Cmd 多选，Shift 连选，拖动到另一节点前后重排"
-		tr := kit.Tree(n("ui", n("el", n("layout.go"), n("paint.go")), n("kit", n("menu.go"), n("table.go"))), n("docs", n("kit.md")), n("go.mod")).MultiSelect().Reorderable(func(id, parent string, index int) { msg = fmt.Sprintf("%s → %s 的第 %d 项", id, parent, index+1) }).Height(260)
+		tr := kit.Tree(n("ui", n("el", n("layout.go"), n("paint.go")), n("kit", n("menu.go"), n("table.go"))), n("docs", n("kit.md")), n("go.mod"), &kit.TreeNode{ID: "remote", Label: "按需加载", Lazy: true}).MultiSelect().Reorderable(func(id, parent string, index int) { msg = fmt.Sprintf("%s → %s 的第 %d 项", id, parent, index+1) }).Height(260)
+		tr.RowHeight(36).RenderItem(func(state kit.TreeItemContext) el.View {
+			return el.ViewFunc(func(cx *el.Context) el.Element {
+				icon := kit.IconFile
+				if state.HasChildren {
+					icon = kit.IconFolder
+				}
+				row := el.Div().Row().Gap(6).Child(kit.Icon(icon).Size(16).Render(cx), el.Text(state.Label))
+				if state.Loading {
+					row.Child(kit.Spinner().Render(cx))
+				}
+				if state.Error != "" {
+					row.Child(kit.Button("重试", state.Retry).Size(24).Render(cx))
+				}
+				return row
+			})
+		})
+		tr.OnExpand(func(id string, on bool) { msg = fmt.Sprintf("%s 展开：%v", id, on) })
+		tr.OnLoad(func(id string, token uint64) {
+			go func() {
+				time.Sleep(250 * time.Millisecond)
+				core.Update(func() {
+					_, err := tr.SetChildResults(id, token, n(id+"/readme.md"), n(id+"/config.json"))
+					if err != nil {
+						msg = err.Error()
+					}
+				})
+			}()
+		})
 		tr.SetExpanded("ui", true)
 		tr.SetNodeDisabled("paint.go", true)
 		tr.OnSelectionChange(func(ids []string) { msg = fmt.Sprintf("选中 %d 个节点", len(ids)) })

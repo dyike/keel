@@ -12,6 +12,9 @@ import (
 func (v *TreeView) SetNodeDisabled(id string, on bool) {
 	if n := v.nodes[id]; n != nil {
 		n.Disabled = on
+		if on {
+			delete(v.loads, id)
+		}
 	}
 }
 func (v *TreeView) MultiSelect() *TreeView {
@@ -163,6 +166,9 @@ func (v *TreeView) Reorderable(fn func(id, parent string, index int)) *TreeView 
 	return v
 }
 func (v *TreeView) dragNode(i int, e el.DragEvent) {
+	if i < 0 || i >= len(v.rows) {
+		return
+	}
 	switch e.Kind {
 	case el.DragStart:
 		v.dragID = v.rows[i].node.ID
@@ -174,7 +180,7 @@ func (v *TreeView) dragNode(i int, e el.DragEvent) {
 		if e.Canceled || from < 0 || v.disabled || v.rows[from].node.Disabled {
 			return
 		}
-		target := max(0, min(len(v.rows)-1, from+int(math.Round(float64((e.Y-v.dragY)/28)))))
+		target := max(0, min(len(v.rows)-1, from+int(math.Round(float64((e.Y-v.dragY)/v.list.rowH)))))
 		if target == from || v.rows[target].node.Disabled {
 			return
 		}
