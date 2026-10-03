@@ -67,3 +67,50 @@ func TestAttachmentMediaLayoutAndActions(t *testing.T) {
 		}
 	}
 }
+
+func TestAttachmentMediaOverlayControls(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		opened, used := 0, 0
+		preview := el.ViewFunc(func(*el.Context) el.Element { return el.Div().Name("preview").Size(el.Dp(80)) })
+		action := Button("Preview action", func() { used++ }).Size(24)
+		a := Attachment("overlay.png", 0).Media(preview).OnOpen(func() { opened++ })
+		h := renderView(a, 260, scale)
+		before := bounds(h, "preview")
+		a.MediaOverlay(action)
+		h.Frame()
+		if bounds(h, "preview") != before {
+			t.Fatal("overlay changed media size")
+		}
+		click(t, h, "Preview action")
+		if used != 1 || opened != 0 {
+			t.Fatal("overlay click leaked", used, opened)
+		}
+		h.Key(key.NameSpace, 0)
+		if used != 2 || opened != 0 {
+			t.Fatal("overlay keyboard", used, opened)
+		}
+		a.SetStatus(AttachmentStatusProcessing)
+		h.Frame()
+		h.Key(key.NameSpace, 0)
+		if used != 3 || opened != 0 {
+			t.Fatal("status lost overlay focus", used, opened)
+		}
+		a.SetDisabled(true)
+		h.Frame()
+		click(t, h, "Preview action")
+		if used != 3 {
+			t.Fatal("disabled overlay")
+		}
+		a.SetDisabled(false)
+		a.SetStatus(AttachmentStatusComplete)
+		a.MediaOverlay(nil)
+		h.Frame()
+		if shown(h, "Preview action") {
+			t.Fatal("overlay retained")
+		}
+		click(t, h, "preview")
+		if opened != 1 {
+			t.Fatal("restored preview does not open", opened)
+		}
+	}
+}

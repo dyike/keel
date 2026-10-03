@@ -43,3 +43,8 @@ func (v *AttachmentView) part(part AttachmentPart, id string, box *el.DivEl) *el
 	}
 	return box.ID(id)
 }
+
+// MediaOverlay centers a view above the media and its lifecycle overlay.
+// It does not contribute to media size. Controls take their own clicks and obey
+// attachment/ancestor disabled state. Nil removes the overlay.
+func (v *AttachmentView) MediaOverlay(view el.View) *AttachmentView { v.mediaOverlay = view; return v }

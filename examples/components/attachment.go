@@ -33,6 +33,8 @@ func init() {
 		mediaProcessing.SetStatus(kit.AttachmentStatusProcessing)
 		mediaFailed := kit.Attachment("照片失败.png", 48000).Media(kit.Image(preview, "失败预览").Size(64, 64)).OnRetry(func() {})
 		mediaFailed.SetError("网络中断")
+		custom := kit.Attachment("视频预览.mp4", 96000).Media(kit.Image(preview, "视频缩略图").Size(80, 80)).
+			MediaOverlay(kit.Button("播放", func() {}).Size(24)).OnOpen(func() {})
 		removed := false
 		done.OnRemove(func() { removed = true })
 		done.Actions(kit.Button("查看版本", func() {}).Variant(kit.ButtonGhost)).PartStyle(kit.AttachmentPartRoot, func(e *el.DivEl) { e.P(12) })
@@ -41,7 +43,7 @@ func init() {
 			if removed {
 				group.SetItems(up, bad)
 			}
-			return el.Div().P(24).Gap(10).Child(el.Text("横向滚动查看附件；移除后保留其他上传状态"), group.Render(cx), pending.Render(cx), rejected.Render(cx), mediaUpload.Render(cx), mediaProcessing.Render(cx), mediaFailed.Render(cx))
+			return el.Div().P(24).Gap(10).Child(el.Text("横向滚动查看附件；移除后保留其他上传状态"), group.Render(cx), pending.Render(cx), rejected.Render(cx), mediaUpload.Render(cx), mediaProcessing.Render(cx), mediaFailed.Render(cx), custom.Render(cx))
 		}))
 	})
 }

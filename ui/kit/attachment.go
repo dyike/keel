@@ -15,6 +15,7 @@ type AttachmentView struct {
 	name               string
 	media              el.View
 	mediaProgress      *ProgressCircleView
+	mediaOverlay       el.View
 	content            el.View
 	actions            []el.View
 	styles             [6]func(*el.DivEl)
@@ -139,8 +140,11 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 			media.Child(overlay)
 		}
 	}
+	if v.mediaOverlay != nil {
+		media.Role("group").Child(el.Div().ID(id + "/media-overlay").Absolute().Top(0).Left(0).WFull().HFull().Center().Child(v.mediaOverlay.Render(cx)))
+	}
 	media = v.part(AttachmentPartMedia, id+"/media", media)
-	main := el.Div().ID(id+"/open").Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(metrics.gap).Child(media, info)
+	main := el.Div().ID(id + "/main").Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(metrics.gap)
 	if v.vertical {
 		main.Col().W(el.Full).Flex(0).Items(el.Stretch)
 		info.W(el.Full).Flex(0)
@@ -148,9 +152,11 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 
 	info = v.part(AttachmentPartContent, id+"/info", info)
 	if v.onOpen != nil && status.IsComplete() {
-		main.Role("button").Name(v.name).Border(1, theme.Surface).Rounded(theme.RadiusSm).CursorPointer().Focusable(true).OnClick(v.onOpen).
-			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
+		main.Child(el.Div().ID(id+"/open").Absolute().Top(0).Left(0).WFull().HFull().
+			Role("button").Name(v.name).Border(1, theme.Surface).Rounded(theme.RadiusSm).CursorPointer().Focusable(true).OnClick(v.onOpen).
+			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }))
 	}
+	main.Child(media, info)
 	card := surface().ID(id).Disabled(v.disabled).Role("attachment").Name(v.name).Value(state).
 		Row().Items(el.Center).Gap(metrics.gap).P(metrics.padding).W(el.Dp(metrics.width)).MinH(el.Dp(metrics.height)).MaxW(el.Full).Child(main)
 	if status.IsPending() {

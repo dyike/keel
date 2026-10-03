@@ -99,3 +99,47 @@ func TestAttachmentMediaStatusAndRetry(t *testing.T) {
 		t.Fatal("completed preview not openable")
 	}
 }
+
+func TestAttachmentCustomOverlayAboveStatus(t *testing.T) {
+	green := color.NRGBA{G: 255, A: 255}
+	used, opened := 0, 0
+	a := kit.Attachment("custom", 0).Media(el.ViewFunc(func(*el.Context) el.Element { return el.Div().Size(el.Dp(80)).Bg(color.NRGBA{R: 255, A: 255}) })).OnOpen(func() { opened++ })
+	a.MediaOverlay(kit.Button("Play", func() { used++ }).Size(24).Appearance(func(s kit.ButtonAppearance) kit.ButtonAppearance { s.Background = green; return s }))
+	disabled := false
+	w := openTest(t, Options{Width: 400, Height: 240, Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
+		return el.Div().Disabled(disabled).Items(el.Start).Child(a.Render(cx))
+	}))})
+	for _, status := range []kit.AttachmentStatus{kit.AttachmentStatusComplete, kit.AttachmentStatusUploading, kit.AttachmentStatusProcessing, kit.AttachmentStatusFailed} {
+		a.SetStatus(status)
+		e := element(t, w, "Play")
+		data, err := w.screenshot()
+		if err != nil {
+			t.Fatal(err)
+		}
+		im, err := png.Decode(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		c := color.NRGBAModel.Convert(im.At(e.X+e.Width/2, e.Y+3)).(color.NRGBA)
+		if c.G < 240 || c.R > 20 {
+			t.Fatal("overlay dimmed by status", status, c)
+		}
+	}
+	disabled = true
+	w.click(element(t, w, "Play").center())
+	if used != 0 {
+		t.Fatal("ancestor disabled overlay")
+	}
+	disabled = false
+	a.SetStatus(kit.AttachmentStatusComplete)
+	w.click(element(t, w, "Play").center())
+	if used != 1 || opened != 0 {
+		t.Fatal("overlay click isolation", used, opened)
+	}
+	a.MediaOverlay(nil)
+	for _, e := range w.snapshot() {
+		if e.Name == "Play" {
+			t.Fatal("removed overlay retained")
+		}
+	}
+}
