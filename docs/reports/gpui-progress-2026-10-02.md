@@ -78,7 +78,8 @@
 - [x] 第五十五批（`bfb6c4e`）：Attachment 增加 Media 与 Vertical，支持展示型图片/媒体槽、横纵布局及默认图标恢复；操作区独立并保持打开区域身份。测试覆盖 1×/2× 窄布局、预览打开、切换后键盘焦点、上传取消/重试、移除隔离和禁用；构建、vet、全量测试通过，浅深色示例截图已检查。仍缺附件组；重新查阅上游后补记生命周期、分区组合/样式、尺寸档和图片状态效果差异。
 - [x] 第五十六批（`d824945`）：AttachmentGroup 增加横向排列/滚动、Gap、Name、禁用继承及复制切片的 SetItems/Items。测试覆盖 1×/2× 溢出尺寸、滚动后打开/移除命中、动态删除后的偏移收敛、其他附件状态保留、空组及非法间距；构建、vet、全量测试通过。生命周期和分区配置仍待补齐。
 - [x] 第五十七批（`a7bfd35`）：Attachment 增加显式生命周期及查询，覆盖待上传/上传/处理/失败/完成并保留取消状态；中英文文案、默认媒体忙碌指示、操作限制与旧进度/错误接口统一。测试覆盖状态转换、错误清除恢复、处理中取消/重试、非法状态、双语言与 Agent 值；构建、vet、全量测试通过。分区配置、尺寸与图片状态效果仍待完成。
-- [x] 第五十八批：Attachment 增加 Content、Actions 和六分区 PartStyle，默认元信息可恢复，自定义操作与打开隔离，根语义身份保持。测试覆盖 1×/2× 内容替换、切片隔离、动态样式与输入焦点/状态、内置操作保留、禁用及背景像素；构建、vet、全量测试通过。尺寸档和状态视觉效果仍待补齐。
+- [x] 第五十八批（`98de78e`）：Attachment 增加 Content、Actions 和六分区 PartStyle，默认元信息可恢复，自定义操作与打开隔离，根语义身份保持。测试覆盖 1×/2× 内容替换、切片隔离、动态样式与输入焦点/状态、内置操作保留、禁用及背景像素；构建、vet、全量测试通过。尺寸档和状态视觉效果仍待补齐。
+- [x] 第五十九批：Attachment 增加 XSmall/Small/Medium/Large 四档，统一卡片宽度、默认媒体、字号、间距与内置按钮；默认 Medium 宽度调整为 232dp，PartStyle 优先。测试覆盖 1×/2× 尺寸递增、焦点保留、非法值、样式覆盖及窄竖排上传操作；构建、vet、全量测试及浅深色截图检查通过。补记组边缘渐隐/公开滚动控制及竖排预览/操作布局差异。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -105,7 +106,7 @@
 | [Accordion](https://gpui-kit.com/component/accordion/) | 主体已有 | [单项/多项、自定义标题、动画、键盘、禁用、边框开关与四档尺寸](../../ui/kit/accordion.go) | 第十八批已关闭登记缺口；无边框保留背景和圆角，默认 Medium 保留字号继承。自定义标题和正文的显式字号优先。 |
 | [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐 Keyboard、Overlay、OverlayClosable、CloseButton；Persistent 默认只禁止遮罩关闭，显式配置可覆盖。第四十三批增加 BeforeConfirm，可返回 false 保持打开并跳过 onOK；允许后仍先关闭再执行原回调。第四十四批增加 BeforeCancel，支持拒绝用户取消。程序关闭和所属元素失效清理绕过校验；OnClose 仍只通知取消关闭，与上游确认后也通知的约定不同。 |
 | [Alert](https://gpui-kit.com/component/alert/) | 主体已有 | [行内/横幅提示、级别、四档尺寸、可替换图标、富正文、关闭按钮](../../ui/kit/alert.go) | 第十五批已关闭登记缺口；Content 可组合 Markdown 与操作按钮。横幅没有独立标题行，无正文时使用标题作为消息；自定义内容的内部样式由内容自身控制。 |
-| [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 第五十五批补齐 Media 媒体槽和 Vertical 横纵布局。第五十六批补齐 AttachmentGroup 横向排列与滚动。第五十七批补齐显式生命周期和默认媒体忙碌指示。第五十八批补齐 Content/Actions 和六分区 PartStyle。仍缺尺寸档、状态边框、图片状态遮罩与标题扫光；媒体尺寸由传入 View 设置，图片加载由应用负责。 |
+| [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 第五十五批补齐 Media 媒体槽和 Vertical 横纵布局。第五十六批补齐 AttachmentGroup 横向排列与滚动。第五十七批补齐显式生命周期和默认媒体忙碌指示。第五十八批补齐 Content/Actions 和六分区 PartStyle。第五十九批补齐四档尺寸。仍缺状态边框、图片状态遮罩与标题扫光，以及组边缘渐隐/公开滚动控制。竖排预览使用内容尺寸、操作位于底部，上游默认方形预览及右上角操作；图片加载由应用负责。 |
 | [Avatar](https://gpui-kit.com/component/avatar/) | 主体已有 | [图片/首字母回退、URL 加载与重试、尺寸、状态标记](../../ui/kit/avatar.go)、[叠放头像组/上限/+N/省略号](../../ui/kit/avatar_group.go) | 第七批已关闭原登记缺口；加载不跨实例缓存。外观仍为圆形和主题色回退，GPUI 的自定义占位图标、边框/圆角等样式接口及配色算法不同。 |
 | [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字/圆点/图标、上限、尺寸、自定义颜色/名称与角标容器](../../ui/kit/badge.go) | 第十七批已关闭登记缺口；图标模式不依赖计数，数字/圆点仍在 count≤0 时隐藏。Size 为 dp，圆点按比例缩放；Tone 清除固定颜色覆盖。 |
 | [Bubble](https://gpui-kit.com/component/bubble/) | 部分 | [可复用内容气泡、Mine 对齐](../../ui/kit/message.go) | 缺 ghost 等外观变体、气泡组和独立反应槽；当前只接 content + Mine，操作/反应在 Message 层。 |

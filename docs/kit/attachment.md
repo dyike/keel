@@ -43,3 +43,7 @@ Pending 显示“待上传”，Processing 显示“处理中”；上传和处�
 `Actions` 复制传入切片，忽略 nil，在内置取消/重试/移除之前添加控件。空参数清除自定义控件；清除 OnCancel/OnRetry/OnRemove 回调可去掉对应内置按钮。自定义操作不触发 OnOpen，遵守卡片和祖先禁用状态。
 
 `PartStyle(part, func(*el.DivEl))` 调整 Root、Media、Content、Title、Description、Actions 六个分区，常量统一以 AttachmentPart 开头。可设置背景、边框、圆角、间距、字号和颜色，也可用 Hidden 隐藏可选区域。样式在默认值之后应用，nil 恢复默认；元素每帧重建，不应保存引用或在样式回调里添加子内容。Root 的 ID、角色、名称、生命周期值及窗口最大宽度由组件保持。Title/Description 只作用于默认元信息，Content 自定义时由应用控制内部样式。
+
+`Size(AttachmentSize...)` 选择 XSmall、Small、Medium、Large 四档，默认 Medium。卡片宽度分别为 176/200/232/272dp，默认媒体边长 28/32/38/44dp，标题字号 11/12/13/14sp；最小高度为 40/48/56/64dp，内容较多时继续增高。内边距、间距和内置操作按钮随档位调整。
+
+默认 Medium 宽度从原来的 280dp 调整为 232dp。`PartStyle` 在尺寸默认值后应用，可覆盖宽度和媒体尺寸；自定义 Media/Content/Actions 中显式设置的尺寸保持不变。竖排仍使用内容自身的预览比例，操作区仍位于底部，与上游默认方形预览及右上角操作布局不同。

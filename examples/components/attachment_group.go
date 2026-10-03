@@ -17,8 +17,18 @@ func init() {
 		processing.OnCancel(func() {}).OnRetry(func() {})
 		group := kit.AttachmentGroup(first, second, pending, processing).Name("附件").Gap(12)
 		second.OnRemove(func() { group.SetItems(first, pending, processing) })
+		sizes := []*kit.AttachmentView{
+			kit.Attachment("XSmall.pdf", 1024).Size(kit.AttachmentSizeXSmall),
+			kit.Attachment("Small.pdf", 1024).Size(kit.AttachmentSizeSmall),
+			kit.Attachment("Medium.pdf", 1024).Size(kit.AttachmentSizeMedium),
+			kit.Attachment("Large.pdf", 1024).Size(kit.AttachmentSizeLarge),
+		}
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Child(el.Text("横向滚动查看；移除按钮更新附件组"), group.Render(cx))
+			box := el.Div().P(24).Gap(12).Child(el.Text("横向滚动查看；移除按钮更新附件组"), group.Render(cx))
+			for _, a := range sizes {
+				box.Child(a.Render(cx))
+			}
+			return box
 		}))
 	})
 }
