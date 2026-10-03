@@ -361,3 +361,14 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 `OnScroll(xRange, yRange, fn)` 接收 dp 单位的 ScrollEvent，范围使用 `el.ScrollRange{Min: ..., Max: ...}`。零范围不接收该轴，超出范围的位移由 Gio 路由给外层；子滚动区域优先。nil 移除回调，禁用/隐藏祖先阻止事件。范围按像素尺度换算，非有限端点按 0 处理，端点限制在 ±1,000,000dp。
 
 此事件不暴露滚轮/触控板类型或手势结束相位。可用于受控 ScrollOffset 容器；处理时更新应用状态，再由下一帧应用偏移。
+
+### 指定内容底边对齐
+
+横向容器使用 `Items(el.ContentBottom)`，可把子项对齐到指定后代的底边。子项用 `.ContentBottom(target)` 指定当前渲染树中的正常流后代；不指定、目标被隐藏或不在子树中时，回退到子项自身底边。这是几何对齐，不是字体基线。
+
+```go
+body := el.Div().Child(header, content, footer).ContentBottom(content)
+row := el.Div().Row().Items(el.ContentBottom).Child(avatar, body)
+```
+
+布局使用当前帧尺寸计算对齐线以上和以下所需空间，支持 Row 和 Wrap 的每一行。目标不接受绝对定位节点；容器显式限高时仍遵守限高。此模式不用于纵向容器或 Grid。

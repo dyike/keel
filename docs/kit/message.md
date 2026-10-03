@@ -25,7 +25,7 @@ msg.Reactions(kit.MessageReaction{Name: "有帮助", Count: 2}).
 
 反应使用可切换按钮，点击更新当前用户的选中状态与计数，再调用回调。`Reactions` 复制数据；后续服务端结果可再次调用它覆盖。未提供回调的反应只读。Agent 可读取 `article` 的 `sending` / `failed` 状态，以及反应按钮的选中状态。
 
-`Avatar(view)` 替换头像，传 nil 隐藏；`DefaultAvatar()` 恢复默认：助手显示姓名首字母，用户消息不显示头像。用户消息显式配置头像时放在右侧。头像目前按消息顶部对齐，与 GPUI 的正文底边对齐不同。
+`Avatar(view)` 替换头像，传 nil 隐藏；`DefaultAvatar()` 恢复默认：助手显示姓名首字母，用户消息不显示头像。用户消息显式配置头像时放在右侧。头像按正文容器底边对齐，头部在上方，状态、操作、反应及尾部继续排在正文列下方；定位使用当前帧布局，较高的头像会撑开上方空间。正文被隐藏或不存在时，以正文列底边作为回退。
 
 `Header(view)` 放在正文上方，`Footer(view)` 放在状态、操作和反应区之后；传 nil 清除。头尾支持任意 View 和可交互控件，默认继承小号、弱化文字样式，用户消息靠右。`Content(view)` 独立替换正文，nil 清空正文但保留其他分区。消息禁用状态覆盖所有插槽。
 
@@ -61,3 +61,5 @@ msg.PartStyle(kit.MessagePartRoot, func(e *el.DivEl) {
 ```
 
 回调只修改当帧元素，不应保留它或追加子项。组件保留内部 ID、外层 article 的名称/状态及整体禁用；分区可额外禁用自身，不能绕过祖先禁用。Content 样式作用于正文容器，气泡表面仍由 Bubble 的样式接口控制。
+
+自定义 `MessagePartRoot` 的 Items 可覆盖默认底边对齐；`MessagePartStack` 的 ContentBottom 可选择另一后代作为对齐目标。改变这些布局规则由应用负责。默认头像仍为 28dp，助手自动显示头像、User 自动包主色气泡的约定保留，与上游默认无槽位不同。

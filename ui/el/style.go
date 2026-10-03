@@ -62,9 +62,10 @@ const (
 	Start Align = iota
 	Center
 	End
-	Stretch      // cross axis only: fill the container
-	SpaceBetween // main axis only
-	SpaceAround  // main axis only
+	Stretch       // cross axis only: fill the container
+	SpaceBetween  // main axis only
+	SpaceAround   // main axis only
+	ContentBottom // row cross axis only: align selected descendant bottoms
 )
 
 // Style is everything an element can look like. Build it with the methods
@@ -86,6 +87,7 @@ type Style struct {
 	grow, shrink            float32
 	justify, align          Align
 	alignSet                bool
+	contentBottom           *Node
 	scrollX, scrollY        bool
 	controlledScroll        *[2]float32
 	pinX                    int // -1 left, +1 right of nearest horizontal viewport

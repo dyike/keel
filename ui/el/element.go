@@ -513,3 +513,15 @@ func (s *Styled[T]) ScrollOffset(x, y float32) *T {
 	s.n.style.controlledScroll = &[2]float32{x, y}
 	return s.self
 }
+
+// ContentBottom selects an in-flow descendant whose border-box bottom aligns
+// with siblings in a row using Items(ContentBottom). Nil, hidden, or missing
+// descendants fall back to this element's bottom. This is geometric alignment,
+// not a font baseline. Pass an element from the current render tree.
+func (s *Styled[T]) ContentBottom(target Element) *T {
+	s.n.style.contentBottom = nil
+	if target != nil {
+		s.n.style.contentBottom = target.node()
+	}
+	return s.self
+}

@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**53 项主体已有、22 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**54 项主体已有、21 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -149,7 +149,9 @@
 
 - [x] 第九十八批（`c961fa3`）：Message 增加九分区 PartStyle，覆盖 Root/Stack/Avatar/Header/Content/Footer/Status/Actions/Reactions。样式在默认值后执行，nil 恢复，非法分区忽略；保留内部身份和外层语义，整体禁用不能被样式关闭。测试覆盖 1×/2× 全分区布局、恢复、样式切换后的输入焦点、正文禁用不影响尾部、根语义保护及整体禁用；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。多气泡混排继承和头像正文底边定位仍待补齐。
 
-- [x] 第九十九批：新增 MessageContent 多气泡/普通 View 混排，直接 Bubble 继承消息对齐，任一 Ghost 自动取消头尾缩进，显式覆盖仍优先。存续气泡以稳定副本渲染，源对象不被修改；支持 SetItems/Items、Gap、Style 和禁用。测试覆盖 1×/2× 混排顺序、Ghost 动态变更、对齐、切片隔离、移除清理、重排与样式切换后的输入焦点和交互禁用；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。头像正文底边定位继续待补。
+- [x] 第九十九批（`333052f`）：新增 MessageContent 多气泡/普通 View 混排，直接 Bubble 继承消息对齐，任一 Ghost 自动取消头尾缩进，显式覆盖仍优先。存续气泡以稳定副本渲染，源对象不被修改；支持 SetItems/Items、Gap、Style 和禁用。测试覆盖 1×/2× 混排顺序、Ghost 动态变更、对齐、切片隔离、移除清理、重排与样式切换后的输入焦点和交互禁用；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。头像正文底边定位继续待补。
+
+- [x] 第一百批：Message 头像按正文容器底边定位，状态、操作、反应与尾部保留在正文列下方。el 增加 ContentBottom 几何对齐，按当前帧测量计算对齐线上下所需空间，支持 Row/Wrap，隐藏或缺失目标回退自身底边。测试覆盖 1×/2× 首帧、正文及头像增高、左右消息、尾部移除、点击坐标、目标回退和换行；原有 Message 输入焦点测试及构建、vet、全量测试通过，浅色 1×/深色 2× 截图已检查。Message 登记缺口关闭，调整为主体已有；默认头像尺寸、自动头像/气泡与内建业务状态约定仍不同。
 
 ## 当前实施清单
 
@@ -211,7 +213,7 @@
 | [Marker](https://gpui-kit.com/component/marker/) | 用途不同 | [几何标记、大小与颜色](../../ui/kit/marker.go) | 用途不同：GPUI 是带图标/文字、分隔线/边框、加载状态的消息标记行；Keel Marker 只绘制点/方块等几何标记，不能计作对齐。 |
 | [Menu](https://gpui-kit.com/component/menu/) | 部分 | [菜单、子菜单、分隔线、长内容、方向键、焦点恢复](../../ui/kit/menu.go) | 第四十七批已补齐图标、勾选项及勾号左右位置，含状态更新/查询与 Agent checked。第四十八批补齐不可交互的组标题 Label。第四十九批补齐 ContentItem/SetItemContent 展示内容行及变高定位。第五十批补齐 Link、外链图标开关、系统打开及应用回调。快捷键仍取动作首个绑定，缺按触发器焦点上下文解析绑定；默认系统打开未做各平台真机验收。 |
 | [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 主体已有 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；第九十二批补齐按稳定消息 ID 跳转、首次渲染前定位和跟随/上滚状态查询。未读身份由应用维护；SetFollow(false) 后显式跳到末尾不会开启自动跟随。第九十三批补齐 LatestButton/LatestLabel/LatestRenderer/LatestTransition，支持隐藏、文案、完整 Button 外观配置及淡入淡出；登记缺口已关闭。默认保留右下角文字按钮和 150ms 过渡，与上游圆形图标按钮不同；不表示视觉和 API 完全相同。 |
-| [Message](https://gpui-kit.com/component/message/) | 部分 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 第九十四批补齐 Avatar/Header/Footer/Content 独立插槽及默认头像恢复，头尾支持交互；插槽变化保留正文身份。第九十五批新增 MessageGroup，支持间距/样式、动态重排和组级禁用，保留消息行输入与焦点。第九十六批补齐显式 Bubble、Ghost 自动头尾缩进及独立 HeaderInset/FooterInset 覆盖与恢复。第九十七批补齐 Alignment/ResetAlignment，位置独立于 User 的默认气泡色和头像策略。第九十八批补齐九分区 PartStyle，支持独立样式、恢复默认与额外禁用。第九十九批新增 MessageContent，支持多气泡/普通 View 混排、对齐及 Ghost 元数据继承、重排和禁用。头像目前顶部对齐，尚未对齐上游正文底边定位。 |
+| [Message](https://gpui-kit.com/component/message/) | 主体已有 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 第九十四批补齐 Avatar/Header/Footer/Content 独立插槽及默认头像恢复，头尾支持交互；插槽变化保留正文身份。第九十五批新增 MessageGroup，支持间距/样式、动态重排和组级禁用，保留消息行输入与焦点。第九十六批补齐显式 Bubble、Ghost 自动头尾缩进及独立 HeaderInset/FooterInset 覆盖与恢复。第九十七批补齐 Alignment/ResetAlignment，位置独立于 User 的默认气泡色和头像策略。第九十八批补齐九分区 PartStyle，支持独立样式、恢复默认与额外禁用。第九十九批新增 MessageContent，支持多气泡/普通 View 混排、对齐及 Ghost 元数据继承、重排和禁用。第一百批补齐头像按正文容器底边对齐，首帧与动态增高使用当前布局，尾部不影响对齐线；登记缺口已关闭。默认头像为 28dp，助手自动头像、User 默认主色气泡及内建状态/反应属于 Keel 约定，不表示所有 API/默认视觉相同。 |
 | [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 缺系统通知投递、位置选择、操作按钮与任意富内容；当前只有应用内右上角标题/正文通知队列。 |
 | [NumberInput](https://gpui-kit.com/component/number-input/) | 部分 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 缺金额/千分位 mask、动态 step_by、前后内容槽；固定步长、精度、范围与输入草稿已有。 |
 | [OtpInput](https://gpui-kit.com/component/otp-input/) | 主体已有 | [分格输入、粘贴、完成回调、密码遮罩、分组、尺寸与窄布局](../../ui/kit/otp_input.go) | 第二批已补齐 Masked/Groups/Size；默认两组，不能整除时前组多一位。此表登记的三个缺口已关闭。 |

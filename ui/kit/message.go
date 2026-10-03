@@ -194,9 +194,9 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 		article.Child(v.part(MessagePartStack, id+"/body", body))
 	} else {
 		identity := v.part(MessagePartAvatar, id+"/avatar", el.Div().NoShrink().Child(avatar.Render(cx)))
-		body.Grow().W(el.Dp(0)).Pt(theme.SpaceXs)
+		body.Grow().W(el.Dp(0)).Pt(theme.SpaceXs).ContentBottom(content)
 		body = v.part(MessagePartStack, id+"/body", body)
-		article.Row().Gap(10).Items(el.Start)
+		article.Row().Gap(10).Items(el.ContentBottom)
 		if end {
 			article.Child(body, identity)
 		} else {
