@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/el"
 	"testing"
 )
@@ -32,5 +33,46 @@ func TestEmptyAction(t *testing.T) {
 	click(t, h, "创建")
 	if calls != 1 {
 		t.Fatal("action failed")
+	}
+}
+
+func TestEmptyMediaReplacementKeepsActionFocus(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		input := Input("Search")
+		v := Empty("Nothing").Description("Try again").Action(input).Media(Avatar("Alex").Size(48))
+		h := renderView(v, 200, scale)
+		if bounds(h, "Alex").Max.Y > bounds(h, "Nothing").Min.Y {
+			t.Fatal("media order")
+		}
+		clickClass(t, h, "Editor", "Search")
+		h.Type("a")
+		h.Key(key.NameRightArrow, 0)
+		v.Media(nil).Icon(IconNone)
+		v.SetTitle("")
+		v.SetDescription("")
+		h.Frame()
+		h.Key(key.NameDeleteBackward, 0)
+		if input.Value() != "" {
+			t.Fatal("slot replacement lost action focus", input.Value())
+		}
+		v.Media(text("Custom illustration"))
+		h.Frame()
+		if !shown(h, "Custom illustration") {
+			t.Fatal("replacement missing")
+		}
+		b := bounds(h, "Custom illustration")
+		if b.Min.X < 0 || b.Max.X > 200*scale {
+			t.Fatal("media overflow", b)
+		}
+		v.Media(nil)
+		h.Frame()
+		if shown(h, "Custom illustration") {
+			t.Fatal("stale media")
+		}
+		v.Icon(IconInbox)
+		h.Frame()
+		if bounds(h, "Search").Min.Y <= 0 {
+			t.Fatal("fallback missing")
+		}
 	}
 }

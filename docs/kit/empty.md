@@ -9,3 +9,9 @@ kit.Empty("暂无订单").Action(el.ViewFunc(func(cx *el.Context) el.Element {
     return el.Div().OnClick(createOrder).Child(el.Text("新建订单").TextColor(theme.Primary))
 }))
 ```
+
+`Media(view)` 在标题上方放置头像、图片、头像组或任意自定义内容，保留内容自身的尺寸、语义和交互。后一次调用替换前一次内容；传 nil 恢复 `Icon` 配置，`Icon(kit.IconNone)` 隐藏默认图标。媒体、标题和说明变化不会重建 Action 的输入状态或焦点。媒体仍需适配父容器宽度；滚动由父容器提供。
+
+```go
+kit.Empty("暂无成员").Media(kit.Avatar("Alex").Size(48)).Action(kit.Button("邀请", invite))
+```

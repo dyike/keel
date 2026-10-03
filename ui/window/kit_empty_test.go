@@ -15,3 +15,22 @@ func TestKitEmptySnapshot(t *testing.T) {
 		t.Fatal("missing description")
 	}
 }
+
+func TestKitEmptyMediaSnapshot(t *testing.T) {
+	calls := 0
+	v := kit.Empty("No members").Media(kit.Avatar("Alex").Size(48)).Action(kit.Button("Invite", func() { calls++ }))
+	w := openTest(t, kitPage(v))
+	media := element(t, w, "Alex")
+	if media.Width != 48 || media.Height != 48 {
+		t.Fatal("media size lost", media)
+	}
+	w.click(element(t, w, "Invite").center())
+	if calls != 1 {
+		t.Fatal("action did not fire")
+	}
+	v.Media(nil).Icon(kit.IconNone)
+	w.render()
+	if roleOfName(w, "Alex") != "" {
+		t.Fatal("stale avatar")
+	}
+}
