@@ -26,4 +26,4 @@ b := kit.Bubble(content).Variant(kit.BubbleOutline).
     ReactionSide(kit.BubbleReactionTop)
 ```
 
-BubbleGroup 尚未提供，当前可用 el.Div().Gap(...) 组合。
+连续气泡可用 [BubbleGroup](bubble_group.md) 组合，支持间距、样式、更新和组级禁用。
