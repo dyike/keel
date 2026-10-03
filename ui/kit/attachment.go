@@ -26,6 +26,9 @@ type AttachmentView struct {
 	density            AttachmentSize
 	vertical           bool
 	mediaRatio         *float32
+	hideMedia          bool
+	hideContent        bool
+	hideActions        bool
 	size               int64
 	status             AttachmentStatus
 	progress           float32 // 0..1 while uploading, < 0 when done
@@ -92,6 +95,8 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	id := autoID("attachment", v)
 	status := v.Status()
 	metrics := v.metrics()
+	tile := v.vertical && v.hideContent && !v.hideMedia
+	emptyMain := v.hideMedia && v.hideContent
 	state, _, _ := v.statusDetail(status)
 	_, detail, color := v.statusDetail(v.partStatus(AttachmentPartDescription))
 	if v.description != nil {
@@ -106,7 +111,7 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 			v.titleShimmer = ShimmerText(v.name).MaxLines(1)
 		}
 		v.titleShimmer.SetText(v.name)
-		title := v.part(AttachmentPartTitle, id+"/title", el.Div().TextSize(metrics.title)).Child(v.titleShimmer.Enabled(v.partStatus(AttachmentPartTitle).IsInProgress()).Render(cx))
+		title := v.part(AttachmentPartTitle, id+"/title", el.Div().TextSize(metrics.title)).Child(v.titleShimmer.Enabled(!v.hideContent && v.partStatus(AttachmentPartTitle).IsInProgress()).Render(cx))
 		description := v.part(AttachmentPartDescription, id+"/description", el.Div().TextSize(metrics.description).TextColor(color)).Child(el.Text(detail).MaxLines(1))
 		info.Child(title, description)
 		if status.IsUploading() {
@@ -118,7 +123,7 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	media := el.Div().ID(id + "/media").NoShrink().Rounded(theme.RadiusMd).Bg(theme.Highlight).Center()
 	if v.media == nil {
 		media.Size(el.Dp(metrics.media))
-		if status.IsInProgress() {
+		if status.IsInProgress() && !v.hideMedia {
 			media.Child(Spinner().Size(metrics.media / 2).Label("").Render(cx))
 		} else if status.IsFailed() {
 			icon := IconError
@@ -148,7 +153,13 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	if v.vertical && v.previewRatio() > 0 {
 		media.WFull().H(el.Auto).AspectRatio(v.previewRatio()).Role("group")
 	}
+	if tile {
+		media.Rounded(theme.RadiusLg - 1)
+	}
 	media = v.part(AttachmentPartMedia, id+"/media", media)
+	if v.hideMedia {
+		media.Hidden(true)
+	}
 	main := el.Div().ID(id + "/main").Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(metrics.gap)
 	if v.vertical {
 		main.Col().W(el.Full).Flex(0).Items(el.Stretch)
@@ -156,14 +167,26 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	}
 
 	info = v.part(AttachmentPartContent, id+"/info", info)
+	if v.hideContent {
+		info.Hidden(true)
+	}
+	if emptyMain {
+		main.Hidden(true)
+	}
 	if v.onOpen != nil && status.IsComplete() {
 		main.Child(el.Div().ID(id+"/open").Absolute().Top(0).Left(0).WFull().HFull().
 			Role("button").Name(v.name).Border(1, theme.Surface).Rounded(theme.RadiusSm).CursorPointer().Focusable(true).OnClick(v.onOpen).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }))
 	}
 	main.Child(media, info)
+	if tile && cx.Focused(id+"/open") {
+		main.Child(el.Div().Absolute().Top(0).Left(0).WFull().HFull().Border(2, theme.Primary).Rounded(theme.RadiusLg - 1))
+	}
 	card := surface().ID(id).Disabled(v.disabled).Role("attachment").Name(v.name).Value(state).
 		Row().Items(el.Center).Gap(metrics.gap).P(metrics.padding).W(el.Dp(metrics.width)).MinH(el.Dp(metrics.height)).MaxW(el.Full).Child(main)
+	if tile {
+		card.P(0).MinH(el.Dp(0))
+	}
 	if status.IsPending() {
 		card.BorderDashed(true)
 	}
@@ -174,10 +197,13 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		card.Col().Items(el.Stretch)
 	}
 	actions := el.Div().ID(id + "/actions").Row().NoShrink().Gap(theme.SpaceXs).Items(el.Center)
-	if v.vertical {
+	if v.vertical && !emptyMain {
 		actions.Absolute().Top(metrics.padding).Right(metrics.padding).MaxW(el.Full).Justify(el.End).Bg(theme.Surface).Rounded(theme.RadiusSm)
 	}
 	actions = v.part(AttachmentPartActions, id+"/actions", actions)
+	if v.hideActions {
+		actions.Hidden(true)
+	}
 	hasCustom := false
 	for i, view := range v.actions {
 		if view != nil {

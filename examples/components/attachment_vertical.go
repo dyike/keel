@@ -19,8 +19,11 @@ func init() {
 		square := kit.Attachment("默认方形.png", 64000).Size(kit.AttachmentSizeSmall).Vertical(true).Media(kit.Image(pixels, "方形预览")).OnRemove(func() {})
 		wide := kit.Attachment("宽屏预览.png", 64000).Size(kit.AttachmentSizeSmall).Vertical(true).MediaAspectRatio(2).Media(kit.Image(pixels, "宽屏预览")).OnCancel(func() {})
 		wide.SetProgress(.6)
+		tile := kit.Attachment("纯图片", 64000).Size(kit.AttachmentSizeSmall).Vertical(true).ShowContent(false).Media(kit.Image(pixels, "纯图片预览")).OnOpen(func() {}).OnRemove(func() {})
+		metadata := kit.Attachment("只有元信息.txt", 1024).Size(kit.AttachmentSizeSmall).ShowMedia(false)
+		actions := kit.Attachment("只有操作", 0).Size(kit.AttachmentSizeSmall).ShowMedia(false).ShowContent(false).Actions(kit.Button("选择文件", func() {}).Size(24))
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).Child(el.Text("方形和自定义宽高比；操作区在右上角"), el.Div().Row().Wrap().Gap(12).Items(el.Start).Child(square.Render(cx), wide.Render(cx)))
+			return el.Div().P(24).Gap(16).Child(el.Text("方形和自定义宽高比；操作区在右上角"), el.Div().Row().Wrap().Gap(12).Items(el.Start).Child(square.Render(cx), wide.Render(cx), tile.Render(cx), metadata.Render(cx), actions.Render(cx)))
 		}))
 	})
 }

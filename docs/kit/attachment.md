@@ -82,3 +82,14 @@ a.ClearPartStatus(kit.AttachmentPartDescription).ClearDescription()
 布局变化：原竖排自然预览及底部操作改为上述默认值。需要保留自然预览时设置 MediaAspectRatio(0)。独立示例：`go run ./examples/components -section attachment_vertical`。
 
 底层 el 的 `AspectRatio(ratio)` 在宽度已解析、高度自动时按宽高比推导高度；显式高度和最大/最小高度限制优先，0 清除比例。它不为两个轴均自动的内容推导尺寸。
+
+`ShowMedia`、`ShowContent`、`ShowActions` 独立控制媒体、元信息和操作区，默认均显示。隐藏后不占布局、不出现在 Agent 元素中，也不可聚焦/操作；再次显示使用原来的内容、样式、回调和状态配置。附件的文件名与生命周期语义始终保留。ShowActions 控制操作区内的自定义和内置按钮，媒体遮罩的重试按钮及 MediaOverlay 仍由 ShowMedia 控制。
+
+竖排且显示媒体、隐藏元信息时，卡片成为纯图片 tile：去掉内边距与最小高度，预览铺满边框内侧，默认内圆角比卡片小 1dp。默认仍为方形，MediaAspectRatio 可改比例。自定义 Root 的边框/圆角后，可用 PartStyle(Media) 同步内圆角。只有操作区时采用普通流布局，避免操作悬在空预览上；三个区域全部隐藏时保留卡片外壳及语义。
+
+```go
+photo.Vertical(true).ShowContent(false) // 纯图片卡片
+file.ShowMedia(false)                  // 只有元信息和操作
+file.ShowMedia(false).ShowContent(false) // 只有操作区
+photo.ShowContent(true)                // 恢复元信息
+```

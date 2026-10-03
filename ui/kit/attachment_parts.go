@@ -48,3 +48,14 @@ func (v *AttachmentView) part(part AttachmentPart, id string, box *el.DivEl) *el
 // It does not contribute to media size. Controls take their own clicks and obey
 // attachment/ancestor disabled state. Nil removes the overlay.
 func (v *AttachmentView) MediaOverlay(view el.View) *AttachmentView { v.mediaOverlay = view; return v }
+
+// ShowMedia controls the preview region without clearing Media or MediaOverlay.
+func (v *AttachmentView) ShowMedia(on bool) *AttachmentView { v.hideMedia = !on; return v }
+
+// ShowContent controls the metadata region without clearing its configuration.
+// A vertical attachment with media and no content becomes an edge-to-edge tile.
+func (v *AttachmentView) ShowContent(on bool) *AttachmentView { v.hideContent = !on; return v }
+
+// ShowActions controls custom and built-in action-row controls. The media's
+// lifecycle retry and MediaOverlay remain part of ShowMedia.
+func (v *AttachmentView) ShowActions(on bool) *AttachmentView { v.hideActions = !on; return v }

@@ -45,3 +45,40 @@ func TestAttachmentVerticalImageCover(t *testing.T) {
 		}
 	}
 }
+
+func TestAttachmentTileFocusPaintsAboveImage(t *testing.T) {
+	pixels := image.NewNRGBA(image.Rect(0, 0, 40, 40))
+	for y := 0; y < 40; y++ {
+		for x := 0; x < 40; x++ {
+			pixels.SetNRGBA(x, y, color.NRGBA{G: 255, A: 255})
+		}
+	}
+	opened := 0
+	a := kit.Attachment("tile", 0).Vertical(true).ShowContent(false).Media(kit.Image(pixels, "Tile preview")).OnOpen(func() { opened++ })
+	w := openTest(t, Options{Width: 300, Height: 300, Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().Items(el.Start).Child(a.Render(cx)) }))})
+	sample := func() color.NRGBA {
+		t.Helper()
+		e := element(t, w, "Tile preview")
+		data, err := w.screenshot()
+		if err != nil {
+			t.Fatal(err)
+		}
+		im, err := png.Decode(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return color.NRGBAModel.Convert(im.At(e.X+1, e.Y+e.Height/2)).(color.NRGBA)
+	}
+	before := sample()
+	w.click(element(t, w, "Tile preview").center())
+	after := sample()
+	if opened != 1 || after == before || after.B < before.B+30 {
+		t.Fatal("tile focus hidden by image", opened, before, after)
+	}
+	a.ShowMedia(false)
+	for _, e := range w.snapshot() {
+		if e.Name == "Tile preview" {
+			t.Fatal("hidden media retained in agent")
+		}
+	}
+}

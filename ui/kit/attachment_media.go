@@ -14,7 +14,7 @@ import (
 // mediaStatus overlays the preview without contributing to its measured size.
 // The media group's clip follows AttachmentPartMedia's final corner radius.
 func (v *AttachmentView) mediaStatus(cx *el.Context, id string, status AttachmentStatus) el.Element {
-	if !status.IsInProgress() && !status.IsFailed() {
+	if v.hideMedia || (!status.IsInProgress() && !status.IsFailed()) {
 		v.mediaProgress = nil
 		return nil
 	}
