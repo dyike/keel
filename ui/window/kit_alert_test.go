@@ -77,3 +77,29 @@ func TestAlertColorsFollowRuntimePalette(t *testing.T) {
 		}
 	}
 }
+
+func TestKitAlertBannerRichContentSnapshot(t *testing.T) {
+	actions, closes := 0, 0
+	a := kit.Alert("Service").Banner(true).Size(kit.AlertSizeSmall).Icon(kit.IconCalendar).Content(kit.Button("Retry service", func() { actions++ })).OnClose(func() { closes++ })
+	w := openTest(t, kitPage(a))
+	if e := element(t, w, "Service"); e.Role != "alert" {
+		t.Fatalf("banner semantics %+v", e)
+	}
+	w.click(element(t, w, "Retry service").center())
+	if actions != 1 || closes != 0 {
+		t.Fatal("body action")
+	}
+	a.SetDisabled(true)
+	if e := element(t, w, "Retry service"); !e.Disabled {
+		t.Fatal("body disabled semantics")
+	}
+	a.SetDisabled(false)
+	w.click(element(t, w, "关闭 Service").center())
+	if a.Visible() || closes != 1 {
+		t.Fatal("close")
+	}
+	a.SetVisible(true)
+	if roleOfName(w, "Retry service") != "button" {
+		t.Fatal("restore rich body")
+	}
+}

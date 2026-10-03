@@ -57,7 +57,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 
 - [Button](kit/button.md)：操作按钮，支持焦点、禁用、图标和固定尺寸的加载状态。
 
-- [Alert](kit/alert.md)：行内状态提示。
+- [Alert](kit/alert.md)：行内/横幅状态提示，支持尺寸、图标与富正文。
 - [Empty](kit/empty.md)：空状态说明。
 - [Avatar](kit/avatar.md)：图片、URL 加载与姓名回退头像。
 - [AvatarGroup](kit/avatar_group.md)：叠放头像组、人数上限与溢出标记。

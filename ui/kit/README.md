@@ -13,7 +13,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [CodeEditor](../../docs/kit/code_editor.md) | 代码编辑器：高亮、补全、诊断 |
 | [Kbd](../../docs/kit/kbd.md) | 快捷键键帽，继承字号和平台格式 |
 | [Button](../../docs/kit/button.md) | 操作按钮、图标、键盘与加载状态 |
-| [Alert](../../docs/kit/alert.md) | 行内状态提示，支持浅深色 |
+| [Alert](../../docs/kit/alert.md) | 行内/横幅提示、尺寸、图标与富内容，支持浅深色 |
 | [Empty](../../docs/kit/empty.md) | 空状态说明 |
 | [Avatar](../../docs/kit/avatar.md) | 固定尺寸头像和姓名回退 |
 | [AvatarGroup](../../docs/kit/avatar_group.md) | 叠放头像组、人数上限与溢出标记 |

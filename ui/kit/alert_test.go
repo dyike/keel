@@ -1,6 +1,9 @@
 package kit
 
-import "testing"
+import (
+	"github.com/dyike/keel/ui/el"
+	"testing"
+)
 
 func TestAlertWrapsAndRetainsStatus(t *testing.T) {
 	for _, scale := range []int{1, 2} {
@@ -78,5 +81,67 @@ func TestAlertDisabledRestore(t *testing.T) {
 	click(t, h, "关闭 提示")
 	if v.Visible() || n != 1 {
 		t.Fatal("enabled failed")
+	}
+}
+
+func TestAlertSizesBannerAndRichActions(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		a := Alert("Title").Description("Message")
+		h := renderView(a, 300, scale)
+		previous := 0
+		for _, size := range []AlertSize{AlertSizeXSmall, AlertSizeSmall, AlertSizeMedium, AlertSizeLarge} {
+			a.Size(size)
+			h.Frame()
+			n, _ := semanticNode(h, "alert:info")
+			if n.Desc.Bounds.Dy() <= previous {
+				t.Fatal("size not increasing", size, n.Desc.Bounds)
+			}
+			previous = n.Desc.Bounds.Dy()
+		}
+		normal, _ := semanticNode(h, "alert:info")
+		a.Banner(true)
+		h.Frame()
+		banner, _ := semanticNode(h, "alert:info")
+		if banner.Desc.Bounds.Dy() >= normal.Desc.Bounds.Dy() || banner.Desc.Bounds.Dx() != 300*scale {
+			t.Fatal("banner layout")
+		}
+		x := bounds(h, "Message").Min.X
+		a.Icon(IconNone)
+		h.Frame()
+		if bounds(h, "Message").Min.X >= x {
+			t.Fatal("hidden icon kept space")
+		}
+		a.Description("")
+		h.Frame()
+		if !shown(h, "Title") {
+			t.Fatal("empty banner lost fallback")
+		}
+		actions, closes := 0, 0
+		disabled := false
+		a.Content(Button("Retry", func() { actions++ })).OnClose(func() { closes++ }).Icon(IconCalendar)
+		h = renderView(viewFunc(func(cx *el.Context) el.Element { return el.Div().Disabled(disabled).Child(a.Render(cx)) }), 200, scale)
+		click(t, h, "Retry")
+		if actions != 1 || !a.Visible() {
+			t.Fatal("body action closed alert")
+		}
+		disabled = true
+		h.Frame()
+		click(t, h, "Retry")
+		click(t, h, "关闭 Title")
+		if actions != 1 || closes != 0 || !a.Visible() {
+			t.Fatal("ancestor disabled")
+		}
+		disabled = false
+		h.Frame()
+		click(t, h, "关闭 Title")
+		if closes != 1 || a.Visible() {
+			t.Fatal("rich alert close")
+		}
+		a.Content(nil).Description("Restored").Banner(false).Size(AlertSizeMedium)
+		a.SetVisible(true)
+		h.Frame()
+		if !shown(h, "Restored") || shown(h, "Retry") || closes != 1 {
+			t.Fatal("reset content")
+		}
 	}
 }
