@@ -17,20 +17,51 @@ const (
 // Moving from the view onto the card keeps it open, so the card may contain
 // links and buttons. Esc or a click outside closes it.
 type HoverCardView struct {
-	target, content el.View
-	width           float32
-	open            bool
-	muted, disabled bool
+	target, content       el.View
+	width                 float32
+	openDelay, closeDelay time.Duration
+	side                  el.Side
+	align                 el.Align
+	offset                float32
+	open                  bool
+	muted, disabled       bool
 }
 
 func HoverCard(target, content el.View) *HoverCardView {
-	return &HoverCardView{target: target, content: content, width: 300}
+	return &HoverCardView{target: target, content: content, width: 300, openDelay: HoverCardOpenDelay, closeDelay: HoverCardCloseDelay, offset: 4}
 }
 
 // Width sets the card width in dp, 300 by default.
 func (v *HoverCardView) Width(dp float32) *HoverCardView {
 	if dp > 0 && finiteNumber(float64(dp)) {
 		v.width = dp
+	}
+	return v
+}
+
+// OpenDelay sets the hover delay. Negative durations become zero; keyboard
+// focus still opens immediately. Changing a pending delay restarts its timer.
+func (v *HoverCardView) OpenDelay(d time.Duration) *HoverCardView {
+	v.openDelay = max(d, 0)
+	return v
+}
+
+// CloseDelay sets how long the card stays open after hover and focus leave.
+func (v *HoverCardView) CloseDelay(d time.Duration) *HoverCardView {
+	v.closeDelay = max(d, 0)
+	return v
+}
+
+// Placement chooses the preferred side and alignment; viewport avoidance remains active.
+func (v *HoverCardView) Placement(side el.Side, align el.Align) *HoverCardView {
+	v.side, v.align = side, align
+	return v
+}
+
+// Offset sets the anchor gap in dp. Non-finite values are ignored.
+func (v *HoverCardView) Offset(dp float32) *HoverCardView {
+	if finiteNumber(float64(dp)) {
+		v.offset = dp
 	}
 	return v
 }
@@ -48,14 +79,14 @@ func (v *HoverCardView) Render(cx *el.Context) el.Element {
 	}
 	switch {
 	case hovered && !v.open && !v.muted && !v.disabled:
-		cx.AfterEnabled(id, hoverCardKey{id, true}, HoverCardOpenDelay, func() { v.open = true })
+		cx.AfterEnabled(id, hoverCardKey{id, true}, v.openDelay, func() { v.open = true })
 	case !hovered && !focused && v.open:
-		cx.AfterEnabled(card, hoverCardKey{id, false}, HoverCardCloseDelay, func() { v.open = false })
+		cx.AfterEnabled(card, hoverCardKey{id, false}, v.closeDelay, func() { v.open = false })
 	}
 	if v.open {
 		w, h := cx.ViewportSize()
 		panel := floating(theme.ElevationMd).ID(card).Role("dialog").W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX().P(theme.SpaceXl)
-		cx.Overlay(id, el.Anchored(id, panel).OnDismiss(func() { v.open = false; v.muted = true }))
+		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).Offset(v.offset).OnDismiss(func() { v.open = false; v.muted = true }))
 		if v.content != nil {
 			panel.Child(v.content.Render(cx))
 		}

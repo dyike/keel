@@ -71,3 +71,22 @@ func TestKitMenuSnapshotAndKeyboard(t *testing.T) {
 		t.Fatalf("keyboard ran %q, open=%v", ran, m.Value())
 	}
 }
+
+func TestKitHoverCardConfiguredPlacement(t *testing.T) {
+	card := kit.HoverCard(kit.Button("Target", nil), el.ViewFunc(func(*el.Context) el.Element { return el.Text("Preview") })).
+		Width(100).OpenDelay(0).CloseDelay(0).Placement(el.Right, el.Start).Offset(10)
+	w := openTest(t, Options{Width: 500, Height: 300, Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().P(40).Items(el.Start).Child(card.Render(cx)) }))})
+	w.click(element(t, w, "Target").center())
+	e := element(t, w, "Preview")
+	if e.Role != "text" {
+		t.Fatalf("preview semantics: %+v", e)
+	}
+	if err := w.press("esc"); err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range w.snapshot() {
+		if e.Name == "Preview" {
+			t.Fatal("Esc left preview visible")
+		}
+	}
+}

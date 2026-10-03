@@ -5,6 +5,7 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/theme"
+	"time"
 )
 
 func init() {
@@ -23,12 +24,12 @@ func newHoverCardGallery() *hoverCardGallery {
 				kit.Button("发消息", nil).Size(28).Variant(kit.ButtonSecondary).Render(cx),
 			))
 		}),
-	)}
+	).OpenDelay(200*time.Millisecond).CloseDelay(500*time.Millisecond).Placement(el.Bottom, el.Start).Offset(8)}
 }
 
 func (g *hoverCardGallery) Render(cx *el.Context) el.Element {
 	return el.Div().P(24).Gap(12).Items(el.Start).Child(
-		el.Text("HoverCard：悬停 0.7 秒或聚焦打开，移到卡片上保持打开").Bold(),
+		el.Text("HoverCard：悬停 0.2 秒或聚焦打开，移到卡片上保持打开").Bold(),
 		el.Div().Row().Gap(4).Child(el.Text("负责人："), g.card.Render(cx)),
 	)
 }

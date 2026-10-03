@@ -26,7 +26,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Skeleton](../../docs/kit/skeleton.md) | 占位、圆形、Shimmer 扫光 |
 | [Popover](../../docs/kit/popover.md) | 触发元素旁的非模态面板 |
 | [Tooltip](../../docs/kit/tooltip.md) | 悬停或聚焦时的提示 |
-| [HoverCard](../../docs/kit/hover_card.md) | 悬停预览卡片 |
+| [HoverCard](../../docs/kit/hover_card.md) | 悬停预览、实例延时与锚点定位 |
 | [Menu](../../docs/kit/menu.md) | 命令菜单与子菜单 |
 | [DropdownButton](../../docs/kit/dropdown_button.md) | 带菜单的按钮、分体按钮 |
 | [Dialog](../../docs/kit/dialog.md) | 模态对话框、确认框 |

@@ -22,7 +22,8 @@
 ## 分批补齐记录
 
 - [x] 第一批（`945b090`）：ProgressCircle，支持 0–100% 圆环、不确定动画、减少动画、中心内容、尺寸/颜色和 Agent 语义；含非有限值/约束测试、动画像素测试及浅色 1×/深色 2× 截图检查。文档和示例已登记。
-- [x] 第二批：OtpInput 的遮罩、分组与尺寸配置；遮罩同时覆盖可见数字和 Agent 语义值，编辑回调保留原始数字。测试覆盖分组边界、1×/2× 窄布局、程序赋值不触发回调；浅深色截图已检查。
+- [x] 第二批（`11fd62f`）：OtpInput 的遮罩、分组与尺寸配置；遮罩同时覆盖可见数字和 Agent 语义值，编辑回调保留原始数字。测试覆盖分组边界、1×/2× 窄布局、程序赋值不触发回调；浅深色截图已检查。
+- [x] 第三批：HoverCard 的 OpenDelay/CloseDelay、Placement 和 Offset；自定义及零延时、等待中改延时、四方向定位、Esc 和 Agent 快照通过测试，已打开卡片的浅深色截图已检查。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -74,7 +75,7 @@
 | [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 主体已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | 弹层通过 el.Layer.TrapFocus/Modal 覆盖；GPUI 还可在普通容器上独立包裹 FocusTrap，Keel 当前入口绑定浮层。 |
 | [Form](https://gpui-kit.com/component/form/) | 部分 | [字段组织、校验、错误聚焦、异步提交/取消](../../ui/kit/form.go) | 缺多列网格、字段 col_span/col_start、字段描述/必填标识/可见性的声明式配置；已有校验、聚焦与异步提交状态。 |
 | [GroupBox](https://gpui-kit.com/component/group-box/) | 主体已有 | [标题、描述与内容分组](../../ui/kit/group_box.go) | 主体覆盖；缺 fill/outline 变体、边框之外的独立 footer 槽与 title/content 样式细化。 |
-| [HoverCard](https://gpui-kit.com/component/hover-card/) | 主体已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | 主体覆盖；开关延时固定 700/300ms，缺实例级时间和定位配置。 |
+| [HoverCard](https://gpui-kit.com/component/hover-card/) | 主体已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | 第三批已补齐实例开关延时、方向/对齐及间距配置；默认仍为 700/300ms，键盘焦点立即打开，边缘避让保留。此表登记缺口已关闭。 |
 | [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。Keel 缺直接 SVG 加载和组件级旋转。 |
 | [Image](https://gpui-kit.com/component/image/) | 主体已有 | [异步缓存、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | 加载/缓存/适配/预览/重试已有；缺公开的自定义 loading/fallback 内容槽。 |
 | [Input Group](https://gpui-kit.com/component/input-group/) | 部分 | [独立组合容器、前后内容、统一边框、标签聚焦](../../ui/kit/input_group.go) | 只有左右 Prefix/Suffix；缺 GPUI 上下 block addon 布局、独立 addon/button 配置。可以包 TextArea，但不具备同等复合布局。 |
