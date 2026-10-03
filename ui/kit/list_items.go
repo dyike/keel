@@ -13,6 +13,9 @@ import (
 type ListItem struct {
 	ID, Label string
 	Disabled  bool
+	Group     string
+	Keywords  []string
+	Icon      IconName
 }
 
 // SetEntries copies entries and preserves selection by ID. Empty/duplicate IDs
@@ -38,17 +41,25 @@ func (v *ListView) SetEntries(entries ...ListItem) {
 	for i, item := range entries {
 		v.items[i], v.keys[i], v.itemDisabled[i] = item.Label, item.ID, item.Disabled
 	}
+	v.entries = slices.Clone(entries)
+	for i := range v.entries {
+		v.entries[i].Keywords = slices.Clone(entries[i].Keywords)
+	}
 	v.selected = -1
 	if i, ok := index[selected]; ok {
 		v.selected = i
 	}
 	v.selection.Keep(func(id string) bool { _, ok := index[id]; return ok })
-	v.list.SetCount(len(entries))
+	v.loadRequested = false
+	v.rebuildRows()
 }
 func (v *ListView) Entries() []ListItem {
 	entries := make([]ListItem, len(v.items))
 	for i, label := range v.items {
-		entries[i] = ListItem{v.keys[i], label, v.itemDisabled[i]}
+		entries[i] = v.entries[i]
+		entries[i].Label = label
+		entries[i].Disabled = v.itemDisabled[i]
+		entries[i].Keywords = slices.Clone(entries[i].Keywords)
 	}
 	return entries
 }
@@ -99,7 +110,7 @@ func (v *ListView) selectItem(cx *el.Context, i int, mods key.Modifiers) {
 	}
 	before := v.SelectedValues()
 	if v.multi {
-		v.selection.Click(v.keys, i, mods.Contain(key.ModShift), mods.Contain(key.ModShortcut), func(p int) bool { return v.itemDisabled[p] })
+		v.selection.Click(v.keys, i, mods.Contain(key.ModShift), mods.Contain(key.ModShortcut), func(p int) bool { return v.itemDisabled[p] || v.positions[p] < 0 })
 	}
 	v.choose(cx, i)
 	if !slices.Equal(before, v.SelectedValues()) && v.onSelection != nil {
@@ -135,7 +146,22 @@ func (v *ListView) dragItem(i int, e el.DragEvent) {
 		if e.Canceled || from < 0 || v.disabled || v.itemDisabled[from] {
 			return
 		}
-		to := max(0, min(len(v.items)-1, from+int(math.Round(float64((e.Y-v.dragY)/32)))))
+		pos := v.positions[from]
+		if pos < 0 || len(v.display) == 0 {
+			return
+		}
+		target := min(max(0, pos+int(math.Round(float64((e.Y-v.dragY)/v.list.rowH)))), len(v.display)-1)
+		direction := 1
+		if target < pos {
+			direction = -1
+		}
+		for target >= 0 && target < len(v.display) && v.display[target].kind != 0 {
+			target += direction
+		}
+		if target < 0 || target >= len(v.display) {
+			return
+		}
+		to := v.display[target].index
 		if to == from {
 			return
 		}

@@ -8,6 +8,7 @@ import (
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 )
 
@@ -15,26 +16,37 @@ import (
 // Home End PageUp PageDown to select; double-click or Enter activates.
 // Only rows near the viewport are built, so it handles long lists.
 type ListView struct {
-	keys               []string
-	itemDisabled       []bool
-	multi, reorderable bool
-	reveal             bool
-	selection          base.Selection[string]
-	typeahead          base.Typeahead
-	dragID             string
-	dragY              float32
-	onSelection        func([]int)
-	onReorder          func(int, int)
-	items              []string
-	selected           int
-	disabled, plain    bool
-	list               *VirtualListView
-	onChange, onActive func(int)
+	keys                            []string
+	itemDisabled                    []bool
+	multi, reorderable              bool
+	reveal                          bool
+	selection                       base.Selection[string]
+	typeahead                       base.Typeahead
+	dragID                          string
+	dragY                           float32
+	onSelection                     func([]int)
+	onReorder                       func(int, int)
+	items                           []string
+	selected                        int
+	disabled, plain                 bool
+	list                            *VirtualListView
+	onChange, onActive              func(int)
+	entries                         []ListItem
+	display                         []listDisplayRow
+	positions                       []int
+	query                           string
+	searchable                      bool
+	renderItem                      func(*el.Context, ListItemContext) el.Element
+	renderHeader, renderFooter      func(*el.Context, string) el.Element
+	onSearch                        func(string)
+	onLoadMore                      func()
+	loading, hasMore, loadRequested bool
+	loadError                       string
 }
 
 func List(items ...string) *ListView {
 	v := &ListView{items: slices.Clone(items), selected: -1}
-	v.list = VirtualList(len(items), 32, v.row).ItemKey(func(i int) string { return v.keys[i] })
+	v.list = VirtualList(len(items), 32, v.row).ItemKey(func(i int) string { row := v.display[i]; return v.keys[row.index] + "/" + string(rune('0'+row.kind)) })
 	v.SetEntries(indexListItems(items)...)
 	return v
 }
@@ -60,7 +72,9 @@ func (v *ListView) SetValue(i int) { v.SetSelectedValues([]int{i}) }
 func (v *ListView) SetItems(items ...string) { v.SetEntries(indexListItems(items)...) }
 
 func (v *ListView) choose(cx *el.Context, i int) {
-	v.list.ScrollTo(cx, i)
+	if i >= 0 && i < len(v.positions) && v.positions[i] >= 0 {
+		v.list.ScrollTo(cx, v.positions[i])
+	}
 	if i == v.selected {
 		return
 	}
@@ -71,19 +85,47 @@ func (v *ListView) choose(cx *el.Context, i int) {
 }
 
 func (v *ListView) activate(i int) {
-	if i >= 0 && i < len(v.items) && !v.itemDisabled[i] && v.onActive != nil {
+	if i >= 0 && i < len(v.items) && !v.itemDisabled[i] && v.positions[i] >= 0 && v.onActive != nil {
 		v.onActive(i)
 	}
 }
 
-func (v *ListView) row(cx *el.Context, i int) el.Element {
+func (v *ListView) row(cx *el.Context, p int) el.Element {
+	d := v.display[p]
+	i := d.index
+	if d.kind != 0 {
+		group := v.entries[i].Group
+		render := v.renderHeader
+		if d.kind == 2 {
+			render = v.renderFooter
+		}
+		if render != nil {
+			if element := render(cx, group); element != nil {
+				return el.Div().Role("heading").Name(group).Items(el.Stretch).Child(element)
+			}
+		}
+		return el.Div().Role("heading").Name(group).Px(theme.SpaceLg).Justify(el.Center).Child(el.Text(group).TextColor(theme.Muted).TextSize(theme.TextSm))
+	}
+
 	on := v.selectedItem(i)
 	r := el.Div().Role("option").Name(v.items[i]).Selected(on).Disabled(v.itemDisabled[i]).Row().Items(el.Center).Px(10).Rounded(theme.RadiusSm).Mx(4)
 	if on {
 		r.Bg(theme.Highlight).TextColor(theme.PrimaryText)
 	}
+	hit := r
+	var custom el.Element
+	if v.renderItem != nil {
+		item := v.entries[i]
+		item.Disabled = v.itemDisabled[i]
+		item.Keywords = slices.Clone(item.Keywords)
+		custom = v.renderItem(cx, ListItemContext{Item: item, Index: i, Selected: on, Disabled: v.disabled || v.itemDisabled[i]})
+		if custom != nil {
+			hit = el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0)
+			r.Child(hit)
+		}
+	}
 	if !v.disabled && !v.itemDisabled[i] {
-		r.CursorPointer().
+		hit.CursorPointer().
 			OnClick(func() { v.selectItem(cx, i, cx.ClickModifiers()); cx.Focus(autoID("list", v)) }).
 			OnDoubleClick(func() { v.activate(i) })
 		if !on {
@@ -91,19 +133,28 @@ func (v *ListView) row(cx *el.Context, i int) el.Element {
 		}
 	}
 	if v.reorderable && !v.disabled && !v.itemDisabled[i] {
-		r.OnDrag(func(e el.DragEvent) { v.dragItem(i, e) })
+		hit.OnDrag(func(e el.DragEvent) { v.dragItem(i, e) })
+	}
+	if custom != nil {
+		return r.Child(custom)
+	}
+	if v.entries[i].Icon != IconNone {
+		r.Gap(theme.SpaceSm).Child(Icon(v.entries[i].Icon).Render(cx))
 	}
 	return r.Child(el.Text(v.items[i]).MaxLines(1).Grow())
 }
 
 func (v *ListView) Render(cx *el.Context) el.Element {
 	if v.reveal {
-		v.list.ScrollTo(cx, v.selected)
+		if v.selected >= 0 && v.selected < len(v.positions) && v.positions[v.selected] >= 0 {
+			v.list.ScrollTo(cx, v.positions[v.selected])
+		}
 		v.reveal = false
 	}
 	// The list, not each row, takes focus: rows scroll out of existence, so
 	// keyboard focus could not stay on one.
-	return listFrame(el.Div().ID(autoID("list", v)).Role("listbox").Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }), v.plain).
+	v.loadNearEnd(cx)
+	frame := listFrame(el.Div().ID(autoID("list", v)).Role("listbox").Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }), v.plain).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
 			if key.Name(e.Name) == key.NameReturn {
@@ -117,7 +168,7 @@ func (v *ListView) Render(cx *el.Context) el.Element {
 					before := v.SelectedValues()
 					var all []string
 					for i, id := range v.keys {
-						if !v.itemDisabled[i] {
+						if !v.itemDisabled[i] && v.positions[i] >= 0 {
 							all = append(all, id)
 						}
 					}
@@ -128,22 +179,42 @@ func (v *ListView) Render(cx *el.Context) el.Element {
 				}
 				return true
 			}
-			nav := base.List{Count: len(v.items), Disabled: func(i int) bool { return v.itemDisabled[i] }}
+			var visible []int
+			for _, row := range v.display {
+				if row.kind == 0 {
+					visible = append(visible, row.index)
+				}
+			}
+			position := slices.Index(visible, v.selected)
+			nav := base.List{Count: len(visible), Disabled: func(i int) bool { return v.itemDisabled[visible[i]] }}
 			if s, ok := base.Text(e.Name, e.Modifiers&typeaheadBlockers != 0); ok {
 				if e.State == el.KeyPress {
-					if i, found := v.typeahead.Find(time.Now(), s, v.selected, nav, func(i int) string { return v.items[i] }); found {
-						v.selectItem(cx, i, 0)
+					if i, found := v.typeahead.Find(time.Now(), s, position, nav, func(i int) string { return v.items[visible[i]] }); found {
+						v.selectItem(cx, visible[i], 0)
 					}
 				}
 				return true
 			}
-			i, ok := nav.Key(e.Name, v.selected)
-			if ok && e.State == el.KeyPress && len(v.items) > 0 {
-				v.selectItem(cx, i, e.Modifiers)
+			i, ok := nav.Key(e.Name, position)
+			if ok && e.State == el.KeyPress && len(visible) > 0 {
+				v.selectItem(cx, visible[i], e.Modifiers)
 			}
 			return ok
 		}).
 		Child(v.list.Render(cx))
+	root := el.Div().Items(el.Stretch).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() })
+	if v.searchable {
+		root.Child(el.Input().ID(autoID("list", v) + "/search").Name(locale.Current().Search).Bind(&v.query).OnChange(func(s string) { v.SetQuery(s) }))
+	}
+	root.Child(frame)
+	if v.loading {
+		root.Child(Spinner().Render(cx))
+	} else if v.loadError != "" {
+		root.Child(el.Text(v.loadError).TextColor(theme.Danger), Button(locale.Current().Retry, v.requestMore).Render(cx))
+	} else if len(v.display) == 0 {
+		root.Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted))
+	}
+	return root
 }
 
 // typeaheadBlockers are the modifiers that make a letter key a shortcut

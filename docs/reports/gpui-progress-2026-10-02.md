@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**65 项主体已有、10 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**66 项主体已有、9 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -245,7 +245,9 @@
 
 - [x] 第一百四十六批（`f809793`）：集中补齐 Questionnaire 主要状态能力。新增单题 Disabled/SetQuestionDisabled、主动 Skip、FreeformLabel/Answer.Freeform、同步 Validate、持久外部错误、Progress 快照、OnAnswerChange/OnComplete、Reset 和字母/数字选项快捷键。禁用题退出导航/进度/校验/提交但保留草稿，可选未作答须显式跳过，单选自由输入与固定项互斥且保留草稿，多选可混合。首次有效提交先完成再提交，后续提交不重复完成；程序更新和作答使完成失效。测试覆盖条件切换、全禁用恢复、跳过/完成、错误/重置、自定义校验、自由输入及快捷键，并修复首帧自动聚焦覆盖用户点击的问题。全仓构建、UI/native vet、全量测试通过，Questionnaire 调整为主体已有；完整导航快捷键、细分部件和真机验收仍有差异。
 
-- [x] 第一百四十七批：继续收尾 Questionnaire 交互。新增 SetChoiceDisabled，禁用固定项保留草稿但退出有效答案及快捷键编号；恢复后重新参与。增加左右翻题、上下多选焦点移动、Enter 确认及焦点范围内 Cmd/Ctrl+Enter，文本输入、单选组、评分和操作按钮保留原有按键行为；KeyboardNavigation 可关闭。Question.DefaultAnswer 深复制默认多选答案，构造及 Reset 使用 schema 基线。测试验证选项条件、重编号、默认值所有权/恢复、文本确认、箭头保护及导航关闭；全仓构建、UI/native vet、全量测试通过。组件状态数不变，尚未做真机输入法/视觉验收。
+- [x] 第一百四十七批（`0e4b1e2`）：继续收尾 Questionnaire 交互。新增 SetChoiceDisabled，禁用固定项保留草稿但退出有效答案及快捷键编号；恢复后重新参与。增加左右翻题、上下多选焦点移动、Enter 确认及焦点范围内 Cmd/Ctrl+Enter，文本输入、单选组、评分和操作按钮保留原有按键行为；KeyboardNavigation 可关闭。Question.DefaultAnswer 深复制默认多选答案，构造及 Reset 使用 schema 基线。测试验证选项条件、重编号、默认值所有权/恢复、文本确认、箭头保护及导航关闭；全仓构建、UI/native vet、全量测试通过。组件状态数不变，尚未做真机输入法/视觉验收。
+
+- [x] 第一百四十八批：集中补齐 List 登记缺口。ListItem 增加 Group/Keywords/Icon，自定义行上下文及组头/页尾渲染，保持统一行高虚拟化；子按钮不连带选择或激活。Searchable/Query/OnSearch 过滤标签与关键词，键盘/范围/全选跳过隐藏项，索引保持源数据顺序，拖动按可见行转换回源位置。新增加载更多、加载状态、失败/重试和每份数据请求去重，分页追加不主动回滚旧选区。示例增加分组、搜索及行内操作。新增搜索索引/页尾/事件隔离/请求生命周期测试，原选择和拖动回归通过；全仓构建、UI/native vet、全量测试通过。List 调整为主体已有，真机视觉/拖动未验收。
 
 ## 当前实施清单
 
@@ -303,7 +305,7 @@
 | [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 缺格式化 mask、原子 inline token、可拦截富剪贴板的 on_paste 和专用上下文菜单配置；Filter 是字符白名单，不能当作 mask。 |
 | [Kbd](https://gpui-kit.com/component/kbd/) | 主体已有 | [平台键帽、Plain、动作键位、独立字号与自定义样式](../../ui/kit/kbd.go) | 第二十五批已补齐登记的尺寸缺口及样式回调；Size 单位 sp，默认仍继承。KbdFor 读取动作首个绑定，不提供上游按焦点/上下文查询绑定的独立入口。 |
 | [Label](https://gpui-kit.com/component/label/) | 主体已有 | [整段排版、全部/前缀匹配高亮、遮罩、次级文案和样式](../../ui/kit/label.go) | 第八十四批补齐登记缺口。匹配区分大小写且不重叠；遮罩按 rune 计数并覆盖 Agent 语义，次级文案仍可见。连字/组合字符按整个字形簇着色，彩色位图字形保留原色。样式通过 TextEl 配置；字段聚焦使用 FocusOnPress，修正旧表误称的 For 接口。 |
-| [List](https://gpui-kit.com/component/list/) | 部分 | [列表项、稳定 ID、单项禁用、多选/范围、键盘、拖动](../../ui/kit/list.go) | 缺分组头、自定义行/图标/行内操作、内建搜索与加载更多入口；当前是可选择、可拖动的文字列表。 |
+| [List](https://gpui-kit.com/component/list/) | 主体已有 | [分组头尾、自定义行、搜索、分页、稳定 ID、多选、键盘与拖动](../../ui/kit/list.go) | 第一百四十八批关闭登记主要缺口。分组按相邻 Group 划分，组头/页尾和数据使用统一行高；搜索默认关闭，使用本地包含匹配，远端结果过期校验由应用负责。加载阈值为底部两行，未提供 delegate 的所有自定义状态插槽；真机视觉/拖动未验收。 |
 | [Marker](https://gpui-kit.com/component/marker/) | 用途不同 | [几何标记、大小与颜色](../../ui/kit/marker.go) | 用途不同：GPUI 是带图标/文字、分隔线/边框、加载状态的消息标记行；Keel Marker 只绘制点/方块等几何标记，不能计作对齐。 |
 | [Menu](https://gpui-kit.com/component/menu/) | 部分 | [菜单、子菜单、分隔线、长内容、方向键、焦点恢复](../../ui/kit/menu.go) | 第四十七批已补齐图标、勾选项及勾号左右位置，含状态更新/查询与 Agent checked。第四十八批补齐不可交互的组标题 Label。第四十九批补齐 ContentItem/SetItemContent 展示内容行及变高定位。第五十批补齐 Link、外链图标开关、系统打开及应用回调。快捷键仍取动作首个绑定，缺按触发器焦点上下文解析绑定；默认系统打开未做各平台真机验收。 |
 | [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 主体已有 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；第九十二批补齐按稳定消息 ID 跳转、首次渲染前定位和跟随/上滚状态查询。未读身份由应用维护；SetFollow(false) 后显式跳到末尾不会开启自动跟随。第九十三批补齐 LatestButton/LatestLabel/LatestRenderer/LatestTransition，支持隐藏、文案、完整 Button 外观配置及淡入淡出；登记缺口已关闭。默认保留右下角文字按钮和 150ms 过渡，与上游圆形图标按钮不同；不表示视觉和 API 完全相同。 |
