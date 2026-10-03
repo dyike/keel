@@ -14,5 +14,5 @@ func init() {
 type skeletonGallery struct{}
 
 func (skeletonGallery) Render(cx *el.Context) el.Element {
-	return el.Div().Gap(16).Child(kit.Skeleton().W(el.Dp(48)).H(el.Dp(48)).Circle().Render(cx), kit.Skeleton().W(el.Dp(240)).Render(cx), kit.Skeleton().W(el.Dp(320)).H(el.Dp(24)).Shimmer().Render(cx), el.Div().OnClick(func() { theme.SetReducedMotion(!theme.ReducedMotion) }).P(8).Child(el.Text("切换减少动画")))
+	return el.Div().Gap(16).Child(kit.Skeleton().W(el.Dp(48)).H(el.Dp(48)).Circle().Render(cx), kit.Skeleton().W(el.Dp(240)).Render(cx), kit.Skeleton().W(el.Dp(240)).Secondary(true).Render(cx), kit.Skeleton().W(el.Dp(160)).H(el.Dp(48)).Rounded(24).Render(cx), kit.Skeleton().W(el.Dp(160)).H(el.Dp(48)).Rounded(0).Secondary(true).Render(cx), kit.Skeleton().W(el.Dp(320)).H(el.Dp(24)).Shimmer().Render(cx), el.Div().OnClick(func() { theme.SetReducedMotion(!theme.ReducedMotion) }).P(8).Child(el.Text("切换减少动画")))
 }

@@ -18,6 +18,8 @@ import (
 type SkeletonView struct {
 	w, h            el.Length
 	circle, shimmer bool
+	secondary       bool
+	radius          *float32
 }
 
 func Skeleton() *SkeletonView                       { return &SkeletonView{w: el.Full, h: el.Dp(16)} }
@@ -25,6 +27,19 @@ func (v *SkeletonView) W(w el.Length) *SkeletonView { v.w = w; return v }
 func (v *SkeletonView) H(h el.Length) *SkeletonView { v.h = h; return v }
 func (v *SkeletonView) Circle() *SkeletonView       { v.circle = true; return v }
 func (v *SkeletonView) Shimmer() *SkeletonView      { v.shimmer = true; return v }
+
+// Secondary halves the opacity of the whole placeholder, including its animation.
+func (v *SkeletonView) Secondary(on bool) *SkeletonView { v.secondary = on; return v }
+
+// Rounded sets a rectangle's corner radius in dp; zero makes square corners.
+// It replaces Circle. Negative and non-finite values are ignored.
+func (v *SkeletonView) Rounded(dp float32) *SkeletonView {
+	if dp >= 0 && !math.IsInf(float64(dp), 0) {
+		v.radius = &dp
+		v.circle = false
+	}
+	return v
+}
 func (v *SkeletonView) Render(cx *el.Context) el.Element {
 	reduced := el.ReducedMotion()
 	phase := float32(0)
@@ -33,10 +48,18 @@ func (v *SkeletonView) Render(cx *el.Context) el.Element {
 		cx.Animating()
 	}
 	base, shine := theme.Subtle, theme.SubtleHover
-	return el.Widget(core.Func(func(gtx core.C) core.D {
+	radiusDp := float32(theme.RadiusSm)
+	if v.radius != nil {
+		radiusDp = *v.radius
+	}
+	graphic := el.Widget(core.Func(func(gtx core.C) core.D {
 		size := gtx.Constraints.Min
 		r := image.Rectangle{Max: size}
-		radius := min(gtx.Dp(4), min(size.X, size.Y)/2)
+		scale := gtx.Metric.PxPerDp
+		if scale == 0 {
+			scale = 1
+		}
+		radius := int(min(float64(min(size.X, size.Y)/2), math.Round(float64(radiusDp)*float64(scale))))
 		if v.circle {
 			diameter := min(size.X, size.Y)
 			r = image.Rect((size.X-diameter)/2, (size.Y-diameter)/2, (size.X+diameter)/2, (size.Y+diameter)/2)
@@ -65,4 +88,8 @@ func (v *SkeletonView) Render(cx *el.Context) el.Element {
 		}
 		return core.D{Size: size}
 	})).W(v.w).H(v.h)
+	if v.secondary {
+		graphic.Opacity(.5)
+	}
+	return graphic
 }

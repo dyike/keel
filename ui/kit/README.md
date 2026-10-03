@@ -24,7 +24,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Marker](../../docs/kit/marker.md) | 纯图形标记 |
 | [Icon](../../docs/kit/icon.md) | 矢量图标 |
 | [Spinner](../../docs/kit/spinner.md) | 不确定进度、减少动画、自定义图标/颜色/周期 |
-| [Skeleton](../../docs/kit/skeleton.md) | 占位、圆形、Shimmer 扫光 |
+| [Skeleton](../../docs/kit/skeleton.md) | 占位、圆形、自定义圆角、次级色阶与 Shimmer 扫光 |
 | [Popover](../../docs/kit/popover.md) | 触发元素旁的非模态面板 |
 | [Tooltip](../../docs/kit/tooltip.md) | 富内容提示、动作键位与定位 |
 | [HoverCard](../../docs/kit/hover_card.md) | 悬停预览、实例延时与锚点定位 |

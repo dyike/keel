@@ -42,7 +42,8 @@
 - [x] 第十九批（`72b8472`）：Spinner 的 Icon、VectorIcon 与 Color；圆环和自定义图标共享帧时钟与减少动画策略，可恢复默认圆环。像素测试覆盖旋转、静止、自定义颜色及恢复，Agent 语义保持不变；全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。
 - [x] 第二十批（`8a59f77`）：Spinner 增加 Period 旋转周期；0 恢复一秒、负值忽略，减少动画保持优先。注入帧时间的像素测试验证圆环/自定义图标的两秒周期、整周重复、默认恢复与静止；全量构建、vet、测试通过。
 - [x] 第二十一批（`2f6f1c2`）：Empty 增加 Media，支持头像、图片与任意 View；nil 恢复图标，IconNone 隐藏回退。媒体、标题、说明和操作区使用稳定身份，测试覆盖媒体替换后的输入与焦点、1×/2× 窄布局、主题切换、Agent 语义与操作按钮；全量构建、vet、测试及浅深色截图检查通过。
-- [x] 第二十二批：Empty 增加 Heading、DescriptionContent、Footer 与七个分区的 PartStyle；富内容可恢复原字符串，尾部独立于 Action。覆盖窄布局、替换/恢复后的输入焦点、尾部操作与禁用继承、富内容主题切换；全量构建、vet、测试及浅深色截图检查通过。
+- [x] 第二十二批（`5b8fbce`）：Empty 增加 Heading、DescriptionContent、Footer 与七个分区的 PartStyle；富内容可恢复原字符串，尾部独立于 Action。覆盖窄布局、替换/恢复后的输入焦点、尾部操作与禁用继承、富内容主题切换；全量构建、vet、测试及浅深色截图检查通过。
+- [x] 第二十三批：Skeleton 增加 Secondary 与 Rounded，整体透明度减半、任意有限非负圆角并按短边限制；Circle/Rounded 后调用者生效。像素测试覆盖浅深主题、直角/圆角/极大圆角、普通/次级的脉冲与扫光、减少动画及装饰语义；全量构建、vet、测试和浅色 1×/深色 2× 截图通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -124,7 +125,7 @@
 | [Sheet](https://gpui-kit.com/component/sheet/) | 部分 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 缺拖动调整尺寸、独立 footer、顶部 margin、遮罩显示/点击关闭配置；四方向抽屉主体已有。 |
 | [Shimmer](https://gpui-kit.com/component/shimmer/) | 用途不同 | [Skeleton 占位块扫光、减少动画](../../ui/kit/skeleton.go) | 用途不同：GPUI ShimmerText 保留可读文字并让高光扫过文字；Keel Skeleton.Shimmer 只扫过占位几何。缺文字效果与 duration/spread/reverse/once 配置。 |
 | [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动](../../ui/kit/sidebar.go) | 主体覆盖；缺右侧布局开关、自定义 item suffix/上下文菜单接口。已有 Badge 和固定 Header/Footer。 |
-| [Skeleton](https://gpui-kit.com/component/skeleton/) | 主体已有 | [占位形状、尺寸、加载展示](../../ui/kit/skeleton.go) | 主体覆盖；缺 secondary 色阶与任意圆角配置，当前圆形/圆角矩形和宽高可配。 |
+| [Skeleton](https://gpui-kit.com/component/skeleton/) | 主体已有 | [占位形状、尺寸、次级色阶、自定义圆角与加载动画](../../ui/kit/skeleton.go) | 第二十三批已关闭登记缺口；保留 Keel 的 1.5 秒明暗脉冲/可选扫光及减少动画，默认颜色来自 Subtle/SubtleHover，与上游独立 skeleton token、2 秒透明度动画不同。 |
 | [Slider](https://gpui-kit.com/component/slider/) | 主体已有 | [单值/双端范围、横纵向、线性/对数、步长、拖动/键盘与结束回调](../../ui/kit/slider.go) | 第十批已关闭对数刻度和 Release 缺口；无效对数范围回退线性，取消不回滚已有值。轨道/滑块颜色与大小仍使用统一样式，未提供逐项外观配置。 |
 | [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称、自定义图标/颜色/周期](../../ui/kit/spinner.go) | 第十九、二十批已补齐图标、颜色和速度配置；Period 为每周时长，默认一秒匀速。上游描述的默认 0.8 秒及缓动曲线不同。 |
 | [StatusBar](https://gpui-kit.com/component/status-bar/) | 主体已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | 左右内容与自定义 View 已覆盖；Keel 另有优先级溢出菜单，本轮未发现新的主要功能缺口。 |
