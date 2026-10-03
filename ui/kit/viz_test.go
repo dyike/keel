@@ -272,6 +272,7 @@ func TestQuestionnaireDisabledAnswersNavigationAndSubmit(t *testing.T) {
 		t.Fatal("disabled programmatic answers")
 	}
 	q.SetDisabled(false)
+	q.SetValue(map[string]Answer{"single": {Skipped: true}, "multi": {Skipped: true}})
 	h.Frame()
 	click(t, h, "提交")
 	if calls != 1 || q.Page() != 3 {

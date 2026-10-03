@@ -53,13 +53,13 @@ type Strings struct {
 	Find, Replace, ReplaceAll, PrevMatch, NextMatch string
 	MatchCase, WholeWord, RegularExpression         string
 	InvalidPattern, FoldRegion, UnfoldRegion        string
-	SearchSettings, ResetSettings                   string
+	Skip, SearchSettings, ResetSettings             string
 	Minimize, Maximize, Restore                     string
 	CandleOpen, CandleHigh, CandleLow, CandleClose  string
 	ChartValue, ChartShare                          string
 	ShowTable, ShowChart, ResetView                 string
 	ColorShade, Hue, Opacity                        string
-	Previous, Next, Submit, Required                string
+	Previous, Next, Submit, Required, AnswerOrSkip  string
 	// Progress formats "question i of n", e.g. "第 3 / 10 题".
 	Progress func(i, n int) string
 	// Total formats an item count for a pager, e.g. "共 36 条".
@@ -109,12 +109,12 @@ func Chinese() Strings {
 		AttachmentPending: "待上传", AttachmentProcessing: "处理中", AttachmentFailed: "上传失败",
 		More: "更多", Resize: "调整大小", CollapseSidebar: "收起侧栏", ExpandSidebar: "展开侧栏",
 		PrevSlide: "上一张", NextSlide: "下一张",
-		DockSplitRight: "向右拆分", DockSplitBelow: "向下拆分", DockZoom: "最大化", DockRestore: "还原", CodeEditor: "代码编辑器", Find: "查找", Replace: "替换", ReplaceAll: "全部替换", PrevMatch: "上一个匹配", NextMatch: "下一个匹配", MatchCase: "区分大小写", WholeWord: "全字匹配", RegularExpression: "正则表达式", InvalidPattern: "表达式无效", FoldRegion: "折叠", UnfoldRegion: "展开", DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", DockCenter: "移到中间", DockDetach: "在新窗口打开", SearchSettings: "搜索设置", ResetSettings: "重置此页",
+		DockSplitRight: "向右拆分", DockSplitBelow: "向下拆分", DockZoom: "最大化", DockRestore: "还原", CodeEditor: "代码编辑器", Find: "查找", Replace: "替换", ReplaceAll: "全部替换", PrevMatch: "上一个匹配", NextMatch: "下一个匹配", MatchCase: "区分大小写", WholeWord: "全字匹配", RegularExpression: "正则表达式", InvalidPattern: "表达式无效", FoldRegion: "折叠", UnfoldRegion: "展开", DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", DockCenter: "移到中间", DockDetach: "在新窗口打开", SearchSettings: "搜索设置", ResetSettings: "重置此页", Skip: "跳过",
 		Minimize: "最小化", Maximize: "最大化", Restore: "还原",
 		CandleOpen: "开盘", CandleHigh: "最高", CandleLow: "最低", CandleClose: "收盘",
 		ChartValue: "数值", ChartShare: "占比", ShowTable: "查看数据表", ShowChart: "查看图表", ResetView: "复位",
 		ColorShade: "饱和度与亮度", Hue: "色相", Opacity: "不透明度",
-		Previous: "上一题", Next: "下一题", Submit: "提交", Required: "这一题必须回答",
+		Previous: "上一题", Next: "下一题", Submit: "提交", Required: "这一题必须回答", AnswerOrSkip: "请作答或选择跳过",
 		Progress:     func(i, n int) string { return "第 " + strconv.Itoa(i) + " / " + strconv.Itoa(n) + " 题" },
 		Total:        func(n int) string { return "共 " + strconv.Itoa(n) + " 条" },
 		Weekdays:     [7]string{"日", "一", "二", "三", "四", "五", "六"},
@@ -146,12 +146,12 @@ func English() Strings {
 		AttachmentPending: "Ready to upload", AttachmentProcessing: "Processing", AttachmentFailed: "Upload failed",
 		More: "More", Resize: "Resize", CollapseSidebar: "Collapse sidebar", ExpandSidebar: "Expand sidebar",
 		PrevSlide: "Previous slide", NextSlide: "Next slide",
-		DockSplitRight: "Split right", DockSplitBelow: "Split below", DockZoom: "Maximize", DockRestore: "Restore", CodeEditor: "Code editor", Find: "Find", Replace: "Replace", ReplaceAll: "Replace all", PrevMatch: "Previous match", NextMatch: "Next match", MatchCase: "Match case", WholeWord: "Whole word", RegularExpression: "Regular expression", InvalidPattern: "Invalid pattern", FoldRegion: "Fold", UnfoldRegion: "Unfold", DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", DockCenter: "Move to center", DockDetach: "Open in new window", SearchSettings: "Search settings", ResetSettings: "Reset page",
+		DockSplitRight: "Split right", DockSplitBelow: "Split below", DockZoom: "Maximize", DockRestore: "Restore", CodeEditor: "Code editor", Find: "Find", Replace: "Replace", ReplaceAll: "Replace all", PrevMatch: "Previous match", NextMatch: "Next match", MatchCase: "Match case", WholeWord: "Whole word", RegularExpression: "Regular expression", InvalidPattern: "Invalid pattern", FoldRegion: "Fold", UnfoldRegion: "Unfold", DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", DockCenter: "Move to center", DockDetach: "Open in new window", SearchSettings: "Search settings", ResetSettings: "Reset page", Skip: "Skip",
 		Minimize: "Minimize", Maximize: "Maximize", Restore: "Restore",
 		CandleOpen: "Open", CandleHigh: "High", CandleLow: "Low", CandleClose: "Close",
 		ChartValue: "Value", ChartShare: "Share", ShowTable: "Show data table", ShowChart: "Show chart", ResetView: "Reset view",
 		ColorShade: "Saturation and brightness", Hue: "Hue", Opacity: "Opacity",
-		Previous: "Previous", Next: "Next", Submit: "Submit", Required: "This question needs an answer",
+		Previous: "Previous", Next: "Next", Submit: "Submit", Required: "This question needs an answer", AnswerOrSkip: "Answer or choose Skip",
 		Progress: func(i, n int) string { return "Question " + strconv.Itoa(i) + " of " + strconv.Itoa(n) },
 		Total: func(n int) string {
 			if n == 1 {

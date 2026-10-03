@@ -14,12 +14,13 @@ func init() {
 	registerSection("questionnaire", "inputs", func() core.Widget {
 		result := ""
 		q := kit.Questionnaire(
-			kit.Question{ID: "role", Title: "你在团队里的角色？", Kind: kit.QuestionSingle, Options: []string{"开发", "设计", "产品", "其他 Other"}, Required: true},
-			kit.Question{ID: "tools", Title: "平时用哪些工具？", Description: "可以多选", Kind: kit.QuestionMultiple, Options: []string{"Go", "Figma", "Git", "Keel"}},
+			kit.Question{ID: "role", Title: "你在团队里的角色？", Kind: kit.QuestionSingle, Options: []string{"开发", "设计", "产品"}, FreeformLabel: "其他角色", Required: true},
+			kit.Question{ID: "tools", Title: "平时用哪些工具？", Description: "可以多选", Kind: kit.QuestionMultiple, Options: []string{"Go", "Figma", "Git", "Keel"}, FreeformLabel: "其他工具"},
 			kit.Question{ID: "score", Title: "整体满意度", Kind: kit.QuestionRating, Required: true},
 			kit.Question{ID: "name", Title: "怎么称呼你？", Kind: kit.QuestionText},
 			kit.Question{ID: "note", Title: "还有什么建议？", Kind: kit.QuestionLongText},
 		)
+		q.Shortcuts(kit.QuestionnaireShortcutsNumbers)
 		q.OnSubmit(func(a map[string]kit.Answer) {
 			result = fmt.Sprintf("已提交：%s · %s · %d 星", a["role"].Text, strings.Join(a["tools"].Choices, "/"), a["score"].Rating)
 		})

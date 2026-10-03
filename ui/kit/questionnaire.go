@@ -27,25 +27,32 @@ type Question struct {
 	Options                []string // Single and Multiple
 	Scale                  int      // Rating: number of stars, 5 by default
 	Required               bool
+	Disabled               bool
+	FreeformLabel          string // Single/Multiple: optional freeform input.
+	Validate               func(Answer, map[string]Answer) string
 }
 
-// Answer holds the answer to one question; only the field for its kind is set.
+// Answer holds a typed answer, optional active freeform text, or an intentional skip.
 type Answer struct {
-	Text    string   // Single, Text, LongText
-	Choices []string // Multiple, in option order
-	Rating  int      // Rating; 0 means not rated
+	Text     string   // Single, Text, LongText
+	Choices  []string // Multiple, in option order
+	Rating   int      // Rating; 0 means not rated
+	Freeform string   // Additional active text for choice questions.
+	Skipped  bool
 }
 
 // Empty reports whether the question was left unanswered.
 func (a Answer) Empty() bool {
-	return strings.TrimSpace(a.Text) == "" && len(a.Choices) == 0 && a.Rating == 0
+	return strings.TrimSpace(a.Freeform) == "" && strings.TrimSpace(a.Text) == "" && len(a.Choices) == 0 && a.Rating == 0
 }
 
 type questionControl struct {
-	radio  *RadioGroupView
-	checks []*CheckboxView
-	input  *InputView
-	rating *RatingView
+	radio          *RadioGroupView
+	checks         []*CheckboxView
+	input          *InputView
+	rating         *RatingView
+	freeform       *InputView
+	freeformActive bool
 }
 
 // QuestionnaireView asks questions one page at a time with a progress bar.
@@ -53,12 +60,20 @@ type questionControl struct {
 // checks every question, jumps to the first unanswered one, and otherwise
 // calls OnSubmit with all answers by question ID.
 type QuestionnaireView struct {
-	questions []Question
-	controls  map[string]*questionControl
-	page      int
-	disabled  bool
-	err       string
-	onSubmit  func(map[string]Answer)
+	questions     []Question
+	controls      map[string]*questionControl
+	page          int
+	disabled      bool
+	err           string
+	onSubmit      func(map[string]Answer)
+	external      map[string]string
+	skipped       map[string]bool
+	completed     bool
+	onChange      func(string, Answer)
+	onComplete    func(map[string]Answer)
+	shortcuts     QuestionnaireShortcuts
+	focusPending  bool
+	heldShortcuts map[string]bool
 }
 
 func Questionnaire(questions ...Question) *QuestionnaireView {
@@ -73,8 +88,18 @@ func Questionnaire(questions ...Question) *QuestionnaireView {
 		}
 		ids[q.ID] = true
 		owned[i].Options = slices.Clone(q.Options)
+		seen := map[string]bool{}
+		for _, option := range q.Options {
+			if seen[option] {
+				panic("kit.Questionnaire: duplicate option")
+			}
+			seen[option] = true
+		}
 	}
-	return &QuestionnaireView{questions: owned, controls: map[string]*questionControl{}}
+	v := &QuestionnaireView{questions: owned, controls: map[string]*questionControl{}, external: map[string]string{}, skipped: map[string]bool{}}
+	v.SetPage(0)
+	v.focusPending = false
+	return v
 }
 func (v *QuestionnaireView) OnSubmit(fn func(answers map[string]Answer)) *QuestionnaireView {
 	v.onSubmit = fn
@@ -89,6 +114,25 @@ func (v *QuestionnaireView) SetDisabled(on bool) { v.disabled = on }
 func (v *QuestionnaireView) Page() int { return v.page }
 func (v *QuestionnaireView) SetPage(i int) {
 	v.page, v.err = min(max(i, 0), max(len(v.questions)-1, 0)), ""
+	if len(v.questions) > 0 && v.questions[v.page].Disabled {
+		found := -1
+		for j := v.page; j < len(v.questions); j++ {
+			if !v.questions[j].Disabled {
+				found = j
+				break
+			}
+		}
+		if found < 0 {
+			for j := v.page - 1; j >= 0; j-- {
+				if !v.questions[j].Disabled {
+					found = j
+					break
+				}
+			}
+		}
+		v.page = found
+	}
+	v.focusPending = true
 }
 
 func (v *QuestionnaireView) control(q Question) *questionControl {
@@ -97,10 +141,10 @@ func (v *QuestionnaireView) control(q Question) *questionControl {
 		return c
 	}
 	c = &questionControl{}
-	clear := func() { v.err = "" }
+	clear := func() { v.changed(q.ID) }
 	switch q.Kind {
 	case QuestionSingle:
-		c.radio = RadioGroup("", q.Options...).OnChange(func(string) { clear() })
+		c.radio = RadioGroup("", q.Options...).OnChange(func(string) { c.freeformActive = false; clear() })
 		c.radio.setName(q.Title)
 	case QuestionMultiple:
 		for _, o := range q.Options {
@@ -120,14 +164,29 @@ func (v *QuestionnaireView) control(q Question) *questionControl {
 		c.rating = Rating("", scale).OnChange(func(int) { clear() })
 		c.rating.setName(q.Title)
 	}
+	if q.FreeformLabel != "" && (q.Kind == QuestionSingle || q.Kind == QuestionMultiple) {
+		c.freeform = Input(q.FreeformLabel).OnChange(func(string) {
+			c.freeformActive = true
+			if c.radio != nil {
+				c.radio.SetValue("")
+			}
+			clear()
+		})
+	}
 	v.controls[q.ID] = c
 	return c
 }
 
 func (v *QuestionnaireView) answer(q Question) Answer {
+	if v.skipped[q.ID] {
+		return Answer{Skipped: true}
+	}
 	c := v.control(q)
 	switch q.Kind {
 	case QuestionSingle:
+		if c.freeformActive && c.freeform != nil {
+			return Answer{Freeform: c.freeform.Value()}
+		}
 		return Answer{Text: c.radio.Value()}
 	case QuestionMultiple:
 		var out []string
@@ -136,7 +195,11 @@ func (v *QuestionnaireView) answer(q Question) Answer {
 				out = append(out, q.Options[i])
 			}
 		}
-		return Answer{Choices: out}
+		a := Answer{Choices: out}
+		if c.freeform != nil {
+			a.Freeform = c.freeform.Value()
+		}
+		return a
 	case QuestionRating:
 		return Answer{Rating: c.rating.Value()}
 	}
@@ -154,12 +217,18 @@ func (v *QuestionnaireView) Value() map[string]Answer {
 
 // SetValue fills in answers without submitting; unknown IDs are ignored.
 func (v *QuestionnaireView) SetValue(answers map[string]Answer) {
+	v.completed = false
 	for _, q := range v.questions {
 		a, ok := answers[q.ID]
 		if !ok {
 			continue
 		}
 		c := v.control(q)
+		v.skipped[q.ID] = a.Skipped && !q.Required
+		if c.freeform != nil {
+			c.freeform.SetValue(a.Freeform)
+			c.freeformActive = strings.TrimSpace(a.Freeform) != ""
+		}
 		switch q.Kind {
 		case QuestionSingle:
 			c.radio.SetValue(a.Text)
@@ -175,48 +244,61 @@ func (v *QuestionnaireView) SetValue(answers map[string]Answer) {
 	}
 }
 
-func (v *QuestionnaireView) missing(i int) bool {
-	q := v.questions[i]
-	return q.Required && v.answer(q).Empty()
-}
-
 func (v *QuestionnaireView) next() {
-	if v.disabled {
+	if v.disabled || v.page < 0 || v.page >= len(v.questions) {
 		return
 	}
-	if v.missing(v.page) {
-		v.err = locale.Current().Required
+	if msg := v.validate(v.page); msg != "" {
+		v.err = msg
+		v.focusPending = true
 		return
 	}
-	v.SetPage(v.page + 1)
+	for i := v.page + 1; i < len(v.questions); i++ {
+		if !v.questions[i].Disabled {
+			v.SetPage(i)
+			return
+		}
+	}
+	v.submit()
 }
-
 func (v *QuestionnaireView) submit() {
 	if v.disabled {
 		return
 	}
-	for i := range v.questions {
-		if v.missing(i) {
+	for i, q := range v.questions {
+		if q.Disabled {
+			continue
+		}
+		if msg := v.validate(i); msg != "" {
 			v.SetPage(i)
-			v.err = locale.Current().Required
+			v.err = msg
 			return
 		}
 	}
-	if v.onSubmit != nil {
-		v.onSubmit(v.Value())
+	if !v.completed {
+		v.completed = true
+		if v.onComplete != nil {
+			v.onComplete(v.enabledAnswers())
+		}
+	}
+	if v.completed && v.onSubmit != nil {
+		v.onSubmit(v.enabledAnswers())
 	}
 }
 
 func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
 	n := len(v.questions)
-	if n == 0 {
+	if n == 0 || v.Progress().Total == 0 {
 		return el.Div().Hidden(true)
 	}
-	v.page = min(v.page, n-1)
+	if v.page < 0 || v.page >= n || v.questions[v.page].Disabled {
+		v.SetPage(max(v.page, 0))
+	}
 	q := v.questions[v.page]
-	progress := Progress(text.Progress(v.page+1, n))
-	progress.SetValue(float32(v.page+1) / float32(n))
+	state := v.Progress()
+	progress := Progress(text.Progress(state.Current, state.Total))
+	progress.SetValue(float32(state.Current) / float32(state.Total))
 	title := el.Div().Row().Gap(theme.SpaceXs).Child(el.Text(q.Title).TextSize(theme.TextLg).Bold())
 	if q.Required {
 		title.Child(el.Text("*").TextSize(theme.TextLg).TextColor(theme.DangerText))
@@ -229,7 +311,7 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	switch {
 	case c.radio != nil:
 		card.Child(c.radio.Render(cx))
-	case c.checks != nil:
+	case q.Kind == QuestionMultiple:
 		list := el.Div().Gap(theme.SpaceMd).Items(el.Start)
 		for _, ch := range c.checks {
 			list.Child(ch.Render(cx))
@@ -240,18 +322,47 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	default:
 		card.Child(c.input.Render(cx))
 	}
-	if v.err != "" {
-		card.Child(el.Text(v.err).TextSize(theme.TextSm).TextColor(theme.DangerText))
+	if c.freeform != nil {
+		card.Child(c.freeform.Render(cx))
 	}
-	prev := Button(text.Previous, func() { v.SetPage(v.page - 1) }).Variant(ButtonSecondary)
-	prev.SetDisabled(v.page == 0)
+	message := v.err
+	if v.external[q.ID] != "" {
+		message = v.external[q.ID]
+	}
+	if message != "" {
+		card.Child(el.Text(message).TextSize(theme.TextSm).TextColor(theme.DangerText))
+	}
+	if v.focusPending {
+		target := ""
+		switch {
+		case c.freeformActive && c.freeform != nil:
+			target = c.freeform.FocusID()
+		case c.input != nil:
+			target = c.input.FocusID()
+		case c.radio != nil:
+			target = c.radio.FocusID()
+		case c.rating != nil:
+			target = c.rating.FocusID()
+		case len(c.checks) > 0:
+			target = c.checks[0].FocusID()
+		}
+		if target != "" && cx.Enabled(target) {
+			cx.Focus(target)
+			v.focusPending = false
+		} else {
+			cx.AfterEnabled(autoID("questionnaire", v), v, 0, func() {})
+		}
+	}
+	prev := Button(text.Previous, v.previous).Variant(ButtonSecondary)
+	prev.SetDisabled(state.Current <= 1)
 	forward := Button(text.Next, v.next)
-	if v.page == n-1 {
+	if state.Current == state.Total {
 		forward = Button(text.Submit, v.submit)
 	}
-	return el.Div().Disabled(v.disabled).Role("form").Name(text.Progress(v.page+1, n)).Gap(20).Items(el.Stretch).Child(
-		progress.Render(cx),
-		card,
-		el.Div().Row().Gap(theme.SpaceMd).Justify(el.End).Child(prev.Render(cx), forward.Render(cx)),
-	)
+	actions := el.Div().Row().Gap(theme.SpaceMd).Justify(el.End).Child(prev.Render(cx))
+	if !q.Required {
+		actions.Child(Button(text.Skip, v.Skip).Variant(ButtonGhost).Render(cx))
+	}
+	actions.Child(forward.Render(cx))
+	return el.Div().ID(autoID("questionnaire", v)).Disabled(v.disabled).Role("form").Name(text.Progress(state.Current, state.Total)).Focusable(true).OnKey(func(e el.KeyEvent) bool { return v.handleKey(cx, e) }).Gap(20).Items(el.Stretch).Child(progress.Render(cx), card, actions)
 }

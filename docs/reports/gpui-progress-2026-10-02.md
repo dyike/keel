@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**64 项主体已有、11 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**65 项主体已有、10 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -241,7 +241,9 @@
 
 - [x] 第一百四十四批（`c8df581`）：补齐轻量 Table 组合能力。新增 StaticTable 以及 TableHeader/Body/Footer/Row/Head/DataCell/Caption，直接返回可设置样式的 el 元素，支持任意行内容、交互控件、独立汇总与说明。固定/弹性列、内容对齐和留白使用 el 配置；保留现有 TableView 数据表行为。新增 table_static 示例；1×/2× 测试覆盖三段列对齐、页尾/说明位置、子按钮事件及输入状态。全仓构建、UI/native vet、全量测试通过，Table 登记缺口关闭并调整为主体已有；未做真机视觉验收。
 
-- [x] 第一百四十五批：集中补齐 DataTable 登记缺口。新增独立 ColumnSelect、列选区读写/回调、键盘范围/全选及列复制；按源列编号保存，数据追加和空表保持，不创建逐行选区。Selectable 覆盖单元格/整列的点击、键盘、范围与程序选区，Resizable 移除拖动手柄，Movable 限制移动和跨越锁定列；显式宽度/布局恢复仍由应用控制。Stripe 按显示顺序交替，RowHeight 同步行布局和虚拟尺寸。测试覆盖数据追加、过滤/隐藏列、复制、空表、禁用、模式切换、移动锁及 1×/2× 行高变化。全仓构建、UI/native vet、全量测试通过；DataTable 调整为主体已有，未做真机拖动/视觉验收。
+- [x] 第一百四十五批（`b2060a5`）：集中补齐 DataTable 登记缺口。新增独立 ColumnSelect、列选区读写/回调、键盘范围/全选及列复制；按源列编号保存，数据追加和空表保持，不创建逐行选区。Selectable 覆盖单元格/整列的点击、键盘、范围与程序选区，Resizable 移除拖动手柄，Movable 限制移动和跨越锁定列；显式宽度/布局恢复仍由应用控制。Stripe 按显示顺序交替，RowHeight 同步行布局和虚拟尺寸。测试覆盖数据追加、过滤/隐藏列、复制、空表、禁用、模式切换、移动锁及 1×/2× 行高变化。全仓构建、UI/native vet、全量测试通过；DataTable 调整为主体已有，未做真机拖动/视觉验收。
+
+- [x] 第一百四十六批：集中补齐 Questionnaire 主要状态能力。新增单题 Disabled/SetQuestionDisabled、主动 Skip、FreeformLabel/Answer.Freeform、同步 Validate、持久外部错误、Progress 快照、OnAnswerChange/OnComplete、Reset 和字母/数字选项快捷键。禁用题退出导航/进度/校验/提交但保留草稿，可选未作答须显式跳过，单选自由输入与固定项互斥且保留草稿，多选可混合。首次有效提交先完成再提交，后续提交不重复完成；程序更新和作答使完成失效。测试覆盖条件切换、全禁用恢复、跳过/完成、错误/重置、自定义校验、自由输入及快捷键，并修复首帧自动聚焦覆盖用户点击的问题。全仓构建、UI/native vet、全量测试通过，Questionnaire 调整为主体已有；完整导航快捷键、细分部件和真机验收仍有差异。
 
 ## 当前实施清单
 
@@ -311,7 +313,7 @@
 | [Plot](https://gpui-kit.com/component/plot/) | 用途不同 | [成品散点/折线图、缩放、平移、拾取](../../ui/kit/plot.go) | 用途不同：GPUI 提供 ScaleLinear/Band/Point/Ordinal、Bar/Line/Area/Pie/Stack/Axis 等公共绘图基础件；Keel Plot 是可缩放平移的成品散点/折线图。 |
 | [Popover](https://gpui-kit.com/component/popover/) | 主体已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | 第二十八、二十九批已补齐实例 Offset、默认外观开关及面板样式。第三十至三十二批补齐左/右/中键选择及箭头。箭头用纯色背景，边框/阴影/渐变不延伸到箭头；Keel 在空间不足时翻转，上游保持锚点方向并限制位置，定位策略不同。 |
 | [Progress](https://gpui-kit.com/component/progress/) | 主体已有 | [条形确定/不确定进度](../../ui/kit/progress.go)、[圆形进度与中心内容](../../ui/kit/progress_circle.go) | 第一、二十六、二十七批已补齐圆形进度、条形样式及数值过渡。Keel 数值范围 0–1，条形默认带标签/百分比；图形过渡 200ms，语义立即报告目标值，减少动画立即归位。 |
-| [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 部分 | [题型、答案模型、校验、分页、禁用与提交快照](../../ui/kit/questionnaire.go) | 缺单题条件禁用、跳过状态、自定义/外部校验、同题选项+自由输入、完整进度状态和快捷键配置；现有五种题型、必填校验与分页保留。 |
+| [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 主体已有 | [条件禁用、跳过、混合答案、自定义/外部校验、进度和完成事件](../../ui/kit/questionnaire.go) | 第一百四十六批补齐主要状态缺口及字母/数字选项快捷键。尚无完整方向键/Cmd+Enter 导航、逐选项禁用和 compound parts/统一尺寸接口；Reset 清空答案而非恢复 schema 默认值。外部错误由应用显式清除，真机视觉/输入法未验收。 |
 | [Radio](https://gpui-kit.com/component/radio/) | 主体已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | 第三十九批已补齐 Size/TextSize 与按选项配置的富标签 Content，独立 Item 共享配置。第四十批增加 ItemSize，逐项覆盖尺寸/字号，0 继承组配置；尺寸采用连续 dp/sp。第四十一批补齐组级 TabStop/TabIndex 和逐项 ItemTab/ClearItemTab；默认单停靠点，显式逐项配置可覆盖。排序限单 el root，跨原生 Gio/独立 Embed 不支持。 |
 | [Rating](https://gpui-kit.com/component/rating/) | 主体已有 | [评分、已填星减分、尺寸/颜色、半星/小数展示、只读与键盘](../../ui/kit/rating.go) | 第二十四批已关闭登记缺口；按上游源码明确为点已填第 i 星设 i−1 分，并非总分减一。Size 为 dp，默认 22；小数只用于展示，编辑仍选整星。 |
 | [Resizable](https://gpui-kit.com/component/resizable/) | 主体已有 | [双面板](../../ui/kit/resizable.go)、[独立多面板组、尺寸范围、显隐、拖动/键盘和状态查询](../../ui/kit/resizable_group.go) | 第八十八至九十批补齐双面板 Max、Visible、HandleAppearance。第九十一批新增 ResizableGroup，按稳定 ID 配置/重排，支持相邻调整、逐项范围/显隐、尺寸读写和回调，登记的主体缺口已关闭。空间分配从末端吸收余量，最小尺寸不足时按比例压缩；把手动画未对齐上游主题运动 token/透明度渐变，不表示所有 API/视觉一致。 |
