@@ -311,6 +311,7 @@ func (v *DockView) renderNode(cx *el.Context, s DockSide, n *DockNode) el.Elemen
 		right.H(el.Dp(0))
 		handle.H(el.Dp(4)).Cursor(pointer.CursorRowResize)
 	}
+	v.styleSeparator(handle)
 	row.Child(left, handle, right)
 	return row.Decorate(func(gtx core.C, draw func()) {
 		w, h := cx.LayoutSize(row)

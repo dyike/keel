@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"encoding/json"
 	"slices"
 
 	"gioui.org/io/key"
@@ -33,6 +34,12 @@ var dockSides = []DockSide{DockLeft, DockRight, DockBottom, DockCenter}
 type DockPanel struct {
 	ID, Title string
 	View      el.View
+	// Kind identifies the registered factory used by Restore. Empty means
+	// this panel can only be reused in a Dock that already contains it.
+	Kind string
+	// SaveState returns application-owned JSON. Snapshot copies the bytes.
+	// Set Kind when using SaveState so Restore can reconstruct the panel.
+	SaveState func() (json.RawMessage, error)
 }
 
 // DockLayout is everything about a Dock's arrangement, for saving and
@@ -85,6 +92,9 @@ type DockView struct {
 	resizeStart           float32
 	splitResize           *DockNode
 	splitStart, splitGrab float32
+	factories             map[string]DockPanelFactory
+	skin                  *DockSkin
+	layoutGeneration      uint64
 }
 
 func Dock(center el.View) *DockView {
@@ -246,6 +256,7 @@ func (v *DockView) SetLayout(l DockLayout) bool {
 	v.cancelResize()
 	v.drag = dockDrag{}
 	v.layout = next
+	v.layoutGeneration++
 	v.splitSizes = map[*DockNode]float32{}
 	v.menus = map[*DockNode]*MenuView{}
 	for _, side := range dockSides {
@@ -407,6 +418,9 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 		} else {
 			t.TextColor(theme.Muted).Hover(func(st *el.Style) { st.Bg(theme.SubtleHover) })
 		}
+		if v.skin != nil && v.skin.Tab != nil {
+			v.skin.Tab(t, on)
+		}
 		t.OnDrag(func(e el.DragEvent) { v.tabDrag(id, e) }).Decorate(func(gtx core.C, draw func()) {
 			v.tabRects[id] = dockGeometry(cx, gtx, t)
 			origin, _ := cx.PaintGeometry()
@@ -468,7 +482,18 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 	if p := v.panels[cur]; p.View != nil {
 		body.Child(p.View.Render(cx))
 	}
+	if v.skin != nil {
+		if v.skin.Header != nil {
+			v.skin.Header(head)
+		}
+		if v.skin.Body != nil {
+			v.skin.Body(body)
+		}
+	}
 	box := el.Div().ID(autoID("dock-group", n)).Role("region").Name(v.panels[cur].Title).NoShrink().Items(el.Stretch).Bg(theme.Surface).Child(head, body)
+	if v.skin != nil && v.skin.Panel != nil {
+		v.skin.Panel(box)
+	}
 	return box.Grow().MinW(el.Dp(0)).MinH(el.Dp(0)).Decorate(func(gtx core.C, draw func()) { v.groupRects[n] = dockGeometry(cx, gtx, box); draw() })
 }
 
@@ -538,9 +563,12 @@ func (v *DockView) handle(s DockSide) el.Element {
 		return true
 	})
 	if s == DockBottom {
-		return h.H(el.Dp(4))
+		h.H(el.Dp(4))
+	} else {
+		h.W(el.Dp(4))
 	}
-	return h.W(el.Dp(4))
+	v.styleSeparator(h)
+	return h
 }
 
 // fitted is a region's size, shrunk so the center keeps at least 120dp when

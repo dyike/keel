@@ -58,3 +58,53 @@ d.OnDetach(func(p kit.DockPanel, reattach func()) {
 容器应有明确的宽高，通常直接用 `el.Root(d)`。嵌入普通页面时给外层指定宽高；Dock 内部按可用空间分配区域。
 
 根视口中的首帧和每次缩放都先按当前视口分配停靠区，给中心保留 120dp；视口小于该值时，停靠区可缩到零，中心使用剩余空间。嵌入更小的容器时，首次绘制测得实际尺寸后会请求重绘并校正。此处“保留中心”不代表所有面板在手机宽度下都适合阅读。
+
+
+## 面板状态与工厂
+
+只保存位置继续用 `Layout/SetLayout`。要在新 Dock 中重建面板，使用 `Snapshot/Restore`，并按类型注册工厂：
+
+```go
+factory := func(s kit.DockPanelState) (kit.DockPanel, error) {
+    input := kit.Input("搜索")
+    var query string
+    if len(s.State) > 0 {
+        if err := json.Unmarshal(s.State, &query); err != nil {
+            return kit.DockPanel{}, err
+        }
+    }
+    input.SetValue(query)
+    return kit.DockPanel{View: input, SaveState: func() (json.RawMessage, error) {
+        return json.Marshal(input.Value())
+    }}, nil // Restore 填入原来的 ID、Kind 和 Title
+}
+if err := d.RegisterPanel("search", factory); err != nil { /* 处理错误 */ }
+state, err := d.Snapshot()
+// json.Marshal(state) 保存；读回后 json.Unmarshal 到 kit.DockState。
+if err == nil { err = anotherDock.Restore(state) } // anotherDock 也须注册 search
+```
+
+首次添加面板时设置 `DockPanel.Kind: "search"` 和 `SaveState`；工厂接收实例 ID、类型、标题和 JSON 数据，可以恢复同类型的多个实例。返回值的非空 ID/Kind 必须与快照匹配，View 不得为 nil；标题为空时继承快照，否则采用工厂标题。应用负责数据版本迁移，工厂也应返回新的 `SaveState`，才能继续保存编辑后的值。
+
+`DockState` 版本为 1，内部 `DockLayout` 仍是版本 2。快照按 ID 排序，复制布局和 JSON，包括隐藏、分离的面板。注册表属于单个 Dock，空类型、nil 工厂和重复类型返回错误。没有 Kind 的既有静态面板可按 ID 原样复用，但不能携带 SaveState 或数据；要跨新实例恢复，所有面板都应有已注册的 Kind。
+
+恢复先检查整份清单、JSON 和布局，再调用工厂。未知类型、重复 ID、布局引用缺失的面板、清单中没有布局位置的面板、非法树或工厂错误都会返回错误，保留当前 Dock。恢复成功后，面板集合以快照为准，当前多出来的面板被移除；中心空视图、外观、禁用状态、注册表和回调保留。工厂应只构造视图，外部副作用和已创建资源由应用管理，Dock 无法替应用回滚。
+
+这些操作在 UI 线程调用，不触发 `OnLayoutChange`。面板数据编辑不会触发布局回调，应用应在保存工作区或关闭窗口时显式调用 `Snapshot`。分离面板恢复到 Dock 内，不自动开关应用窗口；旧窗口关闭回调不会影响恢复后的新实例。
+
+## 独立外观
+
+```go
+d.Skin(&kit.DockSkin{
+    Header: func(e *el.DivEl) { e.Bg(theme.Bg) },
+    Body: func(e *el.DivEl) { e.P(theme.SpaceLg) },
+    Tab: func(e *el.DivEl, selected bool) {
+        if selected { e.Bg(theme.Primary).TextColor(theme.PrimaryText) }
+    },
+    Separator: func(e *el.DivEl) { e.Bg(theme.Primary) },
+})
+```
+
+`Panel` 配置标签组外框，`Header/Body/Tab/Separator` 分别配置标题栏、正文、标签与内外分隔条。回调每帧应用在新元素上，可改颜色、边框、字号和面板留白；保留元素身份、子内容和事件处理，分隔条保持 4dp 几何。配置对象可以共享并在 UI 线程更新，`Skin(nil)` 恢复默认外观，不改布局或面板内容。皮肤不进入布局 JSON，也不修改全局主题。它是样式配置层，不提供 GPUI 的整套 renderer traits 或侧栏切换按钮。
+
+组件库示例的“保存工作区 / 恢复工作区”可以验证搜索词随布局恢复，“切换 Dock 外观”用于检查皮肤。原生窗口、浅深色视觉和多窗口生命周期仍需真机验收。

@@ -32,8 +32,13 @@ func (v *DockView) Detach(id string) {
 	if s := v.where(id); s >= 0 {
 		v.fixActive(DockSide(s))
 	}
+	generation := v.layoutGeneration
 	v.changed()
-	v.onDetach(v.panels[id], func() { v.reattach(id) })
+	v.onDetach(v.panels[id], func() {
+		if generation == v.layoutGeneration {
+			v.reattach(id)
+		}
+	})
 }
 
 // Detached lists the panels now in windows of their own. A restored layout

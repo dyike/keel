@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**66 项主体已有、9 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**67 项主体已有、8 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -247,7 +247,9 @@
 
 - [x] 第一百四十七批（`0e4b1e2`）：继续收尾 Questionnaire 交互。新增 SetChoiceDisabled，禁用固定项保留草稿但退出有效答案及快捷键编号；恢复后重新参与。增加左右翻题、上下多选焦点移动、Enter 确认及焦点范围内 Cmd/Ctrl+Enter，文本输入、单选组、评分和操作按钮保留原有按键行为；KeyboardNavigation 可关闭。Question.DefaultAnswer 深复制默认多选答案，构造及 Reset 使用 schema 基线。测试验证选项条件、重编号、默认值所有权/恢复、文本确认、箭头保护及导航关闭；全仓构建、UI/native vet、全量测试通过。组件状态数不变，尚未做真机输入法/视觉验收。
 
-- [x] 第一百四十八批：集中补齐 List 登记缺口。ListItem 增加 Group/Keywords/Icon，自定义行上下文及组头/页尾渲染，保持统一行高虚拟化；子按钮不连带选择或激活。Searchable/Query/OnSearch 过滤标签与关键词，键盘/范围/全选跳过隐藏项，索引保持源数据顺序，拖动按可见行转换回源位置。新增加载更多、加载状态、失败/重试和每份数据请求去重，分页追加不主动回滚旧选区。示例增加分组、搜索及行内操作。新增搜索索引/页尾/事件隔离/请求生命周期测试，原选择和拖动回归通过；全仓构建、UI/native vet、全量测试通过。List 调整为主体已有，真机视觉/拖动未验收。
+- [x] 第一百四十八批（`37be82c`）：集中补齐 List 登记缺口。ListItem 增加 Group/Keywords/Icon，自定义行上下文及组头/页尾渲染，保持统一行高虚拟化；子按钮不连带选择或激活。Searchable/Query/OnSearch 过滤标签与关键词，键盘/范围/全选跳过隐藏项，索引保持源数据顺序，拖动按可见行转换回源位置。新增加载更多、加载状态、失败/重试和每份数据请求去重，分页追加不主动回滚旧选区。示例增加分组、搜索及行内操作。新增搜索索引/页尾/事件隔离/请求生命周期测试，原选择和拖动回归通过；全仓构建、UI/native vet、全量测试通过。List 调整为主体已有，真机视觉/拖动未验收。
+
+- [x] 第一百四十九批：集中补齐 Dock 面板工厂、面板自有状态和独立皮肤。RegisterPanel 按类型注册，Snapshot/Restore 保存实例 ID、类型、标题、JSON 与布局；恢复前验证完整清单/树，所有工厂成功后才替换 Dock，支持同类型多实例、隐藏/最大化和继续保存。无类型面板仅复用已有静态视图，分离面板回到 Dock，旧窗口回调不影响新实例。DockSkin 配置外框、标题栏、正文、标签和内外分隔条，切换保留输入焦点。示例新增保存/恢复搜索词与切换外观。测试覆盖 JSON 往返、错误原子性、所有权、工厂默认身份、旧窗口回调及 1×/2× 皮肤切换；全仓构建、UI/native vet、全量测试通过。Dock 调整为主体已有，真机视觉和多窗口生命周期未验收。
 
 ## 当前实施清单
 
@@ -291,7 +293,7 @@
 | [DatePicker](https://gpui-kit.com/component/date-picker/) | 主体已有 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。第一百二十三批补齐 DateValue/SetDateValue 与 DateTimeValue/SetDateTimeValue，范围独立保存起止时刻，预设和回调携带时刻。范围日历只编辑日期；兼容旧 Value 的纯日期行为，日期格式使用 Go 布局。第一百二十四批补齐独立 FirstWeekday 和恢复 locale 的 ResetFirstWeekday。 |
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 主体已有 | [多列/跨列、横纵标签、富值插槽、分隔线、边框、字号与标签宽度](../../ui/kit/description_list.go) | 第八批已关闭登记缺口。Columns 由调用方设置，不按窗口宽度自动切换；默认仍为无边框单列，保留原用法。 |
 | [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
-| [Dock](https://gpui-kit.com/component/dock/) | 部分 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | 中心/边缘嵌套分割、拖放、最大化已完成；缺 GPUI 的面板工厂注册/面板自有状态恢复和独立 DockSkin。分离由 OnDetach 交给应用开窗，恢复布局不会重开分离窗口。 |
+| [Dock](https://gpui-kit.com/component/dock/) | 主体已有 | [边缘/中心分割、拖放、最大化、跨窗口、面板工厂/状态恢复与 DockSkin](../../ui/kit/dock.go) | 第一百四十九批补齐登记主要缺口。工厂按实例注册表创建，状态 JSON 的版本迁移由应用负责；无类型面板仅复用既有视图。分离由 OnDetach 交给应用开窗，恢复不重开窗口。DockSkin 是样式回调层，没有 GPUI 全套 renderer traits/侧栏切换按钮；真机视觉和多窗口生命周期未验收。 |
 | [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 主体已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | 第四十五批补齐 Button 配置透传、Loading 和共享 Size；默认继承内层变体/高度，分体主按钮加载不阻挡箭头。第四十六批补齐 Placement/Offset，普通模式锚定整按钮，分体模式锚定箭头；内部 ID 由组件管理。菜单仍按 Keel 的边缘翻转策略定位。 |
 | [Editor](https://gpui-kit.com/component/editor/) | 部分 | [行号、局部重高亮、多光标/矩形选择、查找替换、折叠、语法感知括号配对、诊断/补全/悬停/定义跳转接口](../../ui/kit/code_editor.go) | 缺可随编辑跟踪的文本/几何装饰集合、可替换语言编辑规则、完整自定义搜索会话 API；高亮为 chroma，非 Tree-sitter。多光标、查找替换、折叠、括号配对已完成。 |
 | [Empty](https://gpui-kit.com/component/empty/) | 主体已有 | [空状态富标题/描述、操作、媒体、尾部与分区样式](../../ui/kit/empty.go) | 第二十一、二十二批已补齐登记的媒体、富内容、尾部和样式缺口；默认保留 Surface 背景，分区样式通过 PartStyle 调整。使用单个 View 槽组合多个子项，非上游独立部件类型。 |
@@ -355,7 +357,7 @@
 - 选择与异步：`combobox_options.go`、`command_search.go`、`select_options.go`、`list_items.go`、`tree_items.go`，均位于 `ui/kit`；因此多选/异步等没有被误判为未实现。
 - 数据表：`ui/kit/table_{cells,columns,data,menu,selection}.go`；图表另读 `pie_chart.go`、`candlestick_chart.go`。
 - 编辑器：`ui/kit/code_search.go`（公开搜索入口和 10,000 个匹配上限）、`code_editor_input.go`（内置配对表）、`code_fold.go`、`code_highlight.go`。搜索/替换存在，但自定义搜索控制接口不等同于 GPUI SearchSession。
-- Dock：`ui/kit/dock_tree.go`、`dock_drag.go`、`dock_detach.go`；主题：`ui/theme/registry.go`、`watch.go`、`themes/*.json`。
+- Dock：`ui/kit/dock_tree.go`、`dock_drag.go`、`dock_detach.go`、`dock_persistence.go`、`dock_skin.go`；主题：`ui/theme/registry.go`、`watch.go`、`themes/*.json`。
 - 文本与底层：`ui/markdown/markdown.go`、`html.go`、`render.go`、`ui/el/element.go`、`overlay.go`、`viewport.go`；头尾、分段等扩展见 `sidebar_items.go`、`tabs_reorder.go`、`time_field_segments.go`。
 
 初次复核只更新比较报告；后续组件改动与验证按上方批次记录，未重做性能跑分。性能、视觉和系统读屏需独立验收，不能由上述组件覆盖数推导。
