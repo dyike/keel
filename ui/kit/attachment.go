@@ -13,6 +13,8 @@ import (
 // and optional open and remove actions.
 type AttachmentView struct {
 	name               string
+	media              el.View
+	vertical           bool
 	size               int64
 	progress           float32 // 0..1 while uploading, < 0 when done
 	err                string
@@ -33,6 +35,14 @@ func (v *AttachmentView) OnRemove(fn func()) *AttachmentView { v.onRemove = fn; 
 func (v *AttachmentView) OnCancel(fn func()) *AttachmentView { v.onCancel = fn; return v }
 func (v *AttachmentView) OnRetry(fn func()) *AttachmentView  { v.onRetry = fn; return v }
 func (v *AttachmentView) SetDisabled(on bool)                { v.disabled = on }
+
+// Media replaces the file icon with a display view (for example kit.Image).
+// Nil restores the default icon. Media should not contain interactive controls;
+// the completed attachment's OnOpen handles activation of the whole preview.
+func (v *AttachmentView) Media(view el.View) *AttachmentView { v.media = view; return v }
+
+// Vertical stacks the preview above metadata and actions. False restores the row.
+func (v *AttachmentView) Vertical(on bool) *AttachmentView { v.vertical = on; return v }
 
 // SetProgress shows an upload at fraction p (0..1); a negative p means done.
 func (v *AttachmentView) SetProgress(p float32) {
@@ -66,6 +76,7 @@ func FileSize(n int64) string {
 
 func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
+	id := autoID("attachment", v)
 	state, detail, color := "", FileSize(v.size), theme.Muted
 	switch {
 	case v.canceled:
@@ -76,7 +87,7 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		pct := strconv.Itoa(int(v.progress*100+0.5)) + "%"
 		state, detail = text.Uploading+" "+pct, text.Uploading+" "+pct
 	}
-	info := el.Div().Grow().W(el.Dp(0)).Gap(theme.SpaceXs).Items(el.Stretch).Child(
+	info := el.Div().ID(id+"/info").Grow().W(el.Dp(0)).Gap(theme.SpaceXs).Items(el.Stretch).Child(
 		el.Text(v.name).MaxLines(1),
 		el.Text(detail).TextSize(theme.TextSm).TextColor(color).MaxLines(1),
 	)
@@ -84,17 +95,33 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		info.Child(el.Div().H(el.Dp(4)).Rounded(theme.RadiusFull).Bg(theme.Subtle).Items(el.Start).Child(
 			el.Div().H(el.Dp(4)).Rounded(theme.RadiusFull).Bg(theme.Primary).W(el.Frac(v.progress))))
 	}
-	main := el.Div().Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(10).
-		Child(el.Div().Size(el.Dp(36)).NoShrink().Rounded(theme.RadiusMd).Bg(theme.Highlight).Center().
-			Child(Icon(IconCopy).Size(18).Color(theme.PrimaryText).Render(cx)), info)
+	media := el.Div().ID(id + "/media").NoShrink().Rounded(theme.RadiusMd).Bg(theme.Highlight).Center()
+	if v.media == nil {
+		media.Size(el.Dp(36)).Child(Icon(IconCopy).Size(18).Color(theme.PrimaryText).Render(cx))
+	} else {
+		media.MaxW(el.Full).Child(v.media.Render(cx))
+	}
+	main := el.Div().ID(id+"/open").Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(10).Child(media, info)
+	if v.vertical {
+		main.Col().W(el.Full).Flex(0).Items(el.Stretch)
+		info.W(el.Full).Flex(0)
+	}
+
 	if v.onOpen != nil && v.progress < 0 && v.err == "" && !v.canceled {
-		main.ID(autoID("attachment", v)+"/open").Role("button").Name(v.name).Border(1, theme.Surface).Rounded(theme.RadiusSm).CursorPointer().Focusable(true).OnClick(v.onOpen).
+		main.Role("button").Name(v.name).Border(1, theme.Surface).Rounded(theme.RadiusSm).CursorPointer().Focusable(true).OnClick(v.onOpen).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
 	}
-	card := surface().ID(autoID("attachment", v)).Disabled(v.disabled).Role("attachment").Name(v.name).Value(state).
+	card := surface().ID(id).Disabled(v.disabled).Role("attachment").Name(v.name).Value(state).
 		Row().Items(el.Center).Gap(10).P(10).W(el.Dp(280)).MaxW(el.Full).Child(main)
+	if v.vertical {
+		card.Col().Items(el.Stretch)
+	}
+	actions := el.Div().ID(id + "/actions").Row().NoShrink().Gap(theme.SpaceXs).Items(el.Center)
+	if v.vertical {
+		actions.Wrap().Justify(el.End)
+	}
 	if v.progress >= 0 && v.err == "" && !v.canceled && v.onCancel != nil {
-		card.Child(Button("", func() {
+		actions.Child(Button("", func() {
 			if v.disabled || v.progress < 0 || v.canceled || v.err != "" {
 				return
 			}
@@ -103,7 +130,7 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		}).Name(text.Name(text.Cancel, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx))
 	}
 	if (v.err != "" || v.canceled) && v.onRetry != nil {
-		card.Child(Button(text.Retry, func() {
+		actions.Child(Button(text.Retry, func() {
 			if v.disabled || (v.err == "" && !v.canceled) {
 				return
 			}
@@ -112,7 +139,10 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		}).Name(text.Name(text.Retry, v.name)).Variant(ButtonGhost).Size(24).Render(cx))
 	}
 	if v.onRemove != nil {
-		card.Child(Button("", v.onRemove).Name(text.Name(text.Remove, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx))
+		actions.Child(Button("", v.onRemove).Name(text.Name(text.Remove, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx))
+	}
+	if v.onRemove != nil || (v.progress >= 0 && v.err == "" && !v.canceled && v.onCancel != nil) || ((v.err != "" || v.canceled) && v.onRetry != nil) {
+		card.Child(actions)
 	}
 	return card
 }
