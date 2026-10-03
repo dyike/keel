@@ -152,6 +152,7 @@ type codeBuffer struct {
 	// onSplice tells the editor lines changed: from on, removed lines were
 	// replaced by added ones; removed < 0 means the whole text was replaced.
 	onSplice func(from, removed, added int)
+	onEdit   func(from, to, end codePos)
 }
 
 func newCodeBuffer(text string) *codeBuffer {
@@ -170,9 +171,16 @@ func splitLines(text string) []codeLine {
 }
 
 func (b *codeBuffer) set(text string) {
+	var from, to, end codePos
+	if b.onEdit != nil {
+		from, to, end = codeTextChange(b.text(), text)
+	}
 	b.lines = newLineStore(splitLines(text))
 	b.undo, b.redo, b.open = nil, nil, nil
 	b.revision++
+	if b.onEdit != nil {
+		b.onEdit(from, to, end)
+	}
 	if b.onSplice != nil {
 		b.onSplice(0, -1, 0)
 	}
@@ -242,6 +250,9 @@ func (b *codeBuffer) replace(from, to codePos, text string) codePos {
 	last.text = append(last.text[:len(last.text):len(last.text)], tail...)
 	b.lines.splice(from.line, to.line+1, repl)
 	b.revision++
+	if b.onEdit != nil {
+		b.onEdit(from, to, end)
+	}
 	if b.onSplice != nil {
 		b.onSplice(from.line, to.line-from.line+1, len(repl))
 	}

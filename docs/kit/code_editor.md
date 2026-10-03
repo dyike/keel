@@ -34,7 +34,7 @@ chroma 按 `Language` 的名字选择语法。编辑后立即重新高亮改动�
 | 补全 | Ctrl+Space | Ctrl+Space |
 | 撤销、重做 | ⌘+Z、⌘+Shift+Z | Ctrl+Z、Ctrl+Shift+Z |
 
-Enter 保持缩进，在 `{ ( [ :` 后多缩进一级，在一对括号中间时把右括号放到下一行。Tab/Shift+Tab 缩进和反缩进所选行。没有选区时复制、剪切整行。粘贴的行数和光标数相同时，每个光标各得一行。先按 Esc 再按 Tab 可以离开编辑器。
+Enter 保持缩进，在 `{ ( [` 后多缩进一级（Python 另识别 `:`），在一对括号中间时把右括号放到下一行。Tab/Shift+Tab 缩进和反缩进所选行。没有选区时复制、剪切整行。粘贴的行数和光标数相同时，每个光标各得一行。先按 Esc 再按 Tab 可以离开编辑器。
 
 ## 鼠标
 
@@ -51,3 +51,48 @@ Enter 保持缩进，在 `{ ( [ :` 后多缩进一级，在一对括号中间时
 Agent：编辑器角色 `textbox`，名字是 `Name`，值是全文（超过 2000 行时是行数）；补全项是独立的 `option`；悬停提示是 `tooltip`；查找面板角色 `search`，里面的输入框和按钮单独列出；折叠箭头是按钮，名字如"折叠 6"。
 
 验证：`go run ./examples/components -section code_editor`。
+
+## 自定义搜索会话
+
+SetSearchQuery(query, CodeSearchOptions{MatchCase, WholeWord, Regex}) 启动搜索并绘制匹配，不打开内置面板、不抢焦点；Searchable(false) 只关闭内置入口，仍可使用应用搜索栏。SearchSession 返回查询、选项、面板状态、InvalidPattern、Truncated、Current 和 Matches 的副本；Current 从 0 开始，没有恰好选中的匹配时为 -1。
+
+NextSearchMatch、PreviousSearchMatch 循环跳转，SelectSearchMatch(index) 跳到指定结果并展开折叠。ReplaceCurrentSearchMatch(text) 只替换恰好选中的匹配，ReplaceAllSearchMatches(text) 返回整份文档的替换数，一次操作对应一次撤销和一次 OnChange。只读或自身禁用时这两种替换返回 false/0。CloseSearch 结束高亮；只有关闭内置面板时才把焦点交回编辑区。
+
+匹配使用逐行引擎，不支持跨行或零长度匹配。列表最多保留 10,000 条，多出的结果使 Truncated 为 true；全部替换仍遍历全部匹配。正则替换支持 Go regexp 的 `$1`/`${name}` 展开。大文档搜索和全部替换同步执行，应用应合并高频输入；此接口不是后台 LSP 搜索。
+
+## 跟踪装饰集合
+
+```go
+marks := ed.Decorations(
+    kit.CodeDecoration{Range: kit.CodeRange{Line: 2, Col: 0, EndLine: 2, EndCol: 8}, Style: kit.CodeDecorationFill},
+    kit.CodeDecoration{Range: kit.CodeRange{Line: 4, Col: 0, EndLine: 4, EndCol: 6}, Style: kit.CodeDecorationFrame},
+)
+marks.Append(other)
+tracked := marks.Get()
+marks.Clear()   // 仍可复用
+marks.Dispose() // 此后该集合的操作不再生效
+```
+
+CodeRange 使用从 0 开始的行号和 rune 列，半开区间；不同于上游的 UTF-8 字节偏移。每个集合独立，支持 Frame、Fill、Text（前景色）、Underline；Color 为 nil 时跟随 CodeText，填充使用低透明度。颜色与返回结果均复制，丢弃句柄不会移除装饰；保留句柄也会保留编辑器引用，用 Dispose 释放。
+
+插入在两端不扩大范围，内部插入扩大范围；替换将内部锚点收敛到新范围，整段删除移除条目。撤销/重做同样变换当前位置，已删除的条目不会复活；应从语义数据重建需要恢复的装饰。SetValue 根据最长共同前缀/后缀变换中间改动，仍清空编辑历史。
+
+可见行通过区间索引查询，折叠内容不绘制；更新/追加重建排序，编辑按已有顺序线性维护索引。填充在边框/下划线下，随后绘制选择与文字；同类后创建的集合和后追加的条目覆盖先前样式。装饰不预留空间、不截获输入。几何装饰按可见逻辑行分段绘制，空行没有字形区间时不画；没有连续跨行轮廓或软换行投影。Text 装饰改变颜色，不改变字重或字体度量。
+
+## 语言编辑规则
+
+```go
+err := kit.SetCodeLanguageRules("template", kit.CodeLanguageRules{
+    Brackets: []kit.CodePair{{Open: "{{", Close: "}}"}},
+    AutoClosingPairs: []kit.CodePair{{Open: "{{", Close: "}}", NotIn: []kit.CodeSyntaxContext{kit.CodeSyntaxString, kit.CodeSyntaxComment}}},
+    AutoCloseBefore: ";,}",
+    Increase: `\{\{\s*$`, Decrease: `^\s*\}\}`,
+})
+ed.Language("template").AutoClose(true).SmartIndent(true)
+```
+
+SetCodeLanguageRules 按语言注册，可在同一事件里替换，下一次编辑立即使用。Chroma 能识别的名称归到其语言名，未知名称保留大小写；ClearCodeLanguageRules 恢复默认。SetEditingRules(&rules) 安装实例覆盖，nil 恢复注册表；非法正则、空/跨行/超过 64 rune 的分隔符拒绝整次配置，保留旧规则。
+
+Brackets 控制 Enter 的结构缩进；AutoClosingPairs 为 nil 时使用 Brackets，非 nil 空切片关闭自动配对。输入支持多字符配对、跨越已有结束串、单行选区包裹和空配对 Backspace。AutoCloseBefore 限制后继字符，空白和行末始终允许。NotIn 默认用 Chroma 的 code/string/comment 分类，SyntaxContext 可由应用替换；未知语言没有语法分类时视为 Code。高亮继续由 Chroma 提供，不是 Tree-sitter。
+
+Increase/Decrease 分别在 Enter 前后文本上匹配，不格式化现有行或粘贴。未提供规则时按结构括号缩进，默认 Python 另识别行尾冒号。AutoClose 和 SmartIndent 独立；关闭 SmartIndent 仍复制当前行前导空白，但不增加/拆分缩进。语言切换不重置这两个偏好。

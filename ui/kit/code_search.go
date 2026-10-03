@@ -21,6 +21,7 @@ type codeRange struct{ from, to codePos }
 // searchState is the find panel and its results.
 type searchState struct {
 	open, replace, searchable bool
+	active, truncated         bool
 	query, replacement        string
 	matchCase, wholeWord      bool
 	regex                     bool
@@ -42,34 +43,44 @@ func (v *CodeEditorView) OpenSearch(replace bool) {
 		return
 	}
 	s := &v.search
-	s.open, s.replace, s.focusQuery = true, replace && !v.readOnly, true
+	s.open, s.replace, s.focusQuery, s.active = true, replace && !v.readOnly, true, true
 	if sel := v.primary(); !sel.empty() && sel.anchor.line == sel.caret.line {
 		s.query = v.buf.slice(sel.anchor, sel.caret)
 	}
 	s.key = ""
 }
 
-// CloseSearch hides the find panel and returns focus to the text.
+// CloseSearch ends the search and hides its highlights. If the built-in panel
+// was open, focus returns to the text.
 func (v *CodeEditorView) CloseSearch() {
-	if v.search.open {
-		v.search.open = false
-		v.search.matches = nil
+	hadPanel := v.search.open
+	v.search.open, v.search.active = false, false
+	v.search.matches = nil
+	v.search.current = -1
+	v.search.key = ""
+	v.search.badRegex = false
+	v.search.truncated = false
+	if hadPanel {
 		v.Focus()
 	}
 }
 
-// SearchMatches is how many matches the find panel found, up to 10,000.
+// SearchMatches is how many matches the active search found, up to 10,000.
 func (v *CodeEditorView) SearchMatches() int { v.refreshMatches(); return len(v.search.matches) }
 
 // refreshMatches recomputes matches when the text or the query changed.
 func (v *CodeEditorView) refreshMatches() {
 	s := &v.search
 	key := s.query + "\x00" + strconv.FormatBool(s.matchCase) + strconv.FormatBool(s.wholeWord) + strconv.FormatBool(s.regex)
-	if !s.open || s.rev == v.buf.revision && s.key == key {
+	if !s.open && !s.active {
+		return
+	}
+	if s.rev == v.buf.revision && s.key == key {
+		s.current = v.matchAt(v.primary().span())
 		return
 	}
 	s.rev, s.key = v.buf.revision, key
-	s.matches, s.badRegex = nil, false
+	s.matches, s.badRegex, s.truncated, s.current = nil, false, false, -1
 	if s.query == "" {
 		s.current = -1
 		return
@@ -81,9 +92,13 @@ func (v *CodeEditorView) refreshMatches() {
 	}
 	v.buf.lines.each(0, func(i int, l *codeLine) bool {
 		for _, m := range find(l.text) {
+			if len(s.matches) == codeSearchLimit {
+				s.truncated = true
+				return false
+			}
 			s.matches = append(s.matches, codeRange{codePos{i, m[0]}, codePos{i, m[1]}})
 		}
-		return len(s.matches) < codeSearchLimit
+		return true
 	})
 	s.current = v.matchAt(v.primary().span())
 }
@@ -224,21 +239,36 @@ func (v *CodeEditorView) replaceOne() {
 }
 
 // replaceAll replaces every match as one undo step.
-func (v *CodeEditorView) replaceAll() {
-	if v.readOnly {
-		return
+func (v *CodeEditorView) replaceAll() { v.replaceAllSearch() }
+
+func (v *CodeEditorView) replaceAllSearch() int {
+	if v.readOnly || v.disabled || (!v.search.open && !v.search.active) || v.search.query == "" {
+		return 0
 	}
-	v.refreshMatches()
-	ms := append([]codeRange(nil), v.search.matches...)
-	if len(ms) == 0 {
-		return
+	match := v.matcher()
+	if match == nil {
+		return 0
 	}
-	reps := make([]codeReplace, len(ms))
-	for i, m := range ms {
-		reps[i] = codeReplace{from: m.from, to: m.to, text: v.replacementFor(m), caret: -1}
+	count := 0
+	caret := v.primary().caret
+	v.buf.begin(v.sels)
+	for line := v.buf.count() - 1; line >= 0; line-- {
+		matches := match(v.buf.line(line))
+		for i := len(matches) - 1; i >= 0; i-- {
+			m := codeRange{codePos{line, matches[i][0]}, codePos{line, matches[i][1]}}
+			replacement := v.replacementFor(m)
+			caret = v.buf.edit(m.from, m.to, replacement)
+			count++
+		}
 	}
-	v.applyReplaces(reps, false)
-	v.changedNoCall()
+	if count > 0 {
+		v.sels, v.prim = []codeSel{{caret, caret}}, 0
+	}
+	v.buf.commit(v.sels, false)
+	if count > 0 {
+		v.changedNoCall()
+	}
+	return count
 }
 
 func (v *CodeEditorView) searchPanel(cx *el.Context) el.Element {
@@ -261,7 +291,7 @@ func (v *CodeEditorView) searchPanel(cx *el.Context) el.Element {
 			cur = strconv.Itoa(s.current + 1)
 		}
 		count = cur + "/" + strconv.Itoa(len(s.matches))
-		if len(s.matches) >= codeSearchLimit {
+		if s.truncated {
 			count += "+"
 		}
 	case s.query == "":

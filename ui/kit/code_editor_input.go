@@ -31,6 +31,7 @@ type codeReplace struct {
 	text     string
 	caret    int
 	keep     int
+	keepEnd  int
 }
 
 // applyReplaces makes replacements as one undo step, top to bottom, moving
@@ -61,7 +62,11 @@ func (v *CodeEditorView) applyReplaces(reps []codeReplace, typing bool) {
 		switch {
 		case r.keep > 0:
 			n := utf8.RuneCountInString(r.text)
-			s = codeSel{endOf(r.from, string([]rune(r.text)[:r.keep])), endOf(r.from, string([]rune(r.text)[:n-r.keep]))}
+			suffix := r.keepEnd
+			if suffix == 0 {
+				suffix = r.keep
+			}
+			s = codeSel{endOf(r.from, string([]rune(r.text)[:r.keep])), endOf(r.from, string([]rune(r.text)[:n-suffix]))}
 		case r.caret >= 0:
 			p := endOf(r.from, string([]rune(r.text)[:r.caret]))
 			s = codeSel{p, p}
@@ -398,11 +403,6 @@ func (v *CodeEditorView) keys(gtx core.C) {
 	}
 }
 
-// codePairs are the brackets and quotes AutoClose pairs.
-var codePairs = map[rune]rune{'(': ')', '[': ']', '{': '}', '"': '"', '\'': '\'', '`': '`'}
-
-func isCloser(r rune) bool { return r == ')' || r == ']' || r == '}' }
-
 // input applies typed text. The input method works in columns of the
 // primary caret's line, as reportIME describes it; with several carets or a
 // selection across lines, the text goes in at every selection.
@@ -433,94 +433,6 @@ func (v *CodeEditorView) input(gtx core.C, e key.EditEvent) {
 			v.comp = nil
 		}
 	}
-}
-
-// typed is the replacement for typing text at one selection, with the
-// bracket rules: pairing, stepping over a closer, wrapping a selection and
-// dedenting a closer typed on a blank line.
-func (v *CodeEditorView) typed(s codeSel, text string, r rune, single bool) codeReplace {
-	from, to := s.span()
-	rep := codeReplace{from: from, to: to, text: text, caret: -1}
-	if !v.autoClose || !single {
-		return rep
-	}
-	line := v.buf.line(from.line)
-	var next rune
-	if to.line == from.line && to.col < len(line) {
-		next = line[to.col]
-	}
-	closer, opener := codePairs[r]
-	inText := v.buf.kindAt(from) != codeKindCode
-	switch {
-	case !s.empty() && opener && from.line == to.line:
-		// Wrap the selection, keeping it selected.
-		rep.text = string(r) + v.buf.slice(from, to) + string(closer)
-		rep.keep = 1
-	case s.empty() && next == r && (isCloser(r) || r == '"' || r == '\'' || r == '`') && v.closerWasTyped(from):
-		// Step over the closer.
-		rep.to = codePos{from.line, from.col + 1}
-		rep.text = string(r)
-	case s.empty() && opener && !inText && (next == 0 || next == ' ' || next == '\t' || strings.ContainsRune(")]};:.,=>", next)):
-		if r == '\'' || r == '"' || r == '`' {
-			// A quote after a word is an apostrophe, not a string.
-			if from.col > 0 && isIdent(line[from.col-1]) {
-				return rep
-			}
-		}
-		rep.text = string(r) + string(closer)
-		rep.caret = 1
-	case s.empty() && isCloser(r) && strings.TrimSpace(string(line[:from.col])) == "":
-		// A closer on a blank line goes back to its opener's indentation.
-		if open := v.matchingOpen(from, r); open.line >= 0 {
-			rep.from = codePos{from.line, 0}
-			rep.text = v.buf.indent(open.line) + string(r)
-		}
-	}
-	return rep
-}
-
-// closerWasTyped guesses that the closer after p belongs to a pair: an
-// opener of its kind appears earlier on the line.
-func (v *CodeEditorView) closerWasTyped(p codePos) bool {
-	line := v.buf.line(p.line)
-	c := line[p.col]
-	for i := p.col - 1; i >= 0; i-- {
-		if codePairs[line[i]] == c {
-			return true
-		}
-	}
-	return false
-}
-
-// matchingOpen finds the opener that a closer typed at p would match,
-// skipping strings and comments; line -1 if none within reach.
-func (v *CodeEditorView) matchingOpen(p codePos, closer rune) codePos {
-	depth := 0
-	for l := p.line; l >= 0 && p.line-l < 2000; l-- {
-		text := v.buf.line(l)
-		end := len(text)
-		if l == p.line {
-			end = p.col
-		}
-		for i := end - 1; i >= 0; i-- {
-			if v.buf.kindAt(codePos{l, i + 1}) != codeKindCode {
-				continue
-			}
-			switch c := text[i]; {
-			case isCloser(c):
-				depth++
-			case codePairs[c] != 0 && isCloser(codePairs[c]):
-				if depth == 0 {
-					if codePairs[c] == closer {
-						return codePos{l, i}
-					}
-					return codePos{-1, 0}
-				}
-				depth--
-			}
-		}
-	}
-	return codePos{-1, 0}
 }
 
 // replaceEach replaces every selection with text.
@@ -616,7 +528,7 @@ func (v *CodeEditorView) command(gtx core.C, e key.Event) {
 		case len(v.sels) > 1:
 			p := v.primary()
 			v.sels, v.prim = []codeSel{{p.caret, p.caret}}, 0
-		case v.search.open:
+		case v.search.open || v.search.active:
 			v.CloseSearch()
 		default:
 			p := v.primary()
@@ -726,9 +638,8 @@ func (v *CodeEditorView) command(gtx core.C, e key.Event) {
 				case dir < 0:
 					from = v.step(s.caret, -1)
 					// An empty pair goes as one.
-					l := v.buf.line(s.caret.line)
-					if v.autoClose && s.caret.col > 0 && s.caret.col < len(l) && codePairs[l[s.caret.col-1]] == l[s.caret.col] {
-						to = codePos{s.caret.line, s.caret.col + 1}
+					if a, b, ok := v.emptyPair(s.caret); ok {
+						from, to = a, b
 					}
 				default:
 					to = v.step(s.caret, 1)
@@ -744,27 +655,7 @@ func (v *CodeEditorView) command(gtx core.C, e key.Event) {
 		}
 		reps := make([]codeReplace, 0, len(v.sels))
 		for _, s := range v.sels {
-			from, to := s.span()
-			indent := v.buf.indent(from.line)
-			l := v.buf.line(from.line)
-			var before, after rune
-			if from.col > 0 {
-				before = l[from.col-1]
-			}
-			if tl := v.buf.line(to.line); to.col < len(tl) {
-				after = tl[to.col]
-			}
-			text := "\n" + indent
-			caret := -1
-			if strings.ContainsRune("{([:", before) {
-				text += v.indentUnit()
-				if after != 0 && codePairs[before] == after {
-					// Between a pair: the closer goes on its own line.
-					caret = utf8.RuneCountInString(text)
-					text += "\n" + indent
-				}
-			}
-			reps = append(reps, codeReplace{from: from, to: to, text: text, caret: caret})
+			reps = append(reps, v.newline(s))
 		}
 		v.applyReplaces(reps, false)
 		v.changed(gtx)

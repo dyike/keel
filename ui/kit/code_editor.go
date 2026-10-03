@@ -48,28 +48,35 @@ type CodeCompletion struct {
 //
 // Tab indents; press Esc first to move focus on with Tab.
 type CodeEditorView struct {
-	buf          *codeBuffer
-	lang, name   string
-	height       float32
-	fill         bool
-	readOnly     bool
-	disabled     bool
-	autoClose    bool
-	whitespace   bool
-	tabSize      int
-	hardTabs     int // 0 detect, 1 tabs, 2 spaces
-	sels         []codeSel
-	prim         int // the primary selection, the one the caret APIs report
-	goalX        int // px, kept across vertical moves of the primary caret
-	scrollX      float32
-	scrollY      float32 // px from the first display row
-	reveal       bool    // scroll the primary caret into view on the next frame
-	tabExits     bool    // Esc pressed: Tab moves focus on
-	onChange     func(string)
-	onComplete   func(line, col int, prefix string) []CodeCompletion
-	onHover      func(line, col int) string
-	onDefinition func(line, col int)
-	diagnostics  []CodeDiagnostic
+	buf           *codeBuffer
+	lang, name    string
+	height        float32
+	fill          bool
+	readOnly      bool
+	disabled      bool
+	autoClose     bool
+	noSmartIndent bool
+	editingRules  *codeLanguageRules
+	syntaxContext func(int, int) CodeSyntaxContext
+	ruleRev       uint64
+	ruleLine      int
+	ruleLang      string
+	whitespace    bool
+	tabSize       int
+	hardTabs      int // 0 detect, 1 tabs, 2 spaces
+	sels          []codeSel
+	prim          int // the primary selection, the one the caret APIs report
+	goalX         int // px, kept across vertical moves of the primary caret
+	scrollX       float32
+	scrollY       float32 // px from the first display row
+	reveal        bool    // scroll the primary caret into view on the next frame
+	tabExits      bool    // Esc pressed: Tab moves focus on
+	onChange      func(string)
+	onComplete    func(line, col int, prefix string) []CodeCompletion
+	onHover       func(line, col int) string
+	onDefinition  func(line, col int)
+	diagnostics   []CodeDiagnostic
+	decorations   []*CodeDecorationCollection
 
 	// Completion list.
 	comp     []CodeCompletion
@@ -132,6 +139,7 @@ func CodeEditor(text string) *CodeEditorView {
 		sels: []codeSel{{}}, folds: map[int]bool{}, foldEnds: map[int]int{}, imeLine: -1}
 	v.buf.onSplice = v.spliced
 	v.search.searchable = true
+	v.search.current = -1
 	return v
 }
 
@@ -178,7 +186,7 @@ func (v *CodeEditorView) ShowWhitespace(on bool) *CodeEditorView { v.whitespace 
 // Searchable turns the find panel (Cmd/Ctrl+F) on or off; on by default.
 func (v *CodeEditorView) Searchable(on bool) *CodeEditorView {
 	v.search.searchable = on
-	if !on {
+	if !on && v.search.open {
 		v.CloseSearch()
 	}
 	return v

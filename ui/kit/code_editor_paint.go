@@ -251,8 +251,10 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 		c.A /= 2
 		paint.FillShape(gtx.Ops, c, clip.Rect{Min: image.Pt(m.gutter, top), Max: image.Pt(m.size.X, top+m.lh)}.Op())
 	}
+	decorations := v.lineDecorations(line)
+	paintCodeDecorations(gtx, decorations, rect)
 	// Find results, the chosen one stronger.
-	if v.search.open && len(v.search.matches) > 0 {
+	if (v.search.open || v.search.active) && len(v.search.matches) > 0 {
 		ms := v.search.matches
 		i := sort.Search(len(ms), func(i int) bool { return ms[i].from.line >= line })
 		for ; i < len(ms) && ms[i].from.line == line; i++ {
@@ -292,6 +294,17 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 			}
 		} else if si < len(spans) {
 			end = min(end, spans[si].start)
+		}
+		for _, d := range decorations {
+			if d.style != CodeDecorationText {
+				continue
+			}
+			if d.a > i {
+				end = min(end, d.a)
+			} else if d.b > i {
+				end = min(end, d.b)
+				c = d.color
+			}
 		}
 		j := i
 		for j < end && l[j] != '\t' {
@@ -481,7 +494,7 @@ func (v *CodeEditorView) paintScrollbar(gtx core.C) {
 	w := gtx.Dp(6)
 	paint.FillShape(gtx.Ops, c, clip.UniformRRect(image.Rect(m.size.X-w-gtx.Dp(2), y, m.size.X-gtx.Dp(2), y+h), w/2).Op(gtx.Ops))
 	// Find results as ticks beside the scrollbar.
-	if v.search.open {
+	if v.search.open || v.search.active {
 		tc := theme.Warning
 		for _, mt := range v.search.matches {
 			ty := v.rowOf(mt.from.line) * m.size.Y / max(1, v.rowCount())

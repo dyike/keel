@@ -1,8 +1,8 @@
 # GPUI Kit 实现进度 · 2026-10-02
 
-更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
+更新日期：2026-10-04（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**69 项主体已有、6 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**70 项主体已有、5 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -14,7 +14,7 @@
 
 1. 初次复核更正 Marker、Plot、Shimmer 的用途混淆；第六十五批新增 ShimmerText 后，文字扫光已建立独立实现，Marker 和 Plot 的用途差异仍保留。
 2. 数据与输入组件仍有实质差距：Chart 已补雷达/桑基图，仍有高级轴布局、柱图样式和动画差异；DatePicker 已补日期时间联动、时刻预设及范围时间存取；Input/Textarea 缺原子 token，Input 另缺格式 mask；Progress 的圆形进度缺口已在第一批补齐。
-3. Editor 已有多光标、查找替换、折叠和括号配对，但没有编辑跟踪装饰集合、开放语言规则与完整搜索会话。`OnComplete`/`OnHover`/`OnDefinition` 是应用接口，LSP 客户端仍由应用提供；本轮不把它当作已证实的上游内置能力差距。
+3. Editor 已补齐编辑跟踪装饰集合、可替换语言规则和自定义搜索会话；装饰坐标、跨行轮廓与文本样式仍有差异，详见组件条目。`OnComplete`/`OnHover`/`OnDefinition` 是应用接口，LSP 客户端仍由应用提供；本轮不把它当作已证实的上游内置能力差距。
 4. TextView 已有 Markdown/HTML/扩展 TeX，但富文本折叠预览、流式逐段淡入、区间高亮/定位和插件仍缺。完整 TeX/CSS 是 Keel 的边界，不能无依据当作 GPUI 已有功能。
 5. Dock、主题、状态栏和 Kbd 的近期补齐继续保留完成记录。Dock 分离由应用开窗、恢复布局不会重开分离窗口；主题机制已有，预设数量和 token 格式仍不同。
 6. 旧表夸大了 Badge 图标/尺寸、DescriptionList 响应式列数、Kbd 尺寸、Switch 尺寸/加载、Toggle 尺寸、Textarea 最大行数；均按当前接口改正。
@@ -253,7 +253,9 @@
 
 - [x] 第一百五十批（`0c59643`）：集中补齐 Menu 按目标上下文解析动作键位。core.BindIn/BindingsIn/ClearBindingIn 支持区域覆盖、显式空绑定及恢复继承；el.KeyContext 标记祖先区域，KeyHint 在当前树构建后解析，首次打开即可显示。Menu.ActionContext 指定目标 ID，默认使用触发器，子菜单继承目标，运行时改绑同步更新。Context.ActionAt 接通同一解析规则的焦点范围按键处理，嵌套目标内层优先并阻止外层同动作绕过空绑定。测试覆盖首次帧、上下文切换、子菜单、缺失/隐藏/禁用目标、改绑、数据所有权及实际按键派发。构建曾因磁盘不足中断，清理 5 GiB 旧 Go 缓存后，全仓构建、UI/native vet、全量测试通过。Menu 调整为主体已有；上下文条件表达式、自动动作路由与真机系统打开链接不计为已完成。
 
-- [x] 第一百五十一批：集中补齐 Chart 的雷达图、桑基图及登记的公共配置。RadarChart 复用系列/图例/数据表，支持固定外环、网格层数、半径、系列样式、自定义标签和悬停；缺失/负值形成缺口。SankeyChart 校验 DAG 后原子替换数据，支持四种对齐、节点参数、线性/平方根缩放、渐变流带、迭代布局、标签/提示和原始流量表。系列图及蜡烛图新增固定轴域、刻度数量、竖网格/虚线、参考线和自定义提示；折线/面积支持阶梯及单调 smoothstep 曲线。测试覆盖极值刻度、数据/样式副本、随机 DAG 的边界/不重叠/流带填充、密集零流量、隐藏图例、悬停/禁用和 Agent 表格。浅深色虚拟窗口截图已检查；全仓构建、UI/native vet、全量测试通过。Chart 调整为主体已有，新增文档继续列出高级配置与动画差异，原生真机未验收。
+- [x] 第一百五十一批（`3479c87`）：集中补齐 Chart 的雷达图、桑基图及登记的公共配置。RadarChart 复用系列/图例/数据表，支持固定外环、网格层数、半径、系列样式、自定义标签和悬停；缺失/负值形成缺口。SankeyChart 校验 DAG 后原子替换数据，支持四种对齐、节点参数、线性/平方根缩放、渐变流带、迭代布局、标签/提示和原始流量表。系列图及蜡烛图新增固定轴域、刻度数量、竖网格/虚线、参考线和自定义提示；折线/面积支持阶梯及单调 smoothstep 曲线。测试覆盖极值刻度、数据/样式副本、随机 DAG 的边界/不重叠/流带填充、密集零流量、隐藏图例、悬停/禁用和 Agent 表格。浅深色虚拟窗口截图已检查；全仓构建、UI/native vet、全量测试通过。Chart 调整为主体已有，新增文档继续列出高级配置与动画差异，原生真机未验收。
+
+- [x] 第一百五十二批：集中补齐 Editor 跟踪装饰集合、语言编辑规则和自定义搜索会话。四种装饰独立持有，随输入、替换、撤销/重做与 SetValue 变换，按可见行查询索引；语言规则支持全局/实例替换、多字符配对、语法排除和 Enter 正则缩进。自定义搜索不打开面板，可跳转/替换，全部替换越过展示上限并合并为一次撤销。测试覆盖 Unicode 范围、边界插入/删除、集合隔离、随机区间索引、规则原子更新、多字符输入、搜索状态及 10,002 处跨行替换的撤销/重做；浅深色虚拟窗口四种装饰像素与 Agent 输入验证通过。全仓构建、UI/native vet、全量测试通过；原生真机未验收。
 
 ## 当前实施清单
 
@@ -299,7 +301,7 @@
 | [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
 | [Dock](https://gpui-kit.com/component/dock/) | 主体已有 | [边缘/中心分割、拖放、最大化、跨窗口、面板工厂/状态恢复与 DockSkin](../../ui/kit/dock.go) | 第一百四十九批补齐登记主要缺口。工厂按实例注册表创建，状态 JSON 的版本迁移由应用负责；无类型面板仅复用既有视图。分离由 OnDetach 交给应用开窗，恢复不重开窗口。DockSkin 是样式回调层，没有 GPUI 全套 renderer traits/侧栏切换按钮；真机视觉和多窗口生命周期未验收。 |
 | [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 主体已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | 第四十五批补齐 Button 配置透传、Loading 和共享 Size；默认继承内层变体/高度，分体主按钮加载不阻挡箭头。第四十六批补齐 Placement/Offset，普通模式锚定整按钮，分体模式锚定箭头；内部 ID 由组件管理。菜单仍按 Keel 的边缘翻转策略定位。 |
-| [Editor](https://gpui-kit.com/component/editor/) | 部分 | [行号、局部重高亮、多光标/矩形选择、查找替换、折叠、语法感知括号配对、诊断/补全/悬停/定义跳转接口](../../ui/kit/code_editor.go) | 缺可随编辑跟踪的文本/几何装饰集合、可替换语言编辑规则、完整自定义搜索会话 API；高亮为 chroma，非 Tree-sitter。多光标、查找替换、折叠、括号配对已完成。 |
+| [Editor](https://gpui-kit.com/component/editor/) | 主体已有 | [多光标/折叠、跟踪装饰、语言规则、自定义搜索会话及语言服务接入接口](../../ui/kit/code_editor.go) | 第一百五十二批补齐登记的三项主要缺口。装饰用行/rune 列坐标，几何样式按逻辑行分段，空行不画；未提供连续轮廓、软换行投影或字重装饰。搜索逐行、跳过零长度匹配，列表最多 10,000 条，全部替换无该上限且同步执行。语言规则使用 Go 正则和 Chroma 分类，可由应用替换；非 Tree-sitter。浅深色虚拟窗口像素和 Agent 验证通过，未做本批真机验收。 |
 | [Empty](https://gpui-kit.com/component/empty/) | 主体已有 | [空状态富标题/描述、操作、媒体、尾部与分区样式](../../ui/kit/empty.go) | 第二十一、二十二批已补齐登记的媒体、富内容、尾部和样式缺口；默认保留 Surface 背景，分区样式通过 PartStyle 调整。使用单个 View 槽组合多个子项，非上游独立部件类型。 |
 | [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 主体已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | 弹层通过 el.Layer.TrapFocus/Modal 覆盖；GPUI 还可在普通容器上独立包裹 FocusTrap，Keel 当前入口绑定浮层。 |
 | [Form](https://gpui-kit.com/component/form/) | 主体已有 | [多列/跨列、字段描述/必填/显隐、校验与异步提交](../../ui/kit/form.go) | 第一百四十二批关闭登记主要缺口。默认仍是侧标签，VerticalLabels 可改上下排列；响应式列数和控件尺寸由应用配置，不提供统一尺寸枚举。Required 仅标记，业务校验仍用回调；Keel 另有异步提交状态管理。未做真机视觉验收。 |
@@ -360,7 +362,7 @@
 
 - 选择与异步：`combobox_options.go`、`command_search.go`、`select_options.go`、`list_items.go`、`tree_items.go`，均位于 `ui/kit`；因此多选/异步等没有被误判为未实现。
 - 数据表：`ui/kit/table_{cells,columns,data,menu,selection}.go`；图表另读 `pie_chart.go`、`candlestick_chart.go`、`radar_chart.go`、`sankey_chart.go` 和 `chart_options.go`。
-- 编辑器：`ui/kit/code_search.go`（公开搜索入口和 10,000 个匹配上限）、`code_editor_input.go`（内置配对表）、`code_fold.go`、`code_highlight.go`。搜索/替换存在，但自定义搜索控制接口不等同于 GPUI SearchSession。
+- 编辑器：`ui/kit/code_search_session.go`、`code_search.go`（结果展示上限 10,000，全部替换不限）、`code_decorations.go`、`code_language_rules.go`、`code_fold.go`、`code_highlight.go`；坐标、正则和装饰投影差异见组件行。
 - Dock：`ui/kit/dock_tree.go`、`dock_drag.go`、`dock_detach.go`、`dock_persistence.go`、`dock_skin.go`；主题：`ui/theme/registry.go`、`watch.go`、`themes/*.json`。
 - 文本与底层：`ui/markdown/markdown.go`、`html.go`、`render.go`、`ui/el/element.go`、`overlay.go`、`viewport.go`；头尾、分段等扩展见 `sidebar_items.go`、`tabs_reorder.go`、`time_field_segments.go`。
 
