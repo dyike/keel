@@ -43,7 +43,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Input Group](../../docs/kit/input_group.md) | 输入/多行编辑器与四方向附加内容 |
 | [Select](../../docs/kit/select.md) | 下拉选择、可搜索 |
 | [Combobox](../../docs/kit/combobox.md) | 可筛选输入 |
-| [Slider](../../docs/kit/slider.md) | 滑块 |
+| [Slider](../../docs/kit/slider.md) | 线性/对数滑块、范围选择与结束回调 |
 | [NumberInput](../../docs/kit/number_input.md) | 数字输入 |
 | [OtpInput](../../docs/kit/otp_input.md) | 验证码、密码遮罩、分组与尺寸 |
 | [TimeField](../../docs/kit/time_field.md) | 时间输入 |

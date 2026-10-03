@@ -10,6 +10,14 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
+// SliderScale controls the mapping between values and track position.
+type SliderScale uint8
+
+const (
+	SliderLinear SliderScale = iota
+	SliderLogarithmic
+)
+
 // SliderView picks a number in a range by dragging or with the keyboard:
 // ← ↓ and → ↑ step, PageUp / PageDown move ten steps, Home / End jump to the ends.
 type SliderView struct {
@@ -23,6 +31,12 @@ type SliderView struct {
 	vertical              float32
 	dragUpper             bool
 	onRangeChange         func(float64, float64)
+	scale                 SliderScale
+	onRelease             func(float64)
+	onRangeRelease        func(float64, float64)
+	dragging              bool
+	releaseKey            string
+	releaseUpper          bool
 }
 
 // Slider creates a slider over [min, max]; reversed bounds are swapped and the
@@ -34,6 +48,35 @@ func Slider(label string, min, max float64) *SliderView {
 	return v
 }
 func (v *SliderView) OnChange(fn func(float64)) *SliderView { v.onChange = fn; return v }
+
+// Scale selects a mapping. Logarithmic ranges require 0 < min < max;
+// otherwise the mapping falls back to linear until valid bounds are supplied.
+func (v *SliderView) Scale(scale SliderScale) *SliderView {
+	if scale <= SliderLogarithmic {
+		v.scale = scale
+	}
+	return v
+}
+
+// OnRelease runs once on pointer release or a navigation key's release.
+// Canceled/disabled interactions and programmatic changes do not call it.
+func (v *SliderView) OnRelease(fn func(float64)) *SliderView { v.onRelease = fn; return v }
+func (v *SliderView) OnRangeRelease(fn func(float64, float64)) *SliderView {
+	v.onRangeRelease = fn
+	return v
+}
+func (v *SliderView) release() {
+	if v.disabled {
+		return
+	}
+	if v.paired {
+		if v.onRangeRelease != nil {
+			v.onRangeRelease(v.value, v.upper)
+		}
+	} else if v.onRelease != nil {
+		v.onRelease(v.value)
+	}
+}
 
 // Step snaps values to min + k·step; 0 means continuous.
 func (v *SliderView) Step(s float64) *SliderView {
@@ -51,7 +94,13 @@ func (v *SliderView) SetValue(x float64) {
 		v.value = min(v.value, v.upper)
 	}
 }
-func (v *SliderView) SetDisabled(on bool) { v.disabled = on }
+func (v *SliderView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.dragging = false
+		v.releaseKey = ""
+	}
+}
 func (v *SliderView) SetRange(a, b float64) {
 	if math.IsNaN(a) || math.IsNaN(b) || math.IsInf(a, 0) || math.IsInf(b, 0) || math.IsInf(b-a, 0) {
 		a, b = 0, 1
@@ -154,13 +203,66 @@ func (v *SliderView) setEndpoint(x float64, upper bool) {
 		v.onRangeChange(v.value, v.upper)
 	}
 }
-func (v *SliderView) fraction(x float64) float32 {
-	if v.max <= v.min {
+func (v *SliderView) logarithmic() bool {
+	return v.scale == SliderLogarithmic && v.min > 0 && v.max > v.min
+}
+func logDistance(a, b float64) float64 {
+	ratio := (b - a) / a
+	if math.IsInf(ratio, 0) {
+		return math.Log(b) - math.Log(a)
+	}
+	return math.Log1p(ratio)
+}
+func (v *SliderView) fraction64(x float64) float64 {
+	if v.max <= v.min || x <= v.min {
 		return 0
 	}
-	return float32((x - v.min) / (v.max - v.min))
+	if x >= v.max {
+		return 1
+	}
+	if v.logarithmic() {
+		return logDistance(v.min, x) / logDistance(v.min, v.max)
+	}
+	return (x - v.min) / (v.max - v.min)
+}
+func (v *SliderView) fraction(x float64) float32 { return float32(v.fraction64(x)) }
+func (v *SliderView) atFraction(f float64) float64 {
+	if f <= 0 {
+		return v.min
+	}
+	if f >= 1 {
+		return v.max
+	}
+	if v.logarithmic() {
+		d := logDistance(v.min, v.max) * f
+		if d < 1 {
+			return min(v.max, max(v.min, v.min+v.min*math.Expm1(d)))
+		}
+		return min(v.max, max(v.min, math.Exp(math.Log(v.min)+d)))
+	}
+	return v.min + f*(v.max-v.min)
+}
+func (v *SliderView) advance(x, steps float64) float64 {
+	if v.logarithmic() && v.step == 0 {
+		return v.atFraction(v.fraction64(x) + steps/100)
+	}
+	return x + steps*v.keyStep()
 }
 func (v *SliderView) Render(cx *el.Context) el.Element {
+	id := autoID("slider", v)
+	if !cx.Enabled(id) {
+		v.dragging = false
+		v.releaseKey = ""
+	}
+	if v.releaseKey != "" {
+		focusID := id
+		if v.paired {
+			focusID = v.endpointID(v.releaseUpper)
+		}
+		if !cx.Focused(focusID) {
+			v.releaseKey = ""
+		}
+	}
 	lo, hi := float32(0), v.fraction(v.value)
 	if v.paired {
 		lo, hi = v.fraction(v.value), v.fraction(v.upper)
@@ -177,6 +279,11 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 	}
 	keyHandler := func(upper bool) func(el.KeyEvent) bool {
 		return func(e el.KeyEvent) bool {
+			if v.releaseKey != "" && e.State == el.KeyRelease && e.Name == v.releaseKey && upper == v.releaseUpper {
+				v.releaseKey = ""
+				v.release()
+				return true
+			}
 			if e.Modifiers != 0 {
 				return false
 			}
@@ -186,13 +293,13 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 			}
 			switch key.Name(e.Name) {
 			case key.NameLeftArrow, key.NameDownArrow:
-				x -= v.keyStep()
+				x = v.advance(x, -1)
 			case key.NameRightArrow, key.NameUpArrow:
-				x += v.keyStep()
+				x = v.advance(x, 1)
 			case key.NamePageDown:
-				x -= 10 * v.keyStep()
+				x = v.advance(x, -10)
 			case key.NamePageUp:
-				x += 10 * v.keyStep()
+				x = v.advance(x, 10)
 			case key.NameHome:
 				x = v.min
 			case key.NameEnd:
@@ -201,6 +308,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 				return false
 			}
 			if e.State == el.KeyPress {
+				v.releaseKey, v.releaseUpper = e.Name, upper
 				v.setEndpoint(x, upper)
 			}
 			return true
@@ -237,6 +345,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 	}
 	track.OnDrag(func(e el.DragEvent) {
 		if e.Canceled {
+			v.dragging = false
 			return
 		}
 		pos, size := e.X-8, e.W-16
@@ -244,15 +353,25 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 			pos, size = e.H-8-e.Y, e.H-16
 		}
 		if size <= 0 {
+			v.dragging = false
 			return
 		}
-		x := v.min + float64(max(0, min(1, pos/size)))*(v.max-v.min)
+		f := float64(max(0, min(1, pos/size)))
+		x := v.atFraction(f)
+		if e.Kind == el.DragStart {
+			v.dragging = true
+			v.releaseKey = ""
+		}
 		if e.Kind == el.DragStart && v.paired {
-			a, b := math.Abs(x-v.value), math.Abs(x-v.upper)
+			a, b := math.Abs(f-v.fraction64(v.value)), math.Abs(f-v.fraction64(v.upper))
 			v.dragUpper = b < a || b == a && x >= v.upper
 			cx.Focus(v.endpointID(v.dragUpper))
 		}
 		v.setEndpoint(x, v.paired && v.dragUpper)
+		if e.Kind == el.DragEnd && v.dragging {
+			v.dragging = false
+			v.release()
+		}
 	})
 	if !v.disabled {
 		track.CursorPointer()

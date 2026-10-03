@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**44 项主体已有、30 项部分覆盖、3 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**45 项主体已有、29 项部分覆盖、3 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -29,7 +29,8 @@
 - [x] 第六批（`204309e`）：Stepper 的竖向布局、步骤图标、单步禁用与尺寸；另支持富内容条目。覆盖切片隔离、更新索引收敛、键盘跳过禁用、祖先禁用、窄窗口纵向滚动及 Agent 状态；浅深色截图已检查。
 - [x] 第七批（`ee6ef65`）：AvatarGroup 叠放、组尺寸、人数上限、+N/省略号、窄窗口滚动；Avatar.Source 后台加载、取消、失败回退与重试。共享解码器迁至 core.DecodeImage，Markdown 继续复用。含网络/旧请求覆盖、布局、Agent 和浅深色截图验证。
 - [x] 第八批（`40f241c`）：DescriptionList 多列/跨列、纵向标签、满行分隔线、边框与字号；el.Grid 增加 ColSpan。覆盖跨列换行/最小宽度、1×/2× 窄布局、富内容交互及 Agent 重排；浅深色截图已检查。
-- [x] 第九批：InputGroup 四方向 Addon、多附加内容、稳定 ID 替换/移除与 TextArea 组合。按钮沿用 kit.Button 的样式/尺寸/加载/禁用配置。覆盖布局顺序、文字聚焦、按钮焦点、Tab、只读、禁用继承、动态内容及 Agent；浅深色截图已检查。
+- [x] 第九批（`a6c142c`）：InputGroup 四方向 Addon、多附加内容、稳定 ID 替换/移除与 TextArea 组合。按钮沿用 kit.Button 的样式/尺寸/加载/禁用配置。覆盖布局顺序、文字聚焦、按钮焦点、Tab、只读、禁用继承、动态内容及 Agent；浅深色截图已检查。
+- [x] 第十批：Slider 对数刻度、OnRelease/OnRangeRelease；覆盖单值/双端和横纵向映射、键盘重复、取消、禁用、非法/极端范围、Agent 回调及浅深色截图。正步长仍按数值对齐，无正步长的对数键盘操作按轨道百分比移动。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -112,7 +113,7 @@
 | [Shimmer](https://gpui-kit.com/component/shimmer/) | 用途不同 | [Skeleton 占位块扫光、减少动画](../../ui/kit/skeleton.go) | 用途不同：GPUI ShimmerText 保留可读文字并让高光扫过文字；Keel Skeleton.Shimmer 只扫过占位几何。缺文字效果与 duration/spread/reverse/once 配置。 |
 | [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动](../../ui/kit/sidebar.go) | 主体覆盖；缺右侧布局开关、自定义 item suffix/上下文菜单接口。已有 Badge 和固定 Header/Footer。 |
 | [Skeleton](https://gpui-kit.com/component/skeleton/) | 主体已有 | [占位形状、尺寸、加载展示](../../ui/kit/skeleton.go) | 主体覆盖；缺 secondary 色阶与任意圆角配置，当前圆形/圆角矩形和宽高可配。 |
-| [Slider](https://gpui-kit.com/component/slider/) | 部分 | [单值/双端范围、横向/竖向、步长、拖动与键盘](../../ui/kit/slider.go) | 缺对数刻度和交互结束 Release 回调；已有单值/范围、横纵向、步长、键盘。 |
+| [Slider](https://gpui-kit.com/component/slider/) | 主体已有 | [单值/双端范围、横纵向、线性/对数、步长、拖动/键盘与结束回调](../../ui/kit/slider.go) | 第十批已关闭对数刻度和 Release 缺口；无效对数范围回退线性，取消不回滚已有值。轨道/滑块颜色与大小仍使用统一样式，未提供逐项外观配置。 |
 | [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称](../../ui/kit/spinner.go) | 主体覆盖；缺自定义图标和颜色接口。 |
 | [StatusBar](https://gpui-kit.com/component/status-bar/) | 主体已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | 左右内容与自定义 View 已覆盖；Keel 另有优先级溢出菜单，本轮未发现新的主要功能缺口。 |
 | [Stepper](https://gpui-kit.com/component/stepper/) | 主体已有 | [横纵步骤、图标/富内容、尺寸、导航、键盘、滚动与单步禁用](../../ui/kit/stepper.go) | 第六批已补齐 Vertical、Size、StepperItem 与 SetItemDisabled。此表登记缺口已关闭；导航仍限已完成步骤，GPUI 文档的文本居中布局未提供独立开关。 |

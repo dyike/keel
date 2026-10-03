@@ -20,3 +20,17 @@ level := kit.RangeSlider("竖向区间", 0, 100).Vertical(180)
 Agent：单端角色为 `slider`；双端分别是本地化“下限 / 上限 + 标签”命名的 `slider`，`value` 是该端数值。`FocusID()` 在双端模式中指向下限。
 
 验证：`go run ./examples/components -section slider`，加 `-theme dark` 检查深色。
+
+`Scale(kit.SliderLogarithmic)` 使用对数刻度，单值/双端、横向/竖向均可使用。有效范围要求 `0 < min < max`；不满足时按线性刻度显示，之后设置有效范围会恢复对数刻度。默认 `SliderLinear`。
+
+```go
+frequency := kit.Slider("频率 Hz", 20, 20000).
+    Scale(kit.SliderLogarithmic).
+    OnRelease(func(value float64) { applyFrequency(value) })
+```
+
+例如 1–1000 的对数范围，轨道正中间约为 31.62，四分之一处约为 5.62。未设置正步长时，方向键移动轨道的 1%，PageUp/Down 移动 10%；显式 `Step(s)` 仍按原始数值增减和对齐。双端拖动按轨道上的距离选择最近端点。
+
+`OnRelease(func(float64))` 接收单值操作结束时的值；`OnRangeRelease(func(low, high float64))` 接收双端范围。鼠标/触摸释放触发一次；导航按键重复按下只改变值，释放最后操作的导航键时触发一次。没有数值变化的有效点击也会触发。`OnChange` / `OnRangeChange` 仍在值变化时连续触发。
+
+程序赋值、拖动取消、失焦后的按键释放及禁用操作不触发结束回调；取消不撤销已经产生的值变化。可用 OnChange 更新预览，用 OnRelease 提交开销较大的操作。传 nil 可移除对应回调。

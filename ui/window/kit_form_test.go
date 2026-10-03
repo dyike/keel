@@ -1,6 +1,7 @@
 package window
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -149,5 +150,31 @@ func TestKitDescriptionListColumnsSnapshot(t *testing.T) {
 	list.Columns(1)
 	if element(t, w, "Customer：Ada").Y <= element(t, w, "Order：SO-123").Y {
 		t.Fatal("reflow failed")
+	}
+}
+
+func TestKitLogSliderReleaseSnapshot(t *testing.T) {
+	released := float64(0)
+	slider := kit.Slider("Frequency", 1, 1000).Scale(kit.SliderLogarithmic).OnRelease(func(x float64) { released = x })
+	slider.SetValue(10)
+	w := openTest(t, kitPage(slider))
+	var control Element
+	for _, e := range w.snapshot() {
+		if e.Role == "slider" && e.Name == "Frequency" {
+			control = e
+		}
+	}
+	if control.Value != "10" {
+		t.Fatalf("numeric semantics: %+v", control)
+	}
+	w.click(control.center())
+	if math.Abs(slider.Value()-math.Sqrt(1000)) > 1 || released != slider.Value() {
+		t.Fatalf("log click %g release %g", slider.Value(), released)
+	}
+	if err := w.press("right"); err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(released-math.Pow(1000, .51)) > 1 {
+		t.Fatalf("key release %g", released)
 	}
 }
