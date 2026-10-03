@@ -4,6 +4,7 @@ import (
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/theme"
 )
 
 func init() {
@@ -24,6 +25,7 @@ func init() {
 			kit.Attachment("Large.pdf", 1024).Size(kit.AttachmentSizeLarge),
 		}
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+			group.EdgeFade(theme.Bg)
 			paging := el.Div().Row().Gap(8).Child(
 				kit.Button("前一屏", func() { offset, width, _ := group.ScrollState(cx); group.ScrollTo(offset - width) }).Render(cx),
 				kit.Button("后一屏", func() { offset, width, _ := group.ScrollState(cx); group.ScrollTo(offset + width) }).Render(cx),

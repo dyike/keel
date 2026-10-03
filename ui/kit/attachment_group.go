@@ -1,9 +1,11 @@
 package kit
 
 import (
+	"image/color"
+	"slices"
+
 	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
-	"slices"
 
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
@@ -18,6 +20,7 @@ type AttachmentGroupView struct {
 	name          string
 	scrollTarget  float32
 	scrollPending bool
+	edgeFade      *color.NRGBA
 }
 
 // AttachmentGroup copies the items; individual view instances remain shared.
@@ -73,6 +76,7 @@ func (v *AttachmentGroupView) Render(cx *el.Context) el.Element {
 	}
 	return row.Decorate(func(gtx core.C, draw func()) {
 		draw()
+		v.paintEdgeFade(cx, gtx)
 		if !v.scrollPending || !gtx.Enabled() {
 			return
 		}
