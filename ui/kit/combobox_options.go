@@ -147,9 +147,9 @@ func (v *ComboboxView) optionKey(cx *el.Context, e el.KeyEvent) bool {
 		direction = -1
 	}
 	v.active = v.enabledOption(matches, v.active, direction)
-	v.virtual.SetCount(len(matches))
+	v.virtual.SetCount(len(v.displayRows))
 	if v.active >= 0 {
-		v.virtual.ScrollTo(cx, v.active)
+		v.virtual.ScrollTo(cx, v.displayIndex(v.active))
 	}
 	return true
 }
@@ -190,9 +190,9 @@ func (v *ComboboxView) suggestions(cx *el.Context, id string) el.Element {
 		if len(matches) == 0 {
 			body.Child(el.Div().Px(theme.SpaceLg).Py(theme.SpaceSm).Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted)))
 		} else {
-			v.virtual.SetCount(len(matches))
+			v.virtual.SetCount(len(v.displayRows))
 			v.virtual.rowH = v.optionHeight()
-			v.virtual.Height(min(min(240, available), float32(len(matches))*v.virtual.rowH))
+			v.virtual.Height(min(min(240, available), float32(len(v.displayRows))*v.virtual.rowH))
 			body.Child(v.virtual.Render(cx))
 		}
 	}

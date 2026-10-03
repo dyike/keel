@@ -213,7 +213,9 @@
 
 - [x] 第一百三十批（`e576cd5`）：Combobox 新增 ComboboxItem、SetItems 与 SetItemResults，分离稳定值、显示名称与条目禁用；本地搜索匹配名称和值，异步结果不二次筛选。名称用于字段/标签/候选，回调继续使用值；当前结果缺少已选项时保留其名称。复制/去重/空项、字符串模式恢复、条目禁用与独立禁用合并、名称冲突失焦不误选均有测试；构建、vet、全量测试通过，未做真机视觉验收。组件继续为部分。
 
-- [x] 第一百三十一批：Combobox 增加 RenderItem 和 RowHeight，保留选择语义/背景/勾选，候选正文支持富内容与独立操作；独立点击区域避免按钮同时选中整行。仅渲染可见虚拟行，按值与重复序号建立稳定身份；返回 nil 恢复默认名称。测试覆盖富内容/默认回退、行高、选择、万条结果的有限渲染、子操作隔离及重排焦点；构建、vet、全量测试通过，未做真机视觉验收。组件继续为部分。
+- [x] 第一百三十一批（`47ead1e`）：Combobox 增加 RenderItem 和 RowHeight，保留选择语义/背景/勾选，候选正文支持富内容与独立操作；独立点击区域避免按钮同时选中整行。仅渲染可见虚拟行，按值与重复序号建立稳定身份；返回 nil 恢复默认名称。测试覆盖富内容/默认回退、行高、选择、万条结果的有限渲染、子操作隔离及重排焦点；构建、vet、全量测试通过，未做真机视觉验收。组件继续为部分。
+
+- [x] 第一百三十二批：Combobox 增加 ComboboxGroup、SetGroups、SetGroupResults，支持有序分组、复制/去重、空组及过滤后空组隐藏。组标题与候选一起虚拟化，键盘跳过标题及禁用项，滚动定位换算标题偏移；异步 token 校验与已选名称保留沿用结构化结果。测试覆盖标题点击、跨组选择、过滤、平铺恢复、复制/重复规则、索引映射及旧结果拒绝；构建、vet、全量测试和补充多组虚拟滚动/尺寸切换定位测试通过，未做真机视觉验收。组件继续为部分。
 
 ## 当前实施清单
 
@@ -251,7 +253,7 @@
 | [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 第五批已补齐 OnCopied、Content 与反馈状态查询；回调表示已提交写入请求，非操作系统成功确认。此表登记缺口已关闭。 |
 | [Collapsible](https://gpui-kit.com/component/collapsible/) | 主体已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | 主体覆盖：拆分 Trigger/Content、状态控制与动画；本轮未发现新的主要功能缺口。 |
 | [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 颜色编辑主体已有；GPUI 自带触发器/弹层，Keel 是内联选择器，弹层需组合 Popover；缺触发图标、标签与尺寸配置。 |
-| [Combobox](https://gpui-kit.com/component/combobox/) | 部分 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 第一百二十五批补齐 DisableOption，点击/键盘/提交跳过禁用值，配置跨过滤与异步更新保留。第一百二十七批补齐持久 Footer 操作区。第一百三十一批补齐 RenderItem 和统一 RowHeight，支持富内容/行内操作及稳定值身份。仍缺分组、自定义触发器；复核补记关闭搜索模式、关闭确认事件。第一百二十九批补齐 Size 和 CheckIcon。第一百二十六批补齐多选候选再次选择取消；第一百二十八批补齐 Clearable 单选/多选清空按钮。第一百三十批补齐 ComboboxItem 的稳定值/显示名称/禁用及结构化异步结果；多选标签与异步搜索已有。 |
+| [Combobox](https://gpui-kit.com/component/combobox/) | 部分 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 第一百二十五批补齐 DisableOption，点击/键盘/提交跳过禁用值，配置跨过滤与异步更新保留。第一百二十七批补齐持久 Footer 操作区。第一百三十一批补齐 RenderItem 和统一 RowHeight，支持富内容/行内操作及稳定值身份。第一百三十二批补齐 SetGroups/SetGroupResults 分组及虚拟标题。仍缺自定义触发器；复核补记关闭搜索模式、关闭确认事件。第一百二十九批补齐 Size 和 CheckIcon。第一百二十六批补齐多选候选再次选择取消；第一百二十八批补齐 Clearable 单选/多选清空按钮。第一百三十批补齐 ComboboxItem 的稳定值/显示名称/禁用及结构化异步结果；多选标签与异步搜索已有。 |
 | [Command](https://gpui-kit.com/component/command/) | 部分 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 缺内联模式、关闭搜索的模式、自定义行/header/footer；当前固定为带搜索的模态命令面板。 |
 | [DataTable](https://gpui-kit.com/component/data-table/) | 部分 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | 主要数据表能力已有；缺独立整列选择模式、列级 selectable/resizable/movable 限制，以及 stripe/密度等公开配置。 |
 | [DatePicker](https://gpui-kit.com/component/date-picker/) | 主体已有 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。第一百二十三批补齐 DateValue/SetDateValue 与 DateTimeValue/SetDateTimeValue，范围独立保存起止时刻，预设和回调携带时刻。范围日历只编辑日期；兼容旧 Value 的纯日期行为，日期格式使用 Go 布局。第一百二十四批补齐独立 FirstWeekday 和恢复 locale 的 ResetFirstWeekday。 |

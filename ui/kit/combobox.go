@@ -2,7 +2,6 @@ package kit
 
 import (
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/dyike/keel/ui/el"
@@ -41,6 +40,9 @@ type ComboboxView struct {
 	itemRenderer                         func(ComboboxItem, bool) el.View
 	rowHeight                            float32
 	matchKeys                            []string
+	groupFor, groupLabels                map[string]string
+	displayRows                          []comboboxDisplayRow
+	optionRows                           []int
 	open, allowCustom, disabled, focused bool
 	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
@@ -48,7 +50,7 @@ type ComboboxView struct {
 
 func Combobox(label string, options ...string) *ComboboxView {
 	v := &ComboboxView{label: label, options: slices.Clone(options), active: -1}
-	v.virtual = VirtualList(0, 30, v.optionRow).ItemKey(func(i int) string { v.matches(); return v.matchKeys[i] })
+	v.virtual = VirtualList(0, 30, v.displayRow).ItemKey(func(i int) string { v.matches(); return v.matchKeys[i] })
 	return v
 }
 func (v *ComboboxView) Placeholder(s string) *ComboboxView           { v.placeholder = s; return v }
@@ -59,6 +61,7 @@ func (v *ComboboxView) SetValue(s string)                            { v.SetValu
 func (v *ComboboxView) SetOptions(options ...string) {
 	oldDisplay := v.optionLabel(v.value)
 	v.itemLabels, v.itemDisabled = nil, nil
+	v.groupFor, v.groupLabels = nil, nil
 	if !v.multiple && v.text == oldDisplay {
 		v.text = v.value
 	}
@@ -79,12 +82,7 @@ func (v *ComboboxView) FocusID() string     { return autoID("combobox", v) + "/t
 func (v *ComboboxView) matches() []string {
 	if !v.cached || v.cachedRevision != v.revision || v.cachedText != v.text || v.cachedValue != v.value {
 		v.filtered = v.filteredMatches()
-		v.matchKeys = make([]string, len(v.filtered))
-		counts := make(map[string]int, len(v.filtered))
-		for i, value := range v.filtered {
-			v.matchKeys[i] = strconv.Itoa(len(value)) + ":" + value + ":" + strconv.Itoa(counts[value])
-			counts[value]++
-		}
+		v.buildDisplayRows()
 		v.cached = true
 		v.cachedRevision = v.revision
 		v.cachedText = v.text

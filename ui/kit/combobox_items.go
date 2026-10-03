@@ -12,6 +12,7 @@ type ComboboxItem struct {
 // overrides are retained. A selected value absent from the new results keeps
 // its prior label. No selection callback runs.
 func (v *ComboboxView) SetItems(items ...ComboboxItem) {
+	v.groupFor, v.groupLabels = nil, nil
 	previous := v.itemLabels
 	oldDisplay := v.optionLabel(v.value)
 	v.itemLabels = make(map[string]string)

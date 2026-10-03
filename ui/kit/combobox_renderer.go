@@ -18,7 +18,7 @@ func (v *ComboboxView) RowHeight(dp float32) *ComboboxView {
 	if dp >= 0 && finiteNumber(float64(dp)) && v.rowHeight != dp {
 		v.rowHeight = dp
 		if v.active >= 0 {
-			v.virtual.reveal = v.active
+			v.virtual.reveal = v.displayIndex(v.active)
 		}
 	}
 	return v
