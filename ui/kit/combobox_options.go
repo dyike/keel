@@ -155,12 +155,16 @@ func (v *ComboboxView) optionKey(cx *el.Context, e el.KeyEvent) bool {
 }
 func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
 	option := v.matches()[i]
+	ratio := v.sizeRatio()
 	selected := option == v.value
 	if v.multiple {
 		selected = slices.Contains(v.values, option)
 	}
-	row := el.Div().Disabled(v.disabledOptions[option]).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).Role("option").Name(option).Selected(selected).H(el.Dp(28)).My(1).Mx(4).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
-		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(option); cx.Focus(v.FocusID()) }).Child(el.Text(option).Grow().MaxLines(1), checkMark(cx, selected))
+	row := el.Div().Disabled(v.disabledOptions[option]).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).Role("option").Name(option).Selected(selected).H(el.Dp(28*ratio)).My(ratio).Mx(4*ratio).Px(theme.SpaceMd*ratio).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
+		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(option); cx.Focus(v.FocusID()) }).Child(el.Text(option).Grow().MaxLines(1), v.renderCheck(cx, selected))
+	if v.height > 0 {
+		row.TextSize(float32(theme.BodySize) * ratio)
+	}
 	switch {
 	case selected:
 		row.Bg(theme.Highlight)
@@ -186,7 +190,8 @@ func (v *ComboboxView) suggestions(cx *el.Context, id string) el.Element {
 			body.Child(el.Div().Px(theme.SpaceLg).Py(theme.SpaceSm).Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted)))
 		} else {
 			v.virtual.SetCount(len(matches))
-			v.virtual.Height(min(min(240, available), float32(len(matches))*30))
+			v.virtual.rowH = max(1, 30*v.sizeRatio())
+			v.virtual.Height(min(min(240, available), float32(len(matches))*v.virtual.rowH))
 			body.Child(v.virtual.Render(cx))
 		}
 	}

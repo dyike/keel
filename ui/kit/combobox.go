@@ -33,6 +33,8 @@ type ComboboxView struct {
 	footerHeight                         float32
 	footerMeasured                       bool
 	clearable                            bool
+	height                               float32
+	checkIcon                            *IconView
 	open, allowCustom, disabled, focused bool
 	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
@@ -136,6 +138,7 @@ func (v *ComboboxView) settle() {
 
 func (v *ComboboxView) Render(cx *el.Context) el.Element {
 	id := autoID("combobox", v)
+	ratio := v.sizeRatio()
 	if v.focused && !cx.Enabled(id) {
 		v.cancelDraft()
 	}
@@ -165,7 +168,7 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 			}
 			v.settle()
 		})
-	toggle := el.Div().Name(locale.Current().Name(locale.Current().MoreOptions, v.a11y())).P(theme.SpaceXxs).Rounded(theme.RadiusSm).
+	toggle := el.Div().Name(locale.Current().Name(locale.Current().MoreOptions, v.a11y())).P(theme.SpaceXxs * ratio).Rounded(theme.RadiusSm).
 		Focusable(false).CursorPointer().OnClick(func() {
 		if v.open {
 			v.close()
@@ -174,19 +177,26 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 			v.searchChanged()
 		}
 		cx.Focus(v.FocusID())
-	}).Child(Icon(IconChevronDown).Size(16).Color(theme.Muted).Render(cx))
+	}).Child(Icon(IconChevronDown).Size(16 * ratio).Color(theme.Muted).Render(cx))
 	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Role("combobox").Name(v.a11y()).Value(strings.Join(v.Values(), ", "))
+	box.MinH(el.Dp(float32(theme.ControlHeight) * ratio)).Px(10 * ratio).Py(theme.SpaceXs * ratio).Gap(theme.SpaceMd * ratio)
+	if v.height > 0 {
+		box.TextSize(float32(theme.BodySize) * ratio)
+	}
 	if v.multiple {
 		box.Wrap()
 		for _, value := range v.values {
 			tag := Tag(value).OnRemove(func() { v.removeValue(value); cx.Focus(v.FocusID()) })
+			if v.height > 0 {
+				tag.Size(max(16, 24*ratio))
+			}
 			box.Child(el.Div().ID("tag/" + value).Child(tag.Render(cx)))
 		}
 		field.MinW(el.Dp(100))
 	}
 	box.Child(field)
 	if v.clearable && len(v.Values()) > 0 {
-		clear := Button("", func() { cx.Focus(v.FocusID()); v.clearSelection() }).ID(id + "/clear").Name(locale.Current().Name(locale.Current().Clear, v.a11y())).Icon(IconClose).Variant(ButtonGhost).Size(24)
+		clear := Button("", func() { cx.Focus(v.FocusID()); v.clearSelection() }).ID(id + "/clear").Name(locale.Current().Name(locale.Current().Clear, v.a11y())).Icon(IconClose).Variant(ButtonGhost).Size(24 * ratio)
 		clear.SetDisabled(v.disabled)
 		box.Child(clear.Render(cx))
 	}
