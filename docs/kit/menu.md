@@ -38,3 +38,9 @@ Agent：菜单容器的角色是 `menu`（子菜单的名字是它在父菜单�
 `Placement(side, align)` 设置顶层菜单方向（Top/Bottom/Left/Right）和对齐（Start/Center/End），默认 Bottom/Start；非法组合忽略。`Offset(dp)` 设置间距，默认 4dp，支持 0 和负值重叠，非有限值忽略。打开期间可更新，空间不足时沿用浮层翻转和窗口内限制。子菜单仍按 Right/Start、2dp 展开。
 
 DropdownButton 的这两个方法直接配置传入的 Menu；普通模式锚定整按钮，分体模式锚定箭头。共用同一 Menu 的调用方也会看到配置变化。
+
+`IconItem(label, shortcut, icon, action)` 添加图标命令，`SetItemIcon(label, icon)` 可更新普通项、勾选项或子菜单入口的图标；IconNone 移除。含前置标记的菜单统一预留标记列，文字保持对齐。
+
+`CheckItem(label, shortcut, checked, onChange)` 添加勾选项。点击/Enter/Space 切换内部状态，关闭整个菜单链，再调用 onChange(bool)；禁用项不切换。`SetItemChecked(label, checked)` 不触发回调；`ItemChecked(label)` 返回状态和是否找到。更新方法作用于当前菜单中所有同名项，查询返回首个匹配项，建议使用唯一标签。
+
+`CheckSide(el.Left/Right)` 设置当前菜单的勾号位置；默认左侧替代该项图标，右侧可同时显示图标。未知方向忽略，子菜单单独配置。Agent 中角色为 menuitemcheckbox，并报告 checked 状态。

@@ -242,7 +242,7 @@ func (w *Window) snapshot() []Element {
 				X: b.Min.X, Y: b.Min.Y, Width: b.Dx(), Height: b.Dy()}
 			state := d.Selected
 			switch role {
-			case "checkbox", "radio", "switch":
+			case "checkbox", "radio", "switch", "menuitemcheckbox":
 				e.Checked = &state
 			case "tab", "row", "option", "disclosure", "toggle", "tag", "gridcell":
 				e.Selected = &state

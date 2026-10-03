@@ -13,12 +13,15 @@ import (
 )
 
 type menuItem struct {
-	label, shortcut string
-	keymapAction    string // shows this action's binding instead of shortcut
-	action          func()
-	sub             *MenuView
-	separator       bool
-	disabled        bool
+	label, shortcut    string
+	keymapAction       string // shows this action's binding instead of shortcut
+	action             func()
+	sub                *MenuView
+	separator          bool
+	disabled           bool
+	icon               IconName
+	checkable, checked bool
+	onCheck            func(bool)
 }
 
 // MenuView is a list of commands in a layer next to its trigger:
@@ -30,18 +33,19 @@ type menuItem struct {
 // → opens a submenu, ← or Esc closes one level. Running any item closes the
 // whole menu. Shortcuts are only displayed, never registered.
 type MenuView struct {
-	trigger  el.View
-	items    []menuItem
-	open     bool
-	openSub  int // index of the open submenu, -1 none
-	parent   *MenuView
-	width    float32
-	disabled bool
-	reveal   int
-	find     base.Typeahead
-	side     el.Side
-	align    el.Align
-	offset   float32
+	trigger    el.View
+	items      []menuItem
+	open       bool
+	openSub    int // index of the open submenu, -1 none
+	parent     *MenuView
+	width      float32
+	disabled   bool
+	reveal     int
+	find       base.Typeahead
+	side       el.Side
+	align      el.Align
+	offset     float32
+	checkRight bool
 }
 
 func Menu() *MenuView { return &MenuView{openSub: -1, width: 220, reveal: -1, offset: 4} }
@@ -88,6 +92,55 @@ func (v *MenuView) Item(label, shortcut string, action func()) *MenuView {
 	v.items = append(v.items, menuItem{label: label, shortcut: shortcut, action: action})
 	return v
 }
+
+// IconItem adds an ordinary command with a leading icon.
+func (v *MenuView) IconItem(label, shortcut string, icon IconName, action func()) *MenuView {
+	v.items = append(v.items, menuItem{label: label, shortcut: shortcut, icon: icon, action: action})
+	return v
+}
+
+// CheckItem toggles stored state, closes the menu, then calls onChange.
+func (v *MenuView) CheckItem(label, shortcut string, checked bool, onChange func(bool)) *MenuView {
+	v.items = append(v.items, menuItem{label: label, shortcut: shortcut, checkable: true, checked: checked, onCheck: onChange})
+	return v
+}
+
+// SetItemChecked updates matching check items without calling onChange.
+func (v *MenuView) SetItemChecked(label string, checked bool) {
+	for i := range v.items {
+		if v.items[i].label == label && v.items[i].checkable {
+			v.items[i].checked = checked
+		}
+	}
+}
+
+// ItemChecked returns the first matching check item's state and whether it exists.
+func (v *MenuView) ItemChecked(label string) (bool, bool) {
+	for _, it := range v.items {
+		if it.label == label && it.checkable {
+			return it.checked, true
+		}
+	}
+	return false, false
+}
+
+// SetItemIcon updates all matching non-separator items, including submenus.
+func (v *MenuView) SetItemIcon(label string, icon IconName) {
+	for i := range v.items {
+		if v.items[i].label == label && !v.items[i].separator {
+			v.items[i].icon = icon
+		}
+	}
+}
+
+// CheckSide chooses Left (default) or Right. Left checks replace item icons.
+func (v *MenuView) CheckSide(side el.Side) *MenuView {
+	if side == el.Left || side == el.Right {
+		v.checkRight = side == el.Right
+	}
+	return v
+}
+
 func (v *MenuView) Separator() *MenuView {
 	v.items = append(v.items, menuItem{separator: true})
 	return v
@@ -199,12 +252,16 @@ func (v *MenuView) panel(cx *el.Context) el.Element {
 	w, h := cx.ViewportSize()
 	list := floating(theme.ElevationMd).ID(autoID("menu-scroll", v)).Role("menu").Name(v.label()).MinW(el.Dp(min(v.width, max(0, w-16)))).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().Py(theme.SpaceXs).Items(el.Stretch)
 	v.revealItem(cx)
+	leading := false
+	for _, it := range v.items {
+		leading = leading || it.icon != IconNone || it.checkable && !v.checkRight
+	}
 	for i, it := range v.items {
 		if it.separator {
 			list.Child(el.Div().NoShrink().H(el.Dp(1)).My(4).Bg(theme.Border))
 			continue
 		}
-		list.Child(v.row(cx, i, it))
+		list.Child(v.row(cx, i, it, leading))
 	}
 	return list
 }
@@ -221,7 +278,7 @@ func (v *MenuView) label() string {
 	return locale.Current().Menu
 }
 
-func (v *MenuView) row(cx *el.Context, i int, it menuItem) el.Element {
+func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Element {
 	run := func() {
 		if v.itemDisabled(i) {
 			return
@@ -230,6 +287,15 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem) el.Element {
 			v.openSub = i
 			it.sub.reveal = it.sub.step(-1, 1)
 			cx.Focus(it.sub.itemID(it.sub.reveal))
+			return
+		}
+		if it.checkable {
+			v.items[i].checked = !v.items[i].checked
+			checked := v.items[i].checked
+			v.root().SetValue(false)
+			if it.onCheck != nil {
+				it.onCheck(checked)
+			}
 			return
 		}
 		v.root().SetValue(false)
@@ -242,8 +308,36 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem) el.Element {
 		DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).
 		FocusStyle(func(s *el.Style) { s.Bg(theme.Subtle).BorderColor(theme.Subtle) }).
 		OnClick(run).
-		OnKey(func(e el.KeyEvent) bool { return v.key(cx, i, e) }).
-		Child(el.Text(it.label).Grow().MaxLines(1))
+		OnKey(func(e el.KeyEvent) bool { return v.key(cx, i, e) })
+	if it.checkable {
+		row.Role("menuitemcheckbox").Selected(it.checked)
+	}
+	color := theme.Text
+	if v.itemDisabled(i) {
+		color = theme.Muted
+	}
+	if leading {
+		icon := it.icon
+		if it.checkable && !v.checkRight {
+			icon = IconNone
+			if it.checked {
+				icon = IconDone
+			}
+		}
+		slot := el.Div().ID("mark").Size(el.Dp(16)).NoShrink().Center()
+		if icon != IconNone {
+			slot.Child(Icon(icon).Size(16).Color(color).Render(cx))
+		}
+		row.Child(slot)
+	}
+	row.Child(el.Text(it.label).ID("label").Grow().MaxLines(1))
+	if it.checkable && v.checkRight {
+		slot := el.Div().ID("check").Size(el.Dp(16)).NoShrink().Center()
+		if it.checked {
+			slot.Child(Icon(IconDone).Size(16).Color(color).Render(cx))
+		}
+		row.Child(slot)
+	}
 	if !v.itemDisabled(i) {
 		row.CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 	}
