@@ -1,5 +1,5 @@
 // Package notification posts local operating-system notifications independently
-// of Keel's UI. Currently implemented for bundled macOS applications with cgo.
+// of Keel's UI. Implemented for bundled macOS applications with cgo and Linux desktop D-Bus.
 package notification
 
 import (
@@ -15,10 +15,12 @@ type Message struct{ ID, Title, Body string }
 
 // Available reports whether this process can use the platform implementation.
 // It does not report notification permission or guarantee banner presentation.
+// On Linux it queries the session bus and can wait for a service response.
 func Available() bool { return sys.NotificationAvailable() }
 
 // RequestPermission asks for alert authorization. done runs once on a separate
-// goroutine. It may be nil. Call from a bundled app with its event loop running.
+// goroutine. It may be nil. macOS needs a bundled app and a running event loop.
+// Linux only checks the notification service and does not show a permission prompt.
 func RequestPermission(done func(error)) { sys.NotificationPermission(completion(done)) }
 
 // Post submits a notification without requesting permission. done reports OS

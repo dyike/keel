@@ -1,6 +1,6 @@
 # notification
 
-独立的系统通知接口，当前实现 macOS 14+、cgo、带 bundle identifier 的 `.app`。Windows、Linux、WebAssembly、iOS 和无 cgo 构建返回 `native.ErrUnsupported`，普通 `go run` 同样不支持。
+独立的系统通知接口，当前实现 macOS 14+、cgo、带 bundle identifier 的 `.app`，以及 Linux 桌面 D-Bus 通知服务。Windows、WebAssembly、iOS/Android 和 macOS 无 cgo 构建返回 `native.ErrUnsupported`；macOS 普通 `go run` 同样不支持。Linux 不要求 X11，Wayland 下也通过会话总线通信。
 
 ```go
 notification.RequestPermission(func(err error) {
@@ -47,3 +47,10 @@ open /tmp/KeelNotification.app
 自动测试覆盖参数校验和未打包进程的拒绝路径，不弹出系统权限窗口。系统授权、真实通知展示/替换/撤回仍需上述手动验收。
 
 接口依据：[Apple UNUserNotificationCenter](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter)。
+
+
+Linux 使用运行中的 `org.freedesktop.Notifications` 服务，`Available()` 会检查会话总线和服务能力，可能等待总线回应；`RequestPermission` 异步执行同样检查，不弹权限对话框。无服务返回 ErrUnsupported，协议调用失败返回 ErrFailed。Notify 使用系统默认超时、无图标/动作、应用名 Keel；正文根据 body-markup 能力转义，保留纯文本含义。
+
+业务 ID 映射到服务返回的数值 ID，重复 Post 使用 replaces_id，Remove 调用 CloseNotification。收到 NotificationClosed 后删除映射；服务 owner 变化时清空旧映射，避免将旧 ID 发送给重启后的服务。映射仅保留在当前进程，不能跨进程启动撤回旧通知。Linux 未实现 ActionInvoked 点击回调和窗口激活，真实桌面展示仍需运行示例验收。协议测试使用可控总线替身，不代表 Linux 桌面验收完成。
+
+协议依据：[Freedesktop Desktop Notifications](https://specifications.freedesktop.org/notification/latest/protocol.html)。

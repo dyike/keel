@@ -8,7 +8,7 @@
 | [screen](screen/) | 显示器列表、截图 | 同上 |
 | [input](input/) | 合成鼠标、键盘事件 | 同上 |
 | [hotkey](hotkey/) | 全局快捷键 | 同上 |
-| [notification](notification/) | 系统通知权限、投递与撤回（当前仅 macOS .app） | 同上 |
+| [notification](notification/) | 系统通知权限、投递与撤回（macOS .app / Linux D-Bus） | 同上 |
 
 模块之间互不引用，也不引用 `ui` 和 Gio，这一点由 `internal/deps` 里的测试保证。
 

@@ -6,6 +6,7 @@ require (
 	gioui.org v0.10.3
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/go-text/typesetting v0.3.5
+	github.com/godbus/dbus/v5 v5.2.2
 	github.com/jezek/xgb v1.3.1
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/yuin/goldmark v1.8.6
@@ -18,7 +19,6 @@ require (
 require (
 	gioui.org/shader v1.0.9 // indirect
 	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
-	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect

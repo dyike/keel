@@ -6,7 +6,7 @@
 //	native/input       synthesize mouse and keyboard input
 //	native/hotkey      system-wide shortcuts
 //
-//	native/notification local notifications (currently macOS app bundles only)
+//	native/notification local notifications (macOS app bundles and Linux D-Bus)
 //
 // Implemented on macOS 14+ (cgo), Windows and Linux under X11; elsewhere, and
 // in macOS builds without cgo, every call returns ErrUnsupported. To add a
