@@ -4,6 +4,7 @@ import (
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/theme"
 )
 
 func init() {
@@ -18,7 +19,7 @@ func (emptyGallery) Render(cx *el.Context) el.Element {
 			return el.Div().P(8).Name("新建订单").OnClick(func() {}).Child(el.Text("新建订单"))
 		})).Render(cx),
 		el.Div().W(el.Dp(180)).Child(kit.Empty("没有搜索结果 0").Description("请尝试其他关键词 Search again，或调整筛选条件。").Render(cx)),
-		kit.Empty("暂无通知").Description("").Icon(kit.IconNone).Render(cx),
+		kit.Empty("暂无通知").Icon(kit.IconNone).Heading(kit.Tag("暂无通知")).DescriptionContent(el.ViewFunc(func(*el.Context) el.Element { return el.Text("通知将显示在这里").Bold() })).Footer(kit.Button("了解通知设置", func() {}).Variant(kit.ButtonLink)).PartStyle(kit.EmptyPartRoot, func(e *el.DivEl) { e.Bg(theme.Subtle).Rounded(theme.RadiusLg) }).Render(cx),
 		kit.Empty("Alex 尚未加入").Media(kit.Avatar("Alex").Size(56)).Description("邀请成员一起协作。").Action(kit.Button("邀请成员", func() {})).Render(cx),
 	)
 }

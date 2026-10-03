@@ -41,7 +41,8 @@
 - [x] 第十八批（`5c83f02`）：Accordion 的 Bordered 与四档 Size；边框开关同时控制外框和分节线，尺寸统一调整间距、箭头和继承字号。保留默认字号继承及 Collapsible 原行为；覆盖 1×/2× 布局、状态保留、自定义标题、键盘跳过禁用项与 Agent 快照。全量构建、vet、测试通过，浅色 1×/深色 2× 截图已检查。
 - [x] 第十九批（`72b8472`）：Spinner 的 Icon、VectorIcon 与 Color；圆环和自定义图标共享帧时钟与减少动画策略，可恢复默认圆环。像素测试覆盖旋转、静止、自定义颜色及恢复，Agent 语义保持不变；全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。
 - [x] 第二十批（`8a59f77`）：Spinner 增加 Period 旋转周期；0 恢复一秒、负值忽略，减少动画保持优先。注入帧时间的像素测试验证圆环/自定义图标的两秒周期、整周重复、默认恢复与静止；全量构建、vet、测试通过。
-- [x] 第二十一批：Empty 增加 Media，支持头像、图片与任意 View；nil 恢复图标，IconNone 隐藏回退。媒体、标题、说明和操作区使用稳定身份，测试覆盖媒体替换后的输入与焦点、1×/2× 窄布局、主题切换、Agent 语义与操作按钮；全量构建、vet、测试及浅深色截图检查通过。
+- [x] 第二十一批（`2f6f1c2`）：Empty 增加 Media，支持头像、图片与任意 View；nil 恢复图标，IconNone 隐藏回退。媒体、标题、说明和操作区使用稳定身份，测试覆盖媒体替换后的输入与焦点、1×/2× 窄布局、主题切换、Agent 语义与操作按钮；全量构建、vet、测试及浅深色截图检查通过。
+- [x] 第二十二批：Empty 增加 Heading、DescriptionContent、Footer 与七个分区的 PartStyle；富内容可恢复原字符串，尾部独立于 Action。覆盖窄布局、替换/恢复后的输入焦点、尾部操作与禁用继承、富内容主题切换；全量构建、vet、测试及浅深色截图检查通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -89,7 +90,7 @@
 | [Dock](https://gpui-kit.com/component/dock/) | 部分 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | 中心/边缘嵌套分割、拖放、最大化已完成；缺 GPUI 的面板工厂注册/面板自有状态恢复和独立 DockSkin。分离由 OnDetach 交给应用开窗，恢复布局不会重开分离窗口。 |
 | [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 主体已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | 主体覆盖，另有分体动作；缺公开 anchor、loading 和内部按钮配置透传。 |
 | [Editor](https://gpui-kit.com/component/editor/) | 部分 | [行号、局部重高亮、多光标/矩形选择、查找替换、折叠、语法感知括号配对、诊断/补全/悬停/定义跳转接口](../../ui/kit/code_editor.go) | 缺可随编辑跟踪的文本/几何装饰集合、可替换语言编辑规则、完整自定义搜索会话 API；高亮为 chroma，非 Tree-sitter。多光标、查找替换、折叠、括号配对已完成。 |
-| [Empty](https://gpui-kit.com/component/empty/) | 主体已有 | [空状态标题、说明、操作与任意媒体槽](../../ui/kit/empty.go) | 第二十一批已补齐 Media；保留媒体自身尺寸、语义和状态。重新核对上游文档后，另记录富标题/描述、独立尾部内容及各分区样式接口差异；当前标题/说明仍是字符串，默认 Surface 背景。 |
+| [Empty](https://gpui-kit.com/component/empty/) | 主体已有 | [空状态富标题/描述、操作、媒体、尾部与分区样式](../../ui/kit/empty.go) | 第二十一、二十二批已补齐登记的媒体、富内容、尾部和样式缺口；默认保留 Surface 背景，分区样式通过 PartStyle 调整。使用单个 View 槽组合多个子项，非上游独立部件类型。 |
 | [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 主体已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | 弹层通过 el.Layer.TrapFocus/Modal 覆盖；GPUI 还可在普通容器上独立包裹 FocusTrap，Keel 当前入口绑定浮层。 |
 | [Form](https://gpui-kit.com/component/form/) | 部分 | [字段组织、校验、错误聚焦、异步提交/取消](../../ui/kit/form.go) | 缺多列网格、字段 col_span/col_start、字段描述/必填标识/可见性的声明式配置；已有校验、聚焦与异步提交状态。 |
 | [GroupBox](https://gpui-kit.com/component/group-box/) | 主体已有 | [标题、描述、内容分组、四种外观、框外 footer 与标题/正文样式](../../ui/kit/group_box.go) | 第十六批已关闭登记缺口；默认保留 Keel 原有背景加边框，GroupBoxNormal 对应无装饰。样式回调作用于每帧新建元素，不应保留元素引用。 |

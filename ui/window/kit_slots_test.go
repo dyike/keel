@@ -21,6 +21,9 @@ func TestKitSlotsFollowRuntimePalette(t *testing.T) {
 	}{
 		{"empty", func(v el.View) el.View { return kit.Empty("Empty").Action(v) }},
 		{"empty_media", func(v el.View) el.View { return kit.Empty("Empty").Media(v) }},
+		{"empty_heading", func(v el.View) el.View { return kit.Empty("Empty").Heading(v) }},
+		{"empty_description", func(v el.View) el.View { return kit.Empty("Empty").DescriptionContent(v) }},
+		{"empty_footer", func(v el.View) el.View { return kit.Empty("Empty").Footer(v) }},
 		{"status_left", func(v el.View) el.View { return kit.StatusBar().Left(v) }},
 		{"status_right", func(v el.View) el.View { return kit.StatusBar().Right(v) }},
 		{"description", func(v el.View) el.View { return kit.DescriptionList().ItemView("Slot", v) }},
