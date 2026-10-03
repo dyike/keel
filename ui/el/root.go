@@ -37,9 +37,11 @@ func (f ViewFunc) Render(cx *Context) Element { return f(cx) }
 
 // Context is passed to Render.
 type Context struct {
-	layers    []overlayDecl
-	shortcuts []viewShortcut
-	root      *RootWidget
+	layers         []overlayDecl
+	shortcuts      []viewShortcut
+	actions        []scopedAction
+	bindingTargets map[string]actionBindingTarget
+	root           *RootWidget
 }
 
 // ClickModifiers reports modifier keys during the current pointer click
@@ -178,6 +180,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	}
 	cx := Context{root: r}
 	tree := r.view.Render(&cx).node()
+	cx.prepareActionBindings(tree)
 	st.assignKeys(tree, 1)
 	r.prepareKeys(tree, nil, false)
 	r.mainTree = tree
@@ -196,10 +199,13 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	if r.callbacks {
 		r.beginTimers()
 		cx.shortcuts = nil
+		cx.actions = nil
 		cx.layers = nil
 		tree = r.view.Render(&cx).node()
+		cx.prepareActionBindings(tree)
 	}
 
+	cx.prepareScopedActions()
 	for _, s := range cx.shortcuts {
 		for {
 			ev, ok := gtx.Event(key.Filter{Name: s.name, Required: s.mods})

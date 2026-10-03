@@ -39,23 +39,24 @@ type menuItem struct {
 // → opens a submenu, ← or Esc closes one level. Running any item closes the
 // whole menu. Shortcuts are only displayed, never registered.
 type MenuView struct {
-	trigger      el.View
-	items        []menuItem
-	open         bool
-	openSub      int // index of the open submenu, -1 none
-	parent       *MenuView
-	width        float32
-	disabled     bool
-	reveal       int
-	find         base.Typeahead
-	side         el.Side
-	align        el.Align
-	offset       float32
-	checkRight   bool
-	focusPending bool
-	onLink       func(string)
-	onLinkError  func(error)
-	hideLinkIcon bool
+	trigger       el.View
+	items         []menuItem
+	open          bool
+	openSub       int // index of the open submenu, -1 none
+	parent        *MenuView
+	width         float32
+	disabled      bool
+	reveal        int
+	find          base.Typeahead
+	side          el.Side
+	align         el.Align
+	offset        float32
+	checkRight    bool
+	focusPending  bool
+	onLink        func(string)
+	onLinkError   func(error)
+	hideLinkIcon  bool
+	actionContext string
 }
 
 func Menu() *MenuView { return &MenuView{openSub: -1, width: 220, reveal: -1, offset: 4} }
@@ -90,11 +91,27 @@ func (v *MenuView) Width(dp float32) *MenuView {
 }
 
 // ActionItem adds a command that shows the key bound to a keymap action
-// (core.Bind), following rebinding. Handle the key itself with the view's
-// cx.Action; the menu only runs fn when the item is chosen.
+// (core.Bind/BindIn), following rebinding and the trigger or ActionContext.
+// Handle keys with cx.ActionAt for scoped bindings, or cx.Action for global
+// ones; the menu only runs fn when the item is chosen.
 func (v *MenuView) ActionItem(label, keymapAction string, fn func()) *MenuView {
 	v.items = append(v.items, menuItem{label: label, keymapAction: keymapAction, action: fn})
 	return v
+}
+
+// ActionContext chooses the element ID whose KeyContext ancestry resolves
+// ActionItem hints. Empty restores the trigger context (inherited by submenus).
+// This affects hints only: item callbacks still own command dispatch.
+func (v *MenuView) ActionContext(id string) *MenuView { v.actionContext = id; return v }
+
+func (v *MenuView) keyTarget() string {
+	if v.actionContext != "" {
+		return v.actionContext
+	}
+	if v.parent != nil {
+		return v.parent.keyTarget()
+	}
+	return autoID("menu", v)
 }
 
 // Item adds a command; shortcut uses core.ParseShortcut syntax and may be empty.
@@ -468,7 +485,9 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Elem
 	} else if it.link && !v.hideLinkIcon {
 		row.Child(Icon(IconExternalLink).Size(14).Color(theme.Muted).Render(cx))
 	} else if it.keymapAction != "" {
-		row.Child(KbdFor(it.keymapAction).Plain().Render(cx))
+		row.Child(el.KeyHint(it.keymapAction, v.keyTarget(), func(chord string) el.Element {
+			return Kbd(chord).Plain().Render(cx)
+		}))
 	} else if it.shortcut != "" {
 		row.Child(Kbd(it.shortcut).Plain().Render(cx))
 	}

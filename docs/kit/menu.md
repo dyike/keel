@@ -54,3 +54,21 @@ DropdownButton 的这两个方法直接配置传入的 Menu；普通模式锚定
 `Link(label, url)` 添加链接项，保留 menuitem 角色，语义 value 为 URL；点击或键盘执行后先关闭整条菜单链，再打开链接。默认通过 `core.OpenURL` 调用平台浏览器/邮件处理程序，仅接受绝对 HTTP、HTTPS 和 mailto URL。`SetItemIcon` 可添加前置图标，`ExternalLinkIcon(false)` 隐藏右侧外链图标。
 
 `OnLink(func(string))` 可接管打开行为和 URL 策略，子菜单优先使用自己的回调，否则沿父菜单查找。默认打开失败时通过 `OnLinkError(func(error))` 通知，同样沿父菜单查找；未配置时忽略错误。默认入口只报告校验和进程启动错误，不表示网页加载成功。Web 使用 window.open，受浏览器弹窗策略限制。
+
+
+## 按目标区域显示快捷键
+
+`ActionItem` 根据触发器的 `KeyContext` 祖先解析键位，子菜单继承顶层目标。也可以用 `ActionContext("editor")` 指定一个元素 ID，显示该元素所在区域的键位；指定目标不存在、隐藏或禁用时不显示提示。空字符串恢复触发器目标。提示在当前帧构建完成后、测量之前生成，因此首次打开或同帧切换上下文不需要多等一帧。
+
+```go
+core.Bind("save", "mod+s")
+core.BindIn("editor", "save", "mod+shift+s")
+menu := kit.Menu().ActionContext("document").ActionItem("保存", "save", save)
+// Render 中：
+cx.ActionAt("document", "save", save)
+return el.Div().ID("document").KeyContext("editor").Child(input.Render(cx), menu.Render(cx))
+```
+
+`core.BindIn` 对一个动作设置区域覆盖，优先顺序为内层、外层、全局。不传键位表示在此区域禁用该动作的绑定；`ClearBindingIn` 删除覆盖并恢复继承。无效键位不会更改原绑定，改绑会请求所有窗口刷新。上下文是精确字符串名称，不支持 GPUI 的条件表达式；`Keymap/LoadKeymap` 仍只读写全局绑定，区域绑定由应用配置。
+
+`cx.ActionAt` 仅在指定元素内有焦点时处理解析出的按键。嵌套目标中，较深的目标优先，同层按声明顺序；内层显式空绑定也会阻止外层同动作处理。不要同时用全局 `cx.Action` 注册同一动作。菜单点击仍调用 `ActionItem` 提供的函数，`ActionContext` 不会自动切换焦点或转发命令。普通 `Item` 的显式快捷键和独立 `KbdFor` 保持原有行为。底层 `el.KeyHint` 可用于相同规则的展示内容，不负责注册快捷键。

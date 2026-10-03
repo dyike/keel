@@ -33,6 +33,8 @@ type Node struct {
 	disabledStyle               func(*Style)
 	onKey                       func(KeyEvent) bool
 	id                          string
+	keyContext                  string
+	keyHint                     *actionKeyHint
 	children                    []Element
 
 	text       string

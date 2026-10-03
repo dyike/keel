@@ -20,6 +20,12 @@ type menuGallery struct {
 
 func newMenuGallery() *menuGallery {
 	g := &menuGallery{last: "尚未选择"}
+	if err := core.Bind("gallery.menu.inspect", "f7"); err != nil {
+		panic(err)
+	}
+	if err := core.BindIn("menu-gallery", "gallery.menu.inspect", "f6"); err != nil {
+		panic(err)
+	}
 	do := func(s string) func() { return func() { g.last = "已执行：" + s } }
 	export := kit.Menu().Item("PDF 文档", "", do("导出 PDF")).Item("CSV 表格", "", do("导出 CSV"))
 	g.menu = kit.Menu().Label("编辑操作").
@@ -33,6 +39,7 @@ func newMenuGallery() *menuGallery {
 	g.menu.ContentItem("项目详情", "", el.ViewFunc(func(cx *el.Context) el.Element {
 		return el.Div().Gap(theme.SpaceXs).Child(el.Text("项目详情").Bold(), el.Text("查看项目状态与最近活动").TextSize(theme.TextSm).TextColor(theme.Muted))
 	}), do("项目详情"))
+	g.menu.ActionItem("上下文命令", "gallery.menu.inspect", do("上下文命令"))
 	g.menu.Link("Keel 文档", "https://github.com/dyike/keel")
 	g.menu.SetItemDisabled("粘贴", true)
 	g.menu.Trigger(kit.Button("更多操作", g.menu.Toggle).Variant(kit.ButtonSecondary))
@@ -58,8 +65,10 @@ func newMenuGallery() *menuGallery {
 }
 
 func (g *menuGallery) Render(cx *el.Context) el.Element {
-	return el.Div().P(24).Gap(12).Items(el.Start).Child(
+	cx.ActionAt("menu-gallery", "gallery.menu.inspect", func() { g.last = "已执行：上下文命令" })
+	return el.Div().ID("menu-gallery").KeyContext("menu-gallery").P(24).Gap(12).Items(el.Start).Child(
 		el.Text("Menu：↑ ↓ 移动，→ 打开子菜单，← / Esc 返回").Bold(),
+		el.Text("本区域的上下文命令使用 F6；全局默认是 F7").TextColor(theme.Muted),
 		g.menu.Render(cx),
 		g.long.Render(cx), g.context.Render(cx),
 		el.Text(g.last).TextColor(theme.Muted),

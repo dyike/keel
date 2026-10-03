@@ -17,6 +17,7 @@ import (
 var keymap = struct {
 	sync.Mutex
 	bindings map[string][]string
+	contexts map[string]map[string][]string
 }{bindings: map[string][]string{}}
 
 // Bind sets the chords that trigger action, replacing its earlier ones; no
