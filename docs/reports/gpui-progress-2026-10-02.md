@@ -43,7 +43,8 @@
 - [x] 第二十批（`8a59f77`）：Spinner 增加 Period 旋转周期；0 恢复一秒、负值忽略，减少动画保持优先。注入帧时间的像素测试验证圆环/自定义图标的两秒周期、整周重复、默认恢复与静止；全量构建、vet、测试通过。
 - [x] 第二十一批（`2f6f1c2`）：Empty 增加 Media，支持头像、图片与任意 View；nil 恢复图标，IconNone 隐藏回退。媒体、标题、说明和操作区使用稳定身份，测试覆盖媒体替换后的输入与焦点、1×/2× 窄布局、主题切换、Agent 语义与操作按钮；全量构建、vet、测试及浅深色截图检查通过。
 - [x] 第二十二批（`5b8fbce`）：Empty 增加 Heading、DescriptionContent、Footer 与七个分区的 PartStyle；富内容可恢复原字符串，尾部独立于 Action。覆盖窄布局、替换/恢复后的输入焦点、尾部操作与禁用继承、富内容主题切换；全量构建、vet、测试及浅深色截图检查通过。
-- [x] 第二十三批：Skeleton 增加 Secondary 与 Rounded，整体透明度减半、任意有限非负圆角并按短边限制；Circle/Rounded 后调用者生效。像素测试覆盖浅深主题、直角/圆角/极大圆角、普通/次级的脉冲与扫光、减少动画及装饰语义；全量构建、vet、测试和浅色 1×/深色 2× 截图通过。
+- [x] 第二十三批（`41a9982`）：Skeleton 增加 Secondary 与 Rounded，整体透明度减半、任意有限非负圆角并按短边限制；Circle/Rounded 后调用者生效。像素测试覆盖浅深主题、直角/圆角/极大圆角、普通/次级的脉冲与扫光、减少动画及装饰语义；全量构建、vet、测试和浅色 1×/深色 2× 截图通过。
+- [x] 第二十四批：Rating 增加 Size/Color，并按上游 0.7 源码对齐已填星点击：点第 i 颗已填星设置 i−1 分，否则设置 i 分；悬停预览对应目标。覆盖 1×/2× 尺寸、清零、键盘、只读/禁用继承、Agent 数值及自定义颜色/小数填充像素；全量构建、vet、测试及浅深色截图检查通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -116,7 +117,7 @@
 | [Progress](https://gpui-kit.com/component/progress/) | 主体已有 | [条形确定/不确定进度](../../ui/kit/progress.go)、[圆形进度与中心内容](../../ui/kit/progress_circle.go) | 第一批已补齐 ProgressCircle：真实进度、加载动画、减少动画、中心内容、大小/颜色。条形组件的高度/颜色等样式配置仍比 GPUI 少。 |
 | [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 部分 | [题型、答案模型、校验、分页、禁用与提交快照](../../ui/kit/questionnaire.go) | 缺单题条件禁用、跳过状态、自定义/外部校验、同题选项+自由输入、完整进度状态和快捷键配置；现有五种题型、必填校验与分页保留。 |
 | [Radio](https://gpui-kit.com/component/radio/) | 主体已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | 单选主体覆盖；组内 Item 可单独放置。缺任意富标签和组件级大小配置。 |
-| [Rating](https://gpui-kit.com/component/rating/) | 主体已有 | [评分、半星/小数展示、只读、键盘](../../ui/kit/rating.go) | 行为差异：GPUI 再点已填星会减分，Keel 直接设为该星序号；缺大小/颜色配置。Keel 另支持小数展示，交互仍是整星。 |
+| [Rating](https://gpui-kit.com/component/rating/) | 主体已有 | [评分、已填星减分、尺寸/颜色、半星/小数展示、只读与键盘](../../ui/kit/rating.go) | 第二十四批已关闭登记缺口；按上游源码明确为点已填第 i 星设 i−1 分，并非总分减一。Size 为 dp，默认 22；小数只用于展示，编辑仍选整星。 |
 | [Resizable](https://gpui-kit.com/component/resizable/) | 部分 | [横纵分割、最小尺寸、拖动、键盘、取消与禁用](../../ui/kit/resizable.go) | 缺独立多面板 group、最大尺寸、条件显隐/把手外观配置；Keel 为双面板，可嵌套组合更多面板。 |
 | [Root View](https://gpui-kit.com/component/root/) | 主体已有 | [根布局、统一浮层宿主、窗口快捷键](../../ui/el/root.go) | 架构差异：Keel 已有 root/overlay/focus/shortcut；Dialog/Sheet/Notifier 需应用挂载，GPUI 0.7 根视图自动挂载这些层。 |
 | [Scrollable](https://gpui-kit.com/component/scrollable/) | 主体已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位与尾部跟随](../../ui/el/viewport.go) | 双轴滚动、滚动条与定位已有，通过 el 组合；缺组件级 Always/Hover/Scrolling 显示策略。没有独立类型本身不计功能缺失。 |

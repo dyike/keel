@@ -49,7 +49,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [TimeField](../../docs/kit/time_field.md) | 时间输入 |
 | [Calendar](../../docs/kit/calendar.md) | 日历、范围 |
 | [DatePicker](../../docs/kit/date_picker.md) | 日期字段 |
-| [Rating](../../docs/kit/rating.md) | 星级评分 |
+| [Rating](../../docs/kit/rating.md) | 星级评分、已填星减分、自定义尺寸与颜色 |
 | [Stepper](../../docs/kit/stepper.md) | 横纵步骤进度、图标、尺寸、单步禁用 |
 | [Form](../../docs/kit/form.md) | 表单与校验 |
 | [VirtualList](../../docs/kit/virtual_list.md) | 等高虚拟列表 |

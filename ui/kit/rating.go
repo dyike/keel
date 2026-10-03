@@ -2,6 +2,7 @@ package kit
 
 import (
 	"image"
+	"image/color"
 	"math"
 	"strconv"
 
@@ -22,6 +23,8 @@ type RatingView struct {
 	max                int
 	readOnly, disabled bool
 	onChange           func(int)
+	size               float32
+	color              *color.NRGBA
 }
 
 // Rating creates a rating out of max stars (5 if max < 1).
@@ -30,6 +33,23 @@ func Rating(label string, max int) *RatingView {
 		max = 5
 	}
 	return &RatingView{label: label, max: max}
+}
+
+// Size sets each star's diameter in dp (8–128); invalid values are ignored.
+func (v *RatingView) Size(dp float32) *RatingView {
+	if dp >= 8 && dp <= 128 {
+		v.size = dp
+	}
+	return v
+}
+
+// Color sets the filled star color; outlines continue to use theme.Muted.
+func (v *RatingView) Color(c color.NRGBA) *RatingView { v.color = &c; return v }
+func (v *RatingView) clickValue(i int) int {
+	if v.value >= float64(i) {
+		return i - 1
+	}
+	return i
 }
 func (v *RatingView) ReadOnly() *RatingView             { v.readOnly = true; return v }
 func (v *RatingView) OnChange(fn func(int)) *RatingView { v.onChange = fn; return v }
@@ -66,7 +86,7 @@ func (v *RatingView) Render(cx *el.Context) el.Element {
 	shown := v.value
 	for i := 1; i <= v.max && interactive; i++ {
 		if cx.Hovered(id + "/" + strconv.Itoa(i)) {
-			shown = float64(i) // preview the rating under the pointer
+			shown = float64(v.clickValue(i)) // preview the score this click would choose
 		}
 	}
 	name := v.label
@@ -95,12 +115,20 @@ func (v *RatingView) Render(cx *el.Context) el.Element {
 			}
 			return true
 		})
+	size := v.size
+	if size == 0 {
+		size = 22
+	}
+	active := theme.Warning
+	if v.color != nil {
+		active = *v.color
+	}
 	for i := 1; i <= v.max; i++ {
 		i := i
 		portion := float32(min(1, max(0, shown-float64(i-1))))
-		star := el.Div().ID(id + "/" + strconv.Itoa(i)).Size(el.Dp(22)).Child(Icon(IconStarOutline).Size(22).Color(theme.Muted).Render(cx))
+		star := el.Div().ID(id + "/" + strconv.Itoa(i)).Size(el.Dp(size)).Child(Icon(IconStarOutline).Size(size).Color(theme.Muted).Render(cx))
 		if portion > 0 {
-			filled := el.Div().Absolute().Top(0).Left(0).Size(el.Dp(22)).Child(Icon(IconStar).Size(22).Color(theme.Warning).Render(cx))
+			filled := el.Div().Absolute().Top(0).Left(0).Size(el.Dp(size)).Child(Icon(IconStar).Size(size).Color(active).Render(cx))
 			filled.Decorate(func(gtx core.C, draw func()) {
 				bounds := gtx.Constraints.Max
 				bounds.X = int(math.Round(float64(bounds.X) * float64(portion)))
@@ -110,7 +138,7 @@ func (v *RatingView) Render(cx *el.Context) el.Element {
 			star.Child(filled)
 		}
 		if interactive {
-			star.CursorPointer().Focusable(false).OnClick(func() { v.set(i) })
+			star.CursorPointer().Focusable(false).OnClick(func() { v.set(v.clickValue(i)) })
 		}
 		row.Child(star)
 	}
