@@ -5,6 +5,7 @@ import (
 
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
+	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
@@ -21,6 +22,8 @@ type ResizableView struct {
 	disabled       bool
 	size           float32 // first pane, dp
 	min1, min2     float32
+	max1, max2     float32
+	measured       bool
 	total, painted float32 // container and first pane size as last painted
 	grab           float32
 	onChange       func(float32)
@@ -35,7 +38,12 @@ func (v *ResizableView) Vertical() *ResizableView { v.vertical = true; return v 
 
 // Min sets the smallest sizes of the two panes in dp (80 each by default).
 func (v *ResizableView) Min(first, second float32) *ResizableView {
-	v.min1, v.min2 = max(first, 0), max(second, 0)
+	if finiteNumber(float64(first)) {
+		v.min1 = max(first, 0)
+	}
+	if finiteNumber(float64(second)) {
+		v.min2 = max(second, 0)
+	}
 	return v
 }
 func (v *ResizableView) OnChange(fn func(size float32)) *ResizableView { v.onChange = fn; return v }
@@ -47,16 +55,28 @@ func (v *ResizableView) Value() float32 { return v.size }
 func (v *ResizableView) SetDisabled(on bool) { v.disabled = on }
 
 // SetValue sets the first pane's size without calling OnChange.
-func (v *ResizableView) SetValue(dp float32) { v.size = v.clamp(dp) }
+func (v *ResizableView) SetValue(dp float32) {
+	if finiteNumber(float64(dp)) {
+		v.size = v.clamp(dp)
+	}
+}
 
 const handleSize = 6
 
 func (v *ResizableView) clamp(dp float32) float32 {
-	dp = max(dp, v.min1)
-	if v.total > 0 {
-		dp = min(dp, v.total-handleSize-v.min2)
+	lo, hi := v.min1, float32(3.4028234663852886e+38)
+	if v.max1 > 0 {
+		hi = max(v.min1, v.max1)
 	}
-	return max(dp, 0)
+	if v.measured {
+		available := max(v.total-handleSize, 0)
+		hi = min(hi, max(available-v.min2, 0))
+		if v.max2 > 0 {
+			lo = max(lo, available-max(v.min2, v.max2))
+		}
+	}
+	lo = min(lo, hi)
+	return min(max(dp, lo), hi)
 }
 
 func (v *ResizableView) set(dp float32) {
@@ -131,6 +151,15 @@ func (v *ResizableView) Render(cx *el.Context) el.Element {
 		two.W(el.Dp(0))
 		handle.W(el.Dp(handleSize))
 	}
+	if v.max2 > 0 && v.measured {
+		second := min(max(v.total-handleSize-v.size, 0), max(v.min2, v.max2))
+		two = el.Div().NoShrink().Items(el.Stretch)
+		if v.vertical {
+			two.H(el.Dp(second))
+		} else {
+			two.W(el.Dp(second))
+		}
+	}
 	if v.first != nil {
 		one.Child(v.first.Render(cx))
 	}
@@ -138,12 +167,19 @@ func (v *ResizableView) Render(cx *el.Context) el.Element {
 		two.Child(v.second.Render(cx))
 	}
 	return box.Decorate(func(gtx core.C, draw func()) {
-		if px := gtx.Metric.PxPerDp; px > 0 {
-			if v.vertical {
-				v.total = float32(gtx.Constraints.Max.Y) / px
-			} else {
-				v.total = float32(gtx.Constraints.Max.X) / px
-			}
+		px := gtx.Metric.PxPerDp
+		if px <= 0 {
+			px = 1
+		}
+		total := float32(0)
+		if v.vertical {
+			total = float32(gtx.Constraints.Max.Y) / px
+		} else {
+			total = float32(gtx.Constraints.Max.X) / px
+		}
+		if !v.measured || v.total != total {
+			v.total, v.measured = total, true
+			gtx.Execute(op.InvalidateCmd{})
 		}
 		draw()
 	}).Child(one, handle, two)

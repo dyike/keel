@@ -17,3 +17,7 @@ stack := kit.Resizable(editor, terminal).Vertical() // 上下排列
 Agent：分隔条的角色是 `separator`，名字是"调整大小"，`value` 是第一个面板的尺寸。
 
 验证：`go run ./examples/components -section resizable`，加 `-theme dark` 检查深色。
+
+`Max(first, second)` 设置两侧最大尺寸，0 表示该侧不限。限制适用于拖动、方向键、Home/End 和 SetValue。负数/非有限上限按参数分别忽略；Min 和 SetValue 也忽略非有限值。上限低于同侧 Min 时以 Min 为准。
+
+容器有足够空间时，同时满足两侧范围；两侧上限之和不足以填满容器时，第二面板后留空。空间不足以满足最小尺寸时，优先保留第二面板的最小空间，第一面板可缩至 0；容器小于分隔条时仍保留 6dp 把手。窗口测量变化后请求下一帧收敛，不调用 OnChange。配置 Min/Max 后在下一次 Render 收敛，SetValue 立即按当前已知容器尺寸约束。

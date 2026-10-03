@@ -14,9 +14,9 @@ func init() {
 				return el.Div().Grow().P(16).Bg(theme.Surface).Child(el.Text(s).TextColor(theme.Muted))
 			})
 		}
-		inner := kit.Resizable(pane("编辑区 Editor"), pane("终端 Terminal")).Vertical().Min(60, 60)
+		inner := kit.Resizable(pane("编辑区 Editor"), pane("终端 Terminal")).Vertical().Min(60, 60).Max(240, 240)
 		inner.SetValue(180)
-		outer := kit.Resizable(pane("拖动中间的分隔条，或聚焦后按方向键"), inner).Min(120, 160)
+		outer := kit.Resizable(pane("拖动中间的分隔条，或聚焦后按方向键"), inner).Min(120, 160).Max(260, 0)
 		outer.SetValue(220)
 		disabled := false
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
