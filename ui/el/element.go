@@ -503,7 +503,7 @@ func (cx *Context) Themed(p theme.Palette, v View) *DivEl {
 
 // ScrollOffset controls absolute x/y offsets in dp for ScrollX/ScrollY. Offsets
 // are clamped at paint time, including disabled frames. Omit it to allow user
-// scrolling; when supplied, this value wins over wheel/scrollbar input.
+// scrolling; when supplied, native scroll gestures and scrollbars are omitted.
 func (s *Styled[T]) ScrollOffset(x, y float32) *T {
 	if math.IsNaN(float64(x)) || math.IsInf(float64(x), 0) || math.IsNaN(float64(y)) || math.IsInf(float64(y), 0) {
 		return s.self

@@ -28,15 +28,20 @@ type CarouselView struct {
 	itemBasis map[int]float32
 	itemSizes map[int]float32
 	gap       float32
+	draggable bool
+	drag      carouselDrag
 }
 
 func Carousel(slides ...el.View) *CarouselView {
-	return &CarouselView{slides: slides, height: 200, looping: true, perView: 1, gap: theme.SpaceMd}
+	return &CarouselView{slides: slides, height: 200, looping: true, perView: 1, gap: theme.SpaceMd, draggable: true}
 }
 
 // Height sets the slide area height in dp, 200 by default.
 func (v *CarouselView) Height(dp float32) *CarouselView {
 	if dp > 0 && finiteNumber(float64(dp)) {
+		if v.height != dp {
+			v.drag.active = false
+		}
 		v.height = dp
 	}
 	return v
@@ -44,11 +49,23 @@ func (v *CarouselView) Height(dp float32) *CarouselView {
 
 // Vertical arranges navigation above/below its indicators beside the stage.
 // Up/Down replace Left/Right; changing orientation preserves selection and focus.
-func (v *CarouselView) Vertical(on bool) *CarouselView { v.vertical = on; return v }
+func (v *CarouselView) Vertical(on bool) *CarouselView {
+	if v.vertical != on {
+		v.drag.active = false
+	}
+	v.vertical = on
+	return v
+}
 
 // Loop controls boundary wrapping. True preserves the default behavior.
 // Switching modes does not change selection or emit OnChange.
-func (v *CarouselView) Loop(on bool) *CarouselView { v.looping = on; return v }
+func (v *CarouselView) Loop(on bool) *CarouselView {
+	if v.looping != on {
+		v.drag.active = false
+	}
+	v.looping = on
+	return v
+}
 
 // CanPrevious/CanNext include the component's own disabled state and boundaries.
 // They cannot inspect a parent view's inherited disabled state.
@@ -68,13 +85,22 @@ func (v *CarouselView) Autoplay(d time.Duration) *CarouselView { v.autoplay = d;
 func (v *CarouselView) OnChange(fn func(int)) *CarouselView    { v.onChange = fn; return v }
 
 // SetDisabled blocks navigation and autoplay; programmatic SetValue still works.
-func (v *CarouselView) SetDisabled(on bool) { v.disabled = on }
-func (v *CarouselView) Value() int          { return v.current }
+func (v *CarouselView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.drag.active = false
+	}
+}
+func (v *CarouselView) Value() int { return v.current }
 
 // SetValue shows slide i without calling OnChange.
-func (v *CarouselView) SetValue(i int) { v.current = min(max(i, 0), max(len(v.slides)-1, 0)) }
+func (v *CarouselView) SetValue(i int) {
+	v.drag.active = false
+	v.current = min(max(i, 0), max(len(v.slides)-1, 0))
+}
 
 func (v *CarouselView) goTo(i int) {
+	v.drag.active = false
 	if v.disabled || len(v.slides) == 0 {
 		return
 	}
@@ -103,12 +129,12 @@ func (v *CarouselView) Render(cx *el.Context) el.Element { return v.render(cx, t
 func (v *CarouselView) render(cx *el.Context, navigation bool) el.Element {
 	id := autoID("carousel", v)
 	text := locale.Current()
-	if v.CanNext() && v.autoplay > 0 && !cx.Hovered(id) && !el.ReducedMotion() {
+	if !v.drag.active && v.CanNext() && v.autoplay > 0 && !cx.Hovered(id) && !el.ReducedMotion() {
 		cur := v.current
 		cx.AfterEnabled(id, carouselKey{id, cur}, v.autoplay, func() { v.goTo(cur + 1) })
 	}
 	stage := el.Div().ID(id + "/stage").H(el.Dp(v.height)).Rounded(theme.RadiusLg).Bg(theme.Subtle).Items(el.Stretch).Justify(el.Center)
-	if v.perView > 1 || v.basis > 0 || len(v.itemBasis) > 0 || len(v.itemSizes) > 0 {
+	if v.draggable || v.perView > 1 || v.basis > 0 || len(v.itemBasis) > 0 || len(v.itemSizes) > 0 {
 		v.multiStage(cx, stage, id+"/stage")
 	} else if v.current < len(v.slides) && v.slides[v.current] != nil {
 		stage.Child(v.slides[v.current].Render(cx))

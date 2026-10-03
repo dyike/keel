@@ -350,6 +350,8 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 
 ### 受控滚动与上一帧尺寸
 
-`ScrollX/ScrollY` 可配合 `ScrollOffset(x, y)` 使用绝对 dp 偏移；绘制时按内容边界限制，禁用时仍显示指定位置。指定偏移时覆盖滚轮和滚动条输入，省略即可恢复普通滚动；非有限值忽略。应由应用状态持续提供目标位置。
+`ScrollX/ScrollY` 可配合 `ScrollOffset(x, y)` 使用绝对 dp 偏移；绘制时按内容边界限制，禁用时仍显示指定位置。指定偏移时停用默认滚动手势并隐藏滚动条，容器可自行使用 OnDrag；省略即可恢复普通滚动；非有限值忽略。应由应用状态持续提供目标位置。
 
 `cx.LastSize(id)` 在 Render 中读取同 root 上次绘制的元素尺寸（dp），首次或被裁掉时返回零；包含禁用帧的几何更新。`cx.LayoutSize(element)` 用于 Decorate 中读取当前布局尺寸。窗口尺寸变化后，依赖 LastSize 的布局通常需再绘制一帧收敛。
+
+`cx.PixelScale()` 返回当前每 dp 的物理像素数，可在 Render 中用于与布局一致的像素舍入，未设置时为 1。

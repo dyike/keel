@@ -5,6 +5,15 @@ import (
 	"image"
 )
 
+// PixelScale returns the current number of physical pixels per dp.
+// It is available during Render and defaults to one for an unset metric.
+func (cx *Context) PixelScale() float32 {
+	if scale := cx.root.e.m.PxPerDp; scale > 0 {
+		return scale
+	}
+	return 1
+}
+
 // PaintGeometry reports the current element's origin and clipped viewport in
 // root coordinates. Use it only from Decorate, while the element is painted.
 // It lets input handlers keep a pointer stationary as ancestors scroll.

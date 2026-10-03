@@ -560,10 +560,10 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		xTrack.Max.X = max(xTrack.Min.X, xTrack.Max.X-barWidth)
 		yTrack.Max.Y = max(yTrack.Min.Y, yTrack.Max.Y-barWidth)
 	}
-	if n.style.scrollX {
+	if n.style.scrollX && n.style.controlledScroll == nil {
 		st.scrollX = st.scrollbarX.update(gtx, xTrack, true, st.scrollX, viewport.Dx(), totalX, e.dp(24), st)
 	}
-	if n.style.scrollY {
+	if n.style.scrollY && n.style.controlledScroll == nil {
 		st.scrollY = st.scrollbarY.update(gtx, yTrack, false, st.scrollY, viewport.Dy(), total, e.dp(24), st)
 	}
 
@@ -584,10 +584,10 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	// The viewport is its own area with the scroll handler, so it is a node
 	// in the semantic tree and agents only see what shows through it.
 	stk := clip.Rect(viewport).Push(gtx.Ops)
-	if n.style.scrollY {
+	if n.style.scrollY && n.style.controlledScroll == nil {
 		st.scroll.Add(gtx.Ops)
 	}
-	if n.style.scrollX {
+	if n.style.scrollX && n.style.controlledScroll == nil {
 		st.scrollHorizontal.Add(gtx.Ops)
 	}
 	off := op.Offset(image.Pt(-st.scrollX, -st.scrollY)).Push(gtx.Ops)
@@ -610,10 +610,10 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	e.visible, e.origin = savedVis, savedOrigin
 	off.Pop()
 
-	if n.style.scrollY {
+	if n.style.scrollY && n.style.controlledScroll == nil {
 		st.scrollbarY.paint(gtx, yTrack, false, st.scrollY, viewport.Dy(), total, e.dp(24))
 	}
-	if n.style.scrollX {
+	if n.style.scrollX && n.style.controlledScroll == nil {
 		st.scrollbarX.paint(gtx, xTrack, true, st.scrollX, viewport.Dx(), totalX, e.dp(24))
 	}
 	stk.Pop()
