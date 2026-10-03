@@ -189,7 +189,9 @@
 
 - [x] 第一百一十八批（`bd43ef5`）：DatePicker 增加 Format 日期布局和 Clearable 清空按钮。格式作用于单日期及范围两端，空字符串恢复 locale；清空独立于展开触发器，移除日期/错误/范围草稿，回调零值并返回焦点。测试覆盖单日期/范围、格式恢复、清空不展开、键盘重新打开、自身/祖先禁用和关闭清空入口。构建、vet、全量测试通过。日期时间联动、快捷预设继续待补；此次官方文档复核补记尺寸/外观配置差距。
 
-- [x] 第一百一十九批：DatePicker 增加 Presets 和 DatePickerPreset，支持单日期/范围快捷选择、稳定 ID、切片复制与重复过滤。预设检查端点边界和内部禁用日期，非法项显示为禁用；选择时重查并取消草稿、清除错误、关闭弹层及单次回调。测试覆盖反向范围、禁用日期、边界、空值/失效 ID、复制隔离及单日期/范围真实点击和焦点返回。构建、vet、全量测试通过。快捷预设缺口关闭；日期时间联动、尺寸/外观继续待补。
+- [x] 第一百一十九批（`43e9891`）：DatePicker 增加 Presets 和 DatePickerPreset，支持单日期/范围快捷选择、稳定 ID、切片复制与重复过滤。预设检查端点边界和内部禁用日期，非法项显示为禁用；选择时重查并取消草稿、清除错误、关闭弹层及单次回调。测试覆盖反向范围、禁用日期、边界、空值/失效 ID、复制隔离及单日期/范围真实点击和焦点返回。构建、vet、全量测试通过。快捷预设缺口关闭；日期时间联动、尺寸/外观继续待补。
+
+- [x] 第一百二十批：DatePicker 增加 Size 连续 dp 尺寸，统一缩放字段字号、图标、清空按钮及间距，0 恢复主题默认；Appearance 关闭字段装饰并保留日历弹层外观。测试覆盖 1×/2× 尺寸、非法值、恢复默认、打开期间切换、Esc 后键盘再打开及清空，窗口像素验证字段背景/边框关闭和恢复。构建、vet、全量测试通过。尺寸/外观缺口关闭，日期时间联动仍待补。
 
 ## 当前实施清单
 
@@ -230,7 +232,7 @@
 | [Combobox](https://gpui-kit.com/component/combobox/) | 部分 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 缺分组、单项禁用、自定义行/触发器、footer；目前候选数据是 string 列表。多选与异步搜索已完成。 |
 | [Command](https://gpui-kit.com/component/command/) | 部分 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 缺内联模式、关闭搜索的模式、自定义行/header/footer；当前固定为带搜索的模态命令面板。 |
 | [DataTable](https://gpui-kit.com/component/data-table/) | 部分 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | 主要数据表能力已有；缺独立整列选择模式、列级 selectable/resizable/movable 限制，以及 stripe/密度等公开配置。 |
-| [DatePicker](https://gpui-kit.com/component/date-picker/) | 部分 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；仍缺日期+时间联动以及尺寸/外观配置。日期格式使用 Go 布局；已有独立 TimeField 不等于 DatePicker 已集成。 |
+| [DatePicker](https://gpui-kit.com/component/date-picker/) | 部分 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；日期+时间联动仍待补。日期格式使用 Go 布局；已有独立 TimeField 不等于 DatePicker 已集成。 |
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 主体已有 | [多列/跨列、横纵标签、富值插槽、分隔线、边框、字号与标签宽度](../../ui/kit/description_list.go) | 第八批已关闭登记缺口。Columns 由调用方设置，不按窗口宽度自动切换；默认仍为无边框单列，保留原用法。 |
 | [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
 | [Dock](https://gpui-kit.com/component/dock/) | 部分 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | 中心/边缘嵌套分割、拖放、最大化已完成；缺 GPUI 的面板工厂注册/面板自有状态恢复和独立 DockSkin。分离由 OnDetach 交给应用开窗，恢复布局不会重开分离窗口。 |

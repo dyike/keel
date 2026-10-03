@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"image/color"
 	"time"
 
 	"gioui.org/io/key"
@@ -21,6 +22,8 @@ type DatePickerView struct {
 	dateFormat              string
 	clearable               bool
 	presets                 []DatePickerPreset
+	height                  float32
+	plain                   bool
 	revealed                time.Time
 	onChange                func(start, end time.Time)
 }
@@ -35,6 +38,20 @@ func DatePicker(label string) *DatePickerView {
 	})
 	return v
 }
+
+// Size sets the field's minimum height in dp, scaling its text, icons and
+// spacing. Recommended heights are 28, 36 and 48. Zero restores theme defaults.
+// It does not change the calendar or preset sizes; invalid values are ignored.
+func (v *DatePickerView) Size(dp float32) *DatePickerView {
+	if dp >= 0 && finiteNumber(float64(dp)) {
+		v.height = dp
+	}
+	return v
+}
+
+// Appearance controls the field background, border, rounding and padding.
+// The calendar popup keeps its own appearance; minimum height is preserved.
+func (v *DatePickerView) Appearance(on bool) *DatePickerView { v.plain = !on; return v }
 
 // Months requests consecutive month panels; narrow windows show fewer panels.
 func (v *DatePickerView) Months(n int) *DatePickerView { v.months = max(1, min(12, n)); return v }
@@ -94,9 +111,14 @@ func (v *DatePickerView) text() string {
 func (v *DatePickerView) Render(cx *el.Context) el.Element {
 	id := v.FocusID()
 	frameID := id + "/frame"
-	shown, color := v.text(), theme.Text
+	height := float32(theme.ControlHeight)
+	if v.height > 0 {
+		height = v.height
+	}
+	ratio := height / float32(theme.ControlHeight)
+	shown, fg := v.text(), theme.Text
 	if shown == "" {
-		shown, color = v.placeholder, theme.Muted
+		shown, fg = v.placeholder, theme.Muted
 	}
 	setOpen := func(open bool) {
 		v.close()
@@ -114,7 +136,7 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		v.cal.focus, v.cal.month = focus, monthOf(focus)
 		cx.Focus(v.cal.FocusID())
 	}
-	field := el.Div().ID(id).Row().Items(el.Center).Gap(theme.SpaceMd).Grow().MinW(el.Dp(0)).Disabled(v.disabled).Role("button").Name(v.a11y()).Value(v.text()).
+	field := el.Div().ID(id).Row().Items(el.Center).Gap(theme.SpaceMd*ratio).Grow().MinW(el.Dp(0)).Disabled(v.disabled).Role("button").Name(v.a11y()).Value(v.text()).
 		Focusable(true).OnClick(func() { setOpen(!v.open) }).
 		OnKey(func(e el.KeyEvent) bool {
 			if key.Name(e.Name) != key.NameDownArrow {
@@ -125,13 +147,19 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 			}
 			return true
 		}).
-		Child(el.Text(shown).TextColor(color).Grow().MaxLines(1), Icon(IconCalendar).Size(16).Color(theme.Muted).Render(cx))
+		Child(el.Text(shown).TextColor(fg).Grow().MaxLines(1), Icon(IconCalendar).Size(16*ratio).Color(theme.Muted).Render(cx))
 	if v.disabled {
 		field.TextColor(theme.Muted)
 	} else {
 		field.CursorPointer()
 	}
-	frame := fieldFrame(frameID, cx.FocusWithin(frameID), v.err != "", v.disabled, false).Child(field)
+	frame := fieldFrame(frameID, cx.FocusWithin(frameID), v.err != "", v.disabled, false).MinH(el.Dp(height)).Px(10 * ratio).Py(theme.SpaceXs * ratio).Gap(theme.SpaceMd * ratio).Child(field)
+	if v.height > 0 {
+		frame.TextSize(float32(theme.BodySize) * ratio)
+	}
+	if v.plain {
+		frame.Bg(color.NRGBA{}).Border(0, color.NRGBA{}).Rounded(0).P(0)
+	}
 	start, _ := v.Value()
 	if v.clearable && !start.IsZero() {
 		clear := Button("", func() {
@@ -142,7 +170,7 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 			if v.onChange != nil {
 				v.onChange(time.Time{}, time.Time{})
 			}
-		}).ID(id + "/clear").Name(locale.Current().Name(locale.Current().Clear, v.a11y())).Icon(IconClose).Variant(ButtonGhost).Size(24)
+		}).ID(id + "/clear").Name(locale.Current().Name(locale.Current().Clear, v.a11y())).Icon(IconClose).Variant(ButtonGhost).Size(24 * ratio)
 		clear.SetDisabled(v.disabled)
 		frame.Child(clear.Render(cx))
 	}

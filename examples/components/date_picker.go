@@ -9,8 +9,8 @@ import (
 
 func init() {
 	registerSection("date_picker", "inputs", func() core.Widget {
-		due := kit.DatePicker("交货日期").Placeholder("选择日期").Format("2006-01-02").Clearable(true)
-		trip := kit.DatePicker("出差日期 Range").Range().Months(2).Placeholder("开始 – 结束").Clearable(true)
+		due := kit.DatePicker("交货日期").Placeholder("选择日期").Format("2006-01-02").Clearable(true).Size(28)
+		trip := kit.DatePicker("出差日期 Range").Range().Months(2).Placeholder("开始 – 结束").Clearable(true).Size(48).Appearance(false)
 		today := time.Now()
 		due.Presets(kit.DatePickerPreset{ID: "today", Label: "今天", Start: today}, kit.DatePickerPreset{ID: "tomorrow", Label: "明天", Start: today.AddDate(0, 0, 1)})
 		trip.Presets(kit.DatePickerPreset{ID: "week", Label: "最近七天", Start: today.AddDate(0, 0, -6), End: today})
