@@ -50,7 +50,8 @@
 - [x] 第二十七批（`f122562`）：条形/圆形 Progress 加入 200ms 数值过渡，连续更新从当前显示值衔接；首次显示、退出不确定模式和减少动画立即显示目标。复用展开组件的插值逻辑，结束时精确归位。帧时钟像素测试覆盖正向/反向更新、重定向连续性、立即目标语义和静止；展开组件回归及全量构建、vet、测试通过。
 - [x] 第二十八批（`47cae5a`）：Popover 增加 Offset，支持默认 4dp、零间距、负值重叠及打开期间重新定位；忽略非有限值。四方向布局、动态更新、回调次数及 Esc 关闭通过测试；全量构建、vet、测试通过。箭头、鼠标触发配置和面板样式仍待补齐。
 - [x] 第二十九批（`2182b86`）：Popover 增加 Appearance 与 PanelStyle，默认装饰可关闭，面板可配置配色、边框、圆角和间距。保留稳定身份、dialog 语义、窗口约束与滚动；1×/2× 测试覆盖样式恢复、输入状态与焦点，像素测试覆盖配色与重置；全量构建、vet、测试通过。
-- [x] 第三十批：Popover 增加 RightClick，右键切换开关，保留触发元素左键/键盘行为；可动态关闭右键处理。测试覆盖重复切换、回调次数、Esc、组件及祖先禁用；全量构建、vet、测试通过。任意鼠标按键选择与箭头仍待完成。
+- [x] 第三十批（`3acdc4b`）：Popover 增加 RightClick，右键切换开关，保留触发元素左键/键盘行为；可动态关闭右键处理。测试覆盖重复切换、回调次数、Esc、组件及祖先禁用；全量构建、vet、测试通过。任意鼠标按键选择与箭头仍待完成。
+- [x] 第三十一批：Popover 增加 MouseButton，支持左/右/中键与手动模式；RightClick 沿用兼容入口。底层新增 OnMousePress，保留子元素事件和禁用继承。测试覆盖三种按键的交叉过滤、重复开关、动态恢复手动模式、非法值、多键同时按下和禁用；全量构建、vet、测试通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -119,7 +120,7 @@
 | [OtpInput](https://gpui-kit.com/component/otp-input/) | 主体已有 | [分格输入、粘贴、完成回调、密码遮罩、分组、尺寸与窄布局](../../ui/kit/otp_input.go) | 第二批已补齐 Masked/Groups/Size；默认两组，不能整除时前组多一位。此表登记的三个缺口已关闭。 |
 | [Pagination](https://gpui-kit.com/component/pagination/) | 主体已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | 主体覆盖；缺 compact、visible_pages 与尺寸档接口。 |
 | [Plot](https://gpui-kit.com/component/plot/) | 用途不同 | [成品散点/折线图、缩放、平移、拾取](../../ui/kit/plot.go) | 用途不同：GPUI 提供 ScaleLinear/Band/Point/Ordinal、Bar/Line/Area/Pie/Stack/Axis 等公共绘图基础件；Keel Plot 是可缩放平移的成品散点/折线图。 |
-| [Popover](https://gpui-kit.com/component/popover/) | 主体已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | 第二十八、二十九批已补齐实例 Offset、默认外观开关及面板样式。第三十批补齐右键触发，仍缺箭头及任意鼠标按键选择；Keel 在空间不足时翻转，上游保持锚点方向并限制位置，定位策略不同。 |
+| [Popover](https://gpui-kit.com/component/popover/) | 主体已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | 第二十八、二十九批已补齐实例 Offset、默认外观开关及面板样式。第三十、三十一批补齐右键及左/右/中键选择，仍缺箭头；Keel 在空间不足时翻转，上游保持锚点方向并限制位置，定位策略不同。 |
 | [Progress](https://gpui-kit.com/component/progress/) | 主体已有 | [条形确定/不确定进度](../../ui/kit/progress.go)、[圆形进度与中心内容](../../ui/kit/progress_circle.go) | 第一、二十六、二十七批已补齐圆形进度、条形样式及数值过渡。Keel 数值范围 0–1，条形默认带标签/百分比；图形过渡 200ms，语义立即报告目标值，减少动画立即归位。 |
 | [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 部分 | [题型、答案模型、校验、分页、禁用与提交快照](../../ui/kit/questionnaire.go) | 缺单题条件禁用、跳过状态、自定义/外部校验、同题选项+自由输入、完整进度状态和快捷键配置；现有五种题型、必填校验与分页保留。 |
 | [Radio](https://gpui-kit.com/component/radio/) | 主体已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | 单选主体覆盖；组内 Item 可单独放置。缺任意富标签和组件级大小配置。 |

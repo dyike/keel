@@ -40,6 +40,7 @@ type Node struct {
 
 	onClick       func()
 	onContextMenu func()
+	contextButton pointer.Buttons
 	focusOnPress  string         // ID to focus on a press no child takes
 	palette       *theme.Palette // Themed: colors for this subtree
 	onDoubleClick func()
@@ -427,7 +428,22 @@ func (s *Styled[T]) PinRight(dp float32) *T {
 
 // OnContextMenu runs fn on a secondary pointer press. It does not consume
 // primary clicks; add an OnKey handler for a keyboard context-menu action.
-func (s *Styled[T]) OnContextMenu(fn func()) *T { s.n.onContextMenu = fn; return s.self }
+func (s *Styled[T]) OnContextMenu(fn func()) *T { return s.OnMousePress(pointer.ButtonSecondary, fn) }
+
+// OnMousePress observes a primary, secondary or tertiary press without consuming
+// descendant events or adding a Tab stop. Chords are ignored. It shares a handler
+// with OnContextMenu; the last call wins. Zero clears it; invalid buttons are ignored.
+func (s *Styled[T]) OnMousePress(button pointer.Buttons, fn func()) *T {
+	switch button {
+	case 0:
+		s.n.onContextMenu = nil
+		s.n.contextButton = 0
+	case pointer.ButtonPrimary, pointer.ButtonSecondary, pointer.ButtonTertiary:
+		s.n.onContextMenu = fn
+		s.n.contextButton = button
+	}
+	return s.self
+}
 
 // Reveal exposes a fraction of this element's natural height, clipping both
 // painting and input. Children retain their full layout, so text does not

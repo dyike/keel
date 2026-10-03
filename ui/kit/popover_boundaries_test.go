@@ -5,7 +5,9 @@ import (
 	"math"
 	"testing"
 
+	"gioui.org/f32"
 	"gioui.org/io/key"
+	"gioui.org/io/pointer"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"
@@ -221,5 +223,68 @@ func TestPopoverRightClickTrigger(t *testing.T) {
 	tableRightClick(t, h, "Target")
 	if p.Value() {
 		t.Fatal("disabled popover opened")
+	}
+}
+
+func TestPopoverMouseButtons(t *testing.T) {
+	p := Popover(text("Preview"))
+	primary, changes := 0, 0
+	p.Trigger(Button("Target", func() { primary++ })).OnChange(func(bool) { changes++ })
+	h := renderView(p, 300, 1)
+	press := func(button pointer.Buttons) {
+		x, y := center(bounds(h, "Target"))
+		pos := f32.Pt(x, y)
+		h.Router.Queue(pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: pos}, pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Position: pos, Buttons: button}, pointer.Event{Kind: pointer.Release, Source: pointer.Mouse, Position: pos})
+		h.Frame()
+		h.Frame()
+	}
+	buttons := []pointer.Buttons{pointer.ButtonPrimary, pointer.ButtonSecondary, pointer.ButtonTertiary}
+	for _, selected := range buttons {
+		p.MouseButton(selected)
+		h.Frame()
+		for _, actual := range buttons {
+			p.SetValue(false)
+			h.Frame()
+			before := changes
+			press(actual)
+			want := actual == selected
+			if p.Value() != want || changes-before != map[bool]int{true: 1, false: 0}[want] {
+				t.Fatalf("selected %v actual %v: open %v changes %v", selected, actual, p.Value(), changes-before)
+			}
+			if want {
+				press(actual)
+				if p.Value() || changes-before != 2 {
+					t.Fatal("duplicate or missing toggle")
+				}
+			}
+		}
+	}
+	if primary == 0 {
+		t.Fatal("primary handler swallowed")
+	}
+	p.MouseButton(pointer.ButtonPrimary | pointer.ButtonSecondary)
+	if p.mouseButton != pointer.ButtonTertiary {
+		t.Fatal("invalid mask accepted")
+	}
+	p.MouseButton(0)
+	h.Frame()
+	before := changes
+	for _, b := range buttons {
+		press(b)
+	}
+	if p.Value() || changes != before {
+		t.Fatal("manual mode retained handler")
+	}
+	p.MouseButton(pointer.ButtonTertiary)
+	h.Frame()
+	press(pointer.ButtonTertiary | pointer.ButtonSecondary)
+	if p.Value() {
+		t.Fatal("chord triggered")
+	}
+	p.SetDisabled(true)
+	h.Frame()
+	press(pointer.ButtonTertiary)
+	if p.Value() {
+		t.Fatal("disabled middle trigger")
 	}
 }

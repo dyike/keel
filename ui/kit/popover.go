@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"gioui.org/io/pointer"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 )
@@ -22,7 +23,7 @@ type PopoverView struct {
 	offset           float32
 	onChange         func(bool)
 	plain            bool
-	rightClick       bool
+	mouseButton      pointer.Buttons
 	panelStyle       func(*el.DivEl)
 }
 
@@ -38,7 +39,23 @@ func (v *PopoverView) Placement(side el.Side, align el.Align) *PopoverView {
 // RightClick toggles the popover on secondary presses over its trigger.
 // Primary and keyboard actions remain owned by the trigger. The default is false.
 // Do not also wire Toggle to the trigger's context-menu handler.
-func (v *PopoverView) RightClick(on bool) *PopoverView { v.rightClick = on; return v }
+func (v *PopoverView) RightClick(on bool) *PopoverView {
+	if on {
+		return v.MouseButton(pointer.ButtonSecondary)
+	}
+	return v.MouseButton(0)
+}
+
+// MouseButton selects an automatic mouse-press trigger. Zero (the default)
+// leaves activation to the trigger view; invalid values and chords are ignored.
+// The trigger's own handlers still run: do not also bind Toggle to that button.
+func (v *PopoverView) MouseButton(button pointer.Buttons) *PopoverView {
+	switch button {
+	case 0, pointer.ButtonPrimary, pointer.ButtonSecondary, pointer.ButtonTertiary:
+		v.mouseButton = button
+	}
+	return v
+}
 
 // Offset sets the gap from the trigger in dp, 4 by default. Zero makes the
 // panel touch the trigger; negative values overlap it. Non-finite values
@@ -110,8 +127,8 @@ func (v *PopoverView) Render(cx *el.Context) el.Element {
 		}
 	}
 	target := anchor(id, cx, v.trigger).Focusable(false)
-	if v.rightClick {
-		target.OnContextMenu(v.Toggle)
+	if v.mouseButton != 0 {
+		target.OnMousePress(v.mouseButton, v.Toggle)
 	}
 	return el.Div().Disabled(v.disabled).Child(target)
 }

@@ -333,3 +333,7 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 `cx.Countdown(id, key, duration, paused, fn)` 声明保留剩余时间的一次性倒计时。显式 paused、所属元素不可见/禁用/被模态遮挡时暂停，恢复后继续剩余时间；改 duration 重启，省略声明取消。与 `AfterEnabled` 恢复后重新等待完整延迟的语义不同，通知倒计时用 Countdown，悬停提示延迟继续用 AfterEnabled。
 
 `element.Reveal(fraction)` 按 0–1 比例揭示自然高度，保留子元素完整排版，同时裁剪绘制与输入区域；0 时不占高度且不能获得焦点。用于折叠动画，动画时间仍由组件根据 `cx.Now()` 驱动。NaN 按 0，越界值限制到 0–1。
+
+### 鼠标按下监听
+
+`OnMousePress(button, fn)` 观察左键、右键或中键按下，使用 `pointer.ButtonPrimary/Secondary/Tertiary`。监听覆盖交互子元素，但不阻止它们接收事件，也不增加 Tab 停靠点；禁用容器会禁用监听。0 清除监听，非法按键值忽略，多键同时按下不触发。它与 `OnContextMenu(fn)` 共用一个处理器，后者等同于选择右键，最后设置者生效。键盘操作继续使用 `OnKey` 或子组件回调。

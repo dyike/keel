@@ -292,7 +292,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 				if !ok {
 					break
 				}
-				if ev, ok := ev.(pointer.Event); ok && ev.Kind == pointer.Press && ev.Buttons.Contain(pointer.ButtonSecondary) {
+				if ev, ok := ev.(pointer.Event); ok && ev.Kind == pointer.Press && ev.Source == pointer.Mouse && ev.Buttons == st.contextButton {
 					r.clickModifiers = ev.Modifiers
 					core.Call(gtx, func() { r.callbacks = true; st.onContextMenu() })
 					r.clickModifiers = 0

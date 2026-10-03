@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gioui.org/io/pointer"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
@@ -34,7 +35,7 @@ func newPopoverGallery() *popoverGallery {
 	g.filters.Trigger(kit.Button("筛选", g.filters.Toggle).Variant(kit.ButtonSecondary).Icon(kit.IconSearch))
 	g.context = kit.Popover(el.ViewFunc(func(*el.Context) el.Element {
 		return el.Text("右键打开的面板，按 Esc 或点外部关闭。")
-	})).RightClick(true).Width(260)
+	})).MouseButton(pointer.ButtonSecondary).Width(260)
 	g.context.Trigger(kit.Button("右键查看详情", g.context.Toggle).Variant(kit.ButtonSecondary))
 	return g
 }

@@ -146,7 +146,7 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 		st.disabled = n.effectiveDisabled
 		st.focusable = n.isFocusable() && n.input == nil
 		st.onKey, st.keyParent = n.onKey, parent
-		st.onContextMenu = n.onContextMenu
+		st.onContextMenu, st.contextButton = n.onContextMenu, n.contextButton
 		st.onClick, st.onDoubleClick, st.onDrag = n.onClick, n.onDoubleClick, n.onDrag
 		if st.disabled {
 			st.pressedKey = ""

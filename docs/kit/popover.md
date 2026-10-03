@@ -42,4 +42,12 @@ info := kit.Popover(details).RightClick(true)
 info.Trigger(kit.Button("详情", info.Toggle))
 ```
 
-只希望鼠标右键打开时，可为触发按钮提供不同的左键回调；键盘替代入口由应用提供。当前尚不支持任意鼠标按键选择。
+只希望鼠标右键打开时，可为触发按钮提供不同的左键回调；键盘替代入口由应用提供。其他鼠标按键使用 MouseButton 配置。
+
+`MouseButton(pointer.ButtonPrimary/Secondary/Tertiary)` 选择左键、右键或中键按下时自动切换面板。默认 0，由触发元素自己打开；`MouseButton(0)` 恢复该模式。非法值忽略，同时按下多个按键不触发。`RightClick(true/false)` 分别等同于选择右键/恢复手动模式，最后一次设置生效。
+
+```go
+info.MouseButton(pointer.ButtonTertiary) // gioui.org/io/pointer
+```
+
+监听不会吞掉触发元素自身的事件。选择左键自动打开时，不要再将 Toggle 绑定到按钮左键回调，否则会在按下和释放时各切换一次。自动监听不增加 Tab 停靠点，键盘替代入口仍由触发元素提供。

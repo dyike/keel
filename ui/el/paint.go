@@ -239,7 +239,7 @@ func (e *engine) paintContent(n *Node) {
 				state.fresh = false
 			}
 			if n.onContextMenu != nil {
-				// Register above interactive descendants, but pass primary events through.
+				// Observe above interactive descendants, passing events through.
 				defer func() {
 					area := clip.Rect(rect).Push(gtx.Ops)
 					gtx.Event(pointer.Filter{Target: &state.contextTag, Kinds: pointer.Press | pointer.Release | pointer.Cancel})

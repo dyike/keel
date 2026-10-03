@@ -9,6 +9,7 @@ import (
 
 	"gioui.org/gesture"
 	"gioui.org/io/key"
+	"gioui.org/io/pointer"
 	"gioui.org/widget"
 
 	"github.com/dyike/keel/ui/internal/editorstyle"
@@ -54,6 +55,7 @@ type elemState struct {
 	click         gesture.Click
 	onClick       func()
 	onContextMenu func()
+	contextButton pointer.Buttons
 	contextTag    struct{}
 	onDoubleClick func()
 	drag          gesture.Drag
