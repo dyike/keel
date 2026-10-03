@@ -17,6 +17,9 @@ type AttachmentView struct {
 	mediaProgress      *ProgressCircleView
 	mediaOverlay       el.View
 	titleShimmer       *ShimmerTextView
+	titleStatus        *AttachmentStatus
+	descriptionStatus  *AttachmentStatus
+	description        *string
 	content            el.View
 	actions            []el.View
 	styles             [6]func(*el.DivEl)
@@ -88,22 +91,10 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	id := autoID("attachment", v)
 	status := v.Status()
 	metrics := v.metrics()
-	state, detail, color := "", FileSize(v.size), theme.Muted
-	switch status {
-	case AttachmentStatusCanceled:
-		state, detail = "canceled", text.Canceled
-	case AttachmentStatusPending:
-		state, detail = "pending", text.AttachmentPending
-	case AttachmentStatusProcessing:
-		state, detail = "processing", text.AttachmentProcessing
-	case AttachmentStatusFailed:
-		state, detail, color = "error", v.err, theme.DangerText
-		if detail == "" {
-			detail = text.AttachmentFailed
-		}
-	case AttachmentStatusUploading:
-		pct := strconv.Itoa(int(v.progress*100+0.5)) + "%"
-		state, detail = text.Uploading+" "+pct, text.Uploading+" "+pct
+	state, _, _ := v.statusDetail(status)
+	_, detail, color := v.statusDetail(v.partStatus(AttachmentPartDescription))
+	if v.description != nil {
+		detail = *v.description
 	}
 
 	info := el.Div().Grow().W(el.Dp(0)).Gap(theme.SpaceXs).Items(el.Stretch)
@@ -114,7 +105,7 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 			v.titleShimmer = ShimmerText(v.name).MaxLines(1)
 		}
 		v.titleShimmer.SetText(v.name)
-		title := v.part(AttachmentPartTitle, id+"/title", el.Div().TextSize(metrics.title)).Child(v.titleShimmer.Enabled(status.IsInProgress()).Render(cx))
+		title := v.part(AttachmentPartTitle, id+"/title", el.Div().TextSize(metrics.title)).Child(v.titleShimmer.Enabled(v.partStatus(AttachmentPartTitle).IsInProgress()).Render(cx))
 		description := v.part(AttachmentPartDescription, id+"/description", el.Div().TextSize(metrics.description).TextColor(color)).Child(el.Text(detail).MaxLines(1))
 		info.Child(title, description)
 		if status.IsUploading() {

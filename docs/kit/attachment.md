@@ -62,3 +62,15 @@ a.MediaOverlay(nil) // 清除叠加层
 ```
 
 默认标题在上传和处理中显示 ShimmerText 扫光，其他状态或减少动画时恢复普通文字；保留 Title 分区继承的字号、字重和行高。自定义 Content 替换默认标题，需要时可组合 kit.ShimmerText。
+
+`PartStatus(part, status)` 为默认 Title 或 Description 设置独立展示状态；`ClearPartStatus(part)` 恢复继承附件当前有效状态。非法状态、其他分区忽略。Title 的上传/处理状态控制扫光；Description 的状态控制自动文案及失败配色。覆盖在父状态更新后继续保留，不修改附件本身的状态、媒体、进度条、打开/取消/重试逻辑或 Agent 生命周期值。
+
+`Description(text)` 替换默认描述文字，同时保留有效描述状态的颜色；空字符串显示空文案。`ClearDescription()` 恢复自动大小/状态文案。覆盖为 Uploading 但附件没有有效上传进度时显示 0%。PartStyle 仍在状态配色之后应用。自定义 Content 替换整个默认元信息，此时标题/描述配置暂不显示；清除 Content 后恢复。
+
+```go
+a.SetError("当前版本上传失败")
+a.Description("上一版本已上传").
+    PartStatus(kit.AttachmentPartDescription, kit.AttachmentStatusComplete)
+// 卡片仍处于失败状态，描述采用普通颜色；重试操作仍可用。
+a.ClearPartStatus(kit.AttachmentPartDescription).ClearDescription()
+```
