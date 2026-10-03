@@ -34,6 +34,19 @@ func (v *DropdownButtonView) Variant(b ButtonVariant) *DropdownButtonView {
 	return v
 }
 
+// Placement configures the supplied menu's top-level anchor placement.
+// Split menus anchor to the arrow; ordinary menus anchor to the whole button.
+func (v *DropdownButtonView) Placement(side el.Side, align el.Align) *DropdownButtonView {
+	v.menu.Placement(side, align)
+	return v
+}
+
+// Offset configures the supplied menu's anchor gap in dp.
+func (v *DropdownButtonView) Offset(dp float32) *DropdownButtonView {
+	v.menu.Offset(dp)
+	return v
+}
+
 // Button supplies the main half of a split button. Render copies its configuration
 // so the source can be reused. Nil restores the ordinary/Split configuration.
 func (v *DropdownButtonView) Button(button *ButtonView) *DropdownButtonView {

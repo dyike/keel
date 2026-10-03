@@ -29,3 +29,7 @@ kit.DropdownButton("保存", more).
     Button(kit.Button("保存", save).Icon(kit.IconDone).Loading(saving)).
     Size(40)
 ```
+
+`Placement(side, align)` 设置顶层菜单方向（Top/Bottom/Left/Right）和对齐（Start/Center/End），默认 Bottom/Start；非法组合忽略。`Offset(dp)` 设置间距，默认 4dp，支持 0 和负值重叠，非有限值忽略。打开期间可更新，空间不足时沿用浮层翻转和窗口内限制。子菜单仍按 Right/Start、2dp 展开。
+
+DropdownButton 的这两个方法直接配置传入的 Menu；普通模式锚定整按钮，分体模式锚定箭头。共用同一 Menu 的调用方也会看到配置变化。

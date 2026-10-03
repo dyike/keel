@@ -34,3 +34,7 @@ Agent：菜单容器的角色是 `menu`（子菜单的名字是它在父菜单�
 `SetDisabled(true)` 关闭并禁用整个菜单；禁用正在展开的父项或子菜单会关闭对应分支。关闭顶层时会递归清除展开状态，重新打开不会恢复旧的深层子菜单。`Sub` 忽略 nil、循环引用和重复挂载的子菜单实例；不同分支请分别创建实例。
 
 右键触发可以给 `Trigger` 传入自定义 View，在元素的 `OnContextMenu` 中调用 `Toggle`。键盘入口由触发 View 的 `OnKey` 定义，示例使用 F10；弹层依然锚定触发区域，外部点击和 Esc 的关闭行为相同。
+
+`Placement(side, align)` 设置顶层菜单方向（Top/Bottom/Left/Right）和对齐（Start/Center/End），默认 Bottom/Start；非法组合忽略。`Offset(dp)` 设置间距，默认 4dp，支持 0 和负值重叠，非有限值忽略。打开期间可更新，空间不足时沿用浮层翻转和窗口内限制。子菜单仍按 Right/Start、2dp 展开。
+
+DropdownButton 的这两个方法直接配置传入的 Menu；普通模式锚定整按钮，分体模式锚定箭头。共用同一 Menu 的调用方也会看到配置变化。

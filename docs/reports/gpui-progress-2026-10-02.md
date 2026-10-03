@@ -65,7 +65,8 @@
 - [x] 第四十二批（`ea1ec2d`）：Dialog 增加 Keyboard、Overlay、OverlayClosable、CloseButton，适用于普通及警告对话框；隐藏遮罩保持模态，禁止 Esc 不会穿透关闭下层。关闭按钮默认隐藏并使用本地化名称；正文/页脚身份稳定。测试覆盖独立关闭路径、嵌套、遮罩像素与焦点返回后再打开；构建、vet、全量测试通过。确认回调阻止关闭仍待补齐。
 - [x] 第四十三批（`3481982`）：Dialog 增加 BeforeConfirm，标准确认/危险确认/提示可同步拒绝确认，保留打开状态与焦点并跳过原 onOK；nil 清除，复用保留。回调中显式改变打开状态、禁用或替换消息时中止旧确认。测试覆盖回车重试、程序重开、点击、取消隔离及消息替换；构建、vet、全量测试通过。取消路径的可拒绝回调仍待完成。
 - [x] 第四十四批（`ee1e9d2`）：Dialog 增加 BeforeCancel，统一校验 Esc、外部点击、取消及关闭按钮；底层 BeforeDismiss 在接受后才标记浮层已关闭。拒绝保留焦点和模态，所属元素失效清理绕过校验。测试覆盖四路径重复拒绝/重试、回调次数、清理、消息替换和键盘焦点；构建、vet、全量测试通过。OnClose 仍沿用仅取消通知的兼容语义。
-- [x] 第四十五批：DropdownButton 增加 Button 配置透传、共享 Size 与主操作 Loading；未指定共享变体/尺寸时继承内层按钮，渲染不修改源实例，内部身份稳定。分体箭头可在主操作加载时使用。测试覆盖主操作回调、加载与键盘焦点、禁用、清除内层按钮和配置隔离；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。菜单定位配置仍待完成。
+- [x] 第四十五批（`e93c1a5`）：DropdownButton 增加 Button 配置透传、共享 Size 与主操作 Loading；未指定共享变体/尺寸时继承内层按钮，渲染不修改源实例，内部身份稳定。分体箭头可在主操作加载时使用。测试覆盖主操作回调、加载与键盘焦点、禁用、清除内层按钮和配置隔离；构建、vet、全量测试及浅色 1×/深色 2× 截图检查通过。菜单定位配置仍待完成。
+- [x] 第四十六批：Menu/DropdownButton 增加 Placement/Offset，四方向、三种对齐和有限正负间距，打开期间可重新定位；普通按钮锚定整体，分体按钮锚定箭头，子菜单保留原策略。测试覆盖方向/对齐/间距组合、非法值、边缘翻转限制和 Esc 后焦点恢复；构建、vet、全量测试通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -111,7 +112,7 @@
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 主体已有 | [多列/跨列、横纵标签、富值插槽、分隔线、边框、字号与标签宽度](../../ui/kit/description_list.go) | 第八批已关闭登记缺口。Columns 由调用方设置，不按窗口宽度自动切换；默认仍为无边框单列，保留原用法。 |
 | [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
 | [Dock](https://gpui-kit.com/component/dock/) | 部分 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | 中心/边缘嵌套分割、拖放、最大化已完成；缺 GPUI 的面板工厂注册/面板自有状态恢复和独立 DockSkin。分离由 OnDetach 交给应用开窗，恢复布局不会重开分离窗口。 |
-| [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 主体已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | 第四十五批补齐 Button 配置透传、Loading 和共享 Size；默认继承内层变体/高度，分体主按钮加载不阻挡箭头。内部 ID 由组件管理；菜单定位 anchor 配置仍待补齐。 |
+| [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 主体已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | 第四十五批补齐 Button 配置透传、Loading 和共享 Size；默认继承内层变体/高度，分体主按钮加载不阻挡箭头。第四十六批补齐 Placement/Offset，普通模式锚定整按钮，分体模式锚定箭头；内部 ID 由组件管理。菜单仍按 Keel 的边缘翻转策略定位。 |
 | [Editor](https://gpui-kit.com/component/editor/) | 部分 | [行号、局部重高亮、多光标/矩形选择、查找替换、折叠、语法感知括号配对、诊断/补全/悬停/定义跳转接口](../../ui/kit/code_editor.go) | 缺可随编辑跟踪的文本/几何装饰集合、可替换语言编辑规则、完整自定义搜索会话 API；高亮为 chroma，非 Tree-sitter。多光标、查找替换、折叠、括号配对已完成。 |
 | [Empty](https://gpui-kit.com/component/empty/) | 主体已有 | [空状态富标题/描述、操作、媒体、尾部与分区样式](../../ui/kit/empty.go) | 第二十一、二十二批已补齐登记的媒体、富内容、尾部和样式缺口；默认保留 Surface 背景，分区样式通过 PartStyle 调整。使用单个 View 槽组合多个子项，非上游独立部件类型。 |
 | [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 主体已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | 弹层通过 el.Layer.TrapFocus/Modal 覆盖；GPUI 还可在普通容器上独立包裹 FocusTrap，Keel 当前入口绑定浮层。 |

@@ -39,12 +39,33 @@ type MenuView struct {
 	disabled bool
 	reveal   int
 	find     base.Typeahead
+	side     el.Side
+	align    el.Align
+	offset   float32
 }
 
-func Menu() *MenuView { return &MenuView{openSub: -1, width: 220, reveal: -1} }
+func Menu() *MenuView { return &MenuView{openSub: -1, width: 220, reveal: -1, offset: 4} }
 
 // Trigger sets the view the menu opens from (top-level menus only).
 func (v *MenuView) Trigger(t el.View) *MenuView { v.trigger = t; return v }
+
+// Placement sets the top-level menu's direction and alignment. Submenus
+// retain their right/start placement and automatic edge flipping.
+func (v *MenuView) Placement(side el.Side, align el.Align) *MenuView {
+	if side <= el.Right && align <= el.End {
+		v.side, v.align = side, align
+	}
+	return v
+}
+
+// Offset sets the top-level anchor gap in dp, including zero or overlap.
+// Non-finite values are ignored; the default is 4dp.
+func (v *MenuView) Offset(dp float32) *MenuView {
+	if finiteNumber(float64(dp)) {
+		v.offset = dp
+	}
+	return v
+}
 
 // Width sets the minimum menu width in dp, 220 by default.
 func (v *MenuView) Width(dp float32) *MenuView {
@@ -155,7 +176,7 @@ func (v *MenuView) step(i, d int) int { return v.nav().Next(i, d) }
 func (v *MenuView) Render(cx *el.Context) el.Element {
 	id := autoID("menu", v)
 	if v.open {
-		cx.Overlay(id, el.Anchored(id, v.panel(cx)).Placement(el.Bottom, el.Start).Modal().TrapFocus().
+		cx.Overlay(id, el.Anchored(id, v.panel(cx)).Placement(v.side, v.align).Offset(v.offset).Modal().TrapFocus().
 			OnDismiss(func() { v.SetValue(false) }))
 		v.renderSub(cx)
 	}
