@@ -12,7 +12,8 @@ import (
 
 // DatePickerView is a field that opens a calendar. Picking a date (or
 // completing a range with Range) closes it; Esc or a click outside closes it
-// without a change. Dates are shown with locale's Date format.
+// without a change. WithTime keeps the popup open for immediate date/time
+// editing. Dates are shown with locale's Date format.
 type DatePickerView struct {
 	name                    string // accessible name from a Form row when label is empty
 	label, placeholder, err string
@@ -24,6 +25,8 @@ type DatePickerView struct {
 	presets                 []DatePickerPreset
 	height                  float32
 	plain                   bool
+	clock                   *TimeFieldView
+	selectedDay             time.Time
 	revealed                time.Time
 	onChange                func(start, end time.Time)
 }
@@ -31,7 +34,17 @@ type DatePickerView struct {
 func DatePicker(label string) *DatePickerView {
 	v := &DatePickerView{label: label, cal: Calendar(), months: 1}
 	v.cal.OnChange(func(start, end time.Time) {
-		v.open, v.err = false, ""
+		if v.editsTime() {
+			if start.Equal(v.selectedDay) {
+				v.close()
+				return
+			}
+			v.selectedDay = start
+		} else {
+			v.open = false
+		}
+		v.err = ""
+		start, end = v.Value()
 		if v.onChange != nil {
 			v.onChange(start, end)
 		}
@@ -75,13 +88,27 @@ func (v *DatePickerView) DisableDates(fn func(time.Time) bool) *DatePickerView {
 }
 
 // OnChange runs when the user picks a date or completes a range (start == end for one date).
-// Clearing sends two zero times.
+// WithTime also reports committed clock edits. Clearing sends two zero times.
 func (v *DatePickerView) OnChange(fn func(start, end time.Time)) *DatePickerView {
 	v.onChange = fn
 	return v
 }
-func (v *DatePickerView) Value() (start, end time.Time) { return v.cal.Value() }
-func (v *DatePickerView) SetValue(start, end time.Time) { v.cal.SetValue(start, end) }
+func (v *DatePickerView) Value() (start, end time.Time) {
+	start, end = v.cal.Value()
+	if v.editsTime() && !start.IsZero() {
+		d := v.clock.Value()
+		start = time.Date(start.Year(), start.Month(), start.Day(), int(d/time.Hour), int(d/time.Minute)%60, int(d/time.Second)%60, 0, start.Location())
+		end = start
+	}
+	return
+}
+func (v *DatePickerView) SetValue(start, end time.Time) {
+	v.cal.SetValue(start, end)
+	v.selectedDay = day(start)
+	if v.editsTime() && !start.IsZero() {
+		v.clock.SetValue(time.Duration(start.Hour())*time.Hour + time.Duration(start.Minute())*time.Minute + time.Duration(start.Second())*time.Second)
+	}
+}
 func (v *DatePickerView) SetDisabled(on bool) {
 	v.disabled = on
 	v.cal.SetDisabled(on)
@@ -94,7 +121,7 @@ func (v *DatePickerView) Error() string       { return v.err }
 func (v *DatePickerView) FocusID() string     { return autoID("datepicker", v) }
 
 func (v *DatePickerView) text() string {
-	start, end := v.cal.Value()
+	start, end := v.Value()
 	if start.IsZero() {
 		return ""
 	}
@@ -104,6 +131,20 @@ func (v *DatePickerView) text() string {
 	}
 	if v.cal.rangeMode && !end.IsZero() && !end.Equal(start) {
 		return f(start) + " – " + f(end)
+	}
+	if v.editsTime() && v.dateFormat == "" {
+		layout := "15:04"
+		if v.clock.seconds {
+			layout += ":05"
+		}
+		if v.clock.uses12() {
+			layout = "03:04"
+			if v.clock.seconds {
+				layout += ":05"
+			}
+			layout += " PM"
+		}
+		return f(start) + " " + start.Format(layout)
 	}
 	return f(start)
 }
@@ -164,7 +205,7 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 	if v.clearable && !start.IsZero() {
 		clear := Button("", func() {
 			v.close()
-			v.cal.SetValue(time.Time{}, time.Time{})
+			v.SetValue(time.Time{}, time.Time{})
 			v.err = ""
 			cx.Focus(id)
 			if v.onChange != nil {
@@ -203,7 +244,7 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		}
 		cx.Overlay(id, el.Anchored(frameID, floating(theme.ElevationMd).ID(viewportID).Role("dialog").Name(v.a11y()).
 			MaxW(el.Dp(max(1, width-16))).MaxH(el.Dp(max(1, height-16))).
-			ScrollY().ScrollX().P(theme.SpaceLg).Gap(theme.SpaceMd).Child(calendar, v.renderPresets(cx))).
+			ScrollY().ScrollX().P(theme.SpaceLg).Gap(theme.SpaceMd).Child(calendar, v.renderTime(cx), v.renderPresets(cx))).
 			Modal().TrapFocus().OnDismiss(v.close))
 	}
 	return labelled(v.label, el.Div().Items(el.Start).MinW(el.Dp(200)).Child(frame), v.err)
@@ -222,5 +263,9 @@ func (v *DatePickerView) close() {
 	v.open = false
 	v.revealed = time.Time{}
 	v.cal.CancelRange()
+	if v.clock != nil {
+		v.clock.SetDisabled(true)
+		v.clock.SetDisabled(false)
+	}
 	v.cal.choosing, v.cal.yearEditing = false, false
 }

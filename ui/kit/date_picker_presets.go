@@ -70,6 +70,8 @@ func (v *DatePickerView) selectPreset(id string) bool {
 		}
 		v.close()
 		v.cal.SetValue(a, b)
+		v.selectedDay = a
+		a, b = v.Value()
 		v.err = ""
 		if v.onChange != nil {
 			v.onChange(a, b)
