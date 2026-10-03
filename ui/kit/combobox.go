@@ -47,6 +47,7 @@ type ComboboxView struct {
 	nonsearchable                        bool
 	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
+	onConfirm                            func([]string)
 }
 
 func Combobox(label string, options ...string) *ComboboxView {
@@ -91,11 +92,12 @@ func (v *ComboboxView) matches() []string {
 	}
 	return v.filtered
 }
-func (v *ComboboxView) choose(value string) {
+func (v *ComboboxView) choose(value string) { v.chooseValue(value, false) }
+func (v *ComboboxView) chooseValue(value string, finish bool) {
 	if v.disabled || v.optionDisabled(value) || v.loading || v.searchError != "" || v.multiple && value == "" {
 		return
 	}
-	old := v.value
+	old, wasOpen := v.value, v.open
 	if v.multiple {
 		if slices.Contains(v.values, value) {
 			v.values = slices.DeleteFunc(v.values, func(s string) bool { return s == value })
@@ -108,20 +110,29 @@ func (v *ComboboxView) choose(value string) {
 			v.value = value
 		}
 		v.text = ""
-		v.open = true
-		if v.onValues != nil {
-			v.onValues(v.Values())
-		}
-		v.searchChanged()
 	} else {
-		v.close()
 		v.text = v.optionLabel(value)
 		v.value = value
 		v.active = -1
 	}
+	closes := finish || !v.multiple
+	if closes {
+		v.close()
+	} else {
+		v.open = true
+	}
 	v.err = ""
-	if old != v.value && v.onChange != nil {
-		v.onChange(v.value)
+	values, selected, request := v.Values(), v.value, v.request
+	if v.multiple && v.onValues != nil {
+		v.onValues(slices.Clone(values))
+	}
+	if old != selected && v.onChange != nil {
+		v.onChange(selected)
+	}
+	if closes {
+		v.emitConfirm(wasOpen, values)
+	} else if v.open && !v.disabled && v.request == request {
+		v.searchChanged()
 	}
 }
 
@@ -130,28 +141,29 @@ func (v *ComboboxView) offered(s string) bool { _, ok := v.inputValue(s); return
 // settle handles leaving the field or pressing Enter with no match.
 func (v *ComboboxView) settle() {
 	if v.nonsearchable {
-		v.cancelDraft()
+		v.cancelAndConfirm()
 		return
 	}
 	if v.loading || v.searchError != "" {
-		v.cancelDraft()
+		v.cancelAndConfirm()
 		return
 	}
 	if !v.multiple && v.value != "" && v.text == v.optionLabel(v.value) {
-		v.close()
+		v.confirmClose()
 		return
 	}
 	value, offered := v.inputValue(strings.TrimSpace(v.text))
 	switch {
 	case !v.optionDisabled(value) && (offered || v.allowCustom && value != ""):
-		v.choose(value)
+		v.chooseValue(value, true)
+		return
 	default:
 		v.text = v.optionLabel(v.value)
 		if v.multiple {
 			v.text = ""
 		}
 	}
-	v.close()
+	v.confirmClose()
 }
 
 func (v *ComboboxView) Render(cx *el.Context) el.Element {
@@ -189,7 +201,7 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 	toggle := el.Div().Name(locale.Current().Name(locale.Current().MoreOptions, v.a11y())).P(theme.SpaceXxs * ratio).Rounded(theme.RadiusSm).
 		Focusable(false).CursorPointer().OnClick(func() {
 		if v.open {
-			v.close()
+			v.confirmClose()
 		} else {
 			v.open = true
 			v.searchChanged()

@@ -19,6 +19,8 @@ func init() {
 				return el.Div().Child(el.Text(item.Label), el.Text("代码："+item.Value))
 			})
 		})
+		confirmed := "尚未结束选择"
+		country.OnConfirm(func(values []string) { confirmed = "确认值：" + strings.Join(values, ", ") })
 		country.SetGroups(kit.ComboboxGroup{ID: "asia", Label: "亚洲", Items: []kit.ComboboxItem{{Value: "cn", Label: "中国"}, {Value: "jp", Label: "日本（暂不可选）", Disabled: true}}}, kit.ComboboxGroup{ID: "america", Label: "美洲", Items: []kit.ComboboxItem{{Value: "us", Label: "美国"}}})
 		tag.Footer(kit.Button("添加示例标签", func() { tag.SetValues(append(tag.Values(), "新标签")) }).Variant(kit.ButtonGhost))
 		large := make([]string, 10000)
@@ -45,7 +47,7 @@ func init() {
 			}()
 		})
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(14).W(el.Dp(300)).MaxW(el.Full).Child(customer.Render(cx), tag.Render(cx), country.Render(cx), remote.Render(cx)))
+			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(14).W(el.Dp(300)).MaxW(el.Full).Child(customer.Render(cx), tag.Render(cx), country.Render(cx), el.Text(confirmed), remote.Render(cx)))
 		}))
 	})
 }

@@ -34,7 +34,7 @@ func (v *ComboboxView) staticTrigger(cx *el.Context) el.Element {
 	trigger := el.Div().ID(v.FocusID()).Role("button").Name(v.a11y()).Value(v.value).Grow().MinW(el.Dp(0)).Focusable(true).CursorPointer().
 		OnClick(func() {
 			if v.open {
-				v.close()
+				v.confirmClose()
 			} else {
 				v.open = true
 				v.searchChanged()

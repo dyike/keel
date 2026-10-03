@@ -9,7 +9,7 @@ func (v *ComboboxView) clearSelection() {
 	if v.disabled || len(v.Values()) == 0 {
 		return
 	}
-	old := v.value
+	old, wasOpen := v.value, v.open
 	v.SetValues(nil)
 	v.active = -1
 	v.err = ""
@@ -19,4 +19,5 @@ func (v *ComboboxView) clearSelection() {
 	if old != "" && v.onChange != nil {
 		v.onChange("")
 	}
+	v.emitConfirm(wasOpen, nil)
 }
