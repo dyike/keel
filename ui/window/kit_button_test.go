@@ -197,3 +197,59 @@ func TestKitButtonBusyKeepsKeyboardFocus(t *testing.T) {
 		t.Fatal("disabled must override busy")
 	}
 }
+
+func TestKitButtonCustomAppearanceAndInvisibleLoadingContent(t *testing.T) {
+	old := theme.Current()
+	defer core.Update(func() { theme.Apply(old) })
+	core.Update(func() { theme.Apply(theme.Light()) })
+	red := color.NRGBA{R: 255, A: 255}
+	blue := color.NRGBA{B: 255, A: 255}
+	v := kit.Button("Rich action", nil).Content(el.ViewFunc(func(*el.Context) el.Element { return el.Div().Size(el.Dp(20)).Bg(red) })).
+		Appearance(func(a kit.ButtonAppearance) kit.ButtonAppearance {
+			a.Background = blue
+			a.Hover = blue
+			a.Active = blue
+			return a
+		})
+	w := openTest(t, Options{Width: 200, Height: 100, Content: el.Embed(v)})
+	before := element(t, w, "Rich action")
+	check := func(wantRed bool) {
+		t.Helper()
+		data, err := w.screenshot()
+		if err != nil {
+			t.Fatal(err)
+		}
+		img, err := png.Decode(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		count := 0
+		for y := before.Y; y < before.Y+before.Height; y++ {
+			for x := before.X; x < before.X+before.Width; x++ {
+				c := color.NRGBAModel.Convert(img.At(x, y)).(color.NRGBA)
+				if c.R > 240 && c.G < 10 && c.B < 10 {
+					count++
+				}
+			}
+		}
+		if wantRed && count < 100 || !wantRed && count != 0 {
+			t.Fatalf("custom content visible=%v red pixels=%d", wantRed, count)
+		}
+		if c := color.NRGBAModel.Convert(img.At(before.X+8, before.Y+5)).(color.NRGBA); c != blue {
+			t.Fatalf("custom background %v", c)
+		}
+	}
+	check(true)
+	v.SetLoading(true)
+	after := element(t, w, "Rich action")
+	if after.Width != before.Width || after.Height != before.Height || after.Value != "loading" {
+		t.Fatalf("custom loading %+v", after)
+	}
+	check(false)
+	v.SetLoading(false)
+	check(true)
+	v.Appearance(nil).Outline(true)
+	if e := element(t, w, "Rich action"); e.Role != "button" {
+		t.Fatal("custom semantics")
+	}
+}

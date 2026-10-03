@@ -327,7 +327,13 @@ func (s *Styled[T]) LineHeight(scale float32) *T { s.n.style.text.lineHeight = s
 func (s *Styled[T]) Shadow(e theme.Elevation) *T { s.n.style.shadow = &e; return s.self }
 
 // Opacity draws the element and its descendants at this alpha, 0..1.
-func (s *Styled[T]) Opacity(a float32) *T { s.n.style.opacity = min(max(a, 0.001), 1); return s.self }
+func (s *Styled[T]) Opacity(a float32) *T {
+	if a != a {
+		return s.self
+	}
+	s.n.style.opacity, s.n.style.opacitySet = min(max(a, 0), 1), true
+	return s.self
+}
 
 // MaxLines truncates text to n lines with an ellipsis.
 func (s *Styled[T]) MaxLines(n int) *T { s.n.style.text.lines = n; return s.self }

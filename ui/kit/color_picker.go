@@ -339,7 +339,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 				}
 			})
 			if c == p.Value() {
-				swatch.Child(Icon(IconCheck).Size(14).Color(pickerContrast(c)).Render(cx))
+				swatch.Child(Icon(IconCheck).Size(14).Color(contrastingText(c)).Render(cx))
 			}
 			row.Child(swatch)
 		}
@@ -370,7 +370,7 @@ func (p *ColorPickerView) commitHex() {
 }
 
 // Choose black or white by contrast against the swatch composited on the surface.
-func pickerContrast(c color.NRGBA) color.NRGBA {
+func contrastingText(c color.NRGBA) color.NRGBA {
 	alpha := float64(c.A) / 255
 	channel := func(x, b uint8) float64 {
 		v := (float64(x)*alpha + float64(b)*(1-alpha)) / 255

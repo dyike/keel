@@ -99,7 +99,8 @@ type Style struct {
 	cursor                  pointer.Cursor
 	hidden                  bool
 	shadow                  *theme.Elevation
-	opacity                 float32 // 0 is unset: fully opaque
+	opacity                 float32
+	opacitySet              bool
 	text                    textStyle
 }
 

@@ -30,7 +30,8 @@
 - [x] 第七批（`ee6ef65`）：AvatarGroup 叠放、组尺寸、人数上限、+N/省略号、窄窗口滚动；Avatar.Source 后台加载、取消、失败回退与重试。共享解码器迁至 core.DecodeImage，Markdown 继续复用。含网络/旧请求覆盖、布局、Agent 和浅深色截图验证。
 - [x] 第八批（`40f241c`）：DescriptionList 多列/跨列、纵向标签、满行分隔线、边框与字号；el.Grid 增加 ColSpan。覆盖跨列换行/最小宽度、1×/2× 窄布局、富内容交互及 Agent 重排；浅深色截图已检查。
 - [x] 第九批（`a6c142c`）：InputGroup 四方向 Addon、多附加内容、稳定 ID 替换/移除与 TextArea 组合。按钮沿用 kit.Button 的样式/尺寸/加载/禁用配置。覆盖布局顺序、文字聚焦、按钮焦点、Tab、只读、禁用继承、动态内容及 Agent；浅深色截图已检查。
-- [x] 第十批：Slider 对数刻度、OnRelease/OnRangeRelease；覆盖单值/双端和横纵向映射、键盘重复、取消、禁用、非法/极端范围、Agent 回调及浅深色截图。正步长仍按数值对齐，无正步长的对数键盘操作按轨道百分比移动。
+- [x] 第十批（`ad5ea79`）：Slider 对数刻度、OnRelease/OnRangeRelease；覆盖单值/双端和横纵向映射、键盘重复、取消、禁用、非法/极端范围、Agent 回调及浅深色截图。正步长仍按数值对齐，无正步长的对数键盘操作按轨道百分比移动。
+- [x] 第十一批：Button 新增 Link/Text/Success/Warning/Info，支持叠加 Outline/Compact、自定义 Content 与 Appearance、正方形图标按钮。自定义内容加载时保持尺寸并显示进度环；语义底色自动选择黑白文字。覆盖键盘/加载焦点、1×/2× 布局和像素测试，浅深色截图已检查。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -61,7 +62,7 @@
 | [Avatar](https://gpui-kit.com/component/avatar/) | 主体已有 | [图片/首字母回退、URL 加载与重试、尺寸、状态标记](../../ui/kit/avatar.go)、[叠放头像组/上限/+N/省略号](../../ui/kit/avatar_group.go) | 第七批已关闭原登记缺口；加载不跨实例缓存。外观仍为圆形和主题色回退，GPUI 的自定义占位图标、边框/圆角等样式接口及配色算法不同。 |
 | [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字、圆点、上限、Tone 与角标容器](../../ui/kit/badge.go) | 配置差异：有 count/dot/max/Tone；没有图标徽标、大小档和任意颜色接口，旧表这两项写多了。 |
 | [Bubble](https://gpui-kit.com/component/bubble/) | 部分 | [可复用内容气泡、Mine 对齐](../../ui/kit/message.go) | 缺 ghost 等外观变体、气泡组和独立反应槽；当前只接 content + Mine，操作/反应在 Message 层。 |
-| [Button](https://gpui-kit.com/component/button/) | 主体已有 | [主/次要/危险、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 配置差异：仅 Primary/Secondary/Ghost/Danger 四种；缺专用 link/text/outline/compact、自定义变体与任意 child 接口。Tooltip 可外部组合。 |
+| [Button](https://gpui-kit.com/component/button/) | 主体已有 | [九种变体、描边/紧凑、自定义内容/配色、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 第十一批已关闭登记的变体、样式和内容缺口。Outline/Compact 为叠加配置；自定义内容限展示元素。Tooltip 可外部组合，本项不表示与上游所有组合接口完全相同。 |
 | [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
 | [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 缺竖向轨道、同屏多项、可组合前后控件；Keel 每次只显示一张，另有自动播放。 |
 | [Chart](https://gpui-kit.com/component/chart/) | 部分 | [折线/柱状/面积/饼图/环图/蜡烛图、图例与数据表](../../ui/kit/chart.go) | 缺 RadarChart、SankeyChart；已有折线/柱/面积/饼环/蜡烛图。轴域、刻度数量、参考线、线型和 tooltip 内容的公共配置较少。 |

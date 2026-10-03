@@ -139,3 +139,59 @@ func buttonBounds(h *uitest.Harness, label string) image.Rectangle {
 	n, _ := buttonNode(h, label)
 	return n.Desc.Bounds
 }
+
+func TestButtonAdditionalVariantsCompactAndContent(t *testing.T) {
+	for _, variant := range []ButtonVariant{ButtonLink, ButtonText, ButtonSuccess, ButtonWarning, ButtonInfo} {
+		for _, scale := range []int{1, 2} {
+			calls := 0
+			v := Button("Action", func() { calls++ }).Variant(variant).Outline(true)
+			h := renderView(v, 200, scale)
+			normal := buttonBounds(h, "Action")
+			v.Compact(true)
+			h.Frame()
+			compact := buttonBounds(h, "Action")
+			if compact.Dy() != normal.Dy() || (variant != ButtonLink && compact.Dx() >= normal.Dx()) {
+				t.Fatalf("compact %d: %v %v", variant, normal, compact)
+			}
+			v.Content(viewFunc(func(cx *el.Context) el.Element {
+				return el.Div().Row().Gap(6).Child(el.Text("Custom"), Icon(IconPlus).Render(cx))
+			}))
+			h.Frame()
+			before := buttonBounds(h, "Action")
+			click(t, h, "Action")
+			h.Key(key.NameSpace, 0)
+			if calls != 2 || !shown(h, "Custom") {
+				t.Fatal("custom content activation")
+			}
+			v.SetLoading(true)
+			h.Frame()
+			if buttonBounds(h, "Action") != before {
+				t.Fatal("loading custom content moved button")
+			}
+			click(t, h, "Action")
+			h.Key(key.NameReturn, 0)
+			if calls != 2 {
+				t.Fatal("loading custom action activated")
+			}
+			v.SetLoading(false)
+			h.Frame()
+			h.Key(key.NameReturn, 0)
+			if calls != 3 {
+				t.Fatal("loading lost keyboard focus")
+			}
+			v.Content(nil).Compact(false)
+			h.Frame()
+			if buttonBounds(h, "Action") != normal || shown(h, "Custom") {
+				t.Fatal("content/compact reset")
+			}
+		}
+	}
+	for _, height := range []float32{24, 28, 32, 40} {
+		v := Button("", nil).Name("Icon").Icon(IconPlus).Size(height)
+		h := renderView(v, 100, 1)
+		b := buttonBounds(h, "Icon")
+		if b.Dx() != int(height) || b.Dy() != int(height) {
+			t.Fatal("icon-only button not square", b)
+		}
+	}
+}

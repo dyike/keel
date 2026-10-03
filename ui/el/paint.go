@@ -110,7 +110,7 @@ func (e *engine) paint(n *Node) {
 	e.origin = abs.Min
 	defer func() { e.origin = saved }()
 	defer op.Offset(pos).Push(gtx.Ops).Pop()
-	if a := n.style.opacity; a > 0 && a < 1 {
+	if a := n.style.opacity; n.style.opacitySet && a < 1 {
 		defer paint.PushOpacity(gtx.Ops, a).Pop()
 	}
 	if n.decorate != nil {

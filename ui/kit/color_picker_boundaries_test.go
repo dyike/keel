@@ -60,10 +60,10 @@ func TestColorPickerCancelAndNonFiniteInput(t *testing.T) {
 	if p.Value() != before {
 		t.Fatal("nonfinite color accepted")
 	}
-	if pickerContrast(color.NRGBA{R: 255, G: 255, B: 255, A: 255}) != (color.NRGBA{A: 255}) {
+	if contrastingText(color.NRGBA{R: 255, G: 255, B: 255, A: 255}) != (color.NRGBA{A: 255}) {
 		t.Fatal("light check contrast")
 	}
-	if pickerContrast(color.NRGBA{A: 255}) != (color.NRGBA{R: 255, G: 255, B: 255, A: 255}) {
+	if contrastingText(color.NRGBA{A: 255}) != (color.NRGBA{R: 255, G: 255, B: 255, A: 255}) {
 		t.Fatal("dark check contrast")
 	}
 }
