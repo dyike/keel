@@ -18,6 +18,7 @@ func init() {
 			large[i] = fmt.Sprintf("客户 %05d", i)
 		}
 		customer.SetOptions(large...)
+		customer.DisableOption("客户 00001", true).DisableOption("客户 00003", true)
 		remote := kit.Combobox("异步搜索").Multiple().Placeholder("输入关键词；error 模拟失败")
 		remote.OnSearch(func(query string, token uint64) {
 			go func() {

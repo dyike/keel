@@ -28,6 +28,7 @@ type ComboboxView struct {
 	name                                 string // accessible name from a Form row when label is empty
 	label, placeholder, text, value, err string
 	options                              []string
+	disabledOptions                      map[string]bool
 	open, allowCustom, disabled, focused bool
 	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
@@ -69,7 +70,7 @@ func (v *ComboboxView) matches() []string {
 	return v.filtered
 }
 func (v *ComboboxView) choose(value string) {
-	if v.disabled || v.loading || v.searchError != "" || v.multiple && value == "" {
+	if v.disabled || v.disabledOptions[value] || v.loading || v.searchError != "" || v.multiple && value == "" {
 		return
 	}
 	old := v.value
@@ -113,7 +114,7 @@ func (v *ComboboxView) settle() {
 		return
 	}
 	switch {
-	case v.offered(v.text) || v.allowCustom && strings.TrimSpace(v.text) != "":
+	case !v.disabledOptions[strings.TrimSpace(v.text)] && (v.offered(v.text) || v.allowCustom && strings.TrimSpace(v.text) != ""):
 		v.choose(strings.TrimSpace(v.text))
 	default:
 		v.text = v.value
@@ -148,8 +149,10 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 			}
 			t := strings.TrimSpace(v.text)
 			if m := v.matches(); !v.offered(t) && !v.allowCustom && len(m) > 0 {
-				v.choose(m[0])
-				return
+				if i := v.enabledOption(m, 0, 1); i >= 0 {
+					v.choose(m[i])
+					return
+				}
 			}
 			v.settle()
 		})

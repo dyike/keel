@@ -81,7 +81,7 @@ func (v *ComboboxView) OnSearch(fn func(query string, token uint64)) *ComboboxVi
 }
 func (v *ComboboxView) searchChanged() {
 	v.request++
-	v.active = 0
+	v.active = v.enabledOption(v.matches(), 0, 1)
 	v.searchError = ""
 	v.loading = v.onSearch != nil
 	if v.onSearch != nil {
@@ -95,7 +95,7 @@ func (v *ComboboxView) SetResults(token uint64, options ...string) bool {
 	v.SetOptions(options...)
 	v.loading = false
 	v.searchError = ""
-	v.active = 0
+	v.active = v.enabledOption(v.matches(), 0, 1)
 	return true
 }
 func (v *ComboboxView) SetSearchError(token uint64, message string) bool {
@@ -134,12 +134,23 @@ func (v *ComboboxView) optionKey(cx *el.Context, e el.KeyEvent) bool {
 	case key.NameDownArrow:
 		v.active = (v.active + 1) % len(matches)
 	case key.NameUpArrow:
-		v.active = (v.active - 1 + len(matches)) % len(matches)
+		if v.active < 0 {
+			v.active = len(matches) - 1
+		} else {
+			v.active = (v.active - 1 + len(matches)) % len(matches)
+		}
 	default:
 		v.active, _ = base.List{Count: len(matches), Page: 8}.Key(e.Name, v.active)
 	}
+	direction := 1
+	if key.Name(e.Name) == key.NameUpArrow || key.Name(e.Name) == key.NamePageUp {
+		direction = -1
+	}
+	v.active = v.enabledOption(matches, v.active, direction)
 	v.virtual.SetCount(len(matches))
-	v.virtual.ScrollTo(cx, v.active)
+	if v.active >= 0 {
+		v.virtual.ScrollTo(cx, v.active)
+	}
 	return true
 }
 func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
@@ -148,7 +159,7 @@ func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
 	if v.multiple {
 		selected = slices.Contains(v.values, option)
 	}
-	row := el.Div().Role("option").Name(option).Selected(selected).H(el.Dp(28)).My(1).Mx(4).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
+	row := el.Div().Disabled(v.disabledOptions[option]).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).Role("option").Name(option).Selected(selected).H(el.Dp(28)).My(1).Mx(4).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
 		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(option); cx.Focus(v.FocusID()) }).Child(el.Text(option).Grow().MaxLines(1), checkMark(cx, selected))
 	switch {
 	case selected:
