@@ -98,6 +98,11 @@ func (v *ButtonView) activate() {
 }
 
 func (v *ButtonView) Render(cx *el.Context) el.Element {
+	return v.renderWithRadius(cx, theme.RadiusMd)
+}
+
+// renderWithRadius lets composite controls refine corners without mutating the button.
+func (v *ButtonView) renderWithRadius(cx *el.Context, radius float32) el.Element {
 	bg, hover, fg := theme.Primary, theme.PrimaryHover, theme.OnColor
 	switch v.variant {
 	case ButtonSecondary:
@@ -175,7 +180,7 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 		name = v.text
 	}
 	box := el.Div().ID(v.id).Role("button").Name(name).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(theme.SpaceSm).Items(el.Center).Justify(el.Center).
-		Rounded(theme.RadiusMd).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
+		Rounded(radius).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
 		Disabled(v.disabled).
 		DisabledStyle(func(s *el.Style) { s.Bg(disabledBg).TextColor(theme.Muted).BorderColor(theme.Border) }).
 		FocusStyle(func(s *el.Style) { s.BorderColor(appearance.Focus) })

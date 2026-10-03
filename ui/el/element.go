@@ -174,6 +174,15 @@ func (s *Styled[T]) Col() *T {
 // Gap applies between items and lines; Grow distributes space within each line.
 func (s *Styled[T]) Wrap() *T {
 	s.n.style.row, s.n.style.wrap, s.n.style.grid = true, true, 0
+	s.n.style.wrapFit = false
+	return s.self
+}
+
+// WrapFit wraps like Wrap but hugs each line's content when width is automatic.
+// An explicit or stretched width retains normal per-line alignment and Grow.
+func (s *Styled[T]) WrapFit() *T {
+	s.Wrap()
+	s.n.style.wrapFit = true
 	return s.self
 }
 

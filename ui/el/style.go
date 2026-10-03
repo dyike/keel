@@ -74,6 +74,7 @@ type Style struct {
 	reveal                  float32
 	revealSet               bool
 	wrap                    bool
+	wrapFit                 bool
 	grid                    int
 	colSpan                 int
 	row                     bool // lay children out left to right; default top to bottom

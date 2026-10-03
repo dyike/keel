@@ -139,3 +139,27 @@ func TestGridSpanningMinimumAndStretch(t *testing.T) {
 		t.Fatal("hidden span reserved tracks")
 	}
 }
+
+func TestWrapFitHugsContentAndHonorsWidth(t *testing.T) {
+	a, b := Div().Size(Dp(60)), Div().Size(Dp(40))
+	flow := Div().WrapFit().Gap(4).Child(a, b)
+	render(t, Div().Items(Start).Child(flow))
+	if flow.n.size.X != 104 || b.n.pos.X != 64 {
+		t.Fatal("fit width", rect(flow), rect(b))
+	}
+	flow.MaxW(Dp(80))
+	render(t, Div().Items(Start).Child(flow))
+	if flow.n.size.X != 60 || b.n.pos.Y != 64 {
+		t.Fatal("fit wrap", rect(flow), rect(b))
+	}
+	flow.MaxW(Full).W(Dp(200)).Justify(End)
+	render(t, Div().Items(Start).Child(flow))
+	if flow.n.size.X != 200 || a.n.pos.X != 96 {
+		t.Fatal("explicit width alignment", rect(flow), rect(a))
+	}
+	flow.W(Auto).Wrap()
+	render(t, Div().Items(Start).Child(Div().W(Dp(200)).Items(Start).Child(flow)))
+	if flow.n.size.X != 200 {
+		t.Fatal("Wrap did not clear fit", rect(flow))
+	}
+}

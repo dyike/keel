@@ -36,13 +36,14 @@ const (
 
 // BubbleView lays out a chat surface and an optional application-owned reaction region.
 type BubbleView struct {
-	content       el.View
-	reactions     el.View
-	mine          bool
-	variant       BubbleVariant
-	reactionSide  BubbleReactionSide
-	reactionAlign el.Align
-	styles        [3]func(*el.DivEl)
+	content         el.View
+	reactions       el.View
+	reactionActions []*ButtonView
+	mine            bool
+	variant         BubbleVariant
+	reactionSide    BubbleReactionSide
+	reactionAlign   el.Align
+	styles          [3]func(*el.DivEl)
 }
 
 func Bubble(content el.View) *BubbleView { return &BubbleView{content: content, reactionAlign: el.End} }
@@ -63,9 +64,22 @@ func (v *BubbleView) Variant(variant BubbleVariant) *BubbleView {
 }
 func (v *BubbleView) Content(content el.View) *BubbleView { v.content = content; return v }
 
-// Reactions supplies arbitrary controls or content; nil clears the region.
+// Reactions supplies arbitrary controls or content; nil clears this generic slot.
 // Counts, selection and callbacks belong to the supplied view.
 func (v *BubbleView) Reactions(view el.View) *BubbleView { v.reactions = view; return v }
+
+// ReactionActions replaces the typed action list, copying it and ignoring nils.
+// Buttons retain their configuration and receive pill corners only in this slot.
+// Each button instance must occur at most once; Reactions supplies generic content.
+func (v *BubbleView) ReactionActions(buttons ...*ButtonView) *BubbleView {
+	v.reactionActions = nil
+	for _, b := range buttons {
+		if b != nil {
+			v.reactionActions = append(v.reactionActions, b)
+		}
+	}
+	return v
+}
 func (v *BubbleView) ReactionSide(side BubbleReactionSide) *BubbleView {
 	if side <= BubbleReactionTop {
 		v.reactionSide = side
@@ -125,14 +139,22 @@ func (v *BubbleView) Render(cx *el.Context) el.Element {
 		box.Child(v.content.Render(cx))
 	}
 	reaction := el.Div().Bg(theme.Surface).TextColor(theme.Text).Border(1, theme.Border).Rounded(theme.RadiusFull).Px(theme.SpaceSm).Py(theme.SpaceXs)
+	if len(v.reactionActions) > 0 {
+		reaction.P(0).Row().WrapFit().Items(el.Center).Gap(theme.SpaceXs)
+	}
 	reaction = v.part(BubblePartReactions, id+"/reactions", reaction)
 	if v.reactions != nil {
-		reaction.Child(v.reactions.Render(cx))
-	} else {
+		reaction.Child(el.Div().ID(id + "/reaction-content").Child(v.reactions.Render(cx)))
+	}
+	for _, b := range v.reactionActions {
+		reaction.Child(el.Div().ID(autoID("bubble-action", b)).Child(b.renderWithRadius(cx, theme.RadiusFull)))
+	}
+	emptyReactions := v.reactions == nil && len(v.reactionActions) == 0
+	if emptyReactions {
 		reaction.Hidden(true)
 	}
 	reactionRow := el.Div().ID(id + "/reaction-row").Row().Justify(v.reactionAlign).Child(reaction)
-	if v.reactions == nil {
+	if emptyReactions {
 		reactionRow.Hidden(true)
 	}
 	stack := el.Div().ID(id + "/stack").MaxW(el.Frac(.75)).Items(el.Stretch)

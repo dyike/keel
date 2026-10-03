@@ -345,3 +345,5 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 `TabStop(false)` 跳过顺序遍历，保留鼠标/程序聚焦；`TabIndex(n)` 按升序排列，相同值保持树顺序，负值跳过，默认 0。显式配置出现时，el root 处理 Tab/Shift+Tab，在当前模态或 TrapFocus 浮层内循环；否则使用 Gio 原生顺序。输入框也参与排序。禁用、隐藏和未绘制的节点跳过。
 
 范围限单个 el root，不跨独立 Embed 或原生 Gio 控件。直接调用 Router.MoveFocus 绕过此规则，应使用正常 Tab 事件；控件显式消费 Tab 时保留其操作行为。
+
+`WrapFit()` 与 Wrap 一样支持换行；自动宽度时按每行内容收紧，适合按钮胶囊等需要贴合内容的容器。显式或拉伸宽度仍使用常规行对齐及 Grow 分配。调用 Wrap() 恢复填满可用行宽的默认行为。

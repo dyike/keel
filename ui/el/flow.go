@@ -46,6 +46,9 @@ func (e *engine) wrap(n *Node, width, limW, limH int) image.Point {
 			line.children = append(line.children, c)
 		}
 		available := limit
+		if width < 0 && n.style.wrapFit {
+			available = min(limit, used)
+		}
 		if available >= inf {
 			available = -1
 		}
