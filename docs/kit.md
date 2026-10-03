@@ -79,7 +79,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 
 - [Checkbox](kit/checkbox.md)、[Switch](kit/switch.md)、[RadioGroup](kit/radio_group.md)、[Toggle](kit/toggle.md)、[ToggleGroup](kit/toggle_group.md)：选择与开关。
 - [Input / TextArea](kit/input.md)：文本框，支持前后缀、清空、错误提示。
-- [Input Group](kit/input_group.md)：统一标签和边框的输入、图标与按钮组合。
+- [Input Group](kit/input_group.md)：统一边框的输入/多行编辑器与四方向图标、文字、按钮组合。
 - [Select](kit/select.md)、[Combobox](kit/combobox.md)：下拉选择、可筛选输入。
 - [NumberInput](kit/number_input.md)、[OtpInput](kit/otp_input.md)、[TimeField](kit/time_field.md)：数字、验证码、时间。
 - [Calendar](kit/calendar.md)、[DatePicker](kit/date_picker.md)：日期与日期范围。

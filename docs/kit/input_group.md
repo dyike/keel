@@ -20,3 +20,27 @@ Input 实例负责文字、过滤、只读和回调，Input Group 负责边框�
 Agent：外层是 `group`，内部编辑器为带字段名称的 `textbox`；附加按钮保留自己的名称、角色和禁用状态。
 
 验证：`go run ./examples/components -section input_group`；加 `-theme dark` 验证深色。
+
+`Addon(id, alignment, view)` 可以在四个位置添加任意数量的附加内容：
+
+| alignment | 位置 |
+| --- | --- |
+| `InputGroupInlineStart` | 编辑器左侧，在 Prefix 之后 |
+| `InputGroupInlineEnd` | 编辑器右侧，在 Suffix 之前 |
+| `InputGroupBlockStart` | 整个输入行上方 |
+| `InputGroupBlockEnd` | 整个输入行下方 |
+
+同一位置按添加顺序排列。ID 必须非空且保持稳定；同 ID 替换内容和位置，传 nil 删除。上下区域各占一行，可在 View 内用 Row/Wrap 组合计数、工具栏、按钮或菜单。文字、图标及空白处点击聚焦输入；交互控件保留自己的点击和焦点行为。
+
+```go
+message := kit.TextArea("").Rows(3)
+composer := kit.InputGroup("备注", message).
+    Addon("heading", kit.InputGroupBlockStart,
+        el.ViewFunc(func(*el.Context) el.Element { return el.Text("填写订单备注") })).
+    Addon("send", kit.InputGroupBlockEnd,
+        kit.Button("保存", func() { save(message.Value()) }).Size(28))
+```
+
+附加按钮直接使用 `kit.Button`，可配置 Variant、Size、Icon、Name、Loading 和禁用状态；紧凑按钮可设 `.Variant(kit.ButtonGhost).Size(24)`。图标按钮需 `Name`。菜单、Popover 和 Tooltip 也可以作为附加 View 组合，沿用各自接口。
+
+TextArea 与单行输入共用这些位置；上下面板随内容增高，文本行数由内部 TextArea 控制。`Rows` 目前设置最小高度，最大行数与自动增长上限仍属于 TextArea 待补齐功能。输入和附加内容外只有一层字段边框，聚焦框覆盖整组。只读允许附加动作，输入禁用、组禁用和祖先禁用则禁用全部附加操作。

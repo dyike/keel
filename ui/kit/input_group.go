@@ -1,17 +1,36 @@
 package kit
 
 import (
+	"slices"
+
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 )
 
-// InputGroupView composes a text input and independent leading/trailing views
+// InputGroupAlignment places an addon around the editor row.
+type InputGroupAlignment uint8
+
+const (
+	InputGroupInlineStart InputGroupAlignment = iota
+	InputGroupInlineEnd
+	InputGroupBlockStart
+	InputGroupBlockEnd
+)
+
+type inputGroupAddon struct {
+	id        string
+	alignment InputGroupAlignment
+	view      el.View
+}
+
+// InputGroupView composes a text input and independent inline/block views
 // inside one field border. The input remains the owner of its value and events.
 type InputGroupView struct {
 	label, name    string
 	input          *InputView
 	prefix, suffix el.View
 	disabled       bool
+	addons         []inputGroupAddon
 }
 
 // InputGroup wraps input; nil creates an empty single-line input.
@@ -22,8 +41,31 @@ func InputGroup(label string, input *InputView) *InputGroupView {
 	}
 	return &InputGroupView{label: label, input: input}
 }
-func (v *InputGroupView) Prefix(view el.View) *InputGroupView      { v.prefix = view; return v }
-func (v *InputGroupView) Suffix(view el.View) *InputGroupView      { v.suffix = view; return v }
+func (v *InputGroupView) Prefix(view el.View) *InputGroupView { v.prefix = view; return v }
+func (v *InputGroupView) Suffix(view el.View) *InputGroupView { v.suffix = view; return v }
+
+// Addon inserts content at one of four positions. IDs must be nonempty and
+// stable. Reusing an ID replaces its content/position; nil removes it.
+// Each side preserves insertion order. Buttons retain their own configuration.
+func (v *InputGroupView) Addon(id string, alignment InputGroupAlignment, view el.View) *InputGroupView {
+	if id == "" {
+		panic("kit.InputGroup: empty addon ID")
+	}
+	if alignment > InputGroupBlockEnd {
+		return v
+	}
+	index := slices.IndexFunc(v.addons, func(a inputGroupAddon) bool { return a.id == id })
+	if view == nil {
+		if index >= 0 {
+			v.addons = slices.Delete(v.addons, index, index+1)
+		}
+	} else if index >= 0 {
+		v.addons[index] = inputGroupAddon{id, alignment, view}
+	} else {
+		v.addons = append(v.addons, inputGroupAddon{id, alignment, view})
+	}
+	return v
+}
 func (v *InputGroupView) Value() string                            { return v.input.Value() }
 func (v *InputGroupView) SetValue(s string)                        { v.input.SetValue(s) }
 func (v *InputGroupView) OnChange(fn func(string)) *InputGroupView { v.input.OnChange(fn); return v }
@@ -43,14 +85,38 @@ func (v *InputGroupView) Render(cx *el.Context) el.Element {
 	v.input.setName(name)
 	id := autoID("inputgroup", v)
 	disabled := v.disabled || v.input.disabled
-	field := fieldFrame(id, cx.FocusWithin(id), v.Error() != "", disabled, v.input.readOnly).FocusOnPress(v.input.FocusID()).Role("group").Name(name)
+	field := fieldFrame(id, cx.FocusWithin(id), v.Error() != "", disabled, v.input.readOnly).Col().Items(el.Stretch).Justify(el.Center).FocusOnPress(v.input.FocusID()).Role("group").Name(name)
+	appendAddons := func(parent *el.DivEl, alignment InputGroupAlignment) {
+		for _, addon := range v.addons {
+			if addon.alignment != alignment {
+				continue
+			}
+			box := el.Div().ID(id + "/addon/" + addon.id).TextColor(theme.Muted).TextSize(theme.TextSm)
+			if alignment == InputGroupBlockStart || alignment == InputGroupBlockEnd {
+				box.WFull()
+			} else {
+				box.NoShrink()
+			}
+			parent.Child(box.Child(addon.view.Render(cx)))
+		}
+	}
+	appendAddons(field, InputGroupBlockStart)
+	row := el.Div().ID(id + "/row").WFull().Row().Items(el.Center).Gap(theme.SpaceMd)
+	if v.input.multiline {
+		row.Items(el.Start)
+	}
 	if v.prefix != nil {
-		field.Child(el.Div().ID(id + "/prefix").NoShrink().Child(v.prefix.Render(cx)))
+		row.Child(el.Div().ID(id + "/prefix").NoShrink().Child(v.prefix.Render(cx)))
 	}
-	field.Child(el.Div().ID(id + "/field").Grow().MinW(el.Dp(24)).Child(v.input.render(cx, false)))
+	appendAddons(row, InputGroupInlineStart)
+	row.Child(el.Div().ID(id + "/field").Grow().MinW(el.Dp(24)).Child(v.input.render(cx, false)))
+	appendAddons(row, InputGroupInlineEnd)
 	if v.suffix != nil {
-		field.Child(el.Div().ID(id + "/suffix").NoShrink().Child(v.suffix.Render(cx)))
+		row.Child(el.Div().ID(id + "/suffix").NoShrink().Child(v.suffix.Render(cx)))
 	}
+	field.Child(row)
+	appendAddons(field, InputGroupBlockEnd)
+
 	root := el.Div().WFull().Gap(theme.SpaceSm).Disabled(disabled)
 	label := v.label
 	if label == "" {
