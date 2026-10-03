@@ -5,6 +5,7 @@ import (
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/theme"
 	"strings"
 	"time"
 )
@@ -13,7 +14,16 @@ func init() {
 	registerSection("combobox", "inputs", func() core.Widget {
 		customer := kit.Combobox("客户", "华东物流", "北京百货", "深圳电子", "成都餐饮", "杭州茶业", "上海文具").Placeholder("输入筛选").Clearable(true).Size(28)
 		tag := kit.Combobox("标签 Tag", "紧急", "VIP", "待跟进").AllowCustom().Multiple().Clearable(true).Size(48).CheckIcon(kit.Icon(kit.IconCheck)).Placeholder("可输入新标签；再选一次取消")
-		country := kit.Combobox("国家（显示名称／实际值）").Clearable(true).Searchable(false)
+		country := kit.Combobox("国家（显示名称／实际值）").Clearable(true)
+		country.RenderTrigger(func(state kit.ComboboxTriggerContext) el.View {
+			label := "选择国家"
+			if len(state.Selection) > 0 {
+				label = "国家：" + state.Selection[0].Label
+			}
+			return el.ViewFunc(func(cx *el.Context) el.Element {
+				return el.Div().P(12).Rounded(theme.RadiusMd).Border(1, theme.Primary).Child(el.Text(label))
+			})
+		})
 		country.RowHeight(52).RenderItem(func(item kit.ComboboxItem, selected bool) el.View {
 			return el.ViewFunc(func(cx *el.Context) el.Element {
 				return el.Div().Child(el.Text(item.Label), el.Text("代码："+item.Value))

@@ -45,6 +45,9 @@ type ComboboxView struct {
 	optionRows                           []int
 	open, allowCustom, disabled, focused bool
 	nonsearchable                        bool
+	triggerRenderer                      func(ComboboxTriggerContext) el.View
+	customTrigger                        bool
+	searchFocus                          bool
 	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
 	onConfirm                            func([]string)
@@ -166,6 +169,24 @@ func (v *ComboboxView) settle() {
 	v.confirmClose()
 }
 
+func (v *ComboboxView) submit() {
+	if v.loading || v.searchError != "" {
+		return
+	}
+	if m := v.matches(); v.open && v.active >= 0 && v.active < len(m) {
+		v.choose(m[v.active])
+		return
+	}
+	t := strings.TrimSpace(v.text)
+	if m := v.matches(); !v.offered(t) && !v.allowCustom && len(m) > 0 {
+		if i := v.enabledOption(m, 0, 1); i >= 0 {
+			v.choose(m[i])
+			return
+		}
+	}
+	v.settle()
+}
+
 func (v *ComboboxView) Render(cx *el.Context) el.Element {
 	id := autoID("combobox", v)
 	ratio := v.sizeRatio()
@@ -181,23 +202,7 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 	field := fieldText(el.Input().ID(v.FocusID()).Name(v.a11y()).Placeholder(v.placeholder).Bind(&v.text)).
 		OnChange(func(string) { v.open = true; v.searchChanged(); cx.ScrollTo(v.virtual.ID(), 0) }).
 		OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) }).
-		OnSubmit(func(string) {
-			if v.loading || v.searchError != "" {
-				return
-			}
-			if m := v.matches(); v.open && v.active >= 0 && v.active < len(m) {
-				v.choose(m[v.active])
-				return
-			}
-			t := strings.TrimSpace(v.text)
-			if m := v.matches(); !v.offered(t) && !v.allowCustom && len(m) > 0 {
-				if i := v.enabledOption(m, 0, 1); i >= 0 {
-					v.choose(m[i])
-					return
-				}
-			}
-			v.settle()
-		})
+		OnSubmit(func(string) { v.submit() })
 	toggle := el.Div().Name(locale.Current().Name(locale.Current().MoreOptions, v.a11y())).P(theme.SpaceXxs * ratio).Rounded(theme.RadiusSm).
 		Focusable(false).CursorPointer().OnClick(func() {
 		if v.open {
@@ -235,6 +240,11 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 		box.Child(clear.Render(cx))
 	}
 	box.Child(toggle)
+	custom := v.renderCustomTrigger(cx, id)
+	v.customTrigger = custom != nil
+	if custom != nil {
+		box = custom
+	}
 	if v.open && !v.disabled {
 		cx.Overlay(id, el.Anchored(id, v.suggestions(cx, id)).MatchAnchorWidth().OnDismiss(func() {
 			if !cx.Enabled(id) {

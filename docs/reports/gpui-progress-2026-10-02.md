@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**55 项主体已有、20 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**56 项主体已有、19 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -219,7 +219,9 @@
 
 - [x] 第一百三十三批（`1448cbf`）：Combobox 增加 Searchable，关闭搜索使用可聚焦按钮，禁用文字查询/自定义输入并显示全部候选；点击/Enter 打开，方向键跳过禁用项，Enter/Space 确认，Esc 关闭，多选可反复切换。异步打开/重试发送空查询，模式切换丢弃草稿并使旧请求失效。测试覆盖单选/多选、输入隔离、键盘开关、禁用、模式恢复和异步参数/旧结果拒绝；构建、vet、全量测试通过，未做真机视觉验收。组件继续为部分。
 
-- [x] 第一百三十四批：Combobox 增加 OnConfirm，用户选中关闭/Esc/外部点击/按钮关闭/打开期间清空后通知一次，参数为选择快照，在变更回调之后发送。程序赋值、禁用与模式切换静默；关闭前完成内部状态，回调重新赋值不被覆盖，多选回调主动关闭时不继续搜索。测试覆盖五条关闭路径、通知次数/副本、顺序、回调重入和程序操作隔离；构建、vet、全量测试通过，未做真机视觉验收。组件继续为部分。
+- [x] 第一百三十四批（`0e9e128`）：Combobox 增加 OnConfirm，用户选中关闭/Esc/外部点击/按钮关闭/打开期间清空后通知一次，参数为选择快照，在变更回调之后发送。程序赋值、禁用与模式切换静默；关闭前完成内部状态，回调重新赋值不被覆盖，多选回调主动关闭时不继续搜索。测试覆盖五条关闭路径、通知次数/副本、顺序、回调重入和程序操作隔离；构建、vet、全量测试通过，未做真机视觉验收。组件继续为部分。
+
+- [x] 第一百三十五批：Combobox 增加 RenderTrigger 与 ComboboxTriggerContext，完整替换字段展示并提供选择副本、展开/自身禁用/尺寸状态及 Toggle/Clear 动作。组件保留焦点/键盘及祖先禁用，独立背景点击避免嵌套按钮重复触发；搜索模式在弹层内提供搜索框并自动聚焦，选择后回到合适的焦点目标。测试覆盖搜索/筛选/确认、键盘重新打开、快照隔离、默认恢复、无搜索模式、嵌套操作和祖先禁用；构建、vet、全量测试通过，未做真机视觉验收。登记主要缺口关闭，Combobox 调整为主体已有。
 
 ## 当前实施清单
 
@@ -257,7 +259,7 @@
 | [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 第五批已补齐 OnCopied、Content 与反馈状态查询；回调表示已提交写入请求，非操作系统成功确认。此表登记缺口已关闭。 |
 | [Collapsible](https://gpui-kit.com/component/collapsible/) | 主体已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | 主体覆盖：拆分 Trigger/Content、状态控制与动画；本轮未发现新的主要功能缺口。 |
 | [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 颜色编辑主体已有；GPUI 自带触发器/弹层，Keel 是内联选择器，弹层需组合 Popover；缺触发图标、标签与尺寸配置。 |
-| [Combobox](https://gpui-kit.com/component/combobox/) | 部分 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 第一百二十五批补齐 DisableOption，点击/键盘/提交跳过禁用值，配置跨过滤与异步更新保留。第一百二十七批补齐持久 Footer 操作区。第一百三十一批补齐 RenderItem 和统一 RowHeight，支持富内容/行内操作及稳定值身份。第一百三十二批补齐 SetGroups/SetGroupResults 分组及虚拟标题。仍缺自定义触发器；第一百三十四批补齐 OnConfirm 用户关闭确认事件；第一百三十三批补齐 Searchable 关闭搜索模式。第一百二十九批补齐 Size 和 CheckIcon。第一百二十六批补齐多选候选再次选择取消；第一百二十八批补齐 Clearable 单选/多选清空按钮。第一百三十批补齐 ComboboxItem 的稳定值/显示名称/禁用及结构化异步结果；多选标签与异步搜索已有。 |
+| [Combobox](https://gpui-kit.com/component/combobox/) | 主体已有 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 第一百二十五批补齐 DisableOption，点击/键盘/提交跳过禁用值，配置跨过滤与异步更新保留。第一百二十七批补齐持久 Footer 操作区。第一百三十一批补齐 RenderItem 和统一 RowHeight，支持富内容/行内操作及稳定值身份。第一百三十二批补齐 SetGroups/SetGroupResults 分组及虚拟标题。第一百三十五批补齐 RenderTrigger、状态快照、独立开关/清空动作及面板内搜索，登记主要缺口关闭。自定义触发器自行绘制默认标签/清空入口，候选采用统一行高，程序赋值允许当前候选外的值，这些仍是与上游的接口约定差异。第一百三十四批补齐 OnConfirm 用户关闭确认事件；第一百三十三批补齐 Searchable 关闭搜索模式。第一百二十九批补齐 Size 和 CheckIcon。第一百二十六批补齐多选候选再次选择取消；第一百二十八批补齐 Clearable 单选/多选清空按钮。第一百三十批补齐 ComboboxItem 的稳定值/显示名称/禁用及结构化异步结果；多选标签与异步搜索已有。 |
 | [Command](https://gpui-kit.com/component/command/) | 部分 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 缺内联模式、关闭搜索的模式、自定义行/header/footer；当前固定为带搜索的模态命令面板。 |
 | [DataTable](https://gpui-kit.com/component/data-table/) | 部分 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | 主要数据表能力已有；缺独立整列选择模式、列级 selectable/resizable/movable 限制，以及 stripe/密度等公开配置。 |
 | [DatePicker](https://gpui-kit.com/component/date-picker/) | 主体已有 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。第一百二十三批补齐 DateValue/SetDateValue 与 DateTimeValue/SetDateTimeValue，范围独立保存起止时刻，预设和回调携带时刻。范围日历只编辑日期；兼容旧 Value 的纯日期行为，日期格式使用 Go 布局。第一百二十四批补齐独立 FirstWeekday 和恢复 locale 的 ResetFirstWeekday。 |

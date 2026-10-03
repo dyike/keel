@@ -59,7 +59,7 @@ func (v *ComboboxView) removeValue(value string) {
 		v.onChange(v.value)
 	}
 }
-func (v *ComboboxView) close() { v.open = false; v.request++; v.loading = false }
+func (v *ComboboxView) close() { v.open = false; v.request++; v.loading = false; v.searchFocus = false }
 func (v *ComboboxView) cancelDraft() {
 	v.close()
 	v.focused = false
@@ -166,7 +166,7 @@ func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
 	}
 	row := el.Div().Disabled(v.optionDisabled(option)).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).Role("option").Name(v.optionLabel(option)).Value(option).Selected(selected).H(el.Dp(max(1, v.optionHeight()-2*ratio))).My(ratio).Mx(4 * ratio).Px(theme.SpaceMd * ratio).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
 		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
-	row.Child(el.Div().ID("activate").Absolute().Top(0).Left(0).W(el.Full).H(el.Full).OnClick(func() { v.choose(option); cx.Focus(v.FocusID()) }), v.renderItem(cx, option, selected), v.renderCheck(cx, selected))
+	row.Child(el.Div().ID("activate").Absolute().Top(0).Left(0).W(el.Full).H(el.Full).OnClick(func() { v.choose(option); cx.Focus(v.selectionFocusID()) }), v.renderItem(cx, option, selected), v.renderCheck(cx, selected))
 	if v.height > 0 {
 		row.TextSize(float32(theme.BodySize) * ratio)
 	}
@@ -182,6 +182,10 @@ func (v *ComboboxView) suggestions(cx *el.Context, id string) el.Element {
 	list := floating(theme.ElevationMd).ID(id + "/list").Role("listbox").Name(v.a11y()).Py(theme.SpaceXs).Items(el.Stretch)
 	_, height := cx.ViewportSize()
 	footer, reserve := v.renderFooter(cx, id, height)
+	if v.customTrigger && !v.nonsearchable {
+		reserve += 44 * v.sizeRatio()
+		list.Child(v.popupSearch(cx, id))
+	}
 	available := max(1, height-80-reserve)
 	body := el.Div().ID(id + "/results").Items(el.Stretch).MaxH(el.Dp(available)).ScrollY()
 	switch {
