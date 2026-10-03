@@ -167,11 +167,11 @@ func (v *QuestionnaireView) Skip() {
 	}
 }
 
-// Reset clears answers, skips and completion, preserving external errors and disabled conditions.
+// Reset restores schema default answers and clears completion, preserving external errors and disabled conditions.
 func (v *QuestionnaireView) Reset() {
 	values := map[string]Answer{}
 	for _, q := range v.questions {
-		values[q.ID] = Answer{}
+		values[q.ID] = q.DefaultAnswer
 	}
 	v.SetValue(values)
 	v.SetPage(0)
@@ -183,6 +183,9 @@ func (v *QuestionnaireView) handleKey(cx *el.Context, e el.KeyEvent) bool {
 	q := v.questions[v.page]
 	c := v.control(q)
 	inText := c.input != nil && cx.FocusWithin(c.input.FocusID()) || c.freeform != nil && cx.FocusWithin(c.freeform.FocusID())
+	if v.navigationKey(cx, e, q, c, inText) {
+		return true
+	}
 	if inText {
 		v.heldShortcuts = nil
 		return false
@@ -200,7 +203,8 @@ func (v *QuestionnaireView) handleKey(cx *el.Context, e el.KeyEvent) bool {
 			index = int(name[0] - '1')
 		}
 	}
-	if index < 0 || index >= len(q.Options) || c.radio == nil && c.checks == nil {
+	options := v.enabledOptions(q)
+	if index < 0 || index >= len(options) || c.radio == nil && c.checks == nil {
 		return false
 	}
 	if e.State != el.KeyPress {
@@ -214,6 +218,7 @@ func (v *QuestionnaireView) handleKey(cx *el.Context, e el.KeyEvent) bool {
 		v.heldShortcuts = map[string]bool{}
 	}
 	v.heldShortcuts[name] = true
+	index = options[index]
 	if c.radio != nil {
 		c.radio.SetValue(q.Options[index])
 		c.freeformActive = false

@@ -30,6 +30,7 @@ type Question struct {
 	Disabled               bool
 	FreeformLabel          string // Single/Multiple: optional freeform input.
 	Validate               func(Answer, map[string]Answer) string
+	DefaultAnswer          Answer
 }
 
 // Answer holds a typed answer, optional active freeform text, or an intentional skip.
@@ -60,20 +61,22 @@ type questionControl struct {
 // checks every question, jumps to the first unanswered one, and otherwise
 // calls OnSubmit with all answers by question ID.
 type QuestionnaireView struct {
-	questions     []Question
-	controls      map[string]*questionControl
-	page          int
-	disabled      bool
-	err           string
-	onSubmit      func(map[string]Answer)
-	external      map[string]string
-	skipped       map[string]bool
-	completed     bool
-	onChange      func(string, Answer)
-	onComplete    func(map[string]Answer)
-	shortcuts     QuestionnaireShortcuts
-	focusPending  bool
-	heldShortcuts map[string]bool
+	questions       []Question
+	controls        map[string]*questionControl
+	page            int
+	disabled        bool
+	err             string
+	onSubmit        func(map[string]Answer)
+	external        map[string]string
+	skipped         map[string]bool
+	completed       bool
+	onChange        func(string, Answer)
+	onComplete      func(map[string]Answer)
+	shortcuts       QuestionnaireShortcuts
+	focusPending    bool
+	heldShortcuts   map[string]bool
+	disabledChoices map[string]map[string]bool
+	noNavigation    bool
 }
 
 func Questionnaire(questions ...Question) *QuestionnaireView {
@@ -88,6 +91,7 @@ func Questionnaire(questions ...Question) *QuestionnaireView {
 		}
 		ids[q.ID] = true
 		owned[i].Options = slices.Clone(q.Options)
+		owned[i].DefaultAnswer.Choices = slices.Clone(q.DefaultAnswer.Choices)
 		seen := map[string]bool{}
 		for _, option := range q.Options {
 			if seen[option] {
@@ -97,7 +101,7 @@ func Questionnaire(questions ...Question) *QuestionnaireView {
 		}
 	}
 	v := &QuestionnaireView{questions: owned, controls: map[string]*questionControl{}, external: map[string]string{}, skipped: map[string]bool{}}
-	v.SetPage(0)
+	v.Reset()
 	v.focusPending = false
 	return v
 }
@@ -187,11 +191,14 @@ func (v *QuestionnaireView) answer(q Question) Answer {
 		if c.freeformActive && c.freeform != nil {
 			return Answer{Freeform: c.freeform.Value()}
 		}
+		if v.choiceDisabled(q.ID, c.radio.Value()) {
+			return Answer{}
+		}
 		return Answer{Text: c.radio.Value()}
 	case QuestionMultiple:
 		var out []string
 		for i, ch := range c.checks {
-			if ch.Value() {
+			if ch.Value() && !v.choiceDisabled(q.ID, q.Options[i]) {
 				out = append(out, q.Options[i])
 			}
 		}
@@ -308,6 +315,7 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 		card.Child(el.Text(q.Description).TextSize(theme.TextMd).TextColor(theme.Muted))
 	}
 	c := v.control(q)
+	v.registerNavigation(cx)
 	switch {
 	case c.radio != nil:
 		card.Child(c.radio.Render(cx))
@@ -333,24 +341,22 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 		card.Child(el.Text(message).TextSize(theme.TextSm).TextColor(theme.DangerText))
 	}
 	if v.focusPending {
+		targets := v.focusTargets(q)
 		target := ""
-		switch {
-		case c.freeformActive && c.freeform != nil:
-			target = c.freeform.FocusID()
-		case c.input != nil:
-			target = c.input.FocusID()
-		case c.radio != nil:
-			target = c.radio.FocusID()
-		case c.rating != nil:
-			target = c.rating.FocusID()
-		case len(c.checks) > 0:
-			target = c.checks[0].FocusID()
+		if len(targets) > 0 {
+			target = targets[0]
 		}
+		if c.freeformActive && c.freeform != nil {
+			target = c.freeform.FocusID()
+		}
+
 		if target != "" && cx.Enabled(target) {
 			cx.Focus(target)
 			v.focusPending = false
-		} else {
+		} else if target != "" {
 			cx.AfterEnabled(autoID("questionnaire", v), v, 0, func() {})
+		} else {
+			v.focusPending = false
 		}
 	}
 	prev := Button(text.Previous, v.previous).Variant(ButtonSecondary)
@@ -359,7 +365,7 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	if state.Current == state.Total {
 		forward = Button(text.Submit, v.submit)
 	}
-	actions := el.Div().Row().Gap(theme.SpaceMd).Justify(el.End).Child(prev.Render(cx))
+	actions := el.Div().ID(autoID("questionnaire", v) + "/actions").Row().Gap(theme.SpaceMd).Justify(el.End).Child(prev.Render(cx))
 	if !q.Required {
 		actions.Child(Button(text.Skip, v.Skip).Variant(ButtonGhost).Render(cx))
 	}
