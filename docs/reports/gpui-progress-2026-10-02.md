@@ -99,7 +99,9 @@
 
 - [x] 第六十九批（`868e9ba`）：Attachment 增加 MediaSource、MediaLoading/MediaError 和 RetryMedia；后台解码、15 秒期限、取消与版本校验，支持网络、data URL 和本地来源。图片加载失败与上传失败分别管理，切换 Media 取消旧请求，加载状态不改变预览尺寸。HTTP 取消/替换、重复来源、失败重试、禁用/打开隔离、迟到结果、成功像素及 Agent 状态测试通过；构建、vet、全量测试通过，浅深色加载状态截图已检查。
 
-- [x] 第七十批：新增可复用 ShimmerStyle，ShimmerText.Style 与 Attachment.TitleShimmer 共用周期、宽度、反向及单次配置。有效配置变化重启，重复配置保留进度，零值/非法数值归默认；文字与排版配置保持独立。固定时钟像素测试覆盖重复配置、变更重播、周期/反向/单次播放、非法值归默认及附件生命周期；构建、vet、全量测试通过。
+- [x] 第七十批（`65af966`）：新增可复用 ShimmerStyle，ShimmerText.Style 与 Attachment.TitleShimmer 共用周期、宽度、反向及单次配置。有效配置变化重启，重复配置保留进度，零值/非法数值归默认；文字与排版配置保持独立。固定时钟像素测试覆盖重复配置、变更重播、周期/反向/单次播放、非法值归默认及附件生命周期；构建、vet、全量测试通过。
+
+- [x] 第七十一批：Attachment 增加 RemoveOnHover，桌面默认随卡片悬停/内部键盘焦点显示，Android/iOS 默认常显；可显式关闭悬停策略。透明隐藏保留尺寸、语义和 Tab 访问，ShowActions 仍整体隐藏。横纵布局像素测试覆盖进入/离开、常显恢复、键盘访问、移除与打开隔离、禁用和隐藏操作区；构建、vet、全量测试通过。
 
 ## 当前实施清单
 
@@ -125,7 +127,7 @@
 | [Accordion](https://gpui-kit.com/component/accordion/) | 主体已有 | [单项/多项、自定义标题、动画、键盘、禁用、边框开关与四档尺寸](../../ui/kit/accordion.go) | 第十八批已关闭登记缺口；无边框保留背景和圆角，默认 Medium 保留字号继承。自定义标题和正文的显式字号优先。 |
 | [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐 Keyboard、Overlay、OverlayClosable、CloseButton；Persistent 默认只禁止遮罩关闭，显式配置可覆盖。第四十三批增加 BeforeConfirm，可返回 false 保持打开并跳过 onOK；允许后仍先关闭再执行原回调。第四十四批增加 BeforeCancel，支持拒绝用户取消。程序关闭和所属元素失效清理绕过校验；OnClose 仍只通知取消关闭，与上游确认后也通知的约定不同。 |
 | [Alert](https://gpui-kit.com/component/alert/) | 主体已有 | [行内/横幅提示、级别、四档尺寸、可替换图标、富正文、关闭按钮](../../ui/kit/alert.go) | 第十五批已关闭登记缺口；Content 可组合 Markdown 与操作按钮。横幅没有独立标题行，无正文时使用标题作为消息；自定义内容的内部样式由内容自身控制。 |
-| [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 第五十五批补齐 Media 媒体槽和 Vertical 横纵布局。第五十六批补齐 AttachmentGroup 横向排列与滚动。第五十七批补齐显式生命周期和默认媒体忙碌指示。第五十八批补齐 Content/Actions 和六分区 PartStyle。第五十九批补齐四档尺寸。第六十二批补齐状态边框与默认失败图标。第六十三批补齐媒体上传/处理中遮罩、进度环和失败重试/禁止图标。第六十四批补齐 MediaOverlay 自定义叠加层及独立交互。第六十五批补齐上传/处理中标题扫光。第六十六批补齐 Title/Description 独立状态覆盖、恢复继承及自定义描述。第六十批补齐组 ScrollTo/ScrollState 公开滚动控制，第六十一批补齐 EdgeFade 边缘渐隐。第六十七批补齐默认方形竖排预览、MediaAspectRatio、已加载图片 cover 裁剪与右上角操作。第六十九批补齐 MediaSource 后台加载、取消/替换保护和独立图片重试；第六十八批补齐可选分区开关及纯图片无元信息布局。第七十批补齐 TitleShimmer 的共享 ShimmerStyle 配置。仍缺按悬停显示移除按钮。 |
+| [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 第五十五批补齐 Media 媒体槽和 Vertical 横纵布局。第五十六批补齐 AttachmentGroup 横向排列与滚动。第五十七批补齐显式生命周期和默认媒体忙碌指示。第五十八批补齐 Content/Actions 和六分区 PartStyle。第五十九批补齐四档尺寸。第六十二批补齐状态边框与默认失败图标。第六十三批补齐媒体上传/处理中遮罩、进度环和失败重试/禁止图标。第六十四批补齐 MediaOverlay 自定义叠加层及独立交互。第六十五批补齐上传/处理中标题扫光。第六十六批补齐 Title/Description 独立状态覆盖、恢复继承及自定义描述。第六十批补齐组 ScrollTo/ScrollState 公开滚动控制，第六十一批补齐 EdgeFade 边缘渐隐。第六十七批补齐默认方形竖排预览、MediaAspectRatio、已加载图片 cover 裁剪与右上角操作。第六十九批补齐 MediaSource 后台加载、取消/替换保护和独立图片重试；第六十八批补齐可选分区开关及纯图片无元信息布局。第七十批补齐 TitleShimmer 的共享 ShimmerStyle 配置。第七十一批补齐移除按钮桌面悬停/键盘焦点显示及常显开关，Android/iOS 默认常显，触屏网页需显式设置。仍缺独立圆形角标和外伸留白；当前移除按钮保留操作区布局。 |
 | [Avatar](https://gpui-kit.com/component/avatar/) | 主体已有 | [图片/首字母回退、URL 加载与重试、尺寸、状态标记](../../ui/kit/avatar.go)、[叠放头像组/上限/+N/省略号](../../ui/kit/avatar_group.go) | 第七批已关闭原登记缺口；加载不跨实例缓存。外观仍为圆形和主题色回退，GPUI 的自定义占位图标、边框/圆角等样式接口及配色算法不同。 |
 | [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字/圆点/图标、上限、尺寸、自定义颜色/名称与角标容器](../../ui/kit/badge.go) | 第十七批已关闭登记缺口；图标模式不依赖计数，数字/圆点仍在 count≤0 时隐藏。Size 为 dp，圆点按比例缩放；Tone 清除固定颜色覆盖。 |
 | [Bubble](https://gpui-kit.com/component/bubble/) | 部分 | [可复用内容气泡、Mine 对齐](../../ui/kit/message.go) | 缺 ghost 等外观变体、气泡组和独立反应槽；当前只接 content + Mine，操作/反应在 Message 层。 |

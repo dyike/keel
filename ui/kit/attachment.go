@@ -2,6 +2,7 @@ package kit
 
 import (
 	"math"
+	"runtime"
 	"strconv"
 
 	"github.com/dyike/keel/ui/el"
@@ -31,6 +32,7 @@ type AttachmentView struct {
 	hideMedia          bool
 	hideContent        bool
 	hideActions        bool
+	removeOnHover      bool
 	size               int64
 	status             AttachmentStatus
 	progress           float32 // 0..1 while uploading, < 0 when done
@@ -44,10 +46,16 @@ type AttachmentView struct {
 
 // Attachment shows a file of size bytes.
 func Attachment(name string, size int64) *AttachmentView {
-	return &AttachmentView{name: name, size: size, progress: -1}
+	return &AttachmentView{name: name, size: size, progress: -1, removeOnHover: runtime.GOOS != "android" && runtime.GOOS != "ios"}
 }
 func (v *AttachmentView) OnOpen(fn func()) *AttachmentView   { v.onOpen = fn; return v }
 func (v *AttachmentView) OnRemove(fn func()) *AttachmentView { v.onRemove = fn; return v }
+
+// RemoveOnHover shows the remove control on card hover or keyboard focus.
+// Desktop defaults to true; Android/iOS default to false. Set false for touch
+// web apps or any interface that requires an always-visible remove control.
+// The control keeps its layout, semantics and Tab stop while visually hidden.
+func (v *AttachmentView) RemoveOnHover(on bool) *AttachmentView { v.removeOnHover = on; return v }
 
 func (v *AttachmentView) OnCancel(fn func()) *AttachmentView { v.onCancel = fn; return v }
 func (v *AttachmentView) OnRetry(fn func()) *AttachmentView  { v.onRetry = fn; return v }
@@ -240,7 +248,12 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		actions.Child(Button(text.Retry, v.retry).Name(text.Name(text.Retry, v.name)).Variant(ButtonGhost).Size(metrics.action).Render(cx))
 	}
 	if v.onRemove != nil {
-		actions.Child(Button("", v.onRemove).Name(text.Name(text.Remove, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(metrics.action).Render(cx))
+		remove := Button("", v.onRemove).ID(id + "/remove").Name(text.Name(text.Remove, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(metrics.action).Render(cx)
+		visibility := el.Div().ID(id + "/remove-visibility").Child(remove)
+		if v.removeOnHover && !cx.Hovered(id) && !cx.FocusWithin(id) {
+			visibility.Opacity(0)
+		}
+		actions.Child(visibility)
 	}
 	if hasCustom || v.onRemove != nil || (status.IsInProgress() && v.onCancel != nil) || ((status.IsFailed() || status == AttachmentStatusCanceled) && v.onRetry != nil) {
 		card.Child(actions)

@@ -24,7 +24,7 @@ func init() {
 		wide := kit.Attachment("宽屏预览.png", 64000).Size(kit.AttachmentSizeSmall).Vertical(true).MediaAspectRatio(2).Media(kit.Image(pixels, "宽屏预览")).OnCancel(func() {})
 		wide.TitleShimmer(kit.ShimmerStyle{Duration: 3 * time.Second, Spread: .45, Reverse: true})
 		wide.SetProgress(.6)
-		tile := kit.Attachment("纯图片", 64000).Size(kit.AttachmentSizeSmall).Vertical(true).ShowContent(false).Media(kit.Image(pixels, "纯图片预览")).OnOpen(func() {}).OnRemove(func() {})
+		tile := kit.Attachment("纯图片", 64000).RemoveOnHover(false).Size(kit.AttachmentSizeSmall).Vertical(true).ShowContent(false).Media(kit.Image(pixels, "纯图片预览")).OnOpen(func() {}).OnRemove(func() {})
 		metadata := kit.Attachment("只有元信息.txt", 1024).Size(kit.AttachmentSizeSmall).ShowMedia(false)
 		actions := kit.Attachment("只有操作", 0).Size(kit.AttachmentSizeSmall).ShowMedia(false).ShowContent(false).Actions(kit.Button("选择文件", func() {}).Size(24))
 		var encoded bytes.Buffer

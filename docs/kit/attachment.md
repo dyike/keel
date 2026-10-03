@@ -111,3 +111,5 @@ photo.RetryMedia()
 ```go
 a.TitleShimmer(kit.ShimmerStyle{Duration: 3*time.Second, Spread: .45, Reverse: true})
 ```
+
+`RemoveOnHover(on)` 控制内置移除按钮的显示：桌面默认开启，鼠标进入附件或键盘焦点进入其内部时显示；离开且失去焦点后隐藏。隐藏只改变绘制透明度，保留布局、语义和 Tab 停靠点，不影响取消、重试及自定义操作。Android/iOS 默认常显，触屏网页或混合输入应用可显式调用 `RemoveOnHover(false)` 常显。`ShowActions(false)` 仍会移除整个操作区的布局和交互。当前按钮位置沿用操作区，尚未改为带外伸留白的独立圆形角标。
