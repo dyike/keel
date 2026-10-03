@@ -26,6 +26,7 @@ type DatePickerView struct {
 	height                  float32
 	plain                   bool
 	clock                   *TimeFieldView
+	startTime, endTime      time.Duration
 	selectedDay             time.Time
 	revealed                time.Time
 	onChange                func(start, end time.Time)
@@ -44,7 +45,7 @@ func DatePicker(label string) *DatePickerView {
 			v.open = false
 		}
 		v.err = ""
-		start, end = v.Value()
+		start, end = v.DateTimeValue()
 		if v.onChange != nil {
 			v.onChange(start, end)
 		}
@@ -96,8 +97,7 @@ func (v *DatePickerView) OnChange(fn func(start, end time.Time)) *DatePickerView
 func (v *DatePickerView) Value() (start, end time.Time) {
 	start, end = v.cal.Value()
 	if v.editsTime() && !start.IsZero() {
-		d := v.clock.Value()
-		start = time.Date(start.Year(), start.Month(), start.Day(), int(d/time.Hour), int(d/time.Minute)%60, int(d/time.Second)%60, 0, start.Location())
+		start = dateWithClock(start, v.clock.Value())
 		end = start
 	}
 	return
@@ -121,7 +121,7 @@ func (v *DatePickerView) Error() string       { return v.err }
 func (v *DatePickerView) FocusID() string     { return autoID("datepicker", v) }
 
 func (v *DatePickerView) text() string {
-	start, end := v.Value()
+	start, end := v.DateTimeValue()
 	if start.IsZero() {
 		return ""
 	}
@@ -129,7 +129,7 @@ func (v *DatePickerView) text() string {
 	if v.dateFormat != "" {
 		f = func(t time.Time) string { return t.Format(v.dateFormat) }
 	}
-	if v.cal.rangeMode && !end.IsZero() && !end.Equal(start) {
+	if v.cal.rangeMode && !end.IsZero() && f(end) != f(start) {
 		return f(start) + " – " + f(end)
 	}
 	if v.editsTime() && v.dateFormat == "" {

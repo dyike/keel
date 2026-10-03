@@ -39,6 +39,11 @@ trip.Presets(kit.DatePickerPreset{
 
 时间模式的 `Value`、`SetValue` 和 `OnChange` 包含时分秒，单日期两端相同，保留日期的时区。选择新日期保留当前时钟并立即回调，弹层保持打开；再选同一天关闭且不重复回调。时间通过 Enter、失焦或方向键提交；Esc/外部关闭保留已提交值并丢弃时间输入草稿。尚无日期时调整时钟不会生成日期或触发回调。清空保留时钟供下次选择使用。
 
-默认显示日期加时间；自定义 Format 是完整布局，需要自行包含时间，例如 `2006-01-02 15:04:05`。范围模式仍为纯日期，日期边界/禁用规则也不限制时刻。日期预设默认保留当前时钟；设置 `DatePickerPreset.IncludeTime: true` 后使用 Start 的时分秒（按组件精度截断，午夜也可显式指定），仍先检查日期边界和禁用规则。日期模式和范围模式忽略 IncludeTime。需要起止时刻时组合两个单日期组件。
+默认显示日期加时间；自定义 Format 是完整布局，需要自行包含时间，例如 `2006-01-02 15:04:05`。范围日历仍只编辑日期，日期边界/禁用规则不限制时刻。日期预设默认保留当前时钟；设置 `DatePickerPreset.IncludeTime: true` 后使用 Start 的时分秒（按组件精度截断，午夜也可显式指定），仍先检查日期边界和禁用规则。纯日期和范围模式也存储这些时刻，通过 DateTimeValue 读取。需要起止时刻时组合两个单日期组件。
 
-预设示例：`kit.DatePickerPreset{ID: "meeting", Label: "下午会议", Start: meetingTime, IncludeTime: true}`。新增 IncludeTime 字段后，使用位置参数构造 DatePickerPreset 的代码需要改成命名字段。当前范围接口仍只保存日期；上游可通过程序设置带时间的范围值，这项数据接口差异尚未补齐。
+预设示例：`kit.DatePickerPreset{ID: "meeting", Label: "下午会议", Start: meetingTime, IncludeTime: true}`。新增 IncludeTime 字段后，使用位置参数构造 DatePickerPreset 的代码需要改成命名字段。范围日历仍只编辑日期，独立保存起止时刻。
+
+
+`DateValue()` 始终返回日期部分；`SetDateValue(start,end)` 更换日期并保留两端时钟。`DateTimeValue()` / `SetDateTimeValue(start,end)` 存取完整日期时间，支持单日期和范围，不自动打开时间输入、不触发回调。范围的空 End 使用 Start，反向范围连同时刻排序；未配置时间精度时保留纳秒，配置分钟／秒精度后两端按该精度截断。空日期保持零值，清空保留时钟。
+
+兼容行为：范围的 `Value` / `SetValue` 仍只读取／更换日期；单日期 WithTime 的 Value / SetValue 包含时间。用户选择日期、完成范围或选择预设时，OnChange 包含保存的时刻。默认范围文本只显示日期；需要时刻时指定完整 Format。`DefaultTime` 同时设置两端时钟。时间按日期所属时区的本地钟面组合，夏令时不存在／重复时刻沿用 Go time.Date 的处理规则。

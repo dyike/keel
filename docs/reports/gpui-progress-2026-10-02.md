@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**54 项主体已有、21 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**55 项主体已有、20 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -13,7 +13,7 @@
 ## 本轮更正与重点差距
 
 1. 初次复核更正 Marker、Plot、Shimmer 的用途混淆；第六十五批新增 ShimmerText 后，文字扫光已建立独立实现，Marker 和 Plot 的用途差异仍保留。
-2. 数据与输入组件仍有实质差距：Chart 缺雷达/桑基图；DatePicker 已补单日期时间联动和时刻预设，范围值的时间存取仍缺；Input/Textarea 缺原子 token，Input 另缺格式 mask；Progress 的圆形进度缺口已在第一批补齐。
+2. 数据与输入组件仍有实质差距：Chart 缺雷达/桑基图；DatePicker 已补日期时间联动、时刻预设及范围时间存取；Input/Textarea 缺原子 token，Input 另缺格式 mask；Progress 的圆形进度缺口已在第一批补齐。
 3. Editor 已有多光标、查找替换、折叠和括号配对，但没有编辑跟踪装饰集合、开放语言规则与完整搜索会话。`OnComplete`/`OnHover`/`OnDefinition` 是应用接口，LSP 客户端仍由应用提供；本轮不把它当作已证实的上游内置能力差距。
 4. TextView 已有 Markdown/HTML/扩展 TeX，但富文本折叠预览、流式逐段淡入、区间高亮/定位和插件仍缺。完整 TeX/CSS 是 Keel 的边界，不能无依据当作 GPUI 已有功能。
 5. Dock、主题、状态栏和 Kbd 的近期补齐继续保留完成记录。Dock 分离由应用开窗、恢复布局不会重开分离窗口；主题机制已有，预设数量和 token 格式仍不同。
@@ -195,7 +195,9 @@
 
 - [x] 第一百二十一批（`fb0805c`）：DatePicker 增加 WithTime、TimeSeconds、TimeHour12 和 DefaultTime；单日期 Value/SetValue/OnChange 包含时间，日期选择保留时钟且不关闭，再选同一天关闭。时间即时提交，关闭丢弃未提交草稿；日期预设保留时钟，范围仍为纯日期。测试覆盖选择/重复确认、精度/时区、格式、键盘事件驱动的时间编辑、Esc 和空日期隔离；构建、vet、全量测试通过，未做真机视觉验收。带独立时刻的预设仍待补，组件继续记为部分。
 
-- [x] 第一百二十二批：DatePickerPreset 增加 IncludeTime，单日期时间模式可按 Start 的时分秒选择快捷预设，午夜也可显式覆盖；默认日期预设继续保留时钟。日期规则先校验，拒绝时不改变日期/时钟；精度截断、时区、回调、错误清除及焦点返回均有测试，构建、vet、全量测试通过；未做真机视觉验收。新增字段需要旧的位置参数构造改用命名字段。复核上游发现范围日期虽不编辑时间，但可通过程序存取带时间的范围值；Keel 这项数据接口仍待补，继续标为部分。
+- [x] 第一百二十二批（`19e2745`）：DatePickerPreset 增加 IncludeTime，单日期时间模式可按 Start 的时分秒选择快捷预设，午夜也可显式覆盖；默认日期预设继续保留时钟。日期规则先校验，拒绝时不改变日期/时钟；精度截断、时区、回调、错误清除及焦点返回均有测试，构建、vet、全量测试通过；未做真机视觉验收。新增字段需要旧的位置参数构造改用命名字段。复核上游发现范围日期虽不编辑时间，但可通过程序存取带时间的范围值；Keel 这项数据接口仍待补，继续标为部分。
+
+- [x] 第一百二十三批：新增日期与日期时间的独立存取接口，范围保留两端时钟，日期变更及普通预设保留时刻，IncludeTime 预设替换两端时刻；反向范围连同时刻排序，缺省 End 使用 Start，精度配置作用于两端。保留范围 Value 的纯日期兼容行为，OnChange 返回完整日期时间。测试覆盖范围提交/草稿隔离、排序、时区、精度、零值、默认时钟和显示格式；构建、vet、全量测试及新增秒精度回归测试通过，未做真机视觉验收。DatePicker 登记的主要缺口关闭，调整为主体已有；独立周起始日配置仍与上游不同。
 
 ## 当前实施清单
 
@@ -236,7 +238,7 @@
 | [Combobox](https://gpui-kit.com/component/combobox/) | 部分 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 缺分组、单项禁用、自定义行/触发器、footer；目前候选数据是 string 列表。多选与异步搜索已完成。 |
 | [Command](https://gpui-kit.com/component/command/) | 部分 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 缺内联模式、关闭搜索的模式、自定义行/header/footer；当前固定为带搜索的模态命令面板。 |
 | [DataTable](https://gpui-kit.com/component/data-table/) | 部分 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | 主要数据表能力已有；缺独立整列选择模式、列级 selectable/resizable/movable 限制，以及 stripe/密度等公开配置。 |
-| [DatePicker](https://gpui-kit.com/component/date-picker/) | 部分 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。范围保持纯日期；上游支持通过程序存取带时间的范围值，这项数据接口仍缺。日期格式使用 Go 布局。 |
+| [DatePicker](https://gpui-kit.com/component/date-picker/) | 主体已有 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。第一百二十三批补齐 DateValue/SetDateValue 与 DateTimeValue/SetDateTimeValue，范围独立保存起止时刻，预设和回调携带时刻。范围日历只编辑日期；兼容旧 Value 的纯日期行为，日期格式使用 Go 布局。周起始日仍随 locale，不提供 DatePicker 独立覆盖。 |
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 主体已有 | [多列/跨列、横纵标签、富值插槽、分隔线、边框、字号与标签宽度](../../ui/kit/description_list.go) | 第八批已关闭登记缺口。Columns 由调用方设置，不按窗口宽度自动切换；默认仍为无边框单列，保留原用法。 |
 | [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
 | [Dock](https://gpui-kit.com/component/dock/) | 部分 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | 中心/边缘嵌套分割、拖放、最大化已完成；缺 GPUI 的面板工厂注册/面板自有状态恢复和独立 DockSkin。分离由 OnDetach 交给应用开窗，恢复布局不会重开分离窗口。 |

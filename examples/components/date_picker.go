@@ -15,7 +15,8 @@ func init() {
 		today := time.Now()
 		appointment.Presets(kit.DatePickerPreset{ID: "tomorrow-morning", Label: "明早 09:30", Start: time.Date(today.Year(), today.Month(), today.Day()+1, 9, 30, 0, 0, today.Location()), IncludeTime: true})
 		due.Presets(kit.DatePickerPreset{ID: "today", Label: "今天", Start: today}, kit.DatePickerPreset{ID: "tomorrow", Label: "明天", Start: today.AddDate(0, 0, 1)})
-		trip.Presets(kit.DatePickerPreset{ID: "week", Label: "最近七天", Start: today.AddDate(0, 0, -6), End: today})
+		trip.Format("2006-01-02 15:04")
+		trip.Presets(kit.DatePickerPreset{ID: "week", Label: "最近七天", Start: today.AddDate(0, 0, -6), End: today}, kit.DatePickerPreset{ID: "timed-trip", Label: "明日 09:00 至后日 18:00", Start: time.Date(today.Year(), today.Month(), today.Day()+1, 9, 0, 0, 0, today.Location()), End: time.Date(today.Year(), today.Month(), today.Day()+2, 18, 0, 0, 0, today.Location()), IncludeTime: true})
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(14).W(el.Dp(300)).MaxW(el.Full).Child(due.Render(cx), trip.Render(cx), appointment.Render(cx)))
 		}))

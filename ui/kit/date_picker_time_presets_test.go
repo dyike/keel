@@ -71,7 +71,7 @@ func TestDatePickerTimePresetClickAndFocus(t *testing.T) {
 	}
 }
 
-func TestDatePickerTimePresetIgnoredInDateModes(t *testing.T) {
+func TestDatePickerTimePresetStoredInDateModes(t *testing.T) {
 	start := time.Date(2026, 10, 4, 13, 14, 15, 0, time.UTC)
 	for _, span := range []bool{false, true} {
 		d := DatePicker("Dates")
@@ -86,8 +86,9 @@ func TestDatePickerTimePresetIgnoredInDateModes(t *testing.T) {
 		if a.Hour() != 0 || b.Hour() != 0 {
 			t.Fatal("date-only mode leaked clock")
 		}
-		if span && d.clock.Value() != 9*time.Hour {
-			t.Fatal("range changed stored clock")
+		dt, _ := d.DateTimeValue()
+		if dt.Hour() != 13 {
+			t.Fatal("explicit preset did not store clock", dt)
 		}
 	}
 }

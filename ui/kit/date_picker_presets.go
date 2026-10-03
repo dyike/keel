@@ -11,8 +11,8 @@ import (
 type DatePickerPreset struct {
 	ID, Label  string
 	Start, End time.Time
-	// IncludeTime applies Start's clock in single-date time mode.
-	// Otherwise the current clock is preserved; date-only/range modes ignore it.
+	// IncludeTime stores the endpoint clocks, including in range mode.
+	// Otherwise the current clocks are preserved.
 	IncludeTime bool
 }
 
@@ -74,10 +74,10 @@ func (v *DatePickerView) selectPreset(id string) bool {
 		v.close()
 		v.cal.SetValue(a, b)
 		v.selectedDay = a
-		if p.IncludeTime && v.editsTime() {
-			v.clock.SetValue(time.Duration(p.Start.Hour())*time.Hour + time.Duration(p.Start.Minute())*time.Minute + time.Duration(p.Start.Second())*time.Second)
+		if p.IncludeTime {
+			v.SetDateTimeValue(p.Start, p.End)
 		}
-		a, b = v.Value()
+		a, b = v.DateTimeValue()
 		v.err = ""
 		if v.onChange != nil {
 			v.onChange(a, b)
