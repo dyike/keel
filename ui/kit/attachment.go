@@ -14,6 +14,9 @@ import (
 type AttachmentView struct {
 	name               string
 	media              el.View
+	content            el.View
+	actions            []el.View
+	styles             [6]func(*el.DivEl)
 	vertical           bool
 	size               int64
 	status             AttachmentStatus
@@ -98,14 +101,19 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		state, detail = text.Uploading+" "+pct, text.Uploading+" "+pct
 	}
 
-	info := el.Div().ID(id+"/info").Grow().W(el.Dp(0)).Gap(theme.SpaceXs).Items(el.Stretch).Child(
-		el.Text(v.name).MaxLines(1),
-		el.Text(detail).TextSize(theme.TextSm).TextColor(color).MaxLines(1),
-	)
-	if status.IsUploading() {
-		info.Child(el.Div().H(el.Dp(4)).Rounded(theme.RadiusFull).Bg(theme.Subtle).Items(el.Start).Child(
-			el.Div().H(el.Dp(4)).Rounded(theme.RadiusFull).Bg(theme.Primary).W(el.Frac(v.progress))))
+	info := el.Div().Grow().W(el.Dp(0)).Gap(theme.SpaceXs).Items(el.Stretch)
+	if v.content != nil {
+		info.Child(v.content.Render(cx))
+	} else {
+		title := v.part(AttachmentPartTitle, id+"/title", el.Div()).Child(el.Text(v.name).MaxLines(1))
+		description := v.part(AttachmentPartDescription, id+"/description", el.Div().TextSize(theme.TextSm).TextColor(color)).Child(el.Text(detail).MaxLines(1))
+		info.Child(title, description)
+		if status.IsUploading() {
+			info.Child(el.Div().H(el.Dp(4)).Rounded(theme.RadiusFull).Bg(theme.Subtle).Items(el.Start).Child(
+				el.Div().H(el.Dp(4)).Rounded(theme.RadiusFull).Bg(theme.Primary).W(el.Frac(v.progress))))
+		}
 	}
+
 	media := el.Div().ID(id + "/media").NoShrink().Rounded(theme.RadiusMd).Bg(theme.Highlight).Center()
 	if v.media == nil {
 		media.Size(el.Dp(36))
@@ -117,12 +125,14 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	} else {
 		media.MaxW(el.Full).Child(v.media.Render(cx))
 	}
+	media = v.part(AttachmentPartMedia, id+"/media", media)
 	main := el.Div().ID(id+"/open").Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(10).Child(media, info)
 	if v.vertical {
 		main.Col().W(el.Full).Flex(0).Items(el.Stretch)
 		info.W(el.Full).Flex(0)
 	}
 
+	info = v.part(AttachmentPartContent, id+"/info", info)
 	if v.onOpen != nil && status.IsComplete() {
 		main.Role("button").Name(v.name).Border(1, theme.Surface).Rounded(theme.RadiusSm).CursorPointer().Focusable(true).OnClick(v.onOpen).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
@@ -135,6 +145,14 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	actions := el.Div().ID(id + "/actions").Row().NoShrink().Gap(theme.SpaceXs).Items(el.Center)
 	if v.vertical {
 		actions.Wrap().Justify(el.End)
+	}
+	actions = v.part(AttachmentPartActions, id+"/actions", actions)
+	hasCustom := false
+	for i, view := range v.actions {
+		if view != nil {
+			actions.Child(el.Div().ID(id + "/action/" + strconv.Itoa(i)).Child(view.Render(cx)))
+			hasCustom = true
+		}
 	}
 	if status.IsInProgress() && v.onCancel != nil {
 		actions.Child(Button("", func() {
@@ -157,8 +175,8 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	if v.onRemove != nil {
 		actions.Child(Button("", v.onRemove).Name(text.Name(text.Remove, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(24).Render(cx))
 	}
-	if v.onRemove != nil || (status.IsInProgress() && v.onCancel != nil) || ((status.IsFailed() || status == AttachmentStatusCanceled) && v.onRetry != nil) {
+	if hasCustom || v.onRemove != nil || (status.IsInProgress() && v.onCancel != nil) || ((status.IsFailed() || status == AttachmentStatusCanceled) && v.onRetry != nil) {
 		card.Child(actions)
 	}
-	return card
+	return v.part(AttachmentPartRoot, id, card).Role("attachment").Name(v.name).Value(state).Disabled(v.disabled).MaxW(el.Full)
 }

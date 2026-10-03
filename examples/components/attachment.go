@@ -25,6 +25,7 @@ func init() {
 		done := kit.Attachment("logo.png", 48_000).Vertical(true).Media(kit.Image(preview, "图片预览").Size(240, 100).Fit(kit.ImageCover).Rounded(8))
 		removed := false
 		done.OnRemove(func() { removed = true })
+		done.Actions(kit.Button("查看版本", func() {}).Variant(kit.ButtonGhost)).PartStyle(kit.AttachmentPartRoot, func(e *el.DivEl) { e.P(12) })
 		group := kit.AttachmentGroup(up, bad, done).Name("附件").Gap(12)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			if removed {
