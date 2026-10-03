@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**68 项主体已有、7 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**69 项主体已有、6 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -13,7 +13,7 @@
 ## 本轮更正与重点差距
 
 1. 初次复核更正 Marker、Plot、Shimmer 的用途混淆；第六十五批新增 ShimmerText 后，文字扫光已建立独立实现，Marker 和 Plot 的用途差异仍保留。
-2. 数据与输入组件仍有实质差距：Chart 缺雷达/桑基图；DatePicker 已补日期时间联动、时刻预设及范围时间存取；Input/Textarea 缺原子 token，Input 另缺格式 mask；Progress 的圆形进度缺口已在第一批补齐。
+2. 数据与输入组件仍有实质差距：Chart 已补雷达/桑基图，仍有高级轴布局、柱图样式和动画差异；DatePicker 已补日期时间联动、时刻预设及范围时间存取；Input/Textarea 缺原子 token，Input 另缺格式 mask；Progress 的圆形进度缺口已在第一批补齐。
 3. Editor 已有多光标、查找替换、折叠和括号配对，但没有编辑跟踪装饰集合、开放语言规则与完整搜索会话。`OnComplete`/`OnHover`/`OnDefinition` 是应用接口，LSP 客户端仍由应用提供；本轮不把它当作已证实的上游内置能力差距。
 4. TextView 已有 Markdown/HTML/扩展 TeX，但富文本折叠预览、流式逐段淡入、区间高亮/定位和插件仍缺。完整 TeX/CSS 是 Keel 的边界，不能无依据当作 GPUI 已有功能。
 5. Dock、主题、状态栏和 Kbd 的近期补齐继续保留完成记录。Dock 分离由应用开窗、恢复布局不会重开分离窗口；主题机制已有，预设数量和 token 格式仍不同。
@@ -251,7 +251,9 @@
 
 - [x] 第一百四十九批（`d29b8db`）：集中补齐 Dock 面板工厂、面板自有状态和独立皮肤。RegisterPanel 按类型注册，Snapshot/Restore 保存实例 ID、类型、标题、JSON 与布局；恢复前验证完整清单/树，所有工厂成功后才替换 Dock，支持同类型多实例、隐藏/最大化和继续保存。无类型面板仅复用已有静态视图，分离面板回到 Dock，旧窗口回调不影响新实例。DockSkin 配置外框、标题栏、正文、标签和内外分隔条，切换保留输入焦点。示例新增保存/恢复搜索词与切换外观。测试覆盖 JSON 往返、错误原子性、所有权、工厂默认身份、旧窗口回调及 1×/2× 皮肤切换；全仓构建、UI/native vet、全量测试通过。Dock 调整为主体已有，真机视觉和多窗口生命周期未验收。
 
-- [x] 第一百五十批：集中补齐 Menu 按目标上下文解析动作键位。core.BindIn/BindingsIn/ClearBindingIn 支持区域覆盖、显式空绑定及恢复继承；el.KeyContext 标记祖先区域，KeyHint 在当前树构建后解析，首次打开即可显示。Menu.ActionContext 指定目标 ID，默认使用触发器，子菜单继承目标，运行时改绑同步更新。Context.ActionAt 接通同一解析规则的焦点范围按键处理，嵌套目标内层优先并阻止外层同动作绕过空绑定。测试覆盖首次帧、上下文切换、子菜单、缺失/隐藏/禁用目标、改绑、数据所有权及实际按键派发。构建曾因磁盘不足中断，清理 5 GiB 旧 Go 缓存后，全仓构建、UI/native vet、全量测试通过。Menu 调整为主体已有；上下文条件表达式、自动动作路由与真机系统打开链接不计为已完成。
+- [x] 第一百五十批（`0c59643`）：集中补齐 Menu 按目标上下文解析动作键位。core.BindIn/BindingsIn/ClearBindingIn 支持区域覆盖、显式空绑定及恢复继承；el.KeyContext 标记祖先区域，KeyHint 在当前树构建后解析，首次打开即可显示。Menu.ActionContext 指定目标 ID，默认使用触发器，子菜单继承目标，运行时改绑同步更新。Context.ActionAt 接通同一解析规则的焦点范围按键处理，嵌套目标内层优先并阻止外层同动作绕过空绑定。测试覆盖首次帧、上下文切换、子菜单、缺失/隐藏/禁用目标、改绑、数据所有权及实际按键派发。构建曾因磁盘不足中断，清理 5 GiB 旧 Go 缓存后，全仓构建、UI/native vet、全量测试通过。Menu 调整为主体已有；上下文条件表达式、自动动作路由与真机系统打开链接不计为已完成。
+
+- [x] 第一百五十一批：集中补齐 Chart 的雷达图、桑基图及登记的公共配置。RadarChart 复用系列/图例/数据表，支持固定外环、网格层数、半径、系列样式、自定义标签和悬停；缺失/负值形成缺口。SankeyChart 校验 DAG 后原子替换数据，支持四种对齐、节点参数、线性/平方根缩放、渐变流带、迭代布局、标签/提示和原始流量表。系列图及蜡烛图新增固定轴域、刻度数量、竖网格/虚线、参考线和自定义提示；折线/面积支持阶梯及单调 smoothstep 曲线。测试覆盖极值刻度、数据/样式副本、随机 DAG 的边界/不重叠/流带填充、密集零流量、隐藏图例、悬停/禁用和 Agent 表格。浅深色虚拟窗口截图已检查；全仓构建、UI/native vet、全量测试通过。Chart 调整为主体已有，新增文档继续列出高级配置与动画差异，原生真机未验收。
 
 ## 当前实施清单
 
@@ -284,7 +286,7 @@
 | [Button](https://gpui-kit.com/component/button/) | 主体已有 | [九种变体、描边/紧凑、自定义内容/配色、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 第十一批已关闭登记的变体、样式和内容缺口。Outline/Compact 为叠加配置；自定义内容限展示元素。Tooltip 可外部组合，本项不表示与上游所有组合接口完全相同。 |
 | [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
 | [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 第七十六批补齐 Vertical 的竖向导航布局、上下方向键、Home/End 及方向切换焦点保留。第七十七批补齐 Loop、非循环边界禁用、公开 Previous/Next 和 CanPrevious/CanNext、末项自动播放停止与返回后重启。第七十八批补齐独立内容区、前后控件和分页项及 Button 外观/内容配置。第七十九批补齐横纵等尺寸多项视口与间距。第八十批补齐分数槽位及逐项比例覆盖；第八十一批补齐逐项固定 dp 尺寸和超视口项目。比例仍限制在一个视口内，超大项目可用固定尺寸；超大内容默认从开头裁剪，内部浏览需自行组合滚动。第八十二批补齐鼠标/触摸拖动及释放吸附与选中回调。第八十三批补齐连续滚动停顿吸附、显式逐事件换页和滚动起始边界路由。仍缺原生手势结束/滚轮设备识别、指针边界移交和循环轨道衔接；系统惯性及真机触控板手感待验收。 |
-| [Chart](https://gpui-kit.com/component/chart/) | 部分 | [折线/柱状/面积/饼图/环图/蜡烛图、图例与数据表](../../ui/kit/chart.go) | 缺 RadarChart、SankeyChart；已有折线/柱/面积/饼环/蜡烛图。轴域、刻度数量、参考线、线型和 tooltip 内容的公共配置较少。 |
+| [Chart](https://gpui-kit.com/component/chart/) | 主体已有 | [折线/柱/面积/饼环/蜡烛、雷达/桑基、轴域/刻度/参考线/样式及提示](../../ui/kit/chart.go) | 第一百五十一批补齐两种缺失图形及登记公共配置。雷达标签使用固定槽，桑基保持输入顺序松弛布局；平滑线为逐段 smoothstep，与上游算法不同。仍缺轴内标签/可配置 gutter、预留点位、柱图四向/逐柱渐变、最小流带宽度、饼图自定义提示及各图悬停动画；密集桑基标签可能重叠。浅深色虚拟窗口与 Agent 已验，原生真机未验收。 |
 | [Checkbox](https://gpui-kit.com/component/checkbox/) | 主体已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | 第三十八批已补齐 Size/TextSize、TabIndex/TabStop，保留半选能力。尺寸使用连续 dp/sp，Tab 排序限单 el root；焦点轮廓仍沿整行。 |
 | [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 第五批已补齐 OnCopied、Content 与反馈状态查询；回调表示已提交写入请求，非操作系统成功确认。此表登记缺口已关闭。 |
 | [Collapsible](https://gpui-kit.com/component/collapsible/) | 主体已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | 主体覆盖：拆分 Trigger/Content、状态控制与动画；本轮未发现新的主要功能缺口。 |
@@ -357,7 +359,7 @@
 ## 跨文件复核线索
 
 - 选择与异步：`combobox_options.go`、`command_search.go`、`select_options.go`、`list_items.go`、`tree_items.go`，均位于 `ui/kit`；因此多选/异步等没有被误判为未实现。
-- 数据表：`ui/kit/table_{cells,columns,data,menu,selection}.go`；图表另读 `pie_chart.go`、`candlestick_chart.go`。
+- 数据表：`ui/kit/table_{cells,columns,data,menu,selection}.go`；图表另读 `pie_chart.go`、`candlestick_chart.go`、`radar_chart.go`、`sankey_chart.go` 和 `chart_options.go`。
 - 编辑器：`ui/kit/code_search.go`（公开搜索入口和 10,000 个匹配上限）、`code_editor_input.go`（内置配对表）、`code_fold.go`、`code_highlight.go`。搜索/替换存在，但自定义搜索控制接口不等同于 GPUI SearchSession。
 - Dock：`ui/kit/dock_tree.go`、`dock_drag.go`、`dock_detach.go`、`dock_persistence.go`、`dock_skin.go`；主题：`ui/theme/registry.go`、`watch.go`、`themes/*.json`。
 - 文本与底层：`ui/markdown/markdown.go`、`html.go`、`render.go`、`ui/el/element.go`、`overlay.go`、`viewport.go`；头尾、分段等扩展见 `sidebar_items.go`、`tabs_reorder.go`、`time_field_segments.go`。

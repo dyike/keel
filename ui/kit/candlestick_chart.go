@@ -125,3 +125,34 @@ func (v *ChartView) drawCandles(gtx core.C, y func(float64) float32, dp func(flo
 		}
 	}
 }
+
+// YDomain pins the price axis; AutoDomain restores data-driven bounds.
+func (v *CandlestickChartView) YDomain(lo, hi float64) *CandlestickChartView {
+	v.chart.YDomain(lo, hi)
+	return v
+}
+func (v *CandlestickChartView) AutoDomain() *CandlestickChartView { v.chart.AutoDomain(); return v }
+func (v *CandlestickChartView) YTickCount(n int) *CandlestickChartView {
+	v.chart.YTickCount(n)
+	return v
+}
+func (v *CandlestickChartView) XTickCount(n int) *CandlestickChartView {
+	v.chart.XTickCount(n)
+	return v
+}
+func (v *CandlestickChartView) GridColumns(n int) *CandlestickChartView {
+	v.chart.GridColumns(n)
+	return v
+}
+func (v *CandlestickChartView) GridDashed(on bool) *CandlestickChartView {
+	v.chart.GridDashed(on)
+	return v
+}
+func (v *CandlestickChartView) ReferenceLines(lines ...ChartReference) *CandlestickChartView {
+	v.chart.ReferenceLines(lines...)
+	return v
+}
+func (v *CandlestickChartView) TooltipContent(fn func(*el.Context, ChartTooltip) el.Element) *CandlestickChartView {
+	v.chart.TooltipContent(fn)
+	return v
+}

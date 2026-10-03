@@ -31,3 +31,13 @@ Agent：角色 `figure`，名字是标题（没有标题时是各系列名），
 密集折线按像素分桶，保留各桶的首尾、最大和最小值。10 万点仍保留尖峰，连续区间的绘图点数约为视宽的四倍；分类标签只生成当前宽度能容纳的数量。数据表和悬停保留原始数据。
 
 `AreaChart(labels, series...)` 在折线与零基线之间填半透明颜色，支持负值、缺口、图例、悬停和数据表；多系列面积重叠显示。`Stacked()` 只适用于柱状图。
+
+## 轴、线型与提示配置
+
+`YDomain(lo,hi)` 固定精确轴域，要求有限且 lo < hi；AutoDomain 恢复自动范围。YTickCount(2–50) 在两端之间均匀布点，0 恢复自动美化刻度；XTickCount(1–100) 在首末类别间分配标签，0 按宽度自动抽稀。GridColumns 添加内部竖线，GridDashed 控制网格虚线。ReferenceLines 接收数值、颜色、可选文字，超出轴域的参考线隐藏。柱/面积图在固定轴域下仍以零为基线，绘图裁剪到图框。
+
+Curve 支持 ChartCurveLinear（默认）、ChartCurveStepAfter 和 ChartCurveSmooth。Smooth 使用逐段单调 smoothstep 采样，不跨越缺失值，也不超出相邻端点的纵向范围；不等同于 GPUI 的默认插值。SeriesStyle(index, style) 可独立设描边、填充、线宽与数据顶点，颜色指针会复制；零线宽使用 2dp。改变数据不清除样式索引。
+
+TooltipContent 接收当前类别索引、标签和可见系列的数值/默认文字/颜色，可返回展示元素；nil 恢复默认。Format 仍控制默认轴/提示/数据表。CandlestickChart 同样提供轴、网格、参考线与提示配置，提示系列依次为开、高、低、收。
+
+另见 [RadarChart](radar_chart.md) 和 [SankeyChart](sankey_chart.md)。仍未实现上游所有选项：如轴内标签/可配置 gutter、预留未来点位、柱图四向对齐/逐柱渐变、最小流带宽度及各图悬停过渡。新增接口不代表视觉或 API 完全一致。

@@ -33,6 +33,7 @@ const (
 	ChartBar
 	ChartArea
 	ChartCandlestick
+	ChartRadar
 )
 
 const axisWidth = 52 // dp for the y-axis labels
@@ -43,6 +44,7 @@ const axisWidth = 52 // dp for the y-axis labels
 // crosshair and a tooltip with every series' value; the data-table toggle
 // shows the same numbers as a Table. Two or more series get a legend.
 type ChartView struct {
+	options  chartOptions
 	kind     ChartKind
 	title    string
 	labels   []string
@@ -204,7 +206,7 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 	head.Child(el.Div().Grow())
 	if len(v.series) > 1 && v.kind != ChartCandlestick {
 		for i, s := range v.series {
-			head.Child(legendItem(autoID("chart", v)+"/legend/"+strconv.Itoa(i), s.Name, theme.Chart[i%len(theme.Chart)], 2, !v.hidden[i], func() { v.hidden[i] = !v.hidden[i] }))
+			head.Child(legendItem(autoID("chart", v)+"/legend/"+strconv.Itoa(i), s.Name, v.seriesColor(i), 2, !v.hidden[i], func() { v.hidden[i] = !v.hidden[i] }))
 		}
 	}
 	toggle := text.ShowTable
@@ -217,9 +219,11 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 		return root.Child(v.dataTable(cx))
 	}
 
-	lo, hi := v.span()
-	ticks := niceTicks(lo, hi, 4)
-	lo, hi = ticks[0], ticks[len(ticks)-1]
+	if v.kind == ChartRadar {
+		return root.Child(v.radar(cx))
+	}
+	ticks := v.axisTicks()
+	lo, hi := ticks[0], ticks[len(ticks)-1]
 	axis := el.Div().W(el.Dp(axisWidth)).H(el.Dp(v.height)).NoShrink()
 	for _, t := range ticks {
 		top := float32((1-axisFraction(t, lo, hi))*float64(v.height)) - 8
@@ -227,7 +231,12 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 	}
 	plot := el.Div().Grow().W(el.Dp(0)).H(el.Dp(v.height)).Items(el.Stretch).Child(
 		el.Widget(core.Func(func(gtx core.C) core.D { return v.draw(gtx, lo, hi, ticks) })).H(el.Dp(v.height)))
-	if tip := v.tooltip(); tip != nil {
+	for _, line := range v.options.references {
+		if line.Label != "" && line.Value >= lo && line.Value <= hi {
+			plot.Child(el.Div().Absolute().Left(4).Top(float32(1-axisFraction(line.Value, lo, hi))*v.height - 16).Child(el.Text(line.Label).TextSize(theme.TextXs).TextColor(line.Color)))
+		}
+	}
+	if tip := v.tooltip(cx); tip != nil {
 		plot.Child(tip)
 	}
 	root.Child(el.Div().Row().Items(el.Start).Child(axis, plot))
@@ -238,13 +247,13 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 		width, _ = cx.ViewportSize()
 		width = max(1, width-axisWidth-24)
 	}
-	every := max(1, int(math.Ceil(56*float64(len(v.labels))/float64(width))))
+	indices := v.xTickIndices(width)
 	// Bands are flex weights, so labels line up with the plot whatever its
 	// painted width; runs of unlabeled bands collapse into one spacer. A label
 	// is centered on its band and may overhang it.
 	xs := el.Div().Row().H(el.Dp(18)).Grow().W(el.Dp(0))
 	next := 0
-	for i := 0; i < len(v.labels); i += every {
+	for _, i := range indices {
 		if i > next {
 			xs.Child(el.Div().W(el.Dp(0)).Flex(float32(i - next)))
 		}
@@ -259,7 +268,7 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 	return root.Child(el.Div().Row().Child(el.Div().W(el.Dp(axisWidth)).NoShrink(), xs))
 }
 
-func (v *ChartView) tooltip() el.Element {
+func (v *ChartView) tooltip(cx *el.Context) el.Element {
 	if v.hover < 0 || v.hover >= len(v.labels) || v.plotW <= 0 {
 		return nil
 	}
@@ -272,13 +281,17 @@ func (v *ChartView) tooltip() el.Element {
 	}
 	tip := el.Div().Absolute().Top(8).Left(max(left, 0)).W(el.Dp(w)).P(theme.SpaceMd).Gap(theme.SpaceXs).Rounded(theme.RadiusMd).
 		Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch).
-		Child(el.Text(v.labels[v.hover]).TextSize(theme.TextSm).Bold())
+		Child()
+	if v.options.tooltip != nil {
+		return tip.Child(v.options.tooltip(cx, v.tooltipData()))
+	}
+	tip.Child(el.Text(v.labels[v.hover]).TextSize(theme.TextSm).Bold())
 	for i, s := range v.series {
 		if v.hidden[i] {
 			continue
 		}
 		tip.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceSm).Child(
-			el.Div().Size(el.Dp(8)).Rounded(theme.RadiusSm).Bg(theme.Chart[i%len(theme.Chart)]),
+			el.Div().Size(el.Dp(8)).Rounded(theme.RadiusSm).Bg(v.seriesColor(i)),
 			el.Text(s.Name).TextSize(theme.TextSm).TextColor(theme.Muted).Grow().MaxLines(1),
 			el.Text(v.valueText(s, v.hover)).TextSize(theme.TextSm)))
 	}
@@ -342,10 +355,12 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 	event.Op(gtx.Ops, &v.tag)
 	defer area.Pop()
 
-	y := func(x float64) float32 { return float32(size.Y) * float32(1-axisFraction(x, lo, hi)) }
+	y := func(x float64) float32 {
+		return float32(size.Y) * float32(1-max(-1e6, min(1e6, axisFraction(x, lo, hi))))
+	}
 	for _, t := range ticks {
 		yy := int(y(t))
-		fillRect(gtx, image.Rect(0, yy, size.X, yy+max(1, int(px))), theme.Border)
+		v.drawGuide(gtx, f32.Pt(0, float32(yy)), f32.Pt(float32(size.X), float32(yy)), px, theme.Border, v.options.gridDashed)
 	}
 	if v.hover >= 0 && v.kind == ChartBar {
 		x0 := int(float32(v.hover) * band)
@@ -353,6 +368,15 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 		for _, t := range ticks { // keep the grid over the hover band
 			yy := int(y(t))
 			fillRect(gtx, image.Rect(x0, yy, int(float32(v.hover+1)*band), yy+max(1, int(px))), theme.Border)
+		}
+	}
+	for i := 1; i <= v.options.gridColumns; i++ {
+		x := float32(size.X) * float32(i) / float32(v.options.gridColumns+1)
+		v.drawGuide(gtx, f32.Pt(x, 0), f32.Pt(x, float32(size.Y)), px, theme.Border, v.options.gridDashed)
+	}
+	for _, line := range v.options.references {
+		if line.Value >= lo && line.Value <= hi {
+			v.drawGuide(gtx, f32.Pt(0, y(line.Value)), f32.Pt(float32(size.X), y(line.Value)), px, line.Color, true)
 		}
 	}
 	switch v.kind {
@@ -375,6 +399,7 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 					continue
 				}
 				for _, points := range chartSegments(s.Values, n, band, y, max(size.X, 1)) {
+					points = v.curvePoints(points)
 					if len(points) < 2 {
 						continue
 					}
@@ -386,8 +411,11 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 					}
 					path.LineTo(f32.Pt(points[len(points)-1].X, y(0)))
 					path.Close()
-					fill := theme.Chart[i%len(theme.Chart)]
+					fill := v.seriesColor(i)
 					fill.A = areaAlpha(visible)
+					if c := v.options.styles[i].Fill; c != nil {
+						fill = *c
+					}
 					paint.FillShape(gtx.Ops, fill, clip.Outline{Path: path.End()}.Op())
 				}
 			}
@@ -397,11 +425,18 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 				continue
 			}
 			for _, points := range chartSegments(s.Values, n, band, y, max(size.X, 1)) {
-				color := theme.Chart[i%len(theme.Chart)]
+				vertices := points
+				points = v.curvePoints(points)
+				color := v.seriesColor(i)
 				if len(points) == 1 {
 					dot(gtx, points[0], dp(2), 0, color, theme.Surface)
 				} else {
-					strokePath(gtx, points, dp(2), color)
+					strokePath(gtx, points, dp(v.seriesWidth(i)), color)
+					if v.options.styles[i].Dots {
+						for _, p := range vertices {
+							dot(gtx, p, dp(2), 0, color, theme.Surface)
+						}
+					}
 				}
 			}
 		}
@@ -412,7 +447,7 @@ func (v *ChartView) draw(gtx core.C, lo, hi float64, ticks []float64) core.D {
 				if v.hidden[i] || !finiteNumber(v.value(s, v.hover)) {
 					continue
 				}
-				dot(gtx, f32.Pt(x, y(v.value(s, v.hover))), dp(4), dp(2), theme.Chart[i%len(theme.Chart)], theme.Surface)
+				dot(gtx, f32.Pt(x, y(v.value(s, v.hover))), dp(4), dp(2), v.seriesColor(i), theme.Surface)
 			}
 		}
 	}
@@ -454,7 +489,7 @@ func (v *ChartView) drawBars(gtx core.C, band float32, y func(float64) float32, 
 		} else {
 			rr.SW, rr.SE = int(r), int(r)
 		}
-		paint.FillShape(gtx.Ops, theme.Chart[i%len(theme.Chart)], rr.Op(gtx.Ops))
+		paint.FillShape(gtx.Ops, v.seriesColor(i), rr.Op(gtx.Ops))
 	}
 	zero := y(0)
 	for j := range v.labels {
