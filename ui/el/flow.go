@@ -119,6 +119,23 @@ func (e *engine) grid(n *Node, width, limW, limH int) image.Point {
 	columns := n.style.grid
 	gap := e.dp(n.style.gap)
 	widths := make([]int, columns)
+	starts, spans, rows := make([]int, len(kids)), make([]int, len(kids)), make([]int, len(kids))
+	column, row := 0, 0
+	for i, c := range kids {
+		span := min(max(c.style.colSpan, 1), columns)
+		if column+span > columns {
+			column, row = 0, row+1
+		}
+		starts[i], spans[i], rows[i] = column, span, row
+		column += span
+	}
+	trackWidth := func(start, span int) int {
+		total := (span - 1) * gap
+		for _, w := range widths[start : start+span] {
+			total += w
+		}
+		return total
+	}
 	for i, c := range kids {
 		l, _, r, _ := e.edges(c.style.margin)
 		minimum := max(c.style.minW.px(e.m, limW), 0)
@@ -130,7 +147,14 @@ func (e *engine) grid(n *Node, width, limW, limH int) image.Point {
 			e.layoutChild(c, n, limW, limH)
 			minimum = max(minimum, c.size.X)
 		}
-		widths[i%columns] = max(widths[i%columns], minimum+l+r)
+		// Distribute a spanning cell's minimum across its covered tracks.
+		start, span := starts[i], spans[i]
+		deficit := max(minimum+l+r-trackWidth(start, span), 0)
+		for j := 0; j < span; j++ {
+			share := deficit / (span - j)
+			widths[start+j] += share
+			deficit -= share
+		}
 	}
 	available := width
 	if available < 0 {
@@ -166,27 +190,34 @@ func (e *engine) grid(n *Node, width, limW, limH int) image.Point {
 	for _, w := range widths {
 		result.X += w
 	}
-	for first := 0; first < len(kids); first += columns {
-		last := min(first+columns, len(kids))
+	for first := 0; first < len(kids); {
+		last := first + 1
+		for last < len(kids) && rows[last] == rows[first] {
+			last++
+		}
 		rowHeight := 0
-		for i, c := range kids[first:last] {
+		for j, c := range kids[first:last] {
+			i := first + j
+			cellWidth := trackWidth(starts[i], spans[i])
 			l, t, r, b := e.edges(c.style.margin)
 			c.forceW, c.forceH = -1, -1
 			if c.style.w.kind == autoLen {
-				c.forceW = max(widths[i]-l-r, 0)
+				c.forceW = max(cellWidth-l-r, 0)
 			}
-			e.layoutChild(c, n, widths[i], limH)
+			e.layoutChild(c, n, cellWidth, limH)
 			rowHeight = max(rowHeight, t+c.size.Y+b)
 		}
 		if first > 0 {
 			result.Y += gap
 		}
 		x := 0
-		for i, c := range kids[first:last] {
+		for j, c := range kids[first:last] {
+			i := first + j
+			cellWidth := trackWidth(starts[i], spans[i])
 			l, t, _, b := e.edges(c.style.margin)
 			if (!n.style.alignSet || n.style.align == Stretch) && c.style.h.kind == autoLen {
 				c.forceH = max(rowHeight-t-b, 0)
-				e.layoutChild(c, n, widths[i], limH)
+				e.layoutChild(c, n, cellWidth, limH)
 			}
 			y := t
 			switch n.style.align {
@@ -195,10 +226,11 @@ func (e *engine) grid(n *Node, width, limW, limH int) image.Point {
 			case End:
 				y = rowHeight - c.size.Y - b
 			}
-			n.flowPositions[first+i] = image.Pt(x+l, result.Y+y)
-			x += widths[i] + gap
+			n.flowPositions[i] = image.Pt(x+l, result.Y+y)
+			x += cellWidth + gap
 		}
 		result.Y += rowHeight
+		first = last
 	}
 	return result
 }

@@ -105,3 +105,37 @@ func TestGridWrapHiddenAbsoluteAndModeChange(t *testing.T) {
 		}
 	}
 }
+
+func TestGridColumnSpansAndRowBreaks(t *testing.T) {
+	a, b, c, d := Div().H(Dp(20)).ColSpan(2), Div().H(Dp(40)), Div().H(Dp(10)).ColSpan(2), Div().H(Dp(30)).ColSpan(2)
+	grid := Div().Grid(3).W(Dp(320)).Gap(10).Child(a, b, c, d)
+	render(t, Div().Items(Start).Child(grid))
+	if a.n.size.X != 210 || b.n.pos != image.Pt(220, 0) || c.n.pos != image.Pt(0, 50) || d.n.pos != image.Pt(0, 70) {
+		t.Fatalf("spans: %v %v %v %v", rect(a), rect(b), rect(c), rect(d))
+	}
+	d.ColSpan(99)
+	render(t, Div().Items(Start).Child(grid))
+	if d.n.size.X != 320 {
+		t.Fatal("span not clamped to columns")
+	}
+	a.ColSpan(0)
+	render(t, Div().Items(Start).Child(grid))
+	if a.n.size.X != 100 || b.n.pos.X != 110 {
+		t.Fatal("zero span is not one")
+	}
+}
+
+func TestGridSpanningMinimumAndStretch(t *testing.T) {
+	a := Div().ColSpan(2).MinW(Dp(250)).Mx(5).Child(Div().H(Dp(10)))
+	b := Div().H(Dp(40))
+	grid := Div().Grid(3).W(Dp(300)).Gap(10).Child(a, b)
+	render(t, Div().Items(Start).Child(grid))
+	if a.n.size.X != 250 || a.n.size.Y != 40 || b.n.size.X != 30 || b.n.pos.X != 270 {
+		t.Fatalf("minimum/stretch: %v %v", rect(a), rect(b))
+	}
+	a.Hidden(true)
+	render(t, Div().Items(Start).Child(grid))
+	if b.n.pos.X != 0 {
+		t.Fatal("hidden span reserved tracks")
+	}
+}

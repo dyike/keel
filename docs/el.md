@@ -70,7 +70,7 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 
 | 分类 | 方法 |
 | --- | --- |
-| 方向与对齐 | `Row()`、`Col()`（默认）、`Wrap()` 自动换行、`Grid(columns)` 等宽列网格、`Gap(dp)`、`Justify(Start/Center/End/SpaceBetween/SpaceAround)`、`Items(Start/Center/End/Stretch)`、`Center()` |
+| 方向与对齐 | `Row()`、`Col()`（默认）、`Wrap()` 自动换行、`Grid(columns)` 等宽列网格、`ColSpan(n)` 跨列、`Gap(dp)`、`Justify(Start/Center/End/SpaceBetween/SpaceAround)`、`Items(Start/Center/End/Stretch)`、`Center()` |
 | 伸缩 | `Grow()` 等于 CSS 的 `flex: 1`：初始尺寸按 0 算，分享剩余空间；其他元素空间不够时按比例收缩，`NoShrink()` 禁止收缩 |
 | 尺寸 | `W(l)`、`H(l)`、`Size(l)`、`MinW/MinH/MaxW/MaxH(l)`、`WFull()`、`HFull()`；长度用 `el.Dp(40)`、`el.Frac(0.5)`、`el.Full` |
 | 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`（外边距），单位 dp |
@@ -316,7 +316,7 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 
 `Wrap()` 从左到右排布，宽度不足时另起一行。`Gap` 同时作用于行和行内元素；`Grow/Flex` 在各自行内分配剩余宽度，`Justify` 对齐每行，`Items` 对齐同一行内的不同高度元素。无宽度约束时不会换行。
 
-`Grid(columns)` 按行填充指定数量的列，`Gap` 设置行列间距。列默认等宽，但会先满足子元素的固定宽度及最小宽度；若所有最小宽度之和超过可用空间，保留最小宽度并溢出。每行按最高元素确定高度，自动高度的元素默认拉伸到行高。这个基础网格不支持跨行、跨列或命名区域。`Row`、`Col`、`Wrap`、`Grid` 会切换布局模式。
+`Grid(columns)` 按行填充指定数量的列，`Gap` 设置行列间距。列默认等宽，但会先满足子元素的固定宽度及最小宽度；若所有最小宽度之和超过可用空间，保留最小宽度并溢出。每行按最高元素确定高度，自动高度的元素默认拉伸到行高。`ColSpan(n)` 让子元素跨列，限制在 1 到父网格列数，放不下时从新行开始；跨度最小宽度分配到覆盖的列。隐藏和绝对定位元素不占网格单元。不支持跨行或命名区域。`Row`、`Col`、`Wrap`、`Grid` 会切换布局模式。
 
 验证：`go run ./examples/components -section layout`，调整窗口宽度检查换行和网格。
 

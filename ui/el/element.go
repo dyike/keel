@@ -174,11 +174,15 @@ func (s *Styled[T]) Wrap() *T {
 
 // Grid lays children in equal-width columns (at least one), in row order.
 // Columns honor fixed/minimum child widths; rows size to their tallest child.
-// Gap applies between columns and rows. It does not support spanning cells.
+// Gap applies between columns and rows. Children can span tracks with ColSpan.
 func (s *Styled[T]) Grid(columns int) *T {
 	s.n.style.row, s.n.style.wrap, s.n.style.grid = false, false, max(columns, 1)
 	return s.self
 }
+
+// ColSpan sets how many tracks a child occupies in a Grid. Values are clamped
+// to 1..the parent's column count; a cell that does not fit starts a new row.
+func (s *Styled[T]) ColSpan(columns int) *T { s.n.style.colSpan = max(1, columns); return s.self }
 
 // Gap puts dp between children.
 func (s *Styled[T]) Gap(dp float32) *T { s.n.style.gap = dp; return s.self }

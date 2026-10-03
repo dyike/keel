@@ -131,3 +131,23 @@ func TestKitVerticalStepperSnapshot(t *testing.T) {
 		t.Fatal("step did not become current")
 	}
 }
+
+func TestKitDescriptionListColumnsSnapshot(t *testing.T) {
+	calls := 0
+	list := kit.DescriptionList().Columns(2).Vertical().Bordered(true).
+		Item("Order", "SO-123").Item("Customer", "Ada").Separator().
+		ItemView("Actions", kit.Button("Open order", func() { calls++ })).Span(2)
+	w := openTest(t, Options{Width: 420, Height: 300, Content: kitPage(list).Content})
+	a, b := element(t, w, "Order：SO-123"), element(t, w, "Customer：Ada")
+	if a.Role != "text" || b.X <= a.X || a.Y != b.Y {
+		t.Fatalf("columns: %+v %+v", a, b)
+	}
+	w.click(element(t, w, "Open order").center())
+	if calls != 1 {
+		t.Fatal("rich item click failed")
+	}
+	list.Columns(1)
+	if element(t, w, "Customer：Ada").Y <= element(t, w, "Order：SO-123").Y {
+		t.Fatal("reflow failed")
+	}
+}

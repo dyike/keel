@@ -75,6 +75,7 @@ type Style struct {
 	revealSet               bool
 	wrap                    bool
 	grid                    int
+	colSpan                 int
 	row                     bool // lay children out left to right; default top to bottom
 	w, h, minW, minH        Length
 	maxW, maxH              Length
