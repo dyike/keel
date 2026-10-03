@@ -27,6 +27,12 @@ func init() {
 		pending.SetStatus(kit.AttachmentStatusPending)
 		rejected := kit.Attachment("不支持的文件.exe", 2048)
 		rejected.SetError("不支持此文件类型")
+		mediaUpload := kit.Attachment("风景上传.png", 48000).Media(kit.Image(preview, "上传预览").Size(64, 64))
+		mediaUpload.SetProgress(.6)
+		mediaProcessing := kit.Attachment("照片处理.png", 48000).Media(kit.Image(preview, "处理预览").Size(64, 64))
+		mediaProcessing.SetStatus(kit.AttachmentStatusProcessing)
+		mediaFailed := kit.Attachment("照片失败.png", 48000).Media(kit.Image(preview, "失败预览").Size(64, 64)).OnRetry(func() {})
+		mediaFailed.SetError("网络中断")
 		removed := false
 		done.OnRemove(func() { removed = true })
 		done.Actions(kit.Button("查看版本", func() {}).Variant(kit.ButtonGhost)).PartStyle(kit.AttachmentPartRoot, func(e *el.DivEl) { e.P(12) })
@@ -35,7 +41,7 @@ func init() {
 			if removed {
 				group.SetItems(up, bad)
 			}
-			return el.Div().P(24).Gap(10).Child(el.Text("横向滚动查看附件；移除后保留其他上传状态"), group.Render(cx), pending.Render(cx), rejected.Render(cx))
+			return el.Div().P(24).Gap(10).Child(el.Text("横向滚动查看附件；移除后保留其他上传状态"), group.Render(cx), pending.Render(cx), rejected.Render(cx), mediaUpload.Render(cx), mediaProcessing.Render(cx), mediaFailed.Render(cx))
 		}))
 	})
 }

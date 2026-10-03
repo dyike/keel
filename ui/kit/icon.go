@@ -50,6 +50,7 @@ const (
 	IconMore // three dots, for overflow menus
 	IconExternalLink
 	IconBan
+	IconRetry
 )
 
 // IconView wraps a Gio vector icon. Labels belong to its containing control.
@@ -60,6 +61,7 @@ type IconView struct {
 }
 
 var iconData = [...][]byte{
+	IconRetry:        icons.NavigationRefresh,
 	IconBan:          icons.ContentBlock,
 	IconCheck:        icons.ActionCheckCircle,
 	IconClose:        icons.NavigationClose,

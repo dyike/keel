@@ -14,6 +14,7 @@ import (
 type AttachmentView struct {
 	name               string
 	media              el.View
+	mediaProgress      *ProgressCircleView
 	content            el.View
 	actions            []el.View
 	styles             [6]func(*el.DivEl)
@@ -133,7 +134,10 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 			media.Child(Icon(IconCopy).Size(metrics.media / 2).Color(theme.PrimaryText).Render(cx))
 		}
 	} else {
-		media.MaxW(el.Full).Child(v.media.Render(cx))
+		media.Role("group").MaxW(el.Full).Child(v.media.Render(cx))
+		if overlay := v.mediaStatus(cx, id, status); overlay != nil {
+			media.Child(overlay)
+		}
 	}
 	media = v.part(AttachmentPartMedia, id+"/media", media)
 	main := el.Div().ID(id+"/open").Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(metrics.gap).Child(media, info)
@@ -180,13 +184,7 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		}).Name(text.Name(text.Cancel, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(metrics.action).Render(cx))
 	}
 	if (status.IsFailed() || status == AttachmentStatusCanceled) && v.onRetry != nil {
-		actions.Child(Button(text.Retry, func() {
-			if v.disabled || !(v.Status().IsFailed() || v.Status() == AttachmentStatusCanceled) {
-				return
-			}
-			v.SetProgress(0)
-			v.onRetry()
-		}).Name(text.Name(text.Retry, v.name)).Variant(ButtonGhost).Size(metrics.action).Render(cx))
+		actions.Child(Button(text.Retry, v.retry).Name(text.Name(text.Retry, v.name)).Variant(ButtonGhost).Size(metrics.action).Render(cx))
 	}
 	if v.onRemove != nil {
 		actions.Child(Button("", v.onRemove).Name(text.Name(text.Remove, v.name)).Icon(IconClose).Variant(ButtonGhost).Size(metrics.action).Render(cx))
