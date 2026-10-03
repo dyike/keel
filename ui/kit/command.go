@@ -3,6 +3,7 @@ package kit
 import (
 	"gioui.org/io/key"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -15,10 +16,12 @@ import (
 
 // CommandItem is one entry of a command palette. Shortcut uses
 // core.ParseShortcut syntax and is only displayed; Group introduces a section.
+// Keywords adds extra fuzzy-search terms. Constructors and SetItems copy the slice.
 type CommandItem struct {
 	Title, Group, Shortcut string
 	Action                 func()
 	Disabled               bool
+	Keywords               []string
 }
 
 // CommandView is a command palette: a search box over a list of commands that
@@ -32,6 +35,12 @@ type CommandView struct {
 	header, footer, empty               el.View
 	renderItem                          func(CommandItem, bool) el.View
 	rowHeight                           float32
+	onSelect, onConfirm                 func(int)
+	onCancel                            func()
+	onQuery                             func(string)
+	selected                            int
+	selectionPending                    bool
+	selectionVersion                    uint64
 	rows                                []commandRow
 	revision, cachedRevision            uint64
 	cachedQuery                         string
@@ -47,12 +56,18 @@ type CommandView struct {
 }
 
 func Command(items ...CommandItem) *CommandView {
-	v := &CommandView{items: slices.Clone(items), active: -1}
-	v.list = VirtualList(0, 36, v.row)
+	v := &CommandView{items: cloneCommandItems(items), active: -1, selected: -1}
+	v.list = VirtualList(0, 36, v.row).ItemKey(func(i int) string {
+		prefix := "item:"
+		if v.rows[i].header {
+			prefix = "group:"
+		}
+		return prefix + strconv.Itoa(v.rows[i].index)
+	})
 	return v
 }
 func (v *CommandView) SetItems(items ...CommandItem) {
-	v.items = slices.Clone(items)
+	v.items = cloneCommandItems(items)
 	v.revision++
 	v.active = -1
 }
@@ -68,6 +83,9 @@ func (v *CommandView) SetValue(open bool) {
 		return
 	}
 	v.open = open
+	if !open {
+		v.selectionPending = false
+	}
 	v.pendingFocus = open && !v.inline
 	v.request++ // Invalidate results from an earlier opening.
 	if open {
@@ -114,34 +132,42 @@ func fuzzy(query, text string) (score int, ok bool) {
 	return s, i == len(qs)
 }
 
-func (v *CommandView) matches() []CommandItem {
-	type scored struct {
-		item  CommandItem
-		score int
-	}
+func (v *CommandView) matches() []int {
+	type scored struct{ index, score int }
 	var out []scored
-	for _, it := range v.items {
-		if s, ok := fuzzy(v.query, it.Title); ok {
-			out = append(out, scored{it, s})
+	for index, it := range v.items {
+		score, ok := fuzzy(v.query, it.Title)
+		for _, keyword := range it.Keywords {
+			if s, match := fuzzy(v.query, keyword); match && (!ok || s > score) {
+				score, ok = s, true
+			}
+		}
+		if ok {
+			out = append(out, scored{index, score})
 		}
 	}
 	slices.SortStableFunc(out, func(a, b scored) int { return b.score - a.score })
-	items := make([]CommandItem, len(out))
+	indices := make([]int, len(out))
 	for i, s := range out {
-		items[i] = s.item
+		indices[i] = s.index
 	}
-	return items
+	return indices
 }
 
-func (v *CommandView) run(it CommandItem) {
-	if it.Disabled || v.disabled || v.loading || v.searchError != "" {
+func (v *CommandView) run(entry commandRow) {
+	it := entry.item
+	if !v.open || it.Disabled || v.disabled || v.loading || v.searchError != "" {
 		return
 	}
+	confirm := v.onConfirm
 	if !v.inline {
 		v.SetValue(false)
 	}
 	if it.Action != nil {
 		it.Action()
+	}
+	if confirm != nil {
+		confirm(entry.index)
 	}
 }
 
@@ -157,11 +183,12 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 	v.buildRows()
 	v.list.SetCount(len(v.rows))
 	if v.active < 0 || v.active >= len(v.rows) || v.rowDisabled(v.active) {
-		v.active = base.List{Count: len(v.rows), Disabled: v.rowDisabled}.First()
+		v.selectActive(base.List{Count: len(v.rows), Disabled: v.rowDisabled}.First())
 		if v.active >= 0 {
 			v.list.ScrollTo(cx, v.active)
 		}
 	}
+	v.queueSelection(cx)
 	keyHandler := func(e el.KeyEvent) bool {
 		if e.Modifiers != 0 {
 			return false
@@ -174,7 +201,7 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 		}
 		if v.inline && key.Name(e.Name) == key.NameEscape {
 			if e.State == el.KeyPress {
-				v.SetValue(false)
+				v.escape()
 			}
 			return true
 		}
@@ -183,13 +210,14 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 			return false
 		}
 		if e.State == el.KeyPress && i >= 0 {
-			v.active = i
+			v.selectActive(i)
 			v.list.ScrollTo(cx, i)
+			v.notifySelection()
 		}
 		return true
 	}
 	search := el.Input().ID(id + "/search").Name(text.SearchCommands).Placeholder(text.SearchCommands).Bind(&v.query).
-		OnChange(func(string) { v.active = -1; v.searchChanged(); cx.ScrollTo(v.list.ID(), 0) }).
+		OnChange(func(string) { v.queryChanged(); cx.ScrollTo(v.list.ID(), 0) }).
 		OnSubmit(func(string) { v.confirmActive() }).OnKey(keyHandler)
 	// Bound supplementary content separately so a long header/footer cannot hide
 	// the list. The conservative reservation does not require a measurement pass.
@@ -243,13 +271,14 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 		return panel
 	}
 	panel.Role("dialog")
-	cx.Overlay(id, el.Modal(el.Div().Pt(top).Items(el.Center).Child(panel)).Placement(el.Top, el.Center).OnDismiss(func() { v.SetValue(false) }))
+	cx.Overlay(id, el.Modal(el.Div().Pt(top).Items(el.Center).Child(panel)).Placement(el.Top, el.Center).OnEscape(func() bool { return v.clearQuery() }).OnDismiss(v.cancel))
 	return el.Div().Hidden(true)
 }
 
 type commandRow struct {
 	item   CommandItem
 	header bool
+	index  int
 }
 
 func (v *CommandView) buildRows() {
@@ -257,19 +286,24 @@ func (v *CommandView) buildRows() {
 		return
 	}
 	v.cached, v.cachedQuery, v.cachedRevision = true, v.query, v.revision
-	items := v.items
+	indices := make([]int, len(v.items))
+	for i := range indices {
+		indices[i] = i
+	}
 	if v.onSearch == nil && !v.nonsearchable {
-		items = v.matches()
+		indices = v.matches()
 	}
 	v.rows = v.rows[:0]
 	group := ""
-	for _, item := range items {
+	for _, index := range indices {
+		item := v.items[index]
 		if item.Group != "" && item.Group != group {
-			v.rows = append(v.rows, commandRow{CommandItem{Title: item.Group}, true})
+			v.rows = append(v.rows, commandRow{item: CommandItem{Title: item.Group}, header: true, index: index})
 		}
 		group = item.Group
-		v.rows = append(v.rows, commandRow{item, false})
+		v.rows = append(v.rows, commandRow{item: item, index: index})
 	}
+
 }
 func (v *CommandView) rowDisabled(i int) bool { return v.rows[i].header || v.rows[i].item.Disabled }
 func (v *CommandView) row(cx *el.Context, i int) el.Element {
@@ -282,11 +316,20 @@ func (v *CommandView) row(cx *el.Context, i int) el.Element {
 	// Keep a 2dp margin on each side of the virtual slot.
 	row := el.Div().Role("option").Name(it.Title).Selected(i == v.active).Disabled(it.Disabled).H(el.Dp(max(1, v.itemHeight()-4))).My(2).Mx(6).Px(10).Rounded(theme.RadiusMd).Row().Items(el.Center).Gap(theme.SpaceMd).Focusable(false)
 	if !it.Disabled {
-		row.Child(el.Div().ID("activate").Absolute().Top(0).Left(0).W(el.Full).H(el.Full).OnClick(func() { v.run(it) }))
+		row.Child(el.Div().ID("activate").Absolute().Top(0).Left(0).W(el.Full).H(el.Full).OnClick(func() {
+			revision, request := v.revision, v.request
+			v.selectActive(i)
+			v.notifySelection()
+			if revision == v.revision && request == v.request {
+				v.run(entry)
+			}
+		}))
 	}
 	var content el.View
 	if v.renderItem != nil {
-		content = v.renderItem(it, i == v.active)
+		copy := it
+		copy.Keywords = slices.Clone(it.Keywords)
+		content = v.renderItem(copy, i == v.active)
 	}
 	if content != nil {
 		row.Child(el.Div().ID("content").Grow().MinW(el.Dp(0)).Child(content.Render(cx)))

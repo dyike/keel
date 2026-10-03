@@ -15,7 +15,7 @@ func init() {
 		items := []kit.CommandItem{
 			kit.CommandItem{Title: "新建订单", Group: "订单", Shortcut: "mod+n", Action: do("新建订单")},
 			kit.CommandItem{Title: "导出 CSV（暂无权限）", Group: "订单", Disabled: true, Action: do("导出 CSV")},
-			kit.CommandItem{Title: "打开设置", Group: "偏好", Shortcut: "mod+,", Action: do("打开设置")},
+			kit.CommandItem{Title: "打开设置", Keywords: []string{"preferences", "settings"}, Group: "偏好", Shortcut: "mod+,", Action: do("打开设置")},
 			kit.CommandItem{Title: "切换深色模式 Dark mode", Group: "偏好", Action: func() { theme.Apply(theme.Dark()) }},
 			kit.CommandItem{Title: "New window", Shortcut: "mod+shift+n", Action: do("New window")},
 		}
@@ -23,7 +23,7 @@ func init() {
 			title := fmt.Sprintf("命令 %05d", i)
 			items = append(items, kit.CommandItem{Title: title, Group: "更多", Action: do(title)})
 		}
-		cmd := kit.Command(items...).Header(el.ViewFunc(func(*el.Context) el.Element {
+		cmd := kit.Command(items...).OnCancel(func() { msg = "已关闭命令面板" }).OnConfirm(func(index int) { msg += fmt.Sprintf("（条目 %d）", index) }).Header(el.ViewFunc(func(*el.Context) el.Element {
 			return el.Div().P(12).Child(el.Text("搜索并执行命令"))
 		})).Footer(el.ViewFunc(func(*el.Context) el.Element {
 			return el.Div().P(12).Child(el.Text("↑↓ 选择 · Enter 执行 · Esc 关闭").TextColor(theme.Muted))

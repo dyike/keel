@@ -71,6 +71,14 @@ func TestCommandAsyncRejectsStaleResultsAndRetries(t *testing.T) {
 	}
 	h.Key(key.NameEscape, 0)
 	h.Frame()
+	if !cmd.Value() || cmd.query != "" {
+		t.Fatal("first Escape should clear query")
+	}
+	h.Key(key.NameEscape, 0)
+	h.Frame()
+	if cmd.Value() {
+		t.Fatal("second Escape should close")
+	}
 	if cmd.SetResults(tokens[2], CommandItem{Title: "late"}) {
 		t.Fatal("closed palette accepted results")
 	}

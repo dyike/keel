@@ -91,6 +91,6 @@ func (v *CommandView) Focus(cx *el.Context) {
 }
 func (v *CommandView) confirmActive() {
 	if v.active >= 0 && v.active < len(v.rows) && !v.rowDisabled(v.active) {
-		v.run(v.rows[v.active].item)
+		v.run(v.rows[v.active])
 	}
 }

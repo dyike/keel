@@ -471,12 +471,14 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	}
 	ed.MaxLen, ed.Filter, ed.ReadOnly = spec.maxLen, spec.filter, spec.readOnly
 	// A single-line box has no use for ↑ ↓ PageUp PageDown beyond jumping to
-	// its ends, so OnKey takes them before the editor sees them.
+	// its ends, so OnKey takes them before the editor sees them. Escape also
+	// reaches the handler for inline controls; modal layers handle it earlier.
 	if n.onKey != nil && !spec.multiline && gtx.Enabled() {
 		for {
 			ev, ok := gtx.Event(
 				key.Filter{Focus: ed, Name: key.NameUpArrow}, key.Filter{Focus: ed, Name: key.NameDownArrow},
 				key.Filter{Focus: ed, Name: key.NamePageUp}, key.Filter{Focus: ed, Name: key.NamePageDown},
+				key.Filter{Focus: ed, Name: key.NameEscape},
 			)
 			if !ok {
 				break

@@ -41,6 +41,7 @@ type Layer struct {
 	keepOnEscape                 bool
 	dismiss                      func()
 	beforeDismiss                func() bool
+	onEscape                     func() bool
 }
 
 func Anchored(anchorID string, content Element) *Layer {
@@ -88,6 +89,11 @@ func (l *Layer) OnDismiss(fn func()) *Layer { l.dismiss = fn; return l }
 
 // BeforeDismiss may reject Esc/outside dismissal. Owner removal bypasses it.
 func (l *Layer) BeforeDismiss(fn func() bool) *Layer { l.beforeDismiss = fn; return l }
+
+// OnEscape handles an Escape press before normal dismissal. Returning true
+// consumes the press and keeps the layer open; false permits normal dismissal.
+// KeepOnEscape takes precedence. Outside presses do not call this callback.
+func (l *Layer) OnEscape(fn func() bool) *Layer { l.onEscape = fn; return l }
 
 // KeepOnOutsidePress stops presses outside the layer from calling OnDismiss;
 // Esc still does. A destructive confirmation uses it so a stray click on the
@@ -242,7 +248,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 	// notification stack above a dialog does not swallow it.
 	for i := len(cx.layers) - 1; i >= 0; i-- {
 		d := cx.layers[i]
-		if !d.state.active || (d.layer.dismiss == nil && !d.layer.keepOnEscape) {
+		if !d.state.active || (d.layer.dismiss == nil && d.layer.onEscape == nil && !d.layer.keepOnEscape) {
 			continue
 		}
 		for {
@@ -251,7 +257,13 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 				break
 			}
 			if k, ok := ev.(key.Event); ok && k.State == key.Press && !d.layer.keepOnEscape {
-				r.dismissLayer(d.state, d.layer, false)
+				handled := false
+				if d.layer.onEscape != nil {
+					core.Call(r.e.gtx, func() { r.callbacks = true; handled = d.layer.onEscape() })
+				}
+				if !handled {
+					r.dismissLayer(d.state, d.layer, false)
+				}
 			}
 		}
 		break
