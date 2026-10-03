@@ -84,3 +84,29 @@ func TestKitDropdownButtonSnapshot(t *testing.T) {
 		t.Fatalf("dropdown menu: %+v", e)
 	}
 }
+
+func TestKitCopyButtonCustomContentSnapshot(t *testing.T) {
+	var copied string
+	cb := kit.CopyButton(func() string { return "SO-1002" }).OnCopied(func(s string) { copied = s })
+	cb.Content(el.ViewFunc(func(cx *el.Context) el.Element {
+		if cb.Copied() {
+			return el.Text("Order copied")
+		}
+		return el.Text("Copy order")
+	}))
+	w := openTest(t, Options{Width: 400, Height: 300, Content: el.Embed(el.ViewFunc(cb.Render))})
+	if e := element(t, w, "复制"); e.Role != "button" {
+		t.Fatalf("custom trigger: %+v", e)
+	}
+	w.click(element(t, w, "复制").center())
+	if copied != "SO-1002" {
+		t.Fatalf("copied %q", copied)
+	}
+	if e := element(t, w, "已复制"); e.Role != "button" {
+		t.Fatalf("feedback: %+v", e)
+	}
+	cb.SetDisabled(true)
+	if e := element(t, w, "复制"); !e.Disabled {
+		t.Fatalf("disabled: %+v", e)
+	}
+}

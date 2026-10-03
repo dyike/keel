@@ -24,7 +24,8 @@
 - [x] 第一批（`945b090`）：ProgressCircle，支持 0–100% 圆环、不确定动画、减少动画、中心内容、尺寸/颜色和 Agent 语义；含非有限值/约束测试、动画像素测试及浅色 1×/深色 2× 截图检查。文档和示例已登记。
 - [x] 第二批（`11fd62f`）：OtpInput 的遮罩、分组与尺寸配置；遮罩同时覆盖可见数字和 Agent 语义值，编辑回调保留原始数字。测试覆盖分组边界、1×/2× 窄布局、程序赋值不触发回调；浅深色截图已检查。
 - [x] 第三批（`edac67d`）：HoverCard 的 OpenDelay/CloseDelay、Placement 和 Offset；自定义及零延时、等待中改延时、四方向定位、Esc 和 Agent 快照通过测试，已打开卡片的浅深色截图已检查。
-- [x] 第四批：Tooltip 的富内容、动作键位和定位/间距配置；快捷键随改绑更新，内容不接受点击，Agent 展开富内容与键位；相关测试和浅深色弹层截图已检查。
+- [x] 第四批（`7a25711`）：Tooltip 的富内容、动作键位和定位/间距配置；快捷键随改绑更新，内容不接受点击，Agent 展开富内容与键位；相关测试和浅深色弹层截图已检查。
+- [x] 第五批：Clipboard 的 OnCopied、Content 和 Copied；回调接收实际提交的原文，自定义内容保留键盘操作、禁用继承与连续复制计时。含回调/空取值/计时测试、Agent 快照及浅深色截图检查。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -60,7 +61,7 @@
 | [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 缺竖向轨道、同屏多项、可组合前后控件；Keel 每次只显示一张，另有自动播放。 |
 | [Chart](https://gpui-kit.com/component/chart/) | 部分 | [折线/柱状/面积/饼图/环图/蜡烛图、图例与数据表](../../ui/kit/chart.go) | 缺 RadarChart、SankeyChart；已有折线/柱/面积/饼环/蜡烛图。轴域、刻度数量、参考线、线型和 tooltip 内容的公共配置较少。 |
 | [Checkbox](https://gpui-kit.com/component/checkbox/) | 主体已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | 主体覆盖，另有半选。缺组件级尺寸配置和 GPUI 的 tab_index/tab_stop 配置入口。 |
-| [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 动态取值与复制反馈已有；缺 on_copied 和自定义触发内容插槽。 |
+| [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 第五批已补齐 OnCopied、Content 与反馈状态查询；回调表示已提交写入请求，非操作系统成功确认。此表登记缺口已关闭。 |
 | [Collapsible](https://gpui-kit.com/component/collapsible/) | 主体已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | 主体覆盖：拆分 Trigger/Content、状态控制与动画；本轮未发现新的主要功能缺口。 |
 | [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 颜色编辑主体已有；GPUI 自带触发器/弹层，Keel 是内联选择器，弹层需组合 Popover；缺触发图标、标签与尺寸配置。 |
 | [Combobox](https://gpui-kit.com/component/combobox/) | 部分 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 缺分组、单项禁用、自定义行/触发器、footer；目前候选数据是 string 列表。多选与异步搜索已完成。 |
@@ -136,4 +137,4 @@
 - Dock：`ui/kit/dock_tree.go`、`dock_drag.go`、`dock_detach.go`；主题：`ui/theme/registry.go`、`watch.go`、`themes/*.json`。
 - 文本与底层：`ui/markdown/markdown.go`、`html.go`、`render.go`、`ui/el/element.go`、`overlay.go`、`viewport.go`；头尾、分段等扩展见 `sidebar_items.go`、`tabs_reorder.go`、`time_field_segments.go`。
 
-本轮只更新比较报告，未新增组件、未重做性能跑分。性能、视觉和系统读屏需独立验收，不能由上述组件覆盖数推导。
+初次复核只更新比较报告；后续组件改动与验证按上方批次记录，未重做性能跑分。性能、视觉和系统读屏需独立验收，不能由上述组件覆盖数推导。
