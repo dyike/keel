@@ -36,6 +36,7 @@ type Layer struct {
 	modal, centered, trap, scrim bool
 	edge                         bool // a Modal placed against a root edge
 	keepOnOutside                bool
+	keepOnEscape                 bool
 	dismiss                      func()
 }
 
@@ -76,7 +77,10 @@ func (l *Layer) OnDismiss(fn func()) *Layer { l.dismiss = fn; return l }
 // Esc still does. A destructive confirmation uses it so a stray click on the
 // scrim cannot cancel it. A modal layer still blocks the press.
 func (l *Layer) KeepOnOutsidePress() *Layer { l.keepOnOutside = true; return l }
-func (l *Layer) Scrim(on bool) *Layer       { l.scrim = on; return l }
+
+// KeepOnEscape consumes Esc without dismissing this layer or layers below it.
+func (l *Layer) KeepOnEscape() *Layer { l.keepOnEscape = true; return l }
+func (l *Layer) Scrim(on bool) *Layer { l.scrim = on; return l }
 
 type overlayDecl struct {
 	eligible bool
@@ -215,7 +219,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 	// notification stack above a dialog does not swallow it.
 	for i := len(cx.layers) - 1; i >= 0; i-- {
 		d := cx.layers[i]
-		if !d.state.active || d.layer.dismiss == nil {
+		if !d.state.active || (d.layer.dismiss == nil && !d.layer.keepOnEscape) {
 			continue
 		}
 		for {
@@ -223,7 +227,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 			if !ok {
 				break
 			}
-			if k, ok := ev.(key.Event); ok && k.State == key.Press {
+			if k, ok := ev.(key.Event); ok && k.State == key.Press && !d.layer.keepOnEscape {
 				r.dismissLayer(d.state, d.layer)
 			}
 		}

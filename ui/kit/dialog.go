@@ -23,17 +23,19 @@ import (
 //
 // Render it in the view tree; it renders nothing in place.
 type DialogView struct {
-	title    string
-	body     el.View
-	footer   []el.View
-	width    float32
-	alert    bool
-	open     bool
-	disabled bool
-	opened   bool // the open state the last Render saw, to focus on opening
-	focus    string
-	onClose  func()
-	onCancel func() // message dialogs: run on Esc, scrim or the cancel button
+	title                                string
+	body                                 el.View
+	footer                               []el.View
+	width                                float32
+	alert                                bool
+	open                                 bool
+	disabled                             bool
+	opened                               bool // the open state the last Render saw, to focus on opening
+	focus                                string
+	onClose                              func()
+	keyboardOff, overlayOff, closeButton bool
+	overlayClosable                      *bool
+	onCancel                             func() // message dialogs: run on Esc, scrim or the cancel button
 }
 
 func Dialog(title string) *DialogView { return &DialogView{title: title, width: 420} }
@@ -57,6 +59,18 @@ func (v *DialogView) Width(dp float32) *DialogView {
 	}
 	return v
 }
+
+// Keyboard controls Esc dismissal, enabled by default.
+func (v *DialogView) Keyboard(on bool) *DialogView { v.keyboardOff = !on; return v }
+
+// Overlay controls scrim painting, not modality or outside-click behavior.
+func (v *DialogView) Overlay(on bool) *DialogView { v.overlayOff = !on; return v }
+
+// OverlayClosable overrides outside-click dismissal, including Persistent.
+func (v *DialogView) OverlayClosable(on bool) *DialogView { v.overlayClosable = &on; return v }
+
+// CloseButton shows an explicit header close action, hidden by default.
+func (v *DialogView) CloseButton(on bool) *DialogView { v.closeButton = on; return v }
 
 // Persistent makes it an alertdialog: a press on the scrim does not close it;
 // Esc still does. ConfirmDanger dialogs are persistent.
@@ -130,19 +144,31 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 	id := autoID("dialog", v)
 	w, h := cx.ViewportSize()
 	panel := floating(theme.ElevationLg).Rounded(theme.RadiusXl).Role(role).Name(v.title).W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().P(20).Gap(theme.SpaceXl).Items(el.Stretch)
-	layer := el.Modal(panel).Owner(id).OnDismiss(v.close)
-	if v.alert {
+	layer := el.Modal(panel).Owner(id).OnDismiss(v.close).Scrim(!v.overlayOff)
+	if v.keyboardOff {
+		layer.KeepOnEscape()
+	}
+	outside := !v.alert
+	if v.overlayClosable != nil {
+		outside = *v.overlayClosable
+	}
+	if !outside {
 		layer.KeepOnOutsidePress()
 	}
 	cx.Overlay(id, layer)
-	if v.title != "" {
-		panel.Child(el.Text(v.title).TextSize(theme.TextLg).Bold())
+	if v.title != "" || v.closeButton {
+		header := el.Div().ID(id + "/header").Row().Items(el.Center).Gap(theme.SpaceMd)
+		header.Child(el.Text(v.title).TextSize(theme.TextLg).Bold().Grow())
+		if v.closeButton {
+			header.Child(Button("", v.close).ID(id + "/close").Name(locale.Current().Close).Icon(IconClose).Variant(ButtonGhost).Size(28).Render(cx))
+		}
+		panel.Child(header)
 	}
 	if v.body != nil {
 		panel.Child(el.Div().ID(id + "/body").MaxH(el.Dp(max(0, h-160))).ScrollY().Items(el.Stretch).Child(v.body.Render(cx)))
 	}
 	if len(v.footer) > 0 {
-		row := el.Div().Gap(theme.SpaceMd).Justify(el.End)
+		row := el.Div().ID(id + "/footer").Gap(theme.SpaceMd).Justify(el.End)
 		if min(w-16, v.width) >= 360 {
 			row.Row()
 		}

@@ -33,3 +33,12 @@ Agent：普通对话框的角色是 `dialog`，`ConfirmDanger` 和 `Persistent()
 `SetDisabled(true)` 直接关闭，且阻止 SetValue / 标准消息重新打开；不触发用户关闭回调。所在容器禁用、隐藏或不再提供所属元素时，已声明的模态层会请求关闭并调用一次 OnClose。关闭后不会因恢复启用而重新弹出。
 
 正文和页脚可以包含 Menu、Popover 或另一个 Dialog。父浮层先登记，子浮层位于上方；Esc 逐层关闭，每层恢复对应的先前焦点。示例“自定义”里的客户预设用于验证嵌套菜单。
+
+关闭配置可独立设置，并在复用标准消息时保留：
+
+- `Keyboard(false)` 禁止 Esc 关闭，仍消耗该键，避免误关下层对话框；默认开启。
+- `Overlay(false)` 隐藏遮罩颜色，仍阻挡背景操作并约束焦点；默认显示。
+- `OverlayClosable(bool)` 显式设置外部点击是否关闭，优先于 Persistent/ConfirmDanger 的默认值。
+- `CloseButton(true)` 显示标题栏关闭按钮，调用与取消/Esc 相同的关闭逻辑。默认隐藏，保留旧布局；按钮名称随语言切换。无标题也能显示。
+
+关闭按钮、标题、正文和页脚使用稳定身份；切换显示配置不会重建正文输入状态。上述配置不限制程序调用 `SetValue(false)`，也不限制自定义 Footer 按钮。

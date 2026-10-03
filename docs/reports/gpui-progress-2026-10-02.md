@@ -61,7 +61,8 @@
 - [x] 第三十八批（`0decad0`）：Checkbox 增加 Size/TextSize 与 TabStop/TabIndex；勾号和半选横线随方框缩放。测试覆盖 1×/2×、尺寸恢复、半选语义、键盘焦点、禁用、Tab 排序/跳过与反向遍历；全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。
 - [x] 第三十九批（`cf93625`）：RadioGroup 增加 Size/TextSize 与按选项配置的 Content；圆环和选中点按比例缩放，富标签保留原值、名称和键盘身份，独立 Item 共享配置。测试覆盖 1×/2×、替换/恢复后的焦点、描述点击、禁用跳过、祖先禁用、重排及删除清理；全量构建、vet、测试和浅色 1×/深色 2× 截图检查通过。逐项尺寸与组件级 Tab 配置仍待补齐。
 - [x] 第四十批（`65ffdfe`）：RadioGroup 增加 ItemSize，支持逐项圆点/字号覆盖和分别继承组配置；重排保留，删除清理。1×/2× 测试覆盖尺寸隔离、恢复继承、动态组字号、焦点、非法值及生命周期；构建、vet、全量测试和浅深色截图检查通过。组件级 Tab 配置仍待补齐。
-- [x] 第四十一批：RadioGroup 增加 TabStop/TabIndex 和逐项 ItemTab/ClearItemTab；默认单停靠点，显式逐项配置可覆盖，删除选项清理覆盖。窗口测试覆盖正反向、组跳过、负索引、鼠标选择、方向键、未选中项停靠且不改变值、禁用与配置清理；构建、vet、全量测试通过。排序范围限单 el root。
+- [x] 第四十一批（`14defb2`）：RadioGroup 增加 TabStop/TabIndex 和逐项 ItemTab/ClearItemTab；默认单停靠点，显式逐项配置可覆盖，删除选项清理覆盖。窗口测试覆盖正反向、组跳过、负索引、鼠标选择、方向键、未选中项停靠且不改变值、禁用与配置清理；构建、vet、全量测试通过。排序范围限单 el root。
+- [x] 第四十二批：Dialog 增加 Keyboard、Overlay、OverlayClosable、CloseButton，适用于普通及警告对话框；隐藏遮罩保持模态，禁止 Esc 不会穿透关闭下层。关闭按钮默认隐藏并使用本地化名称；正文/页脚身份稳定。测试覆盖独立关闭路径、嵌套、遮罩像素与焦点返回后再打开；构建、vet、全量测试通过。确认回调阻止关闭仍待补齐。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -86,7 +87,7 @@
 | GPUI Kit 组件 | 本轮状态 | Keel 已完成能力 / 主实现 | 已确认的差异与边界 |
 | --- | --- | --- | --- |
 | [Accordion](https://gpui-kit.com/component/accordion/) | 主体已有 | [单项/多项、自定义标题、动画、键盘、禁用、边框开关与四档尺寸](../../ui/kit/accordion.go) | 第十八批已关闭登记缺口；无边框保留背景和圆角，默认 Medium 保留字号继承。自定义标题和正文的显式字号优先。 |
-| [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 行为/配置差异：Persistent 只禁止点击遮罩关闭，Esc 仍关闭；没有独立 keyboard 开关。内置确认按钮先关闭再执行回调，不能用返回值阻止关闭；可自组 Footer。 |
+| [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐 Keyboard、Overlay、OverlayClosable、CloseButton；Persistent 默认只禁止遮罩关闭，显式配置可覆盖。内置确认按钮先关闭再执行回调，不能用返回值阻止关闭；可自组 Footer。 |
 | [Alert](https://gpui-kit.com/component/alert/) | 主体已有 | [行内/横幅提示、级别、四档尺寸、可替换图标、富正文、关闭按钮](../../ui/kit/alert.go) | 第十五批已关闭登记缺口；Content 可组合 Markdown 与操作按钮。横幅没有独立标题行，无正文时使用标题作为消息；自定义内容的内部样式由内容自身控制。 |
 | [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 缺媒体/图片预览槽、横纵布局、附件组；当前是文件名/大小卡片，已有上传进度与失败操作。 |
 | [Avatar](https://gpui-kit.com/component/avatar/) | 主体已有 | [图片/首字母回退、URL 加载与重试、尺寸、状态标记](../../ui/kit/avatar.go)、[叠放头像组/上限/+N/省略号](../../ui/kit/avatar_group.go) | 第七批已关闭原登记缺口；加载不跨实例缓存。外观仍为圆形和主题色回退，GPUI 的自定义占位图标、边框/圆角等样式接口及配色算法不同。 |
@@ -105,7 +106,7 @@
 | [DataTable](https://gpui-kit.com/component/data-table/) | 部分 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | 主要数据表能力已有；缺独立整列选择模式、列级 selectable/resizable/movable 限制，以及 stripe/密度等公开配置。 |
 | [DatePicker](https://gpui-kit.com/component/date-picker/) | 部分 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 缺日期+时间联动、快捷日期/范围预设、组件级 date_format 与清空按钮；已有独立 TimeField 不等于 DatePicker 已集成。 |
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 主体已有 | [多列/跨列、横纵标签、富值插槽、分隔线、边框、字号与标签宽度](../../ui/kit/description_list.go) | 第八批已关闭登记缺口。Columns 由调用方设置，不按窗口宽度自动切换；默认仍为无边框单列，保留原用法。 |
-| [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 主体覆盖；缺独立遮罩显示/Esc/关闭按钮开关。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
+| [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
 | [Dock](https://gpui-kit.com/component/dock/) | 部分 | [边缘与中心区标签组、嵌套分割、拖放、布局保存、最大化、跨窗口分离](../../ui/kit/dock.go) | 中心/边缘嵌套分割、拖放、最大化已完成；缺 GPUI 的面板工厂注册/面板自有状态恢复和独立 DockSkin。分离由 OnDetach 交给应用开窗，恢复布局不会重开分离窗口。 |
 | [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 主体已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | 主体覆盖，另有分体动作；缺公开 anchor、loading 和内部按钮配置透传。 |
 | [Editor](https://gpui-kit.com/component/editor/) | 部分 | [行号、局部重高亮、多光标/矩形选择、查找替换、折叠、语法感知括号配对、诊断/补全/悬停/定义跳转接口](../../ui/kit/code_editor.go) | 缺可随编辑跟踪的文本/几何装饰集合、可替换语言编辑规则、完整自定义搜索会话 API；高亮为 chroma，非 Tree-sitter。多光标、查找替换、折叠、括号配对已完成。 |

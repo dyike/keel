@@ -20,7 +20,7 @@ func newDialogGallery() *dialogGallery {
 	g := &dialogGallery{dlg: kit.Dialog(""), msg: "还没有操作", name: "华东物流"}
 	presets := kit.Menu().Item("华东物流", "", func() { g.name = "华东物流" }).Item("北方商贸", "", func() { g.name = "北方商贸" })
 	presets.Trigger(kit.Button("客户预设", presets.Toggle))
-	g.edit = kit.Dialog("编辑客户").Body(el.ViewFunc(func(cx *el.Context) el.Element {
+	g.edit = kit.Dialog("编辑客户").CloseButton(true).OverlayClosable(false).Body(el.ViewFunc(func(cx *el.Context) el.Element {
 		return el.Div().Gap(8).Child(el.Text("客户名称").TextSize(13).TextColor(theme.Muted), el.Input().ID("dialog-name").Bind(&g.name), presets.Render(cx))
 	})).Footer(
 		kit.Button("取消", func() { g.edit.SetValue(false) }).Variant(kit.ButtonSecondary),
