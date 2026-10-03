@@ -28,11 +28,19 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-func (e *engine) label(n *Node, text string) material.LabelStyle {
+func (e *engine) label(n *Node, value string) material.LabelStyle {
 	ts := n.textStyle
-	lb := material.Label(theme.Material, ts.size, text)
+	lb := material.Label(theme.Material, ts.size, value)
 	lb.Color = *ts.color
 	lb.Font = textFont(ts)
+	if ts.align != nil {
+		switch *ts.align {
+		case Center:
+			lb.Alignment = text.Middle
+		case End:
+			lb.Alignment = text.End
+		}
+	}
 	if ts.lineHeight > 0 {
 		lb.LineHeightScale = ts.lineHeight
 	}

@@ -112,6 +112,7 @@ type Style struct {
 
 // textStyle is inherited by descendants unless they set their own.
 type textStyle struct {
+	align      *Align
 	color      *color.NRGBA
 	size       unit.Sp
 	weight     *font.Weight
@@ -121,6 +122,9 @@ type textStyle struct {
 }
 
 func (t textStyle) inherit(parent textStyle) textStyle {
+	if t.align == nil {
+		t.align = parent.align
+	}
 	if t.color == nil {
 		t.color = parent.color
 	}

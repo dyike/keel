@@ -344,6 +344,15 @@ func (s *Styled[T]) TextColor(c color.NRGBA) *T { s.n.style.text.color = &c; ret
 func (s *Styled[T]) TextSize(sp float32) *T     { s.n.style.text.size = unit.Sp(sp); return s.self }
 func (s *Styled[T]) Bold() *T                   { w := font.Bold; s.n.style.text.weight = &w; return s.self }
 
+// TextAlign sets alignment within wrapped text. Descendants inherit it.
+// Start, Center and End are accepted; other values leave the style unchanged.
+func (s *Styled[T]) TextAlign(a Align) *T {
+	if a == Start || a == Center || a == End {
+		s.n.style.text.align = &a
+	}
+	return s.self
+}
+
 // Medium sets a weight between regular and Bold, for emphasis that should
 // not shout: selected tabs, table headers.
 func (s *Styled[T]) Medium() *T { w := font.Medium; s.n.style.text.weight = &w; return s.self }
