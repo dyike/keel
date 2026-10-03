@@ -25,6 +25,7 @@ func TestProgressCircleSnapshotAndAnimation(t *testing.T) {
 		}
 		return b
 	}
+	core.Update(func() { theme.SetReducedMotion(true) })
 	var before []byte
 	for _, value := range []float32{0, .25, 1} {
 		core.Update(func() { p.SetValue(value) })

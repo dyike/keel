@@ -17,3 +17,5 @@ p.Child(el.ViewFunc(func(*el.Context) el.Element {
 纯展示组件，不接收键盘焦点。Agent 角色为 `progressbar`，名称取 label，值为百分比或 `indeterminate`。应用负责更新状态；后台更新应通过 `core.Update`。
 
 验证：`go run ./examples/components -section progress_circle`，以 `-theme dark` 检查深色，`-width 320 -scale 2 -screenshot /tmp/progress-circle.png` 检查窄布局。单元测试覆盖状态和约束，窗口测试覆盖 Agent 值与动画像素。
+
+确定进度更新使用 200ms 平滑过渡（`kit.ProgressDuration`），连续更新从当前显示位置衔接。首次显示、从不确定模式返回和减少动画时立即显示目标值。`Value()`、百分比及 Agent 语义始终返回目标值，只有图形插值；中心自定义内容由调用方管理。动画使用帧时钟，不创建定时器或 goroutine。

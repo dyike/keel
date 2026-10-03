@@ -10,37 +10,14 @@ import (
 // DisclosureDuration is the duration of an expand/collapse transition.
 const DisclosureDuration = 180 * time.Millisecond
 
-type disclosureMotion struct {
-	initialized     bool
-	value, from, to float32
-	started         time.Time
-}
+type disclosureMotion struct{ valueMotion }
 
 func (m *disclosureMotion) progress(cx *el.Context, open bool) float32 {
 	target := float32(0)
 	if open {
 		target = 1
 	}
-	if !m.initialized || el.ReducedMotion() {
-		m.initialized = true
-		m.value = target
-		m.from = target
-		m.to = target
-		m.started = cx.Now()
-		return target
-	}
-	p := max(0, min(1, float32(cx.Now().Sub(m.started))/float32(DisclosureDuration)))
-	p = p * p * (3 - 2*p)
-	m.value = m.from + (m.to-m.from)*p
-	if target != m.to {
-		m.from = m.value
-		m.to = target
-		m.started = cx.Now()
-	}
-	if m.value != m.to {
-		cx.Animating()
-	}
-	return m.value
+	return m.sample(cx, target, DisclosureDuration)
 }
 
 type disclosureStyle struct{ px, py, bottom, font, icon, gap float32 }

@@ -24,6 +24,7 @@ type ProgressCircleView struct {
 	value         float32
 	size          float32
 	indeterminate bool
+	motion        valueMotion
 	color         *color.NRGBA
 	child         el.View
 }
@@ -58,11 +59,15 @@ func (v *ProgressCircleView) Render(cx *el.Context) el.Element {
 	value := strconv.Itoa(int(v.value*100+.5)) + "%"
 	fraction, phase := v.value, float32(0)
 	if v.indeterminate {
+		v.motion.initialized = false
 		value, fraction = "indeterminate", .25
 		if !el.ReducedMotion() {
 			phase = float32(cx.Now().UnixNano()%int64(time.Second)) / float32(time.Second)
 			cx.Animating()
 		}
+	}
+	if !v.indeterminate {
+		fraction = v.motion.sample(cx, v.value, ProgressDuration)
 	}
 	foreground, track := theme.Primary, theme.Subtle
 	if v.color != nil {

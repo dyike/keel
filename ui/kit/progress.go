@@ -16,6 +16,7 @@ type ProgressView struct {
 	label         string
 	value         float32
 	indeterminate bool
+	motion        valueMotion
 	height        float32
 	radius        *float32
 	color         *color.NRGBA
@@ -60,6 +61,12 @@ func (v *ProgressView) TrackStyle(fn func(*el.DivEl)) *ProgressView { v.trackSty
 func (v *ProgressView) Render(cx *el.Context) el.Element {
 	pct := strconv.Itoa(int(v.value*100+0.5)) + "%"
 	value := pct
+	fraction := v.value
+	if v.indeterminate {
+		v.motion.initialized = false
+	} else {
+		fraction = v.motion.sample(cx, v.value, ProgressDuration)
+	}
 	height := v.height
 	if height == 0 {
 		height = 8
@@ -90,7 +97,7 @@ func (v *ProgressView) Render(cx *el.Context) el.Element {
 		}
 		track.Child(el.Div().W(el.Frac(phase*0.7)).NoShrink(), segment(.3))
 	} else {
-		track.Child(segment(v.value))
+		track.Child(segment(fraction))
 	}
 	head := el.Div().Row().TextSize(theme.TextMd).TextColor(theme.Muted).Child(el.Text(v.label).Grow())
 	if !v.indeterminate {
