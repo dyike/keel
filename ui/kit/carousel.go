@@ -10,21 +10,23 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
-// CarouselView shows one slide or equal-size slots with previous / next buttons and a
+// CarouselView shows one slide or configurable slots with previous / next buttons and a
 // dot per slide. Arrow keys follow orientation; Home/End select the endpoints.
 // Autoplay advances on a timer,
 // paused while the pointer is over it and off with reduced motion.
 type CarouselView struct {
-	slides   []el.View
-	current  int
-	autoplay time.Duration
-	disabled bool
-	height   float32
-	vertical bool
-	looping  bool
-	onChange func(int)
-	perView  int
-	gap      float32
+	slides    []el.View
+	current   int
+	autoplay  time.Duration
+	disabled  bool
+	height    float32
+	vertical  bool
+	looping   bool
+	onChange  func(int)
+	perView   int
+	basis     float32
+	itemBasis map[int]float32
+	gap       float32
 }
 
 func Carousel(slides ...el.View) *CarouselView {
@@ -105,7 +107,7 @@ func (v *CarouselView) render(cx *el.Context, navigation bool) el.Element {
 		cx.AfterEnabled(id, carouselKey{id, cur}, v.autoplay, func() { v.goTo(cur + 1) })
 	}
 	stage := el.Div().ID(id + "/stage").H(el.Dp(v.height)).Rounded(theme.RadiusLg).Bg(theme.Subtle).Items(el.Stretch).Justify(el.Center)
-	if v.perView > 1 {
+	if v.perView > 1 || v.basis > 0 || len(v.itemBasis) > 0 {
 		v.multiStage(cx, stage, id+"/stage")
 	} else if v.current < len(v.slides) && v.slides[v.current] != nil {
 		stage.Child(v.slides[v.current].Render(cx))
