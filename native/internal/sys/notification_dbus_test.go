@@ -11,13 +11,15 @@ import (
 )
 
 type notificationFakeBus struct {
-	owner   string
-	markup  bool
-	fail    string
-	replace []uint32
-	closed  []uint32
-	body    string
-	next    uint32
+	actions     bool
+	sentActions []string
+	owner       string
+	markup      bool
+	fail        string
+	replace     []uint32
+	closed      []uint32
+	body        string
+	next        uint32
 }
 
 func (f *notificationFakeBus) call(dest, method string, args ...any) *dbus.Call {
@@ -29,6 +31,9 @@ func (f *notificationFakeBus) call(dest, method string, args ...any) *dbus.Call 
 		return &dbus.Call{Body: []any{f.owner}}
 	case notificationService + ".GetCapabilities":
 		caps := []string{"body"}
+		if f.actions {
+			caps = append(caps, "actions")
+		}
 		if f.markup {
 			caps = append(caps, "body-markup")
 		}
@@ -44,7 +49,7 @@ func (f *notificationFakeBus) call(dest, method string, args ...any) *dbus.Call 
 			id = f.next
 		}
 		f.body = args[4].(string)
-		_ = args[5].([]string)
+		f.sentActions = append([]string(nil), args[5].([]string)...)
 		_ = args[6].(map[string]dbus.Variant)
 		if args[7].(int32) != -1 {
 			panic("wrong default timeout")
@@ -127,5 +132,75 @@ func TestNotificationDBusErrorsPreserveState(t *testing.T) {
 	f.owner = ":1.4"
 	if err := n.post("b", "Title", ""); !errors.Is(err, native.ErrFailed) || n.owner != "" {
 		t.Fatal("failed capability lookup cached", err)
+	}
+}
+
+func TestNotificationDBusActions(t *testing.T) {
+	f := &notificationFakeBus{owner: ":1.3", actions: true}
+	n := notificationDBus{call: f.call}
+	calls := 0
+	if err := n.postInteractive("a", "Title", "", func() { calls++ }); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.sentActions) != 2 || f.sentActions[0] != "default" {
+		t.Fatal("missing default action", f.sentActions)
+	}
+	if n.activated(":1.2", 1, "default") != nil || n.activated(f.owner, 1, "unknown") != nil || n.activated(f.owner, 99, "default") != nil {
+		t.Fatal("foreign or invalid action accepted")
+	}
+	fn := n.activated(f.owner, 1, "default")
+	if fn == nil {
+		t.Fatal("missing action")
+	}
+	fn()
+	n.closed(f.owner, 1)
+	if calls != 1 || n.activated(f.owner, 1, "default") != nil || len(n.clicks) != 0 {
+		t.Fatal("closed/repeated action")
+	}
+	if err := n.postInteractive("a", "Title", "", func() { calls++ }); err != nil {
+		t.Fatal(err)
+	}
+	n.closed(f.owner, n.ids["a"])
+	if n.activated(f.owner, 2, "default") != nil {
+		t.Fatal("late action after close")
+	}
+}
+func TestNotificationDBusActionReplacementAndCapabilities(t *testing.T) {
+	f := &notificationFakeBus{owner: ":1.3", actions: true}
+	n := notificationDBus{call: f.call}
+	calls := 0
+	n.postInteractive("a", "Old", "", func() { calls++ })
+	f.fail = notificationService + ".Notify"
+	if err := n.postInteractive("a", "New", "", func() { calls += 10 }); err == nil {
+		t.Fatal("expected failure")
+	}
+	fn := n.activated(f.owner, 1, "default")
+	if fn == nil {
+		t.Fatal("failure lost callback")
+	}
+	fn()
+	if calls != 1 {
+		t.Fatal("failed replacement installed callback")
+	}
+	f.fail = ""
+	n.postInteractive("a", "New", "", func() { calls += 10 })
+	n.post("a", "Plain", "")
+	if n.activated(f.owner, 1, "default") != nil {
+		t.Fatal("plain replacement retained callback")
+	}
+	n.postInteractive("a", "New", "", func() { calls += 10 })
+	if err := n.remove("a"); err != nil || len(n.clicks) != 0 {
+		t.Fatal("remove retained callback", err)
+	}
+	f.owner = ":1.4"
+	f.actions = false
+	if err := n.postInteractive("b", "Unsupported", "", func() {}); !errors.Is(err, native.ErrUnsupported) {
+		t.Fatal("missing capability not reported", err)
+	}
+	if len(n.clicks) != 0 {
+		t.Fatal("restart retained callbacks")
+	}
+	if err := n.post("b", "Plain", ""); err != nil {
+		t.Fatal("plain notification requires actions", err)
 	}
 }

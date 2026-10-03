@@ -40,7 +40,7 @@ func (d *demo) Render(cx *el.Context) el.Element {
 			kit.Button("应用内和系统通知", func() { d.send(kit.NoticeInAppAndSystem) }).Render(cx),
 			kit.Button("撤回任务通知", func() { d.notifier.DismissKey("demo") }).Render(cx),
 			kit.Button("清除所有通知", func() { d.notifier.Clear() }).Render(cx),
-			kit.Button("原生点击回调（macOS）", func() {
+			kit.Button("原生点击回调", func() {
 				d.busy = true
 				notification.Post(notification.Message{ID: "keel.native.click-demo", Title: "点击此通知", Body: "前台也请求显示；点击后示例会显示回调结果。", OnClick: func() { core.Update(func() { d.status = "收到系统通知点击回调" }) }}, d.done("可点击通知"))
 			}).Render(cx),
@@ -76,7 +76,7 @@ func main() {
 	}
 	d := &demo{status: fmt.Sprintf("当前进程支持：%v", notification.Available())}
 	var backend kit.NoticeSystemBackend = systemBackend{}
-	if runtime.GOOS == "darwin" {
+	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
 		backend = interactiveBackend{}
 	}
 	d.notifier = kit.Notifier().SystemBackend(backend, func(r kit.NoticeSystemResult) {

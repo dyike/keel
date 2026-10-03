@@ -14,7 +14,8 @@ import (
 type Message struct {
 	ID, Title, Body string
 	// OnClick runs on a separate goroutine when the system notification is opened.
-	// Currently supported on macOS only. It does not raise a specific UI window.
+	// Supported on macOS and Linux servers advertising actions. It does not
+	// raise a specific UI window.
 	OnClick func()
 }
 
