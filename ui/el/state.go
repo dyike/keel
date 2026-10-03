@@ -94,10 +94,11 @@ type elemState struct {
 	version                                                          int  // ScrollToEndOn's value last frame
 	keepVersion                                                      int  // KeepBottomOn's value last frame
 
-	editor   widget.Editor
-	caret    editorstyle.Caret
-	edInit   bool
-	lastText string // what Bind last synced, to spot program changes
+	editor               widget.Editor
+	caret                editorstyle.Caret
+	edInit               bool
+	inputUndo, inputRedo []InputEdit
+	lastText             string // what Bind last synced, to spot program changes
 }
 
 // store holds element state for one root. Entries not painted in a frame are

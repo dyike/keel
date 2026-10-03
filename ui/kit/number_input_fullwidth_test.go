@@ -45,21 +45,21 @@ func TestNumberInputFullWidthTypingUndoAndCommit(t *testing.T) {
 	clickClass(t, h, "Editor", "number")
 	h.Router.Queue(key.EditEvent{Range: key.Range{Start: 0, End: 1}, Text: "１２．５"})
 	h.Frame()
-	if n.text != "１２．５" || n.Value() != 0 {
+	if n.text != "12.5" || n.Value() != 0 {
 		t.Fatal("draft changed before commit", n.text, n.Value())
 	}
-	// An insertion in the middle uses rune offsets, without an implicit rewrite.
+	// Normalization preserves rune offsets for middle insertion.
 	h.Router.Queue(key.EditEvent{Range: key.Range{Start: 1, End: 1}, Text: "３"})
 	h.Frame()
-	if n.text != "１３２．５" {
+	if n.text != "132.5" {
 		t.Fatal("middle insertion", n.text)
 	}
 	h.Key("Z", key.ModShortcut)
-	if n.text != "１２．５" {
+	if n.text != "12.5" {
 		t.Fatal("undo normalization loop", n.text)
 	}
 	h.Key("Z", key.ModShortcut|key.ModShift)
-	if n.text != "１３２．５" {
+	if n.text != "132.5" {
 		t.Fatal("redo", n.text)
 	}
 	h.Key(key.NameReturn, 0)

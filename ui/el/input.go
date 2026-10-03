@@ -12,6 +12,7 @@ type inputSpec struct {
 	multiline        bool
 	password         bool
 	onChange         func(string)
+	transform        func(InputEdit) InputEdit
 	onSubmit         func(string)
 	maxLen           int
 	filter           string
@@ -73,5 +74,19 @@ func (e *InputEl) AutoGrow(minRows, maxRows int) *InputEl {
 	if minRows == 0 && maxRows == 0 || minRows > 0 && maxRows >= minRows {
 		e.n.input.minRows, e.n.input.maxRows = minRows, maxRows
 	}
+	return e
+}
+
+// InputEdit describes text and rune-based selection endpoints after an edit.
+type InputEdit struct {
+	Text       string
+	Start, End int
+}
+
+// Transform normalizes user edits before Bind and OnChange. Return mapped rune
+// selection endpoints with the new text. Programmatic Bind changes are unchanged.
+// Transformed inputs retain up to 100 user edits for undo/redo; programmatic changes reset this history.
+func (e *InputEl) Transform(fn func(InputEdit) InputEdit) *InputEl {
+	e.n.input.transform = fn
 	return e
 }

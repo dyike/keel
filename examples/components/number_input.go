@@ -11,7 +11,7 @@ func init() {
 	registerSection("number_input", "inputs", func() core.Widget {
 		qty := kit.NumberInput("数量（1–99）").Range(1, 99).Size(28)
 		qty.SetValue(1)
-		price := kit.NumberInput("单价").Range(0, 1e6).Decimals(2).
+		price := kit.NumberInput("单价").Range(0, 1e6).Decimals(2).ThousandsSeparator(',').
 			StepBy(func(value float64, action kit.NumberStepAction) float64 {
 				if value < 1 || value == 1 && action == kit.NumberStepActionDecrement {
 					return 0.1

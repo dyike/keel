@@ -495,8 +495,13 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 			core.Call(gtx, func() { fn(e) })
 		}
 	}
+	if spec.transform != nil {
+		e.inputUndoKeys(n, st)
+	}
 	// User edits first, then program changes to the bound string.
 	for {
+		beforeStart, beforeEnd := ed.Selection()
+		before := InputEdit{Text: st.lastText, Start: beforeStart, End: beforeEnd}
 		ev, ok := ed.Update(gtx)
 		if !ok {
 			break
@@ -506,6 +511,25 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 			text := ed.Text()
 			if text == st.lastText {
 				break // SetText below, not the user
+			}
+			if spec.transform != nil {
+				start, end := ed.Selection()
+				normalized := spec.transform(InputEdit{Text: text, Start: start, End: end})
+				if normalized.Text != text {
+					ed.SetText(normalized.Text)
+				}
+				if normalized.Text != text || normalized.Start != start || normalized.End != end {
+					ed.SetCaret(normalized.Start, normalized.End)
+				}
+				text = ed.Text()
+				if text == st.lastText {
+					break
+				}
+				st.inputUndo = append(st.inputUndo, before)
+				if len(st.inputUndo) > 100 {
+					st.inputUndo = st.inputUndo[1:]
+				}
+				st.inputRedo = nil
 			}
 			st.lastText = text
 			if spec.bind != nil {
@@ -522,6 +546,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		}
 	}
 	if spec.bind != nil && *spec.bind != st.lastText {
+		st.inputUndo, st.inputRedo = nil, nil
 		st.lastText = *spec.bind
 		ed.SetText(*spec.bind)
 	}

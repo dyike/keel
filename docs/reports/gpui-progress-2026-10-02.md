@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**61 项主体已有、14 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**62 项主体已有、13 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -235,7 +235,9 @@
 
 - [x] 第一百四十一批（`380dd82`）：集中补齐 Settings 登记缺口。新增 Page/SettingGroup、组外 footer、关键词搜索、页面重置、标题附加内容、组样式覆盖、自定义行、纵向行和整行禁用；DescriptionContent 可接现有 Markdown 视图。搜索保留仍匹配的页面，否则切换到首个匹配页，空组隐藏，清空查询保留选择；重置执行全页未禁用行的应用回调。组/行/关键词/样式配置复制，搜索保留原行身份。单元窗口测试覆盖过滤/页尾、数据所有权、重置、富内容及禁用；原 1×/2× 窄布局测试和组件示例端到端切页/搜索/重置/语言切换通过。全仓构建、UI/native vet、全量测试通过；未做真机视觉验收。Settings 调整为主体已有。
 
-- [x] 第一百四十二批：集中补齐 Form 的多列网格、ColSpan/ColStart、上下标签布局、纯文本/富内容说明、必填标记与动态显隐。新增 FieldWithOptions/SetFieldOptions、Columns/VerticalLabels、Gap/LabelTextSize 和全宽靠右 Footer；保留 Actions 和默认侧标签布局。隐藏字段不占网格、不提交草稿、不执行校验或聚焦，显隐变更取消提交并清除对应错误，异步错误保持完整插入索引。示例增加响应式一/两列。1×/2× 窗口测试覆盖跨度/起始列、缩列、输入状态、说明/必填/页尾，另验证隐藏校验与异步结果失效；全仓构建、UI/native vet、全量测试通过。登记主要缺口关闭，Form 调整为主体已有；未做真机视觉验收。
+- [x] 第一百四十二批（`5f16266`）：集中补齐 Form 的多列网格、ColSpan/ColStart、上下标签布局、纯文本/富内容说明、必填标记与动态显隐。新增 FieldWithOptions/SetFieldOptions、Columns/VerticalLabels、Gap/LabelTextSize 和全宽靠右 Footer；保留 Actions 和默认侧标签布局。隐藏字段不占网格、不提交草稿、不执行校验或聚焦，显隐变更取消提交并清除对应错误，异步错误保持完整插入索引。示例增加响应式一/两列。1×/2× 窗口测试覆盖跨度/起始列、缩列、输入状态、说明/必填/页尾，另验证隐藏校验与异步结果失效；全仓构建、UI/native vet、全量测试通过。登记主要缺口关闭，Form 调整为主体已有；未做真机视觉验收。
+
+- [x] 第一百四十三批：集中补齐 NumberInput 分组格式与即时半角转换。ThousandsSeparator 支持逗号、空格、单引号及两种不换行空格，结合 Decimals/Prefix 显示金额；输入和提交显示都分组，解析/增减去除分组符。全角数字/符号/点即时转换，重复小数点及错位符号拒绝，保留未完成草稿和原数值提交边界。底层 el.Input.Transform 在 Bind/OnChange 前规范化并映射选区，采用最多 100 次用户编辑历史，程序修改重置历史。测试覆盖中间替换、撤销/重做、拒绝编辑、分隔符切换、精度端点与步进；全仓构建、UI/native vet、全量测试通过。登记缺口关闭，NumberInput 调整为主体已有；真机输入法组合和视觉未验收。
 
 ## 当前实施清单
 
@@ -299,7 +301,7 @@
 | [MessageScroller](https://gpui-kit.com/component/message-scroller/) | 主体已有 | [可变高度虚拟化、跟随尾部、流式增高、历史加载锚点](../../ui/kit/message_scroller.go) | 虚拟化、尾部跟随、历史锚点与“最新”按钮已有；第九十二批补齐按稳定消息 ID 跳转、首次渲染前定位和跟随/上滚状态查询。未读身份由应用维护；SetFollow(false) 后显式跳到末尾不会开启自动跟随。第九十三批补齐 LatestButton/LatestLabel/LatestRenderer/LatestTransition，支持隐藏、文案、完整 Button 外观配置及淡入淡出；登记缺口已关闭。默认保留右下角文字按钮和 150ms 过渡，与上游圆形图标按钮不同；不表示视觉和 API 完全相同。 |
 | [Message](https://gpui-kit.com/component/message/) | 主体已有 | [消息内容、状态、操作栏、反应、失败重试](../../ui/kit/message.go) | 第九十四批补齐 Avatar/Header/Footer/Content 独立插槽及默认头像恢复，头尾支持交互；插槽变化保留正文身份。第九十五批新增 MessageGroup，支持间距/样式、动态重排和组级禁用，保留消息行输入与焦点。第九十六批补齐显式 Bubble、Ghost 自动头尾缩进及独立 HeaderInset/FooterInset 覆盖与恢复。第九十七批补齐 Alignment/ResetAlignment，位置独立于 User 的默认气泡色和头像策略。第九十八批补齐九分区 PartStyle，支持独立样式、恢复默认与额外禁用。第九十九批新增 MessageContent，支持多气泡/普通 View 混排、对齐及 Ghost 元数据继承、重排和禁用。第一百批补齐头像按正文容器底边对齐，首帧与动态增高使用当前布局，尾部不影响对齐线；登记缺口已关闭。默认头像为 28dp，助手自动头像、User 默认主色气泡及内建状态/反应属于 Keel 约定，不表示所有 API/默认视觉相同。 |
 | [Notification](https://gpui-kit.com/component/notification/) | 部分 | [通知队列、超时、关闭、暂停与原位更新](../../ui/kit/notification.go) | 第一百零一批补齐八方位、容器默认位置、单条覆盖和各位置独立队列；移动默认位置保留剩余超时。默认位置属于 Notifier 实例而非全局主题。第一百零二批补齐 Content 富内容与 Action 独立操作槽，保留子控件焦点、禁用继承和超时暂停；操作是否关闭由回调决定。第一百零三批补齐 OnClick 和 OnClose；通知背景支持键盘激活，子操作不连带触发，关闭先移除再回调。第一百零四批补齐 NotifyKey/DismissKey 稳定业务标识和 Clear，重复发送原位替换、保留 ID/队列位置，清除按快照回调。标识使用容器内字符串而非 Rust 类型。第一百零五批新增独立 native/notification macOS 授权、投递/替换、撤回接口与手动示例；第一百零六批新增 Linux D-Bus 投递/替换/撤回、关闭信号清理及服务重启隔离。第一百零七批通过 NoticeSystemBackend 接入 kit 三种投递模式、串行异步请求、超时保留系统通知、显式撤回、原位替换及错误回报。第一百零八批新增 macOS 原生前台展示和 Message.OnClick，已有 delegate 返回冲突；回调注册支持失败恢复和单次消费。第一百零九批通过交互后端接通 kit 系统点击、关闭和 OnSystemActivate 窗口唤起钩子，macOS 示例连接 Window.Raise。第一百一十批接入 Linux ActionInvoked 默认点击、能力检查、顺序信号处理及回调清理，示例使用交互后端。Linux ActivationToken 和 Windows 后端仍缺，真实通知中心投递/撤回/点击和窗口置前未验收。 |
-| [NumberInput](https://gpui-kit.com/component/number-input/) | 部分 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 第一百一十四批补齐动态 StepBy 和 Prefix/Suffix；第一百一十五批补齐 OnStep 纯步进事件；第一百一十六批补齐 Size/Appearance。第一百一十七批支持全角输入解析及提交归一化；仍缺金额/千分位 mask 和输入期间即时半角显示转换。固定步长、精度、范围与输入草稿已有。 |
+| [NumberInput](https://gpui-kit.com/component/number-input/) | 主体已有 | [数值解析、范围/步长/精度、草稿提交与取消](../../ui/kit/number_input.go) | 第一百一十四批补齐动态 StepBy 和 Prefix/Suffix；第一百一十五批补齐 OnStep 纯步进事件；第一百一十六批补齐 Size/Appearance。第一百四十三批补齐 ThousandsSeparator 和即时半角转换，登记缺口关闭。小数分隔固定为点，金额用 Decimals/Prefix 组合；分组符删除后会重新生成。规范化编辑有独立 100 次撤销历史，程序赋值重置；真机输入法组合与视觉尚未验收。 |
 | [OtpInput](https://gpui-kit.com/component/otp-input/) | 主体已有 | [分格输入、粘贴、完成回调、密码遮罩、分组、尺寸与窄布局](../../ui/kit/otp_input.go) | 第二批已补齐 Masked/Groups/Size；默认两组，不能整除时前组多一位。此表登记的三个缺口已关闭。 |
 | [Pagination](https://gpui-kit.com/component/pagination/) | 主体已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | 第三十三批已补齐紧凑模式、数字按钮上限、尺寸和整体禁用。Size 为连续 dp；VisiblePages 正值限制在 3–101，0 恢复 Keel 原窗口策略，默认策略与上游五按钮不同。 |
 | [Plot](https://gpui-kit.com/component/plot/) | 用途不同 | [成品散点/折线图、缩放、平移、拾取](../../ui/kit/plot.go) | 用途不同：GPUI 提供 ScaleLinear/Band/Point/Ordinal、Bar/Line/Area/Pie/Stack/Axis 等公共绘图基础件；Keel Plot 是可缩放平移的成品散点/折线图。 |

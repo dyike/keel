@@ -48,6 +48,7 @@ type NumberInputView struct {
 	onStep            func(NumberStepEvent)
 	height            float32
 	plain             bool
+	separator         rune
 }
 
 func NumberInput(label string) *NumberInputView {
@@ -163,9 +164,9 @@ func (v *NumberInputView) format(x float64) string {
 	s := strconv.FormatFloat(x, 'f', v.decimals, 64)
 	rounded, _ := strconv.ParseFloat(s, 64)
 	if rounded != x {
-		return strconv.FormatFloat(x, 'f', -1, 64)
+		return groupNumberText(strconv.FormatFloat(x, 'f', -1, 64), v.separator)
 	}
-	return s
+	return groupNumberText(s, v.separator)
 }
 
 func (v *NumberInputView) set(x float64) {
@@ -185,9 +186,7 @@ func (v *NumberInputView) set(x float64) {
 	}
 }
 
-// normalizeNumberText accepts full-width numeric input without rewriting the
-// live editor buffer. Keeping normalization at numeric boundaries preserves
-// the editor's caret, composition and undo history while typing.
+// normalizeNumberText converts full-width numeric characters for editing and parsing.
 func normalizeNumberText(s string) string {
 	return strings.Map(func(r rune) rune {
 		switch {
@@ -207,7 +206,7 @@ func normalizeNumberText(s string) string {
 
 // commit turns the typed text into the value, or restores the old one.
 func (v *NumberInputView) commit() {
-	if x, err := strconv.ParseFloat(normalizeNumberText(v.text), 64); err == nil {
+	if x, err := strconv.ParseFloat(v.parseText(v.text), 64); err == nil {
 		v.set(x)
 	} else {
 		v.text = v.format(v.value)
@@ -215,7 +214,7 @@ func (v *NumberInputView) commit() {
 }
 
 func (v *NumberInputView) draftValue() float64 {
-	if x, err := strconv.ParseFloat(normalizeNumberText(v.text), 64); err == nil && finiteNumber(x) {
+	if x, err := strconv.ParseFloat(v.parseText(v.text), 64); err == nil && finiteNumber(x) {
 		return v.normalize(x)
 	}
 	return v.value
@@ -295,7 +294,7 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 	draft := v.draftValue()
 	minus.SetDisabled(v.disabled || draft <= v.lo)
 	plus.SetDisabled(v.disabled || draft >= v.hi)
-	field := fieldText(el.Input().ID(v.FocusID()).Name(v.a11y()).Bind(&v.text).Filter("0123456789.+-０１２３４５６７８９＋－．。")).MinW(el.Dp(40)).
+	field := fieldText(el.Input().ID(v.FocusID()).Name(v.a11y()).Bind(&v.text).Filter("0123456789.+-０１２３４５６７８９＋－．。" + v.separatorText()).Transform(v.transformEdit)).MinW(el.Dp(40)).
 		OnSubmit(func(string) { v.commit() }).
 		OnKey(func(e el.KeyEvent) bool {
 			steps := map[key.Name]int64{key.NameUpArrow: 1, key.NameDownArrow: -1, key.NamePageUp: 10, key.NamePageDown: -10}
