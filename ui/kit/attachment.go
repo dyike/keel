@@ -16,6 +16,7 @@ type AttachmentView struct {
 	media              el.View
 	mediaProgress      *ProgressCircleView
 	mediaOverlay       el.View
+	titleShimmer       *ShimmerTextView
 	content            el.View
 	actions            []el.View
 	styles             [6]func(*el.DivEl)
@@ -109,7 +110,11 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 	if v.content != nil {
 		info.Child(v.content.Render(cx))
 	} else {
-		title := v.part(AttachmentPartTitle, id+"/title", el.Div().TextSize(metrics.title)).Child(el.Text(v.name).MaxLines(1))
+		if v.titleShimmer == nil {
+			v.titleShimmer = ShimmerText(v.name).MaxLines(1)
+		}
+		v.titleShimmer.SetText(v.name)
+		title := v.part(AttachmentPartTitle, id+"/title", el.Div().TextSize(metrics.title)).Child(v.titleShimmer.Enabled(status.IsInProgress()).Render(cx))
 		description := v.part(AttachmentPartDescription, id+"/description", el.Div().TextSize(metrics.description).TextColor(color)).Child(el.Text(detail).MaxLines(1))
 		info.Child(title, description)
 		if status.IsUploading() {

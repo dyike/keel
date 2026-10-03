@@ -21,7 +21,7 @@ Agent：角色 `attachment`，名字是文件名；`value` 为空、"上传中 6
 
 `Media(view)` 用展示型 View 替换默认文件图标；nil 恢复图标。可传入 `kit.Image(pixels, alt).Size(width, height).Fit(kit.ImageCover)` 显示图片，图片加载仍由应用负责。媒体使用内容自身尺寸，最大宽度受卡片约束；横向预览宜用小缩略图，给文件名和操作留出空间。
 
-`Vertical(true)` 将媒体放在文字上方、操作放在底部，`Vertical(false)` 恢复默认横排。打开期间切换布局保持打开区域的键盘身份；上传/失败时预览不会触发 OnOpen，取消、重试、移除保持独立。Media 用于展示，打开交互交给附件 OnOpen，避免在预览内嵌套按钮或另一个可点击图片。此接口自动添加媒体状态遮罩；标题扫光尚未提供，尺寸档见下文。
+`Vertical(true)` 将媒体放在文字上方、操作放在底部，`Vertical(false)` 恢复默认横排。打开期间切换布局保持打开区域的键盘身份；上传/失败时预览不会触发 OnOpen，取消、重试、移除保持独立。Media 用于展示，打开交互交给附件 OnOpen，避免在预览内嵌套按钮或另一个可点击图片。此接口自动添加媒体状态遮罩；上传/处理中标题显示文字扫光，尺寸档见下文。
 
 `AttachmentGroup(items ...el.View)` 将附件排列为可横向滚动的一行，不压缩卡片宽度。`Gap(dp)` 设置非负间距，默认 SpaceSm；`Name` 设置组的可访问名称。组宽度填满父容器，各项顶对齐。
 
@@ -60,3 +60,5 @@ Pending 显示“待上传”，Processing 显示“处理中”；上传和处�
 a.MediaOverlay(kit.Button("播放", play).Size(24))
 a.MediaOverlay(nil) // 清除叠加层
 ```
+
+默认标题在上传和处理中显示 ShimmerText 扫光，其他状态或减少动画时恢复普通文字；保留 Title 分区继承的字号、字重和行高。自定义 Content 替换默认标题，需要时可组合 kit.ShimmerText。

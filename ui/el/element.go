@@ -35,6 +35,7 @@ type Node struct {
 	children                    []Element
 
 	text     string
+	shimmer  *textShimmer
 	isText   bool
 	input    *inputSpec
 	widget   core.Widget

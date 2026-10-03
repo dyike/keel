@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**47 项主体已有、27 项部分覆盖、3 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**48 项主体已有、27 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -12,7 +12,7 @@
 
 ## 本轮更正与重点差距
 
-1. Marker、Plot、Shimmer 三项不能继续算“同等组件已有”：分别是消息标记行 vs 几何图形、底层绘图工具集 vs 成品图、文字扫光 vs 骨架屏扫光。
+1. 初次复核更正 Marker、Plot、Shimmer 的用途混淆；第六十五批新增 ShimmerText 后，文字扫光已建立独立实现，Marker 和 Plot 的用途差异仍保留。
 2. 数据与输入组件仍有实质差距：Chart 缺雷达/桑基图；DatePicker 缺时间联动和预设；Input/Textarea 缺原子 token，Input 另缺格式 mask；Progress 的圆形进度缺口已在第一批补齐。
 3. Editor 已有多光标、查找替换、折叠和括号配对，但没有编辑跟踪装饰集合、开放语言规则与完整搜索会话。`OnComplete`/`OnHover`/`OnDefinition` 是应用接口，LSP 客户端仍由应用提供；本轮不把它当作已证实的上游内置能力差距。
 4. TextView 已有 Markdown/HTML/扩展 TeX，但富文本折叠预览、流式逐段淡入、区间高亮/定位和插件仍缺。完整 TeX/CSS 是 Keel 的边界，不能无依据当作 GPUI 已有功能。
@@ -87,7 +87,9 @@
 
 - [x] 第六十三批（`162518e`）：Attachment 自定义媒体状态遮罩，上传显示白色确定进度环，处理显示不确定环，失败显示加深遮罩和重试/禁止图标；完成后恢复预览。覆盖状态像素、语义、重试状态及祖先禁用测试；构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过。
 
-- [x] 第六十四批：Attachment 增加 MediaOverlay，自定义内容绘制在媒体状态遮罩上方，不改变预览尺寸；支持独立按钮操作、禁用继承、动态清除及状态切换后的焦点保留。1×/2× 交互、遮罩上方像素、Agent 语义测试和浅深色截图检查通过；构建、vet、全量测试通过。
+- [x] 第六十四批（`9b7399a`）：Attachment 增加 MediaOverlay，自定义内容绘制在媒体状态遮罩上方，不改变预览尺寸；支持独立按钮操作、禁用继承、动态清除及状态切换后的焦点保留。1×/2× 交互、遮罩上方像素、Agent 语义测试和浅深色截图检查通过；构建、vet、全量测试通过。
+
+- [x] 第六十五批：新增 ShimmerText 和 el 字形扫光绘制，支持 Duration/Spread/Reverse/Once/Restart、配色、字号/行数和减少动画；Attachment 上传与处理中标题接入。固定帧时间测试覆盖高光移动、反向、单次/重播、减少动画、语义去重、混排/粗体/行高/截断及附件完成后恢复；构建、vet、全量测试通过，浅色 1×/深色 2× 静态截图已检查。
 
 ## 当前实施清单
 
@@ -113,7 +115,7 @@
 | [Accordion](https://gpui-kit.com/component/accordion/) | 主体已有 | [单项/多项、自定义标题、动画、键盘、禁用、边框开关与四档尺寸](../../ui/kit/accordion.go) | 第十八批已关闭登记缺口；无边框保留背景和圆角，默认 Medium 保留字号继承。自定义标题和正文的显式字号优先。 |
 | [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐 Keyboard、Overlay、OverlayClosable、CloseButton；Persistent 默认只禁止遮罩关闭，显式配置可覆盖。第四十三批增加 BeforeConfirm，可返回 false 保持打开并跳过 onOK；允许后仍先关闭再执行原回调。第四十四批增加 BeforeCancel，支持拒绝用户取消。程序关闭和所属元素失效清理绕过校验；OnClose 仍只通知取消关闭，与上游确认后也通知的约定不同。 |
 | [Alert](https://gpui-kit.com/component/alert/) | 主体已有 | [行内/横幅提示、级别、四档尺寸、可替换图标、富正文、关闭按钮](../../ui/kit/alert.go) | 第十五批已关闭登记缺口；Content 可组合 Markdown 与操作按钮。横幅没有独立标题行，无正文时使用标题作为消息；自定义内容的内部样式由内容自身控制。 |
-| [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 第五十五批补齐 Media 媒体槽和 Vertical 横纵布局。第五十六批补齐 AttachmentGroup 横向排列与滚动。第五十七批补齐显式生命周期和默认媒体忙碌指示。第五十八批补齐 Content/Actions 和六分区 PartStyle。第五十九批补齐四档尺寸。第六十二批补齐状态边框与默认失败图标。第六十三批补齐媒体上传/处理中遮罩、进度环和失败重试/禁止图标。第六十四批补齐 MediaOverlay 自定义叠加层及独立交互。仍缺标题扫光和分区状态覆盖。第六十批补齐组 ScrollTo/ScrollState 公开滚动控制，第六十一批补齐 EdgeFade 边缘渐隐。竖排预览使用内容尺寸、操作位于底部，上游默认方形预览及右上角操作；图片加载由应用负责。 |
+| [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 第五十五批补齐 Media 媒体槽和 Vertical 横纵布局。第五十六批补齐 AttachmentGroup 横向排列与滚动。第五十七批补齐显式生命周期和默认媒体忙碌指示。第五十八批补齐 Content/Actions 和六分区 PartStyle。第五十九批补齐四档尺寸。第六十二批补齐状态边框与默认失败图标。第六十三批补齐媒体上传/处理中遮罩、进度环和失败重试/禁止图标。第六十四批补齐 MediaOverlay 自定义叠加层及独立交互。第六十五批补齐上传/处理中标题扫光。仍缺分区状态覆盖。第六十批补齐组 ScrollTo/ScrollState 公开滚动控制，第六十一批补齐 EdgeFade 边缘渐隐。竖排预览使用内容尺寸、操作位于底部，上游默认方形预览及右上角操作；图片加载由应用负责。 |
 | [Avatar](https://gpui-kit.com/component/avatar/) | 主体已有 | [图片/首字母回退、URL 加载与重试、尺寸、状态标记](../../ui/kit/avatar.go)、[叠放头像组/上限/+N/省略号](../../ui/kit/avatar_group.go) | 第七批已关闭原登记缺口；加载不跨实例缓存。外观仍为圆形和主题色回退，GPUI 的自定义占位图标、边框/圆角等样式接口及配色算法不同。 |
 | [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字/圆点/图标、上限、尺寸、自定义颜色/名称与角标容器](../../ui/kit/badge.go) | 第十七批已关闭登记缺口；图标模式不依赖计数，数字/圆点仍在 count≤0 时隐藏。Size 为 dp，圆点按比例缩放；Tone 清除固定颜色覆盖。 |
 | [Bubble](https://gpui-kit.com/component/bubble/) | 部分 | [可复用内容气泡、Mine 对齐](../../ui/kit/message.go) | 缺 ghost 等外观变体、气泡组和独立反应槽；当前只接 content + Mine，操作/反应在 Message 层。 |
@@ -166,7 +168,7 @@
 | [Select](https://gpui-kit.com/component/select/) | 主体已有 | [过滤、分组、多选、禁用项、万条虚拟化](../../ui/kit/select.go) | 单选主体覆盖，另有多选；缺自定义行/空内容/标题前缀、清空按钮与菜单宽高配置。分组、禁用项已实现。 |
 | [Settings](https://gpui-kit.com/component/settings/) | 部分 | [设置分组、导航、搜索、窄布局](../../ui/kit/settings.go) | 缺页面下的多 Group 模型、resettable 重置、组 footer、独立搜索 keywords 和 Markdown 描述；已有分区导航、搜索与窄布局。 |
 | [Sheet](https://gpui-kit.com/component/sheet/) | 主体已有 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 第五十一批补齐独立 Footer 及 Keyboard/Overlay/OverlayClosable/CloseButton。第五十二批补齐 MarginTop 及动画裁剪。第五十三批补齐 PanelStyle 面板样式。第五十四批补齐四方向拖动调整尺寸及回调；当前登记缺口已关闭。把手默认开启，用户最小尺寸 80dp，最大为可用窗口尺寸，支持键盘和取消恢复；不表示各平台真机验收完成。 |
-| [Shimmer](https://gpui-kit.com/component/shimmer/) | 用途不同 | [Skeleton 占位块扫光、减少动画](../../ui/kit/skeleton.go) | 用途不同：GPUI ShimmerText 保留可读文字并让高光扫过文字；Keel Skeleton.Shimmer 只扫过占位几何。缺文字效果与 duration/spread/reverse/once 配置。 |
+| [Shimmer](https://gpui-kit.com/component/shimmer/) | 主体已有 | [可读文字扫光、周期、宽度、反向、单次、重播、减少动画](../../ui/kit/shimmer_text.go) | 第六十五批新增独立 ShimmerText；文字保持字体/字重/行高与截断，单次结束恢复普通文字。默认 2 秒、半宽 0.3、主题 PrimaryText 高光，支持自定义配色。彩色位图字形保留原色，不参与高光着色。 |
 | [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动](../../ui/kit/sidebar.go) | 主体覆盖；缺右侧布局开关、自定义 item suffix/上下文菜单接口。已有 Badge 和固定 Header/Footer。 |
 | [Skeleton](https://gpui-kit.com/component/skeleton/) | 主体已有 | [占位形状、尺寸、次级色阶、自定义圆角与加载动画](../../ui/kit/skeleton.go) | 第二十三批已关闭登记缺口；保留 Keel 的 1.5 秒明暗脉冲/可选扫光及减少动画，默认颜色来自 Subtle/SubtleHover，与上游独立 skeleton token、2 秒透明度动画不同。 |
 | [Slider](https://gpui-kit.com/component/slider/) | 主体已有 | [单值/双端范围、横纵向、线性/对数、步长、拖动/键盘与结束回调](../../ui/kit/slider.go) | 第十批已关闭对数刻度和 Release 缺口；无效对数范围回退线性，取消不回滚已有值。轨道/滑块颜色与大小仍使用统一样式，未提供逐项外观配置。 |

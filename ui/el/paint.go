@@ -412,7 +412,11 @@ func (e *engine) paintText(n *Node, inner image.Rectangle) {
 	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n)))).Push(gtx.Ops).Pop()
 	g := gtx
 	g.Constraints = layout.Constraints{Max: inner.Size()}
-	e.label(n, n.text).Layout(g)
+	if n.shimmer != nil {
+		e.paintShimmerText(n, g, inner.Size())
+	} else {
+		e.label(n, n.text).Layout(g)
+	}
 }
 
 func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
