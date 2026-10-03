@@ -80,6 +80,12 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 	if limH < 0 {
 		limH = shrinkBy(availH, boxY)
 	}
+	// An auto-width container's maximum also constrains child measurement.
+	// Clamping only the final box leaves wrapped text and stretched children
+	// laid out at the wider parent width.
+	if maxW := s.maxW.px(e.m, availW); w < 0 && maxW >= 0 {
+		limW = min(limW, shrinkBy(maxW, boxX))
+	}
 
 	flex := func(innerW, innerH, limW, limH int) image.Point {
 		viewportW := innerW

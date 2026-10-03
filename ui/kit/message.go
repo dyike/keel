@@ -9,33 +9,6 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
-// BubbleView is a chat bubble. Mine marks the current user's: it sits on the
-// right in the primary color; others sit on the left on a subtle background.
-type BubbleView struct {
-	content el.View
-	mine    bool
-}
-
-func Bubble(content el.View) *BubbleView { return &BubbleView{content: content} }
-func (v *BubbleView) Mine() *BubbleView  { v.mine = true; return v }
-
-func (v *BubbleView) Render(cx *el.Context) el.Element {
-	box := el.Div().MaxW(el.Frac(0.75)).Rounded(theme.RadiusXl).Px(14).Py(10)
-	if v.mine {
-		box.Bg(theme.Primary).BgGradient(theme.PrimaryGradient).TextColor(theme.OnColor)
-	} else {
-		box.Bg(theme.Subtle)
-	}
-	if v.content != nil {
-		box.Child(v.content.Render(cx))
-	}
-	row := el.Div().Row().Child(box)
-	if v.mine {
-		row.Justify(el.End)
-	}
-	return row
-}
-
 // MessageState describes delivery of a message.
 type MessageState uint8
 
@@ -58,6 +31,7 @@ type MessageReaction struct {
 // which suits long Markdown answers.
 type MessageView struct {
 	author     string
+	bubble     *BubbleView
 	content    el.View
 	user       bool
 	actions    []el.View
@@ -106,7 +80,10 @@ func (v *MessageView) Render(cx *el.Context) el.Element {
 	state := ""
 	body := el.Div().Gap(theme.SpaceMd).Items(el.Stretch)
 	if v.user {
-		body.Child(Bubble(v.content).Mine().Render(cx))
+		if v.bubble == nil {
+			v.bubble = Bubble(v.content).Mine()
+		}
+		body.Child(v.bubble.Content(v.content).Render(cx))
 	} else if v.content != nil {
 		body.Child(v.content.Render(cx))
 	}

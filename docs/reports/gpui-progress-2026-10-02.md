@@ -103,7 +103,9 @@
 
 - [x] 第七十一批（`ac62e11`）：Attachment 增加 RemoveOnHover，桌面默认随卡片悬停/内部键盘焦点显示，Android/iOS 默认常显；可显式关闭悬停策略。透明隐藏保留尺寸、语义和 Tab 访问，ShowActions 仍整体隐藏。横纵布局像素测试覆盖进入/离开、常显恢复、键盘访问、移除与打开隔离、禁用和隐藏操作区；构建、vet、全量测试通过。
 
-- [x] 第七十二批：Attachment 内置移除改为 Surface 背景、细边框的独立圆形角标，中心位于表面右上角，顶部/右侧预留半个按钮空间；悬停不改变布局，Actions 与角标分开。稳定外层保留横竖切换焦点，隐藏 Root 或 ShowActions 隐藏角标，父容器拉伸仍锚定卡片。1×/2×、四档尺寸、窄布局、外伸点击、滚动组、操作隔离、焦点和祖先禁用测试通过；浅色 1×/深色 2× 截图已检查；构建、vet、全量测试通过。Attachment 调整为主体已有。
+- [x] 第七十二批（`ec75e2e`）：Attachment 内置移除改为 Surface 背景、细边框的独立圆形角标，中心位于表面右上角，顶部/右侧预留半个按钮空间；悬停不改变布局，Actions 与角标分开。稳定外层保留横竖切换焦点，隐藏 Root 或 ShowActions 隐藏角标，父容器拉伸仍锚定卡片。1×/2×、四档尺寸、窄布局、外伸点击、滚动组、操作隔离、焦点和祖先禁用测试通过；浅色 1×/深色 2× 截图已检查；构建、vet、全量测试通过。Attachment 调整为主体已有。
+
+- [x] 第七十三批：Bubble 拆出独立实现，增加七种外观、Alignment、Content、Reactions、ReactionSide/ReactionAlignment 和 PartStyle。Ghost 使用整行无框布局；Message 复用 Bubble 实例。修复 el 自动宽度容器 MaxW 未约束子内容测量的问题，避免气泡内容超宽。测试覆盖外观像素、上下反应区、窄宽度、焦点保持、输入编辑、禁用及反应槽恢复；构建、vet、全量测试和浅色 1×/深色 2× 截图检查通过。
 
 ## 当前实施清单
 
@@ -132,7 +134,7 @@
 | [Attachment](https://gpui-kit.com/component/attachment/) | 主体已有 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 第五十五批补齐 Media 媒体槽和 Vertical 横纵布局。第五十六批补齐 AttachmentGroup 横向排列与滚动。第五十七批补齐显式生命周期和默认媒体忙碌指示。第五十八批补齐 Content/Actions 和六分区 PartStyle。第五十九批补齐四档尺寸。第六十二批补齐状态边框与默认失败图标。第六十三批补齐媒体上传/处理中遮罩、进度环和失败重试/禁止图标。第六十四批补齐 MediaOverlay 自定义叠加层及独立交互。第六十五批补齐上传/处理中标题扫光。第六十六批补齐 Title/Description 独立状态覆盖、恢复继承及自定义描述。第六十批补齐组 ScrollTo/ScrollState 公开滚动控制，第六十一批补齐 EdgeFade 边缘渐隐。第六十七批补齐默认方形竖排预览、MediaAspectRatio、已加载图片 cover 裁剪与右上角操作。第六十九批补齐 MediaSource 后台加载、取消/替换保护和独立图片重试；第六十八批补齐可选分区开关及纯图片无元信息布局。第七十批补齐 TitleShimmer 的共享 ShimmerStyle 配置。第七十一批补齐移除按钮桌面悬停/键盘焦点显示及常显开关，Android/iOS 默认常显，触屏网页需显式设置。第七十二批补齐独立圆形移除角标和外伸留白，登记缺口已关闭。仍有实现边界：图片源不支持 SVG，Size 只提供四档，任意尺寸需 PartStyle 配置；默认元信息、进度条位置及重试状态约定不同，不表示全部 API/视觉一致。 |
 | [Avatar](https://gpui-kit.com/component/avatar/) | 主体已有 | [图片/首字母回退、URL 加载与重试、尺寸、状态标记](../../ui/kit/avatar.go)、[叠放头像组/上限/+N/省略号](../../ui/kit/avatar_group.go) | 第七批已关闭原登记缺口；加载不跨实例缓存。外观仍为圆形和主题色回退，GPUI 的自定义占位图标、边框/圆角等样式接口及配色算法不同。 |
 | [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字/圆点/图标、上限、尺寸、自定义颜色/名称与角标容器](../../ui/kit/badge.go) | 第十七批已关闭登记缺口；图标模式不依赖计数，数字/圆点仍在 count≤0 时隐藏。Size 为 dp，圆点按比例缩放；Tone 清除固定颜色覆盖。 |
-| [Bubble](https://gpui-kit.com/component/bubble/) | 部分 | [可复用内容气泡、Mine 对齐](../../ui/kit/message.go) | 缺 ghost 等外观变体、气泡组和独立反应槽；当前只接 content + Mine，操作/反应在 Message 层。 |
+| [Bubble](https://gpui-kit.com/component/bubble/) | 部分 | [可复用气泡、外观、对齐和独立反应槽](../../ui/kit/bubble.go) | 第七十三批补齐七种显式外观、独立对齐、Content/Reactions 槽、上下位置/左右对齐及三分区样式；默认 Auto 保留 Mine 主色和 75% 宽度。仍缺 BubbleGroup、typed reaction action 的胶囊按钮处理；反应区当前采用紧邻内容边缘的流式布局。 |
 | [Button](https://gpui-kit.com/component/button/) | 主体已有 | [九种变体、描边/紧凑、自定义内容/配色、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 第十一批已关闭登记的变体、样式和内容缺口。Outline/Compact 为叠加配置；自定义内容限展示元素。Tooltip 可外部组合，本项不表示与上游所有组合接口完全相同。 |
 | [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
 | [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 缺竖向轨道、同屏多项、可组合前后控件；Keel 每次只显示一张，另有自动播放。 |
