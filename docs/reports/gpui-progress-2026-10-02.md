@@ -36,7 +36,8 @@
 - [x] 第十三批（`cb981a6`）：Tabs 的 MaxWidth、Scrollable、ScrollTo 与 ScrollState；键盘/程序切换自动定位，先滚动再转移焦点，单独滚动不改变选中页。覆盖首次显示前请求、身份重排、禁用项跳过、1×/2×、溢出模式切换和 Agent 连续方向键；浅深色滚动栏截图已检查。
 - [x] 第十四批（`61b303f`）：Tag 的 Outline、Size、Rounded、Content、Appearance；支持主题派生及自定义背景/前景/边框/选中背景。保留选择/移除行为，覆盖窄布局、1×/2×、键盘、祖先禁用、程序赋值、Agent 与颜色/圆角像素测试；浅深色截图已检查。
 - [x] 第十五批（`7097862`）：Alert 的 Banner、四档 Size、Icon/IconNone 与 Content；支持 Markdown/操作按钮，横幅省略独立标题行并保留可访问名称。覆盖尺寸与窄布局、图标间距、正文操作/关闭隔离、祖先禁用、恢复与 Agent；浅深色截图已检查。
-- [x] 第十六批：GroupBox 增加 Normal/Fill/Outline 外观、框外 Footer、TitleStyle 与 ContentStyle；保留原 Surface 默认。正文保持稳定身份，覆盖外观切换、标题增删后的输入与焦点、1×/2× 窄布局、footer 交互及 Agent 样式隔离；浅深色截图已检查。
+- [x] 第十六批（`43206c1`）：GroupBox 增加 Normal/Fill/Outline 外观、框外 Footer、TitleStyle 与 ContentStyle；保留原 Surface 默认。正文保持稳定身份，覆盖外观切换、标题增删后的输入与焦点、1×/2× 窄布局、footer 交互及 Agent 样式隔离；浅深色截图已检查。
+- [x] 第十七批：Badge 的 Icon、Size、Color 与 Name；图标放右下角并加 Surface 边框，数字/圆点保持右上角且不改变子组件布局。自定义底色自动选择黑白前景。覆盖模式切换、零值、数字上限、1×/2×、子组件点击、Agent 与像素测试；浅深色截图已检查。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -65,7 +66,7 @@
 | [Alert](https://gpui-kit.com/component/alert/) | 主体已有 | [行内/横幅提示、级别、四档尺寸、可替换图标、富正文、关闭按钮](../../ui/kit/alert.go) | 第十五批已关闭登记缺口；Content 可组合 Markdown 与操作按钮。横幅没有独立标题行，无正文时使用标题作为消息；自定义内容的内部样式由内容自身控制。 |
 | [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 缺媒体/图片预览槽、横纵布局、附件组；当前是文件名/大小卡片，已有上传进度与失败操作。 |
 | [Avatar](https://gpui-kit.com/component/avatar/) | 主体已有 | [图片/首字母回退、URL 加载与重试、尺寸、状态标记](../../ui/kit/avatar.go)、[叠放头像组/上限/+N/省略号](../../ui/kit/avatar_group.go) | 第七批已关闭原登记缺口；加载不跨实例缓存。外观仍为圆形和主题色回退，GPUI 的自定义占位图标、边框/圆角等样式接口及配色算法不同。 |
-| [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字、圆点、上限、Tone 与角标容器](../../ui/kit/badge.go) | 配置差异：有 count/dot/max/Tone；没有图标徽标、大小档和任意颜色接口，旧表这两项写多了。 |
+| [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字/圆点/图标、上限、尺寸、自定义颜色/名称与角标容器](../../ui/kit/badge.go) | 第十七批已关闭登记缺口；图标模式不依赖计数，数字/圆点仍在 count≤0 时隐藏。Size 为 dp，圆点按比例缩放；Tone 清除固定颜色覆盖。 |
 | [Bubble](https://gpui-kit.com/component/bubble/) | 部分 | [可复用内容气泡、Mine 对齐](../../ui/kit/message.go) | 缺 ghost 等外观变体、气泡组和独立反应槽；当前只接 content + Mine，操作/反应在 Message 层。 |
 | [Button](https://gpui-kit.com/component/button/) | 主体已有 | [九种变体、描边/紧凑、自定义内容/配色、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 第十一批已关闭登记的变体、样式和内容缺口。Outline/Compact 为叠加配置；自定义内容限展示元素。Tooltip 可外部组合，本项不表示与上游所有组合接口完全相同。 |
 | [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
