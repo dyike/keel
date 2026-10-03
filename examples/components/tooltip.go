@@ -13,9 +13,13 @@ func init() {
 type tooltipGallery struct{ copy, save *kit.TooltipView }
 
 func newTooltipGallery() *tooltipGallery {
+	core.Bind("gallery.save", "mod+s")
 	return &tooltipGallery{
 		copy: kit.WithTooltip(kit.Button("", nil).Name("复制").Icon(kit.IconCopy).Variant(kit.ButtonGhost), "复制 Copy（⌘C）"),
-		save: kit.WithTooltip(kit.Button("保存", nil), "保存到本地，最多 30 个版本"),
+		save: kit.WithTooltip(kit.Button("保存", nil), "保存到本地").Action("gallery.save").Placement(el.Bottom, el.Start).Offset(8).
+			Content(el.ViewFunc(func(*el.Context) el.Element {
+				return el.Div().Gap(4).Child(el.Text("保存 Save").Bold(), el.Text("最多保留 30 个版本"))
+			})),
 	}
 }
 

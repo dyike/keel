@@ -1,6 +1,7 @@
 package window
 
 import (
+	"github.com/dyike/keel/ui/core"
 	"testing"
 
 	"github.com/dyike/keel/ui/el"
@@ -87,6 +88,33 @@ func TestKitHoverCardConfiguredPlacement(t *testing.T) {
 	for _, e := range w.snapshot() {
 		if e.Name == "Preview" {
 			t.Fatal("Esc left preview visible")
+		}
+	}
+}
+
+func TestKitRichTooltipSnapshot(t *testing.T) {
+	const action = "test.tooltip.preview"
+	core.Bind(action, "mod+s")
+	t.Cleanup(func() { core.Bind(action) })
+	tip := kit.WithTooltip(kit.Button("Save", nil), "Save hint").Action(action).Placement(el.Bottom, el.Start).
+		Content(el.ViewFunc(func(*el.Context) el.Element {
+			return el.Div().Child(el.Text("Rich preview").Bold(), el.Text("Version history"))
+		}))
+	w := openTest(t, Options{Width: 400, Height: 240, Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().P(24).Child(tip.Render(cx)) }))})
+	w.click(element(t, w, "Save").center())
+	if e := element(t, w, "Save hint"); e.Role != "tooltip" {
+		t.Fatalf("tooltip: %+v", e)
+	}
+	if e := element(t, w, "mod+s"); e.Role != "text" {
+		t.Fatalf("binding: %+v", e)
+	}
+	element(t, w, "Rich preview")
+	if err := w.press("esc"); err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range w.snapshot() {
+		if e.Name == "Save hint" {
+			t.Fatal("tooltip remained after Esc")
 		}
 	}
 }

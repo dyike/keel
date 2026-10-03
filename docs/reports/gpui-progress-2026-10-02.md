@@ -23,7 +23,8 @@
 
 - [x] 第一批（`945b090`）：ProgressCircle，支持 0–100% 圆环、不确定动画、减少动画、中心内容、尺寸/颜色和 Agent 语义；含非有限值/约束测试、动画像素测试及浅色 1×/深色 2× 截图检查。文档和示例已登记。
 - [x] 第二批（`11fd62f`）：OtpInput 的遮罩、分组与尺寸配置；遮罩同时覆盖可见数字和 Agent 语义值，编辑回调保留原始数字。测试覆盖分组边界、1×/2× 窄布局、程序赋值不触发回调；浅深色截图已检查。
-- [x] 第三批：HoverCard 的 OpenDelay/CloseDelay、Placement 和 Offset；自定义及零延时、等待中改延时、四方向定位、Esc 和 Agent 快照通过测试，已打开卡片的浅深色截图已检查。
+- [x] 第三批（`edac67d`）：HoverCard 的 OpenDelay/CloseDelay、Placement 和 Offset；自定义及零延时、等待中改延时、四方向定位、Esc 和 Agent 快照通过测试，已打开卡片的浅深色截图已检查。
+- [x] 第四批：Tooltip 的富内容、动作键位和定位/间距配置；快捷键随改绑更新，内容不接受点击，Agent 展开富内容与键位；相关测试和浅深色弹层截图已检查。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -121,7 +122,7 @@
 | [TitleBar](https://gpui-kit.com/component/title-bar/) | 主体已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 自绘标题栏与窗口控制已实现；macOS 窗口初始居中已实测。标题栏全部系统行为及 Windows/Linux 真机验收仍待完成。 |
 | [Toggle](https://gpui-kit.com/component/toggle/) | 主体已有 | [状态按钮、图标、单选/多选组](../../ui/kit/toggle_group.go) | 单个开关按钮/单多选组已有；缺 ghost/outline/segmented 外观和大小档，旧表“尺寸”不成立。 |
 | [Toolbar](https://gpui-kit.com/component/toolbar/) | 主体已有 | [左右区域、尺寸、工具分组、溢出与键盘](../../ui/kit/toolbar.go) | 主体覆盖；命令用 ToolbarItem，自定义内容用 Leading/Trailing，缺任意位置插入 compound 自定义组的接口。 |
-| [Tooltip](https://gpui-kit.com/component/tooltip/) | 主体已有 | [通用提示、键盘焦点、延迟与取消](../../ui/kit/tooltip.go) | 纯文本、悬停/键盘焦点提示已有；缺富内容、动作键位自动展示与公开位置配置。 |
+| [Tooltip](https://gpui-kit.com/component/tooltip/) | 主体已有 | [通用提示、键盘焦点、延迟与取消](../../ui/kit/tooltip.go) | 第四批已补齐 Content、Action、Placement/Offset；动作键位自动跟随改绑，富内容不可交互。此表登记缺口已关闭。 |
 | [Tree](https://gpui-kit.com/component/tree/) | 部分 | [虚拟化、展开、多选、单项禁用、键盘、动态数据与拖动](../../ui/kit/tree.go) | 缺公开行渲染器（图标/操作）和逐节点动态子项更新/展开加载回调；可整树 SetRoots。拖动自动滚动/展开仍缺，但不把它当作本页已证实的 GPUI 差距。 |
 | [VirtualList](https://gpui-kit.com/component/virtual-list/) | 部分 | [等高及可变高度实现、稳定 key、尺寸缓存、插入保持锚点](../../ui/kit/variable_list.go) | 纵向等高/变高、尺寸缓存、锚点已有；缺横向虚拟列表与虚拟化轴切换。普通横向滚动不等于横向虚拟化。 |
 

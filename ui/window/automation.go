@@ -270,7 +270,7 @@ func (w *Window) snapshot() []Element {
 	return out
 }
 
-var containerRoles = map[string]bool{"dialog": true, "figure": true, "banner": true, "region": true, "toolbar": true, "tablist": true, "tabpanel": true, "log": true, "article": true, "tree": true, "navigation": true, "attachment": true, "menu": true, "alertdialog": true, "grid": true, "radiogroup": true, "listbox": true, "list": true, "form": true, "combobox": true, "table": true, "code": true, "footnotes": true, "accordion": true, "alert": true, "group": true, "status": true, "tag": true, "search": true}
+var containerRoles = map[string]bool{"tooltip": true, "dialog": true, "figure": true, "banner": true, "region": true, "toolbar": true, "tablist": true, "tabpanel": true, "log": true, "article": true, "tree": true, "navigation": true, "attachment": true, "menu": true, "alertdialog": true, "grid": true, "radiogroup": true, "listbox": true, "list": true, "form": true, "combobox": true, "table": true, "code": true, "footnotes": true, "accordion": true, "alert": true, "group": true, "status": true, "tag": true, "search": true}
 
 // roleOf maps a semantic node to an element role and value. Gio's classes
 // give the common roles; core.Role descriptions ("row", "select:北京") the rest.
