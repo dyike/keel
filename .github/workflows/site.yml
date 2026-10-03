@@ -1,0 +1,61 @@
+# Builds the documentation site with the live component gallery and
+# publishes it to GitHub Pages. In the repository settings, set Pages'
+# source to "GitHub Actions" once.
+name: Site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Check the site's links
+        run: go test ./internal/site
+
+      - name: Build the component gallery for the browser
+        run: go run gioui.org/cmd/gogio@v0.10.0 -target js -tags osusergo -o demo ./examples/components
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Subset a Chinese font for the gallery
+        run: |
+          pip install fonttools
+          curl -sSfL -o NotoSansSC-Regular.otf https://github.com/notofonts/noto-cjk/raw/Sans2.004/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf
+          python internal/site/subset_font.py . NotoSansSC-Regular.otf demo/font.otf
+
+      - name: Build the site
+        run: go run ./internal/site -out _site -demo demo -repo "https://github.com/${{ github.repository }}" -branch "${{ github.ref_name }}"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

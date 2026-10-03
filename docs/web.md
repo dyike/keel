@@ -22,3 +22,11 @@ python3 -m http.server --directory web
 - 没有 `native/*`：权限、截屏、全局快捷键、合成输入都不可用。
 - 只有一个窗口，`window.Open` 多次打开时都画在同一个页面里。
 - 自动化模式（`KEEL_AUTOMATION`）和 keel-mcp 只在桌面版可用。
+
+## 文档站
+
+Keel 的文档站就是这样发布的：`examples/components` 编译成 WebAssembly，嵌进每个组件的文档页，和 [GPUI Kit](https://gpui-kit.com) 的做法一样。组件库解压后约 43 MB，GitHub Pages 用 gzip 传输，约 10 MB，之后由浏览器缓存。
+
+在浏览器里，组件库从网址读参数：`demo/?section=dock` 只显示 Dock，`&theme=dark` 用深色主题。中文字体是子集化的 Noto Sans SC，约 1.9 MB。
+
+生成器和本地预览方法见 [internal/site](../internal/site/README.md)，发布流程是 `.github/workflows/site.yml`。

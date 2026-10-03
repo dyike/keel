@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if .Home}}Keel · 纯 Go 桌面界面框架{{else}}{{.Page.Title}} · Keel{{end}}</title>
+<meta name="description" content="Keel：用纯 Go 写桌面界面，GPUI 风格的元素与组件库，基于 Gio。">
+<link rel="stylesheet" href="{{.Root}}assets/site.css">
+<link rel="stylesheet" href="{{.Root}}assets/code.css">
+<script defer src="{{.Root}}assets/site.js"></script>
+</head>
+<body data-root="{{.Root}}">
+<header class="top">
+  <button class="menu" type="button" aria-label="目录">☰</button>
+  <a class="brand" href="{{.Root}}"><span class="logo">K</span>Keel</a>
+  <nav class="links">
+    <a href="{{.Root}}docs/getting-started.html">文档</a>
+    <a href="{{.Root}}docs/kit.html">组件</a>
+    <a href="{{.Demo}}">在线组件库</a>
+  </nav>
+  <div class="search">
+    <input type="search" placeholder="搜索文档" aria-label="搜索文档" autocomplete="off">
+    <kbd>/</kbd>
+    <ul class="results" hidden></ul>
+  </div>
+  <a class="gh" href="{{.Repo}}" aria-label="GitHub">GitHub</a>
+</header>
+{{if .Home}}
+<section class="hero">
+  <h1>用纯 Go 写桌面界面</h1>
+  <p>GPUI 风格的视图与链式样式，80 多个组件，Markdown 与代码编辑器，Agent 自动化测试；macOS、Windows、Linux 与浏览器。</p>
+  <div class="actions">
+    <a class="btn primary" href="{{.Root}}docs/getting-started.html">快速开始</a>
+    <a class="btn" href="{{.Demo}}">在线体验组件库</a>
+    <a class="btn" href="{{.Repo}}">GitHub</a>
+  </div>
+  <pre class="install"><code>go get github.com/dyike/keel</code></pre>
+</section>
+{{end}}
+<div class="layout{{if .Home}} home{{end}}">
+  <aside class="side">
+    {{range .Nav}}{{if .Pages}}
+    <details open>
+      <summary>{{.Title}}</summary>
+      <ul>{{range .Pages}}<li><a href="{{rel $.Page .Out}}"{{if eq .Out $.Page.Out}} aria-current="page"{{end}}>{{.Title}}</a></li>{{end}}</ul>
+    </details>
+    {{end}}{{end}}
+  </aside>
+  <main>
+    <article>
+      {{if not .Home}}<h1>{{.Page.Title}}</h1>{{end}}
+      {{with .Page.Section}}
+      <figure class="demo">
+        <iframe data-src="{{$.Demo}}?section={{.}}" title="{{$.Page.Title}} 在线示例" loading="lazy"></iframe>
+        <figcaption>在线示例：这是真实的 Keel 程序编译成 WebAssembly，可以直接操作。首次加载约 10 MB。<a href="{{$.Demo}}?section={{.}}" target="_blank">全屏打开</a></figcaption>
+      </figure>
+      {{end}}
+      {{.Page.HTML}}
+      <footer class="edit"><a href="{{.Source}}">在 GitHub 上查看此页源文件</a></footer>
+    </article>
+  </main>
+  {{if .Page.TOC}}
+  <nav class="toc" aria-label="本页目录">
+    <p>本页</p>
+    <ul>{{range .Page.TOC}}<li class="l{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>{{end}}</ul>
+  </nav>
+  {{end}}
+</div>
+</body>
+</html>
