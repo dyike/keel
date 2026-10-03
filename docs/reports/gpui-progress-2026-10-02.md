@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**62 项主体已有、13 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**63 项主体已有、12 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -237,7 +237,9 @@
 
 - [x] 第一百四十二批（`5f16266`）：集中补齐 Form 的多列网格、ColSpan/ColStart、上下标签布局、纯文本/富内容说明、必填标记与动态显隐。新增 FieldWithOptions/SetFieldOptions、Columns/VerticalLabels、Gap/LabelTextSize 和全宽靠右 Footer；保留 Actions 和默认侧标签布局。隐藏字段不占网格、不提交草稿、不执行校验或聚焦，显隐变更取消提交并清除对应错误，异步错误保持完整插入索引。示例增加响应式一/两列。1×/2× 窗口测试覆盖跨度/起始列、缩列、输入状态、说明/必填/页尾，另验证隐藏校验与异步结果失效；全仓构建、UI/native vet、全量测试通过。登记主要缺口关闭，Form 调整为主体已有；未做真机视觉验收。
 
-- [x] 第一百四十三批：集中补齐 NumberInput 分组格式与即时半角转换。ThousandsSeparator 支持逗号、空格、单引号及两种不换行空格，结合 Decimals/Prefix 显示金额；输入和提交显示都分组，解析/增减去除分组符。全角数字/符号/点即时转换，重复小数点及错位符号拒绝，保留未完成草稿和原数值提交边界。底层 el.Input.Transform 在 Bind/OnChange 前规范化并映射选区，采用最多 100 次用户编辑历史，程序修改重置历史。测试覆盖中间替换、撤销/重做、拒绝编辑、分隔符切换、精度端点与步进；全仓构建、UI/native vet、全量测试通过。登记缺口关闭，NumberInput 调整为主体已有；真机输入法组合和视觉未验收。
+- [x] 第一百四十三批（`8dd6442`）：集中补齐 NumberInput 分组格式与即时半角转换。ThousandsSeparator 支持逗号、空格、单引号及两种不换行空格，结合 Decimals/Prefix 显示金额；输入和提交显示都分组，解析/增减去除分组符。全角数字/符号/点即时转换，重复小数点及错位符号拒绝，保留未完成草稿和原数值提交边界。底层 el.Input.Transform 在 Bind/OnChange 前规范化并映射选区，采用最多 100 次用户编辑历史，程序修改重置历史。测试覆盖中间替换、撤销/重做、拒绝编辑、分隔符切换、精度端点与步进；全仓构建、UI/native vet、全量测试通过。登记缺口关闭，NumberInput 调整为主体已有；真机输入法组合和视觉未验收。
+
+- [x] 第一百四十四批：补齐轻量 Table 组合能力。新增 StaticTable 以及 TableHeader/Body/Footer/Row/Head/DataCell/Caption，直接返回可设置样式的 el 元素，支持任意行内容、交互控件、独立汇总与说明。固定/弹性列、内容对齐和留白使用 el 配置；保留现有 TableView 数据表行为。新增 table_static 示例；1×/2× 测试覆盖三段列对齐、页尾/说明位置、子按钮事件及输入状态。全仓构建、UI/native vet、全量测试通过，Table 登记缺口关闭并调整为主体已有；未做真机视觉验收。
 
 ## 当前实施清单
 
@@ -324,7 +326,7 @@
 | [StatusBar](https://gpui-kit.com/component/status-bar/) | 主体已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | 左右内容与自定义 View 已覆盖；Keel 另有优先级溢出菜单，本轮未发现新的主要功能缺口。 |
 | [Stepper](https://gpui-kit.com/component/stepper/) | 主体已有 | [横纵步骤、图标/富内容、尺寸、导航、键盘、滚动与单步禁用](../../ui/kit/stepper.go) | 第六批已补齐 Vertical、Size、StepperItem 与 SetItemDisabled。此表登记缺口已关闭；导航仍限已完成步骤，GPUI 文档的文本居中布局未提供独立开关。 |
 | [Switch](https://gpui-kit.com/component/switch/) | 主体已有 | [布尔开关、标签、禁用与键盘](../../ui/kit/switch.go) | 第三十四批已补齐大小、选中颜色和标签侧配置。第三十五批补齐滑块过渡；第三十六批补齐 FocusRing；第三十七批补齐单 root 的 TabStop/TabIndex。焦点轮廓沿整行而非仅轨道，跨 root 排序不支持；Tooltip 可组合。当前无 Loading 接口，上游此页也未列为能力。 |
-| [Table](https://gpui-kit.com/component/table/) | 部分 | [排序、行选择、单元格插槽、列宽调整；高级能力同 DataTable](../../ui/kit/table.go) | GPUI Table 是轻量 Header/Body/Footer/Caption 组合表，DataTable 才负责数据交互；Keel 两项共用 TableView，缺独立 footer/caption/任意行组合。 |
+| [Table](https://gpui-kit.com/component/table/) | 主体已有 | [静态 Header/Body/Footer/Caption 及任意行/单元格组合](../../ui/kit/table_static.go) | 第一百四十四批新增独立 StaticTable 和部件元素，登记缺口关闭。TableDataCell 避开已有选区坐标类型 TableCell；各行独立配置列宽，Caption 默认位于根容器内。数据交互继续用原 TableView，差距见 DataTable；真机视觉未验收。 |
 | [Tabs](https://gpui-kit.com/component/tabs/) | 主体已有 | [四种外观、图标/富标签、单项禁用、页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 第十二、十三批已关闭登记的外观、禁用、内容、最大宽度及滚动接口缺口。默认仍为溢出菜单；Scrollable 开启时改为滚动轨道，ScrollTo 只定位不选择。自定义标签应为展示内容，宽度上限不包含独立关闭按钮。 |
 | [Tag](https://gpui-kit.com/component/tag/) | 主体已有 | [语义/自定义颜色、描边、圆角、尺寸、富内容、移除与选中](../../ui/kit/tag.go) | 第十四批已关闭登记缺口；默认保留主题染色胶囊，实心底色可用 Appearance。Size 为最小高度，长文字仍换行；自定义内容限展示元素。 |
 | [TextView](https://gpui-kit.com/component/text-view/) | 部分 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 缺富文本整体 max_lines/is_clamped、逐流式增量淡入、公开区间高亮/跳转、Markdown 插件与代码块操作扩展接口。HTML/扩展 TeX 已完成。 |

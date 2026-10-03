@@ -55,3 +55,33 @@ Agent：角色 `table`，`value` 是行数（如"36 行"）；表头是 `columnh
 `RowMenu(func(row int) *MenuView)` / `CellMenu(func(row, column int) *MenuView)` 在右键请求时构造菜单，参数始终是源数据索引。单元格菜单优先，返回 nil 则使用行菜单；菜单贴着目标单元格弹出。右键已选中的行/格会保留现有多选，未选中的目标先成为选区。Shift+F10 为活动行/格打开菜单；Esc、外部点击或执行命令关闭，键盘打开后恢复原焦点。目标被筛掉、隐藏或禁用时关闭菜单。菜单复用 `Menu` 的子菜单与键盘导航。
 
 性能：30 万行的表格在测试里建表、排序、跳到末尾不到一秒，滚动每帧约 1 毫秒（`TestTableThreeHundredThousandRows`、`BenchmarkTableFrame300k`）。
+
+## 静态组合表格
+
+少量数据或自定义布局可使用 `StaticTable`。它返回可直接设置样式的 `el.DivEl`，不创建数据表的选择、排序或虚拟列表状态。各部件在 Render 中构建；有状态的 Input、Button 等视图由应用持有，再把 Render 结果放入单元格。
+
+```go
+kit.StaticTable().Name("订单").Child(
+    kit.TableHeader().Child(kit.TableRow().Child(
+        kit.TableHead().Child(el.Text("单号")),
+        kit.TableHead().Items(el.End).Child(el.Text("金额")),
+    )),
+    kit.TableBody().Child(kit.TableRow().Child(
+        kit.TableDataCell().Child(el.Text("SO-001")),
+        kit.TableDataCell().Items(el.End).Child(el.Text("¥250.00")),
+    )),
+    kit.TableFooter().Child(kit.TableRow().Decorate(nil).Child(
+        kit.TableDataCell().Child(el.Text("合计")),
+        kit.TableDataCell().Items(el.End).Child(el.Text("¥250.00")),
+    )),
+    kit.TableCaption().Child(el.Text("最近一笔订单")),
+)
+```
+
+Header、Body、Footer 均可放任意数量的 Row；每个 Row 可放任意数量的单元格，也可插入完全自定义元素。Header/Footer 使用弱背景，Row 默认绘制底部分隔线，Footer 默认绘制顶线；`Decorate(nil)` 移除对应默认分隔线。根容器默认带边框、圆角和表面背景，可通过 Border/Rounded/Bg 覆盖。Caption 接受文字或富内容，默认在容器内显示，位置由 Child 顺序决定。
+
+单元格默认平分行宽；`Flex(0).W(el.Dp(120)).NoShrink()` 固定列宽，`Flex(2)` 调整弹性比例。各行独立布局，表头、数据和汇总行应使用一致的列配置。单个单元格即可占满一整行；不做跨行合并或自动测量全表列宽。`Items(el.Center)` / `Items(el.End)` 设置内容水平对齐，P/Px/Py 调整留白；文字粗细等可在传入的 Text 上设置。需要长内容滚动时，在外层组合 ScrollX/ScrollY。
+
+语义角色包括 table、rowgroup、row、columnheader、cell 和 caption。静态行没有默认选择、激活或键盘导航，子控件独立接收事件；需要整行操作时可显式配置 OnClick/Focusable/OnKey。原有 `TableCell` 是数据表选区坐标类型，因此静态单元格入口命名为 `TableDataCell`。
+
+运行 `go run ./examples/components -section table_static` 查看交互、通栏备注及汇总示例。1×/2× 自动测试覆盖部分固定列的三段对齐、页尾/说明位置、子按钮事件和输入状态；本批未做真机视觉验收。
