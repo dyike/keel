@@ -25,6 +25,8 @@ type Node struct {
 	focus                       func(*Style)
 	focusable                   bool
 	focusSet                    bool
+	tabConfigured, tabSkip      bool
+	tabIndex                    int
 	disabled, effectiveDisabled bool
 	disabledRoot                bool // disabled here, not only by an ancestor
 	disabledStyle               func(*Style)

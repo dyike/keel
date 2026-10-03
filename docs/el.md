@@ -339,3 +339,9 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 `OnMousePress(button, fn)` 观察左键、右键或中键按下，使用 `pointer.ButtonPrimary/Secondary/Tertiary`。监听覆盖交互子元素，但不阻止它们接收事件，也不增加 Tab 停靠点；禁用容器会禁用监听。0 清除监听，非法按键值忽略，多键同时按下不触发。它与 `OnContextMenu(fn)` 共用一个处理器，后者等同于选择右键，最后设置者生效。键盘操作继续使用 `OnKey` 或子组件回调。
 
 锚定浮层可用 `el.Anchored(...).Arrow(true)` 绘制 6dp 指示箭头，跟随实际弹出方向；Offset 测量到箭头尖端。箭头取面板纯色背景，未设置时使用主题 Surface，渐变、边框和阴影不延伸到箭头。Modal 不显示箭头。
+
+### 显式 Tab 顺序
+
+`TabStop(false)` 跳过顺序遍历，保留鼠标/程序聚焦；`TabIndex(n)` 按升序排列，相同值保持树顺序，负值跳过，默认 0。显式配置出现时，el root 处理 Tab/Shift+Tab，在当前模态或 TrapFocus 浮层内循环；否则使用 Gio 原生顺序。输入框也参与排序。禁用、隐藏和未绘制的节点跳过。
+
+范围限单个 el root，不跨独立 Embed 或原生 Gio 控件。直接调用 Router.MoveFocus 绕过此规则，应使用正常 Tab 事件；控件显式消费 Tab 时保留其操作行为。

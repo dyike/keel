@@ -14,6 +14,8 @@ func init() {
 		small := kit.Switch("小尺寸 · 左侧标签", true).Size(kit.SwitchSmall).LabelSide(el.Left)
 		custom := kit.Switch("自定义选中颜色", true)
 		quiet := kit.Switch("隐藏焦点环 · 保留键盘操作", false).FocusRing(false)
+		on.TabIndex(1)
+		small.TabIndex(2)
 		dimmed := kit.Switch("禁用时保留自定义颜色", true)
 		dimmed.SetDisabled(true)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {

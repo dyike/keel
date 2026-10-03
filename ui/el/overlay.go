@@ -501,6 +501,18 @@ func (r *RootWidget) focusTag(tag event.Tag) {
 	r.e.gtx.Execute(key.FocusCmd{})
 }
 func (r *RootWidget) focusFirst(n *Node) bool {
+	if targets, configured := r.collectTabTargets([]*Node{n}); configured {
+		if len(targets) == 0 {
+			return false
+		}
+		targets[0].state.pointerFocus = false
+		r.e.gtx.Execute(key.FocusCmd{Tag: targets[0].tag})
+		return true
+	}
+	return r.focusFirstDefault(n)
+}
+
+func (r *RootWidget) focusFirstDefault(n *Node) bool {
 	if s := r.store.states[n.key]; s != nil && s.keyFrame == r.store.frame && !s.disabled && !s.blocked {
 		if n.input != nil {
 			r.e.gtx.Execute(key.FocusCmd{Tag: &s.editor})
@@ -512,7 +524,7 @@ func (r *RootWidget) focusFirst(n *Node) bool {
 		}
 	}
 	for _, c := range n.children {
-		if r.focusFirst(c.node()) {
+		if r.focusFirstDefault(c.node()) {
 			return true
 		}
 	}

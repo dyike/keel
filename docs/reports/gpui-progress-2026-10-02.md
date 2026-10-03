@@ -56,7 +56,8 @@
 - [x] 第三十三批（`ef0db2c`）：Pagination 增加 Compact、VisiblePages、Size 和 SetDisabled；稳定按钮身份保留切换模式后的焦点。测试覆盖页码预算/省略号、最大整数、1×/2× 尺寸、紧凑导航、键盘、禁用继承和总数收敛；默认页码策略保持兼容。全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。
 - [x] 第三十四批（`d70fc17`）：Switch 增加 Small/Medium 尺寸、Color/ClearColor 和 LabelSide；自定义选中色在自身禁用时降低 alpha，切换标签位置保留键盘焦点。测试覆盖 1×/2× 布局、标签点击、键盘、禁用继承、回调与颜色像素；全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。重新核对上游后，将滑块动画、焦点环及 Tab 配置补记为未完成。
 - [x] 第三十五批（`bd8826a`）：Switch 增加 180ms 滑块过渡，快速反向从当前显示位置衔接；首次显示/减少动画直接归位，值和语义立即更新。帧时钟像素测试覆盖大小两档、开始/中间位置、反向衔接、最终归位和减少动画；全量构建、vet、测试通过。
-- [x] 第三十六批：Switch 增加 FocusRing，关闭/恢复焦点轮廓不改变尺寸与键盘操作。窗口像素测试覆盖 Tab 聚焦、隐藏/恢复、Space/Enter 切换和禁用；全量构建、vet、测试通过。轮廓仍沿整行绘制，轨道级轮廓与 Tab 配置继续记录为差异。
+- [x] 第三十六批（`98b70ba`）：Switch 增加 FocusRing，关闭/恢复焦点轮廓不改变尺寸与键盘操作。窗口像素测试覆盖 Tab 聚焦、隐藏/恢复、Space/Enter 切换和禁用；全量构建、vet、测试通过。轮廓仍沿整行绘制，轨道级轮廓与 Tab 配置继续记录为差异。
+- [x] 第三十七批：el 和 Switch 增加 TabStop/TabIndex；显式配置启用单 root 顺序遍历，负索引或关闭停靠时保留鼠标/程序聚焦。窗口测试覆盖升序/同值树序、输入框、隐藏/禁用、动态配置、Tab/Shift+Tab 与模态初始焦点及循环；全量构建、vet、测试通过。跨独立 Embed/原生 Gio 排序及直接 Router.MoveFocus 不在此入口范围。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -143,7 +144,7 @@
 | [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称、自定义图标/颜色/周期](../../ui/kit/spinner.go) | 第十九、二十批已补齐图标、颜色和速度配置；Period 为每周时长，默认一秒匀速。上游描述的默认 0.8 秒及缓动曲线不同。 |
 | [StatusBar](https://gpui-kit.com/component/status-bar/) | 主体已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | 左右内容与自定义 View 已覆盖；Keel 另有优先级溢出菜单，本轮未发现新的主要功能缺口。 |
 | [Stepper](https://gpui-kit.com/component/stepper/) | 主体已有 | [横纵步骤、图标/富内容、尺寸、导航、键盘、滚动与单步禁用](../../ui/kit/stepper.go) | 第六批已补齐 Vertical、Size、StepperItem 与 SetItemDisabled。此表登记缺口已关闭；导航仍限已完成步骤，GPUI 文档的文本居中布局未提供独立开关。 |
-| [Switch](https://gpui-kit.com/component/switch/) | 主体已有 | [布尔开关、标签、禁用与键盘](../../ui/kit/switch.go) | 第三十四批已补齐大小、选中颜色和标签侧配置。第三十五批补齐滑块过渡；第三十六批补齐 FocusRing；仍缺 tab_stop/tab_index，焦点轮廓沿整行而非仅轨道；Tooltip 可组合。当前无 Loading 接口，上游此页也未列为能力。 |
+| [Switch](https://gpui-kit.com/component/switch/) | 主体已有 | [布尔开关、标签、禁用与键盘](../../ui/kit/switch.go) | 第三十四批已补齐大小、选中颜色和标签侧配置。第三十五批补齐滑块过渡；第三十六批补齐 FocusRing；第三十七批补齐单 root 的 TabStop/TabIndex。焦点轮廓沿整行而非仅轨道，跨 root 排序不支持；Tooltip 可组合。当前无 Loading 接口，上游此页也未列为能力。 |
 | [Table](https://gpui-kit.com/component/table/) | 部分 | [排序、行选择、单元格插槽、列宽调整；高级能力同 DataTable](../../ui/kit/table.go) | GPUI Table 是轻量 Header/Body/Footer/Caption 组合表，DataTable 才负责数据交互；Keel 两项共用 TableView，缺独立 footer/caption/任意行组合。 |
 | [Tabs](https://gpui-kit.com/component/tabs/) | 主体已有 | [四种外观、图标/富标签、单项禁用、页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 第十二、十三批已关闭登记的外观、禁用、内容、最大宽度及滚动接口缺口。默认仍为溢出菜单；Scrollable 开启时改为滚动轨道，ScrollTo 只定位不选择。自定义标签应为展示内容，宽度上限不包含独立关闭按钮。 |
 | [Tag](https://gpui-kit.com/component/tag/) | 主体已有 | [语义/自定义颜色、描边、圆角、尺寸、富内容、移除与选中](../../ui/kit/tag.go) | 第十四批已关闭登记缺口；默认保留主题染色胶囊，实心底色可用 Appearance。Size 为最小高度，长文字仍换行；自定义内容限展示元素。 |

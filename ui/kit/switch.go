@@ -29,6 +29,8 @@ type SwitchView struct {
 	labelLeft       bool
 	motion          valueMotion
 	quietFocus      bool
+	tabStop         *bool
+	tabIndex        *int
 }
 
 func Switch(label string, on bool) *SwitchView           { return &SwitchView{label: label, value: on} }
@@ -40,6 +42,13 @@ func (v *SwitchView) SetDisabled(on bool)                { v.disabled = on }
 // FocusRing controls the keyboard/programmatic focus outline, enabled by default.
 // Disabling it preserves focus and keyboard activation for custom focus treatments.
 func (v *SwitchView) FocusRing(on bool) *SwitchView { v.quietFocus = !on; return v }
+
+// TabStop controls Tab traversal while preserving mouse and programmatic focus.
+func (v *SwitchView) TabStop(on bool) *SwitchView { v.tabStop = &on; return v }
+
+// TabIndex sets ascending traversal order within the el root or active trap.
+// Negative indexes skip Tab; equal indexes retain tree order.
+func (v *SwitchView) TabIndex(index int) *SwitchView { v.tabIndex = &index; return v }
 
 // Size selects a 36×20dp (medium) or 28×16dp (small) track.
 func (v *SwitchView) Size(size SwitchSize) *SwitchView {
@@ -99,6 +108,12 @@ func (v *SwitchView) Render(cx *el.Context) el.Element {
 	}, v.labelLeft)
 	if v.quietFocus {
 		row.FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}) })
+	}
+	if v.tabStop != nil {
+		row.TabStop(*v.tabStop)
+	}
+	if v.tabIndex != nil {
+		row.TabIndex(*v.tabIndex)
 	}
 	return row
 }

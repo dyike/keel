@@ -39,6 +39,20 @@ func (s *Styled[T]) Focusable(on bool) *T {
 	return s.self
 }
 
+// TabStop controls sequential Tab traversal without disabling pointer/programmatic
+// focus. Explicit Tab configuration is scoped to this el root and its active trap.
+func (s *Styled[T]) TabStop(on bool) *T {
+	s.n.tabConfigured, s.n.tabSkip = true, !on
+	return s.self
+}
+
+// TabIndex orders stops by ascending index, with tree order breaking ties.
+// Negative indexes skip Tab traversal. The default index is zero.
+func (s *Styled[T]) TabIndex(index int) *T {
+	s.n.tabConfigured, s.n.tabIndex = true, index
+	return s.self
+}
+
 // OnKey handles keys from a focused Focusable element, bubbling through its
 // ancestors. Return true to stop bubbling and suppress default activation.
 // Tab remains platform focus navigation; use Context.Shortcut for global keys.

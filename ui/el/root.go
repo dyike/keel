@@ -188,6 +188,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 		r.dispatchLayers(&cx)
 		r.dispatchHover(gtx)
 		r.blur(gtx)
+		r.dispatchTab(&cx)
 		r.dispatchKeys(gtx)
 		r.dispatch(gtx)
 		flushClipboard(gtx)
