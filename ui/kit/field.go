@@ -10,18 +10,25 @@ import (
 // check is the shared row of checkbox-like controls: a focusable,
 // clickable row with a mark and a label. Space and Enter toggle it.
 func check(id, role, label, name string, selected, disabled bool, mark el.Element, toggle func()) *el.DivEl {
+	return checkLabelSide(id, role, label, name, selected, disabled, mark, toggle, false)
+}
+
+func checkLabelSide(id, role, label, name string, selected, disabled bool, mark el.Element, toggle func(), labelLeft bool) *el.DivEl {
 	if name == "" || label != "" {
 		name = label
 	}
 	row := el.Div().ID(id).Role(role).Name(name).Selected(selected).Disabled(disabled).
 		Row().Items(el.Center).Gap(theme.SpaceMd).Py(theme.SpaceXxs).Rounded(theme.RadiusSm).Focusable(true).OnClick(toggle).
-		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
-		Child(mark)
+		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
 	if !disabled {
 		row.CursorPointer()
 	}
-	if label != "" {
-		row.Child(el.Text(label))
+	if labelLeft && label != "" {
+		row.Child(el.Text(label).ID("label"))
+	}
+	row.Child(mark)
+	if !labelLeft && label != "" {
+		row.Child(el.Text(label).ID("label"))
 	}
 	return row
 }
