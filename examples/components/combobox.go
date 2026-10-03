@@ -11,8 +11,8 @@ import (
 
 func init() {
 	registerSection("combobox", "inputs", func() core.Widget {
-		customer := kit.Combobox("客户", "华东物流", "北京百货", "深圳电子", "成都餐饮", "杭州茶业", "上海文具").Placeholder("输入筛选")
-		tag := kit.Combobox("标签 Tag", "紧急", "VIP", "待跟进").AllowCustom().Multiple().Placeholder("可输入新标签；再选一次取消")
+		customer := kit.Combobox("客户", "华东物流", "北京百货", "深圳电子", "成都餐饮", "杭州茶业", "上海文具").Placeholder("输入筛选").Clearable(true)
+		tag := kit.Combobox("标签 Tag", "紧急", "VIP", "待跟进").AllowCustom().Multiple().Clearable(true).Placeholder("可输入新标签；再选一次取消")
 		tag.Footer(kit.Button("添加示例标签", func() { tag.SetValues(append(tag.Values(), "新标签")) }).Variant(kit.ButtonGhost))
 		large := make([]string, 10000)
 		for i := range large {

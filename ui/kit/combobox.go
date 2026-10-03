@@ -32,6 +32,7 @@ type ComboboxView struct {
 	footer                               el.View
 	footerHeight                         float32
 	footerMeasured                       bool
+	clearable                            bool
 	open, allowCustom, disabled, focused bool
 	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
@@ -183,7 +184,13 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 		}
 		field.MinW(el.Dp(100))
 	}
-	box.Child(field, toggle)
+	box.Child(field)
+	if v.clearable && len(v.Values()) > 0 {
+		clear := Button("", func() { cx.Focus(v.FocusID()); v.clearSelection() }).ID(id + "/clear").Name(locale.Current().Name(locale.Current().Clear, v.a11y())).Icon(IconClose).Variant(ButtonGhost).Size(24)
+		clear.SetDisabled(v.disabled)
+		box.Child(clear.Render(cx))
+	}
+	box.Child(toggle)
 	if v.open && !v.disabled {
 		cx.Overlay(id, el.Anchored(id, v.suggestions(cx, id)).MatchAnchorWidth().OnDismiss(func() {
 			if !cx.Enabled(id) {
