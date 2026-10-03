@@ -68,7 +68,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Accordion](../../docs/kit/accordion.md) | 折叠面板、四档尺寸、边框开关 |
 | [Badge](../../docs/kit/badge.md) | 数字/圆点/图标角标、尺寸与自定义颜色 |
 | [ProgressCircle](../../docs/kit/progress_circle.md) | 圆形进度、中心内容与不确定状态 |
-| [Progress](../../docs/kit/progress.md) | 进度条 |
+| [Progress](../../docs/kit/progress.md) | 进度条、自定义高度/颜色/圆角与轨道样式 |
 | [Link](../../docs/kit/link.md) | 链接 |
 | [Image](../../docs/kit/image.md) | 图片 |
 | [Sidebar](../../docs/kit/sidebar.md) | 导航侧栏 |

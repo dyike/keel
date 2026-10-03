@@ -45,7 +45,8 @@
 - [x] 第二十二批（`5b8fbce`）：Empty 增加 Heading、DescriptionContent、Footer 与七个分区的 PartStyle；富内容可恢复原字符串，尾部独立于 Action。覆盖窄布局、替换/恢复后的输入焦点、尾部操作与禁用继承、富内容主题切换；全量构建、vet、测试及浅深色截图检查通过。
 - [x] 第二十三批（`41a9982`）：Skeleton 增加 Secondary 与 Rounded，整体透明度减半、任意有限非负圆角并按短边限制；Circle/Rounded 后调用者生效。像素测试覆盖浅深主题、直角/圆角/极大圆角、普通/次级的脉冲与扫光、减少动画及装饰语义；全量构建、vet、测试和浅色 1×/深色 2× 截图通过。
 - [x] 第二十四批（`260995a`）：Rating 增加 Size/Color，并按上游 0.7 源码对齐已填星点击：点第 i 颗已填星设置 i−1 分，否则设置 i 分；悬停预览对应目标。覆盖 1×/2× 尺寸、清零、键盘、只读/禁用继承、Agent 数值及自定义颜色/小数填充像素；全量构建、vet、测试及浅深色截图检查通过。
-- [x] 第二十五批：Kbd 增加 Size 与 Style；独立字号同步缩放内边距，0 恢复继承，样式回调可调颜色/背景/边框。覆盖 1×/2×、Plain 尺寸、样式恢复、动作改绑/解绑；全量构建、vet、测试及浅深色截图检查通过。
+- [x] 第二十五批（`20e5731`）：Kbd 增加 Size 与 Style；独立字号同步缩放内边距，0 恢复继承，样式回调可调颜色/背景/边框。覆盖 1×/2×、Plain 尺寸、样式恢复、动作改绑/解绑；全量构建、vet、测试及浅深色截图检查通过。
+- [x] 第二十六批：条形 Progress 增加 Height、Color、Rounded 与 TrackStyle；自定义颜色覆盖主题渐变，轨道支持背景和边框，进度块填满内部高度。同时修正独立渲染的轨道宽度和 NaN 值。像素/Agent 测试覆盖填充比例、配色、高度、动画与减少动画；全量构建、vet、测试及浅深色截图检查通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -115,7 +116,7 @@
 | [Pagination](https://gpui-kit.com/component/pagination/) | 主体已有 | [页码、前后翻页、总数、窄布局换行](../../ui/kit/pagination.go) | 主体覆盖；缺 compact、visible_pages 与尺寸档接口。 |
 | [Plot](https://gpui-kit.com/component/plot/) | 用途不同 | [成品散点/折线图、缩放、平移、拾取](../../ui/kit/plot.go) | 用途不同：GPUI 提供 ScaleLinear/Band/Point/Ordinal、Bar/Line/Area/Pie/Stack/Axis 等公共绘图基础件；Keel Plot 是可缩放平移的成品散点/折线图。 |
 | [Popover](https://gpui-kit.com/component/popover/) | 主体已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | 主体覆盖；缺箭头、实例 offset 与 mouse_button 配置；低层 Anchored 可设 Offset。 |
-| [Progress](https://gpui-kit.com/component/progress/) | 主体已有 | [条形确定/不确定进度](../../ui/kit/progress.go)、[圆形进度与中心内容](../../ui/kit/progress_circle.go) | 第一批已补齐 ProgressCircle：真实进度、加载动画、减少动画、中心内容、大小/颜色。条形组件的高度/颜色等样式配置仍比 GPUI 少。 |
+| [Progress](https://gpui-kit.com/component/progress/) | 主体已有 | [条形确定/不确定进度](../../ui/kit/progress.go)、[圆形进度与中心内容](../../ui/kit/progress_circle.go) | 第一批补齐圆形进度；第二十六批补齐条形高度、颜色、圆角及轨道样式。Keel 数值范围 0–1，默认带标签/百分比；值更新立即显示，上游文档描述的数值过渡动画尚未实现。 |
 | [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 部分 | [题型、答案模型、校验、分页、禁用与提交快照](../../ui/kit/questionnaire.go) | 缺单题条件禁用、跳过状态、自定义/外部校验、同题选项+自由输入、完整进度状态和快捷键配置；现有五种题型、必填校验与分页保留。 |
 | [Radio](https://gpui-kit.com/component/radio/) | 主体已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | 单选主体覆盖；组内 Item 可单独放置。缺任意富标签和组件级大小配置。 |
 | [Rating](https://gpui-kit.com/component/rating/) | 主体已有 | [评分、已填星减分、尺寸/颜色、半星/小数展示、只读与键盘](../../ui/kit/rating.go) | 第二十四批已关闭登记缺口；按上游源码明确为点已填第 i 星设 i−1 分，并非总分减一。Size 为 dp，默认 22；小数只用于展示，编辑仍选整星。 |
