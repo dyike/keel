@@ -37,7 +37,7 @@ func (v *ComboboxView) SetValues(values []string) {
 			v.values = append(v.values, value)
 			v.value = value
 			if !v.multiple {
-				v.text = value
+				v.text = v.optionLabel(value)
 				break
 			}
 		}
@@ -63,7 +63,7 @@ func (v *ComboboxView) close() { v.open = false; v.request++; v.loading = false 
 func (v *ComboboxView) cancelDraft() {
 	v.close()
 	v.focused = false
-	v.text = v.value
+	v.text = v.optionLabel(v.value)
 	if v.multiple {
 		v.text = ""
 	}
@@ -160,8 +160,8 @@ func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
 	if v.multiple {
 		selected = slices.Contains(v.values, option)
 	}
-	row := el.Div().Disabled(v.disabledOptions[option]).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).Role("option").Name(option).Selected(selected).H(el.Dp(28*ratio)).My(ratio).Mx(4*ratio).Px(theme.SpaceMd*ratio).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
-		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(option); cx.Focus(v.FocusID()) }).Child(el.Text(option).Grow().MaxLines(1), v.renderCheck(cx, selected))
+	row := el.Div().Disabled(v.optionDisabled(option)).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).Role("option").Name(v.optionLabel(option)).Value(option).Selected(selected).H(el.Dp(28*ratio)).My(ratio).Mx(4*ratio).Px(theme.SpaceMd*ratio).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
+		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.choose(option); cx.Focus(v.FocusID()) }).Child(el.Text(v.optionLabel(option)).Grow().MaxLines(1), v.renderCheck(cx, selected))
 	if v.height > 0 {
 		row.TextSize(float32(theme.BodySize) * ratio)
 	}
@@ -209,12 +209,12 @@ func (v *ComboboxView) filteredMatches() []string {
 		return v.options
 	}
 	q := strings.ToLower(strings.TrimSpace(v.text))
-	if q == "" || !v.multiple && q == strings.ToLower(v.value) {
+	if q == "" || !v.multiple && q == strings.ToLower(v.optionLabel(v.value)) {
 		return v.options
 	}
 	var matches []string
 	for _, option := range v.options {
-		if strings.Contains(strings.ToLower(option), q) {
+		if strings.Contains(strings.ToLower(option), q) || strings.Contains(strings.ToLower(v.optionLabel(option)), q) {
 			matches = append(matches, option)
 		}
 	}

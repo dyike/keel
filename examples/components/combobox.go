@@ -13,6 +13,8 @@ func init() {
 	registerSection("combobox", "inputs", func() core.Widget {
 		customer := kit.Combobox("客户", "华东物流", "北京百货", "深圳电子", "成都餐饮", "杭州茶业", "上海文具").Placeholder("输入筛选").Clearable(true).Size(28)
 		tag := kit.Combobox("标签 Tag", "紧急", "VIP", "待跟进").AllowCustom().Multiple().Clearable(true).Size(48).CheckIcon(kit.Icon(kit.IconCheck)).Placeholder("可输入新标签；再选一次取消")
+		country := kit.Combobox("国家（显示名称／实际值）").Clearable(true)
+		country.SetItems(kit.ComboboxItem{Value: "cn", Label: "中国"}, kit.ComboboxItem{Value: "us", Label: "美国"}, kit.ComboboxItem{Value: "jp", Label: "日本（暂不可选）", Disabled: true})
 		tag.Footer(kit.Button("添加示例标签", func() { tag.SetValues(append(tag.Values(), "新标签")) }).Variant(kit.ButtonGhost))
 		large := make([]string, 10000)
 		for i := range large {
@@ -38,7 +40,7 @@ func init() {
 			}()
 		})
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(14).W(el.Dp(300)).MaxW(el.Full).Child(customer.Render(cx), tag.Render(cx), remote.Render(cx)))
+			return el.Div().P(24).Items(el.Start).Child(el.Div().Gap(14).W(el.Dp(300)).MaxW(el.Full).Child(customer.Render(cx), tag.Render(cx), country.Render(cx), remote.Render(cx)))
 		}))
 	})
 }

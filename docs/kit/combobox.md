@@ -46,3 +46,10 @@ footer 最多占窗口扣除 80dp 后高度的三分之一，超高内容在自�
 `Size(dp)` 设置字段最小高度并同步缩放字号、间距、展开／清空按钮、多选标签和候选行，建议 28／36／48dp；0 恢复默认，负数和非有限值忽略。多选内容可换行，实际高度可能更高，标签保留 16dp 最小高度。footer 维持自身尺寸。打开期间修改尺寸保留输入焦点并重新露出高亮候选。
 
 `CheckIcon(kit.Icon(kit.IconCheck))` 替换选中候选的图标，也接受 VectorIcon；保存图标配置副本，颜色和基础尺寸来自传入图标，随 Size 缩放。未选中候选保留同宽占位。`CheckIcon(nil)` 恢复默认；传入 IconNone 隐藏图案并保留尺寸。
+
+
+`SetItems(...ComboboxItem)` 接受 `Value`、`Label`、`Disabled`，将稳定值与显示名称分离。空 Value 忽略，空 Label 使用 Value，重复 Value 保留首项，输入切片会复制。本地搜索同时匹配名称和值；回调、Value/Values 及程序赋值使用稳定值，候选和多选标签显示名称。候选语义的 name 是显示名称，value 是稳定值。
+
+`SetItemResults(token, items...)` 用于结构化异步结果，和 SetResults 一样校验请求状态，不做本地二次筛选。替换候选不会删除选择；已选值不在新结果时保留原名称，返回候选后更新名称。SetOptions/SetResults 恢复字符串模式。条目 Disabled 与 DisableOption 取逻辑或，修改条目状态须重新 SetItems/SetItemResults。
+
+提交输入文字时，精确值优先，其次是首个名称匹配；同名不同值建议从候选选择。未改动的单选显示文字在失焦时保持原值，避免名称碰巧等于另一条目的值时误选。正在编辑的草稿不会被名称更新覆盖。

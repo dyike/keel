@@ -35,6 +35,8 @@ type ComboboxView struct {
 	clearable                            bool
 	height                               float32
 	checkIcon                            *IconView
+	itemLabels                           map[string]string
+	itemDisabled                         map[string]bool
 	open, allowCustom, disabled, focused bool
 	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
@@ -51,6 +53,11 @@ func (v *ComboboxView) OnChange(fn func(value string)) *ComboboxView { v.onChang
 func (v *ComboboxView) Value() string                                { return v.value }
 func (v *ComboboxView) SetValue(s string)                            { v.SetValues([]string{s}) }
 func (v *ComboboxView) SetOptions(options ...string) {
+	oldDisplay := v.optionLabel(v.value)
+	v.itemLabels, v.itemDisabled = nil, nil
+	if !v.multiple && v.text == oldDisplay {
+		v.text = v.value
+	}
 	v.options = slices.Clone(options)
 	v.revision++
 	v.active = -1
@@ -76,7 +83,7 @@ func (v *ComboboxView) matches() []string {
 	return v.filtered
 }
 func (v *ComboboxView) choose(value string) {
-	if v.disabled || v.disabledOptions[value] || v.loading || v.searchError != "" || v.multiple && value == "" {
+	if v.disabled || v.optionDisabled(value) || v.loading || v.searchError != "" || v.multiple && value == "" {
 		return
 	}
 	old := v.value
@@ -99,7 +106,7 @@ func (v *ComboboxView) choose(value string) {
 		v.searchChanged()
 	} else {
 		v.close()
-		v.text = value
+		v.text = v.optionLabel(value)
 		v.value = value
 		v.active = -1
 	}
@@ -109,14 +116,7 @@ func (v *ComboboxView) choose(value string) {
 	}
 }
 
-func (v *ComboboxView) offered(s string) bool {
-	for _, o := range v.options {
-		if o == s {
-			return true
-		}
-	}
-	return false
-}
+func (v *ComboboxView) offered(s string) bool { _, ok := v.inputValue(s); return ok }
 
 // settle handles leaving the field or pressing Enter with no match.
 func (v *ComboboxView) settle() {
@@ -124,11 +124,16 @@ func (v *ComboboxView) settle() {
 		v.cancelDraft()
 		return
 	}
+	if !v.multiple && v.value != "" && v.text == v.optionLabel(v.value) {
+		v.close()
+		return
+	}
+	value, offered := v.inputValue(strings.TrimSpace(v.text))
 	switch {
-	case !v.disabledOptions[strings.TrimSpace(v.text)] && (v.offered(v.text) || v.allowCustom && strings.TrimSpace(v.text) != ""):
-		v.choose(strings.TrimSpace(v.text))
+	case !v.optionDisabled(value) && (offered || v.allowCustom && value != ""):
+		v.choose(value)
 	default:
-		v.text = v.value
+		v.text = v.optionLabel(v.value)
 		if v.multiple {
 			v.text = ""
 		}
@@ -186,7 +191,7 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 	if v.multiple {
 		box.Wrap()
 		for _, value := range v.values {
-			tag := Tag(value).OnRemove(func() { v.removeValue(value); cx.Focus(v.FocusID()) })
+			tag := Tag(v.optionLabel(value)).OnRemove(func() { v.removeValue(value); cx.Focus(v.FocusID()) })
 			if v.height > 0 {
 				tag.Size(max(16, 24*ratio))
 			}

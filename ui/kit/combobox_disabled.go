@@ -18,7 +18,7 @@ func (v *ComboboxView) DisableOption(value string, on bool) *ComboboxView {
 		delete(v.disabledOptions, value)
 	}
 	matches := v.matches()
-	if v.active >= 0 && v.active < len(matches) && v.disabledOptions[matches[v.active]] {
+	if v.active >= 0 && v.active < len(matches) && v.optionDisabled(matches[v.active]) {
 		v.active = v.enabledOption(matches, v.active, 1)
 	}
 	return v
@@ -30,7 +30,7 @@ func (v *ComboboxView) enabledOption(matches []string, start, direction int) int
 	}
 	start = (start%len(matches) + len(matches)) % len(matches)
 	for n := 0; n < len(matches); n++ {
-		if !v.disabledOptions[matches[start]] {
+		if !v.optionDisabled(matches[start]) {
 			return start
 		}
 		start = (start + direction + len(matches)) % len(matches)
