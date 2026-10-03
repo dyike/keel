@@ -7,16 +7,17 @@ import "github.com/dyike/keel/ui/theme"
 type InputEl struct{ Styled[InputEl] }
 
 type inputSpec struct {
-	placeholder string
-	bind        *string
-	multiline   bool
-	password    bool
-	onChange    func(string)
-	onSubmit    func(string)
-	maxLen      int
-	filter      string
-	readOnly    bool
-	line        int // measured line height, to center single-line text
+	placeholder      string
+	bind             *string
+	multiline        bool
+	password         bool
+	onChange         func(string)
+	onSubmit         func(string)
+	maxLen           int
+	filter           string
+	readOnly         bool
+	minRows, maxRows int
+	line             int // measured line height, to center single-line text
 }
 
 // Input creates a single-line text box. Enter triggers OnSubmit.
@@ -64,3 +65,13 @@ func (e *InputEl) ReadOnly(on bool) *InputEl { e.n.input.readOnly = on; return e
 
 // OnSubmit runs when Enter is pressed in a single-line box.
 func (e *InputEl) OnSubmit(fn func(string)) *InputEl { e.n.input.onSubmit = fn; return e }
+
+// AutoGrow sizes a multiline input to its wrapped text, between minRows and
+// maxRows lines. Overflow scrolls inside the editor. Invalid ranges are ignored.
+// Passing (0, 0) restores the default height. Single-line inputs ignore this.
+func (e *InputEl) AutoGrow(minRows, maxRows int) *InputEl {
+	if minRows == 0 && maxRows == 0 || minRows > 0 && maxRows >= minRows {
+		e.n.input.minRows, e.n.input.maxRows = minRows, maxRows
+	}
+	return e
+}

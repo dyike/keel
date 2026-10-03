@@ -58,7 +58,7 @@ func (e *engine) measureText(n *Node, maxW int) image.Point {
 }
 
 // measureInput: inputs fill the width they are given; their height is one
-// line, or about three for a TextArea.
+// line, or about three for a TextArea unless AutoGrow is configured.
 func (e *engine) measureInput(n *Node, maxW int) image.Point {
 	line := e.measureText(n, inf).Y
 	if line == 0 {
@@ -72,6 +72,34 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 	h := line
 	if n.input.multiline {
 		h = max(h, e.dp(72))
+		if spec := n.input; spec.minRows > 0 {
+			value := ""
+			if spec.bind != nil {
+				value = *spec.bind
+			} else if st := e.store.states[n.key]; st != nil {
+				value = st.lastText
+			}
+			if spec.password {
+				value = strings.Map(func(r rune) rune {
+					if r == '\n' {
+						return r
+					}
+					return '•'
+				}, value)
+			}
+			// Match material.Editor typography, independent of label-only styles.
+			lb := material.Label(theme.Material, n.textStyle.size, value)
+			lb.MaxLines = spec.maxRows
+			measured := lb.Layout(e.measureGtx(layout.Constraints{Max: image.Pt(w, inf)})).Size.Y
+			// Measure baseline spacing rather than multiplying glyph bounds:
+			// the first line and subsequent line advances need not match.
+			one := material.Label(theme.Material, n.textStyle.size, "M").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
+			two := material.Label(theme.Material, n.textStyle.size, "M\nM").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
+			advance := max(two-one, 1)
+			rowHeight := func(rows int) int { return one + min(rows-1, (inf-one)/advance)*advance }
+			minH, maxH := rowHeight(spec.minRows), rowHeight(spec.maxRows)
+			h = min(max(measured, minH), maxH)
+		}
 	}
 	return image.Pt(w, h)
 }

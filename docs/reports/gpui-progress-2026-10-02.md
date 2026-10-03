@@ -175,7 +175,9 @@
 
 - [x] 第一百一十一批（`5a0600b`，验收示例）：通知示例保留最近 12 条事件并支持滚动，记录窗口置前请求、应用内关闭、业务打开及系统请求结果，避免撤回完成文案覆盖点击结果；普通卡片点击不再误称系统点击。文档补充预期顺序和超时／仅系统模式区别。构建、vet、全量测试通过；真实 .app 已确认事件记录显示，权限请求返回 native: operation failed: status 7，尚未进入系统投递验收。此批不代表系统通知真机验收完成，Notification 仍为部分。
 
-- [x] 第一百一十二批（macOS 通知错误）：权限申请和投递保留 NSError 的 domain、code 与本地化说明，NotificationsNotAllowed 正确包装 ErrPermissionDenied，其他错误包装 ErrFailed，支持 errors.Is。真实 .app 已复现并读到 UNErrorDomain (1)，修正此前一律 status 7 的误分类；错误分类测试覆盖同码不同域、未知错误及负系统码；构建、vet、全量测试及 native race 测试通过。成功授权、通知展示与点击仍未验收，Notification 继续为部分。
+- [x] 第一百一十二批（`e1e6855`，macOS 通知错误）：权限申请和投递保留 NSError 的 domain、code 与本地化说明，NotificationsNotAllowed 正确包装 ErrPermissionDenied，其他错误包装 ErrFailed，支持 errors.Is。真实 .app 已复现并读到 UNErrorDomain (1)，修正此前一律 status 7 的误分类；错误分类测试覆盖同码不同域、未知错误及负系统码；构建、vet、全量测试及 native race 测试通过。成功授权、通知展示与点击仍未验收，Notification 继续为部分。
+
+- [x] 第一百一十三批：TextArea 增加 AutoGrow(minRows, maxRows)，按真实软换行和换行符测量高度，上限后内部滚动，缩短内容收回高度；相同行数固定高度，Rows 恢复旧模式。el.TextArea 同步提供底层能力，支持无 Bind 的编辑状态；字体行距按实际排版测量，行数乘法防溢出。测试覆盖 1×/2×、长文本封顶与缩回、窄宽重排、无绑定输入、固定行数、只读、模式切换焦点及单行隔离。构建、vet、全量测试通过。Textarea 的最大行数缺口关闭，原子 token 继续待补。
 
 ## 当前实施清单
 
@@ -229,7 +231,7 @@
 | [HoverCard](https://gpui-kit.com/component/hover-card/) | 主体已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | 第三批已补齐实例开关延时、方向/对齐及间距配置；默认仍为 700/300ms，键盘焦点立即打开，边缘避让保留。此表登记缺口已关闭。 |
 | [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。Keel 缺直接 SVG 加载和组件级旋转。 |
 | [Image](https://gpui-kit.com/component/image/) | 主体已有 | [已解码图片、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | 已解码图片的绘制/适配/预览/重试已有；缺自定义 loading/fallback 槽和组件级 URL 加载/缓存。第七批复核更正：之前把应用/Markdown 的加载缓存算到了 kit.Image。 |
-| [Input Group](https://gpui-kit.com/component/input-group/) | 主体已有 | [四方向/多附加内容、TextArea 组合、统一边框、标签聚焦与按钮操作](../../ui/kit/input_group.go) | 第九批已补齐 block addon 和独立附加内容配置；按钮直接使用 kit.Button。Textarea 最大行数/Token 与 Button 变体差异仍见各自条目，不计作已完成。 |
+| [Input Group](https://gpui-kit.com/component/input-group/) | 主体已有 | [四方向/多附加内容、TextArea 组合、统一边框、标签聚焦与按钮操作](../../ui/kit/input_group.go) | 第九批已补齐 block addon 和独立附加内容配置；按钮直接使用 kit.Button。Textarea 最大行数已在第一百一十三批补齐；Token 仍见 Textarea 条目，不计作已完成。 |
 | [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 缺格式化 mask、原子 inline token、可拦截富剪贴板的 on_paste 和专用上下文菜单配置；Filter 是字符白名单，不能当作 mask。 |
 | [Kbd](https://gpui-kit.com/component/kbd/) | 主体已有 | [平台键帽、Plain、动作键位、独立字号与自定义样式](../../ui/kit/kbd.go) | 第二十五批已补齐登记的尺寸缺口及样式回调；Size 单位 sp，默认仍继承。KbdFor 读取动作首个绑定，不提供上游按焦点/上下文查询绑定的独立入口。 |
 | [Label](https://gpui-kit.com/component/label/) | 主体已有 | [整段排版、全部/前缀匹配高亮、遮罩、次级文案和样式](../../ui/kit/label.go) | 第八十四批补齐登记缺口。匹配区分大小写且不重叠；遮罩按 rune 计数并覆盖 Agent 语义，次级文案仍可见。连字/组合字符按整个字形簇着色，彩色位图字形保留原色。样式通过 TextEl 配置；字段聚焦使用 FocusOnPress，修正旧表误称的 For 接口。 |
@@ -266,7 +268,7 @@
 | [Tabs](https://gpui-kit.com/component/tabs/) | 主体已有 | [四种外观、图标/富标签、单项禁用、页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 第十二、十三批已关闭登记的外观、禁用、内容、最大宽度及滚动接口缺口。默认仍为溢出菜单；Scrollable 开启时改为滚动轨道，ScrollTo 只定位不选择。自定义标签应为展示内容，宽度上限不包含独立关闭按钮。 |
 | [Tag](https://gpui-kit.com/component/tag/) | 主体已有 | [语义/自定义颜色、描边、圆角、尺寸、富内容、移除与选中](../../ui/kit/tag.go) | 第十四批已关闭登记缺口；默认保留主题染色胶囊，实心底色可用 Appearance。Size 为最小高度，长文字仍换行；自定义内容限展示元素。 |
 | [TextView](https://gpui-kit.com/component/text-view/) | 部分 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 缺富文本整体 max_lines/is_clamped、逐流式增量淡入、公开区间高亮/跳转、Markdown 插件与代码块操作扩展接口。HTML/扩展 TeX 已完成。 |
-| [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、错误显示](../../ui/kit/input.go) | 缺 inline token 和 auto_grow(min,max) 的最大行数控制；Rows 只设最小高度，旧表“最大可见行数”不成立。 |
+| [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、AutoGrow 行数范围、错误显示](../../ui/kit/input.go) | 第一百一十三批补齐 AutoGrow(min,max)，包含软换行、上限后内部滚动和删除后缩回；Rows 恢复旧模式。仍缺 inline token。 |
 | [Theme](https://gpui-kit.com/component/theme/) | 主体已有 | [语义配色、间距/字号/圆角/阴影刻度、浅深切换、注册与 JSON 主题、局部作用域、渐变、目录监听](../../ui/theme/registry.go) | 核心主题机制已完成；Keel 7 套内置（含 light/dark），GPUI 文档称 20+。Keel 渐变 JSON 为 from/to/angle，仅 Bg/Primary；GPUI 是可选背景 token 的 CSS 两色渐变，配置不兼容。 |
 | [TimeField](https://gpui-kit.com/component/time-field/) | 主体已有 | [时分秒、步进/进位、12/24 小时、Tab 与本地化](../../ui/kit/time_field.go) | 分段、时分秒、12/24 小时、键盘修改已完成；缺组件级尺寸档。本轮未重做真机键盘验收。 |
 | [TitleBar](https://gpui-kit.com/component/title-bar/) | 主体已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 自绘标题栏与窗口控制已实现；macOS 窗口初始居中已实测。标题栏全部系统行为及 Windows/Linux 真机验收仍待完成。 |

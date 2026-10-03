@@ -14,6 +14,7 @@ type InputView struct {
 	multiline, password, clearable bool
 	readOnly, disabled             bool
 	maxLen, rows                   int
+	minRows, maxRows               int
 	filter                         string
 	prefix, suffix                 el.View
 	onChange, onSubmit             func(string)
@@ -43,6 +44,17 @@ func (v *InputView) SetLabel(s string)                   { v.label = s }
 func (v *InputView) Rows(n int) *InputView {
 	if n > 0 {
 		v.rows = n
+		v.minRows, v.maxRows = 0, 0
+	}
+	return v
+}
+
+// AutoGrow sizes a TextArea between minRows and maxRows wrapped lines.
+// Additional content scrolls inside the field. Invalid ranges are ignored;
+// Rows restores the original minimum-height mode. Input ignores this option.
+func (v *InputView) AutoGrow(minRows, maxRows int) *InputView {
+	if minRows > 0 && maxRows >= minRows {
+		v.minRows, v.maxRows = minRows, maxRows
 	}
 	return v
 }
@@ -91,6 +103,9 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 					v.onChange(s)
 				}
 			})
+	}
+	if v.multiline && v.minRows > 0 {
+		text.MinH(el.Auto).AutoGrow(v.minRows, v.maxRows)
 	}
 	if v.password {
 		text.Password()

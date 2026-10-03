@@ -6,6 +6,7 @@
 search := kit.Input("搜索").Placeholder("客户或单号").Clearable().Prefix(searchIcon)
 price := kit.Input("单价").Filter("0123456789.").Suffix(yuan)
 note := kit.TextArea("备注").Rows(4)
+message := kit.TextArea("消息").AutoGrow(2, 8)
 ```
 
 - `Value()` / `SetValue`；`OnChange` 在每次编辑后调用，`OnSubmit` 在单行框按回车时调用。
@@ -20,3 +21,5 @@ Agent：角色 `textbox`，名字是标签（没有标签时是占位文字，�
 验证：`go run ./examples/components -section input`，加 `-theme dark` 检查深色。
 
 用户修改单行或多行输入后都会清除当前错误，便于重新校验；程序赋值不隐式清除服务端错误，禁用时输入也不会清除错误或触发回调。
+
+`AutoGrow(minRows, maxRows)` 按正文排版后的行数自动增高，包含软换行；超过上限后在编辑器内滚动，删除文字会缩回最小高度。行高随字体和显示缩放计算，不限制文本长度。参数必须满足 `minRows > 0` 且 `maxRows >= minRows`，非法参数忽略；两值相等可固定可见行数。`Rows(n)` 恢复原来的最小高度模式并取消 AutoGrow，单行 Input 忽略 AutoGrow。模式切换保留输入焦点与内容；长占位文字不参与自动增高。父级显式高度或空间约束仍优先。

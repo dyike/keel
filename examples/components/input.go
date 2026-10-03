@@ -17,7 +17,7 @@ func init() {
 		bad := kit.Input("邮箱 Email")
 		bad.SetValue("not-an-email")
 		bad.SetError("邮箱格式不正确")
-		note := kit.TextArea("备注").Placeholder("多行文字，回车换行").Rows(3)
+		note := kit.TextArea("备注").Placeholder("自动增高：2–6 行，超出后内部滚动").AutoGrow(2, 6)
 		off := kit.Input("只读")
 		off.SetValue("SO-1001")
 		off.SetReadOnly(true)
