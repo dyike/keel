@@ -38,7 +38,8 @@
 - [x] 第十五批（`7097862`）：Alert 的 Banner、四档 Size、Icon/IconNone 与 Content；支持 Markdown/操作按钮，横幅省略独立标题行并保留可访问名称。覆盖尺寸与窄布局、图标间距、正文操作/关闭隔离、祖先禁用、恢复与 Agent；浅深色截图已检查。
 - [x] 第十六批（`43206c1`）：GroupBox 增加 Normal/Fill/Outline 外观、框外 Footer、TitleStyle 与 ContentStyle；保留原 Surface 默认。正文保持稳定身份，覆盖外观切换、标题增删后的输入与焦点、1×/2× 窄布局、footer 交互及 Agent 样式隔离；浅深色截图已检查。
 - [x] 第十七批（`a715aad`）：Badge 的 Icon、Size、Color 与 Name；图标放右下角并加 Surface 边框，数字/圆点保持右上角且不改变子组件布局。自定义底色自动选择黑白前景。覆盖模式切换、零值、数字上限、1×/2×、子组件点击、Agent 与像素测试；浅深色截图已检查。
-- [x] 第十八批：Accordion 的 Bordered 与四档 Size；边框开关同时控制外框和分节线，尺寸统一调整间距、箭头和继承字号。保留默认字号继承及 Collapsible 原行为；覆盖 1×/2× 布局、状态保留、自定义标题、键盘跳过禁用项与 Agent 快照。全量构建、vet、测试通过，浅色 1×/深色 2× 截图已检查。
+- [x] 第十八批（`5c83f02`）：Accordion 的 Bordered 与四档 Size；边框开关同时控制外框和分节线，尺寸统一调整间距、箭头和继承字号。保留默认字号继承及 Collapsible 原行为；覆盖 1×/2× 布局、状态保留、自定义标题、键盘跳过禁用项与 Agent 快照。全量构建、vet、测试通过，浅色 1×/深色 2× 截图已检查。
+- [x] 第十九批：Spinner 的 Icon、VectorIcon 与 Color；圆环和自定义图标共享帧时钟与减少动画策略，可恢复默认圆环。像素测试覆盖旋转、静止、自定义颜色及恢复，Agent 语义保持不变；全量构建、vet、测试及浅色 1×/深色 2× 截图检查通过。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -122,7 +123,7 @@
 | [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动](../../ui/kit/sidebar.go) | 主体覆盖；缺右侧布局开关、自定义 item suffix/上下文菜单接口。已有 Badge 和固定 Header/Footer。 |
 | [Skeleton](https://gpui-kit.com/component/skeleton/) | 主体已有 | [占位形状、尺寸、加载展示](../../ui/kit/skeleton.go) | 主体覆盖；缺 secondary 色阶与任意圆角配置，当前圆形/圆角矩形和宽高可配。 |
 | [Slider](https://gpui-kit.com/component/slider/) | 主体已有 | [单值/双端范围、横纵向、线性/对数、步长、拖动/键盘与结束回调](../../ui/kit/slider.go) | 第十批已关闭对数刻度和 Release 缺口；无效对数范围回退线性，取消不回滚已有值。轨道/滑块颜色与大小仍使用统一样式，未提供逐项外观配置。 |
-| [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称](../../ui/kit/spinner.go) | 主体覆盖；缺自定义图标和颜色接口。 |
+| [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称、自定义图标与颜色](../../ui/kit/spinner.go) | 第十九批已关闭原登记的图标/颜色缺口；默认圆环与每秒一周保留。上游文档另提到速度配置，Keel 暂无速度接口。 |
 | [StatusBar](https://gpui-kit.com/component/status-bar/) | 主体已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | 左右内容与自定义 View 已覆盖；Keel 另有优先级溢出菜单，本轮未发现新的主要功能缺口。 |
 | [Stepper](https://gpui-kit.com/component/stepper/) | 主体已有 | [横纵步骤、图标/富内容、尺寸、导航、键盘、滚动与单步禁用](../../ui/kit/stepper.go) | 第六批已补齐 Vertical、Size、StepperItem 与 SetItemDisabled。此表登记缺口已关闭；导航仍限已完成步骤，GPUI 文档的文本居中布局未提供独立开关。 |
 | [Switch](https://gpui-kit.com/component/switch/) | 主体已有 | [布尔开关、标签、禁用与键盘](../../ui/kit/switch.go) | 布尔开关主体已有；缺大小/颜色/标签侧配置。当前无 Loading 接口，旧表误记；GPUI 此页也未将 loading 列为能力。 |
