@@ -36,6 +36,7 @@ type Notice struct {
 type notice struct {
 	Notice
 	id       int
+	key      string
 	revision uint64
 }
 

@@ -55,6 +55,11 @@ func (g *notifierGallery) Render(cx *el.Context) el.Element {
 		el.Div().Row().Wrap().Gap(8).Child(
 			kit.Button("默认右上角", func() { g.n.Placement(kit.NoticeTopRight) }).Render(cx),
 			kit.Button("默认底部居中", func() { g.n.Placement(kit.NoticeBottomCenter) }).Render(cx),
+			kit.Button("更新同一任务", func() {
+				g.count++
+				g.n.NotifyKey("download", kit.Notice{Title: "下载任务", Body: fmt.Sprintf("第 %d 次更新，始终只保留一条通知。", g.count), Timeout: -1})
+			}).Render(cx),
+			kit.Button("清除全部通知", func() { g.n.Clear() }).Variant(kit.ButtonGhost).Render(cx),
 		),
 		kit.Button("模拟后台更新", func() {
 			id := g.n.Notify(kit.Notice{Title: "正在同步", Timeout: -1})

@@ -59,3 +59,16 @@ id = n.Notify(kit.Notice{
 `Notice.OnClick` 在通知背景、标题或普通正文被点击时执行，不自动关闭通知。设置后增加一个以 Title 命名的 button 操作区域，支持 Tab 聚焦及 Enter/Space 激活，外层仍保留 status 语义。富内容和操作按钮独立处理各自点击，关闭按钮不会执行 OnClick。移除回调后恢复普通通知。
 
 `Notice.OnClose` 在通知从队列移除后同步执行一次，覆盖关闭按钮、超时、显式 Dismiss 和排队中取消；重复或未知 ID 不触发。回调可安全再次 Dismiss 同一 ID、更新其他通知或新增通知。Update 替换回调但不触发关闭；最终关闭使用最新回调。卸载 Notifier 不等同于 Dismiss，不触发 OnClose。回调运行在 UI 帧锁内，后台工作应异步执行，回写时用 core.Update。
+
+
+`NotifyKey(key, Notice)` 用业务字符串标识通知，作用域限当前 Notifier。重复发送同一非空 key 会原位替换，返回原 ID、保留队列位置并重启超时，不触发旧 OnClose。Notice 的正文、操作、回调和位置都会被新值替换。空 key 等同普通 Notify，每次新增。
+
+```go
+n.NotifyKey("download/report", kit.Notice{Title: "正在下载", Timeout: -1})
+n.NotifyKey("download/report", kit.Notice{Title: "下载完成", Tone: kit.ToneSuccess})
+n.DismissKey("download/report")
+```
+
+`Update(id, Notice)` 保留业务 key；`DismissKey(key)` 删除显示中或排队中的对应通知并返回是否找到，空 key 返回 false。删除后重新发送同一 key 会分配新 ID，旧超时不会影响新通知。不同业务应自行设置 key 前缀，避免同一容器内冲突；不使用 Rust 类型作为标识。
+
+`Clear()` 先移除调用时的全部通知，再按原队列顺序执行各自的 OnClose，返回移除数量。回调中新增的通知保留，除非后续回调显式删除它；重复清空不会重复通知已移除项。以上方法同样要求在 UI 帧锁内调用。当前只管理应用内通知，尚未接入系统通知中心。
