@@ -130,8 +130,14 @@ func (v *SelectView) buildRows() {
 	group := ""
 	query := strings.ToLower(v.query)
 	for i, option := range v.entries {
-		if v.searchable && query != "" && !strings.Contains(strings.ToLower(option.Label+" "+option.Value), query) {
-			continue
+		if v.searchable && query != "" {
+			matched := strings.Contains(strings.ToLower(option.Label+" "+option.Value), query)
+			if v.match != nil {
+				matched = v.match(option, v.query)
+			}
+			if !matched {
+				continue
+			}
 		}
 		if option.Group != "" && option.Group != group {
 			v.rows = append(v.rows, selectRow{index: -1, group: option.Group})
@@ -186,12 +192,20 @@ func (v *SelectView) optionKey(cx *el.Context, e el.KeyEvent) bool {
 func (v *SelectView) optionRow(cx *el.Context, i int) el.Element {
 	row := v.rows[i]
 	if row.index < 0 {
-		// Fill the 30dp slot and sit at its bottom, next to the group it names.
-		return el.Div().H(el.Dp(30)).Px(theme.SpaceLg).Pb(theme.SpaceXs).Justify(el.End).Child(el.Text(row.group).Bold().TextSize(theme.TextSm).TextColor(theme.Muted))
+		// Fill the group slot and sit at its bottom, next to the group it names.
+		return el.Div().H(el.Dp(v.optionHeight())).Px(theme.SpaceLg).Pb(theme.SpaceXs).Justify(el.End).Child(el.Text(row.group).Bold().TextSize(theme.TextSm).TextColor(theme.Muted))
 	}
 	option := v.entries[row.index]
 	selected := v.picked(option.Value)
-	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(28)).My(1).Mx(4).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).Focusable(false).Child(el.Text(option.Label).Grow().MaxLines(1), checkMark(cx, selected))
+	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(max(1, v.optionHeight()-2))).My(1).Mx(4).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).Focusable(false).TextSize(float32(theme.BodySize) * v.sizeRatio())
+	var content el.Element
+	if v.renderItem != nil {
+		content = v.renderItem(cx, SelectItemContext{Option: option, Index: row.index, Selected: selected, Active: i == v.active})
+	}
+	if content == nil {
+		content = el.Text(option.Label).MaxLines(1)
+	}
+	item.Child(el.Div().Grow().W(el.Dp(0)).Child(content), checkMark(cx, selected))
 	if selected {
 		item.Bg(theme.Highlight)
 	}
@@ -221,7 +235,14 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 	}
 	panel := floating(theme.ElevationMd).Role("listbox").Name(v.a11y()).Py(theme.SpaceXs).Items(el.Stretch)
 	_, height := cx.ViewportSize()
-	available := max(float32(1), min(float32(240), height-100))
+	limit := float32(240)
+	if v.menuHeight > 0 {
+		limit = max(64, v.menuHeight)
+	}
+	available := max(float32(1), min(limit, height-100)-2*theme.SpaceXs-2)
+	if v.menuWidth > 0 {
+		panel.W(el.Dp(v.menuWidth))
+	}
 	if v.searchable {
 		available = max(1, available-40)
 		panel.Child(el.Div().Px(theme.SpaceXs).Pb(theme.SpaceXs).Child(searchField(cx, id+"/searchbox", id+"/search", el.Input().ID(id+"/search").Name(locale.Current().Search).Placeholder(locale.Current().Search).Bind(&v.query).
@@ -241,10 +262,17 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 				return true
 			}))))
 	}
-	v.virtual.Height(min(available, max(30, float32(len(v.rows))*30)))
+	v.virtual.rowH = v.optionHeight()
+	v.virtual.Height(min(available, max(v.optionHeight(), float32(len(v.rows))*v.optionHeight())))
 	options := el.Div().ID(id + "/options").Focusable(true).Items(el.Stretch).OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) })
 	if len(v.rows) == 0 {
-		options.Child(el.Div().Px(theme.SpaceLg).Py(theme.SpaceSm).Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted)))
+		empty := el.Div().MaxH(el.Dp(available)).ScrollY().Px(theme.SpaceLg).Py(theme.SpaceSm)
+		if v.empty != nil {
+			empty.Child(v.empty.Render(cx))
+		} else {
+			empty.Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted))
+		}
+		options.Child(empty)
 	} else {
 		options.Child(v.virtual.Render(cx))
 	}

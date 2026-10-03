@@ -9,8 +9,13 @@ import (
 
 func init() {
 	registerSection("select", "inputs", func() core.Widget {
-		status := kit.Select("状态", "待付款", "已付款", "已发货", "已完成")
+		status := kit.Select("状态", "待付款", "已付款", "已发货", "已完成").Clearable(true).TitlePrefix("状态：")
 		city := kit.Select("城市 City", "北京", "上海", "广州", "深圳", "杭州", "成都", "Chicago").Searchable()
+		city.Clearable(true).MenuWidth(360).MenuMaxHeight(200).RowHeight(40).
+			RenderItem(func(cx *el.Context, row kit.SelectItemContext) el.Element {
+				return el.Div().Row().Gap(8).Child(kit.Icon(kit.IconInfo).Size(16).Render(cx), el.Text(row.Option.Label), el.Text(row.Option.Value))
+			}).
+			Empty(el.ViewFunc(func(*el.Context) el.Element { return el.Text("没有匹配城市，试试北京或 Chicago") }))
 		city.SetEntries(kit.SelectOption{Value: "bj", Label: "北京", Group: "中国"}, kit.SelectOption{Value: "sh", Label: "上海（暂不可用）", Group: "中国", Disabled: true}, kit.SelectOption{Value: "sz", Label: "深圳", Group: "中国"}, kit.SelectOption{Value: "chi", Label: "Chicago", Group: "美国"})
 		multiple := kit.Select("多选 · 一万条选项").Multiple().Searchable()
 		entries := make([]kit.SelectOption, 10000)

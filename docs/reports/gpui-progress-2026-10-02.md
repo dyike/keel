@@ -259,7 +259,9 @@
 
 - [x] 第一百五十三批（`fd0b4f6`）：新增 StatusMarker，集中补齐消息状态行用途：Plain/Separator/Border、Start/Center/End、图标和富内容/直接子项、Spinner/Shimmer、分区样式、ID/Role。el 新增可继承 TextAlign，使普通文字和扫光文字使用相同行内对齐。测试覆盖 1×/2× 分隔线位置和窄布局、加载/样式切换保留输入焦点、子操作及禁用继承，浅深色虚拟窗口验证文字/富内容动画、减少动画和 Agent。全仓构建、UI/native vet、全量测试通过；真机未验收。
 
-- [x] 第一百五十四批：新增 ui/plot 公共比例尺与绘图基础件，集中补齐 Plot 的用途缺口。提供 Linear/Band/Point/Ordinal、正负分离 Stack、保留源索引的 Pie，以及裁剪画布上的 Bar/Line/Area/Arc/Axis/Dot/CrossLine；支持反向比例尺、条带间距、线曲线/点和四方向轴。示例组合正负堆叠柱、趋势线、参考线与环图。测试覆盖极值/常量/反向映射、分类副本与未知项、堆叠溢出、饼图角度守恒、浅深底色像素、原点平移/裁剪、环孔及非法几何。新增模块依赖规则和架构说明；全仓构建、UI/native vet、全量测试通过，真机未验收。
+- [x] 第一百五十四批（`c177f1a`）：新增 ui/plot 公共比例尺与绘图基础件，集中补齐 Plot 的用途缺口。提供 Linear/Band/Point/Ordinal、正负分离 Stack、保留源索引的 Pie，以及裁剪画布上的 Bar/Line/Area/Arc/Axis/Dot/CrossLine；支持反向比例尺、条带间距、线曲线/点和四方向轴。示例组合正负堆叠柱、趋势线、参考线与环图。测试覆盖极值/常量/反向映射、分类副本与未知项、堆叠溢出、饼图角度守恒、浅深底色像素、原点平移/裁剪、环孔及非法几何。新增模块依赖规则和架构说明；全仓构建、UI/native vet、全量测试通过，真机未验收。
+
+- [x] 第一百五十五批：集中补齐 Select 的 RenderItem/RenderValue、Empty、TitlePrefix、Clearable、MenuWidth/MenuMaxHeight，并补 Match、Size、RowHeight、Appearance。清空与打开菜单分开命中，清空先更新状态再发回调，关闭后焦点回字段；自定义匹配可使缓存失效，选项/已选展示使用副本，保留虚拟化。测试覆盖单/多选清空、禁用继承、焦点恢复、万条自定义行、搜索/空内容、显示副本和浅深色菜单尺寸/Agent；全仓构建、UI/native vet、全量测试通过，真机未验收。
 
 ## 当前实施清单
 
@@ -335,7 +337,7 @@
 | [Resizable](https://gpui-kit.com/component/resizable/) | 主体已有 | [双面板](../../ui/kit/resizable.go)、[独立多面板组、尺寸范围、显隐、拖动/键盘和状态查询](../../ui/kit/resizable_group.go) | 第八十八至九十批补齐双面板 Max、Visible、HandleAppearance。第九十一批新增 ResizableGroup，按稳定 ID 配置/重排，支持相邻调整、逐项范围/显隐、尺寸读写和回调，登记的主体缺口已关闭。空间分配从末端吸收余量，最小尺寸不足时按比例压缩；把手动画未对齐上游主题运动 token/透明度渐变，不表示所有 API/视觉一致。 |
 | [Root View](https://gpui-kit.com/component/root/) | 主体已有 | [根布局、统一浮层宿主、窗口快捷键](../../ui/el/root.go) | 架构差异：Keel 已有 root/overlay/focus/shortcut；Dialog/Sheet/Notifier 需应用挂载，GPUI 0.7 根视图自动挂载这些层。 |
 | [Scrollable](https://gpui-kit.com/component/scrollable/) | 主体已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位与尾部跟随](../../ui/el/viewport.go) | 双轴滚动、滚动条与定位已有，通过 el 组合；缺组件级 Always/Hover/Scrolling 显示策略。没有独立类型本身不计功能缺失。 |
-| [Select](https://gpui-kit.com/component/select/) | 主体已有 | [过滤、分组、多选、禁用项、万条虚拟化](../../ui/kit/select.go) | 单选主体覆盖，另有多选；缺自定义行/空内容/标题前缀、清空按钮与菜单宽高配置。分组、禁用项已实现。 |
+| [Select](https://gpui-kit.com/component/select/) | 主体已有 | [过滤/自定义匹配、分组、多选、富选项/已选展示、清空和菜单配置](../../ui/kit/select.go) | 第一百五十五批补齐登记的展示和菜单缺口，另补 Size/RowHeight/Appearance。自定义行按统一高度虚拟化，内容限展示；Agent 值保持存储值，不随自定义展示或标题前缀变化。高度预算含搜索/留白/边框，受窗口可用空间约束；配置为 dp 而非上游统一尺寸枚举。浅深色虚拟窗口及 Agent 已验，真机未验收。 |
 | [Settings](https://gpui-kit.com/component/settings/) | 主体已有 | [多页面/多分组、重置、页尾、关键词、富描述、自定义行与禁用](../../ui/kit/settings.go) | 第一百四十一批关闭登记主要缺口。Markdown 通过 DescriptionContent 组合，搜索文本由 Description 提供；默认值由 Reset 回调维护。尺寸使用 RowSpacing 和控件自身配置，未提供 GPUI 四档统一 Size；导航仅到页面，不含分组导航。接口与默认外观不完全相同，真机视觉未验收。 |
 | [Sheet](https://gpui-kit.com/component/sheet/) | 主体已有 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 第五十一批补齐独立 Footer 及 Keyboard/Overlay/OverlayClosable/CloseButton。第五十二批补齐 MarginTop 及动画裁剪。第五十三批补齐 PanelStyle 面板样式。第五十四批补齐四方向拖动调整尺寸及回调；当前登记缺口已关闭。把手默认开启，用户最小尺寸 80dp，最大为可用窗口尺寸，支持键盘和取消恢复；不表示各平台真机验收完成。 |
 | [Shimmer](https://gpui-kit.com/component/shimmer/) | 主体已有 | [可读文字扫光、周期、宽度、反向、单次、重播、减少动画](../../ui/kit/shimmer_text.go) | 第六十五批新增独立 ShimmerText；文字保持字体/字重/行高与截断，单次结束恢复普通文字。默认 2 秒、半宽 0.3、主题 PrimaryText 高光，支持自定义配色。彩色位图字形保留原色，不参与高光着色。 |

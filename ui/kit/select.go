@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"image/color"
 	"strings"
 
 	"gioui.org/io/key"
@@ -15,22 +16,29 @@ import (
 // and focus returns to the field. Searchable adds a filter box on top; ↓
 // moves from it into the list.
 type SelectView struct {
-	name                     string // accessible name from a Form row when label is empty
-	label, hint, value, err  string
-	entries                  []SelectOption
-	rows                     []selectRow
-	virtual                  *VirtualListView
-	active                   int
-	multiple, cached         bool
-	values                   map[string]bool
-	onValues                 func([]string)
-	revision, cachedRevision uint64
-	cachedQuery              string
-	open, searchable         bool
-	disabled                 bool
-	query                    string
-	onChange                 func(string)
-	typeahead                base.Typeahead
+	renderItem                               func(*el.Context, SelectItemContext) el.Element
+	renderValue                              func(*el.Context, []SelectOption) el.Element
+	empty                                    el.View
+	titlePrefix                              string
+	clearable, plain                         bool
+	menuWidth, menuHeight, height, rowHeight float32
+	match                                    func(SelectOption, string) bool
+	name                                     string // accessible name from a Form row when label is empty
+	label, hint, value, err                  string
+	entries                                  []SelectOption
+	rows                                     []selectRow
+	virtual                                  *VirtualListView
+	active                                   int
+	multiple, cached                         bool
+	values                                   map[string]bool
+	onValues                                 func([]string)
+	revision, cachedRevision                 uint64
+	cachedQuery                              string
+	open, searchable                         bool
+	disabled                                 bool
+	query                                    string
+	onChange                                 func(string)
+	typeahead                                base.Typeahead
 }
 
 func Select(label string, options ...string) *SelectView {
@@ -84,6 +92,7 @@ func (v *SelectView) setOpen(cx *el.Context, open bool) {
 	if v.disabled {
 		return
 	}
+	v.virtual.rowH = v.optionHeight()
 	v.open, v.query = open, ""
 	if !open {
 		return
@@ -152,16 +161,25 @@ func (v *SelectView) Render(cx *el.Context) el.Element {
 			name = locale.Current().SelectHint
 		}
 	}
-	shown, color := v.shownValue(), theme.Text
+	shown, textColor := v.shownValue(), theme.Text
 	if shown == "" {
-		shown, color = v.hint, theme.Muted
+		shown, textColor = v.hint, theme.Muted
 		if shown == "" {
 			shown = locale.Current().SelectHint
 		}
 	}
-	field := fieldFrame(id, false, v.err != "", v.disabled, false).Role("select").Name(name).Value(strings.Join(v.Values(), ", ")).
-		Focusable(true).OnClick(func() { v.setOpen(cx, !v.open) }).
-		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
+	ratio := v.sizeRatio()
+	field := fieldFrame(id+"/frame", cx.FocusWithin(id), v.err != "", v.disabled, false).
+		MinH(el.Dp(float32(theme.ControlHeight) * ratio)).Px(10 * ratio).Py(theme.SpaceXs * ratio).Gap(theme.SpaceMd * ratio)
+	if v.height > 0 {
+		field.TextSize(float32(theme.BodySize) * ratio)
+	}
+	if v.plain {
+		field.Bg(color.NRGBA{}).Border(0, color.NRGBA{})
+	}
+	trigger := el.Div().ID(id).Role("select").Name(name).Value(strings.Join(v.Values(), ", ")).
+		Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(theme.SpaceSm).Focusable(true).
+		OnClick(func() { v.setOpen(cx, !v.open) }).
 		OnKey(func(e el.KeyEvent) bool {
 			if key.Name(e.Name) != key.NameDownArrow {
 				return false
@@ -170,16 +188,43 @@ func (v *SelectView) Render(cx *el.Context) el.Element {
 				v.setOpen(cx, true)
 			}
 			return true
-		}).
-		Child(el.Text(shown).TextColor(color).Grow().MaxLines(1), Icon(IconChevronDown).Size(16).Color(theme.Muted).Render(cx))
+		})
+	var display el.Element
+	if v.value != "" && v.renderValue != nil {
+		var selection []SelectOption
+		for _, entry := range v.entries {
+			if v.picked(entry.Value) {
+				selection = append(selection, entry)
+			}
+		}
+		if len(selection) > 0 {
+			display = v.renderValue(cx, selection)
+		}
+	}
+	if display == nil {
+		display = el.Text(shown).TextColor(textColor).MaxLines(1)
+	}
+	if v.value != "" && v.titlePrefix != "" {
+		trigger.Child(el.Text(v.titlePrefix).MaxW(el.Frac(.5)).MaxLines(1))
+	}
+	trigger.Child(el.Div().Grow().W(el.Dp(0)).Child(display), Icon(IconChevronDown).Size(16*ratio).Color(theme.Muted).Render(cx))
+	field.Child(trigger)
+	if v.clearable && len(v.Values()) > 0 {
+		clear := Button("", func() { cx.Focus(id); v.clearSelection() }).ID(id + "/clear").Name(locale.Current().Name(locale.Current().Clear, name)).Icon(IconClose).Variant(ButtonGhost).Size(24 * ratio)
+		field.Child(clear.Render(cx))
+	}
+
 	if v.disabled {
 		field.TextColor(theme.Muted)
 	} else {
 		field.CursorPointer()
 	}
 	if v.open {
-		cx.Overlay(id, el.Anchored(id, v.list(cx, id)).MatchAnchorWidth().Modal().TrapFocus().
-			OnDismiss(func() { v.open, v.query = false, "" }))
+		layer := el.Anchored(id+"/frame", v.list(cx, id)).Modal().TrapFocus().OnDismiss(func() { v.open, v.query = false, "" })
+		if v.menuWidth == 0 {
+			layer.MatchAnchorWidth()
+		}
+		cx.Overlay(id, layer)
 	}
 	return labelled(v.label, field, v.err)
 }
@@ -197,4 +242,17 @@ func (v *SelectView) a11y() string {
 		return v.label
 	}
 	return v.name
+}
+
+func (v *SelectView) sizeRatio() float32 {
+	if v.height > 0 {
+		return v.height / float32(theme.ControlHeight)
+	}
+	return 1
+}
+func (v *SelectView) optionHeight() float32 {
+	if v.rowHeight > 0 {
+		return v.rowHeight
+	}
+	return 30 * v.sizeRatio()
 }
