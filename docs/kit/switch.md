@@ -20,4 +20,6 @@ Agent：角色 `switch`，`checked` 表示开关状态。
 notify.Size(kit.SwitchSmall).LabelSide(el.Left).Color(theme.Success)
 ```
 
-滑块当前立即切换位置；动画、独立焦点环开关和 Tab 顺序配置仍待补齐。Tooltip 可通过外部组合提供。
+独立焦点环开关和 Tab 顺序配置仍待补齐。Tooltip 可通过外部组合提供。
+
+滑块位置使用 180ms 平滑过渡（`kit.SwitchDuration`），快速反向切换从当前显示位置衔接。首次显示和减少动画时直接显示目标位置；轨道颜色、Value、回调和 Agent checked 状态立即更新。动画使用帧时钟，不创建定时器；禁用不改变已有值，程序 SetValue 仍可更新并触发位置过渡。

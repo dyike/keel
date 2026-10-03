@@ -4,7 +4,11 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 	"image/color"
+	"time"
 )
+
+// SwitchDuration is the duration of a thumb position transition.
+const SwitchDuration = 180 * time.Millisecond
 
 type SwitchSize uint8
 
@@ -23,6 +27,7 @@ type SwitchView struct {
 	size            SwitchSize
 	color           *color.NRGBA
 	labelLeft       bool
+	motion          valueMotion
 }
 
 func Switch(label string, on bool) *SwitchView           { return &SwitchView{label: label, value: on} }
@@ -70,14 +75,17 @@ func (v *SwitchView) Render(cx *el.Context) el.Element {
 	if v.size == SwitchSmall {
 		width, height, knobSize = 28, 16, 12
 	}
-	knob := el.Div().Size(el.Dp(knobSize)).Rounded(theme.RadiusFull).Bg(theme.Surface)
+	target := float32(0)
+	if v.value {
+		target = 1
+	}
+	position := v.motion.sample(cx, target, SwitchDuration)
+	knob := el.Div().NoShrink().Size(el.Dp(knobSize)).Rounded(theme.RadiusFull).Bg(theme.Surface)
 	if v.disabled {
 		knob.Bg(theme.Border)
 	}
-	body := el.Div().ID("track").W(el.Dp(width)).H(el.Dp(height)).NoShrink().Rounded(theme.RadiusFull).Bg(track).Px(theme.SpaceXxs).Row().Items(el.Center).Child(knob)
-	if v.value {
-		body.Justify(el.End)
-	}
+	spacer := el.Div().W(el.Dp(max(0, width-knobSize-2*theme.SpaceXxs) * position)).NoShrink()
+	body := el.Div().ID("track").W(el.Dp(width)).H(el.Dp(height)).NoShrink().Rounded(theme.RadiusFull).Bg(track).Px(theme.SpaceXxs).Row().Items(el.Center).Child(spacer, knob)
 	return checkLabelSide(autoID("switch", v), "switch", v.label, v.name, v.value, v.disabled, body, func() {
 		v.value = !v.value
 		if v.onChange != nil {
