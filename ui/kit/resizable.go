@@ -9,7 +9,6 @@ import (
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
-	"github.com/dyike/keel/ui/theme"
 )
 
 // ResizableView puts two panes side by side (or stacked with Vertical) with a
@@ -28,6 +27,9 @@ type ResizableView struct {
 	total, painted            float32 // container and first pane size as last painted
 	grab                      float32
 	onChange                  func(float32)
+	handleAppearance          func(ResizableHandleAppearance) ResizableHandleAppearance
+	handleMotion              valueMotion
+	pressed, dragging         bool
 }
 
 func Resizable(first, second el.View) *ResizableView {
@@ -109,14 +111,26 @@ func (v *ResizableView) Render(cx *el.Context) el.Element {
 	if v.vertical {
 		cursor = pointer.CursorRowResize
 	}
-	handle := el.Div().Role("separator").Name(locale.Current().Resize).Value(strconv.Itoa(int(v.size))).
-		NoShrink().Bg(theme.Border).Cursor(cursor).Focusable(true).
-		FocusStyle(func(s *el.Style) { s.Bg(theme.Primary).BorderColor(theme.Primary) }).
-		Hover(func(s *el.Style) { s.Bg(theme.Primary) }).
+	handleID := autoID("resizable", v) + "/handle"
+	if v.disabled || v.hiddenFirst || v.hiddenSecond || !cx.Enabled(handleID) {
+		v.pressed, v.dragging = false, false
+	}
+	handle := el.Div().ID(handleID).Role("separator").Name(locale.Current().Resize).Value(strconv.Itoa(int(v.size))).
+		NoShrink().Cursor(cursor).Focusable(true).
 		OnDrag(func(e el.DragEvent) {
 			if e.Kind == el.DragStart {
 				v.grab = along(e)
+				v.pressed, v.dragging = true, false
 				return
+			}
+			if e.Kind == el.DragEnd {
+				v.pressed, v.dragging = false, false
+				if e.Canceled {
+					return
+				}
+			}
+			if e.Kind == el.DragMove && along(e) != v.grab {
+				v.dragging = true
 			}
 			// The handle sits where the last paint put it, so the new size
 			// is that size plus how far the pointer moved inside it.
@@ -141,6 +155,7 @@ func (v *ResizableView) Render(cx *el.Context) el.Element {
 			}
 			return ok
 		})
+	v.decorateHandle(cx, handleID, handle)
 	one := el.Div().NoShrink().Items(el.Stretch)
 	two := el.Div().Grow().Items(el.Stretch)
 	box := el.Div().Disabled(v.disabled).Items(el.Stretch).Grow()
