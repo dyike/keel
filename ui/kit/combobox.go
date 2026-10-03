@@ -44,6 +44,7 @@ type ComboboxView struct {
 	displayRows                          []comboboxDisplayRow
 	optionRows                           []int
 	open, allowCustom, disabled, focused bool
+	nonsearchable                        bool
 	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
 }
@@ -128,6 +129,10 @@ func (v *ComboboxView) offered(s string) bool { _, ok := v.inputValue(s); return
 
 // settle handles leaving the field or pressing Enter with no match.
 func (v *ComboboxView) settle() {
+	if v.nonsearchable {
+		v.cancelDraft()
+		return
+	}
 	if v.loading || v.searchError != "" {
 		v.cancelDraft()
 		return
@@ -207,7 +212,11 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 		}
 		field.MinW(el.Dp(100))
 	}
-	box.Child(field)
+	var fieldView el.Element = field
+	if v.nonsearchable {
+		fieldView = v.staticTrigger(cx)
+	}
+	box.Child(fieldView)
 	if v.clearable && len(v.Values()) > 0 {
 		clear := Button("", func() { cx.Focus(v.FocusID()); v.clearSelection() }).ID(id + "/clear").Name(locale.Current().Name(locale.Current().Clear, v.a11y())).Icon(IconClose).Variant(ButtonGhost).Size(24 * ratio)
 		clear.SetDisabled(v.disabled)

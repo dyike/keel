@@ -85,7 +85,11 @@ func (v *ComboboxView) searchChanged() {
 	v.searchError = ""
 	v.loading = v.onSearch != nil
 	if v.onSearch != nil {
-		v.onSearch(v.text, v.request)
+		query := v.text
+		if v.nonsearchable {
+			query = ""
+		}
+		v.onSearch(query, v.request)
 	}
 }
 func (v *ComboboxView) SetResults(token uint64, options ...string) bool {
@@ -206,7 +210,7 @@ func (v *ComboboxView) suggestions(cx *el.Context, id string) el.Element {
 type comboboxBlurKey struct{ id string }
 
 func (v *ComboboxView) filteredMatches() []string {
-	if v.onSearch != nil {
+	if v.onSearch != nil || v.nonsearchable {
 		return v.options
 	}
 	q := strings.ToLower(strings.TrimSpace(v.text))

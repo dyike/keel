@@ -65,3 +65,8 @@ footer 最多占窗口扣除 80dp 后高度的三分之一，超高内容在自�
 `SetGroups(...ComboboxGroup)` 设置有序分组，每组包含稳定 ID、Label 和 Items；空 ID 忽略，空 Label 使用 ID，重复组 ID 和跨组重复候选值均保留首项。输入切片复制，选择不清除。组标题只展示，不参与选择；无候选的组和搜索后无匹配项的组自动隐藏。搜索匹配候选名称和值，不匹配组标题。
 
 `SetGroupResults(token, groups...)` 提交异步分组结果，仍校验请求 token；SetItems/SetOptions 及其异步入口恢复无分组模式。组标题和候选均在虚拟列表内，使用同一 RowHeight；键盘跳过标题及禁用项，滚动定位包含标题占用空间。标题随内容滚动，不固定在顶部。自定义 RenderItem 只处理候选正文。
+
+
+`Searchable(false)` 用只选择的按钮替换输入框，默认 Searchable(true)。点击或 Enter 打开，方向键导航、Enter／Space 确认高亮候选，Esc 关闭；多选仍可切换候选并移除标签。输入文字不会更改查询，候选不做本地过滤，AllowCustom 在此模式下不生效。
+
+切换模式关闭弹层、丢弃草稿并使旧异步请求失效，保留已选值；重复设置相同模式不改变状态。无搜索模式打开或重试时，OnSearch 收到空查询，返回结果仍受 token 校验；恢复 Searchable(true) 后重新显示输入框。清空按钮、footer、自定义候选和分组继续可用。
