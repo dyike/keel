@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"image/color"
 	"math"
 	"math/big"
 	"strconv"
@@ -45,6 +46,8 @@ type NumberInputView struct {
 	stepBy            func(float64, NumberStepAction) float64
 	prefix, suffix    el.View
 	onStep            func(NumberStepEvent)
+	height            float32
+	plain             bool
 }
 
 func NumberInput(label string) *NumberInputView {
@@ -52,6 +55,20 @@ func NumberInput(label string) *NumberInputView {
 	v.text = v.format(0)
 	return v
 }
+
+// Size sets the minimum field height in dp and scales its typography and
+// step buttons together. Recommended heights are 28, 36 and 48. Zero restores
+// theme.ControlHeight and inherited typography; invalid values are ignored.
+func (v *NumberInputView) Size(dp float32) *NumberInputView {
+	if dp >= 0 && finiteNumber(float64(dp)) {
+		v.height = dp
+	}
+	return v
+}
+
+// Appearance disables/enables the default background, border, rounding and
+// padding. It preserves the configured minimum height and keyboard behavior.
+func (v *NumberInputView) Appearance(on bool) *NumberInputView { v.plain = !on; return v }
 
 // Range limits the value to [min, max].
 func (v *NumberInputView) Range(min, max float64) *NumberInputView {
@@ -244,10 +261,17 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 	} else {
 		v.focused = focused
 	}
+	height := float32(theme.ControlHeight)
+	if v.height > 0 {
+		height = v.height
+	}
+	ratio := height / float32(theme.ControlHeight)
+	buttonHeight := max(1, height-8*ratio)
+	padding := 3 * ratio
 	text := locale.Current()
 	step := func(count int64) func() { return func() { v.move(count) } }
-	minus := Button("", step(-1)).ID(id + "/decrease").Name(text.Name(text.Decrease, v.a11y())).Icon(IconMinus).Variant(ButtonGhost).Size(28)
-	plus := Button("", step(1)).ID(id + "/increase").Name(text.Name(text.Increase, v.a11y())).Icon(IconPlus).Variant(ButtonGhost).Size(28)
+	minus := Button("", step(-1)).ID(id + "/decrease").Name(text.Name(text.Decrease, v.a11y())).Icon(IconMinus).Variant(ButtonGhost).Size(buttonHeight)
+	plus := Button("", step(1)).ID(id + "/increase").Name(text.Name(text.Increase, v.a11y())).Icon(IconPlus).Variant(ButtonGhost).Size(buttonHeight)
 	draft := v.draftValue()
 	minus.SetDisabled(v.disabled || draft <= v.lo)
 	plus.SetDisabled(v.disabled || draft >= v.hi)
@@ -264,10 +288,15 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 			}
 			return true
 		})
-	// The 28dp step buttons sit near the edges: 3dp around them keeps the
-	// frame at theme.ControlHeight.
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(theme.SpaceXs).P(3).
+	// Keep the text and stable step-button identities while changing appearance.
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(theme.SpaceXs * ratio).P(padding).MinH(el.Dp(height)).
 		Child(minus.Render(cx))
+	if v.height > 0 {
+		box.TextSize(float32(theme.BodySize) * ratio)
+	}
+	if v.plain {
+		box.Bg(color.NRGBA{}).Border(0, color.NRGBA{}).Rounded(0).P(0)
+	}
 	if v.prefix != nil {
 		box.Child(el.Div().ID(id + "/prefix").Child(v.prefix.Render(cx)))
 	}
