@@ -171,21 +171,28 @@ func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
 }
 func (v *ComboboxView) suggestions(cx *el.Context, id string) el.Element {
 	list := floating(theme.ElevationMd).ID(id + "/list").Role("listbox").Name(v.a11y()).Py(theme.SpaceXs).Items(el.Stretch)
+	_, height := cx.ViewportSize()
+	footer, reserve := v.renderFooter(cx, id, height)
+	available := max(1, height-80-reserve)
+	body := el.Div().ID(id + "/results").Items(el.Stretch).MaxH(el.Dp(available)).ScrollY()
 	switch {
 	case v.loading:
-		list.Child(el.Div().P(theme.SpaceLg).Row().Gap(theme.SpaceMd).Child(Spinner().Render(cx), el.Text(locale.Current().Loading)))
+		body.Child(el.Div().P(theme.SpaceLg).Row().Gap(theme.SpaceMd).Child(Spinner().Render(cx), el.Text(locale.Current().Loading)))
 	case v.searchError != "":
-		list.Child(el.Div().P(theme.SpaceLg).Gap(theme.SpaceMd).Child(el.Text(v.searchError).TextColor(theme.Danger), Button(locale.Current().Retry, v.searchChanged).Render(cx)))
+		body.Child(el.Div().P(theme.SpaceLg).Gap(theme.SpaceMd).Child(el.Text(v.searchError).TextColor(theme.Danger), Button(locale.Current().Retry, v.searchChanged).Render(cx)))
 	default:
 		matches := v.matches()
 		if len(matches) == 0 {
-			list.Child(el.Div().Px(theme.SpaceLg).Py(theme.SpaceSm).Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted)))
+			body.Child(el.Div().Px(theme.SpaceLg).Py(theme.SpaceSm).Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted)))
 		} else {
-			_, height := cx.ViewportSize()
 			v.virtual.SetCount(len(matches))
-			v.virtual.Height(min(max(1, min(240, height-80)), float32(len(matches))*30))
-			list.Child(v.virtual.Render(cx))
+			v.virtual.Height(min(min(240, available), float32(len(matches))*30))
+			body.Child(v.virtual.Render(cx))
 		}
+	}
+	list.Child(body)
+	if footer != nil {
+		list.Child(footer)
 	}
 	return list
 }

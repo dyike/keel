@@ -29,6 +29,9 @@ type ComboboxView struct {
 	label, placeholder, text, value, err string
 	options                              []string
 	disabledOptions                      map[string]bool
+	footer                               el.View
+	footerHeight                         float32
+	footerMeasured                       bool
 	open, allowCustom, disabled, focused bool
 	active                               int // highlighted match while open, -1 none
 	onChange                             func(string)
