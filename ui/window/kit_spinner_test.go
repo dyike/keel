@@ -80,3 +80,49 @@ func TestSpinnerFrameTimeAndReducedMotion(t *testing.T) {
 		t.Fatal(e)
 	}
 }
+
+func TestSpinnerRotationPeriod(t *testing.T) {
+	old := theme.ReducedMotion
+	core.Update(func() { theme.SetReducedMotion(false) })
+	defer core.Update(func() { theme.SetReducedMotion(old) })
+	for _, icon := range []kit.IconName{kit.IconNone, kit.IconClock} {
+		spinner := kit.Spinner().Icon(icon).Size(32).Label("").Period(2 * time.Second)
+		now := time.Unix(1000, 0)
+		root := el.Embed(spinner)
+		w := openTest(t, Options{Content: core.Func(func(gtx core.C) core.D { gtx.Now = now; return root.Layout(gtx) })})
+		capture := func() []byte {
+			t.Helper()
+			b, err := w.screenshot()
+			if err != nil {
+				t.Fatal(err)
+			}
+			return b
+		}
+		start := capture()
+		now = now.Add(time.Second)
+		halfway := capture()
+		if bytes.Equal(start, halfway) {
+			t.Fatal("two-second rotation finished too early", icon)
+		}
+		now = now.Add(time.Second)
+		if !bytes.Equal(start, capture()) {
+			t.Fatal("rotation did not repeat", icon)
+		}
+		core.Update(func() { spinner.Period(-time.Second) })
+		now = now.Add(time.Second)
+		if !bytes.Equal(halfway, capture()) {
+			t.Fatal("negative period changed speed", icon)
+		}
+		core.Update(func() { spinner.Period(0) })
+		if !bytes.Equal(start, capture()) {
+			t.Fatal("default period not restored", icon)
+		}
+		core.Update(func() { spinner.Period(2 * time.Second); theme.SetReducedMotion(true) })
+		still := capture()
+		now = now.Add(500 * time.Millisecond)
+		if !bytes.Equal(still, capture()) {
+			t.Fatal("custom period ignored reduced motion", icon)
+		}
+		core.Update(func() { theme.SetReducedMotion(false) })
+	}
+}

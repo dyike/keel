@@ -21,6 +21,7 @@ type SpinnerView struct {
 	labelSet bool
 	icon     *giowidget.Icon
 	color    *color.NRGBA
+	period   time.Duration
 }
 
 // Spinner shows an indeterminate progress ring labelled with the locale's
@@ -42,6 +43,15 @@ func (v *SpinnerView) VectorIcon(icon *giowidget.Icon) *SpinnerView { v.icon = i
 
 // Color changes the graphic color, leaving the label in the theme's muted color.
 func (v *SpinnerView) Color(c color.NRGBA) *SpinnerView { v.color = &c; return v }
+
+// Period sets the duration of one rotation. Zero restores one second;
+// negative durations are ignored. Reduced motion always keeps the graphic still.
+func (v *SpinnerView) Period(d time.Duration) *SpinnerView {
+	if d >= 0 {
+		v.period = d
+	}
+	return v
+}
 func (v *SpinnerView) Render(cx *el.Context) el.Element {
 	label := v.label
 	if !v.labelSet {
@@ -51,7 +61,7 @@ func (v *SpinnerView) Render(cx *el.Context) el.Element {
 	if v.color != nil {
 		c = *v.color
 	}
-	ring := spinnerGraphic(cx, v.size, c, v.icon)
+	ring := spinnerGraphic(cx, v.size, c, v.icon, v.period)
 	box := el.Div().Role("progressbar").Name(label).Value("indeterminate").Row().Items(el.Center).Gap(theme.SpaceMd).Child(ring)
 	if label != "" {
 		box.Child(el.Text(label).TextColor(theme.Muted))
@@ -61,13 +71,16 @@ func (v *SpinnerView) Render(cx *el.Context) el.Element {
 
 // spinnerRing is shared by Spinner and loading controls without adding semantics.
 func spinnerRing(cx *el.Context, size float32, c color.NRGBA) el.Element {
-	return spinnerGraphic(cx, size, c, nil)
+	return spinnerGraphic(cx, size, c, nil, time.Second)
 }
 
-func spinnerGraphic(cx *el.Context, size float32, c color.NRGBA, icon *giowidget.Icon) el.Element {
+func spinnerGraphic(cx *el.Context, size float32, c color.NRGBA, icon *giowidget.Icon, period time.Duration) el.Element {
+	if period <= 0 {
+		period = time.Second
+	}
 	phase := float32(0)
 	if !el.ReducedMotion() {
-		phase = float32(cx.Now().UnixNano()%int64(time.Second)) / float32(time.Second)
+		phase = float32(cx.Now().UnixNano()%int64(period)) / float32(period)
 		cx.Animating()
 	}
 	return el.Widget(core.Func(func(gtx core.C) core.D {
