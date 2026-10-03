@@ -63,7 +63,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 - [AvatarGroup](kit/avatar_group.md)：叠放头像组、人数上限与溢出标记。
 - [Tag](kit/tag.md)：可选择/移除标签，支持描边、尺寸、圆角、自定义内容与配色。
 - [DescriptionList](kit/description_list.md)：多列/跨列字段说明、横纵标签与分隔线。
-- [GroupBox](kit/group_box.md)：带标题的视图分组。
+- [GroupBox](kit/group_box.md)：标题/描述分组，支持外观、框外 footer 与样式配置。
 - [StatusBar](kit/status_bar.md)：状态与详情栏。
 - [Marker](kit/marker.md)：纯图形标记。
 

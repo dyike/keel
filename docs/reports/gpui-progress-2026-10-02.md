@@ -35,7 +35,8 @@
 - [x] 第十二批（`8607d0d`）：Tabs 增加 Underline/Pill/Outline/Segmented 外观、TabItem 图标/自定义标签、SetItem 与单项禁用。点击、关闭、键盘、拖动和溢出菜单遵守禁用状态；禁用当前项自动选择可用项，程序更新不触发回调。覆盖 1×/2× 布局、状态保留、Agent 和浅深色截图。新发现的最大标签宽度与滚动标签栏接口仍记为未完成。
 - [x] 第十三批（`cb981a6`）：Tabs 的 MaxWidth、Scrollable、ScrollTo 与 ScrollState；键盘/程序切换自动定位，先滚动再转移焦点，单独滚动不改变选中页。覆盖首次显示前请求、身份重排、禁用项跳过、1×/2×、溢出模式切换和 Agent 连续方向键；浅深色滚动栏截图已检查。
 - [x] 第十四批（`61b303f`）：Tag 的 Outline、Size、Rounded、Content、Appearance；支持主题派生及自定义背景/前景/边框/选中背景。保留选择/移除行为，覆盖窄布局、1×/2×、键盘、祖先禁用、程序赋值、Agent 与颜色/圆角像素测试；浅深色截图已检查。
-- [x] 第十五批：Alert 的 Banner、四档 Size、Icon/IconNone 与 Content；支持 Markdown/操作按钮，横幅省略独立标题行并保留可访问名称。覆盖尺寸与窄布局、图标间距、正文操作/关闭隔离、祖先禁用、恢复与 Agent；浅深色截图已检查。
+- [x] 第十五批（`7097862`）：Alert 的 Banner、四档 Size、Icon/IconNone 与 Content；支持 Markdown/操作按钮，横幅省略独立标题行并保留可访问名称。覆盖尺寸与窄布局、图标间距、正文操作/关闭隔离、祖先禁用、恢复与 Agent；浅深色截图已检查。
+- [x] 第十六批：GroupBox 增加 Normal/Fill/Outline 外观、框外 Footer、TitleStyle 与 ContentStyle；保留原 Surface 默认。正文保持稳定身份，覆盖外观切换、标题增删后的输入与焦点、1×/2× 窄布局、footer 交互及 Agent 样式隔离；浅深色截图已检查。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -86,7 +87,7 @@
 | [Empty](https://gpui-kit.com/component/empty/) | 主体已有 | [空状态标题、说明与操作](../../ui/kit/empty.go) | 主体覆盖；媒体限内置图标，缺 Avatar/图片等独立 media 槽，任意内容可放 Action 或外部组合。 |
 | [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 主体已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | 弹层通过 el.Layer.TrapFocus/Modal 覆盖；GPUI 还可在普通容器上独立包裹 FocusTrap，Keel 当前入口绑定浮层。 |
 | [Form](https://gpui-kit.com/component/form/) | 部分 | [字段组织、校验、错误聚焦、异步提交/取消](../../ui/kit/form.go) | 缺多列网格、字段 col_span/col_start、字段描述/必填标识/可见性的声明式配置；已有校验、聚焦与异步提交状态。 |
-| [GroupBox](https://gpui-kit.com/component/group-box/) | 主体已有 | [标题、描述与内容分组](../../ui/kit/group_box.go) | 主体覆盖；缺 fill/outline 变体、边框之外的独立 footer 槽与 title/content 样式细化。 |
+| [GroupBox](https://gpui-kit.com/component/group-box/) | 主体已有 | [标题、描述、内容分组、四种外观、框外 footer 与标题/正文样式](../../ui/kit/group_box.go) | 第十六批已关闭登记缺口；默认保留 Keel 原有背景加边框，GroupBoxNormal 对应无装饰。样式回调作用于每帧新建元素，不应保留元素引用。 |
 | [HoverCard](https://gpui-kit.com/component/hover-card/) | 主体已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | 第三批已补齐实例开关延时、方向/对齐及间距配置；默认仍为 700/300ms，键盘焦点立即打开，边缘避让保留。此表登记缺口已关闭。 |
 | [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。Keel 缺直接 SVG 加载和组件级旋转。 |
 | [Image](https://gpui-kit.com/component/image/) | 主体已有 | [已解码图片、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | 已解码图片的绘制/适配/预览/重试已有；缺自定义 loading/fallback 槽和组件级 URL 加载/缓存。第七批复核更正：之前把应用/Markdown 的加载缓存算到了 kit.Image。 |
