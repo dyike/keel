@@ -23,6 +23,9 @@ func (v *TabsView) Move(from, to int) {
 		return
 	}
 	selected := v.pages[v.current].id
+	if v.scrollable && v.revealID == 0 {
+		v.revealID = selected
+	}
 	page, width := v.pages[from], v.widths[from]
 	if from < to {
 		copy(v.pages[from:to], v.pages[from+1:to+1])

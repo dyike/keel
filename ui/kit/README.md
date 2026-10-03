@@ -63,7 +63,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Bubble](../../docs/kit/bubble.md) | 聊天气泡 |
 | [MessageScroller](../../docs/kit/message_scroller.md) | 对话滚动区 |
 | [Attachment](../../docs/kit/attachment.md) | 附件卡片 |
-| [Tabs](../../docs/kit/tabs.md) | 四种外观、图标/富标签、单项禁用、溢出与拖动重排 |
+| [Tabs](../../docs/kit/tabs.md) | 四种外观、图标/富标签、单项禁用、宽度上限、滚动/溢出与拖动重排 |
 | [Collapsible](../../docs/kit/collapsible.md) | 独立触发器与内容、可中断展开动画 |
 | [Accordion](../../docs/kit/accordion.md) | 折叠面板 |
 | [Badge](../../docs/kit/badge.md) | 角标 |

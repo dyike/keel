@@ -54,6 +54,9 @@ type TabsView struct {
 	height                 float32
 	leading, trailing      el.View
 	variant                TabsVariant
+	scrollable             bool
+	maxWidth               float32
+	revealID, lastSelected uint64
 	reorder                bool
 	onMove                 func(int, int)
 	dragID                 uint64
@@ -81,6 +84,9 @@ func (v *TabsView) Closable(fn func(index int)) *TabsView { v.onClose = fn; retu
 func (v *TabsView) Remove(i int) {
 	if i < 0 || i >= len(v.pages) {
 		return
+	}
+	if v.revealID == v.pages[i].id {
+		v.revealID = 0
 	}
 	if i == v.current {
 		v.focusPending = true
@@ -121,6 +127,9 @@ func (v *TabsView) tabWidth(i int) float32 {
 }
 func (v *TabsView) visible() []int {
 	n := v.fit()
+	if v.scrollable {
+		n = len(v.pages)
+	}
 	out := make([]int, n)
 	for i := range n {
 		out[i] = i
@@ -169,6 +178,13 @@ func (v *TabsView) choose(cx *el.Context, i int) {
 
 func (v *TabsView) Render(cx *el.Context) el.Element {
 	bar := el.Div().Role("tablist").Row()
+	if v.scrollable && len(v.pages) > 0 && v.lastSelected != v.pages[v.current].id && (v.lastSelected != 0 || v.revealID == 0) {
+		v.revealID = v.pages[v.current].id
+	}
+	if len(v.pages) > 0 {
+		v.lastSelected = v.pages[v.current].id
+	}
+	heads := make([]el.Element, 0, len(v.pages))
 	if v.variant == TabsSegmented {
 		bar.Bg(theme.Subtle).Rounded(theme.RadiusMd)
 	}
@@ -225,8 +241,15 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		} else {
 			tab.Child(el.Text(p.Title).Grow().MinW(el.Dp(0)).MaxLines(1))
 		}
-		if v.avail > 0 {
-			tab.MaxW(el.Dp(max(24, v.avail-60)))
+		limit := v.maxWidth
+		if !v.scrollable && v.avail > 0 {
+			available := max(24, v.avail-60)
+			if limit == 0 || available < limit {
+				limit = available
+			}
+		}
+		if limit > 0 {
+			tab.MaxW(el.Dp(limit))
 		}
 		if v.reorder && !p.Disabled {
 			tab.OnDrag(func(e el.DragEvent) { v.dragTab(cx, i, visible, e) })
@@ -267,7 +290,7 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 				head.Bg(theme.Surface).Shadow(theme.ElevationSm)
 			}
 		}
-		bar.Child(el.Div().ID(v.tabID(i)+"/head").NoShrink().Items(el.Stretch).Child(head, underline).Decorate(func(gtx core.C, draw func()) {
+		headBox := el.Div().ID(v.tabID(i)+"/head").NoShrink().Items(el.Stretch).Child(head, underline).Decorate(func(gtx core.C, draw func()) {
 			if px := gtx.Metric.PxPerDp; px > 0 && i < len(v.widths) {
 				w := float32(gtx.Constraints.Max.X) / px
 				if v.widths[i] != w {
@@ -276,7 +299,9 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 				}
 			}
 			draw()
-		}))
+		})
+		heads = append(heads, headBox)
+		bar.Child(headBox)
 	}
 	if len(visible) < len(v.pages) {
 		v.more.items = nil
@@ -288,7 +313,7 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		v.more.Trigger(Button("", v.more.Toggle).Name(locale.Current().More).Icon(IconChevronDown).Variant(ButtonGhost).Size(v.height - 2))
 		bar.Child(v.more.Render(cx))
 	}
-	if v.focusPending && len(v.pages) > 0 && !v.disabled && !v.pages[v.current].Disabled {
+	if v.focusPending && (!v.scrollable || v.revealID == 0) && len(v.pages) > 0 && !v.disabled && !v.pages[v.current].Disabled {
 		cx.Focus(v.tabID(v.current))
 		v.focusPending = false
 	}
@@ -297,7 +322,11 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 	if v.leading != nil {
 		header.Child(el.Div().ID(id + "/leading").NoShrink().Child(v.leading.Render(cx)))
 	}
-	header.Child(el.Div().ID(id + "/bar").Grow().MinW(el.Dp(0)).Row().Decorate(func(gtx core.C, draw func()) {
+	viewport := el.Div().ID(id + "/bar").Grow().MinW(el.Dp(0)).Row()
+	if v.scrollable {
+		viewport.ScrollX()
+	}
+	header.Child(viewport.Decorate(func(gtx core.C, draw func()) {
 		if px := gtx.Metric.PxPerDp; px > 0 {
 			w := float32(gtx.Constraints.Max.X) / px
 			if v.avail != w {
@@ -306,6 +335,34 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 			}
 		}
 		draw()
+		if v.scrollable {
+			for i, head := range heads {
+				v.widths[i], _ = cx.LayoutSize(head)
+			}
+		}
+		if v.scrollable && v.revealID != 0 && gtx.Enabled() {
+			left := float32(0)
+			for i, head := range heads {
+				width, _ := cx.LayoutSize(head)
+				if v.pages[i].id == v.revealID {
+					before, view, _ := cx.ScrollStateX(id + "/bar")
+					if view > 0 {
+						cx.ScrollIntoViewX(id+"/bar", left, left+width)
+						after, _, _ := cx.ScrollStateX(id + "/bar")
+						if before != after {
+							gtx.Execute(op.InvalidateCmd{})
+						} else {
+							v.revealID = 0
+							if v.focusPending {
+								gtx.Execute(op.InvalidateCmd{})
+							}
+						}
+					}
+					break
+				}
+				left += width
+			}
+		}
 	}).Child(bar))
 	if v.trailing != nil {
 		header.Child(el.Div().ID(id + "/trailing").NoShrink().Child(v.trailing.Render(cx)))
@@ -371,4 +428,42 @@ func (v *TabsView) repairSelection() {
 		v.current = i
 		v.focusPending = true
 	}
+}
+
+// MaxWidth caps each tab's label area in dp, excluding the close button.
+// Zero removes the cap; negative and non-finite values are ignored.
+func (v *TabsView) MaxWidth(dp float32) *TabsView {
+	if dp >= 0 && finiteNumber(float64(dp)) {
+		v.maxWidth = dp
+		clear(v.widths)
+		if len(v.pages) > 0 {
+			v.revealID = v.pages[v.current].id
+		}
+	}
+	return v
+}
+
+// Scrollable shows all tabs in a horizontal viewport instead of an overflow menu.
+func (v *TabsView) Scrollable(on bool) *TabsView {
+	if v.scrollable != on {
+		v.scrollable = on
+		v.more.SetValue(false)
+		if len(v.pages) > 0 {
+			v.revealID = v.pages[v.current].id
+		}
+	}
+	return v
+}
+
+// ScrollTo reveals a tab in scrollable mode without selecting it or firing callbacks.
+// It is applied after layout, including when called before the first frame.
+func (v *TabsView) ScrollTo(i int) {
+	if i >= 0 && i < len(v.pages) {
+		v.revealID = v.pages[i].id
+	}
+}
+
+// ScrollState reports horizontal offset, viewport and content widths in dp.
+func (v *TabsView) ScrollState(cx *el.Context) (offset, viewport, content float32) {
+	return cx.ScrollStateX(autoID("tabs", v) + "/bar")
 }
