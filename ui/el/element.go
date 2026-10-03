@@ -35,12 +35,13 @@ type Node struct {
 	id                          string
 	children                    []Element
 
-	text     string
-	shimmer  *textShimmer
-	isText   bool
-	input    *inputSpec
-	widget   core.Widget
-	decorate func(core.C, func())
+	text       string
+	shimmer    *textShimmer
+	textRanges []TextRange
+	isText     bool
+	input      *inputSpec
+	widget     core.Widget
+	decorate   func(core.C, func())
 
 	onClick       func()
 	onContextMenu func()

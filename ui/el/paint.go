@@ -421,6 +421,8 @@ func (e *engine) paintText(n *Node, inner image.Rectangle) {
 	g.Constraints = layout.Constraints{Max: inner.Size()}
 	if n.shimmer != nil {
 		e.paintShimmerText(n, g, inner.Size())
+	} else if len(n.textRanges) > 0 {
+		e.paintRangeText(n, g, inner.Size())
 	} else {
 		e.label(n, n.text).Layout(g)
 	}
