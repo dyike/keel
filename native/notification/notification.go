@@ -11,7 +11,12 @@ import (
 
 // Message is a system notification. ID is an application-wide stable identifier;
 // posting it again replaces the matching notification. Title or Body is required.
-type Message struct{ ID, Title, Body string }
+type Message struct {
+	ID, Title, Body string
+	// OnClick runs on a separate goroutine when the system notification is opened.
+	// Currently supported on macOS only. It does not raise a specific UI window.
+	OnClick func()
+}
 
 // Available reports whether this process can use the platform implementation.
 // It does not report notification permission or guarantee banner presentation.
@@ -32,7 +37,11 @@ func Post(m Message, done func(error)) {
 		cb(native.ErrInvalidArgument)
 		return
 	}
-	sys.NotificationPost(m.ID, m.Title, m.Body, cb)
+	if m.OnClick != nil {
+		sys.NotificationPostInteractive(m.ID, m.Title, m.Body, m.OnClick, cb)
+	} else {
+		sys.NotificationPost(m.ID, m.Title, m.Body, cb)
+	}
 }
 
 // Remove requests removal of both pending and delivered notifications with id.
