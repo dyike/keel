@@ -12,6 +12,8 @@ import (
 // row; SelectedRows reports membership in current display order.
 func (v *TableView) MultiSelect() *TableView {
 	rows := v.SelectedRows()
+	v.columnMode = false
+	v.selectedColumns = nil
 	v.cellMode = false
 	v.cells = nil
 	v.multi = true
@@ -20,6 +22,12 @@ func (v *TableView) MultiSelect() *TableView {
 }
 func (v *TableView) OnSelectionChange(fn func([]int)) *TableView { v.onSelection = fn; return v }
 func (v *TableView) SelectedRows() []int {
+	if v.columnMode {
+		if len(v.SelectedColumns()) > 0 {
+			return slices.Clone(v.order)
+		}
+		return nil
+	}
 	if v.cellMode {
 		set := make(map[int]bool)
 		for cell := range v.cells {
@@ -51,6 +59,9 @@ func (v *TableView) SelectedRows() []int {
 // SetSelectedRows replaces row selection without callbacks. Invalid indexes
 // are ignored. In single selection mode only the first valid row is selected.
 func (v *TableView) SetSelectedRows(rows []int) {
+	if v.columnMode {
+		return
+	}
 	if v.cellMode {
 		var cells []TableCell
 		for _, r := range rows {
@@ -75,7 +86,7 @@ func (v *TableView) SetSelectedRows(rows []int) {
 	v.selected, v.anchor, v.reveal = active, active, true
 }
 func (v *TableView) rowSelected(row int) bool {
-	if v.cellMode {
+	if v.cellMode || v.columnMode {
 		return false
 	}
 	if v.multi {
@@ -121,6 +132,9 @@ func (v *TableView) SelectionText() string {
 	writer := csv.NewWriter(&out)
 	writer.Comma = '\t'
 	columns := v.visibleColumns()
+	if v.columnMode {
+		columns = slices.DeleteFunc(columns, func(c int) bool { return !v.selectedColumns[c] })
+	}
 	if v.cellMode {
 		columns = slices.DeleteFunc(columns, func(c int) bool {
 			for cell := range v.cells {
@@ -159,12 +173,20 @@ func (v *TableView) selectionKey(e el.KeyEvent) bool {
 		}
 		return true
 	case "A":
+		if v.columnMode {
+			if e.State == el.KeyPress {
+				before := v.SelectedColumns()
+				v.SetSelectedColumns(v.selectableColumns())
+				v.notifyColumns(before)
+			}
+			return true
+		}
 		if v.cellMode {
 			if e.State == el.KeyPress {
 				before := v.SelectedCells()
 				v.cells = make(map[TableCell]bool)
 				for _, row := range v.order {
-					for _, c := range v.visibleColumns() {
+					for _, c := range v.selectableColumns() {
 						v.cells[TableCell{row, c}] = true
 					}
 				}

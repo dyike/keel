@@ -32,7 +32,11 @@ func (v *TableView) openMenu(cx *el.Context, row, column int) {
 		return
 	}
 	// Preserve an existing multi-selection when opening its context menu.
-	if v.cellMode {
+	if v.columnMode {
+		if !v.selectedColumns[column] {
+			v.chooseWholeColumn(cx, column, 0)
+		}
+	} else if v.cellMode {
 		if !v.cells[TableCell{row, column}] {
 			v.chooseCell(cx, row, column, 0)
 		}

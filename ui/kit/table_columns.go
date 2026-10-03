@@ -40,6 +40,11 @@ func (v *TableView) MoveColumn(column, position int) {
 		return
 	}
 	old := slices.Index(v.columns, column)
+	for _, c := range v.columns[min(old, position) : max(old, position)+1] {
+		if v.cols[c].noMove {
+			return
+		}
+	}
 	v.columns = slices.Delete(v.columns, old, old+1)
 	v.columns = slices.Insert(v.columns, position, column)
 	v.ensureFrozenWidths()

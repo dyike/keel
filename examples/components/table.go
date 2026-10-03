@@ -18,12 +18,12 @@ func init() {
 		}
 		msg := "5000 行；首列和末列固定，横向滚动查看中间列。点击排序，拖动列边缘调整宽度，回车或双击打开"
 		var t *kit.TableView
-		t = kit.Table(kit.Col("单号").Width(120), kit.Col("客户").Width(180),
+		t = kit.Table(kit.Col("单号").Width(120).Movable(false).Resizable(false), kit.Col("客户").Width(180),
 			kit.Col("金额").Width(120).Numeric(), kit.Col("状态").Width(100).Cell(func(cx *el.Context, row int) el.Element {
 				status := t.Row(row)[3]
 				tone := map[string]kit.Tone{"待发货": kit.ToneWarning, "已发货": kit.ToneInfo, "已完成": kit.ToneSuccess}[status]
 				return kit.Tag(status).Tone(tone).Render(cx)
-			}), kit.Col("仓库").Width(140), kit.Col("日期").Width(140)).FrozenColumns(1, 1).MultiSelect().Height(360).OnActivate(func(r int) { msg = "打开 " + t.Row(r)[0] })
+			}), kit.Col("仓库").Width(140), kit.Col("日期").Width(140)).FrozenColumns(1, 1).MultiSelect().Stripe(true).RowHeight(36).Height(360).OnActivate(func(r int) { msg = "打开 " + t.Row(r)[0] })
 		t.RowMenu(func(row int) *kit.MenuView {
 			return kit.Menu().Item("打开订单", "", func() { msg = "打开 " + t.Row(row)[0] }).Item("复制选区", "mod+c", func() { el.WriteClipboard(t.SelectionText()) })
 		})
@@ -45,6 +45,7 @@ func init() {
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(8).W(el.Dp(600)).MaxW(el.Full).Child(
 				el.Div().Row().Wrap().Gap(8).Child(
+					kit.Button("整列选择", func() { t.ColumnSelect(); msg = "整列模式：左右键切换，Shift 扩展，Cmd/Ctrl+A 全选" }).Variant(kit.ButtonSecondary).Size(28).Render(cx),
 					kit.Button("切换行/单元格选择", func() {
 						cells = !cells
 						if cells {
@@ -55,7 +56,7 @@ func init() {
 							msg = "行多选模式"
 						}
 					}).Variant(kit.ButtonSecondary).Size(28).Render(cx),
-					kit.Button("客户移到首列", func() { t.MoveColumn(1, 0) }).Variant(kit.ButtonSecondary).Size(28).Render(cx),
+					kit.Button("客户移到金额后", func() { t.MoveColumn(1, 2) }).Variant(kit.ButtonSecondary).Size(28).Render(cx),
 					kit.Button("切换仓库列", func() { warehouseVisible = !warehouseVisible; t.SetColumnVisible(4, warehouseVisible) }).Variant(kit.ButtonSecondary).Size(28).Render(cx),
 					kit.Button("保存列布局", func() { saved = t.LayoutState(); msg = "列布局已保存" }).Variant(kit.ButtonSecondary).Size(28).Render(cx),
 					kit.Button("恢复列布局", func() {

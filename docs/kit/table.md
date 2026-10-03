@@ -85,3 +85,21 @@ Header、Body、Footer 均可放任意数量的 Row；每个 Row 可放任意数
 语义角色包括 table、rowgroup、row、columnheader、cell 和 caption。静态行没有默认选择、激活或键盘导航，子控件独立接收事件；需要整行操作时可显式配置 OnClick/Focusable/OnKey。原有 `TableCell` 是数据表选区坐标类型，因此静态单元格入口命名为 `TableDataCell`。
 
 运行 `go run ./examples/components -section table_static` 查看交互、通栏备注及汇总示例。1×/2× 自动测试覆盖部分固定列的三段对齐、页尾/说明位置、子按钮事件和输入状态；本批未做真机视觉验收。
+
+## 整列选择、列限制和密度
+
+`ColumnSelect()` 进入独立的整列模式，清除原行/单元格选区。点击表头或数据单元格选择所属列，Ctrl/Cmd 点击增减，Shift 点击扩展连续列范围；左右键跳到相邻可选列，Home/End 跳到首尾，Shift 扩展，Ctrl/Cmd+A 选择全部可见且可选的列。双击表头继续排序。整列选择不触发行选择或行激活回调。
+
+`SelectedColumns()` 返回显示顺序的源列索引副本，包含隐藏的已选列；`SetSelectedColumns([]int)` 静默赋值，`OnColumnSelectionChange` 接收用户变更。选区按列保存，SetRows 的新增行自然属于已选列，空表也可选择列。过滤不丢选区；复制只输出可见已选列和过滤后的行。`SelectedCells()` 可展开为当前过滤结果中的单元格快照，调用时成本随行数增长。`SetValue` / `SetSelectedRows` / `SetSelectedCells` 在整列模式下不改变选区，使用列接口设置。CellSelect/MultiSelect 可退出该模式。
+
+列配置支持：
+
+- `Selectable(false)`：禁止该列参与单元格/整列选择，范围选择、键盘、全选和程序选区赋值均跳过；不影响整行选择或列排序。
+- `Resizable(false)`：移除用户拖动列宽的手柄。应用仍可用 SetColumnWidth 或布局恢复设置宽度。
+- `Movable(false)`：MoveColumn 不移动该列，也不允许其他列跨过它改变其位置。显式 SetLayoutState 仍可恢复应用指定的完整布局。列重排沿用 MoveColumn 接口，没有新增表头拖放重排。
+
+列配置在构造表格时复制。示例中单号列锁定宽度拖动和移动，按钮展示其他列的移动。
+
+`Stripe(true)` 按过滤/排序后的可见行序交替填充弱背景；选区高亮优先。`RowHeight(dp)` 同步设置实际行高和虚拟列表尺寸，范围 24–256dp，含 1dp 分隔线，0 恢复 40dp。设置行高不改变单元格控件字号；自定义内容需适配行高。已有活动行会重新露出。
+
+本批自动测试覆盖整列选择、范围跳过限制列、空表、数据追加、过滤/隐藏列复制、模式切换、禁用键盘、移动锁及 1×/2× 行高变化；真机拖动和视觉尚未验收。

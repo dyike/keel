@@ -12,6 +12,8 @@ type TableCell struct{ Row, Column int }
 // CellSelect enables cell rectangles and whole-column selection. Click a
 // header to select its column; double-click it to sort. Row selection is cleared.
 func (v *TableView) CellSelect() *TableView {
+	v.columnMode = false
+	v.selectedColumns = nil
 	v.cellMode = true
 	v.cells = make(map[TableCell]bool)
 	v.activeCell, v.cellAnchor = TableCell{-1, -1}, TableCell{-1, -1}
@@ -22,6 +24,15 @@ func (v *TableView) OnCellSelectionChange(fn func([]TableCell)) *TableView { v.o
 
 // SelectedCells returns a snapshot in display order, including hidden columns.
 func (v *TableView) SelectedCells() []TableCell {
+	if v.columnMode {
+		var result []TableCell
+		for _, r := range v.order {
+			for _, c := range v.SelectedColumns() {
+				result = append(result, TableCell{r, c})
+			}
+		}
+		return result
+	}
 	var cells []TableCell
 	for _, r := range v.order {
 		for _, c := range v.columns {
@@ -40,7 +51,7 @@ func (v *TableView) SetSelectedCells(cells []TableCell) {
 	v.cells = make(map[TableCell]bool)
 	v.activeCell = TableCell{-1, -1}
 	for _, cell := range cells {
-		if cell.Row >= 0 && cell.Row < len(v.rows) && cell.Column >= 0 && cell.Column < len(v.cols) {
+		if cell.Row >= 0 && cell.Row < len(v.rows) && cell.Column >= 0 && cell.Column < len(v.cols) && !v.cols[cell.Column].noSelect {
 			v.cells[cell] = true
 			v.activeCell = cell
 		}
@@ -55,11 +66,15 @@ func (v *TableView) notifyCells(before []TableCell) {
 	}
 }
 func (v *TableView) chooseCell(cx *el.Context, row, column int, mods key.Modifiers) {
-	if row < 0 || row >= len(v.rows) || column < 0 || column >= len(v.cols) {
+	if row < 0 || row >= len(v.rows) || column < 0 || column >= len(v.cols) || v.cols[column].noSelect {
+		return
+	}
+	if v.columnMode {
+		v.chooseWholeColumn(cx, column, mods)
 		return
 	}
 	before := v.SelectedCells()
-	columns := v.visibleColumns()
+	columns := v.selectableColumns()
 	add := mods.Contain(key.ModShortcut)
 	a, b := v.position(v.cellAnchor.Row), slices.Index(columns, v.cellAnchor.Column)
 	target := TableCell{row, column}
@@ -70,7 +85,9 @@ func (v *TableView) chooseCell(cx *el.Context, row, column int, mods key.Modifie
 		endRow, endCol := v.position(row), slices.Index(columns, column)
 		for r := min(a, endRow); r <= max(a, endRow); r++ {
 			for c := min(b, endCol); c <= max(b, endCol); c++ {
-				v.cells[TableCell{v.order[r], columns[c]}] = true
+				if !v.cols[columns[c]].noSelect {
+					v.cells[TableCell{v.order[r], columns[c]}] = true
+				}
 			}
 		}
 	} else {
@@ -90,11 +107,18 @@ func (v *TableView) chooseCell(cx *el.Context, row, column int, mods key.Modifie
 	v.notifyCells(before)
 }
 func (v *TableView) chooseColumn(cx *el.Context, column int, mods key.Modifiers) {
-	if len(v.rows) == 0 {
+	if column < 0 || column >= len(v.cols) || v.cols[column].noSelect {
+		return
+	}
+	if v.columnMode {
+		v.chooseWholeColumn(cx, column, mods)
+		return
+	}
+	if len(v.order) == 0 {
 		return
 	}
 	before := v.SelectedCells()
-	columns := v.visibleColumns()
+	columns := v.selectableColumns()
 	a, b := slices.Index(columns, column), slices.Index(columns, v.cellAnchor.Column)
 	if a < 0 {
 		return
@@ -167,7 +191,7 @@ func (v *TableView) revealCell(cx *el.Context) {
 	cx.ScrollIntoViewX(autoID("table", v), x-leftWidth, x+width+rightWidth)
 }
 func (v *TableView) cellKey(cx *el.Context, e el.KeyEvent) bool {
-	columns := v.visibleColumns()
+	columns := v.selectableColumns()
 	if len(columns) == 0 || len(v.order) == 0 {
 		return false
 	}

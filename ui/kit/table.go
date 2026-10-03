@@ -17,12 +17,13 @@ import (
 
 // ColumnSpec describes a Table column. Create one with Col.
 type ColumnSpec struct {
-	title   string
-	flex    float32 // share of the free width, when width is 0
-	width   float32 // fixed width in dp
-	numeric bool
-	noSort  bool
-	cell    func(cx *el.Context, row int) el.Element
+	title                      string
+	flex                       float32 // share of the free width, when width is 0
+	width                      float32 // fixed width in dp
+	numeric                    bool
+	noSort                     bool
+	noSelect, noResize, noMove bool
+	cell                       func(cx *el.Context, row int) el.Element
 }
 
 // Col creates a column that takes an equal share of the width.
@@ -59,40 +60,45 @@ const minColumn = 40
 // Row indexes in callbacks, Value and SetValue are positions in the data given
 // to SetRows, whatever the sort order.
 type TableView struct {
-	rowMenu                 func(int) *MenuView
-	cellMenu                func(int, int) *MenuView
-	contextMenu             *MenuView
-	contextCell             TableCell
-	filter                  func([]string) bool
-	hasMore, loadRequested  bool
-	loadError               string
-	onLoadMore              func()
-	cellMode                bool
-	cells                   map[TableCell]bool
-	activeCell, cellAnchor  TableCell
-	onCells                 func([]TableCell)
-	multi                   bool
-	selection               map[int]bool
-	anchor                  int
-	onSelection             func([]int)
-	frozenLeft, frozenRight int
-	cols                    []*ColumnSpec
-	columns                 []int // display position → source column
-	hidden                  []bool
-	rows                    [][]string
-	order                   []int // display position → data index
-	sortCol                 int
-	desc                    bool
-	selected                int
-	empty                   string
-	loading                 bool
-	disabled                bool
-	widths                  []float32 // painted column widths in dp, for resizing
-	grab                    float32   // pointer offset inside the resize handle
-	list                    *VirtualListView
-	reveal                  bool // scroll the selection into view on the next Render
-	onChange                func(row int)
-	onActive                func(row int)
+	rowMenu                    func(int) *MenuView
+	cellMenu                   func(int, int) *MenuView
+	contextMenu                *MenuView
+	contextCell                TableCell
+	filter                     func([]string) bool
+	hasMore, loadRequested     bool
+	loadError                  string
+	onLoadMore                 func()
+	cellMode                   bool
+	columnMode                 bool
+	selectedColumns            map[int]bool
+	columnAnchor, activeColumn int
+	onColumns                  func([]int)
+	stripe                     bool
+	cells                      map[TableCell]bool
+	activeCell, cellAnchor     TableCell
+	onCells                    func([]TableCell)
+	multi                      bool
+	selection                  map[int]bool
+	anchor                     int
+	onSelection                func([]int)
+	frozenLeft, frozenRight    int
+	cols                       []*ColumnSpec
+	columns                    []int // display position → source column
+	hidden                     []bool
+	rows                       [][]string
+	order                      []int // display position → data index
+	sortCol                    int
+	desc                       bool
+	selected                   int
+	empty                      string
+	loading                    bool
+	disabled                   bool
+	widths                     []float32 // painted column widths in dp, for resizing
+	grab                       float32   // pointer offset inside the resize handle
+	list                       *VirtualListView
+	reveal                     bool // scroll the selection into view on the next Render
+	onChange                   func(row int)
+	onActive                   func(row int)
 }
 
 func Table(cols ...*ColumnSpec) *TableView {
@@ -225,8 +231,11 @@ func (v *TableView) Value() int { return v.selected }
 
 // SetValue selects row i (-1 clears) and scrolls it into view, without calling OnChange.
 func (v *TableView) SetValue(i int) {
+	if v.columnMode {
+		return
+	}
 	if v.cellMode {
-		columns := v.visibleColumns()
+		columns := v.selectableColumns()
 		if len(columns) > 0 {
 			v.SetSelectedCells([]TableCell{{i, columns[0]}})
 		} else {
@@ -345,8 +354,11 @@ func (v *TableView) header(cx *el.Context, c int) el.Element {
 		}
 		draw()
 	})
-	if v.cellMode && !v.disabled {
-		cell.CursorPointer().OnClick(func() { v.chooseColumn(cx, c, cx.ClickModifiers()) })
+	if v.columnMode && v.selectedColumns[c] {
+		cell.Selected(true).Bg(theme.Highlight)
+	}
+	if (v.cellMode || v.columnMode) && !v.disabled {
+		cell.CursorPointer().Selected(v.columnMode && v.selectedColumns[c]).OnClick(func() { v.chooseColumn(cx, c, cx.ClickModifiers()) })
 		if !col.noSort {
 			cell.OnDoubleClick(func() { v.SortBy(c, v.sortCol == c && !v.desc) })
 		}
@@ -358,13 +370,20 @@ func (v *TableView) header(cx *el.Context, c int) el.Element {
 	// A thin handle on the right edge resizes the column; the column becomes
 	// fixed width from then on.
 	handle := el.Div().Absolute().Top(0).Bottom(0).Right(0).W(el.Dp(6)).OnDrag(func(e el.DragEvent) {
+		if v.disabled || col.noResize {
+			return
+		}
 		if e.Kind == el.DragStart {
 			v.grab = e.X
 			return
 		}
 		col.width = max(minColumn, v.widths[c]+e.X-v.grab)
 	})
-	return v.pin(c, el.Div().ID(autoID("table", v)+"/header/"+strconv.Itoa(c)).Row().Items(el.Stretch).Bg(theme.Subtle).Child(cell, handle)).When(col.width > 0, func(d *el.DivEl) { d.NoShrink() }).
+	header := el.Div().ID(autoID("table", v) + "/header/" + strconv.Itoa(c)).Row().Items(el.Stretch).Bg(theme.Subtle).Child(cell)
+	if !col.noResize {
+		header.Child(handle)
+	}
+	return v.pin(c, header).When(col.width > 0, func(d *el.DivEl) { d.NoShrink() }).
 		When(col.width <= 0, func(d *el.DivEl) { d.Flex(col.flex).W(el.Dp(0)).MinW(el.Dp(minColumn)) })
 }
 
@@ -373,8 +392,11 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 	cells := v.rows[data]
 	on := v.rowSelected(data)
 	r := el.Div().Role("row").Name(strings.Join(cells, " | ")).Selected(on).Row().Items(el.Center)
-	if v.cellMode {
+	if v.cellMode || v.columnMode {
 		r.Items(el.Stretch)
+	}
+	if v.stripe && p%2 == 1 {
+		r.Bg(theme.Subtle)
 	}
 	if on {
 		r.Bg(theme.Highlight)
@@ -394,8 +416,8 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 		case c < len(cells):
 			cell.Child(el.Text(cells[c]).MaxLines(1))
 		}
-		if v.cellMode {
-			selected := v.cells[TableCell{data, c}]
+		if v.cellMode || v.columnMode {
+			selected := v.cells[TableCell{data, c}] || v.columnMode && v.selectedColumns[c]
 			cell.Role("gridcell").Name("cell " + strconv.Itoa(data) + "," + strconv.Itoa(c)).Selected(selected)
 			if selected {
 				cell.Bg(theme.Highlight)
@@ -410,7 +432,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 		v.pin(c, cell)
 		r.Child(cell)
 	}
-	if !v.disabled && !v.cellMode {
+	if !v.disabled && !v.cellMode && !v.columnMode {
 		r.CursorPointer().
 			OnClick(func() { v.chooseRows(cx, data, cx.ClickModifiers()) }).
 			OnDoubleClick(v.activate)
@@ -418,7 +440,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 			r.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 		}
 	}
-	return el.Div().Items(el.Stretch).Child(r.H(el.Dp(39)), el.Div().H(el.Dp(1)).Bg(theme.Border))
+	return el.Div().Items(el.Stretch).Child(r.H(el.Dp(v.list.rowH-1)), el.Div().H(el.Dp(1)).Bg(theme.Border))
 }
 
 func (v *TableView) Render(cx *el.Context) el.Element {
@@ -490,6 +512,9 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 					v.activate()
 				}
 				return true
+			}
+			if v.columnMode {
+				return v.columnKey(cx, e)
 			}
 			if v.cellMode {
 				return v.cellKey(cx, e)

@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**63 项主体已有、12 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**64 项主体已有、11 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -239,7 +239,9 @@
 
 - [x] 第一百四十三批（`8dd6442`）：集中补齐 NumberInput 分组格式与即时半角转换。ThousandsSeparator 支持逗号、空格、单引号及两种不换行空格，结合 Decimals/Prefix 显示金额；输入和提交显示都分组，解析/增减去除分组符。全角数字/符号/点即时转换，重复小数点及错位符号拒绝，保留未完成草稿和原数值提交边界。底层 el.Input.Transform 在 Bind/OnChange 前规范化并映射选区，采用最多 100 次用户编辑历史，程序修改重置历史。测试覆盖中间替换、撤销/重做、拒绝编辑、分隔符切换、精度端点与步进；全仓构建、UI/native vet、全量测试通过。登记缺口关闭，NumberInput 调整为主体已有；真机输入法组合和视觉未验收。
 
-- [x] 第一百四十四批：补齐轻量 Table 组合能力。新增 StaticTable 以及 TableHeader/Body/Footer/Row/Head/DataCell/Caption，直接返回可设置样式的 el 元素，支持任意行内容、交互控件、独立汇总与说明。固定/弹性列、内容对齐和留白使用 el 配置；保留现有 TableView 数据表行为。新增 table_static 示例；1×/2× 测试覆盖三段列对齐、页尾/说明位置、子按钮事件及输入状态。全仓构建、UI/native vet、全量测试通过，Table 登记缺口关闭并调整为主体已有；未做真机视觉验收。
+- [x] 第一百四十四批（`c8df581`）：补齐轻量 Table 组合能力。新增 StaticTable 以及 TableHeader/Body/Footer/Row/Head/DataCell/Caption，直接返回可设置样式的 el 元素，支持任意行内容、交互控件、独立汇总与说明。固定/弹性列、内容对齐和留白使用 el 配置；保留现有 TableView 数据表行为。新增 table_static 示例；1×/2× 测试覆盖三段列对齐、页尾/说明位置、子按钮事件及输入状态。全仓构建、UI/native vet、全量测试通过，Table 登记缺口关闭并调整为主体已有；未做真机视觉验收。
+
+- [x] 第一百四十五批：集中补齐 DataTable 登记缺口。新增独立 ColumnSelect、列选区读写/回调、键盘范围/全选及列复制；按源列编号保存，数据追加和空表保持，不创建逐行选区。Selectable 覆盖单元格/整列的点击、键盘、范围与程序选区，Resizable 移除拖动手柄，Movable 限制移动和跨越锁定列；显式宽度/布局恢复仍由应用控制。Stripe 按显示顺序交替，RowHeight 同步行布局和虚拟尺寸。测试覆盖数据追加、过滤/隐藏列、复制、空表、禁用、模式切换、移动锁及 1×/2× 行高变化。全仓构建、UI/native vet、全量测试通过；DataTable 调整为主体已有，未做真机拖动/视觉验收。
 
 ## 当前实施清单
 
@@ -279,7 +281,7 @@
 | [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 颜色编辑主体已有；GPUI 自带触发器/弹层，Keel 是内联选择器，弹层需组合 Popover；缺触发图标、标签与尺寸配置。 |
 | [Combobox](https://gpui-kit.com/component/combobox/) | 主体已有 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 第一百二十五批补齐 DisableOption，点击/键盘/提交跳过禁用值，配置跨过滤与异步更新保留。第一百二十七批补齐持久 Footer 操作区。第一百三十一批补齐 RenderItem 和统一 RowHeight，支持富内容/行内操作及稳定值身份。第一百三十二批补齐 SetGroups/SetGroupResults 分组及虚拟标题。第一百三十五批补齐 RenderTrigger、状态快照、独立开关/清空动作及面板内搜索，登记主要缺口关闭。自定义触发器自行绘制默认标签/清空入口，候选采用统一行高，程序赋值允许当前候选外的值，这些仍是与上游的接口约定差异。第一百三十四批补齐 OnConfirm 用户关闭确认事件；第一百三十三批补齐 Searchable 关闭搜索模式。第一百二十九批补齐 Size 和 CheckIcon。第一百二十六批补齐多选候选再次选择取消；第一百二十八批补齐 Clearable 单选/多选清空按钮。第一百三十批补齐 ComboboxItem 的稳定值/显示名称/禁用及结构化异步结果；多选标签与异步搜索已有。 |
 | [Command](https://gpui-kit.com/component/command/) | 主体已有 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 第一百三十六批补齐 Inline、Searchable、Header/Footer/Empty 和 RenderItem/RowHeight；内联不抢焦点、执行后保留，关闭搜索停止查询请求。第一百三十七批补齐 Keywords、原始索引、OnSelect/OnQuery/OnConfirm/OnCancel，以及 Esc 先清词再取消。第一百三十八批集中补齐变高虚拟化、分隔项过滤、悬停选择、动作绑定提示/执行、图标/勾选、面板配置和状态读写，登记主要缺口关闭。自动高度按可见行测量，其余行估算；保留模糊排序、扁平索引及单 root 动作解析，与上游全行测量、IndexPath 和焦点域绑定不同。 |
-| [DataTable](https://gpui-kit.com/component/data-table/) | 部分 | [横向滚动、冻结列、列管理、多选/单元格选择、复制、筛选、分页加载](../../ui/kit/table.go) | 主要数据表能力已有；缺独立整列选择模式、列级 selectable/resizable/movable 限制，以及 stripe/密度等公开配置。 |
+| [DataTable](https://gpui-kit.com/component/data-table/) | 主体已有 | [冻结列、列管理、行/单元格/整列选择、复制、筛选、分页与密度](../../ui/kit/table.go) | 第一百四十五批补齐 ColumnSelect、列级 Selectable/Resizable/Movable、Stripe 和 RowHeight，登记主要缺口关闭。列移动仍使用 MoveColumn，未新增表头拖放；密度用连续行高，控件字号独立配置，显式布局恢复可覆盖移动锁。真机拖动/视觉未验收。 |
 | [DatePicker](https://gpui-kit.com/component/date-picker/) | 主体已有 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。第一百二十三批补齐 DateValue/SetDateValue 与 DateTimeValue/SetDateTimeValue，范围独立保存起止时刻，预设和回调携带时刻。范围日历只编辑日期；兼容旧 Value 的纯日期行为，日期格式使用 Go 布局。第一百二十四批补齐独立 FirstWeekday 和恢复 locale 的 ResetFirstWeekday。 |
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 主体已有 | [多列/跨列、横纵标签、富值插槽、分隔线、边框、字号与标签宽度](../../ui/kit/description_list.go) | 第八批已关闭登记缺口。Columns 由调用方设置，不按窗口宽度自动切换；默认仍为无边框单列，保留原用法。 |
 | [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
