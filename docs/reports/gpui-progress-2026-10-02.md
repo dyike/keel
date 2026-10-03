@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**41 项主体已有、33 项部分覆盖、3 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**42 项主体已有、32 项部分覆盖、3 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -26,7 +26,8 @@
 - [x] 第三批（`edac67d`）：HoverCard 的 OpenDelay/CloseDelay、Placement 和 Offset；自定义及零延时、等待中改延时、四方向定位、Esc 和 Agent 快照通过测试，已打开卡片的浅深色截图已检查。
 - [x] 第四批（`7a25711`）：Tooltip 的富内容、动作键位和定位/间距配置；快捷键随改绑更新，内容不接受点击，Agent 展开富内容与键位；相关测试和浅深色弹层截图已检查。
 - [x] 第五批（`a118ee5`）：Clipboard 的 OnCopied、Content 和 Copied；回调接收实际提交的原文，自定义内容保留键盘操作、禁用继承与连续复制计时。含回调/空取值/计时测试、Agent 快照及浅深色截图检查。
-- [x] 第六批：Stepper 的竖向布局、步骤图标、单步禁用与尺寸；另支持富内容条目。覆盖切片隔离、更新索引收敛、键盘跳过禁用、祖先禁用、窄窗口纵向滚动及 Agent 状态；浅深色截图已检查。
+- [x] 第六批（`204309e`）：Stepper 的竖向布局、步骤图标、单步禁用与尺寸；另支持富内容条目。覆盖切片隔离、更新索引收敛、键盘跳过禁用、祖先禁用、窄窗口纵向滚动及 Agent 状态；浅深色截图已检查。
+- [x] 第七批：AvatarGroup 叠放、组尺寸、人数上限、+N/省略号、窄窗口滚动；Avatar.Source 后台加载、取消、失败回退与重试。共享解码器迁至 core.DecodeImage，Markdown 继续复用。含网络/旧请求覆盖、布局、Agent 和浅深色截图验证。
 - 后续差异继续以 77 项表中末列为准。
 
 ## 当前实施清单
@@ -54,7 +55,7 @@
 | [AlertDialog](https://gpui-kit.com/component/alert-dialog/) | 主体已有 | [提示/确认/危险对话框、焦点约束与恢复](../../ui/kit/dialog.go) | 行为/配置差异：Persistent 只禁止点击遮罩关闭，Esc 仍关闭；没有独立 keyboard 开关。内置确认按钮先关闭再执行回调，不能用返回值阻止关闭；可自组 Footer。 |
 | [Alert](https://gpui-kit.com/component/alert/) | 主体已有 | [行内提示、级别、关闭按钮](../../ui/kit/alert.go) | 配置差异：缺 banner、尺寸、替换图标接口；正文为字符串，不能直接传 Markdown/任意内容。 |
 | [Attachment](https://gpui-kit.com/component/attachment/) | 部分 | [附件卡片、进度、取消、重试、错误状态](../../ui/kit/attachment.go) | 缺媒体/图片预览槽、横纵布局、附件组；当前是文件名/大小卡片，已有上传进度与失败操作。 |
-| [Avatar](https://gpui-kit.com/component/avatar/) | 部分 | [图片/首字母回退、尺寸、状态标记](../../ui/kit/avatar.go) | 缺 AvatarGroup 的叠放、数量上限与 +N；单头像仅接收已解码 image.Image，无头像专用 URL 加载接口。 |
+| [Avatar](https://gpui-kit.com/component/avatar/) | 主体已有 | [图片/首字母回退、URL 加载与重试、尺寸、状态标记](../../ui/kit/avatar.go)、[叠放头像组/上限/+N/省略号](../../ui/kit/avatar_group.go) | 第七批已关闭原登记缺口；加载不跨实例缓存。外观仍为圆形和主题色回退，GPUI 的自定义占位图标、边框/圆角等样式接口及配色算法不同。 |
 | [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字、圆点、上限、Tone 与角标容器](../../ui/kit/badge.go) | 配置差异：有 count/dot/max/Tone；没有图标徽标、大小档和任意颜色接口，旧表这两项写多了。 |
 | [Bubble](https://gpui-kit.com/component/bubble/) | 部分 | [可复用内容气泡、Mine 对齐](../../ui/kit/message.go) | 缺 ghost 等外观变体、气泡组和独立反应槽；当前只接 content + Mine，操作/反应在 Message 层。 |
 | [Button](https://gpui-kit.com/component/button/) | 主体已有 | [主/次要/危险、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 配置差异：仅 Primary/Secondary/Ghost/Danger 四种；缺专用 link/text/outline/compact、自定义变体与任意 child 接口。Tooltip 可外部组合。 |
@@ -80,7 +81,7 @@
 | [GroupBox](https://gpui-kit.com/component/group-box/) | 主体已有 | [标题、描述与内容分组](../../ui/kit/group_box.go) | 主体覆盖；缺 fill/outline 变体、边框之外的独立 footer 槽与 title/content 样式细化。 |
 | [HoverCard](https://gpui-kit.com/component/hover-card/) | 主体已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | 第三批已补齐实例开关延时、方向/对齐及间距配置；默认仍为 700/300ms，键盘焦点立即打开，边缘避让保留。此表登记缺口已关闭。 |
 | [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。Keel 缺直接 SVG 加载和组件级旋转。 |
-| [Image](https://gpui-kit.com/component/image/) | 主体已有 | [异步缓存、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | 加载/缓存/适配/预览/重试已有；缺公开的自定义 loading/fallback 内容槽。 |
+| [Image](https://gpui-kit.com/component/image/) | 主体已有 | [已解码图片、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | 已解码图片的绘制/适配/预览/重试已有；缺自定义 loading/fallback 槽和组件级 URL 加载/缓存。第七批复核更正：之前把应用/Markdown 的加载缓存算到了 kit.Image。 |
 | [Input Group](https://gpui-kit.com/component/input-group/) | 部分 | [独立组合容器、前后内容、统一边框、标签聚焦](../../ui/kit/input_group.go) | 只有左右 Prefix/Suffix；缺 GPUI 上下 block addon 布局、独立 addon/button 配置。可以包 TextArea，但不具备同等复合布局。 |
 | [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 缺格式化 mask、原子 inline token、可拦截富剪贴板的 on_paste 和专用上下文菜单配置；Filter 是字符白名单，不能当作 mask。 |
 | [Kbd](https://gpui-kit.com/component/kbd/) | 主体已有 | [平台键帽、Plain、KbdFor 动作键位](../../ui/kit/kbd.go) | 平台键帽、Plain、KbdFor 动作绑定已完成；没有独立尺寸接口，旧表的“尺寸”应删除。 |

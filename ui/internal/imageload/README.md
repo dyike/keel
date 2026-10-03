@@ -1,6 +1,6 @@
 # ui/internal/imageload
 
-`ui/markdown` 的图片：解析来源（文件路径、`file://`、`data:`、`http(s)://`），在后台 goroutine 加载解码，限制文件大小和像素数，加载中和失败时画占位。
+`ui/markdown` 的图片：调用 `core.DecodeImage` 解析来源（文件路径、`file://`、`data:`、`http(s)://`），在后台 goroutine 加载解码，限制文件大小和像素数，加载中和失败时画占位。
 
 - **依赖**：`ui/core`、`ui/theme`、`ui/locale`、`ui/internal/loop`。
 - **被谁依赖**：`ui/markdown`（公开为 `markdown.ImageLoader` 和 `markdown.DecodeImage`）。

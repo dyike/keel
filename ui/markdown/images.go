@@ -4,6 +4,7 @@ import (
 	"context"
 	"image"
 
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/imageload"
 )
 
@@ -13,7 +14,7 @@ type ImageLoader func(context.Context, string) (image.Image, error)
 // DecodeImage is the default loader: local paths, file, HTTP(S) and data
 // URLs; PNG, JPEG, GIF (first frame) and WebP; 16 MiB and 32 megapixels at most.
 func DecodeImage(ctx context.Context, source string) (image.Image, error) {
-	return imageload.Decode(ctx, source)
+	return core.DecodeImage(ctx, source)
 }
 
 // ImageLoader sets how local or remote image sources are read. Configure it

@@ -1,10 +1,12 @@
 package kit
 
 import (
+	"context"
 	"hash/fnv"
 	"image"
 	"image/color"
 	"strings"
+	"time"
 	"unicode"
 
 	"gioui.org/layout"
@@ -22,6 +24,11 @@ type AvatarView struct {
 	pixels   paint.ImageOp
 	hasImage bool
 	status   AvatarStatus
+	source   string
+	cancel   context.CancelFunc
+	revision uint64
+	loading  bool
+	imageErr error
 }
 
 type AvatarStatus string
@@ -38,7 +45,7 @@ func (v *AvatarView) SetName(name string)               { v.name = name }
 
 // Size accepts a diameter in dp, clamped to 16..256. Invalid values are ignored.
 func (v *AvatarView) Size(dp float32) *AvatarView {
-	if dp > 0 {
+	if dp > 0 && finiteNumber(float64(dp)) {
 		v.size = max(16, min(256, dp))
 	}
 	return v
@@ -47,13 +54,73 @@ func (v *AvatarView) Size(dp float32) *AvatarView {
 // Image sets already decoded pixels. Nil or empty images restore the initials.
 // Load images outside the UI lock and assign them through core.Update.
 func (v *AvatarView) Image(img image.Image) *AvatarView {
+	v.stopLoad()
+	v.source, v.imageErr = "", nil
+	v.setPixels(img)
+	return v
+}
+
+func (v *AvatarView) setPixels(img image.Image) {
 	v.hasImage = img != nil && !img.Bounds().Empty()
 	if v.hasImage {
 		v.pixels = paint.NewImageOp(img)
 	} else {
 		v.pixels = paint.ImageOp{}
 	}
+}
+
+// Source asynchronously loads an image URL or local path. Empty restores initials.
+// Repeating the same source does not reload; Retry restarts a failed request.
+func (v *AvatarView) Source(source string) *AvatarView {
+	if source != "" && source == v.source {
+		return v
+	}
+	v.stopLoad()
+	v.source, v.imageErr = source, nil
+	v.setPixels(nil)
+	if source != "" {
+		v.startLoad()
+	}
 	return v
+}
+func (v *AvatarView) Loading() bool     { return v.loading }
+func (v *AvatarView) ImageError() error { return v.imageErr }
+
+// Retry reloads the current source, including cancelling any in-flight request.
+func (v *AvatarView) Retry() {
+	if v.source == "" {
+		return
+	}
+	v.stopLoad()
+	v.imageErr = nil
+	v.setPixels(nil)
+	v.startLoad()
+}
+func (v *AvatarView) stopLoad() {
+	if v.cancel != nil {
+		v.cancel()
+		v.cancel = nil
+	}
+	v.revision++
+	v.loading = false
+}
+func (v *AvatarView) startLoad() {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	v.cancel, v.loading = cancel, true
+	revision, source := v.revision, v.source
+	go func() {
+		defer cancel()
+		img, err := core.DecodeImage(ctx, source)
+		core.Update(func() {
+			if v.revision != revision {
+				return
+			}
+			v.loading, v.cancel, v.imageErr = false, nil, err
+			if err == nil {
+				v.setPixels(img)
+			}
+		})
+	}()
 }
 
 // avatarInitials takes the first letters of the first two words. Han names

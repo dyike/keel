@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"image"
 	"image/color"
+	"image/png"
 )
 
 func init() {
@@ -16,12 +19,19 @@ func init() {
 				img.SetNRGBA(x, y, color.NRGBA{R: uint8(x * 3), G: 140, B: uint8(y * 6), A: 255})
 			}
 		}
-		return el.Embed(&avatarGallery{photo: kit.Avatar("示例图片").Image(img)})
+		var encoded bytes.Buffer
+		if err := png.Encode(&encoded, img); err != nil {
+			panic(err)
+		}
+		return el.Embed(&avatarGallery{
+			photo:  kit.Avatar("示例图片").Image(img),
+			source: kit.Avatar("异步图片").Source("data:image/png;base64," + base64.StdEncoding.EncodeToString(encoded.Bytes())),
+		})
 	})
 }
 
-type avatarGallery struct{ photo *kit.AvatarView }
+type avatarGallery struct{ photo, source *kit.AvatarView }
 
 func (v *avatarGallery) Render(cx *el.Context) el.Element {
-	return el.Div().Row().Gap(16).Items(el.Center).Child(kit.Avatar("张三").Status(kit.AvatarOnline).Size(32).Render(cx), kit.Avatar("Ada Lovelace").Status(kit.AvatarBusy).Render(cx), kit.Avatar("").Size(56).Render(cx), v.photo.Render(cx))
+	return el.Div().Row().Gap(16).Items(el.Center).Child(kit.Avatar("张三").Status(kit.AvatarOnline).Size(32).Render(cx), kit.Avatar("Ada Lovelace").Status(kit.AvatarBusy).Render(cx), kit.Avatar("").Size(56).Render(cx), v.photo.Render(cx), v.source.Render(cx))
 }

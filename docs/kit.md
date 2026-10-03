@@ -59,7 +59,8 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 
 - [Alert](kit/alert.md)：行内状态提示。
 - [Empty](kit/empty.md)：空状态说明。
-- [Avatar](kit/avatar.md)：图片与姓名回退头像。
+- [Avatar](kit/avatar.md)：图片、URL 加载与姓名回退头像。
+- [AvatarGroup](kit/avatar_group.md)：叠放头像组、人数上限与溢出标记。
 - [Tag](kit/tag.md)：可选择、可移除标签。
 - [DescriptionList](kit/description_list.md)：字段说明列表。
 - [GroupBox](kit/group_box.md)：带标题的视图分组。

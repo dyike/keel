@@ -6,6 +6,7 @@
 | --- | --- |
 | `Widget` | 接口：能 `Layout` 的东西。所有组件、容器都实现它 |
 | `Func` | 把一段 Gio 布局函数当组件用 |
+| `DecodeImage(ctx, source)` | 读取本地/HTTP/data 图片，限制编码大小与像素数；须在后台调用并管理超时 |
 | `Update(fn)` | 从任意 goroutine 修改界面：`fn` 在下一帧执行 |
 | `Call(gtx, fn)` | 给写组件的人用：执行用户回调并让所有窗口重绘 |
 | `Semantic(gtx, w, ops...)`、`Role(...)` | 给写组件的人用：声明组件的角色、名字、状态，让 Agent 看得见 |

@@ -36,11 +36,11 @@ type Asset struct {
 }
 
 // Load reads a local path, file URL, HTTP(S) URL or data URL in the
-// background. A nil loader uses Decode. The request has a 15-second deadline.
+// background. A nil loader uses core.DecodeImage. The request has a 15-second deadline.
 func Load(source string, loader Loader) *Asset {
 	a := &Asset{revision: 1}
 	if loader == nil {
-		loader = Decode
+		loader = core.DecodeImage
 	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)

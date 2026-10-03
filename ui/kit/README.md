@@ -16,6 +16,7 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Alert](../../docs/kit/alert.md) | 行内状态提示，支持浅深色 |
 | [Empty](../../docs/kit/empty.md) | 空状态说明 |
 | [Avatar](../../docs/kit/avatar.md) | 固定尺寸头像和姓名回退 |
+| [AvatarGroup](../../docs/kit/avatar_group.md) | 叠放头像组、人数上限与溢出标记 |
 | [Tag](../../docs/kit/tag.md) | 可选择、可移除标签 |
 | [DescriptionList](../../docs/kit/description_list.md) | 固定标签列与自定义值 |
 | [GroupBox](../../docs/kit/group_box.md) | 带标题的视图分组 |

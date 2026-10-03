@@ -1,4 +1,4 @@
-package imageload
+package core
 
 import (
 	"bytes"
@@ -41,13 +41,13 @@ func TestDecodeSourcesAndLimits(t *testing.T) {
 	}))
 	defer server.Close()
 	for _, source := range []string{path, "file://" + path, server.URL, "data:image/png;base64," + base64.StdEncoding.EncodeToString(data)} {
-		img, err := Decode(context.Background(), source)
+		img, err := DecodeImage(context.Background(), source)
 		if err != nil || img.Bounds().Size() != image.Pt(360, 120) {
 			t.Fatalf("decode %q: %v", source, err)
 		}
 	}
 	for _, source := range []string{path + "-missing", server.URL + "/missing", "data:image/png;base64,bad", "unknown://image"} {
-		if _, err := Decode(context.Background(), source); err == nil {
+		if _, err := DecodeImage(context.Background(), source); err == nil {
 			t.Fatalf("expected image failure: %s", source)
 		}
 	}
@@ -56,7 +56,7 @@ func TestDecodeSourcesAndLimits(t *testing.T) {
 	binary.BigEndian.PutUint32(large[16:20], 100000)
 	binary.BigEndian.PutUint32(large[20:24], 100000)
 	binary.BigEndian.PutUint32(large[29:33], crc32.ChecksumIEEE(large[12:29]))
-	if _, err := Decode(context.Background(), "data:image/png;base64,"+base64.StdEncoding.EncodeToString(large)); err == nil {
+	if _, err := DecodeImage(context.Background(), "data:image/png;base64,"+base64.StdEncoding.EncodeToString(large)); err == nil {
 		t.Fatal("unbounded decoded pixel allocation")
 	}
 }
