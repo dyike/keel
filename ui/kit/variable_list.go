@@ -22,6 +22,8 @@ type VariableListView struct {
 	measured         map[string]float32
 	estimate, height float32
 	fill, disabled   bool
+	horizontal       bool
+	viewportWidth    float32
 	row              func(*el.Context, int) el.Element
 	width            int
 	metric           unit.Metric
@@ -50,8 +52,11 @@ func VariableList(keys []string, estimate float32, row func(*el.Context, int) el
 func (v *VariableListView) ID() string { return autoID("variable-list", v) }
 func (v *VariableListView) Count() int { return len(v.keys) }
 func (v *VariableListView) Height(dp float32) *VariableListView {
-	if dp > 0 {
-		v.height, v.fill = dp, false
+	if dp > 0 && finiteNumber(float64(dp)) {
+		v.height = dp
+		if !v.horizontal {
+			v.fill = false
+		}
 	}
 	return v
 }
@@ -143,12 +148,16 @@ func (v *VariableListView) ScrollToKey(cx *el.Context, key string) {
 
 func (v *VariableListView) Render(cx *el.Context) el.Element {
 	id := v.ID()
-	off, view, content := cx.ScrollState(id)
+	off, view, content := virtualState(cx, id, v.horizontal)
 	painted := view > 0
 	if !painted {
-		view = v.height
+		view = virtualExtent(v.horizontal, v.viewportWidth, v.height)
 		if v.fill {
-			_, viewport := cx.ViewportSize()
+			w, h := cx.ViewportSize()
+			viewport := h
+			if v.horizontal {
+				viewport = w
+			}
 			view = max(view, viewport)
 		}
 	}
@@ -173,50 +182,71 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 	}
 	off = min(max(off, 0), max(total-view, 0))
 	if v.restore || v.reveal != "" || atEnd {
-		cx.ScrollTo(id, off)
+		virtualScroll(cx, id, v.horizontal, off)
 	}
 	if !painted {
 		cx.After(revealKey{id}, 0, func() {})
 	}
 	first := v.sums.at(max(off-view, 0))
 	last := min(len(v.keys), v.sums.at(off+2*view)+1)
-	box := el.Div().ID(id).ScrollY().Focusable(true).Disabled(v.disabled).Items(el.Stretch)
-	if v.followEnd && v.reveal == "" {
-		box.StickToBottom()
+	box := el.Div().ID(id).Focusable(true).Disabled(v.disabled).Items(el.Stretch)
+	if v.horizontal {
+		box.Row().ScrollX().H(el.Dp(v.height))
+		if v.fill {
+			box.Grow().MinW(el.Dp(1))
+		} else {
+			box.W(el.Dp(virtualExtent(true, v.viewportWidth, v.height)))
+		}
+	} else {
+		box.ScrollY()
+		if v.viewportWidth > 0 {
+			box.W(el.Dp(v.viewportWidth))
+		}
+		if v.fill {
+			box.Grow().MinH(el.Dp(1))
+		} else {
+			box.H(el.Dp(v.height))
+		}
+		if v.followEnd && v.reveal == "" {
+			box.StickToBottom()
+		}
 	}
 	if v.role != "" {
 		box.Role(v.role)
 	}
-	if v.fill {
-		box.Grow().MinH(el.Dp(1))
-	} else {
-		box.H(el.Dp(v.height))
-	}
 	leading := v.sums.prefix(first)
-	box.Child(el.Div().H(el.Dp(leading)).NoShrink())
+	box.Child(virtualSpacer(v.horizontal, leading))
 	built := make([]el.Element, 0, last-first)
 	for i := first; i < last; i++ {
-		row := el.Div().ID(v.keys[i]).NoShrink().MinH(el.Dp(1)).Items(el.Stretch)
+		row := el.Div().ID(v.keys[i]).NoShrink().Items(el.Stretch)
+		if v.horizontal {
+			row.MinW(el.Dp(1)).H(el.Full)
+		} else {
+			row.MinH(el.Dp(1))
+		}
 		if v.row != nil {
 			row.Child(v.row(cx, i))
 		}
 		built = append(built, row)
 		box.Child(row)
 	}
-	box.Child(el.Div().H(el.Dp(total - v.sums.prefix(last))).NoShrink())
+	box.Child(virtualSpacer(v.horizontal, total-v.sums.prefix(last)))
 	box.Decorate(func(gtx core.C, draw func()) {
 		draw()
 		if !gtx.Enabled() {
 			return
 		}
-		actual, _, _ := cx.ScrollState(id)
+		actual, _, _ := virtualState(cx, id, v.horizontal)
 		heights := make([]float32, len(built))
 		start := leading
 		// Use actual laid-out starts to preserve the visible row even when a row
 		// above it changed size in this frame, rather than trusting stale estimates.
 		found := preserveAnchor && actual == off
 		for j, row := range built {
-			_, height := cx.LayoutSize(row)
+			width, height := cx.LayoutSize(row)
+			if v.horizontal {
+				height = width
+			}
 			heights[j] = max(height, 1)
 			if !found && actual >= start && actual < start+heights[j] {
 				v.anchor, v.anchorDelta = v.keys[first+j], actual-start
@@ -230,11 +260,15 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 		}
 		v.lastOffset = actual
 		v.restore = false
-		changed := v.width != gtx.Constraints.Max.X || v.metric != gtx.Metric
+		cross := gtx.Constraints.Max.X
+		if v.horizontal {
+			cross = gtx.Constraints.Max.Y
+		}
+		changed := v.width != cross || v.metric != gtx.Metric
 		if changed {
 			clear(v.measured)
 			v.rebuild()
-			v.width, v.metric = gtx.Constraints.Max.X, gtx.Metric
+			v.width, v.metric = cross, gtx.Metric
 		}
 		for j, h := range heights {
 			i := first + j

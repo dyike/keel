@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**58 项主体已有、17 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**59 项主体已有、16 项部分覆盖、2 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -229,7 +229,9 @@
 
 - [x] 第一百三十八批（`0071202`）：按组件集中收尾 Command。AutoRowHeight 复用变高虚拟列表，支持实际内容测量、宽度/缩放/主题/模型失效、统一高度切换及远端键盘定位；Separator 过滤首尾/连续分隔并跳过导航，分隔区内部排序。新增悬停选择、方向键循环、ActionName 改绑提示/执行、Icon/Checked、Placeholder/MaxHeight/Bordered/PanelStyle 和查询/选择/计数/加载状态读写。指针不执行命令，静止指针不覆盖键盘高亮；命名动作只在面板聚焦且可用时注册。新增 1×/2× 万条变高定位、窗口变窄测量、分隔过滤、悬停、状态与改绑测试。UI/native/examples/cmd/internal/deps 构建与测试、UI/native vet 通过；全仓构建受独立未跟踪 internal/site 的 copyDemo 缺失阻挡，未修改该目录。登记主要缺口关闭，Command 调整为主体已有；未做真机视觉验收。
 
-- [x] 第一百三十九批：按组件集中收尾 Tree。新增可见行上下文/自定义内容，保留缩进、箭头、选中/禁用语义，子按钮不连带选择；行高/缩进可配置，拖动按实际行高定位。SetChildren 原子验证/深复制局部子树，保留有效选择/展开并隔离其他分支请求；提供 Node 快照、标签更新和独立 ScrollTo。OnExpand 覆盖用户箭头/键盘/双击，自定义 Toggle；Lazy + OnLoad + token 结果/错误支持同步或异步加载、重试、折叠/禁用/模型替换失效。测试覆盖错误原子性、所有权、回调重入、多分支请求、子动作隔离、禁用及 1×/2× 万条虚拟行定位。全仓构建、UI/native vet、全量测试通过；未做真机视觉验收。Tree 调整为主体已有。
+- [x] 第一百三十九批（`61f68da`）：按组件集中收尾 Tree。新增可见行上下文/自定义内容，保留缩进、箭头、选中/禁用语义，子按钮不连带选择；行高/缩进可配置，拖动按实际行高定位。SetChildren 原子验证/深复制局部子树，保留有效选择/展开并隔离其他分支请求；提供 Node 快照、标签更新和独立 ScrollTo。OnExpand 覆盖用户箭头/键盘/双击，自定义 Toggle；Lazy + OnLoad + token 结果/错误支持同步或异步加载、重试、折叠/禁用/模型替换失效。测试覆盖错误原子性、所有权、回调重入、多分支请求、子动作隔离、禁用及 1×/2× 万条虚拟行定位。全仓构建、UI/native vet、全量测试通过；未做真机视觉验收。Tree 调整为主体已有。
+
+- [x] 第一百四十批：集中补齐 VirtualList/VariableList 横向虚拟化及轴切换。新增 Horizontal、Width、ScrollToEnd，底层新增 ScrollToX；定位、尺寸缓存、前后预构建和内容缩减跟随主轴。等尺寸列表保留首项附近偏移及子元素身份；变尺寸列表保留稳定 key，清除旧轴测量并按新轴重新测量，横向插入仍保持阅读锚点。示例增加横向卡片和方向切换。1×/2× 下验证 10 万项有限构建、末项露出、变宽测量、插入/缩减、轴切换、输入状态、Fill 和首次挂载前定位；全仓构建、UI/native vet、全量测试通过。未做真机触控板/视觉验收。VirtualList 调整为主体已有。
 
 ## 当前实施清单
 
@@ -328,7 +330,7 @@
 | [Toolbar](https://gpui-kit.com/component/toolbar/) | 主体已有 | [左右区域、尺寸、工具分组、溢出与键盘](../../ui/kit/toolbar.go) | 主体覆盖；命令用 ToolbarItem，自定义内容用 Leading/Trailing，缺任意位置插入 compound 自定义组的接口。 |
 | [Tooltip](https://gpui-kit.com/component/tooltip/) | 主体已有 | [通用提示、键盘焦点、延迟与取消](../../ui/kit/tooltip.go) | 第四批已补齐 Content、Action、Placement/Offset；动作键位自动跟随改绑，富内容不可交互。此表登记缺口已关闭。 |
 | [Tree](https://gpui-kit.com/component/tree/) | 主体已有 | [虚拟化、展开、多选、单项禁用、键盘、动态数据与拖动](../../ui/kit/tree.go) | 第一百三十九批集中补齐 RenderItem/TreeItemContext、行高/缩进、SetChildren/Node/SetNodeLabel、OnExpand 和带 token 的 Lazy 加载/失败/重试，以及不改变选择的 ScrollTo。登记主要缺口关闭。局部更新仍遍历整树验证 ID，采用统一行高和最小露出滚动；拖动自动滚动/展开仍缺，但不当作本页已证实的 GPUI 差距。 |
-| [VirtualList](https://gpui-kit.com/component/virtual-list/) | 部分 | [等高及可变高度实现、稳定 key、尺寸缓存、插入保持锚点](../../ui/kit/variable_list.go) | 纵向等高/变高、尺寸缓存、锚点已有；缺横向虚拟列表与虚拟化轴切换。普通横向滚动不等于横向虚拟化。 |
+| [VirtualList](https://gpui-kit.com/component/virtual-list/) | 主体已有 | [等高及可变高度实现、稳定 key、尺寸缓存、插入保持锚点](../../ui/kit/variable_list.go) | 第一百四十批补齐等尺寸/变尺寸列表的 Horizontal、Width 和 ScrollToEnd，支持横向虚拟化、轴切换、定位及阅读锚点。登记主要缺口关闭。每次沿单轴虚拟化，变尺寸采用可见项实测和离屏估算，滚动使用最小露出；与上游调用方提供全量尺寸及 Top/Center 策略的接口不同。 |
 
 验证记录见 [组件验收](component-acceptance-2026-10-02.md)。
 

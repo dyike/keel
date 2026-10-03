@@ -174,3 +174,21 @@ func (cx *Context) ViewportSize() (width, height float32) {
 	}
 	return float32(e.gtx.Constraints.Max.X) / scale, float32(e.gtx.Constraints.Max.Y) / scale
 }
+
+// ScrollToX sets a ScrollX offset in dp on its next paint. Content bounds clamp
+// it during painting. Missing containers and read-only layout are ignored.
+func (cx *Context) ScrollToX(id string, offset float32) {
+	if !cx.root.e.gtx.Enabled() {
+		return
+	}
+	st := cx.scrollElem(id)
+	if st == nil {
+		return
+	}
+	px := cx.root.e.m.PxPerDp
+	if px == 0 {
+		px = 1
+	}
+	st.scrollPendingX = max(int(offset*px+0.5), 0) - st.scrollX
+	cx.root.e.gtx.Execute(op.InvalidateCmd{})
+}

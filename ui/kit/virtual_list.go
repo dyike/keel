@@ -3,6 +3,7 @@ package kit
 import (
 	"strconv"
 
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 )
 
@@ -11,13 +12,15 @@ import (
 //
 //	kit.VirtualList(len(logs), 24, func(cx *el.Context, i int) el.Element { return el.Text(logs[i]) })
 type VirtualListView struct {
-	count   int
-	rowH    float32
-	height  float32
-	fill    bool
-	row     func(cx *el.Context, i int) el.Element
-	itemKey func(int) string
-	reveal  int // row to scroll to once the viewport exists, -1 none
+	count                         int
+	rowH                          float32
+	height                        float32
+	fill                          bool
+	horizontal, axisChanged       bool
+	width, lastOffset, axisOffset float32
+	row                           func(cx *el.Context, i int) el.Element
+	itemKey                       func(int) string
+	reveal                        int // row to scroll to once the viewport exists, -1 none
 }
 
 func VirtualList(count int, rowHeight float32, row func(cx *el.Context, i int) el.Element) *VirtualListView {
@@ -26,8 +29,11 @@ func VirtualList(count int, rowHeight float32, row func(cx *el.Context, i int) e
 
 // Height sets the viewport height in dp, 320 by default.
 func (v *VirtualListView) Height(dp float32) *VirtualListView {
-	if dp > 0 {
-		v.height, v.fill = dp, false
+	if dp > 0 && finiteNumber(float64(dp)) {
+		v.height = dp
+		if !v.horizontal {
+			v.fill = false
+		}
 	}
 	return v
 }
@@ -59,7 +65,7 @@ func (v *VirtualListView) applyReveal(cx *el.Context) {
 	if v.reveal < 0 {
 		return
 	}
-	if _, view, _ := cx.ScrollState(v.ID()); view == 0 {
+	if _, view, _ := virtualState(cx, v.ID(), v.horizontal); view == 0 {
 		// Not painted yet: a zero timer asks for the next frame, even with
 		// reduced motion, where the viewport will exist.
 		cx.After(revealKey{v.ID()}, 0, func() {})
@@ -70,15 +76,18 @@ func (v *VirtualListView) applyReveal(cx *el.Context) {
 		return
 	}
 	i := min(v.reveal, v.count-1)
-	cx.ScrollIntoView(v.ID(), float32(i)*v.rowH, float32(i+1)*v.rowH)
+	virtualReveal(cx, v.ID(), v.horizontal, float32(i)*v.rowH, float32(i+1)*v.rowH)
 	v.reveal = -1
 }
 
 // Range reports the rows built in the last Render, [first, last).
 func (v *VirtualListView) visible(cx *el.Context) (first, last int) {
-	off, view, _ := cx.ScrollState(v.ID())
+	off, view, _ := virtualState(cx, v.ID(), v.horizontal)
 	if view == 0 {
-		view = v.height
+		view = virtualExtent(v.horizontal, v.width, v.height)
+	}
+	if v.axisChanged && v.reveal < 0 {
+		off = v.axisOffset
 	}
 	// Clamp against the current row count, not the previous frame's content.
 	// Otherwise a shortened list retains an oversized leading spacer forever.
@@ -93,24 +102,59 @@ func (v *VirtualListView) visible(cx *el.Context) (first, last int) {
 
 func (v *VirtualListView) Render(cx *el.Context) el.Element {
 	id := v.ID()
+	if v.axisChanged && v.reveal >= 0 {
+		v.axisOffset = float32(v.reveal) * v.rowH
+	}
 	v.applyReveal(cx)
 	first, last := v.visible(cx)
-	box := el.Div().ID(id).ScrollY().Items(el.Stretch)
-	if v.fill {
-		box.Grow().MinH(el.Dp(v.rowH))
+	box := el.Div().ID(id).Items(el.Stretch)
+	if v.horizontal {
+		box.Row().ScrollX().H(el.Dp(v.height))
+		if v.fill {
+			box.Grow().MinW(el.Dp(v.rowH))
+		} else {
+			box.W(el.Dp(virtualExtent(true, v.width, v.height)))
+		}
 	} else {
-		box.H(el.Dp(v.height))
+		box.ScrollY()
+		if v.width > 0 {
+			box.W(el.Dp(v.width))
+		}
+		if v.fill {
+			box.Grow().MinH(el.Dp(v.rowH))
+		} else {
+			box.H(el.Dp(v.height))
+		}
 	}
-	box.Child(el.Div().H(el.Dp(float32(first) * v.rowH)))
+	box.Child(virtualSpacer(v.horizontal, float32(first)*v.rowH))
 	for i := first; i < last; i++ {
 		// Stable IDs keep each row's state as the window slides.
 		key := strconv.Itoa(i)
 		if v.itemKey != nil {
 			key = v.itemKey(i)
 		}
-		box.Child(el.Div().ID(id + "/" + key).H(el.Dp(v.rowH)).NoShrink().Items(el.Stretch).Child(v.row(cx, i)))
+		item := el.Div().ID(id + "/" + key).NoShrink().Items(el.Stretch)
+		if v.horizontal {
+			item.W(el.Dp(v.rowH)).H(el.Full)
+		} else {
+			item.H(el.Dp(v.rowH))
+		}
+		if v.row != nil {
+			item.Child(v.row(cx, i))
+		}
+		box.Child(item)
 	}
-	box.Child(el.Div().H(el.Dp(float32(v.count-last) * v.rowH)))
+	box.Child(virtualSpacer(v.horizontal, float32(v.count-last)*v.rowH))
+	box.Decorate(func(gtx core.C, draw func()) {
+		draw()
+		if v.axisChanged && gtx.Enabled() {
+			if v.reveal < 0 {
+				virtualScroll(cx, id, v.horizontal, v.axisOffset)
+			}
+			v.axisChanged = false
+		}
+		v.lastOffset, _, _ = virtualState(cx, id, v.horizontal)
+	})
 	return box
 }
 

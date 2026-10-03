@@ -16,3 +16,16 @@ list := kit.VariableList(messageIDs, 72, func(cx *el.Context, i int) el.Element 
 - 未访问行使用估计高度，因此滚动条长度会随测量调整。表格等行高已知场景继续使用等高列表。
 
 验证：`go run ./examples/components -section variable_list`。点击“定位消息 50000”，再连续执行“头部插入 10 条”并重新定位，应始终看到“消息 50000”。同时检查展开行内容和窄窗口换行。
+
+
+`Horizontal(true)` 启用横向变宽虚拟列表；构造时 estimate 参数作为未测量宽度。`Width(dp)` 设置视口宽度（横向默认 320dp），`Height(dp)` 设置高度；横向 `Fill()` 在 Row 父布局中填满主轴。项目渲染器可以返回不同自然宽度或显式宽度。
+
+切换轴保留首个可见稳定 key，把项目内偏移归零，并清空旧轴测量；不会把行高当成列宽。待处理的 ScrollTo/ScrollToKey 保留，布局后继续修正。`ScrollToEnd(cx)` 定位末项。横向插入、删除、重排和尺寸改变同样保持阅读锚点；水平模式下交叉轴高度和缩放变化使缓存失效。可见项目每帧重新测量，修改离屏内容仍调用 Invalidate。
+
+```go
+strip := kit.VariableList(ids, 160, func(cx *el.Context, i int) el.Element {
+    return el.Div().W(el.Dp(widths[i])).Child(el.Text(labels[i]))
+}).Horizontal(true).Width(640).Height(100)
+```
+
+同一列表只沿一个轴虚拟化。Keel 使用可见项目实测与未访问项目估算，上游通过调用方提供全部尺寸；滚动条长度可能随测量调整，定位采用最小露出策略。
