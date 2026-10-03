@@ -13,6 +13,7 @@ func init() {
 		trip := kit.DatePicker("出差日期 Range").Range().Months(2).Placeholder("开始 – 结束").Clearable(true).Size(48).Appearance(false)
 		appointment := kit.DatePicker("预约时间").TimeSeconds().TimeHour12(false).DefaultTime(9 * time.Hour).Clearable(true)
 		today := time.Now()
+		appointment.Presets(kit.DatePickerPreset{ID: "tomorrow-morning", Label: "明早 09:30", Start: time.Date(today.Year(), today.Month(), today.Day()+1, 9, 30, 0, 0, today.Location()), IncludeTime: true})
 		due.Presets(kit.DatePickerPreset{ID: "today", Label: "今天", Start: today}, kit.DatePickerPreset{ID: "tomorrow", Label: "明天", Start: today.AddDate(0, 0, 1)})
 		trip.Presets(kit.DatePickerPreset{ID: "week", Label: "最近七天", Start: today.AddDate(0, 0, -6), End: today})
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {

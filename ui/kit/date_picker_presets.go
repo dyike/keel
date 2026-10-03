@@ -11,6 +11,9 @@ import (
 type DatePickerPreset struct {
 	ID, Label  string
 	Start, End time.Time
+	// IncludeTime applies Start's clock in single-date time mode.
+	// Otherwise the current clock is preserved; date-only/range modes ignore it.
+	IncludeTime bool
 }
 
 // Presets replaces the shortcuts, copying the slice. Empty IDs/labels and
@@ -71,6 +74,9 @@ func (v *DatePickerView) selectPreset(id string) bool {
 		v.close()
 		v.cal.SetValue(a, b)
 		v.selectedDay = a
+		if p.IncludeTime && v.editsTime() {
+			v.clock.SetValue(time.Duration(p.Start.Hour())*time.Hour + time.Duration(p.Start.Minute())*time.Minute + time.Duration(p.Start.Second())*time.Second)
+		}
 		a, b = v.Value()
 		v.err = ""
 		if v.onChange != nil {

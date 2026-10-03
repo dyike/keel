@@ -8,7 +8,7 @@ import (
 
 func TestDatePickerPresetValidationAndCopies(t *testing.T) {
 	a, b := testDay("2026-10-01"), testDay("2026-10-05")
-	items := []DatePickerPreset{{"week", "Week", b, a}, {"week", "Duplicate", a, a}, {"", "Empty ID", a, a}}
+	items := []DatePickerPreset{{ID: "week", Label: "Week", Start: b, End: a}, {ID: "week", Label: "Duplicate", Start: a, End: a}, {Label: "Empty ID", Start: a, End: a}}
 	calls := 0
 	d := DatePicker("Dates").Range().Presets(items...).OnChange(func(time.Time, time.Time) { calls++ })
 	items[0].Start = time.Time{}
@@ -45,7 +45,7 @@ func TestDatePickerPresetValidationAndCopies(t *testing.T) {
 func TestDatePickerPresetClickAndKeyboard(t *testing.T) {
 	for _, span := range []bool{false, true} {
 		calls := 0
-		d := DatePicker("Dates").Presets(DatePickerPreset{"later", "Later", testDay("2026-10-15"), testDay("2026-10-20")}).OnChange(func(time.Time, time.Time) { calls++ })
+		d := DatePicker("Dates").Presets(DatePickerPreset{ID: "later", Label: "Later", Start: testDay("2026-10-15"), End: testDay("2026-10-20")}).OnChange(func(time.Time, time.Time) { calls++ })
 		if span {
 			d.Range()
 		}
