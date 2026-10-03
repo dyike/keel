@@ -10,7 +10,12 @@ import (
 )
 
 func init() {
-	registerSection("notifier", "overlays", func() core.Widget { return el.Root(&notifierGallery{n: kit.Notifier()}) })
+	registerSection("notifier", "overlays", func() core.Widget {
+		n := kit.Notifier()
+		n.Notify(kit.Notice{Title: "默认位置", Body: "这条通知跟随容器的位置设置。", Timeout: -1})
+		n.Notify(kit.Notice{Title: "左下角覆盖", Body: "这条通知固定在左下角。", Placement: kit.NoticeBottomLeft, Timeout: -1})
+		return el.Root(&notifierGallery{n: n})
+	})
 }
 
 type notifierGallery struct {
@@ -26,12 +31,16 @@ func (g *notifierGallery) Render(cx *el.Context) el.Element {
 		}
 	}
 	return el.Div().P(24).Gap(12).Items(el.Start).Child(
-		el.Text("Notifier：右上角堆叠，5 秒后消失，最多显示 5 条").Bold(),
+		el.Text("Notifier：默认右上角，每个位置最多显示 5 条").Bold(),
 		el.Div().Row().Gap(8).Child(
 			kit.Button("成功", notify(kit.ToneSuccess, "保存成功")).Render(cx),
 			kit.Button("警告", notify(kit.ToneWarning, "网络较慢")).Variant(kit.ButtonSecondary).Render(cx),
 			kit.Button("错误", notify(kit.ToneDanger, "同步失败")).Variant(kit.ButtonDanger).Render(cx),
 			kit.Button("常驻", func() { g.n.Notify(kit.Notice{Title: "需要处理", Body: "不会自动消失。", Timeout: -1}) }).Variant(kit.ButtonGhost).Render(cx),
+		),
+		el.Div().Row().Wrap().Gap(8).Child(
+			kit.Button("默认右上角", func() { g.n.Placement(kit.NoticeTopRight) }).Render(cx),
+			kit.Button("默认底部居中", func() { g.n.Placement(kit.NoticeBottomCenter) }).Render(cx),
 		),
 		kit.Button("模拟后台更新", func() {
 			id := g.n.Notify(kit.Notice{Title: "正在同步", Timeout: -1})

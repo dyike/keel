@@ -13,7 +13,7 @@ import (
 // NotificationTimeout is the default time a notice stays on screen.
 const NotificationTimeout = 5 * time.Second
 
-// MaxNotifications is how many notices show at once; later ones wait.
+// MaxNotifications is how many notices show at each placement; later ones wait.
 const MaxNotifications = 5
 
 // Notice is one notification. Timeout 0 means NotificationTimeout; a negative
@@ -22,6 +22,7 @@ type Notice struct {
 	Title, Body string
 	Tone        Tone
 	Timeout     time.Duration
+	Placement   NoticePlacement
 }
 
 type notice struct {
@@ -30,13 +31,14 @@ type notice struct {
 	revision uint64
 }
 
-// NotifierView stacks notices in the top right corner of the window. Render
+// NotifierView stacks notices by placement (top right by default). Render
 // one as a direct child of the root view's top element, then call Notify from
 // callbacks (or core.Update from other goroutines). Hovering or focusing a notice pauses
 // its remaining timeout; notices never take focus or Esc.
 type NotifierView struct {
-	items []notice
-	next  int
+	items     []notice
+	next      int
+	placement NoticePlacement
 }
 
 func Notifier() *NotifierView { return &NotifierView{} }
@@ -63,18 +65,30 @@ func (v *NotifierView) Len() int { return len(v.items) }
 
 func (v *NotifierView) Render(cx *el.Context) el.Element {
 	id := autoID("notifier", v)
-	if len(v.items) > 0 {
-		w, h := cx.ViewportSize()
+	w, h := cx.ViewportSize()
+	anchors := el.Div().ID(id).Absolute().Top(0).Left(0).Size(el.Dp(0))
+	for position := NoticeTopRight; position <= NoticeRightCenter; position++ {
 		stack := el.Div().W(el.Dp(320)).MaxW(el.Dp(max(0, w-32))).MaxH(el.Dp(max(0, h-32))).ScrollY().Gap(theme.SpaceMd).Items(el.Stretch)
-		for i, it := range v.items {
-			if i == MaxNotifications {
+		count := 0
+		for _, it := range v.items {
+			if v.position(it.Placement) != position {
+				continue
+			}
+			if count == MaxNotifications {
 				break
 			}
 			stack.Child(v.card(cx, id, it))
+			count++
 		}
-		cx.Overlay(id, el.Anchored(id, stack).Placement(el.Bottom, el.End).Offset(0))
+		if count == 0 {
+			continue
+		}
+		anchorID := id + "/position/" + strconv.Itoa(int(position))
+		x, y, side, align := noticeAnchor(position, w, h)
+		anchors.Child(el.Div().ID(anchorID).Absolute().Left(x).Top(y).Size(el.Dp(0)))
+		cx.Overlay(anchorID, el.Anchored(anchorID, stack).Placement(side, align).Offset(0))
 	}
-	return el.Div().ID(id).Absolute().Top(16).Right(16).Size(el.Dp(0))
+	return anchors
 }
 
 func (v *NotifierView) card(cx *el.Context, base string, n notice) el.Element {
