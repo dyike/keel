@@ -48,6 +48,8 @@ type chartOptions struct {
 	orientedWidth  float32
 	barFill        func(ChartBarDatum) ChartBarFill
 	futureSlots    int
+	pointCount     int
+	barGradient    func(ChartBarDatum, ChartBarRange) []ChartColorStop
 	gutter         *ChartGutter
 	yLabelsInside  bool
 	domain         *[2]float64
@@ -186,12 +188,19 @@ func (v *ChartView) xTickIndices(width float32) []int {
 	}
 	out := []int{}
 	if v.options.xTicks > 0 {
-		count := min(n, v.options.xTicks)
+		slots := n
+		if v.options.pointCount > 0 {
+			slots = v.categoryCount()
+		}
+		count := min(slots, v.options.xTicks)
 		if count == 1 {
 			return []int{0}
 		}
 		for i := 0; i < count; i++ {
-			out = append(out, int(math.Round(float64(i)*float64(n-1)/float64(count-1))))
+			index := int(math.Round(float64(i) * float64(slots-1) / float64(count-1)))
+			if index < n {
+				out = append(out, index)
+			}
 		}
 		return out
 	}

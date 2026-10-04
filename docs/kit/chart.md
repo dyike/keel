@@ -64,4 +64,24 @@ TooltipContent 接收当前类别索引、标签和可见系列的数值/默认�
 
 横向的默认预留为 Left=80、Bottom=24，显式 Gutter 优先。YLabelsInside 将数值刻度移进绘图区，类别标签仍在左侧。参考线、提示与数值刻度使用对应方向的坐标，渐变的 Top/Bottom/Left/Right 保持屏幕方向。
 
-季度收入示例采用左基线横向堆叠图。四向命中与渐变像素已通过自动测试；参考线和文字的完整原生布局仍待验收。当前差异：FutureSlots 是额外空位数，尚无固定总点数 point_count；BarFill 暂不提供任意多色停靠点或 chart_to_bar 映射。
+季度收入示例采用左基线横向堆叠图。四向命中与渐变像素已通过自动测试；参考线和文字的完整原生布局仍待验收。固定总点位与多停靠点渐变见下文。
+
+## 固定点位与数值渐变
+
+`PointCount(n)` 固定分类轴至少容纳 n 个位置（0–100000），追加数据时已有类别位置保持不变；实际数据超过 n 后扩展轴，0 恢复自动。它与 FutureSlots 相互替换，适用于折线、面积、柱图和蜡烛图。XTickCount 在固定总位置上选择刻度，仅展示已有类别的文字，未来空位不伪造标签、数值或提示。与 [GPUI 的 point_count](https://gpui-kit.com/component/chart/#pinned-axis-and-unfinished-series) 用途相同，Keel 继续使用分类带中心坐标。
+
+`BarGradient(func(ChartBarDatum, ChartBarRange) []ChartColorStop)` 提供沿柱体基线到顶端的多停靠点渐变。`ChartBarRange` 含显示轴域 Min/Max 和当前段累计值 Base/Tip；`ChartToBar(value)` 将数值映射到当前段，Base 为 0、Tip 为 1，允许越界。正负柱及四种方向均按真实生长方向绘制。堆叠回调的 datum.Value 保留原值。
+
+每个停靠点含 Position 和 Color；实现复制并排序输入，重复位置采用最后一个颜色。区间外的点在边界按线性光、预乘 alpha 插值；空数组或非有限位置整组回退系列色。相邻色段按物理像素边界切分，不保留亚像素宽的色段。BarGradient 与 BarFill 相互替换，传 nil 恢复系列色；回调应无副作用。
+
+```go
+chart.BarGradient(func(d kit.ChartBarDatum, r kit.ChartBarRange) []kit.ChartColorStop {
+    return []kit.ChartColorStop{
+        {Position: r.ChartToBar(r.Min), Color: theme.Chart[0]},
+        {Position: r.ChartToBar((r.Min+r.Max)/2), Color: theme.Chart[1]},
+        {Position: r.ChartToBar(r.Max), Color: theme.Chart[2]},
+    }
+})
+```
+
+自动验证覆盖追加时固定刻度、两种点位配置切换、超额数据、区间外插值、输入副本、非法停靠点、极值映射、正负堆叠端点；GPU 像素测试覆盖双倍率、四向正负柱、半透明整图映射在不同柱高上的颜色一致性。原生窗口仍待验收。

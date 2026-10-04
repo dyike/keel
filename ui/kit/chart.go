@@ -511,6 +511,7 @@ func areaAlpha(visible int) uint8 {
 // drawBars draws grouped or stacked bars: at most 24dp wide, 2dp of surface
 // between neighbors, the data end rounded 4dp and the baseline end square.
 func (v *ChartView) drawBars(gtx core.C, band float32, y func(float64) float32, dp func(float32) float32) {
+	ticks := v.axisTicks()
 	k := 0
 	for i := range v.series {
 		if !v.hidden[i] {
@@ -519,7 +520,7 @@ func (v *ChartView) drawBars(gtx core.C, band float32, y func(float64) float32, 
 	}
 	k = max(k, 1)
 	gap := min(dp(2), band*0.1/float32(k))
-	bar := func(x0, x1, from, to float32, i, index int, round bool) {
+	bar := func(x0, x1, from, to float32, i, index int, round bool, base, tip float64) {
 		top, bottom := min(from, to), max(from, to)
 		if bottom-top < 0.5 {
 			return
@@ -534,7 +535,7 @@ func (v *ChartView) drawBars(gtx core.C, band float32, y func(float64) float32, 
 		} else {
 			rr.SW, rr.SE = int(r), int(r)
 		}
-		v.paintBar(gtx, rr, i, index)
+		v.paintBar(gtx, rr, i, index, ChartBarRange{Min: ticks[0], Max: ticks[len(ticks)-1], Base: base, Tip: tip})
 	}
 	zero := y(0)
 	for j := range v.labels {
@@ -568,14 +569,14 @@ func (v *ChartView) drawBars(gtx core.C, band float32, y func(float64) float32, 
 					if pos > 0 {
 						from -= gap // the surface gap between segments
 					}
-					bar(x0, x1, from, to, i, j, i == lastPos)
+					bar(x0, x1, from, to, i, j, i == lastPos, pos, min(math.MaxFloat64, pos+x))
 					pos = min(math.MaxFloat64, pos+x)
 				} else {
 					from, to := y(neg), y(max(-math.MaxFloat64, neg+x))
 					if neg < 0 {
 						from += gap
 					}
-					bar(x0, x1, from, to, i, j, i == lastNeg)
+					bar(x0, x1, from, to, i, j, i == lastNeg, neg, max(-math.MaxFloat64, neg+x))
 					neg = max(-math.MaxFloat64, neg+x)
 				}
 			}
@@ -591,7 +592,7 @@ func (v *ChartView) drawBars(gtx core.C, band float32, y func(float64) float32, 
 				x += w + gap
 				continue
 			}
-			bar(x, x+w, zero, y(v.value(s, j)), i, j, true)
+			bar(x, x+w, zero, y(v.value(s, j)), i, j, true, 0, v.value(s, j))
 			x += w + gap
 		}
 	}

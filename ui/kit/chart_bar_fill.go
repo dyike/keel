@@ -39,11 +39,19 @@ type ChartBarFill struct {
 // series colors. It does not alter legends, hit testing, values or data tables.
 func (v *ChartView) BarFill(fn func(ChartBarDatum) ChartBarFill) *ChartView {
 	v.options.barFill = fn
+	v.options.barGradient = nil
 	return v
 }
 
-func (v *ChartView) paintBar(gtx core.C, shape clip.RRect, series, index int) {
+func (v *ChartView) paintBar(gtx core.C, shape clip.RRect, series, index int, context ChartBarRange) {
 	color := v.seriesColor(series)
+	if v.options.barGradient != nil {
+		s := v.series[series]
+		datum := ChartBarDatum{Series: series, Index: index, Name: s.Name, Label: v.labels[index], Value: v.value(s, index), Stacked: v.stacked, Color: color}
+		if v.paintGradientStops(gtx, shape, context, v.options.barGradient(datum, context)) {
+			return
+		}
+	}
 	if v.options.barFill == nil {
 		paint.FillShape(gtx.Ops, color, shape.Op(gtx.Ops))
 		return

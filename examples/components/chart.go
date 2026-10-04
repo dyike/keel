@@ -14,15 +14,15 @@ func init() {
 			kit.Series{Name: "华东", Values: []float64{120, 132, 101, 134, 190, 230, 210, 182, 191, 234, 290, 330}},
 			kit.Series{Name: "华北", Values: []float64{220, 182, 191, 234, 290, 330, 310, 201, 154, 190, 330, 410}},
 			kit.Series{Name: "华南 South", Values: []float64{150, 232, 201, 154, 190, 330, 410, 320, 332, 301, 334, 390}},
-		).Title("月度销售额（万元）· 预留两期").FutureSlots(2).YDomain(0, 500).YTickCount(6).XTickCount(6).GridColumns(5).GridDashed(true).Curve(kit.ChartCurveSmooth).ReferenceLines(kit.ChartReference{Value: 300, Label: "目标", Color: theme.Success})
+		).Title("月度销售额（万元）· 固定 14 个点位").PointCount(14).YDomain(0, 500).YTickCount(6).XTickCount(6).GridColumns(5).GridDashed(true).Curve(kit.ChartCurveSmooth).ReferenceLines(kit.ChartReference{Value: 300, Label: "目标", Color: theme.Success})
 		orders := kit.BarChart([]string{"周一", "周二", "周三", "周四", "周五", "周六", "周日"},
 			kit.Series{Name: "新订单", Values: []float64{32, 41, 38, 52, 61, 24, 18}},
 			kit.Series{Name: "退款", Values: []float64{4, 6, 3, 8, 5, 2, 1}},
 		).Title("本周订单 · 轴内标签").Height(180).YLabelsInside(true).Gutter(kit.ChartGutter{Left: 8, Right: 16, Top: 12, Bottom: 24})
-		orders.BarFill(func(d kit.ChartBarDatum) kit.ChartBarFill {
+		orders.BarGradient(func(d kit.ChartBarDatum, r kit.ChartBarRange) []kit.ChartColorStop {
 			faded := d.Color
 			faded.A = 80
-			return kit.ChartBarFill{Gradient: &kit.ChartBarGradient{Start: d.Color, End: faded, Direction: el.Bottom}}
+			return []kit.ChartColorStop{{Position: r.ChartToBar(r.Min), Color: faded}, {Position: r.ChartToBar((r.Min + r.Max) / 2), Color: d.Color}, {Position: r.ChartToBar(r.Max), Color: theme.Success}}
 		})
 		stack := kit.BarChart([]string{"Q1", "Q2", "Q3", "Q4"},
 			kit.Series{Name: "线上", Values: []float64{320, 410, 380, 520}},
