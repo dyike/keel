@@ -47,8 +47,12 @@ func (v *CodeEditorView) face() font.Font { return font.Font{Typeface: theme.Mon
 
 // shape lays out one line of text without wrapping.
 func (v *CodeEditorView) shape(px int, s string) []gtext.Glyph {
+	return v.shapeFace(px, v.face(), s)
+}
+
+func (v *CodeEditorView) shapeFace(px int, face font.Font, s string) []gtext.Glyph {
 	sh := theme.Material.Shaper
-	sh.LayoutString(gtext.Parameters{Font: v.face(), PxPerEm: fixed.I(px), MaxWidth: 1 << 24}, s)
+	sh.LayoutString(gtext.Parameters{Font: face, PxPerEm: fixed.I(px), MaxWidth: 1 << 24}, s)
 	var out []gtext.Glyph
 	for {
 		g, ok := sh.NextGlyph()
@@ -294,6 +298,7 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 		} else if si < len(spans) {
 			end = min(end, spans[si].start)
 		}
+		face := v.face()
 		for _, d := range decorations {
 			if d.style != CodeDecorationText {
 				continue
@@ -302,7 +307,15 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 				end = min(end, d.a)
 			} else if d.b > i {
 				end = min(end, d.b)
-				c = d.color
+				if !d.keep {
+					c = d.color
+				}
+				if d.weight != 0 {
+					face.Weight = d.weight
+				}
+				if d.italic {
+					face.Style = font.Italic
+				}
 			}
 		}
 		j := i
@@ -310,7 +323,7 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 			j++
 		}
 		if x := ox + xs[i]; x < m.size.X && ox+xs[j] > m.gutter {
-			v.paintText(gtx, string(l[i:j]), image.Pt(x, top+m.baseline), c)
+			v.paintTextFace(gtx, face, string(l[i:j]), image.Pt(x, top+m.baseline), c)
 		}
 		i = j
 	}
@@ -389,7 +402,11 @@ func (v *CodeEditorView) paintWhitespace(gtx core.C, l []rune, xs []int, ox, top
 }
 
 func (v *CodeEditorView) paintText(gtx core.C, s string, at image.Point, c color.NRGBA) {
-	glyphs := v.shape(v.metrics.px, s)
+	v.paintTextFace(gtx, v.face(), s, at, c)
+}
+
+func (v *CodeEditorView) paintTextFace(gtx core.C, face font.Font, s string, at image.Point, c color.NRGBA) {
+	glyphs := v.shapeFace(v.metrics.px, face, s)
 	if len(glyphs) == 0 {
 		return
 	}

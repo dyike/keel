@@ -83,3 +83,12 @@ func TestCodeDecorationFrameSpansRows(t *testing.T) {
 	ed.Decorations(CodeDecoration{Range: CodeRange{Line: 0, Col: 2, EndLine: 2, EndCol: 4}, Style: CodeDecorationFrame})
 	h.Frame() // paints without panicking across rows
 }
+
+func TestCodeDecorationStyleOnlyKeepsSyntaxColor(t *testing.T) {
+	ed := CodeEditor("func main() {}")
+	ed.Decorations(CodeDecoration{Range: CodeRange{EndCol: 4}, Style: CodeDecorationText, Italic: true})
+	ds := ed.lineDecorations(0)
+	if len(ds) != 1 || !ds[0].keep || !ds[0].italic {
+		t.Fatalf("italic-only decoration should keep the syntax color: %+v", ds)
+	}
+}

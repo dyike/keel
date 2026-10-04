@@ -1,15 +1,17 @@
 package kit
 
 import (
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
-	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/theme"
 	"image"
 	"image/color"
 	"slices"
 	"sort"
 	"strings"
+
+	"gioui.org/font"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
+	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/theme"
 )
 
 type CodeDecorationStyle uint8
@@ -27,6 +29,11 @@ type CodeDecoration struct {
 	Range CodeRange
 	Style CodeDecorationStyle
 	Color *color.NRGBA
+	// Weight and Italic restyle the glyphs of a CodeDecorationText range.
+	// Glyphs keep the regular positions, so carets and clicks do not move.
+	// With either set and Color nil, the syntax color stays.
+	Weight font.Weight
+	Italic bool
 }
 
 // CodeDecorationCollection owns annotations independently of other extensions.
@@ -235,6 +242,9 @@ type codeLineDecoration struct {
 	a, b     int // columns on this line; text styles use them
 	style    CodeDecorationStyle
 	color    color.NRGBA
+	keep     bool // keep the syntax color: a weight or italic only
+	weight   font.Weight
+	italic   bool
 	from, to codePos // the whole range, for shapes that span rows
 }
 
@@ -263,7 +273,8 @@ func (v *CodeEditorView) lineDecorations(line int) []codeLineDecoration {
 			if d.Color != nil {
 				color = *d.Color
 			}
-			out = append(out, codeLineDecoration{a, b, d.Style, color, from, to})
+			keep := d.Color == nil && d.Style == CodeDecorationText && (d.Weight != 0 || d.Italic)
+			out = append(out, codeLineDecoration{a: a, b: b, style: d.Style, color: color, keep: keep, weight: d.Weight, italic: d.Italic, from: from, to: to})
 		}
 	}
 	return out
