@@ -105,6 +105,34 @@ d.Skin(&kit.DockSkin{
 })
 ```
 
-`Panel` 配置标签组外框，`Header/Body/Tab/Separator` 分别配置标题栏、正文、标签与内外分隔条。回调每帧应用在新元素上，可改颜色、边框、字号和面板留白；保留元素身份、子内容和事件处理，分隔条保持 4dp 几何。配置对象可以共享并在 UI 线程更新，`Skin(nil)` 恢复默认外观，不改布局或面板内容。皮肤不进入布局 JSON，也不修改全局主题。它是样式配置层，不提供 GPUI 的整套 renderer traits 或侧栏切换按钮。
+`Panel` 配置标签组外框，`Header/Body/Tab/Separator` 分别配置标题栏、正文、标签与内外分隔条。回调每帧应用在新元素上，可改颜色、边框、字号和面板留白；保留元素身份、子内容和事件处理，分隔条保持 4dp 几何。配置对象可以共享并在 UI 线程更新，`Skin(nil)` 恢复默认外观，不改布局或面板内容。皮肤不进入布局 JSON，也不修改全局主题。它只管样式；面板自己的标签、工具栏和菜单见下一节。
 
 组件库示例的“保存工作区 / 恢复工作区”可以验证搜索词随布局恢复，“切换 Dock 外观”用于检查皮肤。原生窗口、浅深色视觉和多窗口生命周期仍需真机验收。
+
+## 面板的标签、工具栏和菜单
+
+`DockPanel` 的可选字段让每个面板决定自己在 Dock 里的样子和行为：
+
+```go
+d.Panel(kit.DockPanel{
+    ID: "files", Title: "文件", View: files,
+    Icon:    kit.IconFolder,                                     // 标签上的图标
+    Toolbar: kit.Button("", refresh).Name("刷新").Icon(kit.IconRetry).Variant(kit.ButtonGhost).Size(24),
+    Menu:    func(m *kit.MenuView) { m.Item("全部折叠", "", collapseAll) },
+    NoClose: true, // 菜单里没有“关闭”
+}, kit.DockLeft)
+```
+
+- `Icon` 显示在标题前；`Tab(selected)` 完全替换标签内容（例如带状态点），`Title` 仍是标签的无障碍名字。
+- `Toolbar` 在面板是当前标签时显示在标题栏右侧、菜单按钮之前。
+- `Menu` 往面板菜单里加项，排在 Dock 自带的移动、拆分、最大化、关闭之前。
+- `NoClose` 去掉“关闭”；`NoZoom` 去掉“最大化”，双击标签和 `Zoom(id)` 也不再最大化它。
+- `NoPadding` 去掉正文留白，适合终端、画布这类贴边绘制的面板。
+
+## 收起侧栏
+
+```go
+toolbar.Child(d.RegionButton(kit.DockLeft).Render(cx), d.RegionButton(kit.DockBottom).Render(cx))
+```
+
+`RegionButton(side)` 返回一个切换按钮，侧栏展开时为选中状态，可放进标题栏或工具栏；按钮建一次后复用。`SetRegionOpen(side, open)` / `RegionOpen(side)` / `ToggleRegion(side)` 是对应的程序接口，`ToggleRegion` 会触发 OnLayoutChange。收起只是隐藏整块区域，面板的标签、拆分和尺寸都保留，再展开原样回来；收起状态存在布局的 `LeftClosed/RightClosed/BottomClosed` 里。中心区不能收起。收起最大化面板所在的侧栏会先退出最大化。

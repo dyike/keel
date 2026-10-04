@@ -40,6 +40,24 @@ type DockPanel struct {
 	// SaveState returns application-owned JSON. Snapshot copies the bytes.
 	// Set Kind when using SaveState so Restore can reconstruct the panel.
 	SaveState func() (json.RawMessage, error)
+
+	// Icon shows before the title in the panel's tab.
+	Icon IconName
+	// Tab replaces the tab's icon and title with custom content; selected
+	// reports whether it is the group's active tab. Title stays the tab's
+	// accessible name.
+	Tab func(selected bool) el.View
+	// Toolbar shows controls in the group header, before the menu, while
+	// the panel is the active tab.
+	Toolbar el.View
+	// Menu adds items to the panel's menu, above the dock's own items.
+	Menu func(m *MenuView)
+	// NoClose and NoZoom remove closing and maximizing from the panel's
+	// menu; NoZoom also ignores double clicks on its tab and Zoom.
+	NoClose, NoZoom bool
+	// NoPadding drops the body's inner padding, for panels that draw edge
+	// to edge.
+	NoPadding bool
 }
 
 // DockLayout is everything about a Dock's arrangement, for saving and
@@ -57,6 +75,8 @@ type DockLayout struct {
 	BottomActive                    string   `json:",omitempty"`
 	LeftSize, RightSize, BottomSize float32
 	Hidden                          []string `json:",omitempty"`
+	// Closed regions are collapsed; their panels keep their places.
+	LeftClosed, RightClosed, BottomClosed bool `json:",omitempty"`
 	// Zoomed is the panel maximized over the whole dock, or "".
 	Zoomed string `json:",omitempty"`
 }
@@ -412,7 +432,15 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 					*selected = id
 					v.changed()
 				}
-			}).OnDoubleClick(func() { v.toggleZoom(id) }).Child(el.Text(v.panels[id].Title).MaxLines(1))
+			}).OnDoubleClick(func() { v.toggleZoom(id) })
+		if p := v.panels[id]; p.Tab != nil {
+			t.Child(p.Tab(on).Render(cx))
+		} else {
+			if p.Icon != IconNone {
+				t.Row().Items(el.Center).Gap(theme.SpaceXs).Child(Icon(p.Icon).Size(14).Render(cx))
+			}
+			t.Child(el.Text(p.Title).MaxLines(1))
+		}
 		if on {
 			t.Bg(theme.Surface).TextColor(theme.PrimaryText)
 		} else {
@@ -440,6 +468,13 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 	}
 	m.items = m.items[:0]
 	cur := *active
+	panel := v.panels[cur]
+	if panel.Menu != nil {
+		panel.Menu(m)
+		if len(m.items) > 0 {
+			m.Separator()
+		}
+	}
 	for _, to := range []struct {
 		side  DockSide
 		label string
@@ -465,22 +500,33 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 				}
 			})
 	}
-	zoom := text.DockZoom
-	if v.layout.Zoomed == cur {
-		zoom = text.DockRestore
+	if !panel.NoZoom {
+		zoom := text.DockZoom
+		if v.layout.Zoomed == cur {
+			zoom = text.DockRestore
+		}
+		m.Separator().Item(zoom, "", func() { v.toggleZoom(cur) })
 	}
-	m.Separator().Item(zoom, "", func() { v.toggleZoom(cur) })
 	if v.onDetach != nil {
 		m.Separator().Item(text.DockDetach, "", func() { v.Detach(cur) })
 	}
-	m.Separator().Item(text.Close, "", func() { v.SetVisible(cur, false); v.changed() })
+	if !panel.NoClose {
+		m.Separator().Item(text.Close, "", func() { v.SetVisible(cur, false); v.changed() })
+	}
 	m.Trigger(Button("", m.Toggle).Name(text.Name(text.More, v.panels[cur].Title)).Icon(IconChevronDown).Variant(ButtonGhost).Size(24))
-	head := el.Div().Row().Items(el.Center).Gap(theme.SpaceXs).Px(theme.SpaceXs).Py(theme.SpaceXs).Bg(theme.Subtle).Child(tabs, m.Render(cx))
+	head := el.Div().Row().Items(el.Center).Gap(theme.SpaceXs).Px(theme.SpaceXs).Py(theme.SpaceXs).Bg(theme.Subtle).Child(tabs)
+	if panel.Toolbar != nil {
+		head.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceXxs).NoShrink().Child(panel.Toolbar.Render(cx)))
+	}
+	head.Child(m.Render(cx))
 	// A bounded body, not a scroll view: panels like Tree and Table fill it
 	// and scroll themselves; wrap long plain content in a ScrollY element.
-	body := el.Div().Grow().H(el.Dp(0)).Items(el.Stretch).P(theme.SpaceMd)
-	if p := v.panels[cur]; p.View != nil {
-		body.Child(p.View.Render(cx))
+	body := el.Div().Grow().H(el.Dp(0)).Items(el.Stretch)
+	if !panel.NoPadding {
+		body.P(theme.SpaceMd)
+	}
+	if panel.View != nil {
+		body.Child(panel.View.Render(cx))
 	}
 	if v.skin != nil {
 		if v.skin.Header != nil {
@@ -679,7 +725,7 @@ func (v *DockView) Render(cx *el.Context) el.Element {
 // other panels until Zoom(""), its menu, a double click on its tab or Esc.
 // The zoomed panel is part of Layout.
 func (v *DockView) Zoom(id string) {
-	if id != "" && (!v.Visible(id) || v.where(id) < 0) {
+	if id != "" && (!v.Visible(id) || v.where(id) < 0 || v.panels[id].NoZoom) {
 		return
 	}
 	v.cancelResize()
@@ -691,6 +737,9 @@ func (v *DockView) Zoom(id string) {
 func (v *DockView) Zoomed() string { return v.layout.Zoomed }
 
 func (v *DockView) toggleZoom(id string) {
+	if v.panels[id].NoZoom && v.layout.Zoomed != id {
+		return
+	}
 	if v.layout.Zoomed == id {
 		v.Zoom("")
 	} else {

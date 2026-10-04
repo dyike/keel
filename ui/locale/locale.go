@@ -47,21 +47,23 @@ type Strings struct {
 	CollapseSidebar, ExpandSidebar                  string
 	PrevSlide, NextSlide                            string
 	DockLeft, DockRight, DockBottom                 string
-	DockCenter, DockDetach                          string
-	DockSplitRight, DockSplitBelow                  string
-	DockZoom, DockRestore                           string
-	CodeEditor                                      string
-	Find, Replace, ReplaceAll, PrevMatch, NextMatch string
-	MatchCase, WholeWord, RegularExpression         string
-	InvalidPattern, FoldRegion, UnfoldRegion        string
-	Skip, SearchSettings, ResetSettings             string
-	Minimize, Maximize, Restore                     string
-	CandleOpen, CandleHigh, CandleLow, CandleClose  string
-	ChartValue, ChartShare                          string
-	ShowTable, ShowChart, ResetView                 string
-	ColorShade, Hue, Opacity                        string
-	ColorFormat                                     string
-	Previous, Next, Submit, Required, AnswerOrSkip  string
+	// Names of the buttons that show and hide a Dock region.
+	DockLeftRegion, DockRightRegion, DockBottomRegion string
+	DockCenter, DockDetach                            string
+	DockSplitRight, DockSplitBelow                    string
+	DockZoom, DockRestore                             string
+	CodeEditor                                        string
+	Find, Replace, ReplaceAll, PrevMatch, NextMatch   string
+	MatchCase, WholeWord, RegularExpression           string
+	InvalidPattern, FoldRegion, UnfoldRegion          string
+	Skip, SearchSettings, ResetSettings               string
+	Minimize, Maximize, Restore                       string
+	CandleOpen, CandleHigh, CandleLow, CandleClose    string
+	ChartValue, ChartShare                            string
+	ShowTable, ShowChart, ResetView                   string
+	ColorShade, Hue, Opacity                          string
+	ColorFormat                                       string
+	Previous, Next, Submit, Required, AnswerOrSkip    string
 	// Progress formats "question i of n", e.g. "第 3 / 10 题".
 	Progress func(i, n int) string
 	// Total formats an item count for a pager, e.g. "共 36 条".
@@ -112,7 +114,7 @@ func Chinese() Strings {
 		AttachmentPending: "待上传", AttachmentProcessing: "处理中", AttachmentFailed: "上传失败",
 		More: "更多", Resize: "调整大小", CollapseSidebar: "收起侧栏", ExpandSidebar: "展开侧栏",
 		PrevSlide: "上一张", NextSlide: "下一张",
-		DockSplitRight: "向右拆分", DockSplitBelow: "向下拆分", DockZoom: "最大化", DockRestore: "还原", CodeEditor: "代码编辑器", Find: "查找", Replace: "替换", ReplaceAll: "全部替换", PrevMatch: "上一个匹配", NextMatch: "下一个匹配", MatchCase: "区分大小写", WholeWord: "全字匹配", RegularExpression: "正则表达式", InvalidPattern: "表达式无效", FoldRegion: "折叠", UnfoldRegion: "展开", DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", DockCenter: "移到中间", DockDetach: "在新窗口打开", SearchSettings: "搜索设置", ResetSettings: "重置此页", Skip: "跳过",
+		DockSplitRight: "向右拆分", DockSplitBelow: "向下拆分", DockZoom: "最大化", DockRestore: "还原", CodeEditor: "代码编辑器", Find: "查找", Replace: "替换", ReplaceAll: "全部替换", PrevMatch: "上一个匹配", NextMatch: "下一个匹配", MatchCase: "区分大小写", WholeWord: "全字匹配", RegularExpression: "正则表达式", InvalidPattern: "表达式无效", FoldRegion: "折叠", UnfoldRegion: "展开", DockLeft: "停靠到左侧", DockRight: "停靠到右侧", DockBottom: "停靠到底部", DockCenter: "移到中间", DockDetach: "在新窗口打开", DockLeftRegion: "左侧面板", DockRightRegion: "右侧面板", DockBottomRegion: "底部面板", SearchSettings: "搜索设置", ResetSettings: "重置此页", Skip: "跳过",
 		Minimize: "最小化", Maximize: "最大化", Restore: "还原",
 		CandleOpen: "开盘", CandleHigh: "最高", CandleLow: "最低", CandleClose: "收盘",
 		ChartValue: "数值", ChartShare: "占比", ShowTable: "查看数据表", ShowChart: "查看图表", ResetView: "复位",
@@ -150,7 +152,7 @@ func English() Strings {
 		AttachmentPending: "Ready to upload", AttachmentProcessing: "Processing", AttachmentFailed: "Upload failed",
 		More: "More", Resize: "Resize", CollapseSidebar: "Collapse sidebar", ExpandSidebar: "Expand sidebar",
 		PrevSlide: "Previous slide", NextSlide: "Next slide",
-		DockSplitRight: "Split right", DockSplitBelow: "Split below", DockZoom: "Maximize", DockRestore: "Restore", CodeEditor: "Code editor", Find: "Find", Replace: "Replace", ReplaceAll: "Replace all", PrevMatch: "Previous match", NextMatch: "Next match", MatchCase: "Match case", WholeWord: "Whole word", RegularExpression: "Regular expression", InvalidPattern: "Invalid pattern", FoldRegion: "Fold", UnfoldRegion: "Unfold", DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", DockCenter: "Move to center", DockDetach: "Open in new window", SearchSettings: "Search settings", ResetSettings: "Reset page", Skip: "Skip",
+		DockSplitRight: "Split right", DockSplitBelow: "Split below", DockZoom: "Maximize", DockRestore: "Restore", CodeEditor: "Code editor", Find: "Find", Replace: "Replace", ReplaceAll: "Replace all", PrevMatch: "Previous match", NextMatch: "Next match", MatchCase: "Match case", WholeWord: "Whole word", RegularExpression: "Regular expression", InvalidPattern: "Invalid pattern", FoldRegion: "Fold", UnfoldRegion: "Unfold", DockLeft: "Dock left", DockRight: "Dock right", DockBottom: "Dock bottom", DockCenter: "Move to center", DockDetach: "Open in new window", DockLeftRegion: "Left panel", DockRightRegion: "Right panel", DockBottomRegion: "Bottom panel", SearchSettings: "Search settings", ResetSettings: "Reset page", Skip: "Skip",
 		Minimize: "Minimize", Maximize: "Maximize", Restore: "Restore",
 		CandleOpen: "Open", CandleHigh: "High", CandleLow: "Low", CandleClose: "Close",
 		ChartValue: "Value", ChartShare: "Share", ShowTable: "Show data table", ShowChart: "Show chart", ResetView: "Reset view",

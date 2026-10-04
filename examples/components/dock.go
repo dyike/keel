@@ -43,12 +43,19 @@ func init() {
 			return el.Div().Grow().P(24).Gap(8).Bg(theme.Surface).Child(el.Text("没有打开的文档").Bold(),
 				el.Text("把面板拖到这里，或用面板菜单的“移到中间”打开为文档").TextSize(12).TextColor(theme.Muted))
 		})).
-			Panel(kit.DockPanel{ID: "files", Title: "文件", View: files}, kit.DockLeft).
+			Panel(kit.DockPanel{ID: "files", Title: "文件", Icon: kit.IconFolder, View: files, NoClose: true,
+				Toolbar: kit.Button("", func() { status = "已刷新文件列表" }).Name("刷新文件").Icon(kit.IconRetry).Variant(kit.ButtonGhost).Size(24),
+				Menu:    func(m *kit.MenuView) { m.Item("全部折叠", "", func() { status = "已折叠全部目录" }) }}, kit.DockLeft).
 			Panel(search, kit.DockLeft).
 			Panel(kit.DockPanel{ID: "main.go", Title: "main.go", View: code("package main\n\nfunc main() {\n    run()\n}")}, kit.DockCenter).
 			Panel(kit.DockPanel{ID: "app.go", Title: "app.go", View: code("package main\n\nfunc run() {}")}, kit.DockCenter).
 			Panel(kit.DockPanel{ID: "outline", Title: "大纲", View: txt("func main()\nfunc run()")}, kit.DockRight).
-			Panel(kit.DockPanel{ID: "terminal", Title: "终端", View: txt("$ go test ./...\nok")}, kit.DockBottom).
+			Panel(kit.DockPanel{ID: "terminal", Title: "终端", NoPadding: true, View: txt("$ go test ./...\nok"),
+				Tab: func(selected bool) el.View {
+					return el.ViewFunc(func(*el.Context) el.Element {
+						return el.Div().Row().Items(el.Center).Gap(6).Child(el.Div().Size(el.Dp(6)).Rounded(3).Bg(theme.Success), el.Text("终端"))
+					})
+				}}, kit.DockBottom).
 			Panel(kit.DockPanel{ID: "layout", Title: "布局", View: el.ViewFunc(func(*el.Context) el.Element {
 				return el.Div().P(12).Child(el.Text(saved).TextSize(12).TextColor(theme.Muted))
 			})}, kit.DockBottom).
@@ -120,9 +127,11 @@ func init() {
 				d.Skin(nil)
 			}
 		})
+		toggles := []el.View{d.RegionButton(kit.DockLeft), d.RegionButton(kit.DockBottom), d.RegionButton(kit.DockRight)}
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().Grow().Items(el.Stretch).Child(
-				el.Div().Row().Wrap().Gap(theme.SpaceSm).P(theme.SpaceSm).Child(save.Render(cx), restore.Render(cx), style.Render(cx)),
+				el.Div().Row().Wrap().Items(el.Center).Gap(theme.SpaceSm).P(theme.SpaceSm).Child(save.Render(cx), restore.Render(cx), style.Render(cx),
+					el.Div().Grow(), toggles[0].Render(cx), toggles[1].Render(cx), toggles[2].Render(cx)),
 				el.Text(status).TextSize(theme.TextSm).TextColor(theme.Muted), d.Render(cx))
 		}))
 	})

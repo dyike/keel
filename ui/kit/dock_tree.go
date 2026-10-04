@@ -240,6 +240,9 @@ func (v *DockView) syncTrees() {
 	}
 }
 func (v *DockView) region(cx *el.Context, s DockSide) el.Element {
+	if !v.RegionOpen(s) {
+		return nil
+	}
 	child := v.renderNode(cx, s, *v.tree(s))
 	if child == nil {
 		return nil
