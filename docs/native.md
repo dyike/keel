@@ -121,7 +121,7 @@ macOS 上需要 `window.Main()` 在运行：快捷键事件由主线程的事件
 
 ## notification：系统通知
 
-`native/notification` 提供 Available、RequestPermission、Post 和 Remove，完成回调在独立 goroutine 执行。当前实现 macOS .app 的授权、按 ID 投递/替换和撤回，以及 Linux 桌面 D-Bus 后端；Windows 和其他未支持平台明确返回不支持。kit.Notifier 通过应用适配器接入，macOS 已实现原生前台展示与 Message.OnClick，kit 可通过交互后端接收系统点击并请求 Window.Raise，Linux 已支持声明 actions 的服务的默认点击，Wayland ActivationToken 与 Windows 后端仍未完成，完整用法与验收步骤见 [模块文档](../native/notification/README.md)。
+`native/notification` 提供 Available、RequestPermission、Post 和 Remove，完成回调在独立 goroutine 执行。当前实现 macOS .app 的授权、按 ID 投递/替换和撤回，Linux 桌面 D-Bus 后端，以及 Windows 托盘气泡后端（同一时间显示一条，支持点击回调）；其他未支持平台明确返回不支持。kit.Notifier 通过应用适配器接入，macOS 已实现原生前台展示与 Message.OnClick，kit 可通过交互后端接收系统点击并请求 Window.Raise，Linux 已支持声明 actions 的服务的默认点击，Wayland ActivationToken 仍未完成，完整用法与验收步骤见 [模块文档](../native/notification/README.md)。
 
 ## clipboard：富剪贴板快照
 

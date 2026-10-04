@@ -1,6 +1,6 @@
 # notification
 
-独立的系统通知接口，当前实现 macOS 14+、cgo、带 bundle identifier 的 `.app`，以及 Linux 桌面 D-Bus 通知服务。Windows、WebAssembly、iOS/Android 和 macOS 无 cgo 构建返回 `native.ErrUnsupported`；macOS 普通 `go run` 同样不支持。Linux 不要求 X11，Wayland 下也通过会话总线通信。
+独立的系统通知接口，当前实现 macOS 14+、cgo、带 bundle identifier 的 `.app`，Linux 桌面 D-Bus 通知服务，以及 Windows 托盘气泡通知。WebAssembly、iOS/Android 和 macOS 无 cgo 构建返回 `native.ErrUnsupported`；macOS 普通 `go run` 同样不支持。Linux 不要求 X11，Wayland 下也通过会话总线通信。
 
 ```go
 notification.RequestPermission(func(err error) {
@@ -21,6 +21,7 @@ notification.Remove("download/report", func(err error) {})
 - 完成回调在独立 goroutine 执行，可传 nil。UI 修改应放进 `core.Update`；不要等待异步完成时阻塞主线程。
 - 同一 ID 的操作应等待前一次完成后再执行，避免异步投递和撤回交错。Remove 同时撤回待投递与已送达项；系统没有撤回完成确认，回调成功仅表示已发出撤回调用。
 - macOS 必须运行应用事件循环；权限对话框、专注模式、系统设置和签名信任影响实际显示。macOS 已注册通知中心 delegate，为本模块通知请求前台 Banner/List；系统设置仍可禁止展示。未实现指定应用窗口激活和跨启动回调恢复。
+- Windows 使用托盘气泡（`Shell_NotifyIcon`），Windows 10/11 将它显示为系统通知横幅，不需要 AppUserModelID、打包或开始菜单快捷方式，也不需要 cgo；`RequestPermission` 不弹授权，直接成功。同一时间只显示一条：投递新 ID 会替换当前通知，旧通知的点击回调随之失效；撤回已被替换的 ID 不做任何事。通知显示期间托盘里有应用图标（取可执行文件的第一个图标资源，没有则用系统默认图标），通知超时、被关闭、被点击或撤回后图标移除，操作中心里的这一条也随之消失。点击通知或托盘图标运行 `OnClick`；没有激活令牌。标题超过 63 个 UTF-16 单元、正文超过 255 个时截断并加省略号。专注助手/勿扰模式下系统可能不显示。
 - kit.Notifier 通过 NoticeSystemBackend 接入；`examples/notification` 提供适配器，处理仅系统/应用内加系统、同 ID 更新和撤回。macOS 示例通过 NoticeSystemInteractiveBackend 接入 kit 点击、关闭和 Window.Raise；Linux 示例也使用交互后端，要求通知服务声明 actions。
 
 可手动运行 `examples/notification`。先构建应用包，再打开它：

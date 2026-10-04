@@ -1,5 +1,6 @@
 // Package notification posts local operating-system notifications independently
-// of Keel's UI. Implemented for bundled macOS applications with cgo and Linux desktop D-Bus.
+// of Keel's UI. Implemented for bundled macOS applications with cgo, Linux
+// desktop D-Bus and Windows tray balloons.
 package notification
 
 import (
@@ -19,7 +20,7 @@ type Activation struct{ Token string }
 type Message struct {
 	ID, Title, Body string
 	// OnClick runs on a separate goroutine when the system notification is opened.
-	// Supported on macOS and Linux servers advertising actions. It does not
+	// Supported on macOS, Windows and Linux servers advertising actions. It does not
 	// raise a specific UI window.
 	OnClick func()
 	// OnActivate receives the platform's activation data on the callback goroutine.

@@ -92,7 +92,7 @@ func main() {
 	}
 	d := &demo{status: fmt.Sprintf("当前进程支持：%v", notification.Available())}
 	var backend kit.NoticeSystemBackend = systemBackend{}
-	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
+	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" || runtime.GOOS == "windows" {
 		backend = interactiveBackend{}
 	}
 	d.notifier = kit.Notifier().SystemBackend(backend, func(r kit.NoticeSystemResult) {
