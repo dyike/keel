@@ -148,7 +148,7 @@ func (e *engine) grid(n *Node, width, limW, limH int) image.Point {
 	for i, c := range kids {
 		l, _, r, _ := e.edges(c.style.margin)
 		minimum := max(c.style.minW.px(e.m, limW), 0)
-		if c.style.w.kind == dpLen {
+		if c.style.w.kind == dpLen || c.style.w.kind == spLen {
 			minimum = max(minimum, c.style.w.px(e.m, limW))
 		}
 		if limW >= inf {

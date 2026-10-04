@@ -10,7 +10,7 @@ import (
 	"gioui.org/unit"
 )
 
-// Length is a size along one axis: automatic, a fixed number of dp, or a
+// Length is a size along one axis: automatic, a fixed number of dp or sp, or a
 // fraction of the parent's content box.
 type Length struct {
 	kind  lengthKind
@@ -23,6 +23,7 @@ const (
 	autoLen lengthKind = iota
 	dpLen
 	fracLen
+	spLen
 )
 
 // Auto sizes an element to its content, or stretches it where the parent aligns
@@ -31,6 +32,9 @@ var Auto = Length{}
 
 // Dp is a fixed length.
 func Dp(v float32) Length { return Length{dpLen, v} }
+
+// Sp is a fixed length that follows the user's font scale.
+func Sp(v float32) Length { return Length{spLen, v} }
 
 // Frac is a fraction of the parent's content box: Frac(1) is the full width.
 func Frac(f float32) Length { return Length{fracLen, f} }
@@ -43,6 +47,8 @@ func (l Length) px(m unit.Metric, parent int) int {
 	switch l.kind {
 	case dpLen:
 		return m.Dp(unit.Dp(l.value))
+	case spLen:
+		return m.Sp(unit.Sp(l.value))
 	case fracLen:
 		if parent < 0 || parent >= inf {
 			return -1

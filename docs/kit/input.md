@@ -23,3 +23,7 @@ Agent：角色 `textbox`，名字是标签（没有标签时是占位文字，�
 用户修改单行或多行输入后都会清除当前错误，便于重新校验；程序赋值不隐式清除服务端错误，禁用时输入也不会清除错误或触发回调。
 
 `AutoGrow(minRows, maxRows)` 按正文排版后的行数自动增高，包含软换行；超过上限后在编辑器内滚动，删除文字会缩回最小高度。行高随字体和显示缩放计算，不限制文本长度。参数必须满足 `minRows > 0` 且 `maxRows >= minRows`，非法参数忽略；两值相等可固定可见行数。`Rows(n)` 恢复原来的最小高度模式并取消 AutoGrow，单行 Input 忽略 AutoGrow。模式切换保留输入焦点与内容；长占位文字不参与自动增高。父级显式高度或空间约束仍优先。
+
+## 尺寸
+
+`Size(InputSizeXSmall/Small/Medium/Large)` 可用于 Input 和 TextArea。Medium 保留原有主题尺寸；其余档调整输入字号、框的最小高度和内边距。TextArea 的固定 Rows 高度随字号变化，AutoGrow 继续按实际文字测量；标签、前后缀和自定义内容保留自己的样式。InputGroup 内仍由组控制外框和内边距。双倍率尺寸、焦点和值保持、AutoGrow 增长/收缩及固定 Rows 字号缩放已验证。

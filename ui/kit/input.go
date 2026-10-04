@@ -9,6 +9,7 @@ import (
 // InputView is a labelled text field with optional prefix, suffix, clear
 // button and error message. TextArea makes a multi-line one.
 type InputView struct {
+	size                           InputSize
 	name                           string // accessible name from a Form row when label is empty
 	label, placeholder, value, err string
 	multiline, password, clearable bool
@@ -132,6 +133,7 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 	if v.suffix != nil {
 		box.Child(el.Div().TextColor(theme.Muted).Child(v.suffix.Render(cx)))
 	}
+	v.applySize(text, box)
 	if !chrome {
 		return box.Border(0, theme.Border).Rounded(0).P(0).MinH(el.Auto) // inside an InputGroup's frame
 	}
