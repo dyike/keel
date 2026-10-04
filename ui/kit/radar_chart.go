@@ -121,6 +121,7 @@ func (v *ChartView) drawRadar(gtx core.C) core.D {
 			}
 		}
 	}
+	v.hoverMotion.update(gtx, n, v.hover, !v.noHoverAnimation && !v.disabled)
 	area := clip.Rect{Max: size}.Push(gtx.Ops)
 	defer area.Pop()
 	event.Op(gtx.Ops, &v.tag)
@@ -176,8 +177,12 @@ func (v *ChartView) drawRadar(gtx core.C) core.D {
 			if valid[i] && valid[j] {
 				strokePath(gtx, []f32.Point{pts[i], pts[j]}, px*v.seriesWidth(si), col)
 			}
-			if valid[i] && (v.options.styles[si].Dots || v.hover == i) {
-				dot(gtx, pts[i], 3*px, px, col, theme.Surface)
+			weight := v.hoverMotion.weight(i)
+			if v.options.styles[si].Dots {
+				weight = 1
+			}
+			if valid[i] && weight > 0 {
+				dot(gtx, pts[i], 3*px, px, chartEmphasis(col, weight), chartEmphasis(theme.Surface, weight))
 			}
 		}
 	}

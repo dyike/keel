@@ -60,6 +60,9 @@ type sankeyGeometry struct {
 // SankeyChartView lays out a directed acyclic flow graph, with raw throughput
 // labels, hover highlighting and a data table. Node throughput is max(in,out).
 type SankeyChartView struct {
+	hoverMotion                                        chartHoverMotion
+	noHoverAnimation                                   bool
+	minLinkWidth                                       float32
 	nodes                                              []SankeyNode
 	links                                              []SankeyLink
 	order                                              []int
@@ -131,6 +134,7 @@ func (v *SankeyChartView) SetData(nodes []SankeyNode, links []SankeyLink) error 
 	for i := range values {
 		values[i] = max(incoming[i], outgoing[i])
 	}
+	v.hoverMotion = chartHoverMotion{}
 	v.nodes, v.links, v.order, v.values = owned, slices.Clone(links), order, values
 	v.hover = -1
 	v.tbl = nil
@@ -206,6 +210,7 @@ func (v *SankeyChartView) TooltipContent(fn func(*el.Context, SankeyTooltip) el.
 func (v *SankeyChartView) SetDisabled(on bool) {
 	v.disabled = on
 	if on {
+		v.hoverMotion = chartHoverMotion{}
 		v.hover = -1
 	}
 }
@@ -302,6 +307,11 @@ func (v *SankeyChartView) layout(w, h float32) sankeyGeometry {
 			unit = min(unit, float64(max(0, h-gap*float32(max(0, len(col)-1))-float32(zeros)*zeroH))/sum)
 		}
 	}
+	var minimumHeights []float64
+	minimum := float64(0)
+	if v.minLinkWidth > 0 {
+		minimumHeights, unit, minimum = v.minimumFlowLayout(weights, unit, columns, in, out, h, gap, zeroH)
+	}
 	nw := min(v.nodeWidth, max(0, w))
 	for d, col := range columns {
 		total := gap * float32(max(0, len(col)-1))
@@ -309,6 +319,9 @@ func (v *SankeyChartView) layout(w, h float32) sankeyGeometry {
 			height := float32(weights[i] * unit)
 			if weights[i] == 0 {
 				height = zeroH
+			}
+			if minimumHeights != nil {
+				height = float32(minimumHeights[i])
 			}
 			x := float32(0)
 			if last > 0 {
@@ -381,6 +394,10 @@ func (v *SankeyChartView) layout(w, h float32) sankeyGeometry {
 		}
 		if v.values[l.Target] > 0 {
 			bh = b.h * float32(l.Value/v.values[l.Target])
+		}
+		if minimumHeights != nil && l.Value > 0 {
+			ah = float32(max(minimum, weights[l.Source]*unit*(l.Value/v.values[l.Source])))
+			bh = float32(max(minimum, weights[l.Target]*unit*(l.Value/v.values[l.Target])))
 		}
 		g.links[i] = [4]float32{a.y + sourceY[l.Source], ah, b.y + targetY[l.Target], bh}
 		sourceY[l.Source] += ah
@@ -481,6 +498,8 @@ func (v *SankeyChartView) draw(gtx core.C) core.D {
 			}
 		}
 	}
+	v.hoverMotion.update(gtx, len(v.nodes), v.hover, !v.noHoverAnimation && !v.disabled)
+	hoverTotal := v.hoverMotion.total()
 	area := clip.Rect{Max: size}.Push(gtx.Ops)
 	defer area.Pop()
 	event.Op(gtx.Ops, &v.tag)
@@ -513,9 +532,8 @@ func (v *SankeyChartView) draw(gtx core.C) core.D {
 		outline := clip.Outline{Path: p.End()}.Op().Push(gtx.Ops)
 		aColor, bColor := v.nodeColor(l.Source), v.nodeColor(l.Target)
 		alpha := v.opacity
-		if v.hover >= 0 && v.hover != l.Source && v.hover != l.Target {
-			alpha *= .2
-		}
+		unrelated := max(0, hoverTotal-v.hoverMotion.weight(l.Source)-v.hoverMotion.weight(l.Target))
+		alpha *= 1 - .8*unrelated
 		aColor.A = uint8(float32(aColor.A) * alpha)
 		bColor.A = uint8(float32(bColor.A) * alpha)
 		paint.LinearGradientOp{Stop1: f32.Pt(x0, 0), Stop2: f32.Pt(x1, 0), Color1: aColor, Color2: bColor}.Add(gtx.Ops)

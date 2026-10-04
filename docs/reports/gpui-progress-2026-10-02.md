@@ -296,7 +296,7 @@
 | [Button](https://gpui-kit.com/component/button/) | 主体已有 | [九种变体、描边/紧凑、自定义内容/配色、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 第十一批已关闭登记的变体、样式和内容缺口。Outline/Compact 为叠加配置；自定义内容限展示元素。Tooltip 可外部组合，本项不表示与上游所有组合接口完全相同。 |
 | [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
 | [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 第七十六批补齐 Vertical 的竖向导航布局、上下方向键、Home/End 及方向切换焦点保留。第七十七批补齐 Loop、非循环边界禁用、公开 Previous/Next 和 CanPrevious/CanNext、末项自动播放停止与返回后重启。第七十八批补齐独立内容区、前后控件和分页项及 Button 外观/内容配置。第七十九批补齐横纵等尺寸多项视口与间距。第八十批补齐分数槽位及逐项比例覆盖；第八十一批补齐逐项固定 dp 尺寸和超视口项目。比例仍限制在一个视口内，超大项目可用固定尺寸；超大内容默认从开头裁剪，内部浏览需自行组合滚动。第八十二批补齐鼠标/触摸拖动及释放吸附与选中回调。第八十三批补齐连续滚动停顿吸附、显式逐事件换页和滚动起始边界路由。仍缺原生手势结束/滚轮设备识别、指针边界移交和循环轨道衔接；系统惯性及真机触控板手感待验收。 |
-| [Chart](https://gpui-kit.com/component/chart/) | 主体已有 | [折线/柱/面积/饼环/蜡烛、雷达/桑基、轴域/刻度/参考线/样式及提示](../../ui/kit/chart.go) | 第一百五十一批补齐两种缺失图形及登记公共配置。雷达标签使用固定槽，桑基保持输入顺序松弛布局；平滑线为逐段 smoothstep，与上游算法不同。仍缺轴内标签/可配置 gutter、预留点位、柱图四向/逐柱渐变、最小流带宽度、饼图自定义提示及各图悬停动画；密集桑基标签可能重叠。浅深色虚拟窗口与 Agent 已验，原生真机未验收。 |
+| [Chart](https://gpui-kit.com/component/chart/) | 主体已有 | [折线/柱/面积/饼环/蜡烛、雷达/桑基、轴域/刻度/参考线/样式及提示](../../ui/kit/chart.go) | 第一百五十一批补齐雷达/桑基及公共配置；第一百六十八批完成轴内标签、Gutter、FutureSlots、四向柱图及逐柱渐变、最小流带宽度、饼图自定义提示和共享悬停过渡，并通过自动布局、命中、GPU 像素及动画测试。雷达标签使用固定槽，桑基保持输入顺序松弛布局；平滑线为逐段 smoothstep。仍缺固定总 point_count、渐变多停靠点及 chart_to_bar 映射；密集桑基标签可能重叠。原生真机未验收。 |
 | [Checkbox](https://gpui-kit.com/component/checkbox/) | 主体已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | 第三十八批已补齐 Size/TextSize、TabIndex/TabStop，保留半选能力。尺寸使用连续 dp/sp，Tab 排序限单 el root；焦点轮廓仍沿整行。 |
 | [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 第五批已补齐 OnCopied、Content 与反馈状态查询；回调表示已提交写入请求，非操作系统成功确认。此表登记缺口已关闭。 |
 | [Collapsible](https://gpui-kit.com/component/collapsible/) | 主体已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | 主体覆盖：拆分 Trigger/Content、状态控制与动画；本轮未发现新的主要功能缺口。 |
@@ -459,3 +459,12 @@
 - [x] Input/TextArea/CodeEditor 富粘贴钩子与异步读取，验证回退、多光标整体撤销、只读、连续请求、重复完成、超限关闭及过期结果拒绝。修复测量阶段清除请求、粘贴与同帧输入竞争及取消后迟到文本插入。
 - [x] macOS native/clipboard 桥接实际读取当前图片快照，未修改剪贴板。Windows/Linux 富读取尚缺，原生所有格式和真实窗口粘贴未逐项验收。
 - [x] 独立提交内容通过全仓构建、UI/native vet、全量测试；Input/Textarea 仍标部分，原子 token 和触屏选择菜单仍缺。
+
+## 第一百六十八批：图表布局、填充与悬停展示
+
+- [x] Chart/CandlestickChart：Gutter/AutoGutter/YLabelsInside、FutureSlots；柱图四向基线及逐柱/堆叠段双色渐变。
+- [x] PieChart：自定义鼠标浮层；SankeyChart：最小流带宽度；各图接入共享悬停过渡。
+- [x] 修复横向或反射柱图的渐变退化为纯色：将画刷端点转换到屏幕坐标，同时保留柱体裁剪。
+- [x] 自动验证覆盖 1×/2×、四种柱体方向与四种渐变方向的 GPU 像素、空位命中、轴预留、正负堆叠回调、饼图提示与图例、动画续接/减少动画，以及随机 DAG 和密集孤立节点的端口边界。
+- [x] 独立暂存内容通过全仓构建、UI/native vet、全量测试。
+- [ ] 原生窗口视觉与动画未验收；固定总 point_count、多停靠点渐变、chart_to_bar 映射及密集桑基标签重叠仍待处理。

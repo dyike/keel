@@ -98,12 +98,13 @@ func candleBuckets(data []Candle, pixels int) []Candle {
 	return out
 }
 func (v *ChartView) drawCandles(gtx core.C, y func(float64) float32, dp func(float32) float32) {
-	data := candleBuckets(v.candles, max(1, gtx.Constraints.Max.X))
+	pixels := max(1, int(float64(gtx.Constraints.Max.X)*float64(len(v.candles))/float64(max(v.categoryCount(), 1))))
+	data := candleBuckets(v.candles, pixels)
 	if len(data) == 0 {
 		return
 	}
-	step := max(1, int(math.Ceil(float64(len(v.candles))/float64(max(1, gtx.Constraints.Max.X)))))
-	band := float32(gtx.Constraints.Max.X) / float32(len(v.candles))
+	step := max(1, int(math.Ceil(float64(len(v.candles))/float64(pixels))))
+	band := float32(gtx.Constraints.Max.X) / float32(max(v.categoryCount(), 1))
 	width := max(float32(1), min(dp(16), band*float32(step)*.65))
 	for i, c := range data {
 		if !c.valid() {

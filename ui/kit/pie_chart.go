@@ -25,14 +25,18 @@ type PieSlice struct {
 }
 
 type PieChartView struct {
-	title           string
-	data            []PieSlice
-	hidden          []bool
-	height, hole    float32
-	disabled, table bool
-	format          func(float64) string
-	hover, tag      int
-	tbl             *TableView
+	hoverMotion        chartHoverMotion
+	noHoverAnimation   bool
+	tooltipContent     func(*el.Context, PieChartTooltip) el.Element
+	pointerX, pointerY float32
+	title              string
+	data               []PieSlice
+	hidden             []bool
+	height, hole       float32
+	disabled, table    bool
+	format             func(float64) string
+	hover, tag         int
+	tbl                *TableView
 }
 
 func PieChart(data ...PieSlice) *PieChartView {
@@ -64,12 +68,14 @@ func (v *PieChartView) Format(fn func(float64) string) *PieChartView {
 func (v *PieChartView) SetDisabled(on bool) {
 	v.disabled = on
 	if on {
+		v.hoverMotion = chartHoverMotion{}
 		v.hover = -1
 	}
 }
 
 // SetData copies all slices and restores their visibility.
 func (v *PieChartView) SetData(data ...PieSlice) {
+	v.hoverMotion = chartHoverMotion{}
 	v.data = slices.Clone(data)
 	v.hidden = make([]bool, len(data))
 	v.hover = -1
@@ -137,7 +143,10 @@ func (v *PieChartView) Render(cx *el.Context) el.Element {
 	if !any {
 		box.Child(el.Div().H(el.Dp(v.height)).Center().Child(el.Text(text.NoData).TextColor(theme.Muted)))
 	} else {
-		box.Child(el.Widget(core.Func(func(gtx core.C) core.D { return v.draw(gtx, parts) })).H(el.Dp(v.height)).WFull())
+		id := autoID("pie-plot", v)
+		plot := el.Div().ID(id).H(el.Dp(v.height)).WFull().Child(el.Widget(core.Func(func(gtx core.C) core.D { return v.draw(gtx, parts) })).HFull().WFull())
+		v.renderTooltip(cx, id, parts, plot)
+		box.Child(plot)
 	}
 	if v.hover >= 0 && v.hover < len(v.data) && parts[v.hover] > 0 {
 		box.Child(el.Text(v.data[v.hover].Name + "  " + v.valueText(v.hover) + "  " + pieShare(parts[v.hover])).TextSize(theme.TextSm))
@@ -187,12 +196,24 @@ func (v *PieChartView) draw(gtx core.C, parts []float64) core.D {
 			if e.Kind != pointer.Leave {
 				hit = pieHit(float64(e.Position.X-center.X), float64(e.Position.Y-center.Y), r, float64(v.hole), parts)
 			}
+			scale := gtx.Metric.PxPerDp
+			if scale <= 0 {
+				scale = 1
+			}
+			x, y := e.Position.X/scale, e.Position.Y/scale
+			if hit >= 0 && (v.pointerX != x || v.pointerY != y) {
+				v.pointerX, v.pointerY = x, y
+				if v.tooltipContent != nil {
+					gtx.Execute(op.InvalidateCmd{})
+				}
+			}
 			if hit != v.hover {
 				v.hover = hit
 				gtx.Execute(op.InvalidateCmd{})
 			}
 		}
 	}
+	v.hoverMotion.update(gtx, len(v.data), v.hover, !v.noHoverAnimation && !v.disabled)
 	area := clip.Rect(image.Rectangle{Max: size}).Push(gtx.Ops)
 	defer area.Pop()
 	event.Op(gtx.Ops, &v.tag)
@@ -222,8 +243,10 @@ func (v *PieChartView) draw(gtx core.C, parts []float64) core.D {
 		p.Close()
 		path := p.End()
 		paint.FillShape(gtx.Ops, theme.Chart[i%len(theme.Chart)], clip.Outline{Path: path}.Op())
-		if i == v.hover {
-			paint.FillShape(gtx.Ops, theme.Text, clip.Stroke{Path: path, Width: 2}.Op())
+		if emphasis := v.hoverMotion.weight(i); emphasis > 0 {
+			color := theme.Text
+			color.A = uint8(float32(color.A) * emphasis)
+			paint.FillShape(gtx.Ops, color, clip.Stroke{Path: path, Width: float32(gtx.Dp(2))}.Op())
 		}
 		angle = end
 	}

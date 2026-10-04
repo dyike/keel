@@ -44,6 +44,12 @@ type ChartTooltip struct {
 	Values []ChartTooltipValue
 }
 type chartOptions struct {
+	barAlignment   BarAlignment
+	orientedWidth  float32
+	barFill        func(ChartBarDatum) ChartBarFill
+	futureSlots    int
+	gutter         *ChartGutter
+	yLabelsInside  bool
 	domain         *[2]float64
 	yTicks, xTicks int
 	gridColumns    int
@@ -189,7 +195,7 @@ func (v *ChartView) xTickIndices(width float32) []int {
 		}
 		return out
 	}
-	every := max(1, int(math.Ceil(56*float64(n)/float64(max(width, 1)))))
+	every := max(1, int(math.Ceil(56*float64(v.categoryCount())/float64(max(width, 1)))))
 	for i := 0; i < n; i += every {
 		out = append(out, i)
 	}

@@ -40,4 +40,28 @@ Curve 支持 ChartCurveLinear（默认）、ChartCurveStepAfter 和 ChartCurveSm
 
 TooltipContent 接收当前类别索引、标签和可见系列的数值/默认文字/颜色，可返回展示元素；nil 恢复默认。Format 仍控制默认轴/提示/数据表。CandlestickChart 同样提供轴、网格、参考线与提示配置，提示系列依次为开、高、低、收。
 
-另见 [RadarChart](radar_chart.md) 和 [SankeyChart](sankey_chart.md)。仍未实现上游所有选项：如轴内标签/可配置 gutter、预留未来点位、柱图四向对齐/逐柱渐变、最小流带宽度及各图悬停过渡。新增接口不代表视觉或 API 完全一致。
+另见 [RadarChart](radar_chart.md) 和 [SankeyChart](sankey_chart.md)。新增配置的自动验证范围见下文。新增接口不代表视觉或 API 完全一致。
+
+## 轴标签布局
+
+`Gutter(ChartGutter{Left, Right, Top, Bottom})` 以 dp 指定笛卡尔绘图区四边的预留尺寸，`AutoGutter()` 恢复默认 Left=52、Bottom=18、其余为零。Height 仍表示绘图区高度；外部标题、控件及分区间距另计。四个值均须在 0–4096 范围内且有限，否则整组配置不变。Bottom 为零隐藏类别标签，自定义的较小 Bottom 会裁剪标签区。
+
+`YLabelsInside(true)` 将纵轴标签置于绘图区左侧，未显式 Gutter 时自动去掉外侧左标签列；显式 Gutter 保持调用方给定值。标签可能覆盖数据，参考线文字和提示在标签上方绘制。横轴标签跟随实际绘图区宽度与左右边距对齐。以上接口也用于 CandlestickChart，不影响 RadarChart/PieChart。
+
+组件库订单图演示轴内标签及四边预留。1×/2× 布局测试覆盖预留尺寸、非法配置原子拒绝、隐藏底部标签和恢复默认布局；原生窄窗口的轴文本仍需视觉验收。
+
+`FutureSlots(n)` 在已有类别后预留 n 个空位置（0–100000，默认 0），适用于折线、面积、柱图及 CandlestickChart。数据、横轴标签、悬停带与提示使用同一类别宽度；鼠标进入空位不显示提示。空位不产生数据表行、不参与纵轴域，也不会自动生成日期。设回 0 恢复铺满绘图区；改变配置清除旧悬停。雷达图不使用此配置。示例预留两期。测试覆盖四向柱图与蜡烛的真实数据命中、空位不命中、恢复默认以及纵轴域不变；密集蜡烛的原生视觉仍待验收。
+
+`BarFill(func(ChartBarDatum) ChartBarFill)` 逐柱或逐堆叠段配置填充。参数含原始 Series/Index、系列名、类别标签、数值、堆叠标志和默认系列色；返回 Color 或非 nil 的 Gradient。`ChartBarGradient{Start, End, Direction}` 沿当前柱段矩形向 Top/Bottom/Left/Right 渐变，默认及非法方向使用 Bottom，保留透明度与圆角。传 nil 恢复系列色。此接口只影响柱体，不改变图例、提示或数据。回调可能在测量和绘制时执行，必须无副作用。
+
+订单图示例加入逐柱渐变。1×/2× GPU 像素测试覆盖四种柱体方向与四种渐变方向的组合，另验证堆叠回调保留正负原值。渐变方向使用屏幕方向；柱体基线方向通过 BarAlignment 配置。
+
+`HoverAnimation(false)` 关闭悬停过渡，默认开启。强调状态以 150ms 三次缓出变化，快速换目标从当前权重继续；减少动画时立即显示目标。饼图过渡选中边框，桑基图过渡不相关流带的透明度，折线/面积图过渡焦点线和点，柱/蜡烛图过渡类别背景，雷达图过渡焦点。命中和提示数据立即更新，不等待动画。更新数据清理旧过渡。共享动画测试覆盖中间帧权重、切换目标时的连续性、结束帧及减少动画；各图的原生动画观感仍待验收。
+
+## 柱体方向
+
+`BarAlignment(BarAlignmentBottom/Top/Left/Right)` 指定柱体基线所在侧：默认 Bottom 向上，Top 向下，Left 向右，Right 向左。保留正负值的零基线、分组/堆叠、缺失数据、FutureSlots、圆角和逐柱填充。文字保持正向，横向时类别沿上到下排列，数值轴沿左右方向；悬停命中在相同坐标变换下处理。切换方向清除旧悬停。非柱图忽略该配置。
+
+横向的默认预留为 Left=80、Bottom=24，显式 Gutter 优先。YLabelsInside 将数值刻度移进绘图区，类别标签仍在左侧。参考线、提示与数值刻度使用对应方向的坐标，渐变的 Top/Bottom/Left/Right 保持屏幕方向。
+
+季度收入示例采用左基线横向堆叠图。四向命中与渐变像素已通过自动测试；参考线和文字的完整原生布局仍待验收。当前差异：FutureSlots 是额外空位数，尚无固定总点数 point_count；BarFill 暂不提供任意多色停靠点或 chart_to_bar 映射。
