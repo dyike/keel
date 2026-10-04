@@ -1,6 +1,6 @@
 # 原生能力
 
-`native/` 下的四个包提供 Gio 没有的系统能力。它们不依赖界面模块，可以单独使用。
+`native/` 下的各个包提供 Gio 没有的系统能力。它们不依赖界面模块，可以单独使用。
 
 | 包 | 能力 | 需要的权限 |
 | --- | --- | --- |
@@ -8,6 +8,7 @@
 | `native/screen` | 列出显示器；截图 | 截图需要屏幕录制 |
 | `native/input` | 移动鼠标、点击、按键 | 读取鼠标位置以外的操作都需要辅助功能 |
 | `native/hotkey` | 全局快捷键 | 无 |
+| `native/clipboard` | 异步读取文本、编码图片、文件路径（macOS / Windows） | 无 |
 
 支持三个平台，其他平台以及关闭 cgo 构建的 macOS 上，所有函数返回 `native.ErrUnsupported`，程序照常编译。
 
@@ -121,3 +122,13 @@ macOS 上需要 `window.Main()` 在运行：快捷键事件由主线程的事件
 ## notification：系统通知
 
 `native/notification` 提供 Available、RequestPermission、Post 和 Remove，完成回调在独立 goroutine 执行。当前实现 macOS .app 的授权、按 ID 投递/替换和撤回，以及 Linux 桌面 D-Bus 后端；Windows 和其他未支持平台明确返回不支持。kit.Notifier 通过应用适配器接入，macOS 已实现原生前台展示与 Message.OnClick，kit 可通过交互后端接收系统点击并请求 Window.Raise，Linux 已支持声明 actions 的服务的默认点击，Wayland ActivationToken 与 Windows 后端仍未完成，完整用法与验收步骤见 [模块文档](../native/notification/README.md)。
+
+## clipboard：富剪贴板快照
+
+`clipboard.Read(func(data clipboard.Data, err error))` 异步读取；完成回调在后台 goroutine 执行，界面更新需转回 UI 帧。`Text` 为文本，`Images` 为 MIME 和编码字节，`Files` 为路径引用，不打开文件。
+
+macOS 使用 AppKit，图片优先 PNG、其次 TIFF。Windows 使用 Win32，读取 Unicode 文本、PNG、CF_DIB 和 CF_HDROP；DIB 添加 BMP 文件头后以 `image/bmp` 返回，不解码像素。文件引用优先于资源管理器附带的图片预览。文本、路径 UTF-8 字节与编码图片合计最多 16MiB，文件最多 128 个；错误不返回部分结果。Windows 读取期间保持剪贴板打开，并在关闭前复制所有数据；剪贴板占用时最多尝试 8 次，间隔 15ms。
+
+DIB 支持 40/108/124 字节头的 RGB、调色板和位域布局；压缩位图及带独立颜色配置文件的 V5 布局暂不支持。HTML/RTF 尚未作为独立格式返回。Linux、iOS 及无 cgo 的 macOS 返回 `ErrUnsupported`。
+
+组件库的 Input/Textarea 和 CodeEditor 示例已共用这个读取适配；失败时沿原有 Gio 文本通路粘贴。Windows 已通过格式解析、像素解码、错误/上限测试和交叉编译，系统剪贴板及真实窗口粘贴尚未在 Windows 真机验收。

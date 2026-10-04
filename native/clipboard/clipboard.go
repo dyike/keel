@@ -1,5 +1,5 @@
 // Package clipboard reads a bounded snapshot of text, encoded images and file
-// paths without linking to the UI. macOS uses AppKit's general pasteboard.
+// paths without linking to the UI. macOS uses AppKit; Windows uses Win32.
 package clipboard
 
 import (
@@ -26,7 +26,9 @@ type Data struct {
 // Read asynchronously reads the clipboard on the platform's required thread.
 // done runs once on a background goroutine. UI callers must dispatch UI changes.
 // macOS supports PNG/TIFF and file URLs, up to 128 items and 16MiB encoded data.
-// Other platforms currently return native.ErrUnsupported. Nil done is ignored.
+// Windows supports Unicode text, PNG or packed DIB (returned as image/bmp),
+// and file paths, with the same limits. Other platforms return
+// native.ErrUnsupported. Nil done is ignored.
 func Read(done func(Data, error)) {
 	if done == nil {
 		return
