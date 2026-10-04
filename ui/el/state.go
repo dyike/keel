@@ -7,11 +7,13 @@ import (
 	"strconv"
 	"time"
 
+	"gioui.org/f32"
 	"gioui.org/gesture"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/widget"
 
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/editorstyle"
 )
 
@@ -57,6 +59,8 @@ type elemState struct {
 	onContextMenu   func()
 	contextButton   pointer.Buttons
 	contextTag      struct{}
+	touchHold       touchHold // a finger held down for a context menu
+	holdFired       bool      // the hold opened a menu: its release is no click
 	onDoubleClick   func()
 	drag            gesture.Drag
 	conditionalDrag conditionalDrag
@@ -151,5 +155,46 @@ func (s *store) assignKeys(n *Node, key stateKey) {
 	for i, c := range n.children {
 		cn := c.node()
 		s.assignKeys(cn, childKey(key, cn.id, i))
+	}
+}
+
+// touchHold tracks a touch that may become a long press.
+type touchHold struct {
+	active bool
+	id     pointer.ID
+	at     f32.Point
+	due    time.Time
+}
+
+// touchHoldDelay is how long a finger rests before a long press opens the
+// context menu; touchHoldSlop is how far it may drift, in dp.
+const (
+	touchHoldDelay = 500 * time.Millisecond
+	touchHoldSlop  = 8
+)
+
+// trackTouchHold starts a hold on a single-finger touch press and drops it
+// when the finger lifts, drifts or another handler takes the pointer.
+func (st *elemState) trackTouchHold(gtx core.C, e pointer.Event) {
+	h := &st.touchHold
+	switch e.Kind {
+	case pointer.Press:
+		if e.Source == pointer.Touch && !h.active {
+			st.holdFired = false
+			*h = touchHold{active: true, id: e.PointerID, at: e.Position, due: gtx.Now.Add(touchHoldDelay)}
+		} else if e.Source == pointer.Touch {
+			h.active = false // a second finger: a gesture, not a hold
+		}
+	case pointer.Drag:
+		if h.active && e.PointerID == h.id {
+			d := e.Position.Sub(h.at)
+			if slop := float32(gtx.Dp(touchHoldSlop)); d.X*d.X+d.Y*d.Y > slop*slop {
+				h.active = false
+			}
+		}
+	case pointer.Release, pointer.Cancel:
+		if e.PointerID == h.id || e.Kind == pointer.Cancel {
+			h.active = false
+		}
 	}
 }

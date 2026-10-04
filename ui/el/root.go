@@ -1,14 +1,16 @@
 package el
 
 import (
-	"github.com/dyike/keel/ui/locale"
 	"image"
+
+	"github.com/dyike/keel/ui/locale"
 
 	"gioui.org/gesture"
 	"gioui.org/io/event"
 	"gioui.org/io/input"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 
 	"github.com/dyike/keel/ui/core"
@@ -311,14 +313,28 @@ func (r *RootWidget) dispatch(gtx core.C) {
 		}
 		if st.onContextMenu != nil {
 			for {
-				ev, ok := gtx.Event(pointer.Filter{Target: &st.contextTag, Kinds: pointer.Press | pointer.Release | pointer.Cancel})
+				ev, ok := gtx.Event(pointer.Filter{Target: &st.contextTag, Kinds: pointer.Press | pointer.Drag | pointer.Release | pointer.Cancel})
 				if !ok {
 					break
 				}
-				if ev, ok := ev.(pointer.Event); ok && ev.Kind == pointer.Press && ev.Source == pointer.Mouse && ev.Buttons == st.contextButton {
-					r.clickModifiers = ev.Modifiers
+				e, ok := ev.(pointer.Event)
+				if !ok {
+					continue
+				}
+				if e.Kind == pointer.Press && e.Source == pointer.Mouse && e.Buttons == st.contextButton {
+					r.clickModifiers = e.Modifiers
 					core.Call(gtx, func() { r.callbacks = true; st.onContextMenu() })
 					r.clickModifiers = 0
+				}
+				st.trackTouchHold(gtx, e)
+			}
+			// A finger held still stands in for the secondary button.
+			if h := &st.touchHold; h.active && st.contextButton == pointer.ButtonSecondary {
+				if gtx.Now.Before(h.due) {
+					gtx.Execute(op.InvalidateCmd{At: h.due})
+				} else {
+					h.active, st.holdFired = false, true
+					core.Call(gtx, func() { r.callbacks = true; st.onContextMenu() })
 				}
 			}
 		}
@@ -333,6 +349,10 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			}
 			if ev.Kind != gesture.KindClick {
 				continue
+			}
+			if st.holdFired {
+				st.holdFired = false
+				continue // lifting the finger after a long press
 			}
 			r.clickModifiers = ev.Modifiers
 			if ev.NumClicks >= 2 && st.onDoubleClick != nil {

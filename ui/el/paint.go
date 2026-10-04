@@ -313,7 +313,7 @@ func (e *engine) paintContent(n *Node) {
 				// Observe above interactive descendants, passing events through.
 				defer func() {
 					area := clip.Rect(rect).Push(gtx.Ops)
-					gtx.Event(pointer.Filter{Target: &state.contextTag, Kinds: pointer.Press | pointer.Release | pointer.Cancel})
+					gtx.Event(pointer.Filter{Target: &state.contextTag, Kinds: pointer.Press | pointer.Drag | pointer.Release | pointer.Cancel})
 					pass := pointer.PassOp{}.Push(gtx.Ops)
 					event.Op(gtx.Ops, &state.contextTag)
 					pass.Pop()
