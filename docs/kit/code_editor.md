@@ -46,7 +46,7 @@ Enter 保持缩进，在 `{ ( [` 后多缩进一级（Python 另识别 `:`），
 - 折叠按缩进：一行和它后面缩进更深的行组成一个区域，回到同级缩进的右括号行保持显示。`Fold`/`Unfold`/`FoldAll`/`UnfoldAll`/`Folded`；光标移进折叠区会自动展开；在区域上方编辑时折叠跟着移动。
 - `SoftWrap(bool)` 软换行：长行在编辑器宽度处折到下一行，不再横向滚动。优先在空格后断开，一个词放不下时从中间断。上下方向键按显示行移动，保持横向位置；行号只标在一行的第一段；折叠、搜索、多光标、装饰和诊断波浪线都按显示行绘制。Home/End 仍按整行。
 - `TabSize(n, hard)` 设置制表位宽度和 Tab 插入制表符还是空格；默认宽 4，按文件现有缩进决定。`ShowWhitespace(bool)` 用点和箭头标出空格和制表符。
-- 查找面板：区分大小写、全字匹配、正则表达式（替换里可以用 `$1`），匹配项在文中和滚动条旁标出，最多统计 10000 处。全部替换是一次撤销。`OpenSearch(replace)`、`CloseSearch`、`SearchMatches`、`Searchable(bool)`；只读编辑器只能查找。
+- 查找面板：区分大小写、全字匹配、正则表达式（可以跨行，替换里可以用 `$1`），匹配项在文中和滚动条旁标出，最多统计 10000 处。全部替换是一次撤销。`OpenSearch(replace)`、`CloseSearch`、`SearchMatches`、`Searchable(bool)`；只读编辑器只能查找。
 - `Value`/`SetValue`、`Cursor`/`SetCursor`、`Cursors`、`Selection`、`Lines`、`SetReadOnly`、`SetDisabled`、`Focus`、`Fill`。多光标编辑整体算一次撤销。
 
 Agent：编辑器角色 `textbox`，名字是 `Name`，值是全文（超过 2000 行时是行数）；补全项是独立的 `option`；悬停提示是 `tooltip`；查找面板角色 `search`，里面的输入框和按钮单独列出；折叠箭头是按钮，名字如"折叠 6"。
@@ -59,7 +59,7 @@ SetSearchQuery(query, CodeSearchOptions{MatchCase, WholeWord, Regex}) 启动搜�
 
 NextSearchMatch、PreviousSearchMatch 循环跳转，SelectSearchMatch(index) 跳到指定结果并展开折叠。ReplaceCurrentSearchMatch(text) 只替换恰好选中的匹配，ReplaceAllSearchMatches(text) 返回整份文档的替换数，一次操作对应一次撤销和一次 OnChange。只读或自身禁用时这两种替换返回 false/0。CloseSearch 结束高亮；只有关闭内置面板时才把焦点交回编辑区。
 
-匹配使用逐行引擎，不支持跨行或零长度匹配。列表最多保留 10,000 条，多出的结果使 Truncated 为 true；全部替换仍遍历全部匹配。正则替换支持 Go regexp 的 `$1`/`${name}` 展开。大文档搜索和全部替换同步执行，应用应合并高频输入；此接口不是后台 LSP 搜索。
+普通文本在一行内匹配。正则表达式对全文匹配，可以跨行：`\n`、`\s+`、`[^;]*` 都能越过换行；开启了多行模式，`^`、`$` 仍按行，`.` 仍不匹配换行。跨行的匹配在每一行上分段高亮，选中和替换都按整个范围进行。不支持零长度匹配。列表最多保留 10,000 条，多出的结果使 Truncated 为 true；全部替换仍遍历全部匹配。正则替换支持 Go regexp 的 `$1`/`${name}` 展开。大文档搜索和全部替换同步执行，应用应合并高频输入；此接口不是后台 LSP 搜索。
 
 ## 跟踪装饰集合
 

@@ -12,7 +12,9 @@ type CodeSearchOptions struct{ MatchCase, WholeWord, Regex bool }
 
 // CodeSearchSession is an owned snapshot; Current is -1 without a selected
 // match. Truncated means only the first 10,000 matches are listed. ReplaceAll
-// still visits the entire document. Matching is line-local and skips empty hits.
+// still visits the entire document. Plain queries match within a line;
+// regular expressions search the whole text and may span lines. Empty hits
+// are skipped.
 type CodeSearchSession struct {
 	Query, Replacement                           string
 	Options                                      CodeSearchOptions

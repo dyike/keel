@@ -257,14 +257,28 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 	// Find results, the chosen one stronger.
 	if (v.search.open || v.search.active) && len(v.search.matches) > 0 {
 		ms := v.search.matches
-		i := sort.Search(len(ms), func(i int) bool { return ms[i].from.line >= line })
-		for ; i < len(ms) && ms[i].from.line == line; i++ {
+		// Matches do not overlap, so their ends ascend with their starts.
+		i := sort.Search(len(ms), func(i int) bool { return ms[i].to.line >= line })
+		for ; i < len(ms) && ms[i].from.line <= line; i++ {
 			c := theme.Warning
 			c.A = 0x40
 			if i == v.search.current {
 				c.A = 0x90
 			}
-			paint.FillShape(gtx.Ops, c, clip.UniformRRect(rect(ms[i].from.col, ms[i].to.col), gtx.Dp(2)).Op(gtx.Ops))
+			a, b := 0, len(xs)-1
+			if ms[i].from.line == line {
+				a = ms[i].from.col
+			}
+			if ms[i].to.line == line {
+				b = ms[i].to.col
+			}
+			r := rect(a, b)
+			if ms[i].to.line > line && last {
+				r.Max.X += m.space // the line break is part of the match
+			}
+			if r.Dx() > 0 {
+				paint.FillShape(gtx.Ops, c, clip.UniformRRect(r, gtx.Dp(2)).Op(gtx.Ops))
+			}
 		}
 	}
 	v.selectionOn(line, func(a, b int, spill bool) {

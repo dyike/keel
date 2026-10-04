@@ -85,6 +85,20 @@ func (v *CodeEditorView) refreshMatches() {
 		s.current = -1
 		return
 	}
+	if s.regex {
+		re := v.searchRegexp()
+		if re == nil {
+			s.badRegex = true
+			return
+		}
+		found, truncated := v.regexMatches(re, v.buf.text(), codeSearchLimit)
+		for _, m := range found {
+			s.matches = append(s.matches, m.r)
+		}
+		s.truncated = truncated
+		s.current = v.matchAt(v.primary().span())
+		return
+	}
 	find := v.matcher()
 	if find == nil {
 		s.badRegex = true
@@ -205,16 +219,18 @@ func (v *CodeEditorView) replacementFor(m codeRange) string {
 	if !s.regex {
 		return s.replacement
 	}
-	expr := s.query
-	if !s.matchCase {
-		expr = "(?i)" + expr
-	}
-	re, err := regexp.Compile(expr)
-	if err != nil {
+	re := v.searchRegexp()
+	if re == nil {
 		return s.replacement
 	}
-	src := v.buf.slice(m.from, m.to)
-	return re.ReplaceAllString(src, s.replacement)
+	text := v.buf.text()
+	found, _ := v.regexMatches(re, text, -1)
+	for _, f := range found {
+		if f.r == m {
+			return v.regexReplacement(re, text, f)
+		}
+	}
+	return s.replacement
 }
 
 // replaceOne replaces the selected match and moves to the next one.
@@ -245,12 +261,38 @@ func (v *CodeEditorView) replaceAllSearch() int {
 	if v.readOnly || v.disabled || (!v.search.open && !v.search.active) || v.search.query == "" {
 		return 0
 	}
+	count := 0
+	caret := v.primary().caret
+	if v.search.regex {
+		re := v.searchRegexp()
+		if re == nil {
+			return 0
+		}
+		text := v.buf.text()
+		found, _ := v.regexMatches(re, text, -1)
+		repl := make([]string, len(found))
+		for i, f := range found {
+			repl[i] = v.regexReplacement(re, text, f)
+		}
+		v.buf.begin(v.sels)
+		// Back to front, so earlier positions stay valid.
+		for i := len(found) - 1; i >= 0; i-- {
+			caret = v.buf.edit(found[i].r.from, found[i].r.to, repl[i])
+			count++
+		}
+		if count > 0 {
+			v.sels, v.prim = []codeSel{{caret, caret}}, 0
+		}
+		v.buf.commit(v.sels, false)
+		if count > 0 {
+			v.changedNoCall()
+		}
+		return count
+	}
 	match := v.matcher()
 	if match == nil {
 		return 0
 	}
-	count := 0
-	caret := v.primary().caret
 	v.buf.begin(v.sels)
 	for line := v.buf.count() - 1; line >= 0; line-- {
 		matches := match(v.buf.line(line))
