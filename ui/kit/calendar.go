@@ -16,6 +16,7 @@ import (
 // PageDown by a month, Home and End to the week's ends, Enter or Space picks.
 // Week layout, day and month names come from ui/locale.
 type CalendarView struct {
+	size                  CalendarSize
 	months                int
 	firstWeekday          *time.Weekday
 	draft                 time.Time
@@ -199,7 +200,7 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 		} else {
 			v.month = v.month.AddDate(0, -1, 0)
 		}
-	}).Name(prevName).Icon(IconChevronLeft).Variant(ButtonGhost).Size(28)
+	}).Name(prevName).Icon(IconChevronLeft).Variant(ButtonGhost).Size(v.metrics().nav)
 	next := Button("", func() {
 		if v.choosing {
 			v.chooseYear = min(9999, v.chooseYear+1)
@@ -207,10 +208,10 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 		} else {
 			v.month = v.month.AddDate(0, 1, 0)
 		}
-	}).Name(nextName).Icon(IconChevronRight).Variant(ButtonGhost).Size(28)
+	}).Name(nextName).Icon(IconChevronRight).Variant(ButtonGhost).Size(v.metrics().nav)
 	prev.SetDisabled(v.disabled || !v.choosing && !v.monthAllowed(v.month.AddDate(0, -1, 0)))
 	next.SetDisabled(v.disabled || !v.choosing && !v.monthAllowed(v.month.AddDate(0, 1, 0)))
-	title := Button(v.monthTitle(), func() { v.choosing = !v.choosing; v.chooseYear = v.month.Year(); v.yearEditing = false }).Variant(ButtonGhost).Size(28)
+	title := Button(v.monthTitle(), func() { v.choosing = !v.choosing; v.chooseYear = v.month.Year(); v.yearEditing = false }).Variant(ButtonGhost).Size(v.metrics().nav)
 	head := el.Div().Row().WFull().Items(el.Center).Child(prev.Render(cx), el.Div().Grow().Items(el.Center).Child(title.Render(cx)), next.Render(cx))
 	body := el.Div().Row().Wrap().Gap(theme.SpaceXl).WFull()
 	count := max(1, v.months)
@@ -222,7 +223,7 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 			body.Child(v.monthGrid(v.month.AddDate(0, i, 0), today, move))
 		}
 	}
-	root := el.Div().Disabled(v.disabled).W(el.Dp(float32(count*252+(count-1)*16))).MaxW(el.Full).Gap(theme.SpaceMd).Items(el.Stretch).Child(head, body)
+	root := el.Div().Disabled(v.disabled).W(el.Dp(float32(count)*v.metrics().width*7+float32(count-1)*16)).MaxW(el.Full).Gap(theme.SpaceMd).Items(el.Stretch).Child(head, body)
 	root.OnKey(func(e el.KeyEvent) bool {
 		if key.Name(e.Name) == key.NameEscape && v.pending {
 			if e.State == el.KeyPress {
@@ -242,17 +243,18 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 }
 func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) el.Element {
 	text := locale.Current()
-	const cw, ch = 36, 32
+	m := v.metrics()
+	cw, ch := m.width, m.height
 	week := el.Div().WFull().Row()
 	for i := 0; i < 7; i++ {
 		wd := (int(v.weekStart()) + i) % 7
-		week.Child(el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(24)).Center().Child(el.Text(text.Weekdays[wd]).TextSize(theme.TextSm).TextColor(theme.Muted)))
+		week.Child(el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(m.weekday)).Center().Child(el.Text(text.Weekdays[wd]).TextSize(theme.TextSm).TextColor(theme.Muted)))
 	}
 	title := text.Month(month.Year(), month.Month())
-	grid := el.Div().W(el.Dp(252)).MaxW(el.Full).NoShrink().Role("grid").Name(title)
+	grid := el.Div().W(el.Dp(cw * 7)).MaxW(el.Full).NoShrink().Role("grid").Name(title)
 	if v.months > 1 {
 		// Same weight as the header button text: the header names the range.
-		grid.Child(el.Div().H(el.Dp(28)).Center().Child(el.Text(title).TextSize(theme.TextMd)))
+		grid.Child(el.Div().H(el.Dp(m.nav)).Center().Child(el.Text(title).TextSize(theme.TextMd)))
 	}
 	grid.Child(week)
 	first := month.AddDate(0, 0, -((int(month.Weekday()) - int(v.weekStart()) + 7) % 7))
@@ -295,11 +297,15 @@ func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func
 	faint := theme.Muted
 	faint.A = 0x66
 	label := locale.Current().Date(d)
+	dayText := el.Text(strconv.Itoa(d.Day()))
+	if v.size != CalendarSizeMedium {
+		dayText.TextSize(v.metrics().font)
+	}
 	c := el.Div().ID(v.cellID(d)).Role("gridcell").Name(label).Selected(chosen || between).
 		W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(ch)).Rounded(theme.RadiusMd).Bg(bg).TextColor(fg).Center().
 		Focusable(d.Equal(v.focus)).Disabled(!ok).DisabledStyle(func(s *el.Style) { s.TextColor(faint) }).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
-		Child(el.Text(strconv.Itoa(d.Day())))
+		Child(dayText)
 	if d.Equal(today) && !chosen {
 		c.Border(1, theme.Border)
 	}

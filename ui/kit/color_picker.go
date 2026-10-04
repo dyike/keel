@@ -26,6 +26,11 @@ const pickerWidth = 240
 // code, or click a swatch. Focused, the square and bars move with the arrow
 // keys. The color is kept as HSV, so hue survives passing through gray.
 type ColorPickerView struct {
+	size       ColorPickerSize
+	label      string
+	icon       IconName
+	popup      bool
+	popover    *PopoverView
 	h, s, v, a float64 // hue 0..360, the rest 0..1
 	alpha      bool
 	disabled   bool
@@ -61,6 +66,9 @@ func (p *ColorPickerView) SetDisabled(on bool) {
 	p.disabled = on
 	if on {
 		p.focused = false
+		if p.popover != nil {
+			p.popover.SetValue(false)
+		}
 		p.hex = hexOf(p.Value(), p.alpha)
 	}
 }
@@ -186,7 +194,8 @@ func gradient(gtx core.C, box image.Rectangle, c0, c1 color.NRGBA, vertical bool
 	paint.PaintOp{}.Add(gtx.Ops)
 }
 
-func (p *ColorPickerView) Render(cx *el.Context) el.Element {
+func (p *ColorPickerView) renderPanel(cx *el.Context) el.Element {
+	m := p.metrics()
 	text := locale.Current()
 	id := autoID("color", p)
 	if p.focused && !cx.Enabled(id) {
@@ -239,7 +248,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 			paint.FillShape(gtx.Ops, color.NRGBA{R: 255, G: 255, B: 255, A: 255}, clip.Stroke{Path: path, Width: float32(gtx.Dp(1))}.Op())
 		}
 	}
-	const svH = 150
+	svH := m.square
 	sv := el.Div().ID(id+"/shade").Border(1, theme.Border).Role("slider").Name(text.ColorShade).Value(strconv.Itoa(int(p.s*100)) + "," + strconv.Itoa(int(p.v*100))).
 		WFull().H(el.Dp(svH)).Rounded(theme.RadiusMd).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
@@ -309,7 +318,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 			gradient(gtx, seg, color.NRGBA{R: r0, G: g0, B: b0, A: 255}, color.NRGBA{R: r1, G: g1, B: b1, A: 255}, false)
 		}
 	}, func(f float64) { p.set(min(359.999, max(0, f*360)), p.s, p.v, p.a) }, func(d float64) { p.set(p.h+d*2, p.s, p.v, p.a) })
-	col := el.Div().ID(id).Disabled(p.disabled).Role("group").Name(hexOf(p.Value(), p.alpha)).Gap(10).W(el.Dp(pickerWidth)).MaxW(el.Full).Items(el.Stretch).Child(svBox, hue)
+	col := el.Div().ID(id).Disabled(p.disabled).Role("group").Name(hexOf(p.Value(), p.alpha)).Gap(10).W(el.Dp(m.width)).MaxW(el.Full).Items(el.Stretch).Child(svBox, hue)
 	if p.alpha {
 		col.Child(bar("alpha", text.Opacity, strconv.Itoa(int(math.Round(p.a*100)))+"%", p.a, func(gtx core.C, box image.Rectangle) {
 			paint.FillShape(gtx.Ops, theme.Subtle, clip.Rect(box).Op())
@@ -323,15 +332,17 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 	if p.alpha {
 		maxLen = 9
 	}
-	preview := el.Div().Size(el.Dp(32)).NoShrink().Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(p.Value())
+	preview := el.Div().Size(el.Dp(m.control)).NoShrink().Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(p.Value())
 	hex := fieldText(el.Input().ID(id + "/hex").Name("HEX").Bind(&p.hex)).Filter("#0123456789abcdefABCDEF").MaxLen(maxLen).
 		OnSubmit(func(string) { p.commitHex() })
-	col.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceMd).Child(preview, fieldFrame(id+"/hexbox", focused, false, p.disabled, false).FocusOnPress(id+"/hex").Grow().W(el.Dp(0)).Child(hex)))
+	frame := fieldFrame(id+"/hexbox", focused, false, p.disabled, false).FocusOnPress(id + "/hex").Grow().W(el.Dp(0))
+	(&InputView{size: InputSize(p.size)}).applySize(hex, frame)
+	col.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceMd).Child(preview, frame.Child(hex)))
 	if len(p.swatches) > 0 {
 		row := el.Div().Row().Wrap().Gap(theme.SpaceSm)
 		for i, c := range p.swatches {
 			swatch := el.Div().ID(id+"/swatch/"+strconv.Itoa(i)).Role("button").Name(hexOf(c, p.alpha)).Selected(c == p.Value()).
-				Size(el.Dp(24)).NoShrink().Rounded(theme.RadiusSm).Bg(c).Border(1, theme.Border).Center().CursorPointer().Focusable(true).
+				Size(el.Dp(m.swatch)).NoShrink().Rounded(theme.RadiusSm).Bg(c).Border(1, theme.Border).Center().CursorPointer().Focusable(true).
 				FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).OnClick(func() {
 				if !p.disabled && c != p.Value() {
 					p.SetValue(c)

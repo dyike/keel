@@ -294,13 +294,13 @@
 | [Badge](https://gpui-kit.com/component/badge/) | 主体已有 | [数字/圆点/图标、上限、尺寸、自定义颜色/名称与角标容器](../../ui/kit/badge.go) | 第十七批已关闭登记缺口；图标模式不依赖计数，数字/圆点仍在 count≤0 时隐藏。Size 为 dp，圆点按比例缩放；Tone 清除固定颜色覆盖。 |
 | [Bubble](https://gpui-kit.com/component/bubble/) | 主体已有 | [可复用气泡、外观、对齐和独立反应槽](../../ui/kit/bubble.go) | 第七十三批补齐七种显式外观、独立对齐、Content/Reactions 槽、上下位置/左右对齐及三分区样式；默认 Auto 保留 Mine 主色和 75% 宽度。第七十四批补齐 BubbleGroup 的纵向排列、间距/样式、动态更新和组级禁用。第七十五批补齐 ReactionActions 直接按钮的胶囊圆角、紧凑内边距和窄布局换行，登记缺口已关闭。反应区采用紧邻内容边缘的流式布局；默认 Auto/75% 与上游 Filled/80% 不同，不表示外观和组合 API 完全相同。 |
 | [Button](https://gpui-kit.com/component/button/) | 主体已有 | [九种变体、描边/紧凑、自定义内容/配色、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 第十一批已关闭登记的变体、样式和内容缺口。Outline/Compact 为叠加配置；自定义内容限展示元素。Tooltip 可外部组合，本项不表示与上游所有组合接口完全相同。 |
-| [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
+| [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 第一百八十四批补齐四档组件尺寸；禁用日期用函数、年份限制可用 Bounds 表达，API 组织不同。尺寸和导航自动测试通过，真机视觉待验收。 |
 | [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 第七十六批补齐 Vertical 的竖向导航布局、上下方向键、Home/End 及方向切换焦点保留。第七十七批补齐 Loop、非循环边界禁用、公开 Previous/Next 和 CanPrevious/CanNext、末项自动播放停止与返回后重启。第七十八批补齐独立内容区、前后控件和分页项及 Button 外观/内容配置。第七十九批补齐横纵等尺寸多项视口与间距。第八十批补齐分数槽位及逐项比例覆盖；第八十一批补齐逐项固定 dp 尺寸和超视口项目。比例仍限制在一个视口内，超大项目可用固定尺寸；超大内容默认从开头裁剪，内部浏览需自行组合滚动。第八十二批补齐鼠标/触摸拖动及释放吸附与选中回调。第八十三批补齐连续滚动停顿吸附、显式逐事件换页和滚动起始边界路由。第一百七十七批补齐足够长轨道的首尾连续拖动/滚动，原项目跨周期复用，短轨道保留索引循环；补齐滚动转拖动的偏移衔接。第一百七十八批补齐导航与吸附的 180ms 过渡、连续重定向、手势中断衔接及减少动画。第一百七十九批补齐拖动起始边界/跨轴移交，并让出交互子组件区域。仍缺原生手势结束/滚轮设备识别；系统惯性及真机触控板手感待验收。 |
 | [Chart](https://gpui-kit.com/component/chart/) | 主体已有 | [折线/柱/面积/饼环/蜡烛、雷达/桑基、轴域/刻度/参考线/样式及提示](../../ui/kit/chart.go) | 第一百五十一批补齐雷达/桑基及公共配置；第一百六十八批完成轴内标签、Gutter、FutureSlots、四向柱图及逐柱渐变、最小流带宽度、饼图自定义提示和共享悬停过渡，并通过自动布局、命中、GPU 像素及动画测试。雷达标签使用固定槽，桑基保持输入顺序松弛布局；平滑线为逐段 smoothstep。第一百七十批补齐 PointCount 和多停靠点 BarGradient/ChartToBar 映射；第一百七十二批按实际标签边界避让，省略冲突标签并保留节点语义/悬停数据。原生真机未验收。 |
 | [Checkbox](https://gpui-kit.com/component/checkbox/) | 主体已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | 第三十八批已补齐 Size/TextSize、TabIndex/TabStop，保留半选能力。尺寸使用连续 dp/sp，Tab 排序限单 el root；焦点轮廓仍沿整行。 |
 | [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 第五批已补齐 OnCopied、Content 与反馈状态查询；回调表示已提交写入请求，非操作系统成功确认。此表登记缺口已关闭。 |
 | [Collapsible](https://gpui-kit.com/component/collapsible/) | 主体已有 | [独立 Trigger/Content、动画、焦点恢复](../../ui/kit/collapsible.go) | 主体覆盖：拆分 Trigger/Content、状态控制与动画；本轮未发现新的主要功能缺口。 |
-| [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 颜色编辑主体已有；GPUI 自带触发器/弹层，Keel 是内联选择器，弹层需组合 Popover；缺触发图标、标签与尺寸配置。 |
+| [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 第一百八十四批补齐内置 Popup 触发器/弹层、Icon、Label 和四档 Size，保留默认内联用法；颜色与开关/焦点回归通过，真机视觉与手感待验收。 |
 | [Combobox](https://gpui-kit.com/component/combobox/) | 主体已有 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 第一百二十五批补齐 DisableOption，点击/键盘/提交跳过禁用值，配置跨过滤与异步更新保留。第一百二十七批补齐持久 Footer 操作区。第一百三十一批补齐 RenderItem 和统一 RowHeight，支持富内容/行内操作及稳定值身份。第一百三十二批补齐 SetGroups/SetGroupResults 分组及虚拟标题。第一百三十五批补齐 RenderTrigger、状态快照、独立开关/清空动作及面板内搜索，登记主要缺口关闭。自定义触发器自行绘制默认标签/清空入口，候选采用统一行高，程序赋值允许当前候选外的值，这些仍是与上游的接口约定差异。第一百三十四批补齐 OnConfirm 用户关闭确认事件；第一百三十三批补齐 Searchable 关闭搜索模式。第一百二十九批补齐 Size 和 CheckIcon。第一百二十六批补齐多选候选再次选择取消；第一百二十八批补齐 Clearable 单选/多选清空按钮。第一百三十批补齐 ComboboxItem 的稳定值/显示名称/禁用及结构化异步结果；多选标签与异步搜索已有。 |
 | [Command](https://gpui-kit.com/component/command/) | 主体已有 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 第一百三十六批补齐 Inline、Searchable、Header/Footer/Empty 和 RenderItem/RowHeight；内联不抢焦点、执行后保留，关闭搜索停止查询请求。第一百三十七批补齐 Keywords、原始索引、OnSelect/OnQuery/OnConfirm/OnCancel，以及 Esc 先清词再取消。第一百三十八批集中补齐变高虚拟化、分隔项过滤、悬停选择、动作绑定提示/执行、图标/勾选、面板配置和状态读写，登记主要缺口关闭。自动高度按可见行测量，其余行估算；保留模糊排序、扁平索引及单 root 动作解析，与上游全行测量、IndexPath 和焦点域绑定不同。 |
 | [DataTable](https://gpui-kit.com/component/data-table/) | 主体已有 | [冻结列、列管理、行/单元格/整列选择、复制、筛选、分页与密度](../../ui/kit/table.go) | 第一百四十五批补齐 ColumnSelect、列级 Selectable/Resizable/Movable、Stripe 和 RowHeight，登记主要缺口关闭。第一百八十二批补齐可见表头拖放、冻结/滚动命中和移动回调；第一百八十三批修复整列选择覆盖内嵌输入焦点；拖动边缘自动滚动仍缺；密度用连续行高，控件字号独立配置，显式布局恢复可覆盖移动锁。真机拖动/视觉未验收。 |
@@ -588,3 +588,11 @@
 - [x] 移除整列选择回调中多余的表格强制聚焦。表头/单元格沿用指针聚焦及键盘冒泡，避免覆盖内嵌输入框刚获得的焦点。
 - [x] 1×/2× 回归覆盖单元格/整列选择、同帧及分帧按下释放、实际文本输入、输入框方向键不改变列选区、普通表头键盘导航及移动列后文本保留；表头拖放回归通过。
 - [x] 全仓构建、UI/native vet、全量测试通过。第一百八十二批发现的整列模式输入焦点问题关闭；拖动边缘自动滚动和真机验收继续待补。
+
+## 第一百八十四批：Calendar 尺寸与 ColorPicker 内置触发器
+
+- [x] Calendar 增加四档 Size，日期格、导航和年月选择器同步布局；Medium 保留默认尺寸和日期文字继承。切换尺寸不改变选中值，非法档位忽略。
+- [x] ColorPicker 增加 Popup、Label、Icon、四档 Size，以及 SetOpen/IsOpen；默认仍内联，内置按钮显示颜色块或图标及 HEX，面板共用原颜色状态和回调。
+- [x] 弹层键盘打开后聚焦色板，Esc/外部点击关闭并恢复触发器焦点，未提交 HEX 草稿取消；禁用关闭弹层。尺寸切换与开关不触发颜色回调，程序设色保持静默。
+- [x] 1×/2× 测试覆盖日期格尺寸、日期键盘选择和年月选择器；取色器面板尺寸、选色回调、开关、禁用、草稿取消及焦点恢复。全仓构建、UI/native vet、全量测试通过，示例浅色离屏截图已检查。
+- [ ] 真机视觉与弹层手感尚未验收；Calendar/ColorPicker 的 API 组织仍不宣称与 GPUI 完全一致。

@@ -70,14 +70,14 @@ func (v *CalendarView) yearMonths(cx *el.Context) el.Element {
 		v.yearPicker.SetValue(float64(v.chooseYear))
 		v.yearEditing = true
 	}
-	grid := el.Div().Grid(3).Gap(theme.SpaceXs).W(el.Dp(252))
+	grid := el.Div().Grid(3).Gap(theme.SpaceXs).W(el.Dp(v.metrics().width * 7)).MaxW(el.Full)
 	for i := 1; i <= 12; i++ {
 		month := time.Date(v.chooseYear, time.Month(i), 1, 0, 0, 0, 0, v.month.Location())
-		button := Button(text.MonthNames[i-1], func() { v.month = month; v.choosing = false; v.yearEditing = false; v.moveFocus(cx, month) }).Size(30)
+		button := Button(text.MonthNames[i-1], func() { v.month = month; v.choosing = false; v.yearEditing = false; v.moveFocus(cx, month) }).Size(v.metrics().nav + 2)
 		button.SetDisabled(v.disabled || !v.monthAllowed(month))
 		grid.Child(button.Render(cx))
 	}
-	return el.Div().W(el.Dp(252)).Gap(theme.SpaceMd).Child(v.yearPicker.Render(cx), grid, Button(text.Cancel, func() { v.choosing = false; v.yearEditing = false; cx.Focus(v.FocusID()) }).Render(cx))
+	return el.Div().W(el.Dp(v.metrics().width*7)).MaxW(el.Full).Gap(theme.SpaceMd).Child(v.yearPicker.Render(cx), grid, Button(text.Cancel, func() { v.choosing = false; v.yearEditing = false; cx.Focus(v.FocusID()) }).Render(cx))
 }
 func (v *CalendarView) monthTitle() string {
 	text := locale.Current()

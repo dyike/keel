@@ -18,18 +18,13 @@ func init() {
 		picker := kit.ColorPicker().Alpha().Swatches(swatches...)
 		narrow := kit.ColorPicker().Alpha().Swatches(swatches...)
 		narrow.SetValue(swatches[0])
-		popover := kit.ColorPicker()
-		var pop *kit.PopoverView
-		pop = kit.Popover(popover).Trigger(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().Row().Items(el.Center).Gap(8).Child(
-				el.Div().Size(el.Dp(28)).Rounded(6).Border(1, theme.Border).Bg(popover.Value()),
-				kit.Button("选择主题色", pop.Toggle).Variant(kit.ButtonSecondary).Render(cx))
-		}))
+		pop := kit.ColorPicker().Popup(true).Label("主题色").Size(kit.ColorPickerSizeSmall)
+		iconPop := kit.ColorPicker().Popup(true).Label("图标触发器").Icon(kit.IconCheck).Size(kit.ColorPickerSizeLarge)
 		disabled := false
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(24).Items(el.Start).Child(
 				picker.Render(cx), kit.Button("启用 / 禁用取色器", func() { disabled = !disabled; picker.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx),
-				el.Text("放进 Popover：").TextColor(theme.Muted), pop.Render(cx),
+				el.Text("内置弹层：").TextColor(theme.Muted), pop.Render(cx), iconPop.Render(cx),
 				el.Text("窄容器（160dp）：").TextColor(theme.Muted), el.Div().W(el.Dp(160)).Child(narrow.Render(cx)))
 		}))
 	})
