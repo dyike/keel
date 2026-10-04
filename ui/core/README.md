@@ -16,3 +16,5 @@
 - **被谁依赖**：`el`、`kit`、`window`、`markdown`。
 
 线程规则：回调里直接改组件；其他 goroutine 改组件包进 `core.Update`。原因见 [架构 · 线程规则](../../docs/architecture.md#线程规则)。
+
+`ClipboardData`、`ClipboardImage`、`ClipboardReader` 定义富粘贴交换数据与异步读取接口；core 不读取系统剪贴板，不引用 native。应用适配平台读取结果，由输入组件调度回 UI 线程。

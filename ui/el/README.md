@@ -20,3 +20,5 @@ GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回�
 | `root.go` | `View`、`ViewFunc`、`Context`、`Root`、`Embed`，每帧的执行顺序 |
 
 使用指南：[元素与视图](../../docs/el.md)。
+
+`input_paste.go` 在默认文本插入前处理 OnPaste；可接入 core.ClipboardReader，原生读取失败回退 Gio 纯文本通路。异步完成通过 core.Update，编辑内容或选区变化后丢弃旧结果。

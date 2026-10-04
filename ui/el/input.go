@@ -1,20 +1,27 @@
 package el
 
-import "github.com/dyike/keel/ui/theme"
+import (
+	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/theme"
+)
 
 // InputEl is a text box. Its editing state (content, caret, selection) is
 // kept per element, so give it an ID when siblings may change.
 type InputEl struct{ Styled[InputEl] }
 
 type inputSpec struct {
+	onPaste          func(core.ClipboardData) bool
+	pasteReader      core.ClipboardReader
+	onPasteError     func(error)
+	placeholder      string
 	captureKeys      []string
 	selectOnFocus    bool
-	placeholder      string
 	bind             *string
 	multiline        bool
 	password         bool
 	onChange         func(string)
 	transform        func(InputEdit) InputEdit
+	transformEdit    func(InputEdit, InputEdit) InputEdit
 	onSubmit         func(string)
 	maxLen           int
 	filter           string
@@ -90,6 +97,7 @@ type InputEdit struct {
 // Transformed inputs retain up to 100 user edits for undo/redo; programmatic changes reset this history.
 func (e *InputEl) Transform(fn func(InputEdit) InputEdit) *InputEl {
 	e.n.input.transform = fn
+	e.n.input.transformEdit = nil
 	return e
 }
 
@@ -117,4 +125,11 @@ func (cx *Context) SelectInput(id string, start, end int) {
 			return
 		}
 	}
+}
+
+// TransformEdit normalizes an edit with access to the previous text and rune
+// selection. It replaces Transform; undo/redo restores normalized snapshots.
+func (e *InputEl) TransformEdit(fn func(before, after InputEdit) InputEdit) *InputEl {
+	e.n.input.transformEdit, e.n.input.transform = fn, nil
+	return e
 }

@@ -22,6 +22,7 @@ github.com/dyike/keel
 │   ├── input/            合成鼠标、键盘事件
 │   ├── hotkey/           全局快捷键
 │   ├── notification/     系统通知（不依赖 UI）
+│   ├── clipboard/        异步读取文本、编码图片和文件路径（不依赖 UI）
 │   ├── internal/sys/     cgo 绑定，所有 Objective-C 代码只在这里
 │   └── native.go         共用的错误值
 ├── cmd/
@@ -179,5 +180,7 @@ kit.Button("刷新", func() {
 `native/notification` 仅依赖 `native` 和 `native/internal/sys`，通过异步完成回调返回权限/投递结果，不引用 UI 或 Gio。macOS 系统调用由主队列发起，Go 完成回调在独立 goroutine 执行；UI 回写使用 `core.Update`。kit.Notifier 通过公开 NoticeSystemBackend 接口接入，由应用层适配 native/notification，模块之间不直接引用。
 
 `ui/plot` 面向自定义图表，直接依赖 core 和 theme（主题字体），不依赖 kit、el 或 window；应用可将绘制嵌入 Widget。成品 Chart/Plot 保留在 kit，现有绘制实现尚未迁移到公共包。
+
+`native/clipboard` 只依赖 native/internal/sys 与 native；macOS 在主队列读取剪贴板快照，再由后台 goroutine 交付。应用将结果适配为 core.ClipboardData，通过 Input/TextArea.PasteReader 接入；el 在 core.Update 后处理完成，不在帧锁内等待主线程。UI 模块没有新增 native 依赖。
 
 SVG 图标由 `ui/kit` 内的 `oksvg` 与 `rasterx` 解析并按物理像素栅格化，仍通过 Gio 绘制；不新增 Keel 模块依赖。入口、格式子集和缓存上限见 [Icon](kit/icon.md)。

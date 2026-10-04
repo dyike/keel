@@ -100,6 +100,8 @@ type elemState struct {
 	caret                editorstyle.Caret
 	edInit               bool
 	inputFocused         bool
+	inputPaste           *inputPasteRequest
+	inputActions         []InputAction
 	inputSelection       *[2]int
 	inputUndo, inputRedo []InputEdit
 	lastText             string // what Bind last synced, to spot program changes

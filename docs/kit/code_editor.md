@@ -96,3 +96,9 @@ SetCodeLanguageRules 按语言注册，可在同一事件里替换，下一次�
 Brackets 控制 Enter 的结构缩进；AutoClosingPairs 为 nil 时使用 Brackets，非 nil 空切片关闭自动配对。输入支持多字符配对、跨越已有结束串、单行选区包裹和空配对 Backspace。AutoCloseBefore 限制后继字符，空白和行末始终允许。NotIn 默认用 Chroma 的 code/string/comment 分类，SyntaxContext 可由应用替换；未知语言没有语法分类时视为 Code。高亮继续由 Chroma 提供，不是 Tree-sitter。
 
 Increase/Decrease 分别在 Enter 前后文本上匹配，不格式化现有行或粘贴。未提供规则时按结构括号缩进，默认 Python 另识别行尾冒号。AutoClose 和 SmartIndent 独立；关闭 SmartIndent 仍复制当前行前导空白，但不增加/拆分缩进。语言切换不重置这两个偏好。
+
+`OnPaste(func(core.ClipboardData) bool)` 在文本插入前交付文本、编码图片和文件路径；true 表示应用已接收，false 继续普通文本粘贴。`PasteReader(core.ClipboardReader)` 配置异步富剪贴板读取；nil 使用 Gio 文本通路。原生读取失败时通过 `OnPasteError` 报告并回退文本，文本读取失败或超过 16MiB 则拒绝该次粘贴。
+
+读取期间文档版本、任何选区或主光标改变，结果不会插入；禁用/只读会撤销等待中的请求，连续粘贴只接收最新请求。默认插入继续使用多光标粘贴规则及同一撤销记录，回调若自行修改文档或选区也不会再执行默认插入。回调在 UI 线程执行；平台读取完成由组件调度回 UI。
+
+组件库已复用 Input 示例的 native/clipboard 适配，macOS 图片/文件交给示例回调，其他平台回退文本。自动测试覆盖多光标粘贴及整体撤销、文件消费、文档/选区变化拒绝、原生失败回退、只读与延迟到达的过期文本。macOS 原生桥接已实际读取图片快照；真实窗口的图片/文件粘贴仍待验收。

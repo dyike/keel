@@ -309,7 +309,7 @@
 | [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
 | [Dock](https://gpui-kit.com/component/dock/) | 主体已有 | [边缘/中心分割、拖放、最大化、跨窗口、面板工厂/状态恢复与 DockSkin](../../ui/kit/dock.go) | 第一百四十九批补齐登记主要缺口。工厂按实例注册表创建，状态 JSON 的版本迁移由应用负责；无类型面板仅复用既有视图。分离由 OnDetach 交给应用开窗，恢复不重开窗口。DockSkin 是样式回调层，没有 GPUI 全套 renderer traits/侧栏切换按钮；真机视觉和多窗口生命周期未验收。 |
 | [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 主体已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | 第四十五批补齐 Button 配置透传、Loading 和共享 Size；默认继承内层变体/高度，分体主按钮加载不阻挡箭头。第四十六批补齐 Placement/Offset，普通模式锚定整按钮，分体模式锚定箭头；内部 ID 由组件管理。菜单仍按 Keel 的边缘翻转策略定位。 |
-| [Editor](https://gpui-kit.com/component/editor/) | 主体已有 | [多光标/折叠、跟踪装饰、语言规则、自定义搜索会话及语言服务接入接口](../../ui/kit/code_editor.go) | 第一百五十二批补齐登记的三项主要缺口。装饰用行/rune 列坐标，几何样式按逻辑行分段，空行不画；未提供连续轮廓、软换行投影或字重装饰。搜索逐行、跳过零长度匹配，列表最多 10,000 条，全部替换无该上限且同步执行。语言规则使用 Go 正则和 Chroma 分类，可由应用替换；非 Tree-sitter。浅深色虚拟窗口像素和 Agent 验证通过，未做本批真机验收。 |
+| [Editor](https://gpui-kit.com/component/editor/) | 主体已有 | [多光标/折叠、跟踪装饰、语言规则、自定义搜索会话及语言服务接入接口](../../ui/kit/code_editor.go) | 第一百五十二批补齐登记的三项主要缺口；第一百六十七批完成富粘贴钩子与异步读取，验证多光标、撤销、只读及过期结果拒绝。装饰用行/rune 列坐标，几何样式按逻辑行分段，空行不画；未提供连续轮廓、软换行投影或字重装饰。搜索逐行、跳过零长度匹配，列表最多 10,000 条，全部替换无该上限且同步执行。语言规则使用 Go 正则和 Chroma 分类，可由应用替换；非 Tree-sitter。浅深色虚拟窗口像素和 Agent 验证通过，未做本批真机验收。 |
 | [Empty](https://gpui-kit.com/component/empty/) | 主体已有 | [空状态富标题/描述、操作、媒体、尾部与分区样式](../../ui/kit/empty.go) | 第二十一、二十二批已补齐登记的媒体、富内容、尾部和样式缺口；默认保留 Surface 背景，分区样式通过 PartStyle 调整。使用单个 View 槽组合多个子项，非上游独立部件类型。 |
 | [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 主体已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | 弹层通过 el.Layer.TrapFocus/Modal 覆盖；GPUI 还可在普通容器上独立包裹 FocusTrap，Keel 当前入口绑定浮层。 |
 | [Form](https://gpui-kit.com/component/form/) | 主体已有 | [多列/跨列、字段描述/必填/显隐、校验与异步提交](../../ui/kit/form.go) | 第一百四十二批关闭登记主要缺口。默认仍是侧标签，VerticalLabels 可改上下排列；响应式列数和控件尺寸由应用配置，不提供统一尺寸枚举。Required 仅标记，业务校验仍用回调；Keel 另有异步提交状态管理。未做真机视觉验收。 |
@@ -318,7 +318,7 @@
 | [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。第一百六十六批完成 Rotate、SVGIcon/SVGIconFile 与原色模式，验证双倍率、非零 viewBox、渐变/变换与透明度像素，修复半透明颜色变暗。SVG 为 oksvg 支持的子集，按物理像素栅格化，并非完整浏览器 SVG。 |
 | [Image](https://gpui-kit.com/component/image/) | 主体已有 | [适配/裁剪/预览、异步源加载、内存缓存、自定义加载/失败内容及重试](../../ui/kit/image.go) | 第一百五十六批补齐登记的 Source/Cache 与 LoadingContent/Fallback。HTTP(S)、文件/data URL 使用有大小限制的栅格解码；默认 15 秒超时、共享 64MiB 估算 LRU、同源请求合并，支持取消及过期结果拒绝。没有 SVG、GIF 动画、HTTP 缓存头/ETag、磁盘缓存或自动过期；卸载取消由应用调用 Source(空字符串)。窗口 Agent 与缓存行为已验，真机未验收。 |
 | [Input Group](https://gpui-kit.com/component/input-group/) | 主体已有 | [四方向/多附加内容、TextArea 组合、统一边框、标签聚焦与按钮操作](../../ui/kit/input_group.go) | 第九批已补齐 block addon 和独立附加内容配置；按钮直接使用 kit.Button。Textarea 最大行数已在第一百一十三批补齐；Token 仍见 Textarea 条目，不计作已完成。 |
-| [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 缺格式化 mask、原子 inline token、可拦截富剪贴板的 on_paste 和专用上下文菜单配置；Filter 是字符白名单，不能当作 mask。 |
+| [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 第一百六十七批完成模板/数字掩码、编辑菜单、OnPaste/PasteReader；自动测试验证选区、撤销、受限菜单、富粘贴回退和过期结果拒绝。macOS 原生桥接已实际读取图片快照，原生格式及窗口交互仍未全部验收。仍缺原子 inline token 与触屏选择菜单，其他平台富读取待补。Filter 是字符白名单。 |
 | [Kbd](https://gpui-kit.com/component/kbd/) | 主体已有 | [平台键帽、Plain、动作键位、独立字号与自定义样式](../../ui/kit/kbd.go) | 第二十五批已补齐登记的尺寸缺口及样式回调；Size 单位 sp，默认仍继承。KbdFor 读取动作首个绑定，不提供上游按焦点/上下文查询绑定的独立入口。 |
 | [Label](https://gpui-kit.com/component/label/) | 主体已有 | [整段排版、全部/前缀匹配高亮、遮罩、次级文案和样式](../../ui/kit/label.go) | 第八十四批补齐登记缺口。匹配区分大小写且不重叠；遮罩按 rune 计数并覆盖 Agent 语义，次级文案仍可见。连字/组合字符按整个字形簇着色，彩色位图字形保留原色。样式通过 TextEl 配置；字段聚焦使用 FocusOnPress，修正旧表误称的 For 接口。 |
 | [List](https://gpui-kit.com/component/list/) | 主体已有 | [分组头尾、自定义行、搜索、分页、稳定 ID、多选、键盘与拖动](../../ui/kit/list.go) | 第一百四十八批关闭登记主要缺口。分组按相邻 Group 划分，组头/页尾和数据使用统一行高；搜索默认关闭，使用本地包含匹配，远端结果过期校验由应用负责。加载阈值为底部两行，未提供 delegate 的所有自定义状态插槽；真机视觉/拖动未验收。 |
@@ -354,7 +354,7 @@
 | [Tabs](https://gpui-kit.com/component/tabs/) | 主体已有 | [四种外观、图标/富标签、单项禁用、页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 第十二、十三批已关闭登记的外观、禁用、内容、最大宽度及滚动接口缺口。默认仍为溢出菜单；Scrollable 开启时改为滚动轨道，ScrollTo 只定位不选择。自定义标签应为展示内容，宽度上限不包含独立关闭按钮。 |
 | [Tag](https://gpui-kit.com/component/tag/) | 主体已有 | [语义/自定义颜色、描边、圆角、尺寸、富内容、移除与选中](../../ui/kit/tag.go) | 第十四批已关闭登记缺口；默认保留主题染色胶囊，实心底色可用 Appearance。Size 为最小高度，长文字仍换行；自定义内容限展示元素。 |
 | [TextView](https://gpui-kit.com/component/text-view/) | 部分 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 缺富文本整体 max_lines/is_clamped、逐流式增量淡入、公开区间高亮/跳转、Markdown 插件与代码块操作扩展接口。HTML/扩展 TeX 已完成。 |
-| [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、AutoGrow 行数范围、错误显示](../../ui/kit/input.go) | 第一百一十三批补齐 AutoGrow(min,max)，包含软换行、上限后内部滚动和删除后缩回；Rows 恢复旧模式。仍缺 inline token。 |
+| [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、AutoGrow 行数范围、错误显示](../../ui/kit/input.go) | 第一百一十三批补齐 AutoGrow(min,max)，包含软换行、上限后内部滚动和删除后缩回；Rows 恢复旧模式。第一百六十七批完成编辑菜单和富粘贴钩子；仍缺 inline token、触屏选择菜单和非 macOS 富读取。 |
 | [Theme](https://gpui-kit.com/component/theme/) | 主体已有 | [语义配色、间距/字号/圆角/阴影刻度、浅深切换、注册与 JSON 主题、局部作用域、渐变、目录监听](../../ui/theme/registry.go) | 核心主题机制已完成；Keel 7 套内置（含 light/dark），GPUI 文档称 20+。Keel 渐变 JSON 为 from/to/angle，仅 Bg/Primary；GPUI 是可选背景 token 的 CSS 两色渐变，配置不兼容。 |
 | [TimeField](https://gpui-kit.com/component/time-field/) | 主体已有 | [分段、时分秒、12/24 小时、四档尺寸及快速键盘编辑](../../ui/kit/time_field.go) | 第一百六十二批补齐 Size 四档和 SegmentKeys(true)：左右切段、两位有效数字自动跳段、a/p 时段快捷键、删除重置、单段循环。输入、粘贴、回调、禁用、双倍率及虚拟窗口连续输入已验证；默认保留 Enter/移焦提交与进位。尚未重做各平台真机验收。 |
 | [TitleBar](https://gpui-kit.com/component/title-bar/) | 主体已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 自绘标题栏与窗口控制已实现；macOS 窗口初始居中已实测。标题栏全部系统行为及 Windows/Linux 真机验收仍待完成。 |
@@ -451,3 +451,11 @@
 - [x] 验证双倍率非零 viewBox、居中比例、90° 旋转、渐变、组变换、原色/主题着色、缓存尺寸更新及 2048px 栅格上限。
 - [x] 修复 SVG 半透明像素在 Gio 中变暗，测试覆盖染色和源色透明度。
 - [x] 独立提交内容通过全仓构建、UI/native vet 和全量测试。SVG 仍限解析器支持的子集，原生视觉未验收。
+
+## 第一百六十七批：输入掩码、编辑菜单与富剪贴板
+
+- [x] Input 模板/数字掩码、原值/完整度查询、过滤/长度联动、编辑选区映射与撤销；修复数字固定前缀吞掉输入。
+- [x] Input/TextArea 默认和自定义编辑菜单，验证右键、选区剪切、焦点恢复、禁用/只读/密码限制。
+- [x] Input/TextArea/CodeEditor 富粘贴钩子与异步读取，验证回退、多光标整体撤销、只读、连续请求、重复完成、超限关闭及过期结果拒绝。修复测量阶段清除请求、粘贴与同帧输入竞争及取消后迟到文本插入。
+- [x] macOS native/clipboard 桥接实际读取当前图片快照，未修改剪贴板。Windows/Linux 富读取尚缺，原生所有格式和真实窗口粘贴未逐项验收。
+- [x] 独立提交内容通过全仓构建、UI/native vet、全量测试；Input/Textarea 仍标部分，原子 token 和触屏选择菜单仍缺。

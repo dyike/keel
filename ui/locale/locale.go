@@ -26,6 +26,7 @@ type Strings struct {
 	MonthNames                                 [12]string
 
 	OK, Cancel, Close, Remove, Toggle, Clear, Retry string
+	Cut, Paste, SelectAll                           string
 	Copy, Copied                                    string
 	Loading, Menu, MoreOptions                      string
 	SelectHint, NoData                              string
@@ -96,6 +97,7 @@ func Chinese() Strings {
 		Hour: "时", Minute: "分", Second: "秒", AM: "上午", PM: "下午", Period: "时段",
 		Lang: "zh-CN", Year: "年份", PrevYear: "上一年", NextYear: "下一年", RangeUnavailable: "范围包含不可选日期，请重新选择", MonthNames: [12]string{"1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"},
 		OK: "确定", Cancel: "取消", Close: "关闭", Remove: "移除", Toggle: "切换", Clear: "清空", Retry: "重试",
+		Cut: "剪切", Paste: "粘贴", SelectAll: "全选",
 		Copy: "复制", Copied: "已复制",
 		Loading: "加载中", Menu: "菜单", MoreOptions: "更多选项",
 		SelectHint: "请选择", NoData: "暂无数据",
@@ -133,6 +135,7 @@ func English() Strings {
 		Hour: "Hour", Minute: "Minute", Second: "Second", AM: "AM", PM: "PM", Period: "Period", Clock12: true,
 		Lang: "en", Year: "Year", PrevYear: "Previous year", NextYear: "Next year", RangeUnavailable: "Range includes unavailable dates; choose again", MonthNames: [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"},
 		OK: "OK", Cancel: "Cancel", Close: "Close", Remove: "Remove", Toggle: "Toggle", Clear: "Clear", Retry: "Retry",
+		Cut: "Cut", Paste: "Paste", SelectAll: "Select All",
 		Copy: "Copy", Copied: "Copied",
 		Loading: "Loading", Menu: "Menu", MoreOptions: "More options",
 		SelectHint: "Select…", NoData: "No data",

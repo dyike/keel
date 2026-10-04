@@ -51,6 +51,13 @@ func init() {
 				}
 				return ""
 			})
+		ed.PasteReader(readComponentClipboard).OnPaste(func(data core.ClipboardData) bool {
+			if len(data.Images)+len(data.Files) == 0 {
+				return false
+			}
+			status = fmt.Sprintf("代码编辑器接收 %d 张图片、%d 个文件引用", len(data.Images), len(data.Files))
+			return true
+		}).OnPasteError(func(err error) { status = "富剪贴板读取失败，回退文本：" + err.Error() })
 		ed.OnChange(func(string) { l, c := ed.Cursor(); status = fmt.Sprintf("第 %d 行，第 %d 列", l+1, c+1) })
 		showWS := false
 		annotations := ed.Decorations(kit.CodeDecoration{Range: kit.CodeRange{Line: 5, Col: 5, EndLine: 5, EndCol: 10}, Style: kit.CodeDecorationFill})

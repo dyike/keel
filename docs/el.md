@@ -377,4 +377,8 @@ row := el.Div().Row().Items(el.ContentBottom).Child(avatar, body)
 
 `el.Input().SelectOnFocus(true)` 在获得焦点时选中全部内容。`CaptureKeys(names...)` 让单行输入的 OnKey 提前接收指定的无修饰键；这些键由回调完全负责，返回 false 也不会交还编辑器，带修饰键的快捷键不受影响。`cx.SelectInput(id, start, end)` 在下一次 Bind 同步后设置 rune 选区，不改变焦点或文字；端点由编辑器限制到有效范围，缺失或禁用输入忽略。上述接口用于 TimeField 的快速分段编辑，已验证中文 rune 选区、范围限制及带修饰键的编辑行为。
 
+`el.Input().TransformEdit(func(before, after el.InputEdit) el.InputEdit)` 在编辑归一化时同时提供编辑前后的文本及 rune 选区，适合格式掩码判断删除方向。它与 Transform 互斥，后配置者生效；撤销重做保存归一化后的文本与选区，程序 Bind 更新仍清空历史。已通过掩码删除和撤销重做回归。
+
+`cx.InputSelection(id)` 返回最近的编辑器文本和 rune 选区。`cx.InputAction(id, el.InputCopy / InputCut / InputPaste / InputSelectAll)` 将编辑命令排入该输入下一次绘制；缺失/禁用输入忽略，只读拒绝剪切/粘贴，密码输入拒绝命令复制/剪切。Paste 走异步系统文本剪贴板，继续由编辑器完成过滤和 Transform；命令本身不改变焦点，菜单调用方可用 cx.Focus 恢复输入焦点。已通过菜单剪切、焦点恢复和受限输入回归。
+
 `ElementBounds(root, target)` 在布局后返回目标相对根元素的边框位置，包含离屏元素，不叠加滚动偏移；隐藏或不属于该树的目标返回 false。可在 `Decorate` 中结合 `ScrollTo` 实现离屏定位。

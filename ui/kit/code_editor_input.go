@@ -143,6 +143,7 @@ func (v *CodeEditorView) update(gtx core.C) {
 	}
 	v.pointer(gtx)
 	v.keys(gtx)
+	v.pasteCompletion(gtx)
 	v.hover(gtx)
 }
 
@@ -395,9 +396,9 @@ func (v *CodeEditorView) keys(gtx core.C) {
 			n := len(v.buf.line(c.line))
 			v.sels, v.prim = []codeSel{{codePos{c.line, min(max(e.Start, 0), n)}, codePos{c.line, min(max(e.End, 0), n)}}}, 0
 		case transfer.DataEvent:
-			data, err := io.ReadAll(e.Open())
-			if err == nil && !v.readOnly {
-				v.paste(gtx, string(data))
+			data, err := readCodePaste(e)
+			if r := v.pendingPaste; r != nil && r.fallback {
+				r.data.Text, r.err, r.ready = data, err, true
 			}
 		}
 	}
@@ -748,9 +749,7 @@ func (v *CodeEditorView) command(gtx core.C, e key.Event) {
 			v.changed(gtx)
 		}
 	case "V":
-		if !v.readOnly {
-			gtx.Execute(clipboard.ReadCmd{Tag: v})
-		}
+		v.requestPaste(gtx)
 	case "Z":
 		if v.readOnly {
 			return

@@ -508,7 +508,8 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 			core.Call(gtx, func() { fn(e) })
 		}
 	}
-	if spec.transform != nil {
+	e.inputPasteKeys(n, st)
+	if spec.transform != nil || spec.transformEdit != nil {
 		e.inputUndoKeys(n, st)
 	}
 	// User edits first, then program changes to the bound string.
@@ -516,6 +517,14 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		beforeStart, beforeEnd := ed.Selection()
 		before := InputEdit{Text: st.lastText, Start: beforeStart, End: beforeEnd}
 		ev, ok := ed.Update(gtx)
+		if !ok && len(st.inputActions) > 0 {
+			action := st.inputActions[0]
+			st.inputActions = st.inputActions[1:]
+			ev, ok = e.inputAction(n, st, action)
+		}
+		if !ok {
+			ev, ok = e.inputPasteEvent(n, st)
+		}
 		if !ok {
 			break
 		}
@@ -525,9 +534,14 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 			if text == st.lastText {
 				break // SetText below, not the user
 			}
-			if spec.transform != nil {
+			if spec.transform != nil || spec.transformEdit != nil {
 				start, end := ed.Selection()
-				normalized := spec.transform(InputEdit{Text: text, Start: start, End: end})
+				normalized := InputEdit{Text: text, Start: start, End: end}
+				if spec.transformEdit != nil {
+					normalized = spec.transformEdit(before, normalized)
+				} else {
+					normalized = spec.transform(normalized)
+				}
 				if normalized.Text != text {
 					ed.SetText(normalized.Text)
 				}

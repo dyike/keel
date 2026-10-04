@@ -164,6 +164,7 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 		st.onClick, st.onDoubleClick, st.onDrag = n.onClick, n.onDoubleClick, n.onDrag
 		st.onScroll = n.onScroll
 		if st.disabled {
+			st.inputPaste = nil
 			st.pressedKey = ""
 			st.click = gesture.Click{}
 			st.drag = gesture.Drag{}

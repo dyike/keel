@@ -48,6 +48,10 @@ type CodeCompletion struct {
 //
 // Tab indents; press Esc first to move focus on with Tab.
 type CodeEditorView struct {
+	onPaste       func(core.ClipboardData) bool
+	pasteReader   core.ClipboardReader
+	onPasteError  func(error)
+	pendingPaste  *codePasteRequest
 	buf           *codeBuffer
 	lang, name    string
 	height        float32
@@ -234,9 +238,15 @@ func (v *CodeEditorView) SetDisabled(on bool) {
 	v.disabled = on
 	if on {
 		v.comp, v.dragging = nil, false
+		v.pendingPaste = nil
 	}
 }
-func (v *CodeEditorView) SetReadOnly(on bool) { v.readOnly = on }
+func (v *CodeEditorView) SetReadOnly(on bool) {
+	v.readOnly = on
+	if on {
+		v.pendingPaste = nil
+	}
+}
 
 // Lines is the number of lines.
 func (v *CodeEditorView) Lines() int { return v.buf.count() }
@@ -299,6 +309,7 @@ func (v *CodeEditorView) Render(cx *el.Context) el.Element {
 	id := autoID("code", v)
 	if v.disabled || !cx.Enabled(id) {
 		v.comp, v.dragging = nil, false
+		v.pendingPaste = nil
 	}
 	w := el.Widget(core.Func(v.layout)).ID(id).Disabled(v.disabled).Grow()
 	box := el.Div().Items(el.Stretch).Child(w)

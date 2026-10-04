@@ -24,6 +24,36 @@ Agent：角色 `textbox`，名字是标签（没有标签时是占位文字，�
 
 `AutoGrow(minRows, maxRows)` 按正文排版后的行数自动增高，包含软换行；超过上限后在编辑器内滚动，删除文字会缩回最小高度。行高随字体和显示缩放计算，不限制文本长度。参数必须满足 `minRows > 0` 且 `maxRows >= minRows`，非法参数忽略；两值相等可固定可见行数。`Rows(n)` 恢复原来的最小高度模式并取消 AutoGrow，单行 Input 忽略 AutoGrow。模式切换保留输入焦点与内容；长占位文字不参与自动增高。父级显式高度或空间约束仍优先。
 
+`Mask(pattern)` 为单行输入设置模板掩码：`#` 是必填 ASCII 数字，`9` 是可选数字，`A` 是 Unicode 字母，`*` 是字母或数字；反斜线转义下一个字符，其余字符为固定文本。固定文本随已填槽位显示，不用占位符补满空槽；空输入保持空字符串。末尾单独的反斜线视为非法配置，保留旧掩码。
+
+```go
+phone := kit.Input("电话").Mask("(###)-###-####")
+phone.SetValue("1234567890")
+// Value(): (123)-456-7890；UnmaskedValue(): 1234567890
+amount := kit.Input("金额").NumberMask(',', 2)
+amount.SetValue("1234567.89") // 1,234,567.89
+```
+
+`NumberMask(separator, fraction)` 将整数部分每三位分组，允许开头负号，以句点作为小数点。separator 为 0 时不分组；fraction 为 -1 时小数位不限，0 时遇到小数点即截断，只保留整数部分，正数限制小数位数；超出部分截去，不四舍五入、不转换浮点数。只有负号或以小数点结尾时仍保留草稿。非法 separator 或 fraction 不改变配置。
+
+`Value()`、`OnChange`、`OnSubmit` 使用格式化文本；`UnmaskedValue()` 返回模板中实际填入的字符或不含分组符的数字文本。`MaskComplete()` 检查必填槽是否填满，数字模式要求至少一个数字且不能以小数点结尾；不验证日期有效性、号码归属等业务规则。只有可选槽的空掩码值也可能为完整，应另加必填校验。
+
+掩码启用时，Filter 约束实际输入字符，MaxLength 限制去格式后的 rune 数，不计算自动插入的模板文本或分组符。设置掩码、长度或 Filter 会重新格式化当前值，但不触发回调；`SetValue` 同样格式化。`Mask("")` 移除掩码并保留当前文本。TextArea 忽略 Mask 和 NumberMask。
+
+编辑通过 el.TransformEdit 同步格式化文本与选区，并使用编辑层的撤销重做记录；删除单个自动插入的分隔符时，按 Backspace/Delete 方向删除邻近的可编辑字符，避免分隔符反复插回导致无法删除。自动测试已覆盖模板/数字分组、Unicode、过滤/长度、分隔符删除、选区、撤销重做及菜单剪切；带数字的固定前缀按完整片段识别，避免吞掉原始输入。
+
+Input 和 TextArea 默认提供右键编辑菜单，包含复制、剪切、粘贴和全选；无选区时复制/剪切禁用，只读时剪切/粘贴禁用，密码框的菜单复制/剪切禁用。菜单锚定在输入框下方，关闭后编辑命令将焦点送回输入框；选择操作使用打开菜单之前保留的编辑器选区。
+
+`ContextMenu(menu)` 使用自定义 Menu，传 nil 恢复默认菜单；`ContextMenuEnabled(false)` 同时关闭默认及自定义菜单。菜单实例属于该输入，其 Trigger 不使用，条目、子菜单、位置、宽度等仍由 Menu 配置。组件或祖先禁用/隐藏时由浮层归属规则关闭菜单。自定义菜单可用 `cx.InputAction(field.FocusID(), el.InputCopy / InputCut / InputPaste / InputSelectAll)` 调用编辑命令，并用 `cx.Focus(field.FocusID())` 恢复焦点。创建一次 Menu 并复用，避免每帧替换导致打开状态丢失。
+
+菜单编辑命令与键盘粘贴共用过滤、格式化及编辑回调，图片/文件拦截见下文。自动测试覆盖右键命中、焦点恢复、只读/密码限制、自定义菜单和掩码剪切；触屏选择菜单仍未实现。
+
+`OnPaste(func(core.ClipboardData) bool)` 拦截键盘或菜单粘贴：返回 true 表示应用已接收，不再插入文本；false 把 Data.Text 交给正常过滤/掩码/回调流程。Images 包含 MIME 与编码数据，Files 为路径，组件不会自行打开文件。`PasteReader(core.ClipboardReader)` 由应用提供异步读取；不配置时回调接收 Gio 文本粘贴。`OnPasteError` 在 UI 线程报告错误，富读取失败后回退到 Gio 文本读取；Gio 文本读取超过 16MiB 或失败则拒绝插入。
+
+组件负责把异步完成送回 UI 线程；等待期间输入文本或选区改变、组件禁用/只读时丢弃旧结果。重复发起粘贴以最新请求为准。平台 reader 必须调用完成回调，不能在 UI 线程同步等待平台主线程。
+
+组件库备注示例已适配 `native/clipboard.Read`：macOS 支持文本、PNG/TIFF 与文件 URL，收到图片/文件后显示数量并消费粘贴；其他平台暂回退文本。自动测试覆盖单行/多行消费与回退、旧文本/选区拒绝、重复完成、只读、超限及流关闭。已在 macOS 主线程运行桥接，成功读取当前图片剪贴板；文件 URL、PNG/TIFF 各类型及真实窗口粘贴尚未逐项验收。CodeEditor 同类钩子已验证多光标和撤销。
+
 ## 尺寸
 
 `Size(InputSizeXSmall/Small/Medium/Large)` 可用于 Input 和 TextArea。Medium 保留原有主题尺寸；其余档调整输入字号、框的最小高度和内边距。TextArea 的固定 Rows 高度随字号变化，AutoGrow 继续按实际文字测量；标签、前后缀和自定义内容保留自己的样式。InputGroup 内仍由组控制外框和内边距。双倍率尺寸、焦点和值保持、AutoGrow 增长/收缩及固定 Rows 字号缩放已验证。

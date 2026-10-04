@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
@@ -10,6 +11,12 @@ import (
 // button and error message. TextArea makes a multi-line one.
 type InputView struct {
 	size                           InputSize
+	onPaste                        func(core.ClipboardData) bool
+	pasteReader                    core.ClipboardReader
+	onPasteError                   func(error)
+	editMenu, customMenu           *MenuView
+	contextMenuDisabled            bool
+	mask                           *inputMask
 	name                           string // accessible name from a Form row when label is empty
 	label, placeholder, value, err string
 	multiline, password, clearable bool
@@ -27,19 +34,30 @@ func Input(label string) *InputView { return &InputView{label: label} }
 // Enter inserts a newline.
 func TextArea(label string) *InputView { return &InputView{label: label, multiline: true, rows: 3} }
 
-func (v *InputView) Placeholder(s string) *InputView     { v.placeholder = s; return v }
-func (v *InputView) Password() *InputView                { v.password = true; return v }
-func (v *InputView) Clearable() *InputView               { v.clearable = true; return v }
-func (v *InputView) MaxLength(n int) *InputView          { v.maxLen = n; return v }
+func (v *InputView) Placeholder(s string) *InputView { v.placeholder = s; return v }
+func (v *InputView) Password() *InputView            { v.password = true; return v }
+func (v *InputView) Clearable() *InputView           { v.clearable = true; return v }
+func (v *InputView) MaxLength(n int) *InputView {
+	v.maxLen = n
+	if v.mask != nil {
+		v.SetValue(v.value)
+	}
+	return v
+}
 func (v *InputView) Prefix(p el.View) *InputView         { v.prefix = p; return v }
 func (v *InputView) Suffix(s el.View) *InputView         { v.suffix = s; return v }
 func (v *InputView) OnChange(fn func(string)) *InputView { v.onChange = fn; return v }
 func (v *InputView) OnSubmit(fn func(string)) *InputView { v.onSubmit = fn; return v }
 func (v *InputView) Value() string                       { return v.value }
-func (v *InputView) SetValue(s string)                   { v.value = s }
-func (v *InputView) SetDisabled(on bool)                 { v.disabled = on }
-func (v *InputView) SetReadOnly(on bool)                 { v.readOnly = on }
-func (v *InputView) SetLabel(s string)                   { v.label = s }
+func (v *InputView) SetValue(s string) {
+	if v.mask != nil && !v.multiline {
+		s = v.formatMask(s).text
+	}
+	v.value = s
+}
+func (v *InputView) SetDisabled(on bool) { v.disabled = on }
+func (v *InputView) SetReadOnly(on bool) { v.readOnly = on }
+func (v *InputView) SetLabel(s string)   { v.label = s }
 
 // Rows sets the minimum height of a TextArea in lines.
 func (v *InputView) Rows(n int) *InputView {
@@ -61,7 +79,13 @@ func (v *InputView) AutoGrow(minRows, maxRows int) *InputView {
 }
 
 // Filter accepts only these runes, typed or pasted; "" accepts everything.
-func (v *InputView) Filter(chars string) *InputView { v.filter = chars; return v }
+func (v *InputView) Filter(chars string) *InputView {
+	v.filter = chars
+	if v.mask != nil {
+		v.SetValue(v.value)
+	}
+	return v
+}
 
 // SetError shows msg under the field and marks it invalid; "" clears it.
 // Form sets it from validators.
@@ -108,6 +132,10 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 	if v.multiline && v.minRows > 0 {
 		text.MinH(el.Auto).AutoGrow(v.minRows, v.maxRows)
 	}
+	if v.mask != nil && !v.multiline {
+		text.MaxLen(0).Filter("").TransformEdit(v.transformMask)
+	}
+	text.OnPaste(v.onPaste).PasteReader(v.pasteReader).OnPasteError(v.onPasteError)
 	if v.password {
 		text.Password()
 	}
@@ -134,6 +162,7 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 		box.Child(el.Div().TextColor(theme.Muted).Child(v.suffix.Render(cx)))
 	}
 	v.applySize(text, box)
+	v.renderContextMenu(cx, text)
 	if !chrome {
 		return box.Border(0, theme.Border).Rounded(0).P(0).MinH(el.Auto) // inside an InputGroup's frame
 	}
@@ -147,3 +176,14 @@ func (v *InputView) a11y() string {
 	}
 	return v.name
 }
+
+// OnPaste intercepts clipboard text, images and file references before insertion.
+// True consumes the paste; false inserts its text through the normal edit path.
+func (v *InputView) OnPaste(fn func(core.ClipboardData) bool) *InputView { v.onPaste = fn; return v }
+
+// PasteReader supplies a platform or application rich clipboard reader.
+func (v *InputView) PasteReader(fn core.ClipboardReader) *InputView { v.pasteReader = fn; return v }
+
+// OnPasteError receives read errors on the UI thread. Native errors fall back
+// to Gio text paste; an oversized or unreadable Gio text payload is rejected.
+func (v *InputView) OnPasteError(fn func(error)) *InputView { v.onPasteError = fn; return v }
