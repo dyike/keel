@@ -69,6 +69,21 @@ cx.ActionAt("document", "save", save)
 return el.Div().ID("document").KeyContext("editor").Child(input.Render(cx), menu.Render(cx))
 ```
 
-`core.BindIn` 对一个动作设置区域覆盖，优先顺序为内层、外层、全局。不传键位表示在此区域禁用该动作的绑定；`ClearBindingIn` 删除覆盖并恢复继承。无效键位不会更改原绑定，改绑会请求所有窗口刷新。上下文是精确字符串名称，不支持 GPUI 的条件表达式；`Keymap/LoadKeymap` 仍只读写全局绑定，区域绑定由应用配置。
+`core.BindIn` 对一个动作设置区域覆盖，优先顺序为内层、外层、全局。不传键位表示在此区域禁用该动作的绑定；`ClearBindingIn` 删除覆盖并恢复继承。无效键位不会更改原绑定，改绑会请求所有窗口刷新。`Keymap/LoadKeymap` 仍只读写全局绑定，区域绑定由应用配置。
+
+### 上下文条件表达式
+
+`BindIn` 的第一个参数可以是条件表达式，和 GPUI 的 keymap 写法一致：
+
+```go
+core.BindIn("Editor && !ReadOnly", "format", "mod+shift+f") // 可编辑的编辑器
+core.BindIn("Pane > Editor", "close", "mod+w")               // 面板里的编辑器
+core.BindIn("Terminal || Shell", "clear", "mod+k")          // 两者之一
+```
+
+- 焦点路径上的每一层是一个 `el.KeyContext`，名字可以包含多个用空格分隔的标识，如 `KeyContext("Editor ReadOnly")`。
+- 标识检查当前匹配的这一层；`a > b` 表示这一层满足 b、外面某一层满足 a。优先级从高到低：`!`、`>`、`&&`、`||`，括号分组。
+- 解析时从最内层往外找，第一个有绑定成立的层胜出；同一层有多个成立时，后绑定的生效。都不成立时用全局绑定。
+- 写错的表达式 `BindIn` 返回错误，什么都不改。单个名称就是只有一个标识的表达式，原来的写法照常生效。
 
 `cx.ActionAt` 仅在指定元素内有焦点时处理解析出的按键。嵌套目标中，较深的目标优先，同层按声明顺序；内层显式空绑定也会阻止外层同动作处理。不要同时用全局 `cx.Action` 注册同一动作。菜单点击仍调用 `ActionItem` 提供的函数，`ActionContext` 不会自动切换焦点或转发命令。普通 `Item` 的显式快捷键和独立 `KbdFor` 保持原有行为。底层 `el.KeyHint` 可用于相同规则的展示内容，不负责注册快捷键。

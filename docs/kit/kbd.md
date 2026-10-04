@@ -26,3 +26,7 @@ kit.Menu().ActionItem("保存", "editor.save", save)    // 菜单右侧显示同
 Agent 角色为 text，name 为传入的原始 shortcut；屏幕上显示平台对应的符号，不额外生成重复快照节点。
 
 验证入口：`go run ./examples/components -section kbd`，加 `-theme dark` 检查深色。示例覆盖 12 / 16 / 24sp、Plain、平台符号、中英文数字和窄容器。
+
+### 按元素所在的上下文显示
+
+`kit.KbdFor("format").At("code")` 按 ID 为 `code` 的元素所在的 `KeyContext` 路径解析绑定，和它自己处理按键时用的规则一样（包括 `core.BindIn` 的条件表达式）。比如工具栏按钮上的提示要显示编辑器里的实际快捷键。元素不存在、隐藏或禁用时什么都不显示。

@@ -18,6 +18,11 @@ var keymap = struct {
 	sync.Mutex
 	bindings map[string][]string
 	contexts map[string]map[string][]string
+	// Compiled context predicates, and the order bindings were made in, so
+	// the latest of several matching at one level wins.
+	predicates map[string]predicate
+	order      map[[2]string]uint64
+	seq        uint64
 }{bindings: map[string][]string{}}
 
 // Bind sets the chords that trigger action, replacing its earlier ones; no
