@@ -61,7 +61,8 @@
       </figure>
       {{end}}
       {{.Page.HTML}}
-      <footer class="edit"><a href="{{.Source}}">在 GitHub 上查看此页源文件</a></footer>
+      <footer class="edit"><a href="{{.Source}}">在 GitHub 上查看此页源文件</a>
+        <span class="license">Keel 采用 <a href="{{.Repo}}/blob/main/LICENSE">AGPL-3.0</a> 与<a href="{{.Repo}}/blob/main/LICENSING.md">商业授权</a>双授权</span></footer>
     </article>
   </main>
   {{if .Page.TOC}}

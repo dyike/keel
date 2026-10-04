@@ -64,3 +64,7 @@ go test -race ./...
 - [窗口与应用](docs/app.md) · [kit 组件](docs/kit.md) · [原生能力](docs/native.md) · [在浏览器里运行](docs/web.md)
 - [扩展指南](docs/extending.md)：新增组件、原生能力的步骤
 - [测试](docs/testing.md) · [Agent 端到端测试](docs/automation.md) · [常见问题](docs/troubleshooting.md) · [设计决策](docs/decisions.md)
+
+## 授权
+
+Keel 采用 [AGPL-3.0](LICENSE) 与商业授权双授权。开源项目和个人自用按 AGPL 免费使用；在闭源软件里使用 Keel 需要购买商业授权。详见 [LICENSING.md](LICENSING.md)，参与贡献见 [CONTRIBUTING.md](CONTRIBUTING.md)。
