@@ -39,8 +39,7 @@ type TreeView struct {
 	loadToken          uint64
 	selection          base.Selection[string]
 	typeahead          base.Typeahead
-	dragID             string
-	dragY              float32
+	drag               *treeDrag
 	onSelection        func([]string)
 	onReorder          func(string, string, int)
 	roots              []*TreeNode
@@ -279,6 +278,7 @@ func (v *TreeView) row(cx *el.Context, i int) el.Element {
 		}})
 	}
 	row.Child(twisty)
+	v.dropMarker(row, i)
 	if content != nil {
 		return row.Child(el.Div().ID("content").Grow().MinW(el.Dp(0)).Child(content.Render(cx)))
 	}
@@ -293,6 +293,7 @@ func (v *TreeView) row(cx *el.Context, i int) el.Element {
 
 func (v *TreeView) Render(cx *el.Context) el.Element {
 	v.flatten()
+	v.dragFrame(cx)
 	if v.reveal {
 		v.list.ScrollTo(cx, v.index(v.selected))
 		v.reveal = false

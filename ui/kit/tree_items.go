@@ -2,7 +2,6 @@ package kit
 
 import (
 	"fmt"
-	"math"
 	"slices"
 
 	"gioui.org/io/key"
@@ -164,39 +163,4 @@ func (v *TreeView) Reorderable(fn func(id, parent string, index int)) *TreeView 
 	v.reorderable = true
 	v.onReorder = fn
 	return v
-}
-func (v *TreeView) dragNode(i int, e el.DragEvent) {
-	if i < 0 || i >= len(v.rows) {
-		return
-	}
-	switch e.Kind {
-	case el.DragStart:
-		v.dragID = v.rows[i].node.ID
-		v.dragY = e.Y
-	case el.DragEnd:
-		id := v.dragID
-		v.dragID = ""
-		from := v.index(id)
-		if e.Canceled || from < 0 || v.disabled || v.rows[from].node.Disabled {
-			return
-		}
-		target := max(0, min(len(v.rows)-1, from+int(math.Round(float64((e.Y-v.dragY)/v.list.rowH)))))
-		if target == from || v.rows[target].node.Disabled {
-			return
-		}
-		siblings, index, parent := v.siblings(v.rows[target].node.ID)
-		source, old, _ := v.siblings(id)
-		if siblings == source && old < index {
-			index--
-		}
-		if target > from {
-			index++
-		}
-		if parent != "" && v.nodes[parent].Disabled {
-			return
-		}
-		if err := v.MoveNode(id, parent, index); err == nil && v.onReorder != nil {
-			v.onReorder(id, parent, index)
-		}
-	}
 }
