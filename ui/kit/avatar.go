@@ -151,14 +151,14 @@ func (v *AvatarView) startLoad() {
 	revision, source := v.revision, v.source
 	go func() {
 		defer cancel()
-		img, err := core.DecodeImage(ctx, source)
+		media, err := loadImageMedia(ctx, source)
 		core.Update(func() {
 			if v.revision != revision {
 				return
 			}
 			v.loading, v.cancel, v.imageErr = false, nil, err
 			if err == nil {
-				v.setPixels(img)
+				v.setPixels(media.still)
 			}
 		})
 	}()

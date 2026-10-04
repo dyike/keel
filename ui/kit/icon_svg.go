@@ -37,15 +37,24 @@ func SVGIcon(data []byte) (*IconView, error) {
 	if len(data) == 0 || len(data) > maxSVGBytes {
 		return nil, fmt.Errorf("kit.SVGIcon: SVG must contain 1..%d bytes", maxSVGBytes)
 	}
-	parsed, err := oksvg.ReadReplacingCurrentColor(bytes.NewReader(data), "black", oksvg.StrictErrorMode)
+	parsed, err := parseSVG(data)
 	if err != nil {
 		return nil, fmt.Errorf("kit.SVGIcon: %w", err)
 	}
+	return &IconView{size: 18, svg: &svgIcon{icon: parsed}}, nil
+}
+
+// parseSVG reads an SVG document with a usable viewBox.
+func parseSVG(data []byte) (*oksvg.SvgIcon, error) {
+	parsed, err := oksvg.ReadReplacingCurrentColor(bytes.NewReader(data), "black", oksvg.StrictErrorMode)
+	if err != nil {
+		return nil, err
+	}
 	b := parsed.ViewBox
 	if b.W <= 0 || b.H <= 0 || !finiteNumber(b.W) || !finiteNumber(b.H) || !finiteNumber(b.X) || !finiteNumber(b.Y) {
-		return nil, fmt.Errorf("kit.SVGIcon: invalid viewBox")
+		return nil, fmt.Errorf("invalid viewBox")
 	}
-	return &IconView{size: 18, svg: &svgIcon{icon: parsed}}, nil
+	return parsed, nil
 }
 
 // SVGIconFile reads a local SVG file once. It does not watch files or fetch URLs.

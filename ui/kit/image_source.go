@@ -76,7 +76,7 @@ func (v *ImageView) startLoad() {
 	revision, source, cache := v.revision, v.source, v.cache
 	go func() {
 		defer cancel()
-		img, err := cache.load(ctx, source)
+		media, err := cache.load(ctx, source)
 		core.Update(func() {
 			if v.revision != revision {
 				return
@@ -85,7 +85,7 @@ func (v *ImageView) startLoad() {
 			if err != nil {
 				v.err = err.Error()
 			} else {
-				v.setPixels(img)
+				v.setMedia(media)
 			}
 		})
 	}()

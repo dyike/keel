@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"image"
 	"image/color"
+	"image/gif"
 	"image/png"
+	"net/url"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
@@ -33,8 +35,35 @@ func init() {
 		sourced := kit.Image(nil, "异步加载示例").Size(240, 72).LoadingContent(kit.Label("正在加载…")).Fallback(kit.Label("无法读取图片")).Source(source)
 		crop := kit.Image(img, "居中裁剪").Size(120, 100).Fit(kit.ImageCover).Rounded(16).Preview()
 		contain := kit.Image(img, "完整显示").Size(120, 100).Fit(kit.ImageContain).Rounded(16)
+		vector := kit.Image(nil, "SVG 矢量图").Size(120, 100).Source("data:image/svg+xml," + url.PathEscape(demoSVG))
+		animated := kit.Image(nil, "GIF 动图").Size(120, 100).Source("data:image/gif;base64," + base64.StdEncoding.EncodeToString(demoGIF()))
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Items(el.Start).Child(photo.Render(cx), el.Text(msg).TextColor(theme.Muted), el.Div().Row().Gap(12).Child(crop.Render(cx), contain.Render(cx)), loading.Render(cx), sourced.Render(cx), kit.Button("重新加载源图片", sourced.Retry).Render(cx))
+			return el.Div().P(24).Gap(12).Items(el.Start).Child(photo.Render(cx), el.Text(msg).TextColor(theme.Muted), el.Div().Row().Gap(12).Child(crop.Render(cx), contain.Render(cx)), el.Div().Row().Gap(12).Child(vector.Render(cx), animated.Render(cx)), loading.Render(cx), sourced.Render(cx), kit.Button("重新加载源图片", sourced.Retry).Render(cx))
 		}))
 	})
+}
+
+const demoSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100">
+<circle cx="60" cy="50" r="40" fill="#578bd1"/><path d="M40 50 l14 14 l28 -28" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round"/></svg>`
+
+// demoGIF builds a small looping animation: a dot moving along a track.
+func demoGIF() []byte {
+	pal := color.Palette{color.NRGBA{235, 238, 243, 255}, color.NRGBA{87, 139, 209, 255}}
+	g := &gif.GIF{}
+	for i := 0; i < 8; i++ {
+		frame := image.NewPaletted(image.Rect(0, 0, 120, 100), pal)
+		cx := 20 + i*80/7
+		for y := 40; y < 60; y++ {
+			for x := cx - 10; x < cx+10; x++ {
+				if (x-cx)*(x-cx)+(y-50)*(y-50) < 100 {
+					frame.SetColorIndex(x, y, 1)
+				}
+			}
+		}
+		g.Image = append(g.Image, frame)
+		g.Delay = append(g.Delay, 12)
+	}
+	var b bytes.Buffer
+	_ = gif.EncodeAll(&b, g)
+	return b.Bytes()
 }

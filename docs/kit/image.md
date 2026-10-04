@@ -32,10 +32,24 @@ photo := kit.Image(nil, "商品照片").Size(320, 180).
     Cache(cache).Source("https://example.com/photo.webp")
 ```
 
-Source 支持 HTTP(S)、本地路径/file URL、data URL，复用 core.DecodeImage 的 PNG/JPEG/GIF 首帧/WebP 解码与大小限制。请求在后台执行，默认 15 秒超时；结果通过 UI 队列提交。重复同一地址不重载；Source("") 取消并清空。SetImage/SetError 也会取消并移除当前 Source，旧结果不能覆盖它们。组件卸载不会自动取消，应用可在不再使用时调用 Source("")。
+Source 支持 HTTP(S)、本地路径/file URL、data URL，格式为 PNG、JPEG、WebP、GIF（含动图）和 SVG，大小限制与 core.DecodeImage 相同。请求在后台执行，默认 15 秒超时；结果通过 UI 队列提交。重复同一地址不重载；Source("") 取消并清空。SetImage/SetError 也会取消并移除当前 Source，旧结果不能覆盖它们。组件卸载不会自动取消，应用可在不再使用时调用 Source("")。
 
 Loading 返回请求状态，ImageError 返回加载错误。LoadingContent/Fallback 接受自定义 View，nil 恢复默认替代文字/错误；固定 Size 可预留加载区域，自定义内容应适配该区域。自定义失败内容后仍保留内置重试按钮。Source 模式下 Retry 清除当前源缓存并重新加载；没有 Source 时使用原 OnRetry 回调。自身或父级禁用阻止按钮，程序 Source/SetImage 仍可更新。
 
-默认共享 64MiB 估算容量的 ImageCache；Cache(nil) 禁用缓存，自定义缓存可限定作用域。缓存按源字符串区分、LRU 淘汰，源字符串计入预算，每像素按 8 字节保守计费；超过预算的图仍可显示但不保留。并发同源请求合并，取消一个等待者不影响其他人；所有等待者取消后中断请求。失败不缓存。Delete(source)/Clear 清除结果并阻止旧请求重新填入，现有等待者仍收到自己的结果。
+默认共享 64MiB 估算容量的 ImageCache；Cache(nil) 禁用缓存，自定义缓存可限定作用域。缓存按源字符串区分、LRU 淘汰，源字符串计入预算，每像素按 8 字节保守计费（动图按帧数累计）；超过预算的图仍可显示但不保留。并发同源请求合并，取消一个等待者不影响其他人；所有等待者取消后中断请求。失败不缓存。Delete(source)/Clear 清除结果并阻止旧请求重新填入，现有等待者仍收到自己的结果。
 
-这是解码图片的内存缓存，没有磁盘持久化、HTTP 缓存头/ETag 校验或自动过期；源地址内容变化时调用 Retry/Delete。缓存图片按只读共享，不应修改像素。网络请求受浏览器 CORS、系统网络和文件权限约束；不支持 SVG 或 GIF 动画。
+源地址内容变化时调用 Retry/Delete。缓存图片按只读共享，不应修改像素。网络请求受浏览器 CORS、系统网络和文件权限约束。
+
+## SVG 与 GIF 动图
+
+- **SVG**：按布局尺寸实时绘制矢量，任何缩放都清晰；自然尺寸取 viewBox，三种 Fit 都适用。识别依据是内容（`<svg` / `<?xml`），与扩展名无关。不支持脚本、外部引用和 CSS 动画。
+- **GIF 动图**：按每帧延迟循环播放，按处置方式合成帧，效果与浏览器一致；延迟为 0 或 1 的帧按 100ms 播放。开启减少动态效果（`theme.ReducedMotion`）或禁用时停在第一帧。所有帧解码后超过 96MB 时只显示第一帧。
+
+## 磁盘缓存
+
+```go
+dir, _ := os.UserCacheDir()
+cache := kit.NewImageCache(32 << 20).Disk(filepath.Join(dir, "myapp", "images"), 256<<20, 24*time.Hour)
+```
+
+`Disk(目录, 上限字节, 有效期)` 把 HTTP(S) 图片的原始字节存到磁盘，重启后不必重新下载。有效期内直接使用本地副本；过期后带 `If-None-Match` / `If-Modified-Since` 重新验证，服务器返回 304 就继续用本地副本并刷新有效期。网络失败或服务器 5xx 时使用过期副本。总大小超过上限时按最近使用时间淘汰。`Cache-Control: no-store` 的响应不落盘；本地文件和 data URL 不复制。本地副本解码失败会被删除。目录为空或上限 ≤ 0 关闭磁盘缓存。内存层仍按原规则工作，磁盘层只在内存未命中时读取。

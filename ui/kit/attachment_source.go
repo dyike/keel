@@ -59,14 +59,14 @@ func (v *AttachmentView) RetryMedia() {
 	revision, source := s.revision, s.source
 	go func() {
 		defer cancel()
-		img, err := core.DecodeImage(ctx, source)
+		media, err := loadImageMedia(ctx, source)
 		core.Update(func() {
 			if v.imageSource != s || s.revision != revision {
 				return
 			}
 			s.loading, s.cancel, s.err = false, nil, err
 			if err == nil {
-				s.pixels = paint.NewImageOp(img)
+				s.pixels = paint.NewImageOp(media.still)
 			}
 		})
 	}()

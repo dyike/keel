@@ -3,33 +3,31 @@ package kit
 import (
 	"container/list"
 	"context"
-	"image"
 	"sync"
 	"time"
-
-	"github.com/dyike/keel/ui/core"
 )
 
-// ImageCache is a thread-safe, memory-only LRU of decoded images. Concurrent
-// readers of a source share its request; cancelling one reader does not cancel
-// the others. It does not implement HTTP validation, disk persistence or TTL.
+// ImageCache is a thread-safe LRU of decoded images. Concurrent readers of a
+// source share its request; cancelling one reader does not cancel the others.
+// Disk adds a persistent cache of HTTP(S) downloads with revalidation.
 type ImageCache struct {
 	mu          sync.Mutex
 	limit, used int64
 	items       map[string]*list.Element
 	lru         list.List
 	pending     map[string]*imageRequest
+	disk        *imageDiskCache
 }
 type imageCacheEntry struct {
 	source string
-	image  image.Image
+	media  *imageMedia
 	bytes  int64
 }
 type imageRequest struct {
 	done     chan struct{}
 	cancel   context.CancelFunc
 	waiters  int
-	image    image.Image
+	media    *imageMedia
 	err      error
 	finished bool
 }
@@ -70,9 +68,9 @@ func (c *ImageCache) Delete(source string) {
 	}
 	delete(c.pending, source)
 }
-func (c *ImageCache) load(ctx context.Context, source string) (image.Image, error) {
+func (c *ImageCache) load(ctx context.Context, source string) (*imageMedia, error) {
 	if c == nil {
-		return core.DecodeImage(ctx, source)
+		return loadImageMedia(ctx, source)
 	}
 	c.mu.Lock()
 	if c.items == nil {
@@ -83,9 +81,9 @@ func (c *ImageCache) load(ctx context.Context, source string) (image.Image, erro
 	}
 	if e := c.items[source]; e != nil {
 		c.lru.MoveToFront(e)
-		img := e.Value.(imageCacheEntry).image
+		m := e.Value.(imageCacheEntry).media
 		c.mu.Unlock()
-		return img, nil
+		return m, nil
 	}
 	req := c.pending[source]
 	if req == nil {
@@ -111,20 +109,19 @@ func (c *ImageCache) load(ctx context.Context, source string) (image.Image, erro
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case <-req.done:
-		return req.image, req.err
+		return req.media, req.err
 	}
 }
 func (c *ImageCache) fetch(ctx context.Context, source string, req *imageRequest) {
 	defer req.cancel()
-	img, err := core.DecodeImage(ctx, source)
+	m, err := c.read(ctx, source)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	req.image, req.err, req.finished = img, err, true
+	req.media, req.err, req.finished = m, err, true
 	if c.pending[source] == req {
 		delete(c.pending, source)
-		if err == nil && ctx.Err() == nil && img != nil {
-			b := img.Bounds()
-			cost := int64(b.Dx())*int64(b.Dy())*8 + int64(len(source)) // pixels plus retained key
+		if err == nil && ctx.Err() == nil && m != nil {
+			cost := m.cost()*2 + int64(len(source)) // pixels, their GPU copy, the key
 			if cost > 0 && cost <= c.limit {
 				for c.used > c.limit-cost {
 					last := c.lru.Back()
@@ -133,7 +130,7 @@ func (c *ImageCache) fetch(ctx context.Context, source string, req *imageRequest
 					c.used -= entry.bytes
 					c.lru.Remove(last)
 				}
-				c.items[source] = c.lru.PushFront(imageCacheEntry{source, img, cost})
+				c.items[source] = c.lru.PushFront(imageCacheEntry{source, m, cost})
 				c.used += cost
 			}
 		}

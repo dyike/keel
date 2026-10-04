@@ -94,7 +94,7 @@ file.ShowMedia(false).ShowContent(false) // 只有操作区
 photo.ShowContent(true)                // 恢复元信息
 ```
 
-`MediaSource(source)` 从 HTTP(S)、data URL 或本地路径后台加载预览，复用 core.DecodeImage 的格式与大小限制。重复设置同一来源不重新请求；`RetryMedia()` 显式重载，`MediaSource("")` 恢复默认图标。`Media(view)` 会取消来源加载并使用给定 View。切换来源会取消旧请求，版本校验阻止迟到结果覆盖新预览；单次请求有 15 秒期限，不跨实例缓存。移除卡片时应用可调用 MediaSource("") 取消尚未完成的请求。
+`MediaSource(source)` 从 HTTP(S)、data URL 或本地路径后台加载预览，支持 PNG、JPEG、WebP、GIF（显示第一帧）和 SVG，大小限制与 core.DecodeImage 相同。重复设置同一来源不重新请求；`RetryMedia()` 显式重载，`MediaSource("")` 恢复默认图标。`Media(view)` 会取消来源加载并使用给定 View。切换来源会取消旧请求，版本校验阻止迟到结果覆盖新预览；单次请求有 15 秒期限，不跨实例缓存。移除卡片时应用可调用 MediaSource("") 取消尚未完成的请求。
 
 `MediaLoading()`、`MediaError()` 查询加载结果。预览加载不改变附件上传状态，也不调用 OnRetry；加载失败时媒体中的重试按钮只重载图片。附件本身处于上传、处理中或失败时，优先显示生命周期遮罩和上传操作；应用仍可显式调用 RetryMedia 重载图片。禁用卡片或祖先会禁用图片重试按钮。
 

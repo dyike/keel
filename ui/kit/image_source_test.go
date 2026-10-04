@@ -237,11 +237,11 @@ func TestImageCacheClearRejectsStalePopulation(t *testing.T) {
 	img, err := cache.load(context.Background(), server.URL)
 	close(release)
 	<-done
-	if err != nil || img.Bounds().Dx() != 3 {
+	if err != nil || img.still.Bounds().Dx() != 3 {
 		t.Fatal("new generation", err)
 	}
 	img, err = cache.load(context.Background(), server.URL)
-	if err != nil || img.Bounds().Dx() != 3 || requests.Load() != 2 {
+	if err != nil || img.still.Bounds().Dx() != 3 || requests.Load() != 2 {
 		t.Fatal("stale population", err, requests.Load())
 	}
 }

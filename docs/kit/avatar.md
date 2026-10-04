@@ -6,7 +6,7 @@
 
 Agent 角色 avatar，名字为人名，value 为状态，无状态为空。纯展示，不处理键盘。验证：`go run ./examples/components -section avatar -theme dark`，省略 theme 查看浅色。
 
-`Source(url)` 在后台加载头像，支持 HTTP(S)、data URL、本地路径和 file URL；PNG、JPEG、GIF 首帧和 WebP。加载期间或失败时显示姓名回退，直径不变。默认请求超时 15 秒，编码数据上限 16 MiB，解码图片上限 3200 万像素。浏览器环境中的 HTTP 请求仍受 CORS 限制。
+`Source(url)` 在后台加载头像，支持 HTTP(S)、data URL、本地路径和 file URL；PNG、JPEG、GIF 首帧、WebP 和 SVG。加载期间或失败时显示姓名回退，直径不变。默认请求超时 15 秒，编码数据上限 16 MiB，解码图片上限 3200 万像素。浏览器环境中的 HTTP 请求仍受 CORS 限制。
 
 ```go
 avatar := kit.Avatar("Ada Lovelace").Source("https://example.com/ada.png")
