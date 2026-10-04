@@ -10,6 +10,7 @@ import (
 type InputEl struct{ Styled[InputEl] }
 
 type inputSpec struct {
+	tokenRenderer    InputTokenRenderer
 	onTokenActivate  func(InputToken)
 	document         *InputDocument
 	onPaste          func(core.ClipboardData) bool

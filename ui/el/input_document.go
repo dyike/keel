@@ -19,6 +19,7 @@ func NewInputContent(text string, tokens ...InputTokenSpan) (InputContent, error
 type InputDocument struct {
 	session  inputcontent.Session
 	revision uint64
+	objects  bool
 }
 
 func (d *InputDocument) Content() InputContent     { return d.session.Snapshot().Content }

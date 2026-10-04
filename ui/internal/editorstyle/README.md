@@ -11,6 +11,6 @@
 
 `Composition` 用编辑器排版后的 Regions 绘制组合下划线，返回视口内的组合范围；`Caret.InputMethodCaret` 提供与可见光标一致的基线和字形高度。自行消费输入法事件的输入适配层在 Layout 后调用，并负责把这些坐标发送给平台。此内部层不维护编辑事务。
 
-InlineFont 为引用块构造仅含私用字符的空白字体。字形的 advance 参与 Gio Editor 的换行、选区和光标计算，UI 可在对应 Regions 中另行绘制内容。字体只加入单个编辑器的 shaper，不全局注册；调用方负责选择不与普通文本冲突的私用字符、测量宽度和布局缓存。当前提供内部基础与真实 Editor 布局测试，尚未接入 Input/Textarea。
+InlineFont 为引用块构造仅含私用字符的空白字体。字形的 advance 参与 Gio Editor 的换行、选区和光标计算，UI 可在对应 Regions 中另行绘制内容。字体只加入单个编辑器的 shaper，不全局注册；调用方负责选择不与普通文本冲突的私用字符、测量宽度和布局缓存。已接入 Input/Textarea 的引用排版；无轮廓字形保留非零边界，防止行尾被当作空白忽略。
 
 字体按 OpenType [cmap](https://learn.microsoft.com/en-us/typography/opentype/spec/cmap) format 12 和 [hmtx](https://learn.microsoft.com/en-us/typography/opentype/spec/hmtx) 构造，包含 sfnt 校验和；普通字符必须回退到正常字体。现有 go-text 使用有符号 advance，单字形设计单位限 32767；调用方需按字号和最大宽度选择 UnitsPerEm，不应直接把 dp 当设计单位。

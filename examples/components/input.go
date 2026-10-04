@@ -31,15 +31,25 @@ func init() {
 			return true
 		}).OnPasteError(func(err error) { pasteInfo = "富剪贴板读取失败，回退文本：" + err.Error() })
 		reference := kit.Input("引用").Clearable()
+		tokenRenderer := func(gtx core.C, token kit.InputToken) core.D {
+			return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
+				return el.Div().Row().Items(el.Center).Gap(4).Px(4).Rounded(theme.RadiusSm).Bg(theme.Highlight).Child(kit.Icon(kit.IconFile).Size(14).Render(cx), el.Text(token.Display()).TextSize(theme.TextMd).MaxLines(1))
+			})).Layout(gtx)
+		}
+		reference.TokenRenderer(tokenRenderer)
 		draft, _ := kit.NewInputContent("查看 docs/input.md", kit.InputTokenSpan{Range: kit.InputRange{Start: len("查看 "), End: len("查看 docs/input.md")}, Token: kit.InputToken{ID: "input-doc", Text: "docs/input.md", Label: "输入组件文档"}})
 		_ = reference.SetContent(draft)
 		referenceInfo := "点击引用查看标识；复制时保留原始路径。"
 		reference.OnTokenActivate(func(token kit.InputToken) { referenceInfo = token.ID + " · " + token.Text })
+		wrapped := kit.TextArea("引用整块换行").AutoGrow(2, 5).TokenRenderer(tokenRenderer)
+		prefix := "这段说明后面的文档引用会整体换行： "
+		wrappedDraft, _ := kit.NewInputContent(prefix+"docs/input.md", kit.InputTokenSpan{Range: kit.InputRange{Start: len(prefix), End: len(prefix + "docs/input.md")}, Token: kit.InputToken{ID: "wrapped-doc", Text: "docs/input.md", Label: "输入组件文档与使用说明"}})
+		_ = wrapped.SetContent(wrappedDraft)
 		off := kit.Input("只读")
 		off.SetValue("SO-1001")
 		off.SetReadOnly(true)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(14).W(el.Dp(360)).MaxW(el.Full).Child(search.Render(cx), price.Render(cx), phone.Render(cx), el.Text("电话原值："+phone.UnmaskedValue()).TextColor(theme.Muted), pass.Render(cx), bad.Render(cx), note.Render(cx), el.Text(pasteInfo).TextColor(theme.Muted), off.Render(cx), reference.Render(cx), el.Text(referenceInfo).TextColor(theme.Muted))
+			return el.Div().P(24).Gap(14).W(el.Dp(360)).MaxW(el.Full).Child(search.Render(cx), price.Render(cx), phone.Render(cx), el.Text("电话原值："+phone.UnmaskedValue()).TextColor(theme.Muted), pass.Render(cx), bad.Render(cx), note.Render(cx), el.Text(pasteInfo).TextColor(theme.Muted), off.Render(cx), reference.Render(cx), wrapped.Render(cx), el.Text(referenceInfo).TextColor(theme.Muted))
 		}))
 	})
 }

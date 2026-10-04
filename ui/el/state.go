@@ -98,6 +98,7 @@ type elemState struct {
 	version                                                          int  // ScrollToEndOn's value last frame
 	keepVersion                                                      int  // KeepBottomOn's value last frame
 
+	inputObjects          inputObjectLayout
 	inputTokenHits        []*inputTokenHit
 	inputDocument         *InputDocument
 	inputDocumentRevision uint64

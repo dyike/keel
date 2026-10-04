@@ -6,6 +6,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"github.com/dyike/keel/ui/core"
@@ -22,7 +23,7 @@ type inputTokenHit struct {
 }
 
 func (e *engine) paintInputTokens(n *Node, st *elemState, g layout.Context) {
-	spans := n.input.document.Content().Presentation()
+	spans := n.input.document.presentation()
 	prepareInputTokenHits(st, len(spans.Spans))
 	for i, span := range spans.Spans {
 		hit := st.inputTokenHits[i]
@@ -42,6 +43,20 @@ func (e *engine) paintInputTokens(n *Node, st *elemState, g layout.Context) {
 				continue
 			}
 			hit.rects = append(hit.rects, r)
+			if st.inputObjects.shaper != nil && i < len(st.inputObjects.sizes) {
+				dims := st.inputObjects.sizes[i]
+				at := image.Pt(region.Bounds.Min.X, region.Bounds.Max.Y-region.Baseline-dims.Size.Y+dims.Baseline)
+				func() {
+					clipStack := clip.Rect(image.Rectangle{Max: g.Constraints.Max}).Push(g.Ops)
+					defer clipStack.Pop()
+					offset := op.Offset(at).Push(g.Ops)
+					defer offset.Pop()
+					child := g
+					child.Constraints = layout.Exact(dims.Size)
+					e.tokenWidget(n, child, span.Token)
+				}()
+				continue
+			}
 			radius := g.Dp(3)
 			paint.FillShape(g.Ops, theme.Subtle, clip.RRect{Rect: r, NE: radius, NW: radius, SE: radius, SW: radius}.Op(g.Ops))
 

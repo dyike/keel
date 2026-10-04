@@ -76,6 +76,14 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 	if w >= inf {
 		w = e.dp(200)
 	}
+	var objectState *elemState
+	if n.input.document != nil {
+		objectState = e.store.get(n.key)
+		e.prepareInputObjects(n, objectState, w)
+		for _, dims := range objectState.inputObjects.sizes {
+			line = max(line, dims.Size.Y)
+		}
+	}
 	n.input.line = line
 	h := line
 	if n.input.multiline {
@@ -83,7 +91,7 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 		if spec := n.input; spec.minRows > 0 {
 			value := ""
 			if spec.document != nil {
-				value = spec.document.Content().Presentation().Text
+				value = spec.document.presentation().Text
 			} else if spec.bind != nil {
 				value = *spec.bind
 			} else if st := e.store.states[n.key]; st != nil {
@@ -99,6 +107,13 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 			}
 			// Match the font and line height passed to material.Editor at paint time.
 			lb := e.label(n, value)
+			if objectState != nil && objectState.inputObjects.shaper != nil {
+				th := *theme.Material
+				th.Shaper = objectState.inputObjects.shaper
+				lb = material.Label(&th, n.textStyle.size, value)
+				lb.Font = objectState.inputObjects.font
+				lb.LineHeightScale = n.textStyle.lineHeight
+			}
 			lb.MaxLines = spec.maxRows
 			measured := lb.Layout(e.measureGtx(layout.Constraints{Max: image.Pt(w, inf)})).Size.Y
 			// Measure baseline spacing rather than multiplying glyph bounds:
@@ -634,12 +649,27 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	g := gtx
 	g.Constraints = layout.Exact(inner.Size())
 	ts := n.textStyle
-	me := material.Editor(theme.Material, ed, spec.placeholder)
+	th := theme.Material
+	shaper := theme.Material.Shaper
+	if spec.document != nil {
+		e.prepareInputObjects(n, st, inner.Dx())
+		documentSyncEditor(st, spec.document)
+		if st.inputObjects.shaper != nil {
+			copy := *th
+			copy.Shaper = st.inputObjects.shaper
+			th = &copy
+			shaper = copy.Shaper
+		}
+	}
+	me := material.Editor(th, ed, spec.placeholder)
 	me.TextSize, me.Color, me.HintColor = ts.size, *ts.color, theme.Muted
 	me.Font = textFont(ts)
+	if spec.document != nil && st.inputObjects.shaper != nil {
+		me.Font = st.inputObjects.font
+	}
 	me.LineHeightScale = ts.lineHeight
 	if spec.document != nil {
-		st.caret.LayoutDecorated(g, me, theme.Material.Shaper, func(g layout.Context) { e.paintInputTokens(n, st, g) })
+		st.caret.LayoutDecorated(g, me, shaper, func(g layout.Context) { e.paintInputTokens(n, st, g) })
 	} else {
 		st.caret.Layout(g, me, theme.Material.Shaper)
 	}

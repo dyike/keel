@@ -37,3 +37,13 @@ func LoadFonts(files ...[]byte) error {
 	loop.InvalidateAll()
 	return nil
 }
+
+// NewShaper builds an independent shaper with extra faces ahead of the fonts
+// loaded through LoadFonts and the Go fallback fonts. System font fallback
+// follows the same platform defaults as Material.Shaper.
+func NewShaper(extra ...font.FontFace) *text.Shaper {
+	faces := append([]font.FontFace{}, extra...)
+	faces = append(faces, loaded...)
+	faces = append(faces, gofont.Collection()...)
+	return text.NewShaper(text.WithCollection(faces))
+}

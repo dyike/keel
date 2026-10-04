@@ -94,7 +94,20 @@ func inlineFontData(m InlineFontMetrics, glyphs []InlineGlyph) []byte {
 		u32(cmap[at+4:], uint32(g.Rune))
 		u32(cmap[at+8:], uint32(i+1))
 	}
-	tables := map[string][]byte{"head": head, "hhea": hhea, "hmtx": hmtx, "maxp": maxp, "cmap": cmap, "loca": make([]byte, (n+1)*4), "glyf": {}}
+	// Nonzero extents distinguish objects from trailing whitespace in go-text's
+	// line wrapper. Zero contours keep the glyph invisible; content is painted separately.
+	glyf := make([]byte, n*12)
+	loca := make([]byte, (n+1)*4)
+	for i := 0; i <= n; i++ {
+		u32(loca[i*4:], uint32(i*12))
+	}
+	for i, g := range glyphs {
+		at := (i + 1) * 12
+		u16(glyf[at+4:], uint16(-m.Descent))
+		u16(glyf[at+6:], g.Advance)
+		u16(glyf[at+8:], uint16(m.Ascent))
+	}
+	tables := map[string][]byte{"head": head, "hhea": hhea, "hmtx": hmtx, "maxp": maxp, "cmap": cmap, "loca": loca, "glyf": glyf}
 	tags := make([]string, 0, len(tables))
 	for tag := range tables {
 		tags = append(tags, tag)

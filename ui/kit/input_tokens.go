@@ -72,3 +72,9 @@ func (v *InputView) ActivateToken() bool {
 	}
 	return ok
 }
+
+// TokenRenderer customizes passive inline reference contents. See el.InputTokenRenderer.
+func (v *InputView) TokenRenderer(fn el.InputTokenRenderer) *InputView {
+	v.tokenRenderer = fn
+	return v
+}

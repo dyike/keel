@@ -10,6 +10,7 @@ import (
 // InputView is a labelled text field with optional prefix, suffix, clear
 // button and error message. TextArea makes a multi-line one.
 type InputView struct {
+	tokenRenderer                  el.InputTokenRenderer
 	onTokenActivate                func(InputToken)
 	document                       *el.InputDocument
 	size                           InputSize
@@ -147,7 +148,7 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 		text.MaxLen(0).Filter("").TransformEdit(v.transformMask)
 	}
 	if v.document != nil {
-		text.Document(v.document).OnTokenActivate(v.onTokenActivate)
+		text.Document(v.document).OnTokenActivate(v.onTokenActivate).TokenRenderer(v.tokenRenderer)
 	}
 	text.OnPaste(v.onPaste).PasteReader(v.pasteReader).OnPasteError(v.onPasteError)
 	if v.password {

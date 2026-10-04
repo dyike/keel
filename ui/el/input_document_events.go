@@ -21,7 +21,7 @@ func documentSyncEditor(st *elemState, d *InputDocument) {
 	if !d.session.Composing() {
 		st.inputComposition = key.Range{Start: -1, End: -1}
 	}
-	p := d.Content().Presentation()
+	p := d.presentation()
 	if st.editor.Text() != p.Text {
 		st.editor.SetText(p.Text)
 	}
@@ -36,16 +36,14 @@ func documentSyncEditor(st *elemState, d *InputDocument) {
 }
 func documentReadSelection(st *elemState, d *InputDocument) {
 	a, b := st.editor.Selection()
-	r, err := inputcontent.ByteRange(d.Content().Presentation().Text, InputRange{Start: a, End: b})
+	r, err := inputcontent.ByteRange(d.presentation().Text, InputRange{Start: a, End: b})
 	if err == nil {
-		_ = d.session.SelectDisplay(r)
+		_ = documentSelectLayout(d, r)
 	}
 	documentSyncEditor(st, d)
 }
 func documentReplaceSelection(d *InputDocument, text string) error {
-	p := d.Content().Presentation()
-	r := d.Selection()
-	return d.session.ReplaceDisplay(InputRange{Start: p.DisplayOffset(r.Start, 0), End: p.DisplayOffset(r.End, 0)}, text)
+	return d.session.ReplaceSource(d.Selection(), text)
 }
 
 func (e *engine) inputDocumentAction(n *Node, st *elemState, action InputAction) {
@@ -209,13 +207,13 @@ func (e *engine) inputDocumentEvents(n *Node, st *elemState) {
 						ed.MoveCaret(delta, endDelta)
 					}
 					a, b = ed.Selection()
-					p := d.Content().Presentation()
+					p := d.presentation()
 					if r, err := inputcontent.ByteRange(p.Text, InputRange{Start: a, End: b}); err == nil {
 						if a == b {
 							at := p.SourceOffset(r.Start, delta)
 							_ = d.session.SelectSource(InputRange{Start: at, End: at})
 						} else {
-							_ = d.session.SelectDisplay(r)
+							_ = documentSelectLayout(d, r)
 						}
 						documentSyncEditor(st, d)
 					}
@@ -278,9 +276,9 @@ func (e *engine) inputDocumentIME(n *Node, st *elemState, g layout.Context) {
 	if !g.Enabled() || !g.Focused(&st.editor) {
 		return
 	}
-	text := n.input.document.Content().Presentation().Text
-	bounds := editorstyle.Composition(g, &st.editor, st.inputComposition, *n.textStyle.color)
-	start, end := st.editor.Selection()
+	text, start, end := documentPlatformSelection(n.input.document)
+	ca, cb := documentCompositionLayout(n.input.document, st.inputComposition.Start, st.inputComposition.End)
+	bounds := editorstyle.Composition(g, &st.editor, key.Range{Start: ca, End: cb}, *n.textStyle.color)
 	g.Execute(key.SelectionCmd{Tag: &st.editor, Range: key.Range{Start: start, End: end}, Caret: st.caret.InputMethodCaret(&st.editor), CompositionBounds: bounds})
 	g.Execute(key.SnippetCmd{Tag: &st.editor, Snippet: key.Snippet{Range: key.Range{Start: 0, End: utf8.RuneCountInString(text)}, Text: text}})
 }

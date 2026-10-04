@@ -51,7 +51,7 @@ func TestInlineFontUsesEditorWrappingAndSelectionGeometry(t *testing.T) {
 		}
 		shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(append([]font.FontFace{face}, gofont.Collection()...)))
 		var ed widget.Editor
-		ed.SetText("AA \ue000 Z")
+		ed.SetText("AA \ue000")
 		var ops op.Ops
 		gtx := layout.Context{Ops: &ops, Metric: unit.Metric{PxPerDp: float32(scale), PxPerSp: float32(scale)}, Constraints: layout.Constraints{Max: image.Pt(80*scale, 300*scale)}}
 		rec := op.Record(&ops)
