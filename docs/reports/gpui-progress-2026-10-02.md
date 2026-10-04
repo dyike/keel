@@ -261,7 +261,9 @@
 
 - [x] 第一百五十四批（`c177f1a`）：新增 ui/plot 公共比例尺与绘图基础件，集中补齐 Plot 的用途缺口。提供 Linear/Band/Point/Ordinal、正负分离 Stack、保留源索引的 Pie，以及裁剪画布上的 Bar/Line/Area/Arc/Axis/Dot/CrossLine；支持反向比例尺、条带间距、线曲线/点和四方向轴。示例组合正负堆叠柱、趋势线、参考线与环图。测试覆盖极值/常量/反向映射、分类副本与未知项、堆叠溢出、饼图角度守恒、浅深底色像素、原点平移/裁剪、环孔及非法几何。新增模块依赖规则和架构说明；全仓构建、UI/native vet、全量测试通过，真机未验收。
 
-- [x] 第一百五十五批：集中补齐 Select 的 RenderItem/RenderValue、Empty、TitlePrefix、Clearable、MenuWidth/MenuMaxHeight，并补 Match、Size、RowHeight、Appearance。清空与打开菜单分开命中，清空先更新状态再发回调，关闭后焦点回字段；自定义匹配可使缓存失效，选项/已选展示使用副本，保留虚拟化。测试覆盖单/多选清空、禁用继承、焦点恢复、万条自定义行、搜索/空内容、显示副本和浅深色菜单尺寸/Agent；全仓构建、UI/native vet、全量测试通过，真机未验收。
+- [x] 第一百五十五批（`1636984`）：集中补齐 Select 的 RenderItem/RenderValue、Empty、TitlePrefix、Clearable、MenuWidth/MenuMaxHeight，并补 Match、Size、RowHeight、Appearance。清空与打开菜单分开命中，清空先更新状态再发回调，关闭后焦点回字段；自定义匹配可使缓存失效，选项/已选展示使用副本，保留虚拟化。测试覆盖单/多选清空、禁用继承、焦点恢复、万条自定义行、搜索/空内容、显示副本和浅深色菜单尺寸/Agent；全仓构建、UI/native vet、全量测试通过，真机未验收。
+
+- [x] 第一百五十六批：集中补齐 Image 的 Source、Cache、Loading/ImageError、LoadingContent/Fallback 和统一 Retry。新增可指定预算的线程安全 ImageCache，按源合并并发请求，取消最后等待者时中断，失败不缓存；Delete/Clear 使旧任务失去回填资格。SetImage/SetError/换源通过版本校验拒绝旧完成，自动加载继续复用 core.DecodeImage。测试覆盖加载/失败槽、取消、重试、显式图片/错误优先、并发读者隔离、LRU 与缓存代际，窗口 Agent 验证失败、禁用重试及成功状态。全仓构建、UI/native vet、全量测试通过，缓存并发另通过 race 检查；真机未验收。
 
 ## 当前实施清单
 
@@ -314,7 +316,7 @@
 | [GroupBox](https://gpui-kit.com/component/group-box/) | 主体已有 | [标题、描述、内容分组、四种外观、框外 footer 与标题/正文样式](../../ui/kit/group_box.go) | 第十六批已关闭登记缺口；默认保留 Keel 原有背景加边框，GroupBoxNormal 对应无装饰。样式回调作用于每帧新建元素，不应保留元素引用。 |
 | [HoverCard](https://gpui-kit.com/component/hover-card/) | 主体已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | 第三批已补齐实例开关延时、方向/对齐及间距配置；默认仍为 700/300ms，键盘焦点立即打开，边缘避让保留。此表登记缺口已关闭。 |
 | [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。Keel 缺直接 SVG 加载和组件级旋转。 |
-| [Image](https://gpui-kit.com/component/image/) | 主体已有 | [已解码图片、适配/裁剪/拉伸、圆角、预览、失败重试](../../ui/kit/image.go) | 已解码图片的绘制/适配/预览/重试已有；缺自定义 loading/fallback 槽和组件级 URL 加载/缓存。第七批复核更正：之前把应用/Markdown 的加载缓存算到了 kit.Image。 |
+| [Image](https://gpui-kit.com/component/image/) | 主体已有 | [适配/裁剪/预览、异步源加载、内存缓存、自定义加载/失败内容及重试](../../ui/kit/image.go) | 第一百五十六批补齐登记的 Source/Cache 与 LoadingContent/Fallback。HTTP(S)、文件/data URL 使用有大小限制的栅格解码；默认 15 秒超时、共享 64MiB 估算 LRU、同源请求合并，支持取消及过期结果拒绝。没有 SVG、GIF 动画、HTTP 缓存头/ETag、磁盘缓存或自动过期；卸载取消由应用调用 Source(空字符串)。窗口 Agent 与缓存行为已验，真机未验收。 |
 | [Input Group](https://gpui-kit.com/component/input-group/) | 主体已有 | [四方向/多附加内容、TextArea 组合、统一边框、标签聚焦与按钮操作](../../ui/kit/input_group.go) | 第九批已补齐 block addon 和独立附加内容配置；按钮直接使用 kit.Button。Textarea 最大行数已在第一百一十三批补齐；Token 仍见 Textarea 条目，不计作已完成。 |
 | [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 缺格式化 mask、原子 inline token、可拦截富剪贴板的 on_paste 和专用上下文菜单配置；Filter 是字符白名单，不能当作 mask。 |
 | [Kbd](https://gpui-kit.com/component/kbd/) | 主体已有 | [平台键帽、Plain、动作键位、独立字号与自定义样式](../../ui/kit/kbd.go) | 第二十五批已补齐登记的尺寸缺口及样式回调；Size 单位 sp，默认仍继承。KbdFor 读取动作首个绑定，不提供上游按焦点/上下文查询绑定的独立入口。 |

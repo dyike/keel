@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
 	"image"
 	"image/color"
+	"image/png"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
@@ -24,10 +27,14 @@ func init() {
 		loading := kit.Image(nil, "加载失败的图片").Width(240)
 		loading.SetError("网络中断")
 		loading.OnRetry(func() { loading.SetImage(img) })
+		var encoded bytes.Buffer
+		_ = png.Encode(&encoded, img)
+		source := "data:image/png;base64," + base64.StdEncoding.EncodeToString(encoded.Bytes())
+		sourced := kit.Image(nil, "异步加载示例").Size(240, 72).LoadingContent(kit.Label("正在加载…")).Fallback(kit.Label("无法读取图片")).Source(source)
 		crop := kit.Image(img, "居中裁剪").Size(120, 100).Fit(kit.ImageCover).Rounded(16).Preview()
 		contain := kit.Image(img, "完整显示").Size(120, 100).Fit(kit.ImageContain).Rounded(16)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Items(el.Start).Child(photo.Render(cx), el.Text(msg).TextColor(theme.Muted), el.Div().Row().Gap(12).Child(crop.Render(cx), contain.Render(cx)), loading.Render(cx))
+			return el.Div().P(24).Gap(12).Items(el.Start).Child(photo.Render(cx), el.Text(msg).TextColor(theme.Muted), el.Div().Row().Gap(12).Child(crop.Render(cx), contain.Render(cx)), loading.Render(cx), sourced.Render(cx), kit.Button("重新加载源图片", sourced.Retry).Render(cx))
 		}))
 	})
 }

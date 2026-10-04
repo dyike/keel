@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"context"
 	"image"
 
 	giolayout "gioui.org/layout"
@@ -24,32 +25,43 @@ const (
 )
 
 // ImageView shows decoded pixels scaled to fit its width, keeping their aspect
-// ratio. Without pixels it shows a placeholder with the alt text, so load
-// images elsewhere and SetImage through core.Update when they arrive.
+// ratio. Source loads pixels asynchronously; SetImage accepts decoded pixels.
 type ImageView struct {
-	alt      string
-	img      image.Image
-	op       paint.ImageOp
-	width    float32
-	height   float32
-	fit      ImageFit
-	err      string
-	retry    func()
-	preview  bool
-	dialog   *DialogView
-	rounded  float32
-	onClick  func()
-	disabled bool
+	source                   string
+	cache                    *ImageCache
+	cancel                   context.CancelFunc
+	revision                 uint64
+	loading                  bool
+	imageErr                 error
+	loadingContent, fallback el.View
+	alt                      string
+	img                      image.Image
+	op                       paint.ImageOp
+	width                    float32
+	height                   float32
+	fit                      ImageFit
+	err                      string
+	retry                    func()
+	preview                  bool
+	dialog                   *DialogView
+	rounded                  float32
+	onClick                  func()
+	disabled                 bool
 }
 
 func Image(img image.Image, alt string) *ImageView {
-	v := &ImageView{alt: alt}
+	v := &ImageView{alt: alt, cache: defaultImageCache}
 	v.SetImage(img)
 	return v
 }
 
 // SetImage replaces the pixels; nil shows the placeholder.
 func (v *ImageView) SetImage(img image.Image) {
+	v.stopLoad()
+	v.source = ""
+	v.setPixels(img)
+}
+func (v *ImageView) setPixels(img image.Image) {
 	v.img = img
 	v.err = ""
 	if img != nil && !img.Bounds().Empty() {
@@ -129,21 +141,23 @@ func (v *ImageView) Render(cx *el.Context) el.Element {
 		if v.height > 0 {
 			h = v.height
 		}
-		box.W(el.Dp(w)).MaxW(el.Full).MinH(el.Dp(h)).Bg(theme.Subtle).Center().
-			Child(el.Text(v.alt).TextColor(theme.Muted).MaxLines(1))
+		box.W(el.Dp(w)).MaxW(el.Full).MinH(el.Dp(h)).Bg(theme.Subtle).Center()
 		if v.err != "" {
 			state = "error"
-			box.Gap(theme.SpaceSm).Child(el.Text(v.err).TextSize(theme.TextSm).TextColor(theme.DangerText))
-			if v.retry != nil {
-				box.Child(Button(locale.Current().Retry, func() {
-					if v.err == "" || v.disabled {
-						return
-					}
-					v.err = ""
-					v.retry()
-				}).Name(locale.Current().Name(locale.Current().Retry, v.alt)).Variant(ButtonGhost).Render(cx))
+			if v.fallback != nil {
+				box.Child(v.fallback.Render(cx))
+			} else {
+				box.Gap(theme.SpaceSm).Child(el.Text(v.alt).TextColor(theme.Muted).MaxLines(1), el.Text(v.err).TextSize(theme.TextSm).TextColor(theme.DangerText))
 			}
+			if v.retry != nil || v.source != "" {
+				box.Child(Button(locale.Current().Retry, v.Retry).Name(locale.Current().Name(locale.Current().Retry, v.alt)).Variant(ButtonGhost).Render(cx))
+			}
+		} else if v.loadingContent != nil {
+			box.Child(v.loadingContent.Render(cx))
+		} else {
+			box.Child(el.Text(v.alt).TextColor(theme.Muted).MaxLines(1))
 		}
+
 	} else {
 		b := v.img.Bounds()
 		w := float32(b.Dx())
@@ -170,6 +184,11 @@ func (v *ImageView) Render(cx *el.Context) el.Element {
 		})).WFull())
 	}
 	box.Value(state)
+	if v.img == nil {
+		// State description and interactive fallback children are siblings: an
+		// image is a semantic leaf and must not absorb the retry button.
+		box.Role("group").Name("").Value("").Child(el.Div().Absolute().Left(0).Top(0).WFull().HFull().Role("image").Name(v.alt).Value(state))
+	}
 	if v.img != nil && (v.onClick != nil || v.preview) && !v.disabled {
 		box.CursorPointer().Focusable(true).OnClick(func() {
 			if v.preview {

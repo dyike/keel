@@ -1,6 +1,6 @@
 # Image
 
-显示已解码的图片，按宽度缩放并保持宽高比。
+显示已解码图片，或通过 Source 异步加载图片，按宽度缩放并保持宽高比。
 
 ```go
 logo := kit.Image(img, "公司标志").Width(160).Rounded(8)
@@ -8,7 +8,7 @@ photo := kit.Image(nil, "头像") // 先显示占位；加载完后在 core.Upda
 ```
 
 - 默认撑满父容器的宽度，但不超过图片自身的像素宽度；`Width(dp)` 设置最大宽度。
-- 没有图片时显示带替代文字的占位块。kit 不负责加载图片：在别处解码好，再通过 `SetImage` 交给它。
+- 没有图片时显示带替代文字的占位块。可用 Source 加载，也可在别处解码后调用 SetImage。
 - `OnClick` 让图片可以点击和聚焦，`SetDisabled` 禁用点击。
 
 Agent：角色 `image`，名字是替代文字，`value` 为 `loaded` 或 `loading`。
@@ -19,4 +19,23 @@ Agent：角色 `image`，名字是替代文字，`value` 为 `loaded` 或 `loadi
 
 `Preview()` 让已加载图片通过点击或键盘打开模态预览；Esc、关闭按钮和背景可关闭，焦点返回原图。移除图片或禁用所属区域会关闭预览。`OnClick` 可与预览共用。
 
-`SetError(reason)` 清除旧图并显示错误；`OnRetry(fn)` 添加重试按钮，点击先清除错误并回到加载状态，再调用回调。加载成功调用 `SetImage`。后台加载和 URL 缓存由应用管理，使用 `core.Update` 提交结果；组件不跨实例缓存图片。每次 `SetImage` 替换绘制缓存，nil/空图和错误状态立即释放旧缓存引用。传入后不要修改图片像素；需要变化时重新调用 `SetImage`。Agent 的图片状态增加 `error`，重试按钮名称包含替代文字。
+`SetError(reason)` 清除旧图并显示错误；`OnRetry(fn)` 添加重试按钮，点击先清除错误并回到加载状态，再调用回调。加载成功调用 `SetImage`。手动后台加载使用 `core.Update` 提交结果；也可使用下方内置 Source/Cache。每次 `SetImage` 替换绘制缓存，nil/空图和错误状态立即释放旧缓存引用。传入后不要修改图片像素；需要变化时重新调用 `SetImage`。Agent 的图片状态增加 `error`，重试按钮名称包含替代文字。
+
+
+## 加载、缓存和状态内容
+
+```go
+cache := kit.NewImageCache(32 << 20)
+photo := kit.Image(nil, "商品照片").Size(320, 180).
+    LoadingContent(kit.Spinner().Label("正在加载图片")).
+    Fallback(kit.Label("图片暂时不可用")).
+    Cache(cache).Source("https://example.com/photo.webp")
+```
+
+Source 支持 HTTP(S)、本地路径/file URL、data URL，复用 core.DecodeImage 的 PNG/JPEG/GIF 首帧/WebP 解码与大小限制。请求在后台执行，默认 15 秒超时；结果通过 UI 队列提交。重复同一地址不重载；Source("") 取消并清空。SetImage/SetError 也会取消并移除当前 Source，旧结果不能覆盖它们。组件卸载不会自动取消，应用可在不再使用时调用 Source("")。
+
+Loading 返回请求状态，ImageError 返回加载错误。LoadingContent/Fallback 接受自定义 View，nil 恢复默认替代文字/错误；固定 Size 可预留加载区域，自定义内容应适配该区域。自定义失败内容后仍保留内置重试按钮。Source 模式下 Retry 清除当前源缓存并重新加载；没有 Source 时使用原 OnRetry 回调。自身或父级禁用阻止按钮，程序 Source/SetImage 仍可更新。
+
+默认共享 64MiB 估算容量的 ImageCache；Cache(nil) 禁用缓存，自定义缓存可限定作用域。缓存按源字符串区分、LRU 淘汰，源字符串计入预算，每像素按 8 字节保守计费；超过预算的图仍可显示但不保留。并发同源请求合并，取消一个等待者不影响其他人；所有等待者取消后中断请求。失败不缓存。Delete(source)/Clear 清除结果并阻止旧请求重新填入，现有等待者仍收到自己的结果。
+
+这是解码图片的内存缓存，没有磁盘持久化、HTTP 缓存头/ETag 校验或自动过期；源地址内容变化时调用 Retry/Delete。缓存图片按只读共享，不应修改像素。网络请求受浏览器 CORS、系统网络和文件权限约束；不支持 SVG 或 GIF 动画。
