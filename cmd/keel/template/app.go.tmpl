@@ -1,0 +1,34 @@
+package main
+
+import (
+	"strconv"
+
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/theme"
+)
+
+// app is the whole interface: Render builds the view tree each frame, and
+// callbacks change fields that the next frame shows.
+type app struct {
+	name  *kit.InputView
+	count int
+}
+
+func newApp() *app {
+	return &app{name: kit.Input("名字").Placeholder("输入你的名字")}
+}
+
+func (a *app) Render(cx *el.Context) el.Element {
+	greeting := "你好！"
+	if n := a.name.Value(); n != "" {
+		greeting = "你好，" + n + "！"
+	}
+	return el.Div().P(32).Gap(16).Items(el.Start).Child(
+		el.Text({{printf "%q" .Name}}).TextSize(24).Bold(),
+		el.Text("编辑 app.go，保存后重新运行 keel run 查看效果。").TextColor(theme.Muted),
+		a.name.Render(cx),
+		el.Text(greeting),
+		kit.Button("点了 "+strconv.Itoa(a.count)+" 次", func() { a.count++ }).Render(cx),
+	)
+}

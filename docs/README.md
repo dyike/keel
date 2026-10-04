@@ -7,6 +7,7 @@ Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，原
 | 你要做的事 | 看这篇 |
 | --- | --- |
 | 第一次跑起来，写出第一个窗口 | [快速开始](getting-started.md) |
+| 新建项目，带图标打包 .app / .exe / Linux 安装包 | [脚手架与打包](cli.md) |
 | 弄清模块怎么分、谁依赖谁、线程规则 | [架构](architecture.md)，以及每个模块目录下的 README |
 | 开窗口、窗口快捷键、离屏截图 | [窗口与应用](app.md) |
 | 用 GPUI 风格写界面：视图 + 链式样式 + flexbox | [元素与视图](el.md) |

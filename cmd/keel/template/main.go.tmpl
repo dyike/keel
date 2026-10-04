@@ -1,0 +1,16 @@
+package main
+
+import (
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/window"
+)
+
+func main() {
+	window.Open(window.Options{
+		Title:   {{printf "%q" .Name}},
+		Width:   720,
+		Height:  480,
+		Content: el.Root(newApp()),
+	})
+	window.Main()
+}

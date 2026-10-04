@@ -1,4 +1,4 @@
-package main
+package svgicon
 
 import (
 	"bytes"
@@ -10,11 +10,11 @@ import (
 // The icon renders from its SVG source: transparent rounded corners, the
 // blue gradient behind, white sails, hull and keel.
 func TestRenderIcon(t *testing.T) {
-	svg, err := os.ReadFile("../../" + iconSource)
+	svg, err := os.ReadFile("../../docs/images/keel.svg")
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := renderIcon(svg, 512)
+	data, err := Render(svg, 512)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestRenderIcon(t *testing.T) {
 	if r, _, b, _ := at(26, 30); r > 220 || b < 240 {
 		t.Errorf("jib is not light blue: r=%d b=%d", r, b)
 	}
-	if _, err := renderIcon(svg, 16); err != nil {
+	if _, err := Render(svg, 16); err != nil {
 		t.Fatal(err)
 	}
 }

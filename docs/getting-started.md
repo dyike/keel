@@ -4,7 +4,18 @@
 
 - Go 1.26 或更新（`go.mod` 声明 `go 1.26.1`）。
 - macOS：安装 Xcode Command Line Tools（`xcode-select --install`）。Gio 和 `native/` 都走 cgo。原生能力要求 macOS 14+。
-- Windows、Linux：界面部分按 Gio 的要求准备环境（Linux 需要 Wayland 或 X11 的开发头文件）。`native/` 在这两个平台上只返回 `native.ErrUnsupported`。
+- Windows、Linux：界面部分按 Gio 的要求准备环境（Linux 需要 Wayland 或 X11 的开发头文件）。`native/` 的能力和平台差异见[原生能力](native.md)。
+
+## 用脚手架新建项目
+
+```sh
+go install github.com/dyike/keel/cmd/keel@latest
+keel new my-app
+cd my-app
+keel run
+```
+
+生成的项目带窗口、示例界面、应用图标和打包配置，`keel build` 直接打出带图标的 `.app` / `.exe`，详见[脚手架与打包](cli.md)。
 
 ## 跑示例
 

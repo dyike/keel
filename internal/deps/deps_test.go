@@ -36,6 +36,7 @@ var allowed = map[string][]string{
 	"native/clipboard":         {"native", "native/internal/sys", "native/internal/wlclip"},
 	// Talks to apps only through the automation protocol, never Keel's code.
 	"cmd/keel-mcp": {},
+	"cmd/keel":     {"internal/svgicon"},
 }
 
 func TestModuleBoundaries(t *testing.T) {

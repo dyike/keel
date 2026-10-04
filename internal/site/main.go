@@ -27,6 +27,8 @@ import (
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/dyike/keel/internal/svgicon"
 )
 
 //go:embed assets
@@ -352,7 +354,7 @@ func (s *site) writeIcons() error {
 		}
 	}
 	for name, size := range map[string]int{"favicon-32.png": 32, "apple-touch-icon.png": 180, "icon-512.png": 512} {
-		data, err := renderIcon(svg, size)
+		data, err := svgicon.Render(svg, size)
 		if err != nil {
 			return err
 		}

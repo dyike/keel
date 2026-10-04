@@ -1,4 +1,5 @@
-package main
+// Package svgicon rasterizes the small SVG subset app icons use into PNG.
+package svgicon
 
 import (
 	"bytes"
@@ -15,9 +16,10 @@ import (
 	"golang.org/x/image/vector"
 )
 
-// The Keel icon has one source, docs/images/keel.svg. renderIcon rasterizes
-// it for the PNG sizes browsers and app bundles want, so no PNG is checked
-// in. It understands what that file uses: a rounded rect filled with a
+// Icons have one SVG source each (the Keel icon is docs/images/keel.svg;
+// cmd/keel's app placeholder is its own), and Render rasterizes them for the
+// PNG sizes browsers and app bundles want, so no PNG is checked in. It
+// understands what those files use: a rounded rect filled with a
 // linear gradient, and paths of M, L, H, V, C and Z commands, absolute or
 // relative, filled with solid colors.
 
@@ -62,8 +64,8 @@ func (r *svgRect) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return d.Skip()
 }
 
-// renderIcon draws the SVG at size×size pixels and encodes it as PNG.
-func renderIcon(svg []byte, size int) ([]byte, error) {
+// Render rasterizes svg to a size×size PNG.
+func Render(svg []byte, size int) ([]byte, error) {
 	var doc svgDoc
 	if err := xml.Unmarshal(svg, &doc); err != nil {
 		return nil, err
