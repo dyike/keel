@@ -74,6 +74,10 @@ func (s *Session) ReplaceDisplay(r Range, text string) error {
 	return s.replace(source, text, nil)
 }
 
+// ReplaceSource handles an edit already mapped out of an editor-specific
+// presentation. It keeps the same composition and undo transaction semantics.
+func (s *Session) ReplaceSource(r Range, text string) error { return s.replace(r, text, nil) }
+
 // ReplaceToken replaces the current source selection with an atomic reference.
 // Applications must not insert references in a platform's active composition.
 func (s *Session) ReplaceToken(token Token) error {

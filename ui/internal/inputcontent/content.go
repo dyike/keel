@@ -201,13 +201,33 @@ type DisplaySpan struct {
 }
 
 func (c Content) Presentation() Presentation {
+	return c.present(func(_ int, token Token) string { return token.Display() })
+}
+
+// LayoutPresentation supplies editor-only replacements for atomic references,
+// for example a single private-use rune shaped as an inline object. It never
+// changes the stored text or token metadata. Map edits with SourceRange before
+// passing them to Session.ReplaceSource; clipboard text stays source-based.
+func LayoutPresentation(c Content, replacements []string) (Presentation, error) {
+	if len(replacements) != len(c.spans) {
+		return Presentation{}, ErrToken
+	}
+	for _, label := range replacements {
+		if label == "" || !singleLine(label) {
+			return Presentation{}, ErrToken
+		}
+	}
+	return c.present(func(i int, _ Token) string { return replacements[i] }), nil
+}
+
+func (c Content) present(label func(int, Token) string) Presentation {
 	var out strings.Builder
 	result := Presentation{}
 	at := 0
-	for _, s := range c.spans {
+	for i, s := range c.spans {
 		out.WriteString(c.text[at:s.Range.Start])
 		start := out.Len()
-		out.WriteString(s.Token.Display())
+		out.WriteString(label(i, s.Token))
 		result.Spans = append(result.Spans, DisplaySpan{s.Range, Range{start, out.Len()}, s.Token})
 		at = s.Range.End
 	}
