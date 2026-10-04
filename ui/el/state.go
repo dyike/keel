@@ -99,6 +99,7 @@ type elemState struct {
 	inputTokenHits        []*inputTokenHit
 	inputDocument         *InputDocument
 	inputDocumentRevision uint64
+	inputComposition      key.Range
 	editor                widget.Editor
 	caret                 editorstyle.Caret
 	edInit                bool

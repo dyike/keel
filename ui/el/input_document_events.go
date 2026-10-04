@@ -13,10 +13,14 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget"
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/internal/editorstyle"
 	"github.com/dyike/keel/ui/internal/inputcontent"
 )
 
 func documentSyncEditor(st *elemState, d *InputDocument) {
+	if !d.session.Composing() {
+		st.inputComposition = key.Range{Start: -1, End: -1}
+	}
 	p := d.Content().Presentation()
 	if st.editor.Text() != p.Text {
 		st.editor.SetText(p.Text)
@@ -79,6 +83,10 @@ func (e *engine) inputDocumentEvents(n *Node, st *elemState) {
 		documentReadSelection(st, d)
 	}
 	ed.Mask, ed.Filter, ed.MaxLen = 0, "", 0
+	if spec.readOnly || !e.gtx.Enabled() {
+		d.session.EndComposition()
+		st.inputComposition = key.Range{Start: -1, End: -1}
+	}
 	before := d.Content()
 	beforeRevision := d.revision
 	filters := []event.Filter{key.FocusFilter{Target: ed}, transfer.TargetFilter{Target: ed, Type: "application/text"}}
@@ -107,6 +115,7 @@ func (e *engine) inputDocumentEvents(n *Node, st *elemState) {
 			}
 		case key.CompositionEvent:
 			if !spec.readOnly {
+				st.inputComposition = key.Range(ev)
 				if ev.Start < 0 {
 					d.session.EndComposition()
 				} else {
@@ -266,10 +275,13 @@ func (e *engine) inputDocumentEvents(n *Node, st *elemState) {
 
 func (e *engine) inputDocumentIME(n *Node, st *elemState, g layout.Context) {
 	inputTokenHitAreas(st, g)
-	if !g.Focused(&st.editor) {
+	if !g.Enabled() || !g.Focused(&st.editor) {
 		return
 	}
 	text := n.input.document.Content().Presentation().Text
+	bounds := editorstyle.Composition(g, &st.editor, st.inputComposition, *n.textStyle.color)
+	start, end := st.editor.Selection()
+	g.Execute(key.SelectionCmd{Tag: &st.editor, Range: key.Range{Start: start, End: end}, Caret: st.caret.InputMethodCaret(&st.editor), CompositionBounds: bounds})
 	g.Execute(key.SnippetCmd{Tag: &st.editor, Snippet: key.Snippet{Range: key.Range{Start: 0, End: utf8.RuneCountInString(text)}, Text: text}})
 }
 
