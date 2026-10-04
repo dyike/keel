@@ -13,11 +13,13 @@ import (
 
 // SidebarItem is one destination in a Sidebar. IDs must be unique.
 type SidebarItem struct {
-	ID, Label string
-	Icon      IconName // optional; IconNone shows no icon
-	Disabled  bool
-	Children  []SidebarItem
-	Badge     int // a count shown at the end; 0 hides it
+	ID, Label   string
+	Icon        IconName // optional; IconNone shows no icon
+	Disabled    bool
+	Children    []SidebarItem
+	Badge       int       // a count shown at the end; 0 hides it
+	Suffix      el.View   // optional independent trailing content, hidden when collapsed
+	ContextMenu *MenuView // optional menu owned by this item; do not share between items
 }
 
 type sidebarSection struct {
@@ -32,6 +34,9 @@ type SidebarView struct {
 	sections       []sidebarSection
 	selected       string
 	collapsed      bool
+	side           el.Side
+	borderWidth    float32
+	collapsible    bool
 	width          float32
 	height         float32
 	disabled       bool
@@ -45,7 +50,7 @@ type SidebarView struct {
 }
 
 func Sidebar() *SidebarView {
-	return &SidebarView{width: 220, tips: map[string]*TooltipView{}, expanded: map[string]bool{}}
+	return &SidebarView{width: 220, side: el.Left, borderWidth: 1, collapsible: true, tips: map[string]*TooltipView{}, expanded: map[string]bool{}}
 }
 
 // Section adds a titled group of items; an empty title adds no heading.
@@ -181,7 +186,16 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 				MinW(el.Dp(24)).H(el.Dp(20)).Center().NoShrink().Rounded(theme.RadiusSm).
 				TextSize(theme.TextXs).TextColor(theme.Muted).Child(el.Text(count)))
 		}
-		return row
+		var content el.Element = row
+		if it.Suffix != nil {
+			row.Grow().W(el.Dp(0))
+			frame := el.Div().Row().Items(el.Center).H(el.Dp(36)).Rounded(theme.RadiusLg).Disabled(disabled)
+			if on {
+				frame.Bg(theme.Subtle)
+			}
+			content = frame.Child(row, el.Div().ID(prefix+"/"+it.ID+"/suffix").NoShrink().MaxW(el.Dp(v.width/2)).Pr(theme.SpaceSm).Child(it.Suffix.Render(cx)))
+		}
+		return v.itemMenu(cx, it, content)
 	}
 	// Collapsed: icon only, the label in a tooltip; a dot stands for the badge.
 	row.Justify(el.Center).Px(0).WFull()
@@ -193,8 +207,12 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 		tip = &TooltipView{}
 		v.tips[it.ID] = tip
 	}
+	tip.Placement(el.Right, el.Center).Offset(4)
+	if v.side == el.Right {
+		tip.Placement(el.Left, el.Center)
+	}
 	tip.text, tip.target = it.Label, el.ViewFunc(func(*el.Context) el.Element { return row })
-	return tip.Render(cx)
+	return v.itemMenu(cx, it, tip.Render(cx))
 }
 
 func (v *SidebarView) Render(cx *el.Context) el.Element {
@@ -227,6 +245,12 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 		v.expandParents(v.revealID)
 	}
 	ids := v.ids()
+	for _, id := range v.allIDs() {
+		it := v.find(id)
+		if it.ContextMenu != nil && (v.disabled || it.Disabled || !slices.Contains(ids, id)) {
+			it.ContextMenu.SetValue(false)
+		}
+	}
 	v.positions = map[string]float32{}
 	y := float32(0)
 	var addItems func([]SidebarItem, int)
@@ -264,12 +288,20 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 	if v.collapsed {
 		name, icon = text.ExpandSidebar, IconChevronRight
 	}
+	if v.side == el.Right {
+		icon = IconChevronRight
+		if v.collapsed {
+			icon = IconChevronLeft
+		}
+	}
 	label := name
 	if v.collapsed {
 		label = ""
 	}
-	nav.Child(el.Div().H(el.Dp(1)).NoShrink().Mx(8).Bg(theme.Border),
-		el.Div().NoShrink().Items(el.Stretch).Child(Button(label, func() { v.collapsed = !v.collapsed; v.revealID = v.selected }).Name(name).Icon(icon).Variant(ButtonGhost).Size(28).Render(cx)))
+	if v.collapsible {
+		nav.Child(el.Div().H(el.Dp(1)).NoShrink().Mx(8).Bg(theme.Border),
+			el.Div().NoShrink().Items(el.Stretch).Child(Button(label, func() { v.collapsed = !v.collapsed; v.revealID = v.selected }).Name(name).Icon(icon).Variant(ButtonGhost).Size(28).Render(cx)))
+	}
 	if v.revealID != "" {
 		target := v.revealID
 		cx.AfterEnabled(base+"/scroll", sidebarRevealKey{v, target}, 0, func() {
@@ -279,5 +311,10 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 			v.revealID = ""
 		})
 	}
-	return el.Div().Row().Items(el.Stretch).Child(nav, el.Div().W(el.Dp(1)).Bg(theme.Border))
+	root := el.Div().Row().Items(el.Stretch)
+	border := el.Div().W(el.Dp(v.borderWidth)).NoShrink().Bg(theme.Border)
+	if v.side == el.Right {
+		return root.Child(border, nav)
+	}
+	return root.Child(nav, border)
 }

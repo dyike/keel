@@ -343,7 +343,7 @@
 | [Settings](https://gpui-kit.com/component/settings/) | 主体已有 | [多页面/多分组、重置、页尾、关键词、富描述、自定义行与禁用](../../ui/kit/settings.go) | 第一百四十一批关闭登记主要缺口。Markdown 通过 DescriptionContent 组合，搜索文本由 Description 提供；默认值由 Reset 回调维护。尺寸使用 RowSpacing 和控件自身配置，未提供 GPUI 四档统一 Size；导航仅到页面，不含分组导航。接口与默认外观不完全相同，真机视觉未验收。 |
 | [Sheet](https://gpui-kit.com/component/sheet/) | 主体已有 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 第五十一批补齐独立 Footer 及 Keyboard/Overlay/OverlayClosable/CloseButton。第五十二批补齐 MarginTop 及动画裁剪。第五十三批补齐 PanelStyle 面板样式。第五十四批补齐四方向拖动调整尺寸及回调；当前登记缺口已关闭。把手默认开启，用户最小尺寸 80dp，最大为可用窗口尺寸，支持键盘和取消恢复；不表示各平台真机验收完成。 |
 | [Shimmer](https://gpui-kit.com/component/shimmer/) | 主体已有 | [可读文字扫光、周期、宽度、反向、单次、重播、减少动画](../../ui/kit/shimmer_text.go) | 第六十五批新增独立 ShimmerText；文字保持字体/字重/行高与截断，单次结束恢复普通文字。默认 2 秒、半宽 0.3、主题 PrimaryText 高光，支持自定义配色。彩色位图字形保留原色，不参与高光着色。 |
-| [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动](../../ui/kit/sidebar.go) | 主体覆盖；缺右侧布局开关、自定义 item suffix/上下文菜单接口。已有 Badge 和固定 Header/Footer。 |
+| [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动、左右展示及条目扩展](../../ui/kit/sidebar.go) | 第一百五十八批补齐 Side、BorderWidth、Collapsible、Suffix/SetSuffix、ContextMenu/SetContextMenu。尾部操作独立，菜单支持子菜单与隐藏/禁用清理；交互、双倍率布局、浅深色像素已验证。登记展示缺口关闭；应用负责父布局位置，Menu 实例不可跨条目共享。 |
 | [Skeleton](https://gpui-kit.com/component/skeleton/) | 主体已有 | [占位形状、尺寸、次级色阶、自定义圆角与加载动画](../../ui/kit/skeleton.go) | 第二十三批已关闭登记缺口；保留 Keel 的 1.5 秒明暗脉冲/可选扫光及减少动画，默认颜色来自 Subtle/SubtleHover，与上游独立 skeleton token、2 秒透明度动画不同。 |
 | [Slider](https://gpui-kit.com/component/slider/) | 主体已有 | [单值/双端范围、横纵向、线性/对数、步长、拖动/键盘与结束回调](../../ui/kit/slider.go) | 第十批已关闭对数刻度和 Release 缺口；无效对数范围回退线性，取消不回滚已有值。轨道/滑块颜色与大小仍使用统一样式，未提供逐项外观配置。 |
 | [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称、自定义图标/颜色/周期](../../ui/kit/spinner.go) | 第十九、二十批已补齐图标、颜色和速度配置；Period 为每周时长，默认一秒匀速。上游描述的默认 0.8 秒及缓动曲线不同。 |
@@ -386,3 +386,11 @@
 - [x] Layout / Skeleton：增加用途说明；Skeleton 增加加载完成对照按钮。
 - [x] 构建、vet、全量测试通过；新增窗口像素回归覆盖内部重复焦点框、选中边线，雷达提示框增加位置断言。
 - [ ] 本轮尚未逐页进行原生窗口人工视觉验收；上述自动渲染检查不等同于整批新增 API 已完成验收。
+
+## 第一百五十八批：Sidebar 展示与条目扩展
+
+- [x] Side、BorderWidth、Collapsible：右侧分隔线、折叠方向和提示方向可配置；应用负责把侧栏放在对应一侧。
+- [x] Suffix / SetSuffix：尾部控件独立响应，保留可访问按钮节点，收起时隐藏；禁用项和禁用祖先阻止操作。
+- [x] ContextMenu / SetContextMenu：右键不改变选中项，菜单命令与子菜单可用，过滤、禁用和替换关闭旧菜单。
+- [x] 示例增加尾部刷新、条目右键菜单和左右切换；新增交互、双倍率布局和浅深色像素回归。
+- [x] 独立提交内容通过构建、vet、全量测试；覆盖表登记的 Sidebar 展示缺口关闭，不代表与上游 API 完全相同。

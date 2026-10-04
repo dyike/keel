@@ -20,6 +20,11 @@ func init() {
 			Section("团队", kit.SidebarItem{ID: "members", Label: "成员", Icon: kit.IconUser},
 				kit.SidebarItem{ID: "saved", Label: "已收藏", Icon: kit.IconStarOutline}).
 			Section("", kit.SidebarItem{ID: "settings", Label: "偏好设置", Icon: kit.IconSettings})
+		status, right := "", false
+		nav.SetSuffix("inbox", kit.Button("刷新", func() { status = "已刷新收件箱" }).Variant(kit.ButtonGhost).Size(24))
+		nav.SetContextMenu("inbox", kit.Menu().
+			Item("标记全部已读", "", func() { nav.SetBadge("inbox", 0); status = "收件箱已全部读完" }).
+			Separator().Item("打开收件箱", "", func() { nav.SetValue("inbox") }))
 		nav.SetValue("inbox")
 		nav.SetExpanded("orders", true)
 		nav.Header(el.ViewFunc(func(cx *el.Context) el.Element {
@@ -60,7 +65,14 @@ func init() {
 			} else {
 				body.Child(kit.Empty("暂无待处理事项").Render(cx))
 			}
-			return el.Div().Row().Items(el.Stretch).Child(nav.Render(cx), body)
+			body.Child(kit.Button("切换侧栏位置", func() { right = !right }).Render(cx), el.Text(status))
+			root := el.Div().Row().Items(el.Stretch)
+			if right {
+				nav.Side(el.Right)
+				return root.Child(body, nav.Render(cx))
+			}
+			nav.Side(el.Left)
+			return root.Child(nav.Render(cx), body)
 		}))
 	})
 }
