@@ -26,7 +26,7 @@ func init() {
 				theme.Apply(theme.Light())
 			}
 		})
-		s := kit.Settings().
+		s := kit.Settings().Size(kit.SettingsSizeSmall).GroupNavigation(true).
 			Page(kit.SettingPage{Title: "通用", Icon: kit.IconSettings, Resettable: true, Groups: []kit.SettingGroup{
 				{Title: "语言", Items: []kit.SettingItem{
 					{Label: "语言 Language", Description: "框架文字随之切换", Keywords: []string{"locale", "language"}, Control: lang, Reset: func() { lang.SetValue("中文"); locale.Apply(locale.Chinese()) }},

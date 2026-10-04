@@ -125,6 +125,32 @@ func (s *Styled[T]) Decorate(fn func(gtx core.C, draw func())) *T {
 	return s.self
 }
 
+// ElementBounds returns target's border box relative to root after layout,
+// before scrolling translations. Hidden and unrelated elements return false.
+// Call from Decorate, using elements from the current tree.
+func ElementBounds(root, target Element) (image.Rectangle, bool) {
+	if root == nil || target == nil {
+		return image.Rectangle{}, false
+	}
+	var walk func(*Node, image.Point) (image.Rectangle, bool)
+	walk = func(n *Node, origin image.Point) (image.Rectangle, bool) {
+		if n.style.hidden {
+			return image.Rectangle{}, false
+		}
+		if n == target.node() {
+			return image.Rectangle{Min: origin, Max: origin.Add(n.size)}, true
+		}
+		for _, child := range n.children {
+			c := child.node()
+			if rect, ok := walk(c, origin.Add(c.pos)); ok {
+				return rect, true
+			}
+		}
+		return image.Rectangle{}, false
+	}
+	return walk(root.node(), image.Point{})
+}
+
 // VisitWidgets visits widgets in tree order with their content bounds relative
 // to root, after layout. It includes widgets outside the viewport, skips hidden
 // elements, and reports layout coordinates before any ScrollY translations.

@@ -61,6 +61,8 @@ type questionControl struct {
 // checks every question, jumps to the first unanswered one, and otherwise
 // calls OnSubmit with all answers by question ID.
 type QuestionnaireView struct {
+	size            QuestionnaireSize
+	layout          func(*el.Context, QuestionnaireContext, QuestionnaireParts) el.Element
 	questions       []Question
 	controls        map[string]*questionControl
 	page            int
@@ -295,6 +297,7 @@ func (v *QuestionnaireView) submit() {
 
 func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
+	metrics := v.sizeMetrics()
 	n := len(v.questions)
 	if n == 0 || v.Progress().Total == 0 {
 		return el.Div().Hidden(true)
@@ -306,39 +309,45 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	state := v.Progress()
 	progress := Progress(text.Progress(state.Current, state.Total))
 	progress.SetValue(float32(state.Current) / float32(state.Total))
-	title := el.Div().Row().Gap(theme.SpaceXs).Child(el.Text(q.Title).TextSize(theme.TextLg).Bold())
+	title := el.Div().Row().Gap(theme.SpaceXs).Child(el.Text(q.Title).TextSize(metrics.title).Bold())
 	if q.Required {
-		title.Child(el.Text("*").TextSize(theme.TextLg).TextColor(theme.DangerText))
+		title.Child(el.Text("*").TextSize(metrics.title).TextColor(theme.DangerText))
 	}
-	card := el.Div().Role("group").Name(q.Title).Gap(theme.SpaceLg).Items(el.Stretch).Child(title)
+	parts := QuestionnaireParts{Progress: progress.Render(cx), Title: title}
+	card := el.Div().Role("group").Name(q.Title).Gap(metrics.gap + 4).Items(el.Stretch).Child(title)
 	if q.Description != "" {
-		card.Child(el.Text(q.Description).TextSize(theme.TextMd).TextColor(theme.Muted))
+		parts.Description = el.Text(q.Description).TextSize(metrics.description).TextColor(theme.Muted)
+		card.Child(parts.Description)
 	}
 	c := v.control(q)
+	v.sizeControls(c, metrics)
 	v.registerNavigation(cx)
 	switch {
 	case c.radio != nil:
-		card.Child(c.radio.Render(cx))
+		parts.Answer = c.radio.Render(cx)
 	case q.Kind == QuestionMultiple:
-		list := el.Div().Gap(theme.SpaceMd).Items(el.Start)
+		list := el.Div().Gap(metrics.gap).Items(el.Start)
 		for _, ch := range c.checks {
 			list.Child(ch.Render(cx))
 		}
-		card.Child(list)
+		parts.Answer = list
 	case c.rating != nil:
-		card.Child(c.rating.Render(cx))
+		parts.Answer = c.rating.Render(cx)
 	default:
-		card.Child(c.input.Render(cx))
+		parts.Answer = c.input.Render(cx)
 	}
+	card.Child(parts.Answer)
 	if c.freeform != nil {
-		card.Child(c.freeform.Render(cx))
+		parts.Freeform = c.freeform.Render(cx)
+		card.Child(parts.Freeform)
 	}
 	message := v.err
 	if v.external[q.ID] != "" {
 		message = v.external[q.ID]
 	}
 	if message != "" {
-		card.Child(el.Text(message).TextSize(theme.TextSm).TextColor(theme.DangerText))
+		parts.Error = el.Text(message).TextSize(metrics.errorText).TextColor(theme.DangerText)
+		card.Child(parts.Error)
 	}
 	if v.focusPending {
 		targets := v.focusTargets(q)
@@ -359,16 +368,31 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 			v.focusPending = false
 		}
 	}
-	prev := Button(text.Previous, v.previous).Variant(ButtonSecondary)
+	prev := Button(text.Previous, v.previous).Size(metrics.button).Variant(ButtonSecondary)
 	prev.SetDisabled(state.Current <= 1)
-	forward := Button(text.Next, v.next)
+	forward := Button(text.Next, v.next).Size(metrics.button)
 	if state.Current == state.Total {
-		forward = Button(text.Submit, v.submit)
+		forward = Button(text.Submit, v.submit).Size(metrics.button)
 	}
-	actions := el.Div().ID(autoID("questionnaire", v) + "/actions").Row().Gap(theme.SpaceMd).Justify(el.End).Child(prev.Render(cx))
+	parts.Previous, parts.Forward = prev.Render(cx), forward.Render(cx)
+	actions := el.Div().ID(autoID("questionnaire", v) + "/actions").Row().Gap(metrics.gap).Justify(el.End).Child(parts.Previous)
 	if !q.Required {
-		actions.Child(Button(text.Skip, v.Skip).Variant(ButtonGhost).Render(cx))
+		parts.Skip = Button(text.Skip, v.Skip).Size(metrics.button).Variant(ButtonGhost).Render(cx)
+		actions.Child(parts.Skip)
 	}
-	actions.Child(forward.Render(cx))
-	return el.Div().ID(autoID("questionnaire", v)).Disabled(v.disabled).Role("form").Name(text.Progress(state.Current, state.Total)).Focusable(true).OnKey(func(e el.KeyEvent) bool { return v.handleKey(cx, e) }).Gap(20).Items(el.Stretch).Child(progress.Render(cx), card, actions)
+	actions.Child(parts.Forward)
+	var body el.Element
+	if v.layout != nil {
+		snapshot := q
+		snapshot.Options = slices.Clone(q.Options)
+		snapshot.DefaultAnswer.Choices = slices.Clone(q.DefaultAnswer.Choices)
+		answer := v.answer(q)
+		answer.Choices = slices.Clone(answer.Choices)
+		body = v.layout(cx, QuestionnaireContext{Size: v.size, Question: snapshot, Answer: answer, Progress: state, Page: v.page, Error: message, Disabled: v.disabled}, parts)
+	}
+	children := []el.Element{parts.Progress, card, actions}
+	if body != nil {
+		children = []el.Element{body}
+	}
+	return el.Div().ID(autoID("questionnaire", v)).Disabled(v.disabled).Role("form").Name(text.Progress(state.Current, state.Total)).Focusable(true).OnKey(func(e el.KeyEvent) bool { return v.handleKey(cx, e) }).Gap(metrics.section).Items(el.Stretch).Children(children)
 }

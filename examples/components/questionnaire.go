@@ -25,9 +25,21 @@ func init() {
 		q.OnSubmit(func(a map[string]kit.Answer) {
 			result = fmt.Sprintf("已提交：%s · %s · %d 星", a["role"].Text, strings.Join(a["tools"].Choices, "/"), a["score"].Rating)
 		})
+		density := kit.QuestionnaireSizeMedium
 		disabled := false
+		custom := true
+		q.Layout(func(cx *el.Context, state kit.QuestionnaireContext, parts kit.QuestionnaireParts) el.Element {
+			if !custom {
+				return nil
+			}
+			return el.Div().Gap(12).Items(el.Stretch).Child(
+				parts.Progress,
+				el.Div().Border(1, theme.Border).Rounded(theme.RadiusLg).P(16).Gap(12).Items(el.Stretch).Child(parts.Title, parts.Description, parts.Answer, parts.Freeform, parts.Error),
+				el.Div().Row().Gap(8).Child(parts.Previous, el.Div().Grow(), parts.Skip, parts.Forward),
+			)
+		})
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(16).W(el.Dp(480)).MaxW(el.Full).Child(kit.Button("启用 / 禁用问卷", func() { disabled = !disabled; q.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), q.Render(cx), el.Text(result).TextColor(theme.Muted))
+			return el.Div().P(24).Gap(16).W(el.Dp(480)).MaxW(el.Full).Child(kit.Button("启用 / 禁用问卷", func() { disabled = !disabled; q.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button("切换默认 / 自定义布局", func() { custom = !custom }).Render(cx), kit.Button("切换问卷尺寸", func() { density = (density + 1) % 4; q.Size(density) }).Render(cx), q.Render(cx), el.Text(result).TextColor(theme.Muted))
 		}))
 	})
 }

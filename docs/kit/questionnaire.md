@@ -54,3 +54,15 @@ Agent：容器角色 `form`，名字是进度文字；当前题目是以题目�
 `SetChoiceDisabled(questionID, option, on)` 动态禁用固定选项，未知题/选项返回 false。禁用项保留内部选择草稿，但退出有效答案、校验快照和快捷键编号；重新启用恢复有效答案，条件变化会清除完成状态。全题必填规则仍生效：若禁用了全部选项且没有可用自由输入，应用应同时禁用该题以避免无法作答。程序 SetValue 可以恢复禁用项的草稿，但 Value/提交只包含可用项。
 
 新增自动测试覆盖默认答案所有权/Reset、禁用项有效答案与快捷键重编号、文本 Cmd/Ctrl+Enter、普通箭头保护、多选焦点移动和关闭导航；未做真机输入法及视觉验收。
+
+## 自定义组合布局
+
+`Layout(func(cx, state, parts) el.Element)` 可重新排列当前题目的组成部分。`QuestionnaireParts` 提供 Progress、Title、Description、Answer、Freeform、Error、Previous、Skip、Forward；不适用的部分为 nil。返回 nil 或 `Layout(nil)` 恢复默认排列。
+
+这些元素使用同一份答案控件与原有校验/跳过/提交命令。外层 form 始终保留禁用继承、键盘导航和焦点管理。每个元素只能放入本帧树中一次，不能跨帧保存；通常应保留 Answer 和导航按钮。省略部件只隐藏对应界面，不会关闭快捷键命令。自定义布局改变控件的树路径时，输入焦点和选区可能重置。
+
+`QuestionnaireContext` 提供当前 Question、Answer、Progress、从零开始的 Page、错误文字及问卷自身 Disabled；题目选项、默认答案与当前答案的切片均为副本。不要在布局回调中修改问卷状态，修改应放在事件回调中。组件库提供默认布局与自定义卡片的切换。自动测试覆盖组合后的必填校验、输入、禁用提交、上下文副本及默认布局恢复；原生输入法未验收。
+
+## 统一尺寸
+
+`Size(QuestionnaireSizeXSmall/Small/Medium/Large)` 调整标题、说明、错误字号、选项标记和文字、评分星形、输入框、部件间距与导航按钮。默认 Medium 沿用原布局；大小切换保留答案和控件实例。自定义 Layout 可从 `QuestionnaireContext.Size` 读取档位，提供的内置部件已应用尺寸，应用新增的容器与控件自行配置。组件库提供循环切换按钮；自动测试覆盖双倍率五种题型、四档导航按钮、答案保留、省略部件及恢复输入。原生视觉未验收。

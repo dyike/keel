@@ -333,14 +333,14 @@
 | [Plot](https://gpui-kit.com/component/plot/) | 主体已有 | [ui/plot 四类比例尺、Stack/Pie 布局、Bar/Line/Area/Arc/Axis/Dot/CrossLine](../../ui/plot) | 第一百五十四批建立公共底层绘图实现；kit.Plot 保留成品交互图用途。采用即时像素画布和预投影几何，不复制上游数据提取器接口；刻度均匀分布，平滑线为逐段 smoothstep，圆弧为采样轮廓。提示与可访问数据描述由应用组合，不自动提供主题悬停动画；现有 kit 图表尚未迁移至公共包。浅深底色像素、裁剪和数值布局验证通过，真机未验收。 |
 | [Popover](https://gpui-kit.com/component/popover/) | 主体已有 | [锚点定位、避让、长内容、外部点击/Esc、焦点恢复](../../ui/kit/popover.go) | 第二十八、二十九批已补齐实例 Offset、默认外观开关及面板样式。第三十至三十二批补齐左/右/中键选择及箭头。箭头用纯色背景，边框/阴影/渐变不延伸到箭头；Keel 在空间不足时翻转，上游保持锚点方向并限制位置，定位策略不同。 |
 | [Progress](https://gpui-kit.com/component/progress/) | 主体已有 | [条形确定/不确定进度](../../ui/kit/progress.go)、[圆形进度与中心内容](../../ui/kit/progress_circle.go) | 第一、二十六、二十七批已补齐圆形进度、条形样式及数值过渡。Keel 数值范围 0–1，条形默认带标签/百分比；图形过渡 200ms，语义立即报告目标值，减少动画立即归位。 |
-| [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 主体已有 | [条件禁用、跳过、混合答案、自定义/外部校验、进度和完成事件](../../ui/kit/questionnaire.go) | 第一百四十六、四十七批补齐状态、字母/数字选项快捷键、方向键/Cmd+Enter 导航、逐选项禁用和 schema 默认答案恢复。仍无 compound parts/统一尺寸接口，快捷键提示由应用呈现，文本输入中普通方向键保留编辑行为。外部错误由应用显式清除，真机视觉/输入法未验收。 |
+| [Questionnaire](https://gpui-kit.com/component/questionnaire/) | 主体已有 | [条件禁用、跳过、混合答案、自定义/外部校验、进度和完成事件](../../ui/kit/questionnaire.go) | 第一百四十六、四十七批补齐状态、字母/数字选项快捷键、方向键/Cmd+Enter 导航、逐选项禁用和 schema 默认答案恢复。第一百六十五批完成 Layout/QuestionnaireParts 组合接口及四档 Size 的交互验证，快捷键提示由应用呈现，文本输入中普通方向键保留编辑行为。外部错误由应用显式清除，真机视觉/输入法未验收。 |
 | [Radio](https://gpui-kit.com/component/radio/) | 主体已有 | [单选组、横纵布局、独立 Item、单项禁用、键盘](../../ui/kit/radio_group.go) | 第三十九批已补齐 Size/TextSize 与按选项配置的富标签 Content，独立 Item 共享配置。第四十批增加 ItemSize，逐项覆盖尺寸/字号，0 继承组配置；尺寸采用连续 dp/sp。第四十一批补齐组级 TabStop/TabIndex 和逐项 ItemTab/ClearItemTab；默认单停靠点，显式逐项配置可覆盖。排序限单 el root，跨原生 Gio/独立 Embed 不支持。 |
 | [Rating](https://gpui-kit.com/component/rating/) | 主体已有 | [评分、已填星减分、尺寸/颜色、半星/小数展示、只读与键盘](../../ui/kit/rating.go) | 第二十四批已关闭登记缺口；按上游源码明确为点已填第 i 星设 i−1 分，并非总分减一。Size 为 dp，默认 22；小数只用于展示，编辑仍选整星。 |
 | [Resizable](https://gpui-kit.com/component/resizable/) | 主体已有 | [双面板](../../ui/kit/resizable.go)、[独立多面板组、尺寸范围、显隐、拖动/键盘和状态查询](../../ui/kit/resizable_group.go) | 第八十八至九十批补齐双面板 Max、Visible、HandleAppearance。第九十一批新增 ResizableGroup，按稳定 ID 配置/重排，支持相邻调整、逐项范围/显隐、尺寸读写和回调，登记的主体缺口已关闭。空间分配从末端吸收余量，最小尺寸不足时按比例压缩；把手动画未对齐上游主题运动 token/透明度渐变，不表示所有 API/视觉一致。 |
 | [Root View](https://gpui-kit.com/component/root/) | 主体已有 | [根布局、统一浮层宿主、窗口快捷键](../../ui/el/root.go) | 架构差异：Keel 已有 root/overlay/focus/shortcut；Dialog/Sheet/Notifier 需应用挂载，GPUI 0.7 根视图自动挂载这些层。 |
 | [Scrollable](https://gpui-kit.com/component/scrollable/) | 主体已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位、尾部跟随及显示策略](../../ui/el/viewport.go) | 第一百六十批补齐 Scrollbars 的 Always/Hover/Scrolling。两轴共用策略，空闲 900ms 隐藏、拖动期间保持，隐藏不保留滚动条命中区。横纵双倍率、拖出视口、点击穿透及窗口像素验证通过。目前不自动读取系统偏好，无渐隐动画。 |
 | [Select](https://gpui-kit.com/component/select/) | 主体已有 | [过滤/自定义匹配、分组、多选、富选项/已选展示、清空和菜单配置](../../ui/kit/select.go) | 第一百五十五批补齐登记的展示和菜单缺口，另补 Size/RowHeight/Appearance。自定义行按统一高度虚拟化，内容限展示；Agent 值保持存储值，不随自定义展示或标题前缀变化。高度预算含搜索/留白/边框，受窗口可用空间约束；配置为 dp 而非上游统一尺寸枚举。浅深色虚拟窗口及 Agent 已验，真机未验收。 |
-| [Settings](https://gpui-kit.com/component/settings/) | 主体已有 | [多页面/多分组、重置、页尾、关键词、富描述、自定义行与禁用](../../ui/kit/settings.go) | 第一百四十一批关闭登记主要缺口。Markdown 通过 DescriptionContent 组合，搜索文本由 Description 提供；默认值由 Reset 回调维护。尺寸使用 RowSpacing 和控件自身配置，未提供 GPUI 四档统一 Size；导航仅到页面，不含分组导航。接口与默认外观不完全相同，真机视觉未验收。 |
+| [Settings](https://gpui-kit.com/component/settings/) | 主体已有 | [多页面/多分组、重置、页尾、关键词、富描述、自定义行与禁用](../../ui/kit/settings.go) | 第一百四十一批关闭登记主要缺口。Markdown 通过 DescriptionContent 组合，搜索文本由 Description 提供；默认值由 Reset 回调维护。第一百六十五批完成四档 Size、GroupNavigation/ShowGroup，验证过滤、窄窗口导航和离屏定位；自定义控件尺寸仍由应用配置。接口与默认外观不完全相同，真机视觉未验收。 |
 | [Sheet](https://gpui-kit.com/component/sheet/) | 主体已有 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 第五十一批补齐独立 Footer 及 Keyboard/Overlay/OverlayClosable/CloseButton。第五十二批补齐 MarginTop 及动画裁剪。第五十三批补齐 PanelStyle 面板样式。第五十四批补齐四方向拖动调整尺寸及回调；当前登记缺口已关闭。把手默认开启，用户最小尺寸 80dp，最大为可用窗口尺寸，支持键盘和取消恢复；不表示各平台真机验收完成。 |
 | [Shimmer](https://gpui-kit.com/component/shimmer/) | 主体已有 | [可读文字扫光、周期、宽度、反向、单次、重播、减少动画](../../ui/kit/shimmer_text.go) | 第六十五批新增独立 ShimmerText；文字保持字体/字重/行高与截断，单次结束恢复普通文字。默认 2 秒、半宽 0.3、主题 PrimaryText 高光，支持自定义配色。彩色位图字形保留原色，不参与高光着色。 |
 | [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动、左右展示及条目扩展](../../ui/kit/sidebar.go) | 第一百五十八批补齐 Side、BorderWidth、Collapsible、Suffix/SetSuffix、ContextMenu/SetContextMenu。尾部操作独立，菜单支持子菜单与隐藏/禁用清理；交互、双倍率布局、浅深色像素已验证。登记展示缺口关闭；应用负责父布局位置，Menu 实例不可跨条目共享。 |
@@ -359,7 +359,7 @@
 | [TimeField](https://gpui-kit.com/component/time-field/) | 主体已有 | [分段、时分秒、12/24 小时、四档尺寸及快速键盘编辑](../../ui/kit/time_field.go) | 第一百六十二批补齐 Size 四档和 SegmentKeys(true)：左右切段、两位有效数字自动跳段、a/p 时段快捷键、删除重置、单段循环。输入、粘贴、回调、禁用、双倍率及虚拟窗口连续输入已验证；默认保留 Enter/移焦提交与进位。尚未重做各平台真机验收。 |
 | [TitleBar](https://gpui-kit.com/component/title-bar/) | 主体已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 自绘标题栏与窗口控制已实现；macOS 窗口初始居中已实测。标题栏全部系统行为及 Windows/Linux 真机验收仍待完成。 |
 | [Toggle](https://gpui-kit.com/component/toggle/) | 主体已有 | [状态按钮、图标、单选/多选组、ghost/outline 和四档尺寸](../../ui/kit/toggle_group.go) | 第八十五批补齐 Toggle 与 ToggleGroup 的 Variant、Size，默认保留原有 Surface 加边框外观。尺寸同步调整高度/字号/图标/留白；样式切换保留焦点与选择。第八十六批补齐 Segmented、Gap/ResetGap，零间距共享接缝、首尾外侧圆角，正间距恢复独立按钮。第八十七批补齐 Item 配置快照，支持组内图标、独立显示文字、禁用及显式外观/尺寸覆盖；登记缺口已关闭。组持有选择与回调，源 Toggle 的值/回调不透传，混合尺寸不自动拉齐；不表示 API 和默认样式完全相同。 |
-| [Toolbar](https://gpui-kit.com/component/toolbar/) | 主体已有 | [左右区域、尺寸、工具分组、溢出与键盘](../../ui/kit/toolbar.go) | 主体覆盖；命令用 ToolbarItem，自定义内容用 Leading/Trailing，缺任意位置插入 compound 自定义组的接口。 |
+| [Toolbar](https://gpui-kit.com/component/toolbar/) | 主体已有 | [左右区域、尺寸、工具分组、溢出与键盘](../../ui/kit/toolbar.go) | 主体覆盖；第一百六十五批完成 ToolbarItem.Content/Width/OverflowContent 任意位置自定义组及溢出浮层，修复嵌套菜单注册顺序并验证交互。子控件保留独立 Tab 停靠点，跨浮层切换的输入选区等框架内部状态不保证保留。 |
 | [Tooltip](https://gpui-kit.com/component/tooltip/) | 主体已有 | [通用提示、键盘焦点、延迟与取消](../../ui/kit/tooltip.go) | 第四批已补齐 Content、Action、Placement/Offset；动作键位自动跟随改绑，富内容不可交互。此表登记缺口已关闭。 |
 | [Tree](https://gpui-kit.com/component/tree/) | 主体已有 | [虚拟化、展开、多选、单项禁用、键盘、动态数据与拖动](../../ui/kit/tree.go) | 第一百三十九批集中补齐 RenderItem/TreeItemContext、行高/缩进、SetChildren/Node/SetNodeLabel、OnExpand 和带 token 的 Lazy 加载/失败/重试，以及不改变选择的 ScrollTo。登记主要缺口关闭。局部更新仍遍历整树验证 ID，采用统一行高和最小露出滚动；拖动自动滚动/展开仍缺，但不当作本页已证实的 GPUI 差距。 |
 | [VirtualList](https://gpui-kit.com/component/virtual-list/) | 主体已有 | [等高及可变高度实现、稳定 key、尺寸缓存、插入保持锚点](../../ui/kit/variable_list.go) | 第一百四十批补齐等尺寸/变尺寸列表的 Horizontal、Width 和 ScrollToEnd，支持横向虚拟化、轴切换、定位及阅读锚点。登记主要缺口关闭。每次沿单轴虚拟化，变尺寸采用可见项实测和离屏估算，滚动使用最小露出；与上游调用方提供全量尺寸及 Top/Center 策略的接口不同。 |
@@ -437,3 +437,10 @@
 - [x] TextArea 的 Rows 随字号缩放，AutoGrow 保持按实际文字计算；InputGroup 继续控制外框。
 - [x] 双倍率四档尺寸、非法配置、AutoGrow 增长/收缩及独立字体缩放验证通过。
 - [x] 独立提交内容通过构建、vet、全量测试；Input 的掩码、菜单和富剪贴板扩展仍分别待验收。
+
+## 第一百六十五批：Settings、Toolbar 与 Questionnaire 组合扩展
+
+- [x] Settings 四档尺寸、分组导航与 ShowGroup：验证 1×/2×、400/800dp 窗口、离屏前后定位、搜索过滤、重名拒绝及页面 Value 保持。
+- [x] Toolbar 自定义组与溢出替代视图：修复浮层先于内部菜单注册，验证嵌套 Select、Esc、禁用、宽度变化及 SetItems 清理。
+- [x] Questionnaire 自定义布局与四档尺寸：验证必填校验、答案副本、禁用提交、五种题型、双倍率、省略部件和恢复输入；已有键盘及状态测试通过。
+- [x] 本批独立提交内容通过全仓构建、UI/native vet、全量测试。原生窗口视觉和输入法未验收；跨浮层移动控件仍不保证保留框架内部选区。

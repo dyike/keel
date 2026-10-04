@@ -15,19 +15,28 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
-// ToolbarItem is one button of a Toolbar, or a separator.
+// ToolbarItem is a command, separator, or custom group.
 type ToolbarItem struct {
-	Label     string
-	Icon      IconName
-	IconOnly  bool // with an Icon, the label becomes the tooltip
-	Action    func()
-	Disabled  bool
-	Separator bool
+	// Content inserts an interactive view at this position. It takes precedence
+	// over Action/Icon, but not Separator. Its children own their Tab stops.
+	Content el.View
+	// Width is the custom group's width in dp; invalid/zero values use 160dp.
+	Width float32
+	// OverflowContent optionally replaces Content in the overflow dialog.
+	OverflowContent el.View
+	Label           string
+	Icon            IconName
+	IconOnly        bool // with an Icon, the label becomes the tooltip
+	Action          func()
+	Disabled        bool
+	Separator       bool
 }
 
 // ToolbarView is a row of commands. Buttons that do not fit move into a 更多
-// menu at the end. It is one Tab stop: ← → Home End move between buttons.
+// menu at the end. Commands share one Tab stop: ← → Home End move between
+// buttons. Custom groups retain their children's independent Tab stops.
 type ToolbarView struct {
+	customOpen        int
 	items             []ToolbarItem
 	active            int
 	widths            []float32 // painted width of each item, dp
@@ -40,7 +49,7 @@ type ToolbarView struct {
 }
 
 func Toolbar(items ...ToolbarItem) *ToolbarView {
-	v := &ToolbarView{items: append([]ToolbarItem(nil), items...), more: Menu(), height: 32, tips: map[int]*TooltipView{}}
+	v := &ToolbarView{customOpen: -1, items: append([]ToolbarItem(nil), items...), more: Menu(), height: 32, tips: map[int]*TooltipView{}}
 	v.widths = make([]float32, len(items))
 	return v
 }
@@ -49,6 +58,7 @@ func Toolbar(items ...ToolbarItem) *ToolbarView {
 func (v *ToolbarView) SetItems(items ...ToolbarItem) {
 	v.items, v.widths, v.active = append([]ToolbarItem(nil), items...), make([]float32, len(items)), 0
 	v.more.SetValue(false)
+	v.customOpen = -1
 	v.avail = 0
 	v.tips = map[int]*TooltipView{}
 }
@@ -81,7 +91,7 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 	n := v.fit()
 	var buttons []int // indexes of visible, focusable items
 	for i := 0; i < n; i++ {
-		if !v.items[i].Separator && !v.items[i].Disabled {
+		if !v.items[i].Separator && v.items[i].Content == nil && !v.items[i].Disabled {
 			buttons = append(buttons, i)
 		}
 	}
@@ -109,6 +119,8 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 		var e *el.DivEl
 		if it.Separator {
 			e = el.Div().W(el.Dp(1)).H(el.Dp(20)).Mx(4).Bg(theme.Border)
+		} else if it.Content != nil {
+			e = el.Div().ID(id + "/custom/" + strconv.Itoa(i)).Role("group").Name(it.Label).Disabled(it.Disabled).W(el.Dp(v.customWidth(it))).Items(el.Stretch).Child(it.Content.Render(cx))
 		} else {
 			e = v.button(cx, id, i, it, buttons, move)
 			if it.Icon != IconNone && it.IconOnly {
@@ -128,10 +140,22 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 	}
 	if n < len(v.items) {
 		v.more.items = v.more.items[:0]
-		for _, it := range v.items[n:] {
+		for offset, it := range v.items[n:] {
+			index := n + offset
 			switch {
 			case it.Separator:
 				v.more.Separator()
+			case it.Content != nil:
+				label := it.Label
+				if label == "" {
+					label = locale.Current().More
+				}
+				v.more.Item(label, "", func() { v.customOpen = index })
+				v.more.items[len(v.more.items)-1].disabled = it.Disabled
+				if cx.FocusWithin(id + "/custom/" + strconv.Itoa(index)) {
+					v.active = -1
+					cx.Focus(id + "/-1")
+				}
 			default:
 				v.more.Item(it.Label, "", it.Action)
 				v.more.items[len(v.more.items)-1].disabled = it.Disabled
@@ -142,7 +166,7 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 		}))
 		row.Child(v.more.Render(cx))
 	}
-	outer := el.Div().Role("toolbar").WFull().Row().Items(el.Center).Disabled(v.disabled)
+	outer := el.Div().ID(id).Role("toolbar").WFull().Row().Items(el.Center).Disabled(v.disabled)
 	if v.leading != nil {
 		outer.Child(el.Div().ID(id + "/leading").NoShrink().Child(v.leading.Render(cx)))
 	}
@@ -160,6 +184,7 @@ func (v *ToolbarView) Render(cx *el.Context) el.Element {
 	if v.trailing != nil {
 		outer.Child(el.Div().ID(id + "/trailing").NoShrink().Child(v.trailing.Render(cx)))
 	}
+	v.renderCustomOverflow(cx, id, n)
 	return outer.Decorate(func(gtx core.C, draw func()) {
 		for i, e := range measured {
 			w, _ := cx.LayoutSize(e)
@@ -251,12 +276,16 @@ func (v *ToolbarView) Size(height float32) *ToolbarView {
 func (v *ToolbarView) SetDisabled(on bool) {
 	v.disabled = on
 	if on {
+		v.customOpen = -1
 		v.more.SetValue(false)
 	}
 }
 func (v *ToolbarView) SetItemDisabled(i int, on bool) {
 	if i >= 0 && i < len(v.items) {
 		v.items[i].Disabled = on
+		if on && v.customOpen == i {
+			v.customOpen = -1
+		}
 	}
 }
 func (v *ToolbarView) Items() []ToolbarItem { return append([]ToolbarItem(nil), v.items...) }
@@ -274,6 +303,9 @@ func (v *ToolbarView) itemWidth(i int) float32 {
 	it := v.items[i]
 	if it.Separator {
 		return 9
+	}
+	if it.Content != nil {
+		return v.customWidth(it)
 	}
 	if it.IconOnly && it.Icon != IconNone {
 		return v.moreWidth()

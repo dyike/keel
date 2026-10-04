@@ -35,3 +35,11 @@ s := kit.Settings().GroupVariant(kit.GroupBoxFill).
 添加页面时会复制组、行、关键词和 Variant 值；视图和回调仍由应用共享。各行身份不随搜索结果的位置变化，控件状态在切页和搜索后保留。
 
 通常直接用 `el.Root(settings)` 填满窗口。运行 `go run ./examples/components -section settings` 查看多组、关键词、Markdown 和重置示例；加 `-theme dark` 检查深色。自动测试覆盖原有 1×/2× 窄布局、键盘和状态保持，以及分组过滤、页尾、数据副本、整页重置、自定义行与禁用；本批未做真机视觉验收。
+
+## 尺寸与分组导航
+
+`Size(SettingsSizeXSmall/Small/Medium/Large)` 统一调整行标签/说明字号、内边距、横向间距和控件列宽，默认 Medium 保持原布局。`RowSpacing` 的非零值覆盖尺寸预设的行内边距；自定义 Content 和控件自身尺寸仍由应用配置。
+
+`GroupNavigation(true)` 将有标题且命中搜索的分组加入导航；窄窗口显示当前页的分组按钮。`ShowGroup(page, groupTitle)` 切换页面并定位分组，可独立于导航开关使用。缺失、重名或被搜索过滤的组返回 false，不清空查询。目标位置由布局计算，支持离屏分组。`Value()` 始终返回页面标题，`SetValue` 取消待处理的分组定位。
+
+自动测试覆盖双倍率宽窄窗口、离屏定位、分组点击、搜索过滤、重名拒绝与尺寸切换保留控件值；组件库默认展示 Small 和分组导航。原生视觉未验收。
