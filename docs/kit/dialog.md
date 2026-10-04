@@ -18,7 +18,7 @@ edit := kit.Dialog("编辑客户").Body(form).Footer(cancelButton, saveButton).W
 edit.SetValue(true)
 ```
 
-- 对话框要放在视图树里渲染：`dlg.Render(cx)` 在原位置不显示任何内容，只是声明浮层。需要 `el.Root`。
+- 两种挂法任选其一：在视图树里渲染 `dlg.Render(cx)`（原位置不显示任何内容，只声明浮层）；或者在回调里调用 `dlg.Show(cx)`，对话框直接挂到窗口根部，不用放进视图树，关闭后自动取下，和 GPUI 的 `window.open_dialog` 一样。同一个实例不要两种都用。需要 `el.Root`。
 - 关闭方式：Esc、点击遮罩、取消按钮。关闭时调用 `OnClose(fn)`；标准消息的"确定"不算关闭，只运行它自己的回调。
 - `ConfirmDanger` 和 `Persistent()` 的对话框点击遮罩不会关闭，防止误触；Esc 等同于"取消"。
 - 自定义对话框的按钮由调用方提供，按钮回调里自己调用 `SetValue(false)` 关闭对话框。

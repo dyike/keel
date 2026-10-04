@@ -12,7 +12,7 @@ details.SetValue(true)
 - 打开时用 `kit.SheetSlide`（200ms）从边缘滑入。开启减少动画时直接出现在最终位置，自动化模式下默认就是这样。
 - 关闭方式和 Dialog 相同：Esc、点击遮罩、标题栏的关闭按钮，关闭时调用 `OnClose(fn)`。
 - 内容区可以滚动。焦点限制在面板内，关闭后焦点回到原来的位置。
-- `Value()` / `SetValue(bool)` 读取或设置是否打开，`SetTitle` 修改标题。需要 `el.Root`。
+- `Value()` / `SetValue(bool)` 读取或设置是否打开，`SetTitle` 修改标题。也可以在回调里调用 `sheet.Show(cx)`，抽屉直接挂到窗口根部，不必放进视图树，关闭后自动取下；同一个实例不要同时 Render。需要 `el.Root`。
 
 Agent：角色是 `dialog`，名字是标题；关闭按钮的名字是"关闭"。
 

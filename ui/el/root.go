@@ -130,6 +130,7 @@ func (cx *Context) Action(name string, fn func()) {
 
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
+	mounts         []mount // views rendered after the root view; see Mount
 	clickModifiers key.Modifiers
 	requestedFocus event.Tag
 	mainTree       *Node
@@ -188,7 +189,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 		r.beginTimers()
 	}
 	cx := Context{root: r}
-	tree := r.view.Render(&cx).node()
+	tree := r.renderTree(&cx)
 	cx.prepareActionBindings(tree)
 	st.assignKeys(tree, 1)
 	r.prepareKeys(tree, nil, false)
@@ -211,7 +212,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 		cx.actions = nil
 		cx.globalActions = nil
 		cx.layers = nil
-		tree = r.view.Render(&cx).node()
+		tree = r.renderTree(&cx)
 		cx.prepareActionBindings(tree)
 	}
 

@@ -253,6 +253,10 @@ Esc 交给最上层**设置了 OnDismiss** 的浮层。没有 OnDismiss 的浮�
 
 `cx.Hovered(id)` 查询最近处理的指针位置是否位于元素内，禁用或被模态层遮挡的元素返回 false。普通带 ID 的元素也可查询，不必添加点击回调。HoverCard 可组合锚点和卡片的 Hovered 结果。
 
+### 挂到窗口根部
+
+`cx.Mount(key, view)` 把一个视图挂到当前 root 上：之后每帧先渲染根视图，再按挂载顺序渲染这些视图，返回的元素放进根元素，不参与它的排版（应返回浮层声明、Absolute 或隐藏元素）。同一个 key 再次挂载会替换原视图，`cx.Unmount(key)` 取下，`cx.Mounted(key)` / `cx.MountedView(key)` 查询。根元素是文字、输入框这类叶子时会自动包一层容器。kit 的 `Dialog.Show`、`Sheet.Show` 和 `kit.WindowNotifier` 就建立在它上面，对应 GPUI 根视图自带的对话框、抽屉和通知层。
+
 完整浮层能力要求 `el.Root`。`el.Embed` 使用嵌入时的最大约束，通过 `op.Defer` 延后绘制，属于尽力支持；其可用空间不一定等于窗口大小。浮层不跨窗口。无输入源的帧统一按只读帧处理，包括测量和父组件禁用。它们复用真实的 store/cache，保留输入内容和滚动位置；不分发事件、不触发关闭回调、不增减浮层生命周期、不推进定时器，也不清理状态或覆盖焦点恢复记录。
 
 验证：`go run ./examples/components -section overlay`，加 `-theme dark` 检查深色；切换浮层、打开模态、编辑输入框，并用 Tab / Shift+Tab / Esc 检查焦点。

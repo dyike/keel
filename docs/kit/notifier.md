@@ -12,6 +12,7 @@ n.Notify(kit.Notice{Title: "保存成功", Body: "订单已更新", Tone: kit.To
 core.Update(func() { n.Notify(kit.Notice{Title: "同步完成"}) })
 ```
 
+- 不想自己挂载时，用窗口自带的通知容器：`kit.WindowNotifier(cx).Notify(kit.Notice{...})`。第一次调用时创建并挂到窗口根部，同一窗口之后返回同一个实例，可以照常设置位置、系统投递等，相当于 GPUI 的 `window.push_notification`。
 - 超时：`Timeout` 为 0 时用 `kit.NotificationTimeout`（5 秒）；为负数时不自动消失。
 - 悬停：指针停在通知上时，这条通知不会消失；移开后继续剩余时间，键盘焦点进入通知或通知被禁用/遮挡时也暂停。
 - 数量：每个位置最多同时显示 `kit.MaxNotifications`（5）条，超出的排队，前面的消失后依次显示。
