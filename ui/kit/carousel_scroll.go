@@ -1,9 +1,11 @@
 package kit
 
 import (
-	"github.com/dyike/keel/ui/el"
 	"math"
 	"time"
+
+	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/el"
 )
 
 type carouselScroll struct {
@@ -11,10 +13,14 @@ type carouselScroll struct {
 	vertical        bool
 	offset, maximum float32
 	sequence        uint64
+	ended           uint64 // core.ScrollGesture.Ended when this scroll began
 }
 
-// Scrollable enables scroll input, on by default. Continuous deltas snap after
-// 140ms without input because Gio does not expose trackpad gesture-end events.
+// Scrollable enables scroll input, on by default. Trackpad scrolling snaps
+// when the fingers lift and ignores the momentum that follows. A mouse wheel
+// steps one item per notch along the carousel's axis. Where the platform
+// reports neither (only macOS does), continuous deltas snap after 140ms
+// without input.
 func (v *CarouselView) Scrollable(on bool) *CarouselView {
 	v.scrollable = on
 	if !on {
@@ -23,8 +29,9 @@ func (v *CarouselView) Scrollable(on bool) *CarouselView {
 	return v
 }
 
-// WheelStep selects one item per scroll event instead of accumulating pixels.
-// Gio cannot distinguish a wheel from a trackpad, so this mode is explicit.
+// WheelStep selects one item per scroll event instead of accumulating pixels,
+// for any device, and lets a horizontal carousel step on vertical scrolling
+// too. Without it, stepping applies only to a detected mouse wheel.
 func (v *CarouselView) WheelStep(on bool) *CarouselView {
 	if v.wheelStep != on {
 		v.scroll.active = false
@@ -76,10 +83,11 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 		if v.vertical || v.wheelStep && math.Abs(float64(e.Y)) > math.Abs(float64(e.X)) {
 			delta = e.Y
 		}
-		if delta == 0 {
-			return
+		gesture := core.CurrentScrollGesture()
+		if delta == 0 || gesture.Momentum {
+			return // inertia after a lift; the lift already chose the item
 		}
-		if v.wheelStep {
+		if v.wheelStep || gesture.Device == core.ScrollDeviceWheel {
 			if delta > 0 {
 				v.Next()
 			} else {
@@ -93,6 +101,7 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 				v.scroll.offset = v.motion.offset
 			}
 			v.motion.running, v.motion.pending = false, false
+			v.scroll.ended = gesture.Ended
 		}
 		v.scroll.active = true
 		v.scroll.vertical = g.vertical
@@ -101,11 +110,20 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 		v.scroll.sequence++
 	})
 	if v.scroll.active {
+		delay := 140 * time.Millisecond
+		if gesture := core.CurrentScrollGesture(); gesture.Device == core.ScrollDeviceTrackpad && gesture.Phases {
+			if gesture.Ended != v.scroll.ended {
+				delay = 0 // the fingers lifted
+			} else if gesture.Active {
+				delay = time.Second // fingers still down: wait for the lift, unless it never comes
+			}
+		}
 		sequence := v.scroll.sequence
 		cx.AfterEnabled(id, struct {
 			ID       string
 			Sequence uint64
-		}{id, sequence}, 140*time.Millisecond, func() {
+			Lifted   bool
+		}{id, sequence, delay == 0}, delay, func() {
 			if !v.scroll.active || v.scroll.sequence != sequence {
 				return
 			}

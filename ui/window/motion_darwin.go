@@ -5,6 +5,7 @@ package window
 /*
 #cgo LDFLAGS: -framework AppKit
 void keel_watch_motion(void);
+void keel_watch_scroll(void);
 */
 import "C"
 
@@ -25,6 +26,7 @@ func watchSystemPreferences() {
 			}
 		}()
 		C.keel_watch_motion()
+		C.keel_watch_scroll()
 	})
 }
 
@@ -41,4 +43,13 @@ func keel_motion_changed(reduce C.int) {
 		}
 		motionUpdates <- reduce != 0
 	}
+}
+
+//export keel_scroll_event
+func keel_scroll_event(precise, active, momentum, ended C.int) {
+	device := core.ScrollDeviceWheel
+	if precise != 0 {
+		device = core.ScrollDeviceTrackpad
+	}
+	core.ReportScrollGesture(device, active != 0, momentum != 0, ended != 0)
 }
