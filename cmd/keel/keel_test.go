@@ -106,7 +106,7 @@ func TestNewAndBuildPlans(t *testing.T) {
 	if p := plan("-target", "linux"); !strings.Contains(p, "-X gioui.org/app.ID=dev.keel.notes") || !strings.Contains(p, "dev.keel.notes.desktop") {
 		t.Fatal("linux plan:\n" + p)
 	}
-	if p := plan("-target", "js"); !strings.Contains(p, "-target js") {
+	if p := plan("-target", "js"); !strings.Contains(p, "-target js -tags osusergo") {
 		t.Fatal("js plan:\n" + p)
 	}
 	out.Reset()

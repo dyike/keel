@@ -16,4 +16,4 @@ clipboard.Read(func(data clipboard.Data, err error) {
 - Linux Wayland：只有键盘焦点所在的客户端能看到剪贴板，所以由应用传入聚焦窗口的连接：`clipboard.UseWaylandDisplay(w.WaylandDisplay())`，焦点换窗口时重新传。没有连接或合成器不支持时退回 X11/XWayland。这一路径链接 libwayland-client，`-tags nowayland` 可去掉。
 - **依赖**：native、native/internal/sys、native/internal/wlclip。应用可把结果适配为 core.ClipboardData，接到 Input/TextArea.PasteReader。
 
-当前已通过编译；原生图片、文件、多项快照与超限路径待统一验证，其他平台的富读取后端待实现。
+macOS 已实际读取图片快照；Windows、Linux 的读取已通过格式和协议测试，尚未在真机上验收。

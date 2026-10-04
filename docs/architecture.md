@@ -10,6 +10,7 @@ github.com/dyike/keel
 │   ├── core/             地基：Widget 接口、回调、线程规则
 │   ├── theme/            颜色、字号、字体
 │   ├── locale/           框架自己显示的文字：确定、复制、关闭……
+│   ├── base/             无样式的组件行为：键盘导航、首字母跳转、多选
 │   ├── el/               GPUI 风格：视图、链式样式元素、flexbox
 │   ├── plot/             公共比例尺、图形布局与即时绘图
 │   ├── kit/              组件：Button、Input、Table、Dialog、Chart …（一个组件一个文件）
@@ -27,8 +28,12 @@ github.com/dyike/keel
 │   ├── internal/wlclip/  Linux Wayland 剪贴板的 cgo 绑定（只有 clipboard 引用）
 │   └── native.go         共用的错误值
 ├── cmd/
+│   ├── keel/             脚手架：新建项目、运行、生成各平台图标并打包
 │   └── keel-mcp/         MCP server：Agent 用它对应用做端到端测试
-├── internal/deps/        模块边界检查
+├── internal/
+│   ├── deps/             模块边界检查
+│   ├── svgicon/          把 SVG 图标画成 PNG（站点和脚手架共用）
+│   └── site/             文档站生成器
 ├── examples/
 └── docs/
 ```
@@ -67,6 +72,8 @@ native:
 `markdown` 用 `el` 排版，图片走 `internal/imageload`（加载、解码限制、占位）。`el` 的输入框用 `internal/editorstyle` 绘制光标和选区；这个内部包只负责 Gio 输入绘制和字形测量，不依赖其他 Keel 模块。
 
 `cmd/keel-mcp` 不引用任何 Keel 包，也不引用 Gio：它只通过 socket 上的 JSON 协议驱动 `ui/window` 的自动化模式，见 [Agent 端到端测试](automation.md#原理)。
+
+`cmd/keel` 也不引用界面包：它只用 `internal/svgicon` 画占位图标，用 `golang.org/x/image` 和 `tc-hib/winres` 生成各平台图标与 Windows 资源，打包时调用 `go`、Gio 的 gogio 和 macOS 的 `codesign`，见 [脚手架与打包](cli.md)。
 
 这些规则由 `internal/deps` 的测试强制执行：它把每个模块允许依赖的包写成一张表，越界或者新增目录没登记，`go test ./...` 就失败。改架构时先改那张表，再改代码。
 

@@ -1,6 +1,6 @@
 # Keel 文档
 
-Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，原生能力（权限、截图、合成输入、全局快捷键）在 macOS 上通过 cgo 调用系统 API，在 Windows 上直接调用 Win32，在 Linux 上走 X11 协议。应用代码里没有 HTML、CSS、JavaScript，也没有 WebView。
+Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，Gio 没有的原生能力（权限、截图、合成输入、全局快捷键、系统通知、富剪贴板）在 macOS 上通过 cgo 调用系统 API，在 Windows 上直接调用 Win32，在 Linux 上走 X11、Wayland 和 D-Bus。应用代码里没有 HTML、CSS、JavaScript，也没有 WebView。`keel` 命令行工具负责新建项目和按平台打包。
 
 ## 按你要做的事找文档
 

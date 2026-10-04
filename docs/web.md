@@ -4,10 +4,10 @@
 
 ## 构建
 
-用 Gio 的 `gogio` 工具打包，它会生成 `index.html`、`wasm.js` 和 `main.wasm`：
+用脚手架建的项目直接 `keel build -target js`，输出到 `dist/web/`，下面两点它已经处理了标签那一条。手动打包用 Gio 的 `gogio` 工具，它会生成 `index.html`、`wasm.js` 和 `main.wasm`：
 
 ```sh
-go run gioui.org/cmd/gogio@latest -target js -tags osusergo -o web ./examples/hello
+go run gioui.org/cmd/gogio@v0.10.0 -target js -tags osusergo -o web ./examples/hello
 cp /path/to/NotoSansSC-Regular.ttf web/font.ttf
 python3 -m http.server --directory web
 ```
@@ -19,7 +19,7 @@ python3 -m http.server --directory web
 
 ## 和桌面版的差别
 
-- 没有 `native/*`：权限、截屏、全局快捷键、合成输入都不可用。
+- 没有 `native/*`：权限、截屏、全局快捷键、合成输入、系统通知、富剪贴板都不可用。
 - 只有一个窗口，`window.Open` 多次打开时都画在同一个页面里。
 - 自动化模式（`KEEL_AUTOMATION`）和 keel-mcp 只在桌面版可用。
 

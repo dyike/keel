@@ -57,7 +57,9 @@ func (c *cli) build(args []string) error {
 	case "linux":
 		return c.buildLinux(dir, cfg, icons, outDir, main, *arch)
 	case "js", "web":
-		return c.command(dir, nil, "go", "run", gogio, "-target", "js", "-o", filepath.Join(outDir, "web"), main)
+		// osusergo: os/user has no js/wasm implementation, and Gio's font
+		// scan imports it (see docs/web.md).
+		return c.command(dir, nil, "go", "run", gogio, "-target", "js", "-tags", "osusergo", "-o", filepath.Join(outDir, "web"), main)
 	}
 	return fmt.Errorf("unknown target %q: use darwin, windows, linux or js", *target)
 }

@@ -19,9 +19,10 @@ keel run
 
 ## 跑示例
 
-在仓库根目录执行：
+示例在仓库里，先克隆再在根目录执行：
 
 ```sh
+git clone https://github.com/dyike/keel && cd keel
 go run ./examples/hello        # 输入框、复选框、按钮
 go run ./examples/multiwindow  # 两个窗口，⌘+, 打开设置窗口
 go run ./examples/hotkey       # 全局快捷键 ⌘⇧K，后台时钟每秒刷新
@@ -87,13 +88,22 @@ func main() {
 
 ## 在你自己的项目里使用
 
-Keel 还没发布版本。在你的项目里用本地替换引用它：
+新项目用上面的 `keel new`。已有的 Go 项目直接引用发布的版本：
 
 ```sh
-go mod edit -require=github.com/dyike/keel@v0.0.0
-go mod edit -replace=github.com/dyike/keel=$HOME/Code/go/src/github.com/dyike/keel
+go get github.com/dyike/keel@latest
+```
+
+版本列表见 [GitHub Releases](https://github.com/dyike/keel/releases)。v0.0.1、v0.0.2 已撤回，请用 v0.0.3 及以后的版本。
+
+修改 Keel 本身、想在自己的项目里试本地改动时，用本地替换：
+
+```sh
+go mod edit -replace=github.com/dyike/keel=../keel
 go mod tidy
 ```
+
+用脚手架时可以直接 `keel new my-app -replace ../keel`。
 
 ## 下一步
 

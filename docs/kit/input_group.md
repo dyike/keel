@@ -43,4 +43,4 @@ composer := kit.InputGroup("备注", message).
 
 附加按钮直接使用 `kit.Button`，可配置 Variant、Size、Icon、Name、Loading 和禁用状态；紧凑按钮可设 `.Variant(kit.ButtonGhost).Size(24)`。图标按钮需 `Name`。菜单、Popover 和 Tooltip 也可以作为附加 View 组合，沿用各自接口。
 
-TextArea 与单行输入共用这些位置；上下面板随内容增高，文本行数由内部 TextArea 控制。`Rows` 目前设置最小高度，最大行数与自动增长上限仍属于 TextArea 待补齐功能。输入和附加内容外只有一层字段边框，聚焦框覆盖整组。只读允许附加动作，输入禁用、组禁用和祖先禁用则禁用全部附加操作。
+TextArea 与单行输入共用这些位置；上下面板随内容增高，文本行数由内部 TextArea 控制。`Rows` 设置最小高度；要随内容增高并设上限，用 TextArea 的 `AutoGrow(minRows, maxRows)`，见 [Input](input.md)。输入和附加内容外只有一层字段边框，聚焦框覆盖整组。只读允许附加动作，输入禁用、组禁用和祖先禁用则禁用全部附加操作。
