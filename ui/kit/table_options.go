@@ -99,7 +99,8 @@ func (v *TableView) chooseWholeColumn(cx *el.Context, c int, mods key.Modifiers)
 	v.activeColumn = c
 	v.activeCell.Column = c
 	v.revealCell(cx)
-	cx.Focus(autoID("table", v))
+	// Header/cell pointer focus and key bubbling already route navigation here.
+	// Explicitly focusing the table would steal focus from embedded editors.
 	v.notifyColumns(before)
 }
 func (v *TableView) columnKey(cx *el.Context, e el.KeyEvent) bool {
