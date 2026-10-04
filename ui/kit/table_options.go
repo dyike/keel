@@ -9,7 +9,7 @@ import (
 func (c *ColumnSpec) Selectable(on bool) *ColumnSpec { c.noSelect = !on; return c }
 func (c *ColumnSpec) Resizable(on bool) *ColumnSpec  { c.noResize = !on; return c }
 
-// Movable controls MoveColumn; a locked column also prevents other columns crossing it.
+// Movable controls header dragging and MoveColumn; a locked column also prevents other columns crossing it.
 // Explicit layout restoration remains application-controlled.
 func (c *ColumnSpec) Movable(on bool) *ColumnSpec { c.noMove = !on; return c }
 func (v *TableView) Stripe(on bool) *TableView    { v.stripe = on; return v }

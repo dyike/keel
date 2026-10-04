@@ -51,7 +51,7 @@ func (c *ColumnSpec) Cell(fn func(cx *el.Context, row int) el.Element) *ColumnSp
 const minColumn = 40
 
 // TableView shows rows of text in columns. Click a header to sort by it (again
-// to reverse); drag a header's right edge to resize the column. Click a row,
+// to reverse); drag a header to reorder, or its right edge to resize. Click a row,
 // or use ↑ ↓ Home End PageUp PageDown once the table has focus, to select it;
 // double-click or press Enter to activate it. Only rows near the viewport are
 // built, so tables with many thousands of rows stay fast. Columns wider than
@@ -93,6 +93,9 @@ type TableView struct {
 	empty                      string
 	loading                    bool
 	disabled                   bool
+	headerGeometry             map[int]tableHeaderGeometry
+	columnDrag                 *tableColumnDrag
+	onColumnMove               func(column, from, to int)
 	widths                     []float32 // painted column widths in dp, for resizing
 	grab                       float32   // pointer offset inside the resize handle
 	list                       *VirtualListView
@@ -122,6 +125,7 @@ func Table(cols ...*ColumnSpec) *TableView {
 // FrozenColumns pins the first left and last right columns. Counts are
 // clamped; left columns take priority. Flexible frozen columns become 120dp.
 func (v *TableView) FrozenColumns(left, right int) *TableView {
+	v.columnDrag = nil
 	v.frozenLeft = max(0, min(left, len(v.cols)))
 	v.frozenRight = max(0, min(right, len(v.cols)-v.frozenLeft))
 	v.ensureFrozenWidths()
@@ -152,7 +156,12 @@ func (v *TableView) Height(dp float32) *TableView           { v.list.Height(dp);
 func (v *TableView) Fill() *TableView                       { v.list.Fill(); return v }
 func (v *TableView) OnChange(fn func(row int)) *TableView   { v.onChange = fn; return v }
 func (v *TableView) OnActivate(fn func(row int)) *TableView { v.onActive = fn; return v }
-func (v *TableView) SetDisabled(on bool)                    { v.disabled = on }
+func (v *TableView) SetDisabled(on bool) {
+	v.disabled = on
+	if on {
+		v.columnDrag = nil
+	}
+}
 
 // Empty sets the text shown when there are no rows; "" uses the locale's NoData.
 func (v *TableView) Empty(s string) *TableView { v.empty = s; return v }
@@ -352,8 +361,14 @@ func (v *TableView) header(cx *el.Context, c int) el.Element {
 		if px := gtx.Metric.PxPerDp; px > 0 {
 			v.widths[c] = float32(gtx.Constraints.Max.X) / px
 		}
+		if gtx.Enabled() {
+			v.recordHeaderGeometry(cx, c, cell)
+		}
 		draw()
 	})
+	if !col.noMove && !v.disabled {
+		cell.DragAccept(func(dx, dy float32) bool { return abs32(dx) >= abs32(dy) }).OnDrag(func(e el.DragEvent) { v.dragColumn(c, e) })
+	}
 	if v.columnMode && v.selectedColumns[c] {
 		cell.Selected(true).Bg(theme.Highlight)
 	}
@@ -377,11 +392,23 @@ func (v *TableView) header(cx *el.Context, c int) el.Element {
 			v.grab = e.X
 			return
 		}
+		if e.Canceled {
+			return
+		}
 		col.width = max(minColumn, v.widths[c]+e.X-v.grab)
 	})
 	header := el.Div().ID(autoID("table", v) + "/header/" + strconv.Itoa(c)).Row().Items(el.Stretch).Bg(theme.Subtle).Child(cell)
 	if !col.noResize {
 		header.Child(handle)
+	}
+	if drag := v.columnDrag; drag != nil && drag.moved && drag.target == c && drag.valid {
+		marker := el.Div().Absolute().Top(0).Bottom(0).W(el.Dp(2)).Bg(theme.Primary)
+		if drag.after {
+			marker.Right(0)
+		} else {
+			marker.Left(0)
+		}
+		header.Child(marker)
 	}
 	return v.pin(c, header).When(col.width > 0, func(d *el.DivEl) { d.NoShrink() }).
 		When(col.width <= 0, func(d *el.DivEl) { d.Flex(col.flex).W(el.Dp(0)).MinW(el.Dp(minColumn)) })
@@ -460,6 +487,12 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 		}
 	}
 	head := el.Div().Row().NoShrink().Items(el.Stretch).Bg(theme.Subtle)
+	head.Decorate(func(gtx core.C, draw func()) {
+		if gtx.Enabled() {
+			v.headerGeometry = make(map[int]tableHeaderGeometry)
+		}
+		draw()
+	})
 	var minWidth float32
 	for _, c := range v.visibleColumns() {
 		minWidth += max(v.cols[c].width, minColumn)

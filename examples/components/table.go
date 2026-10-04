@@ -16,7 +16,7 @@ func init() {
 		for i := range 5000 {
 			rows = append(rows, []string{fmt.Sprintf("SO-%05d", i+1), []string{"华东物流", "北京百货", "Shenzhen Tech"}[i%3], "¥" + strconv.Itoa(100+i*37%9000), []string{"待发货", "已发货", "已完成"}[i%7%3], "华东仓", "2026-10-02"})
 		}
-		msg := "5000 行；首列和末列固定，横向滚动查看中间列。点击排序，拖动列边缘调整宽度，回车或双击打开"
+		msg := "5000 行；首列和末列固定，横向滚动查看中间列。点击排序，拖动表头换序、列边缘调宽，回车或双击打开"
 		var t *kit.TableView
 		t = kit.Table(kit.Col("单号").Width(120).Movable(false).Resizable(false), kit.Col("客户").Width(180),
 			kit.Col("金额").Width(120).Numeric(), kit.Col("状态").Width(100).Cell(func(cx *el.Context, row int) el.Element {

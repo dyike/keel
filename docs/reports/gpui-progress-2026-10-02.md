@@ -303,7 +303,7 @@
 | [ColorPicker](https://gpui-kit.com/component/color-picker/) | 主体已有 | [HSV、透明度、HEX、预设、键盘、禁用](../../ui/kit/color_picker.go) | 颜色编辑主体已有；GPUI 自带触发器/弹层，Keel 是内联选择器，弹层需组合 Popover；缺触发图标、标签与尺寸配置。 |
 | [Combobox](https://gpui-kit.com/component/combobox/) | 主体已有 | [过滤、多选标签、异步结果、重试、虚拟化](../../ui/kit/combobox.go) | 第一百二十五批补齐 DisableOption，点击/键盘/提交跳过禁用值，配置跨过滤与异步更新保留。第一百二十七批补齐持久 Footer 操作区。第一百三十一批补齐 RenderItem 和统一 RowHeight，支持富内容/行内操作及稳定值身份。第一百三十二批补齐 SetGroups/SetGroupResults 分组及虚拟标题。第一百三十五批补齐 RenderTrigger、状态快照、独立开关/清空动作及面板内搜索，登记主要缺口关闭。自定义触发器自行绘制默认标签/清空入口，候选采用统一行高，程序赋值允许当前候选外的值，这些仍是与上游的接口约定差异。第一百三十四批补齐 OnConfirm 用户关闭确认事件；第一百三十三批补齐 Searchable 关闭搜索模式。第一百二十九批补齐 Size 和 CheckIcon。第一百二十六批补齐多选候选再次选择取消；第一百二十八批补齐 Clearable 单选/多选清空按钮。第一百三十批补齐 ComboboxItem 的稳定值/显示名称/禁用及结构化异步结果；多选标签与异步搜索已有。 |
 | [Command](https://gpui-kit.com/component/command/) | 主体已有 | [模糊过滤、分组、快捷键、异步结果、虚拟化](../../ui/kit/command.go) | 第一百三十六批补齐 Inline、Searchable、Header/Footer/Empty 和 RenderItem/RowHeight；内联不抢焦点、执行后保留，关闭搜索停止查询请求。第一百三十七批补齐 Keywords、原始索引、OnSelect/OnQuery/OnConfirm/OnCancel，以及 Esc 先清词再取消。第一百三十八批集中补齐变高虚拟化、分隔项过滤、悬停选择、动作绑定提示/执行、图标/勾选、面板配置和状态读写，登记主要缺口关闭。自动高度按可见行测量，其余行估算；保留模糊排序、扁平索引及单 root 动作解析，与上游全行测量、IndexPath 和焦点域绑定不同。 |
-| [DataTable](https://gpui-kit.com/component/data-table/) | 主体已有 | [冻结列、列管理、行/单元格/整列选择、复制、筛选、分页与密度](../../ui/kit/table.go) | 第一百四十五批补齐 ColumnSelect、列级 Selectable/Resizable/Movable、Stripe 和 RowHeight，登记主要缺口关闭。列移动仍使用 MoveColumn，未新增表头拖放；密度用连续行高，控件字号独立配置，显式布局恢复可覆盖移动锁。真机拖动/视觉未验收。 |
+| [DataTable](https://gpui-kit.com/component/data-table/) | 主体已有 | [冻结列、列管理、行/单元格/整列选择、复制、筛选、分页与密度](../../ui/kit/table.go) | 第一百四十五批补齐 ColumnSelect、列级 Selectable/Resizable/Movable、Stripe 和 RowHeight，登记主要缺口关闭。第一百八十二批补齐可见表头拖放、冻结/滚动命中和移动回调；拖动边缘自动滚动仍缺，整列选择模式内嵌输入框焦点问题待修；密度用连续行高，控件字号独立配置，显式布局恢复可覆盖移动锁。真机拖动/视觉未验收。 |
 | [DatePicker](https://gpui-kit.com/component/date-picker/) | 主体已有 | [日历弹层、范围、多月、取消草稿、键盘](../../ui/kit/date_picker.go) | 第一百一十八批补齐 Format 和 Clearable；第一百一十九批补齐单日期/范围 Presets；第一百二十批补齐 Size/Appearance；第一百二十一批补齐单日期时间联动、分钟/秒精度、12/24 小时制、默认时钟及即时回调；第一百二十二批补齐单日期 IncludeTime 预设。第一百二十三批补齐 DateValue/SetDateValue 与 DateTimeValue/SetDateTimeValue，范围独立保存起止时刻，预设和回调携带时刻。范围日历只编辑日期；兼容旧 Value 的纯日期行为，日期格式使用 Go 布局。第一百二十四批补齐独立 FirstWeekday 和恢复 locale 的 ResetFirstWeekday。 |
 | [DescriptionList](https://gpui-kit.com/component/description-list/) | 主体已有 | [多列/跨列、横纵标签、富值插槽、分隔线、边框、字号与标签宽度](../../ui/kit/description_list.go) | 第八批已关闭登记缺口。Columns 由调用方设置，不按窗口宽度自动切换；默认仍为无边框单列，保留原用法。 |
 | [Dialog](https://gpui-kit.com/component/dialog/) | 主体已有 | [可组合内容、嵌套浮层、长内容、焦点约束与恢复](../../ui/kit/dialog.go) | 第四十二批已补齐遮罩显示、外部点击关闭、Esc、关闭按钮的独立开关。关闭按钮默认隐藏以保持兼容。Body/Footer 可组合，但非 GPUI 的完整 compound parts API。 |
@@ -574,3 +574,11 @@
 - [x] 测试覆盖格式优先级、中文、空文本、文件过滤、权限记录匹配、普通/分块传输、拒绝/错误/中断和上限；URI 模糊测试通过，执行 181,597 次。
 - [x] 全仓构建、UI/native vet、全量测试和 Windows/Linux/wasm native 交叉构建通过；随后补充的传输失败与超限测试单独通过。
 - [ ] Linux 桌面真实剪贴板、窗口粘贴和 XWayland 桥接尚未验收；纯 Wayland 后端仍缺。Input/Textarea 的自定义 token、整块软换行、触屏菜单和原生验收仍未完成，保持部分覆盖。
+
+## 第一百八十二批：DataTable 表头拖放换序
+
+- [x] 表头主体支持横向拖动，目标前后半区决定插入位置，主题色细线提示落点，松手应用；移出表头、取消手势、禁用或恢复布局会放弃。右边缘继续调整宽度，点击继续排序，列选择模式保留原语义。
+- [x] 按绘制位置命中横向滚动及左右冻结列，冻结列优先于其下方滚动区域；Movable 锁阻止移动和跨越，隐藏列计入显示位置。OnColumnMove 提供源列及旧/新位置，程序移动不触发。
+- [x] 1×/2× 事件测试覆盖鼠标拖动、排序/调整宽度隔离、隐藏/锁定/禁用/取消/布局恢复、冻结和横向滚动；触摸事件验证换序时列选区和已有内嵌编辑内容保留。
+- [x] 全仓构建、UI/native vet、全量测试通过。
+- [ ] 只接受可见表头目标，未实现拖动到边缘自动滚动；真机手感和视觉待验收。测试另发现已有问题：整列选择模式点击内嵌输入框后不能正常输入，发生在拖动前，本批未修复，继续跟踪。

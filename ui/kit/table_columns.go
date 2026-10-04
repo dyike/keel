@@ -40,11 +40,10 @@ func (v *TableView) MoveColumn(column, position int) {
 		return
 	}
 	old := slices.Index(v.columns, column)
-	for _, c := range v.columns[min(old, position) : max(old, position)+1] {
-		if v.cols[c].noMove {
-			return
-		}
+	if !v.canMoveColumn(column, position) {
+		return
 	}
+	v.columnDrag = nil
 	v.columns = slices.Delete(v.columns, old, old+1)
 	v.columns = slices.Insert(v.columns, position, column)
 	v.ensureFrozenWidths()
@@ -56,6 +55,7 @@ func (v *TableView) SetColumnVisible(column int, visible bool) {
 	if column < 0 || column >= len(v.cols) {
 		return
 	}
+	v.columnDrag = nil
 	v.hidden[column] = !visible
 	v.ensureFrozenWidths()
 }
@@ -83,6 +83,7 @@ func (v *TableView) SetLayoutState(state TableLayout) error {
 		}
 		seen[col.Column] = true
 	}
+	v.columnDrag = nil
 	for pos, col := range state.Columns {
 		v.columns[pos] = col.Column
 		v.cols[col.Column].width = col.Width
