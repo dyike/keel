@@ -68,10 +68,9 @@ func (e *engine) measureText(n *Node, maxW int) image.Point {
 // measureInput: inputs fill the width they are given; their height is one
 // line, or about three for a TextArea unless AutoGrow is configured.
 func (e *engine) measureInput(n *Node, maxW int) image.Point {
-	line := e.measureText(n, inf).Y
-	if line == 0 {
-		line = e.label(n, "国").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
-	}
+	// Empty text has a shorter line box and clips Latin descenders. Use the
+	// same stable mixed-script metrics as textShift, independent of input contents.
+	line := e.label(n, "国Ag").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
 	w := maxW
 	if w >= inf {
 		w = e.dp(200)
@@ -95,14 +94,14 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 					return '•'
 				}, value)
 			}
-			// Match material.Editor typography, independent of label-only styles.
-			lb := material.Label(theme.Material, n.textStyle.size, value)
+			// Match the font and line height passed to material.Editor at paint time.
+			lb := e.label(n, value)
 			lb.MaxLines = spec.maxRows
 			measured := lb.Layout(e.measureGtx(layout.Constraints{Max: image.Pt(w, inf)})).Size.Y
 			// Measure baseline spacing rather than multiplying glyph bounds:
 			// the first line and subsequent line advances need not match.
-			one := material.Label(theme.Material, n.textStyle.size, "M").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
-			two := material.Label(theme.Material, n.textStyle.size, "M\nM").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
+			one := e.label(n, "M").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
+			two := e.label(n, "M\nM").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
 			advance := max(two-one, 1)
 			rowHeight := func(rows int) int { return one + min(rows-1, (inf-one)/advance)*advance }
 			minH, maxH := rowHeight(spec.minRows), rowHeight(spec.maxRows)
@@ -585,6 +584,8 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	ts := n.textStyle
 	me := material.Editor(theme.Material, ed, spec.placeholder)
 	me.TextSize, me.Color, me.HintColor = ts.size, *ts.color, theme.Muted
+	me.Font = textFont(ts)
+	me.LineHeightScale = ts.lineHeight
 	st.caret.Layout(g, me, theme.Material.Shaper)
 	// Keep the value in the semantic tree for agents.
 	value := ed.Text()

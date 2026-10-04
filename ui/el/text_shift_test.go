@@ -42,9 +42,11 @@ func TestTextShiftKeepsDescendersInBox(t *testing.T) {
 }
 
 // redInk renders e on white and counts the pixels its red text tints.
-func redInk(t *testing.T, e Element) int {
+func redInk(t *testing.T, e Element) int { return redInkScaled(t, e, 1) }
+
+func redInkScaled(t *testing.T, e Element, scale int) int {
 	t.Helper()
-	gpu, err := headless.NewWindow(300, 120)
+	gpu, err := headless.NewWindow(300*scale, 120*scale)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,17 +56,19 @@ func redInk(t *testing.T, e Element) int {
 	}))
 	n := 0
 	h := uitest.NewFunc(func(gtx core.C) {
+		gtx.Metric = unit.Metric{PxPerDp: float32(scale), PxPerSp: float32(scale)}
+		gtx.Constraints.Max = image.Pt(300*scale, 120*scale)
 		root.Layout(gtx)
 		if err := gpu.Frame(gtx.Ops); err != nil {
 			t.Fatal(err)
 		}
-		img := image.NewRGBA(image.Rect(0, 0, 300, 120))
+		img := image.NewRGBA(image.Rect(0, 0, 300*scale, 120*scale))
 		if err := gpu.Screenshot(img); err != nil {
 			t.Fatal(err)
 		}
 		n = 0
-		for y := 0; y < 120; y++ {
-			for x := 0; x < 300; x++ {
+		for y := 0; y < 120*scale; y++ {
+			for x := 0; x < 300*scale; x++ {
 				if p := img.RGBAAt(x, y); int(p.R)-int(p.G) > 40 {
 					n++
 				}
