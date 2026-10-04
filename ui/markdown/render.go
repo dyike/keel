@@ -41,6 +41,9 @@ var headingSizes = [...]unit.Sp{0, 24, 20, 17, 15, 15, 15}
 func (d *Doc) Render(cx *el.Context) el.Element {
 	d.refreshPalette()
 	root := el.Div().Gap(12)
+	if d.preview.lines > 0 {
+		root.MaxH(el.Sp(float32(theme.BodySize) * 1.6 * float32(d.preview.lines))).Reveal(1)
+	}
 	var all []*block
 	for i := range d.chunks {
 		for j := range d.chunks[i].blocks {
@@ -56,21 +59,29 @@ func (d *Doc) Render(cx *el.Context) el.Element {
 			root.Child(el.Text(caret).TextColor(theme.Primary))
 		}
 		tail := d.streaming && i == tailIndex
-		if tail {
-			root.Child(d.block(b, true)) // changes with every token: rebuild
+		if tail || d.plugins != nil || d.dynamicCode(b) {
+			root.Child(d.block(cx, b, tail)) // streaming or custom controls: rebuild
 			continue
 		}
 		// A finished block looks the same until its code is copied: reuse
 		// its elements and layout across frames.
 		b := b
-		root.Child(cx.Cache(keyForBlock(b), func() el.Element { return d.block(b, false) }))
+		cacheKey := keyForBlock(b)
+		cacheKey.extensions = d.extensionRevision
+		root.Child(cx.Cache(cacheKey, func() el.Element { return d.block(cx, b, false) }))
 	}
 	if d.streaming && (len(all) == 0 || all[len(all)-1].kind != footnoteList && !endsInText(all[len(all)-1])) {
 		root.Child(el.Text(caret).TextColor(theme.Primary))
 	}
 	root.Decorate(func(gtx core.C, draw func()) {
+		d.beginPreview(cx, root, gtx)
 		d.navigate(cx, root, gtx)
-		d.selection.paint(gtx, cx, root, draw)
+		d.selection.paint(gtx, cx, root, func() {
+			d.syncStreamFade(gtx)
+			d.syncRanges()
+			d.paintPreview(gtx, draw)
+		})
+		d.revealRange(cx, gtx)
 	})
 	return root
 }
@@ -78,18 +89,21 @@ func (d *Doc) Render(cx *el.Context) el.Element {
 // endsInText reports whether a block's last line is text the caret can follow.
 func endsInText(b *block) bool { return b.kind == paragraph || b.kind == heading }
 
-func (d *Doc) block(b *block, last bool) el.Element {
+func (d *Doc) block(cx *el.Context, b *block, last bool) el.Element {
+	if b.custom != nil {
+		return b.custom.Render(cx)
+	}
 	switch b.kind {
 	case footnoteList:
 		footer := el.Div().Role("footnotes").Gap(8).Pt(8).Child(el.Div().H(el.Dp(1)).Bg(theme.Border))
 		for i := range b.children {
-			footer.Child(d.block(&b.children[i], false))
+			footer.Child(d.block(cx, &b.children[i], false))
 		}
 		return footer
 	case footnoteItem:
 		content := el.Div().Grow().Gap(8)
 		for i := range b.children {
-			content.Child(d.block(&b.children[i], false))
+			content.Child(d.block(cx, &b.children[i], false))
 		}
 		return el.Div().Row().Gap(6).Child(el.Text(strconv.Itoa(b.level)+".").W(el.Dp(22)).TextColor(theme.Muted), content)
 	case paragraph:
@@ -98,30 +112,30 @@ func (d *Doc) block(b *block, last bool) el.Element {
 		size := headingSizes[min(b.level, 6)]
 		return el.Div().Pt(4).Child(el.Widget(d.rich(b, b.spans, size, true, theme.Text, last)))
 	case codeBlock:
-		return d.code(b)
+		return d.code(cx, b)
 	case quote:
 		content := el.Div().Grow().Gap(8)
 		for i := range b.children {
-			content.Child(d.block(&b.children[i], false))
+			content.Child(d.block(cx, &b.children[i], false))
 		}
 		return el.Div().Row().Gap(12).Child(el.Div().W(el.Dp(3)).Rounded(1.5).Bg(theme.Border), content)
 	case list:
-		return d.list(b)
+		return d.list(cx, b)
 	case table:
-		return d.table(b)
+		return d.table(cx, b)
 	case rule:
 		return el.Div().H(el.Dp(1)).Bg(theme.Border).My(4)
 	case group:
 		content := el.Div().Gap(12)
 		for i := range b.children {
-			content.Child(d.block(&b.children[i], last && i == len(b.children)-1))
+			content.Child(d.block(cx, &b.children[i], last && i == len(b.children)-1))
 		}
 		return content
 	}
 	return nil
 }
 
-func (d *Doc) list(b *block) el.Element {
+func (d *Doc) list(cx *el.Context, b *block) el.Element {
 	lv, _ := b.view.(*listView)
 	if lv == nil {
 		lv = &listView{}
@@ -141,7 +155,7 @@ func (d *Doc) list(b *block) el.Element {
 		}
 		content := el.Div().Grow().Gap(6)
 		for j := range it.blocks {
-			content.Child(d.block(&it.blocks[j], false))
+			content.Child(d.block(cx, &it.blocks[j], false))
 		}
 		out.Child(el.Div().Row().Gap(6).Items(el.Start).Child(
 			// Drawn by the same rich text as the item, so it shares its line
@@ -153,7 +167,7 @@ func (d *Doc) list(b *block) el.Element {
 	return out
 }
 
-func (d *Doc) table(b *block) el.Element {
+func (d *Doc) table(cx *el.Context, b *block) el.Element {
 	t := b.tbl
 	st, _ := b.view.(*tableView)
 	if st == nil {
@@ -192,8 +206,11 @@ func (d *Doc) table(b *block) el.Element {
 			}
 			line.Child(cell(strconv.Itoa(r)+"/"+strconv.Itoa(i), spans, i, false))
 		}
-		grid.Child(el.Div().H(el.Dp(1)).Bg(theme.Border), line)
+		row := el.Div().Child(el.Div().H(el.Dp(1)).Bg(theme.Border), line)
+		d.guardPreview(cx, row)
+		grid.Child(row)
 	}
+	d.guardPreview(cx, grid)
 	return grid
 }
 
@@ -258,7 +275,7 @@ type richBlock struct {
 func newRich(spans []span, size unit.Sp, bold bool, c color.NRGBA, onLink func(string)) *richBlock {
 	r := &richBlock{plain: plain(spans), onLink: onLink, lineH: 1.6, base: size}
 	for _, s := range spans {
-		rn := run{text: s.text, math: s.math, display: s.display, size: size, color: c, font: font.Font{Typeface: theme.Face}, strike: s.strike, anchor: s.anchor}
+		rn := run{object: s.object, text: s.text, math: s.math, display: s.display, size: size, color: c, font: font.Font{Typeface: theme.Face}, strike: s.strike, anchor: s.anchor}
 		if s.superscript {
 			rn.size = size * 0.75
 			rn.rise = size * 0.3
@@ -305,7 +322,7 @@ func (r *richBlock) Layout(gtx core.C) core.D {
 	// several times a frame, then paints it. Laying out rich text is costly
 	// and a block's text does not change, so a repeated measurement returns
 	// the size from before.
-	if !gtx.Enabled() {
+	if !gtx.Enabled() && !r.hasInlineObjects() {
 		for _, m := range r.measured {
 			if m.ok && m.cs == gtx.Constraints && m.caret == r.caret {
 				return core.D{Size: m.size}
@@ -381,9 +398,10 @@ func highlight(lang, code string) *richBlock {
 }
 
 type blockKey struct {
-	palette paletteKey
-	b       *block
-	state   uint64
+	extensions uint64
+	palette    paletteKey
+	b          *block
+	state      uint64
 }
 
 func keyForBlock(b *block) blockKey {

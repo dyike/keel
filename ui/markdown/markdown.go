@@ -27,6 +27,7 @@
 package markdown
 
 import (
+	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/imageload"
 	"strings"
 )
@@ -34,17 +35,24 @@ import (
 // Doc is a Markdown document, rendered as an el element. Change it only under
 // the UI lock: from callbacks, or from other goroutines through core.Update.
 type Doc struct {
-	palette       paletteKey
-	src           string
-	streaming     bool
-	chunks        []chunk
-	onLink        func(url string)
-	selection     documentSelection
-	contextual    bool
-	parsedContext string
-	pendingAnchor string
-	images        map[string]*imageload.Asset
-	imageLoader   imageload.Loader
+	plugins           *pluginSet
+	fade              streamFadeState
+	preview           documentPreview
+	ranges            documentRanges
+	codeActions       func(*el.Context, CodeBlockContext) el.Element
+	codeRenderers     map[string]func(*el.Context, CodeBlockContext) el.Element
+	extensionRevision uint64
+	palette           paletteKey
+	src               string
+	streaming         bool
+	chunks            []chunk
+	onLink            func(url string)
+	selection         documentSelection
+	contextual        bool
+	parsedContext     string
+	pendingAnchor     string
+	images            map[string]*imageload.Asset
+	imageLoader       imageload.Loader
 
 	parses int // chunks parsed so far, for tests
 }
@@ -76,6 +84,7 @@ func (d *Doc) Streaming() bool { return d.streaming }
 func (d *Doc) SetSource(src string) {
 	if d.src != src {
 		d.selection.clear()
+		d.ranges.reveal = nil
 	}
 	d.src = src
 	d.update()
@@ -83,6 +92,9 @@ func (d *Doc) SetSource(src string) {
 
 // Append adds text at the end, e.g. the next tokens of a streaming answer.
 func (d *Doc) Append(s string) {
+	if s != "" {
+		d.ranges.reveal = nil
+	}
 	d.src += s
 	d.update()
 }
@@ -98,7 +110,7 @@ func (d *Doc) SetStreaming(on bool) {
 }
 
 func (d *Doc) update() {
-	if strings.Contains(d.src, "]:") || strings.Contains(d.src, "[^") || hasMathMacros(d.src) {
+	if d.plugins != nil || strings.Contains(d.src, "]:") || strings.Contains(d.src, "[^") || hasMathMacros(d.src) {
 		d.updateContextual()
 		return
 	}
@@ -118,7 +130,7 @@ func (d *Doc) update() {
 			next[i] = d.chunks[i] // unchanged: keep blocks and their drawing state
 			continue
 		}
-		next[i] = chunk{src: src, raw: raw, blocks: parse(src)}
+		next[i] = chunk{src: src, raw: raw, blocks: d.parseSource(src)}
 		if i < len(d.chunks) {
 			preserveCodeViews(d.chunks[i].blocks, next[i].blocks)
 		}

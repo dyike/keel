@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"strconv"
 	"strings"
@@ -35,6 +36,7 @@ const (
 )
 
 type block struct {
+	custom   el.View
 	kind     blockKind
 	anchor   string
 	level    int    // heading
@@ -70,6 +72,7 @@ type tableData struct {
 }
 
 type span struct {
+	object                     *InlineObject
 	text                       string
 	bold, italic, code, strike bool
 	link                       string
@@ -91,22 +94,25 @@ func parse(src string) []block {
 	return blocks(doc, source, mathMacros{})
 }
 
-func blocks(parent ast.Node, src []byte, macros mathMacros) []block {
+func blocks(parent ast.Node, src []byte, macros mathMacros, plugins ...*pluginSet) []block {
 	var out []block
 	for n := parent.FirstChild(); n != nil; n = n.NextSibling() {
-		if b, ok := convert(n, src, macros); ok {
+		if b, ok := convert(n, src, macros, plugins...); ok {
 			out = append(out, b)
 		}
 	}
 	return out
 }
 
-func convert(n ast.Node, src []byte, macros mathMacros) (block, bool) {
+func convert(n ast.Node, src []byte, macros mathMacros, plugins ...*pluginSet) (block, bool) {
+	if view := customBlock(plugins, n, src); view != nil {
+		return block{custom: view}, true
+	}
 	switch n := n.(type) {
 	case *east.FootnoteList:
-		return block{kind: footnoteList, children: blocks(n, src, macros)}, true
+		return block{kind: footnoteList, children: blocks(n, src, macros, plugins...)}, true
 	case *east.Footnote:
-		children := blocks(n, src, macros)
+		children := blocks(n, src, macros, plugins...)
 		anchorFirst(children, footnoteID(n.Index))
 		return block{kind: footnoteItem, level: n.Index, children: children}, true
 	case *east.FootnoteBacklink:
@@ -120,9 +126,9 @@ func convert(n ast.Node, src []byte, macros mathMacros) (block, bool) {
 		}
 		return block{kind: paragraph, spans: []span{s}}, true
 	case *ast.Paragraph, *ast.TextBlock:
-		return block{kind: paragraph, spans: inlines(n, src, span{}, macros)}, true
+		return block{kind: paragraph, spans: inlines(n, src, span{}, macros, plugins...)}, true
 	case *ast.Heading:
-		return block{kind: heading, level: n.Level, spans: inlines(n, src, span{}, macros)}, true
+		return block{kind: heading, level: n.Level, spans: inlines(n, src, span{}, macros, plugins...)}, true
 	case *ast.FencedCodeBlock:
 		lang := ""
 		if n.Info != nil {
@@ -132,11 +138,11 @@ func convert(n ast.Node, src []byte, macros mathMacros) (block, bool) {
 	case *ast.CodeBlock:
 		return block{kind: codeBlock, code: lines(n, src)}, true
 	case *ast.Blockquote:
-		return block{kind: quote, children: blocks(n, src, macros)}, true
+		return block{kind: quote, children: blocks(n, src, macros, plugins...)}, true
 	case *ast.List:
 		b := block{kind: list, ordered: n.IsOrdered(), start: n.Start}
 		for it := n.FirstChild(); it != nil; it = it.NextSibling() {
-			item := listItem{blocks: blocks(it, src, macros)}
+			item := listItem{blocks: blocks(it, src, macros, plugins...)}
 			item.task = taskState(it)
 			b.items = append(b.items, item)
 		}
@@ -155,7 +161,7 @@ func convert(n ast.Node, src []byte, macros mathMacros) (block, bool) {
 		}
 		return block{kind: group, children: bs}, true
 	case *east.Table:
-		return block{kind: table, tbl: tableOf(n, src, macros)}, true
+		return block{kind: table, tbl: tableOf(n, src, macros, plugins...)}, true
 	}
 	return block{}, false
 }
@@ -183,7 +189,7 @@ func taskState(item ast.Node) *bool {
 	return nil
 }
 
-func tableOf(t *east.Table, src []byte, macros mathMacros) *tableData {
+func tableOf(t *east.Table, src []byte, macros mathMacros, plugins ...*pluginSet) *tableData {
 	d := &tableData{}
 	for _, a := range t.Alignments {
 		switch a {
@@ -198,7 +204,7 @@ func tableOf(t *east.Table, src []byte, macros mathMacros) *tableData {
 	for r := t.FirstChild(); r != nil; r = r.NextSibling() {
 		var cells [][]span
 		for c := r.FirstChild(); c != nil; c = c.NextSibling() {
-			cells = append(cells, inlines(c, src, span{}, macros))
+			cells = append(cells, inlines(c, src, span{}, macros, plugins...))
 		}
 		if _, ok := r.(*east.TableHeader); ok {
 			d.header = cells
@@ -211,7 +217,7 @@ func tableOf(t *east.Table, src []byte, macros mathMacros) *tableData {
 
 // inlines flattens inline content into styled spans, merging neighbours with
 // the same style.
-func inlines(n ast.Node, src []byte, style span, macros mathMacros) []span {
+func inlines(n ast.Node, src []byte, style span, macros mathMacros, plugins ...*pluginSet) []span {
 	var out []span
 	add := func(s span) {
 		if s.text == "" {
@@ -219,7 +225,7 @@ func inlines(n ast.Node, src []byte, style span, macros mathMacros) []span {
 		}
 		if k := len(out) - 1; k >= 0 {
 			last := &out[k]
-			if last.imageURL == "" && s.imageURL == "" && last.anchor == "" && s.anchor == "" && last.superscript == s.superscript && last.subscript == s.subscript && last.underline == s.underline && last.mark == s.mark && last.math == nil && s.math == nil && last.bold == s.bold && last.italic == s.italic && last.code == s.code && last.strike == s.strike && last.link == s.link {
+			if last.object == nil && s.object == nil && last.imageURL == "" && s.imageURL == "" && last.anchor == "" && s.anchor == "" && last.superscript == s.superscript && last.subscript == s.subscript && last.underline == s.underline && last.mark == s.mark && last.math == nil && s.math == nil && last.bold == s.bold && last.italic == s.italic && last.code == s.code && last.strike == s.strike && last.link == s.link {
 				last.text += s.text
 				return
 			}
@@ -230,6 +236,12 @@ func inlines(n ast.Node, src []byte, style span, macros mathMacros) []span {
 	walk = func(n ast.Node, st span) {
 		var tags htmlInline // inline HTML tags style their later siblings
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+			if object := customInline(plugins, c, src); object != nil {
+				s := st
+				s.text, s.object = object.Text, object
+				add(s)
+				continue
+			}
 			switch c := c.(type) {
 			case *east.FootnoteLink:
 				add(span{text: "[" + strconv.Itoa(c.Index) + "]", link: footnoteID(c.Index), anchor: footnoteRefID(c.Index, c.RefIndex), superscript: true})

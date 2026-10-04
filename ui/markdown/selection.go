@@ -22,6 +22,9 @@ import (
 // one Doc. Bounds are in the document's coordinate system, including text
 // outside the viewport, so selection also works in a scrolling chat.
 type documentSelection struct {
+	fade        *streamFadeState
+	revision    uint64
+	highlights  []runeHighlight
 	parts       []selectionPart
 	text        []rune
 	sel         [2]int // anchor, focus
@@ -107,6 +110,7 @@ func (s *documentSelection) collect(root el.Element, gtx core.C) {
 	if !changed {
 		return
 	}
+	s.revision++
 	var text strings.Builder
 	pos := 0
 	for i := range s.parts {

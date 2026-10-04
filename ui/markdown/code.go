@@ -1,9 +1,11 @@
 package markdown
 
 import (
+	"fmt"
 	"github.com/dyike/keel/ui/locale"
 	"image"
 	"image/color"
+	"strings"
 	"time"
 
 	"gioui.org/f32"
@@ -48,11 +50,17 @@ type codeView struct {
 	body   codeBody
 }
 
-func (d *Doc) code(b *block) el.Element {
+func (d *Doc) code(cx *el.Context, b *block) el.Element {
 	cv, _ := b.view.(*codeView)
 	if cv == nil {
 		cv = &codeView{rich: highlight(b.lang, b.code)}
 		b.view = cv
+	}
+	context := CodeBlockContext{ID: fmt.Sprintf("markdown-code-%p", cv), Language: b.lang, Text: b.code, Wrapped: cv.wrap}
+	if render := d.codeRenderers[strings.ToLower(b.lang)]; render != nil {
+		if custom := render(cx, context); custom != nil {
+			return el.Div().ID(context.ID).Items(el.Stretch).Child(custom)
+		}
 	}
 	cv.body.view = cv
 	cv.rich.anchor = b.anchor
@@ -69,24 +77,29 @@ func (d *Doc) code(b *block) el.Element {
 	if cv.wrap {
 		wrapLabel = text.NoWrapLines
 	}
-	return el.Div().Role("code").Name(label).Bg(followColor(CodeBg, theme.CodeBg)).Border(1, followColor(CodeBorder, theme.Border)).Rounded(14).Child(
-		el.Div().Row().Items(el.Center).Gap(6).Px(14).Pt(8).Pb(4).Child(
-			iconElement(codeIcon, 18, theme.Text),
-			el.Widget(core.Func(func(gtx core.C) core.D {
-				return core.Semantic(gtx, func(gtx core.C) core.D { return codeLabel(gtx, label, 13, theme.Text) }, semantic.LabelOp(label))
-			})).Grow(),
-			codeAction("wrap", wrapLabel, wrapIcon, cv.wrap, func() {
-				cv.wrap = !cv.wrap
-				cv.body.scroll.Stop()
-				cv.body.barWheel.Stop()
-				cv.body.scrollX = 0
-			}),
-			codeAction("copy", copyLabel, copyGlyph, false, func() {
-				el.WriteClipboard(b.code)
-				cv.copied = time.Now()
-				time.AfterFunc(2*time.Second, func() { core.Update(func() {}) })
-			}),
-		),
+	header := el.Div().Row().Items(el.Center).Gap(6).Px(14).Pt(8).Pb(4).Child(
+		iconElement(codeIcon, 18, theme.Text),
+		el.Widget(core.Func(func(gtx core.C) core.D {
+			return core.Semantic(gtx, func(gtx core.C) core.D { return codeLabel(gtx, label, 13, theme.Text) }, semantic.LabelOp(label))
+		})).Grow(),
+		codeAction("wrap", wrapLabel, wrapIcon, cv.wrap, func() {
+			cv.wrap = !cv.wrap
+			cv.body.scroll.Stop()
+			cv.body.barWheel.Stop()
+			cv.body.scrollX = 0
+		}),
+		codeAction("copy", copyLabel, copyGlyph, false, func() {
+			el.WriteClipboard(b.code)
+			cv.copied = time.Now()
+			time.AfterFunc(2*time.Second, func() { core.Update(func() {}) })
+		}),
+	)
+	if d.codeActions != nil {
+		if actions := d.codeActions(cx, context); actions != nil {
+			header.Child(el.Div().ID("custom-actions").NoShrink().Child(actions))
+		}
+	}
+	return el.Div().ID(context.ID).Role("code").Name(label).Bg(followColor(CodeBg, theme.CodeBg)).Border(1, followColor(CodeBorder, theme.Border)).Rounded(14).Child(header,
 		el.Div().Px(16).Pt(6).Pb(16).Child(el.Widget(&cv.body)),
 	)
 }

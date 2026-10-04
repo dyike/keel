@@ -57,7 +57,7 @@ func (s *documentSelection) unitRange(i, mode int) [2]int {
 		// A typeset formula is one selectable unit and copies its TeX source.
 		for _, piece := range p.r.rt.pieces {
 			lo, hi := p.start+piece.start, p.start+piece.start+piece.runes
-			if i >= lo && i < hi && (p.r.rt.runs[piece.run].math != nil || p.r.rt.runs[piece.run].image != nil) {
+			if i >= lo && i < hi && (p.r.rt.runs[piece.run].object != nil || p.r.rt.runs[piece.run].math != nil || p.r.rt.runs[piece.run].image != nil) {
 				return [2]int{lo, hi}
 			}
 		}

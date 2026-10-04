@@ -2,7 +2,7 @@
 
 更新日期：2026-10-04（原报告 2026-10-02，代码基准 `2fe8d1d`，本轮逐页复核 77 项公开文档及 Keel 公共接口/相关实现）。来源：[GPUI Kit 组件目录](https://gpui-kit.com/component/)（页面版本 v0.7.0），按导航中的独立组件链接去重，共 **77 项**。组件分类参考该站，说明和实现判断根据 Keel 当前工作区重写；源站文档采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。这是一份能力对照，不要求复制 Rust API。
 
-补齐后状态：**72 项主体已有、5 项部分覆盖、0 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
+补齐后状态：**73 项主体已有、4 项部分覆盖、0 项用途不同**（初次复核为 38/36/3）。这是按文档列出的功能判断，不是功能完成百分比，也不是视觉成熟度评分。
 
 - **主体已有**：核心用途覆盖；末列仍列出配置、交互或组合方式差异，不能读成全部功能相同。
 - **部分**：已有可运行的主体，但缺源站明确提供的扩展功能或组合能力；已实现部分继续记为完成。
@@ -13,9 +13,9 @@
 ## 本轮更正与重点差距
 
 1. 初次复核更正 Marker、Plot、Shimmer 的用途混淆；第六十五批新增 ShimmerText 后，文字扫光已建立独立实现，第一百五十三批新增 StatusMarker 后，消息状态行已建立独立实现；第一百五十四批新增 ui/plot 公共绘图基础件后，Plot 也已建立独立实现。
-2. 数据与输入组件仍有实质差距：Chart 已补雷达/桑基图，仍有高级轴布局、柱图样式和动画差异；DatePicker 已补日期时间联动、时刻预设及范围时间存取；Input/Textarea 缺原子 token，Input 另缺格式 mask；Progress 的圆形进度缺口已在第一批补齐。
+2. 数据与输入组件仍有实质差距：Chart 已补雷达/桑基图、轴布局、四向柱图及悬停过渡，仍缺固定总点数和多停靠点渐变等配置；DatePicker 已补日期时间联动、时刻预设及范围时间存取；Input 已补掩码，Input/Textarea 已补编辑菜单和富粘贴钩子，仍缺原子 token、触屏菜单及非 macOS 富读取；Progress 的圆形进度缺口已在第一批补齐。
 3. Editor 已补齐编辑跟踪装饰集合、可替换语言规则和自定义搜索会话；装饰坐标、跨行轮廓与文本样式仍有差异，详见组件条目。`OnComplete`/`OnHover`/`OnDefinition` 是应用接口，LSP 客户端仍由应用提供；本轮不把它当作已证实的上游内置能力差距。
-4. TextView 已有 Markdown/HTML/扩展 TeX，但富文本折叠预览、流式逐段淡入、区间高亮/定位和插件仍缺。完整 TeX/CSS 是 Keel 的边界，不能无依据当作 GPUI 已有功能。
+4. TextView 已补富文本折叠预览、流式淡入、区间高亮/定位、插件和代码块扩展，并通过自动验证；原生窗口仍待验收。完整 TeX/CSS 是 Keel 的边界，不能无依据当作 GPUI 已有功能。
 5. Dock、主题、状态栏和 Kbd 的近期补齐继续保留完成记录。Dock 分离由应用开窗、恢复布局不会重开分离窗口；主题机制已有，预设数量和 token 格式仍不同。
 6. 旧表夸大了 Badge 图标/尺寸、DescriptionList 响应式列数、Kbd 尺寸、Switch 尺寸/加载、Toggle 尺寸、Textarea 最大行数；均按当前接口改正。
 
@@ -353,7 +353,7 @@
 | [Table](https://gpui-kit.com/component/table/) | 主体已有 | [静态 Header/Body/Footer/Caption 及任意行/单元格组合](../../ui/kit/table_static.go) | 第一百四十四批新增独立 StaticTable 和部件元素，登记缺口关闭。TableDataCell 避开已有选区坐标类型 TableCell；各行独立配置列宽，Caption 默认位于根容器内。数据交互继续用原 TableView，差距见 DataTable；真机视觉未验收。 |
 | [Tabs](https://gpui-kit.com/component/tabs/) | 主体已有 | [四种外观、图标/富标签、单项禁用、页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 第十二、十三批已关闭登记的外观、禁用、内容、最大宽度及滚动接口缺口。默认仍为溢出菜单；Scrollable 开启时改为滚动轨道，ScrollTo 只定位不选择。自定义标签应为展示内容，宽度上限不包含独立关闭按钮。 |
 | [Tag](https://gpui-kit.com/component/tag/) | 主体已有 | [语义/自定义颜色、描边、圆角、尺寸、富内容、移除与选中](../../ui/kit/tag.go) | 第十四批已关闭登记缺口；默认保留主题染色胶囊，实心底色可用 Appearance。Size 为最小高度，长文字仍换行；自定义内容限展示元素。 |
-| [TextView](https://gpui-kit.com/component/text-view/) | 部分 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 缺富文本整体 max_lines/is_clamped、逐流式增量淡入、公开区间高亮/跳转、Markdown 插件与代码块操作扩展接口。HTML/扩展 TeX 已完成。 |
+| [TextView](https://gpui-kit.com/component/text-view/) | 主体已有 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 第一百六十九批完成代码块操作与语言展示、RenderedText/区间高亮与定位、MaxLines/IsClamped、流式淡入及 Goldmark 块/行内插件，并通过交互和双倍率像素测试。范围用渲染文本 UTF-8 字节；MaxLines 按正文行高预算；含插件时整篇解析，自定义块自行管理选区。HTML/扩展 TeX 已有；不是完整 TeX/CSS，原生窗口未验收。 |
 | [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、AutoGrow 行数范围、错误显示](../../ui/kit/input.go) | 第一百一十三批补齐 AutoGrow(min,max)，包含软换行、上限后内部滚动和删除后缩回；Rows 恢复旧模式。第一百六十七批完成编辑菜单和富粘贴钩子；仍缺 inline token、触屏选择菜单和非 macOS 富读取。 |
 | [Theme](https://gpui-kit.com/component/theme/) | 主体已有 | [语义配色、间距/字号/圆角/阴影刻度、浅深切换、注册与 JSON 主题、局部作用域、渐变、目录监听](../../ui/theme/registry.go) | 核心主题机制已完成；Keel 7 套内置（含 light/dark），GPUI 文档称 20+。Keel 渐变 JSON 为 from/to/angle，仅 Bg/Primary；GPUI 是可选背景 token 的 CSS 两色渐变，配置不兼容。 |
 | [TimeField](https://gpui-kit.com/component/time-field/) | 主体已有 | [分段、时分秒、12/24 小时、四档尺寸及快速键盘编辑](../../ui/kit/time_field.go) | 第一百六十二批补齐 Size 四档和 SegmentKeys(true)：左右切段、两位有效数字自动跳段、a/p 时段快捷键、删除重置、单段循环。输入、粘贴、回调、禁用、双倍率及虚拟窗口连续输入已验证；默认保留 Enter/移焦提交与进位。尚未重做各平台真机验收。 |
@@ -468,3 +468,11 @@
 - [x] 自动验证覆盖 1×/2×、四种柱体方向与四种渐变方向的 GPU 像素、空位命中、轴预留、正负堆叠回调、饼图提示与图例、动画续接/减少动画，以及随机 DAG 和密集孤立节点的端口边界。
 - [x] 独立暂存内容通过全仓构建、UI/native vet、全量测试。
 - [ ] 原生窗口视觉与动画未验收；固定总 point_count、多停靠点渐变、chart_to_bar 映射及密集桑基标签重叠仍待处理。
+
+## 第一百六十九批：TextView 扩展与验证
+
+- [x] 代码块操作槽与按语言替换展示，保留默认复制/换行；文档级 Goldmark 插件、块视图与原子行内控件。
+- [x] 渲染文本 UTF-8 区间高亮、前后缀迁移和最小纵向定位；整篇 MaxLines/IsClamped；连续流式片段淡入。
+- [x] 修复稳定文字经过透明度图层导致抗锯齿颜色变化。双倍率 GPU 测试覆盖稳定文字、新增文字淡入、重叠高亮及混合表格预览裁剪；交互测试覆盖嵌套操作、注销回退、插件状态/点击/选择复制、中文区间与双向定位。
+- [x] 独立暂存内容通过全仓构建、UI/native vet、全量测试。
+- [ ] 原生窗口完整视觉与交互未验收。TextView 调整为主体已有，API 语义和解析路线差异继续保留。

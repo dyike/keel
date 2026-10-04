@@ -39,6 +39,7 @@ import (
 
 // run is a stretch of text in one style.
 type run struct {
+	object    *InlineObject
 	text      string
 	font      font.Font
 	size      unit.Sp
@@ -169,7 +170,7 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 		// Center the glyphs' logical box in the line; share one baseline.
 		height := lineH
 		for _, p := range line {
-			if r.runs[p.run].math != nil || r.runs[p.run].image != nil {
+			if r.runs[p.run].object != nil || r.runs[p.run].math != nil || r.runs[p.run].image != nil {
 				height = max(height, asc+desc+gtx.Dp(2))
 			}
 		}
@@ -193,6 +194,26 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 
 	for i := 0; i < len(r.runs); i++ {
 		rn := r.runs[i]
+		if rn.object != nil {
+			measure := gtx.Disabled()
+			measure.Constraints = layout.Constraints{Max: image.Pt(maxW, codeWidth)}
+			scratch := new(op.Ops)
+			measure.Ops = scratch
+			natural := rn.object.Widget.Layout(measure)
+			if lineW > 0 && natural.Size.X > maxW-lineW {
+				flush()
+			}
+			g := gtx
+			g.Constraints = layout.Constraints{Max: image.Pt(maxW-lineW, codeWidth)}
+			m := op.Record(gtx.Ops)
+			dims := rn.object.Widget.Layout(g)
+			call := m.Stop()
+			count := utf8.RuneCountInString(rn.text)
+			line = append(line, piece{run: i, text: rn.text, rect: image.Rect(lineW, 0, lineW+dims.Size.X, 0), call: call, ascent: dims.Size.Y, start: pos, runes: count, glyphs: []glyphX{{adv: dims.Size.X, runes: count}}})
+			lineW += dims.Size.X
+			pos += count
+			continue
+		}
 		if rn.image != nil {
 			// Images keep their aspect ratio, break as one unit, and use alt
 			// text as their atomic range in document selection.
@@ -286,16 +307,6 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 
 func (r *richText) paint(gtx layout.Context) {
 	ops := gtx.Ops
-	if lo, hi := r.selRange(); lo < hi {
-		for _, p := range r.pieces {
-			s0, s1 := max(lo, p.start), min(hi, p.start+p.runes)
-			if s0 >= s1 {
-				continue
-			}
-			x0, x1 := p.rect.Min.X+p.xAt(s0-p.start), p.rect.Min.X+p.xAt(s1-p.start)
-			paint.FillShape(ops, SelectionBg, clip.Rect(image.Rect(x0, p.rect.Min.Y, x1, p.rect.Max.Y)).Op())
-		}
-	}
 	// Backgrounds first, under the glyphs.
 	for _, p := range r.pieces {
 		rn := r.runs[p.run]
@@ -306,22 +317,31 @@ func (r *richText) paint(gtx layout.Context) {
 		bg := image.Rect(p.rect.Min.X-gtx.Dp(2), p.baseline-em*9/10, p.rect.Max.X+gtx.Dp(2), p.baseline+em*3/10)
 		paint.FillShape(ops, *rn.bg, clip.UniformRRect(bg, gtx.Dp(3)).Op(ops))
 	}
+	if d := r.document; d != nil && !r.decoration {
+		for _, h := range d.highlights {
+			r.paintRange(gtx, max(0, h.start-r.offset), min(r.length, h.end-r.offset), h.background)
+		}
+	}
+	lo, hi := r.selRange()
+	r.paintRange(gtx, lo, hi, SelectionBg)
 	for _, p := range r.pieces {
 		rn := r.runs[p.run]
-		stk := op.Offset(image.Pt(p.rect.Min.X, p.baseline-p.ascent)).Push(ops)
-		paint.ColorOp{Color: rn.color}.Add(ops)
-		p.call.Add(ops)
-		stk.Pop()
-		em := gtx.Sp(rn.size)
-		thick := max(1, em/14)
-		switch {
-		case rn.strike:
-			yy := p.baseline - em*3/10
-			paint.FillShape(ops, rn.color, clip.Rect(image.Rect(p.rect.Min.X, yy, p.rect.Max.X, yy+thick)).Op())
-		case rn.underline || rn.link != "" && r.link(p.run).Hovered():
-			yy := p.baseline + em/8
-			paint.FillShape(ops, rn.color, clip.Rect(image.Rect(p.rect.Min.X, yy, p.rect.Max.X, yy+thick)).Op())
-		}
+		r.paintFadedPiece(gtx, p, func() {
+			stk := op.Offset(image.Pt(p.rect.Min.X, p.baseline-p.ascent)).Push(ops)
+			paint.ColorOp{Color: rn.color}.Add(ops)
+			p.call.Add(ops)
+			stk.Pop()
+			em := gtx.Sp(rn.size)
+			thick := max(1, em/14)
+			switch {
+			case rn.strike:
+				yy := p.baseline - em*3/10
+				paint.FillShape(ops, rn.color, clip.Rect(image.Rect(p.rect.Min.X, yy, p.rect.Max.X, yy+thick)).Op())
+			case rn.underline || rn.link != "" && r.link(p.run).Hovered():
+				yy := p.baseline + em/8
+				paint.FillShape(ops, rn.color, clip.Rect(image.Rect(p.rect.Min.X, yy, p.rect.Max.X, yy+thick)).Op())
+			}
+		})
 	}
 	// The whole text takes pointer input for selecting; links sit on top.
 	area := clip.Rect(image.Rectangle{Max: r.size}).Push(ops)

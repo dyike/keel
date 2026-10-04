@@ -381,4 +381,6 @@ row := el.Div().Row().Items(el.ContentBottom).Child(avatar, body)
 
 `cx.InputSelection(id)` 返回最近的编辑器文本和 rune 选区。`cx.InputAction(id, el.InputCopy / InputCut / InputPaste / InputSelectAll)` 将编辑命令排入该输入下一次绘制；缺失/禁用输入忽略，只读拒绝剪切/粘贴，密码输入拒绝命令复制/剪切。Paste 走异步系统文本剪贴板，继续由编辑器完成过滤和 Transform；命令本身不改变焦点，菜单调用方可用 cx.Focus 恢复输入焦点。已通过菜单剪切、焦点恢复和受限输入回归。
 
+`ContainerContentSize(element)` 可在 `Decorate` 中读取容器布局后的内容像素尺寸，数值在该容器自身的最小/最大尺寸限制及 `Reveal` 之前计算；文本、输入和 widget 叶子返回零。
+
 `ElementBounds(root, target)` 在布局后返回目标相对根元素的边框位置，包含离屏元素，不叠加滚动偏移；隐藏或不属于该树的目标返回 false。可在 `Decorate` 中结合 `ScrollTo` 实现离屏定位。

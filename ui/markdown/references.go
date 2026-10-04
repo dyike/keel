@@ -53,7 +53,7 @@ func (d *Doc) updateContextual() {
 	if d.contextual && d.parsedContext == src {
 		return
 	}
-	bs := parse(src)
+	bs := d.parseSource(src)
 	d.parses++
 	next := make([]chunk, len(bs))
 	for i, b := range bs {
@@ -73,6 +73,9 @@ func (d *Doc) updateContextual() {
 	d.contextual, d.parsedContext = true, src
 }
 func sameBlock(a, b block) bool {
+	if a.custom != nil || b.custom != nil {
+		return false
+	}
 	if a.kind != b.kind || a.level != b.level || a.anchor != b.anchor || a.lang != b.lang || a.code != b.code || a.ordered != b.ordered || a.start != b.start {
 		return false
 	}

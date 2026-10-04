@@ -125,6 +125,17 @@ func (s *Styled[T]) Decorate(fn func(gtx core.C, draw func())) *T {
 	return s.self
 }
 
+// ContainerContentSize reports a container's laid-out content size in pixels,
+// before its own Min/Max dimensions or Reveal are applied. Call after layout,
+// for example from Decorate. Text, input and widget leaves return zero.
+func ContainerContentSize(container Element) image.Point {
+	if container == nil {
+		return image.Point{}
+	}
+	n := container.node()
+	return image.Pt(n.contentW, n.contentH)
+}
+
 // ElementBounds returns target's border box relative to root after layout,
 // before scrolling translations. Hidden and unrelated elements return false.
 // Call from Decorate, using elements from the current tree.
