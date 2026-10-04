@@ -263,7 +263,8 @@
 
 - [x] 第一百五十五批（`1636984`）：集中补齐 Select 的 RenderItem/RenderValue、Empty、TitlePrefix、Clearable、MenuWidth/MenuMaxHeight，并补 Match、Size、RowHeight、Appearance。清空与打开菜单分开命中，清空先更新状态再发回调，关闭后焦点回字段；自定义匹配可使缓存失效，选项/已选展示使用副本，保留虚拟化。测试覆盖单/多选清空、禁用继承、焦点恢复、万条自定义行、搜索/空内容、显示副本和浅深色菜单尺寸/Agent；全仓构建、UI/native vet、全量测试通过，真机未验收。
 
-- [x] 第一百五十六批：集中补齐 Image 的 Source、Cache、Loading/ImageError、LoadingContent/Fallback 和统一 Retry。新增可指定预算的线程安全 ImageCache，按源合并并发请求，取消最后等待者时中断，失败不缓存；Delete/Clear 使旧任务失去回填资格。SetImage/SetError/换源通过版本校验拒绝旧完成，自动加载继续复用 core.DecodeImage。测试覆盖加载/失败槽、取消、重试、显式图片/错误优先、并发读者隔离、LRU 与缓存代际，窗口 Agent 验证失败、禁用重试及成功状态。全仓构建、UI/native vet、全量测试通过，缓存并发另通过 race 检查；真机未验收。
+- [x] 第一百五十六批（`8b62760`）：集中补齐 Image 的 Source、Cache、Loading/ImageError、LoadingContent/Fallback 和统一 Retry。新增可指定预算的线程安全 ImageCache，按源合并并发请求，取消最后等待者时中断，失败不缓存；Delete/Clear 使旧任务失去回填资格。SetImage/SetError/换源通过版本校验拒绝旧完成，自动加载继续复用 core.DecodeImage。测试覆盖加载/失败槽、取消、重试、显式图片/错误优先、并发读者隔离、LRU 与缓存代际，窗口 Agent 验证失败、禁用重试及成功状态。全仓构建、UI/native vet、全量测试通过，缓存并发另通过 race 检查；真机未验收。
+
 
 ## 当前实施清单
 
@@ -384,7 +385,7 @@
 - [x] Tabs / ToggleGroup：去除叠加的方形焦点边框；中间选中项保留左右边线。键盘焦点仍有视觉反馈。
 - [x] DatePicker / Select（含 Form 内复用）：有外框时不再给内部触发器重复绘制焦点框；无框模式保留焦点提示。
 - [x] Layout / Skeleton：增加用途说明；Skeleton 增加加载完成对照按钮。
-- [x] 构建、vet、全量测试通过；新增窗口像素回归覆盖内部重复焦点框、选中边线，雷达提示框增加位置断言。
+- [x] 构建、vet、全量测试通过；新增窗口像素回归覆盖内部重复焦点框、选中边线，雷达提示框增加位置断言。顺带修复集中实现阶段引入的 CodeEditor 剪贴板事件接收回归。
 - [ ] 本轮尚未逐页进行原生窗口人工视觉验收；上述自动渲染检查不等同于整批新增 API 已完成验收。
 
 ## 第一百五十八批：Sidebar 展示与条目扩展
