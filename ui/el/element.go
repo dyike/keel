@@ -26,6 +26,7 @@ type Node struct {
 	focus                       func(*Style)
 	focusable                   bool
 	focusSet                    bool
+	focusTrap                   bool
 	tabConfigured, tabSkip      bool
 	tabIndex                    int
 	disabled, effectiveDisabled bool

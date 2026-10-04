@@ -39,6 +39,13 @@ func (s *Styled[T]) Focusable(on bool) *T {
 	return s.self
 }
 
+// FocusTrap cycles Tab and Shift+Tab within this subtree while it contains
+// focus. Nested traps use the innermost focused scope. Pointer and explicit
+// Context.Focus requests can move to another scope; this does not open a modal,
+// focus on mount, or restore focus on removal. Use Layer.TrapFocus for overlays.
+// Targets belong to this el root; independently embedded widgets own their focus.
+func (s *Styled[T]) FocusTrap(on bool) *T { s.n.focusTrap = on; return s.self }
+
 // TabStop controls sequential Tab traversal without disabling pointer/programmatic
 // focus. Explicit Tab configuration is scoped to this el root and its active trap.
 func (s *Styled[T]) TabStop(on bool) *T {

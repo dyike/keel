@@ -28,6 +28,10 @@ func (r *RootWidget) tabTargets(cx *Context) ([]tabTarget, bool) {
 			roots = append(roots, d.layer.content.node())
 		}
 	}
+	if scope := r.focusedContainerTrap(roots); scope != nil {
+		targets, _ := r.collectTabTargets([]*Node{scope})
+		return targets, true
+	}
 	return r.collectTabTargets(roots)
 }
 
@@ -36,7 +40,7 @@ func (r *RootWidget) collectTabTargets(roots []*Node) ([]tabTarget, bool) {
 	configured := false
 	var visit func(*Node)
 	visit = func(n *Node) {
-		configured = configured || n.tabConfigured
+		configured = configured || n.tabConfigured || n.focusTrap
 		if n.effectiveDisabled || n.style.hidden {
 			return
 		}
@@ -96,4 +100,33 @@ func (r *RootWidget) dispatchTab(cx *Context) {
 		t.state.pointerFocus = false
 		r.e.gtx.Execute(key.FocusCmd{Tag: t.tag})
 	}
+}
+
+// Locate the closest trap ancestor of the focused node. Search only roots that
+// are eligible under the active overlay, so a background trap cannot steal Tab.
+func (r *RootWidget) focusedContainerTrap(roots []*Node) *Node {
+	var visit func(*Node, *Node) (*Node, bool)
+	visit = func(n, scope *Node) (*Node, bool) {
+		if n == nil || n.effectiveDisabled || n.style.hidden {
+			return nil, false
+		}
+		if n.focusTrap {
+			scope = n
+		}
+		if state := r.store.states[n.key]; state != nil && !state.blocked && (r.source.Focused(state) || r.source.Focused(&state.editor)) {
+			return scope, true
+		}
+		for _, child := range n.children {
+			if trap, found := visit(child.node(), scope); found {
+				return trap, true
+			}
+		}
+		return nil, false
+	}
+	for _, root := range roots {
+		if trap, found := visit(root, nil); found {
+			return trap
+		}
+	}
+	return nil
 }

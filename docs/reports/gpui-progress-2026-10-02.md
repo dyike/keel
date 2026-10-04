@@ -311,7 +311,7 @@
 | [DropdownButton](https://gpui-kit.com/component/dropdown_button/) | 主体已有 | [按钮菜单、分体按钮、键盘与焦点恢复](../../ui/kit/dropdown_button.go) | 第四十五批补齐 Button 配置透传、Loading 和共享 Size；默认继承内层变体/高度，分体主按钮加载不阻挡箭头。第四十六批补齐 Placement/Offset，普通模式锚定整按钮，分体模式锚定箭头；内部 ID 由组件管理。菜单仍按 Keel 的边缘翻转策略定位。 |
 | [Editor](https://gpui-kit.com/component/editor/) | 主体已有 | [多光标/折叠、跟踪装饰、语言规则、自定义搜索会话及语言服务接入接口](../../ui/kit/code_editor.go) | 第一百五十二批补齐登记的三项主要缺口；第一百六十七批完成富粘贴钩子与异步读取，验证多光标、撤销、只读及过期结果拒绝。装饰用行/rune 列坐标，几何样式按逻辑行分段，空行不画；未提供连续轮廓、软换行投影或字重装饰。搜索逐行、跳过零长度匹配，列表最多 10,000 条，全部替换无该上限且同步执行。语言规则使用 Go 正则和 Chroma 分类，可由应用替换；非 Tree-sitter。浅深色虚拟窗口像素和 Agent 验证通过，未做本批真机验收。 |
 | [Empty](https://gpui-kit.com/component/empty/) | 主体已有 | [空状态富标题/描述、操作、媒体、尾部与分区样式](../../ui/kit/empty.go) | 第二十一、二十二批已补齐登记的媒体、富内容、尾部和样式缺口；默认保留 Surface 背景，分区样式通过 PartStyle 调整。使用单个 View 槽组合多个子项，非上游独立部件类型。 |
-| [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 主体已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | 弹层通过 el.Layer.TrapFocus/Modal 覆盖；GPUI 还可在普通容器上独立包裹 FocusTrap，Keel 当前入口绑定浮层。 |
+| [Focus Trap](https://gpui-kit.com/component/focus-trap/) | 主体已有 | [弹层焦点循环、关闭后返回焦点](../../ui/el/overlay.go) | 第一百七十一批补齐普通元素 FocusTrap(bool)，支持并列/嵌套区域、TabIndex、输入框及浮层优先。仅约束当前焦点所在子树的 Tab 循环；普通容器的初始聚焦/退出恢复由应用 cx.Focus 指定，独立嵌入控件自行管理焦点。Layer.TrapFocus/Modal 保留自动聚焦和关闭恢复。 |
 | [Form](https://gpui-kit.com/component/form/) | 主体已有 | [多列/跨列、字段描述/必填/显隐、校验与异步提交](../../ui/kit/form.go) | 第一百四十二批关闭登记主要缺口。默认仍是侧标签，VerticalLabels 可改上下排列；响应式列数和控件尺寸由应用配置，不提供统一尺寸枚举。Required 仅标记，业务校验仍用回调；Keel 另有异步提交状态管理。未做真机视觉验收。 |
 | [GroupBox](https://gpui-kit.com/component/group-box/) | 主体已有 | [标题、描述、内容分组、四种外观、框外 footer 与标题/正文样式](../../ui/kit/group_box.go) | 第十六批已关闭登记缺口；默认保留 Keel 原有背景加边框，GroupBoxNormal 对应无装饰。样式回调作用于每帧新建元素，不应保留元素引用。 |
 | [HoverCard](https://gpui-kit.com/component/hover-card/) | 主体已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | 第三批已补齐实例开关延时、方向/对齐及间距配置；默认仍为 700/300ms，键盘焦点立即打开，边缘避让保留。此表登记缺口已关闭。 |
@@ -484,3 +484,11 @@
 - [x] 双倍率 GPU 像素验证四向正负柱和不同柱高的整图颜色一致性；测试覆盖固定刻度、配置切换、超额数据、原始切片不变、非法值及极端映射。
 - [x] 独立暂存内容通过全仓构建、UI/native vet、全量测试。
 - [ ] 原生窗口视觉未验收；密集桑基标签仍可能重叠。本批不声称图表所有 API 或视觉完全一致。
+
+## 第一百七十一批：普通容器 FocusTrap
+
+- [x] FocusTrap(bool) 为普通元素提供顺序焦点循环，当前焦点最近的嵌套范围优先，并列区域独立。
+- [x] 复用 TabIndex/TabStop 顺序与输入框处理，跳过禁用/隐藏元素，模态浮层优先。鼠标及显式 Focus 可离开区域；示例包含退出操作。
+- [x] 测试覆盖正反向导航、嵌套解除、禁用、容器移除、鼠标/程序切换区域、模态浮层和关闭后返回。
+- [x] 独立暂存内容通过全仓构建、UI/native vet、全量测试。
+- [ ] 原生窗口键盘验收未完成；范围限于同一 el root，独立嵌入控件自行管理焦点。

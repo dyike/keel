@@ -15,6 +15,7 @@ func init() {
 type focusGallery struct {
 	count      int
 	disabled   bool
+	trapped    bool
 	text, last string
 }
 
@@ -24,7 +25,7 @@ func (v *focusGallery) Render(cx *el.Context) el.Element {
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary).TextColor(theme.Primary) }).
 			OnClick(fn).Child(el.Text(label))
 	}
-	return el.Div().Gap(16).OnKey(func(e el.KeyEvent) bool {
+	return el.Div().Gap(16).P(24).ScrollY().OnKey(func(e el.KeyEvent) bool {
 		if e.State == el.KeyPress {
 			v.last = string(e.Name)
 		}
@@ -36,5 +37,16 @@ func (v *focusGallery) Render(cx *el.Context) el.Element {
 			button("to-input", "聚焦输入框", func() { cx.Focus("editor") }),
 			el.Input().ID("editor").Bind(&v.text).Placeholder("输入框与按钮共用 Tab 顺序")),
 		el.Text(fmt.Sprintf("计数：%d；冒泡按键：%s", v.count, v.last)),
+		button("trap-toggle", "开启/关闭容器焦点循环", func() {
+			v.trapped = !v.trapped
+			if v.trapped {
+				cx.Focus("trap-first")
+			}
+		}),
+		el.Text("开启后，Tab 只在下方区域循环；可点击外部控件，或按退出按钮解除。"),
+		el.Div().FocusTrap(v.trapped).Border(1, theme.Border).Rounded(8).P(12).Gap(8).Child(
+			button("trap-first", "区域内第一个按钮", func() { v.count++ }),
+			el.Input().ID("trap-input").Placeholder("区域内输入框"),
+			button("trap-exit", "退出焦点循环", func() { v.trapped = false; cx.Focus("trap-toggle") })),
 	)
 }

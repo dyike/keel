@@ -384,3 +384,11 @@ row := el.Div().Row().Items(el.ContentBottom).Child(avatar, body)
 `ContainerContentSize(element)` 可在 `Decorate` 中读取容器布局后的内容像素尺寸，数值在该容器自身的最小/最大尺寸限制及 `Reveal` 之前计算；文本、输入和 widget 叶子返回零。
 
 `ElementBounds(root, target)` 在布局后返回目标相对根元素的边框位置，包含离屏元素，不叠加滚动偏移；隐藏或不属于该树的目标返回 false。可在 `Decorate` 中结合 `ScrollTo` 实现离屏定位。
+
+### 普通容器焦点循环
+
+`el.Div().FocusTrap(true)` 在焦点进入该子树后，将 Tab / Shift+Tab 限制在其中；`FocusTrap(false)` 解除。嵌套时当前焦点最近的 trap 祖先生效，多个并列区域各自循环。顺序遵循 TabIndex/TabStop，跳过禁用、隐藏及未绘制节点；输入框参与循环。模态浮层优先，背景区域不会截获浮层 Tab。
+
+它只约束顺序导航，鼠标点击和 `cx.Focus` 可以切换区域；挂载不会抢焦点，移除不会自动恢复。需要进入时聚焦或退出时返回时，应用调用 `cx.Focus(id)`；浮层继续使用 `Layer.TrapFocus` 的自动聚焦/恢复。范围限于同一 el root 内的元素，独立嵌入的 core.Widget 自行管理焦点。
+
+组件库 `focus` 页提供开启、输入和退出演示。自动测试覆盖并列/嵌套区域、双向循环、输入框、TabIndex/TabStop、动态禁用/解除/移除、鼠标退出及模态浮层优先与返回；原生键盘验收仍待完成。
