@@ -34,17 +34,39 @@ type NoticeSystemInteractiveBackend interface {
 	PostInteractive(id, title, body string, activated func(), done func(error))
 }
 
+// NoticeActivation carries optional platform window-activation data.
+// Token is opaque; it may be empty and is consumed by the application's backend.
+type NoticeActivation struct{ Token string }
+
+// NoticeSystemActivationBackend adds activation data to system click delivery.
+// Notifier prefers it when a backend implements both interactive interfaces.
+type NoticeSystemActivationBackend interface {
+	NoticeSystemBackend
+	PostActivated(id, title, body string, activated func(NoticeActivation), done func(error))
+}
+
+// OnSystemActivation receives platform activation data on the UI frame lock,
+// before OnSystemActivate and the notice's close/click callbacks.
+func (v *NotifierView) OnSystemActivation(fn func(NoticeActivation)) *NotifierView {
+	v.systemActivation = fn
+	return v
+}
+
 // OnSystemActivate sets the application's window activation hook (e.g. Raise).
 // It runs before the notice's close and click callbacks, on the UI frame lock.
 func (v *NotifierView) OnSystemActivate(fn func()) *NotifierView { v.systemActivate = fn; return v }
 
-func (v *NotifierView) activateSystem(id int) {
+func (v *NotifierView) activateSystem(id int) { v.activateSystemWith(id, NoticeActivation{}) }
+func (v *NotifierView) activateSystemWith(id int, activation NoticeActivation) {
 	for _, current := range v.items {
 		if current.id != id || !current.systemPosted || current.Delivery == NoticeInApp {
 			continue
 		}
 		n, _ := v.removeNotice(id) // detach before any user callback, preventing reentrancy
 		v.systemRequest(n, true)
+		if v.systemActivation != nil {
+			v.systemActivation(activation)
+		}
 		if v.systemActivate != nil {
 			v.systemActivate()
 		}
@@ -129,6 +151,8 @@ func (v *NotifierView) systemRequest(n notice, remove bool) {
 		}
 		if remove {
 			backend.Remove(id, complete)
+		} else if interactive, ok := backend.(NoticeSystemActivationBackend); ok {
+			interactive.PostActivated(id, n.Title, n.Body, func(activation NoticeActivation) { core.Update(func() { v.activateSystemWith(n.id, activation) }) }, complete)
 		} else if interactive, ok := backend.(NoticeSystemInteractiveBackend); ok {
 			interactive.PostInteractive(id, n.Title, n.Body, func() { core.Update(func() { v.activateSystem(n.id) }) }, complete)
 		} else {

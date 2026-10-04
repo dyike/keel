@@ -18,7 +18,8 @@ type notificationDBus struct {
 	owner   string
 	markup  bool
 	actions bool
-	clicks  map[string]func()
+	clicks  map[string]func(string)
+	tokens  map[string]string
 	ids     map[string]uint32
 }
 
@@ -32,7 +33,8 @@ func (n *notificationDBus) refresh() error {
 		n.ids = make(map[string]uint32)
 		n.markup = false
 		n.actions = false
-		n.clicks = make(map[string]func())
+		n.clicks = make(map[string]func(string))
+		n.tokens = make(map[string]string)
 		var caps []string
 		if err := n.call(owner, notificationService+".GetCapabilities").Store(&caps); err != nil {
 			n.owner = ""
@@ -56,6 +58,13 @@ func (n *notificationDBus) post(key, title, body string) error {
 	return n.postInteractive(key, title, body, nil)
 }
 func (n *notificationDBus) postInteractive(key, title, body string, onClick func()) error {
+	var activate func(string)
+	if onClick != nil {
+		activate = func(string) { onClick() }
+	}
+	return n.postActivated(key, title, body, activate)
+}
+func (n *notificationDBus) postActivated(key, title, body string, onClick func(string)) error {
 	if err := n.refresh(); err != nil {
 		return err
 	}
@@ -78,6 +87,7 @@ func (n *notificationDBus) postInteractive(key, title, body string, onClick func
 		return notificationDBusError(fmt.Errorf("invalid zero notification ID"))
 	}
 	n.ids[key] = id
+	delete(n.tokens, key)
 	if onClick != nil {
 		n.clicks[key] = onClick
 	} else {
@@ -97,6 +107,7 @@ func (n *notificationDBus) remove(key string) error {
 		return notificationDBusError(err)
 	}
 	delete(n.ids, key)
+	delete(n.tokens, key)
 	delete(n.clicks, key)
 	return nil
 }
@@ -107,6 +118,7 @@ func (n *notificationDBus) closed(sender string, id uint32) {
 	for key, current := range n.ids {
 		if current == id {
 			delete(n.ids, key)
+			delete(n.tokens, key)
 			delete(n.clicks, key)
 		}
 	}
@@ -115,14 +127,66 @@ func (n *notificationDBus) closed(sender string, id uint32) {
 // Return the callback to run outside the connection lock. Consume once while
 // retaining the numeric ID until the daemon closes it or the app retracts it.
 func (n *notificationDBus) activated(sender string, id uint32, action string) func() {
-	if sender != n.owner || action != "default" {
+	if sender != n.owner {
 		return nil
 	}
 	for key, current := range n.ids {
-		if current == id {
-			fn := n.clicks[key]
-			delete(n.clicks, key)
-			return fn
+		if current != id {
+			continue
+		}
+		token := n.tokens[key]
+		delete(n.tokens, key)
+		if action != "default" {
+			return nil
+		}
+		fn := n.clicks[key]
+		delete(n.clicks, key)
+		if fn == nil {
+			return nil
+		}
+		return func() { fn(token) }
+	}
+	return nil
+}
+
+func (n *notificationDBus) activationToken(sender string, id uint32, token string) {
+	if sender != n.owner {
+		return
+	}
+	for key, current := range n.ids {
+		if current == id && n.clicks[key] != nil {
+			if token == "" {
+				delete(n.tokens, key)
+			} else {
+				n.tokens[key] = token
+			}
+			return
+		}
+	}
+}
+
+// signal validates the shared D-Bus payload before touching notification state.
+// Call under the connection lock, then invoke the returned callback outside it.
+func (n *notificationDBus) signal(signal *dbus.Signal) func() {
+	if signal == nil || signal.Path != "/org/freedesktop/Notifications" || len(signal.Body) != 2 {
+		return nil
+	}
+	id, ok := signal.Body[0].(uint32)
+	if !ok {
+		return nil
+	}
+	switch signal.Name {
+	case notificationService + ".NotificationClosed":
+		if _, ok := signal.Body[1].(uint32); ok {
+			n.closed(signal.Sender, id)
+		}
+	case notificationService + ".ActivationToken":
+		if token, ok := signal.Body[1].(string); ok {
+			n.activationToken(signal.Sender, id, token)
+		}
+	case notificationService + ".ActionInvoked":
+		if action, ok := signal.Body[1].(string); ok {
+			return n.activated(signal.Sender, id, action)
 		}
 	}
 	return nil

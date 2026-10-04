@@ -53,7 +53,7 @@ open /tmp/KeelNotification.app
 
 Linux 使用运行中的 `org.freedesktop.Notifications` 服务，`Available()` 会检查会话总线和服务能力，可能等待总线回应；`RequestPermission` 异步执行同样检查，不弹权限对话框。无服务返回 ErrUnsupported，协议调用失败返回 ErrFailed。Notify 使用系统默认超时、无图标/动作、应用名 Keel；正文根据 body-markup 能力转义，保留纯文本含义。
 
-业务 ID 映射到服务返回的数值 ID，重复 Post 使用 replaces_id，Remove 调用 CloseNotification。收到 NotificationClosed 后删除映射；服务 owner 变化时清空旧映射，避免将旧 ID 发送给重启后的服务。映射仅保留在当前进程，不能跨进程启动撤回旧通知。Linux 已实现 ActionInvoked 默认动作回调；kit 示例连接窗口 Raise，尚未处理 Wayland ActivationToken，实际窗口置前取决于桌面策略。真实桌面展示仍需运行示例验收。协议测试使用可控总线替身，不代表 Linux 桌面验收完成。
+业务 ID 映射到服务返回的数值 ID，重复 Post 使用 replaces_id，Remove 调用 CloseNotification。收到 NotificationClosed 后删除映射；服务 owner 变化时清空旧映射，避免将旧 ID 发送给重启后的服务。映射仅保留在当前进程，不能跨进程启动撤回旧通知。Linux 已实现 ActionInvoked 默认动作回调；kit 示例连接窗口 Raise，已把 ActivationToken 传给 OnActivate；窗口后端消费令牌和实际置前仍待接入及桌面验收。真实桌面展示仍需运行示例验收。协议测试使用可控总线替身，不代表 Linux 桌面验收完成。
 
 协议依据：[Freedesktop Desktop Notifications](https://specifications.freedesktop.org/notification/latest/protocol.html)。
 
@@ -67,8 +67,18 @@ macOS 可设置 `Message.OnClick`。收到系统默认打开动作后，回调�
 验证范围：编译、未打包进程拒绝路径、注册表替换/回退/并发消费和 race 测试；尚未完成真实通知横幅和系统点击验收。
 
 
-Linux 默认动作使用 `default` 标识，监听 ActionInvoked 并消费对应业务 ID 的回调一次；仅接受当前服务 owner 的信号。NotificationClosed、成功 Remove、无回调替换和服务重启都会释放注册。信号使用顺序处理器，保留打开后关闭的处理顺序；回调在连接锁外的独立 goroutine 执行，可以继续投递或撤回。失败替换不丢失原有回调。当前没有接入 ActivationToken，无法保证 Wayland 上点击后窗口置前。
+Linux 默认动作使用 `default` 标识，监听 ActionInvoked 并消费对应业务 ID 的回调一次；仅接受当前服务 owner 的信号。NotificationClosed、成功 Remove、无回调替换和服务重启都会释放注册。信号使用顺序处理器，保留打开后关闭的处理顺序；回调在连接锁外的独立 goroutine 执行，可以继续投递或撤回。失败替换不丢失原有回调。ActivationToken 作为可选激活数据传给 OnActivate，详见下文；收到令牌不代表已成功置前。
 
 2026-10-03 开发验收：临时签名 .app 的示例窗口和事件记录显示正常；权限请求返回 `native: operation failed: status 7`。因此本次未验证成功授权、系统横幅、替换／撤回或点击置前；后续保留系统错误详情后，复现为 `UNErrorDomain (1): Notifications are not allowed for this application`，已修正为权限错误分类。该信息不能单独区分系统设置、应用身份或签名问题，成功授权仍待验收。
 
 错误分类依据：[Apple notificationsNotAllowed](https://developer.apple.com/documentation/usernotifications/unerror/code/notificationsnotallowed)。
+
+## 激活令牌
+
+`Message.OnActivate(func(Activation))` 接收默认打开动作及可选的 `Activation.Token`；若同时设置 OnClick，则在同一个回调 goroutine 上先调用 OnActivate，再调用 OnClick。没有令牌的平台/通知服务传空字符串，仍正常响应点击。
+
+Linux 按通知 ID 暂存 ActivationToken 信号，ActionInvoked 到达时取出并单次消费。仅接受当前服务 owner、指定对象路径及正确类型/长度的信号；关闭、撤回、成功替换和服务 owner 更新会释放令牌。失败替换/撤回保留原通知状态。未知动作会消费其前置令牌，但不会调用默认打开回调。
+
+[freedesktop 通知协议](https://specifications.freedesktop.org/notification/latest-single/#signals) 规定令牌可在 ActionInvoked 前发送，也允许不发送；它可能是 X11 startup ID 或 Wayland xdg-activation token。应用应按窗口后端使用这个不透明值。该接口不改变进程环境变量，也不自行激活窗口；当前 Keel Window.Raise 尚不接收令牌。
+
+协议替身测试覆盖隔离、可选令牌、信号验证、单次消费和生命周期；这些测试不代表已通过 Linux 通知桌面与 Wayland 置前验收。

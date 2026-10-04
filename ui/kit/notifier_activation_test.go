@@ -95,3 +95,69 @@ func TestNotifierSystemActivationIgnoredAfterLocalTransition(t *testing.T) {
 		t.Fatal("stale system event removed local replacement")
 	}
 }
+
+type tokenNoticeProbe struct {
+	*interactiveNoticeProbe
+	tokens chan func(NoticeActivation)
+}
+
+func (b *tokenNoticeProbe) PostActivated(id, title, body string, activate func(NoticeActivation), done func(error)) {
+	b.tokens <- activate
+	b.Post(id, title, body, done)
+}
+func TestNotifierActivationDataAndOrder(t *testing.T) {
+	b := &tokenNoticeProbe{&interactiveNoticeProbe{newNoticeBackendProbe(), make(chan func(), 2)}, make(chan func(NoticeActivation), 2)}
+	var order []string
+	n := Notifier().SystemBackend(b, nil)
+	n.OnSystemActivation(func(a NoticeActivation) {
+		order = append(order, a.Token)
+		if n.Len() != 0 {
+			t.Fatal("callback reentrancy before detach")
+		}
+	})
+	n.OnSystemActivate(func() { order = append(order, "raise") })
+	n.Notify(Notice{Title: "Token", Delivery: NoticeInAppAndSystem, Timeout: -1, OnClose: func() { order = append(order, "close") }, OnClick: func() { order = append(order, "click") }})
+	h := renderNotifierContent(n, 500, 1)
+	request := b.next(t)
+	activate := <-b.tokens
+	if len(b.activations) != 0 {
+		t.Fatal("data-capable backend not preferred")
+	}
+	request.done(nil)
+	activate(NoticeActivation{Token: "opaque-token"})
+	activate(NoticeActivation{Token: "duplicate"})
+	if len(order) != 0 {
+		t.Fatal("backend callback ran outside UI update")
+	}
+	h.Frame()
+	if !reflect.DeepEqual(order, []string{"opaque-token", "raise", "close", "click"}) {
+		t.Fatal(order)
+	}
+	removal := b.next(t)
+	removal.done(nil)
+	if !removal.remove || removal.id != request.id {
+		t.Fatal("activation did not remove notification")
+	}
+}
+
+func TestNotifierActivationWithoutToken(t *testing.T) {
+	b := &interactiveNoticeProbe{newNoticeBackendProbe(), make(chan func(), 2)}
+	calls := 0
+	n := Notifier().SystemBackend(b, nil).OnSystemActivation(func(a NoticeActivation) {
+		calls++
+		if a.Token != "" {
+			t.Fatal("invented token", a)
+		}
+	})
+	n.Notify(Notice{Title: "Plain", Delivery: NoticeSystemOnly})
+	h := renderNotifierContent(n, 500, 1)
+	request := b.next(t)
+	activate := <-b.activations
+	request.done(nil)
+	activate()
+	h.Frame()
+	if calls != 1 {
+		t.Fatal("missing empty-token activation", calls)
+	}
+	b.next(t).done(nil)
+}

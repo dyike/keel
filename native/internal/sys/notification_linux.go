@@ -47,26 +47,10 @@ func linuxNotificationConnection() error {
 	}}
 	go func() {
 		for signal := range ch {
-			if signal == nil || len(signal.Body) < 1 {
-				continue
-			}
-			id, ok := signal.Body[0].(uint32)
-			if !ok {
-				continue
-			}
 			var activate func()
 			linuxNotifications.Lock()
 			if linuxNotifications.conn == conn {
-				switch signal.Name {
-				case notificationService + ".NotificationClosed":
-					linuxNotifications.service.closed(signal.Sender, id)
-				case notificationService + ".ActionInvoked":
-					if len(signal.Body) == 2 {
-						if action, ok := signal.Body[1].(string); ok {
-							activate = linuxNotifications.service.activated(signal.Sender, id, action)
-						}
-					}
-				}
+				activate = linuxNotifications.service.signal(signal)
 			}
 			linuxNotifications.Unlock()
 			if activate != nil {
@@ -99,11 +83,18 @@ func NotificationPost(id, title, body string, done func(error)) {
 	NotificationPostInteractive(id, title, body, nil, done)
 }
 func NotificationPostInteractive(id, title, body string, onClick func(), done func(error)) {
+	var activate func(string)
+	if onClick != nil {
+		activate = func(string) { onClick() }
+	}
+	NotificationPostActivated(id, title, body, activate, done)
+}
+func NotificationPostActivated(id, title, body string, onClick func(string), done func(error)) {
 	go func() {
 		linuxNotifications.Lock()
 		err := linuxNotificationConnection()
 		if err == nil {
-			err = linuxNotifications.service.postInteractive(id, title, body, onClick)
+			err = linuxNotifications.service.postActivated(id, title, body, onClick)
 		}
 		linuxNotifications.Unlock()
 		done(err)

@@ -43,4 +43,7 @@ func TestUnsupportedProcess(t *testing.T) {
 	result(t, func(done func(error)) {
 		Post(Message{ID: "click-test", Title: "Test", OnClick: func() { t.Error("unsupported post activated") }}, done)
 	}, native.ErrUnsupported)
+	result(t, func(done func(error)) {
+		Post(Message{ID: "activation-test", Title: "Test", OnActivate: func(Activation) { t.Error("unsupported post activated") }}, done)
+	}, native.ErrUnsupported)
 }

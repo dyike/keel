@@ -50,16 +50,17 @@ type notice struct {
 // callbacks (or core.Update from other goroutines). Hovering or focusing a notice pauses
 // its remaining timeout; notices never take focus or Esc.
 type NotifierView struct {
-	items          []notice
-	next           int
-	placement      NoticePlacement
-	delivery       NoticeDelivery
-	systemBackend  NoticeSystemBackend
-	systemResult   func(NoticeSystemResult)
-	systemError    error
-	systemActivate func()
-	systemPrefix   string
-	outbox         noticeOutbox
+	items            []notice
+	next             int
+	placement        NoticePlacement
+	delivery         NoticeDelivery
+	systemBackend    NoticeSystemBackend
+	systemResult     func(NoticeSystemResult)
+	systemError      error
+	systemActivate   func()
+	systemActivation func(NoticeActivation)
+	systemPrefix     string
+	outbox           noticeOutbox
 }
 
 func Notifier() *NotifierView { return &NotifierView{} }

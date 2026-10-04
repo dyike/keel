@@ -9,6 +9,11 @@ import (
 	"unicode/utf8"
 )
 
+// Activation carries optional platform data for opening a notification.
+// Token is an opaque Linux X11 startup ID or Wayland xdg-activation token.
+// It is empty when the server or platform does not supply one.
+type Activation struct{ Token string }
+
 // Message is a system notification. ID is an application-wide stable identifier;
 // posting it again replaces the matching notification. Title or Body is required.
 type Message struct {
@@ -17,6 +22,9 @@ type Message struct {
 	// Supported on macOS and Linux servers advertising actions. It does not
 	// raise a specific UI window.
 	OnClick func()
+	// OnActivate receives the platform's activation data on the callback goroutine.
+	// If both callbacks are set, it runs before OnClick. No window is raised here.
+	OnActivate func(Activation)
 }
 
 // Available reports whether this process can use the platform implementation.
@@ -38,7 +46,14 @@ func Post(m Message, done func(error)) {
 		cb(native.ErrInvalidArgument)
 		return
 	}
-	if m.OnClick != nil {
+	if m.OnActivate != nil {
+		sys.NotificationPostActivated(m.ID, m.Title, m.Body, func(token string) {
+			m.OnActivate(Activation{Token: token})
+			if m.OnClick != nil {
+				m.OnClick()
+			}
+		}, cb)
+	} else if m.OnClick != nil {
 		sys.NotificationPostInteractive(m.ID, m.Title, m.Body, m.OnClick, cb)
 	} else {
 		sys.NotificationPost(m.ID, m.Title, m.Body, cb)

@@ -79,6 +79,10 @@ func (interactiveBackend) PostInteractive(id, title, body string, activated func
 	notification.Post(notification.Message{ID: id, Title: title, Body: body, OnClick: activated}, done)
 }
 
+func (interactiveBackend) PostActivated(id, title, body string, activated func(kit.NoticeActivation), done func(error)) {
+	notification.Post(notification.Message{ID: id, Title: title, Body: body, OnActivate: func(activation notification.Activation) { activated(kit.NoticeActivation{Token: activation.Token}) }}, done)
+}
+
 func main() {
 	check := flag.Bool("check", false, "print platform/bundle support without asking permission")
 	flag.Parse()
@@ -99,6 +103,11 @@ func main() {
 		}
 	})
 	w := window.Open(window.Options{Title: "Keel 系统通知", Width: 520, Height: 460, Content: el.Root(d)})
+	d.notifier.OnSystemActivation(func(activation kit.NoticeActivation) {
+		if activation.Token != "" {
+			d.record("收到系统激活令牌；当前窗口后端仍使用 Raise")
+		}
+	})
 	d.notifier.OnSystemActivate(func() {
 		if !w.Closed() {
 			d.record("请求窗口置前")
