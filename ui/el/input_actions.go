@@ -7,6 +7,7 @@ import (
 	"gioui.org/io/clipboard"
 	"gioui.org/op"
 	"gioui.org/widget"
+	"github.com/dyike/keel/ui/internal/inputcontent"
 )
 
 // InputAction is an editing command directed to one identified input.
@@ -24,6 +25,10 @@ const (
 func (cx *Context) InputSelection(id string) (InputEdit, bool) {
 	for _, st := range cx.root.store.states {
 		if st.id == id && st.edInit && !st.disabled {
+			if d := st.inputDocument; d != nil {
+				r, _ := inputcontent.RuneRange(d.Content().Text(), d.Selection())
+				return InputEdit{Text: d.Content().Text(), Start: r.Start, End: r.End}, true
+			}
 			start, end := st.editor.Selection()
 			return InputEdit{Text: st.editor.Text(), Start: start, End: end}, true
 		}

@@ -57,6 +57,7 @@ func (v *InputView) Mask(pattern string) *InputView {
 	if escaped {
 		return v
 	}
+	v.document = nil
 	v.mask = m
 	v.SetValue(v.value)
 	return v
@@ -70,6 +71,7 @@ func (v *InputView) NumberMask(separator rune, fraction int) *InputView {
 	if v.multiline || fraction < -1 || separator < 0 || separator > unicode.MaxRune || separator >= 0xD800 && separator <= 0xDFFF || separator != 0 && (unicode.IsDigit(separator) || strings.ContainsRune(".-+\r\n", separator)) {
 		return v
 	}
+	v.document = nil
 	v.mask = &inputMask{number: true, separator: separator, fraction: fraction}
 	v.SetValue(v.value)
 	return v

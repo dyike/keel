@@ -30,11 +30,16 @@ func init() {
 			pasteInfo = fmt.Sprintf("已接收 %d 张图片、%d 个文件引用", len(data.Images), len(data.Files))
 			return true
 		}).OnPasteError(func(err error) { pasteInfo = "富剪贴板读取失败，回退文本：" + err.Error() })
+		reference := kit.Input("引用").Clearable()
+		draft, _ := kit.NewInputContent("查看 docs/input.md", kit.InputTokenSpan{Range: kit.InputRange{Start: len("查看 "), End: len("查看 docs/input.md")}, Token: kit.InputToken{ID: "input-doc", Text: "docs/input.md", Label: "输入组件文档"}})
+		_ = reference.SetContent(draft)
+		referenceInfo := "点击引用查看标识；复制时保留原始路径。"
+		reference.OnTokenActivate(func(token kit.InputToken) { referenceInfo = token.ID + " · " + token.Text })
 		off := kit.Input("只读")
 		off.SetValue("SO-1001")
 		off.SetReadOnly(true)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(14).W(el.Dp(360)).MaxW(el.Full).Child(search.Render(cx), price.Render(cx), phone.Render(cx), el.Text("电话原值："+phone.UnmaskedValue()).TextColor(theme.Muted), pass.Render(cx), bad.Render(cx), note.Render(cx), el.Text(pasteInfo).TextColor(theme.Muted), off.Render(cx))
+			return el.Div().P(24).Gap(14).W(el.Dp(360)).MaxW(el.Full).Child(search.Render(cx), price.Render(cx), phone.Render(cx), el.Text("电话原值："+phone.UnmaskedValue()).TextColor(theme.Muted), pass.Render(cx), bad.Render(cx), note.Render(cx), el.Text(pasteInfo).TextColor(theme.Muted), off.Render(cx), reference.Render(cx), el.Text(referenceInfo).TextColor(theme.Muted))
 		}))
 	})
 }

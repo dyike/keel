@@ -22,3 +22,5 @@ GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回�
 使用指南：[元素与视图](../../docs/el.md)。
 
 `input_paste.go` 在默认文本插入前处理 OnPaste；可接入 core.ClipboardReader，原生读取失败回退 Gio 纯文本通路。异步完成通过 core.Update，编辑内容或选区变化后丢弃旧结果。
+
+原子输入引用由 `el.InputDocument` 接入 `ui/internal/inputcontent`，后者只保存文本、引用范围、选区和编辑事务，不依赖 Gio 或其他 Keel 模块。kit 和 markdown 仅经 el 间接依赖它。

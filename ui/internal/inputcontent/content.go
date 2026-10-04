@@ -268,3 +268,6 @@ func (p Presentation) DisplayOffset(source, bias int) int {
 	}
 	return source + delta
 }
+
+// Equal compares both text and reference metadata.
+func Equal(a, b Content) bool { return a.text == b.text && slices.Equal(a.spans, b.spans) }

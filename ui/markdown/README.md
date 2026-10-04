@@ -29,3 +29,5 @@
 | `selection_units.go` | Unicode 选词、三击选段、公式与代码行边界 |
 
 使用和设计：[Markdown](../../docs/markdown.md)。
+
+原子输入引用由 `el.InputDocument` 接入 `ui/internal/inputcontent`，后者只保存文本、引用范围、选区和编辑事务，不依赖 Gio 或其他 Keel 模块。kit 和 markdown 仅经 el 间接依赖它。

@@ -57,3 +57,27 @@ Input 和 TextArea 默认提供右键编辑菜单，包含复制、剪切、粘�
 ## 尺寸
 
 `Size(InputSizeXSmall/Small/Medium/Large)` 可用于 Input 和 TextArea。Medium 保留原有主题尺寸；其余档调整输入字号、框的最小高度和内边距。TextArea 的固定 Rows 高度随字号变化，AutoGrow 继续按实际文字测量；标签、前后缀和自定义内容保留自己的样式。InputGroup 内仍由组控制外框和内边距。双倍率尺寸、焦点和值保持、AutoGrow 增长/收缩及固定 Rows 字号缩放已验证。
+
+## 原子引用（基础接入）
+
+```go
+field := kit.Input("引用")
+draft, err := kit.NewInputContent("查看 docs/input.md", kit.InputTokenSpan{
+    Range: kit.InputRange{Start: len("查看 "), End: len("查看 docs/input.md")},
+    Token: kit.InputToken{ID: "input-doc", Text: "docs/input.md", Label: "输入组件文档"},
+})
+if err == nil {
+    err = field.SetContent(draft)
+}
+field.OnTokenActivate(func(token kit.InputToken) { /* 应用打开 token.ID */ })
+```
+
+`Content()` 返回包含提交文本和引用元数据的独立草稿；范围使用 UTF-8 字节，须落在字素边界且不能重叠。Text 必须与范围内的文字一致，ID 不得为空；同一个 ID 可以多次出现。Label 省略时显示 Text。显示名称和提交文本可以不同，`Value()`、选区复制、Form 取值均使用提交文本。
+
+`SetContent` 恢复草稿并清空撤销；`SetValue` 即使文字相同也移除全部引用并清空撤销。`ReplaceWithToken` 替换当前选区，记录撤销并触发 OnChange；禁用、只读或输入法组合输入期间返回错误。普通输入或粘贴不会把相同文字自动识别成引用；替换引用为相同显示文字也会移除引用 ID。删除和非空选区覆盖引用的任意部分时按整个引用处理，撤销恢复元数据和选区。
+
+点击引用会选择它并调用 `OnTokenActivate`；拖选、Shift 点击和禁用状态不会调用，只读状态允许查看。应用可以把 `ActivateToken()` 绑定到快捷键，激活完整选中的引用。显示背景复用主题颜色；Agent 可以读取引用名称及字段提交文本。
+
+Input、TextArea 和 InputGroup 内的输入可以使用这条编辑路径。带密码、掩码、Filter 或 MaxLength 的字段拒绝 SetContent；随后启用这些模式会退出引用编辑，保留当前提交文本。富粘贴仍使用 PasteReader/OnPaste，恢复草稿后拒绝迟到的粘贴结果。
+
+当前完成的是基础接入：真实 Gio 事件测试覆盖删除、撤销、光标、组合输入事务、异步粘贴和点击/拖选。尚未提供自定义图标/内容渲染和任意宽度的 token，也未保证长 token 在软换行时整块移动；原生输入法候选位置、组合下划线和跨平台交互尚未验收，不视为与上游完整对齐。

@@ -96,15 +96,18 @@ type elemState struct {
 	version                                                          int  // ScrollToEndOn's value last frame
 	keepVersion                                                      int  // KeepBottomOn's value last frame
 
-	editor               widget.Editor
-	caret                editorstyle.Caret
-	edInit               bool
-	inputFocused         bool
-	inputPaste           *inputPasteRequest
-	inputActions         []InputAction
-	inputSelection       *[2]int
-	inputUndo, inputRedo []InputEdit
-	lastText             string // what Bind last synced, to spot program changes
+	inputTokenHits        []*inputTokenHit
+	inputDocument         *InputDocument
+	inputDocumentRevision uint64
+	editor                widget.Editor
+	caret                 editorstyle.Caret
+	edInit                bool
+	inputFocused          bool
+	inputPaste            *inputPasteRequest
+	inputActions          []InputAction
+	inputSelection        *[2]int
+	inputUndo, inputRedo  []InputEdit
+	lastText              string // what Bind last synced, to spot program changes
 }
 
 // store holds element state for one root. Entries not painted in a frame are

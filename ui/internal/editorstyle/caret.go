@@ -39,6 +39,12 @@ type Caret struct {
 // only during drawing to suppress its font-line-height caret, then restored.
 // Input, selection, scrolling, undo and IME still belong to the original Editor.
 func (c *Caret) Layout(gtx layout.Context, style material.EditorStyle, shaper *text.Shaper) layout.Dimensions {
+	return c.LayoutDecorated(gtx, style, shaper, nil)
+}
+
+// LayoutDecorated adds editor-coordinate backgrounds after text layout and
+// before selection and glyph painting. The decoration must not change layout.
+func (c *Caret) LayoutDecorated(gtx layout.Context, style material.EditorStyle, shaper *text.Shaper, decorate func(layout.Context)) layout.Dimensions {
 	ed := style.Editor
 	readOnly := ed.ReadOnly
 	selectionColor := style.SelectionColor
@@ -56,6 +62,9 @@ func (c *Caret) Layout(gtx layout.Context, style material.EditorStyle, shaper *t
 		c.shaper, c.font, c.pixels = shaper, style.Font, pixels
 		c.top, c.bottom = inkBounds(shaper, style.Font, pixels)
 		c.selectionText = ""
+	}
+	if decorate != nil {
+		decorate(gtx)
 	}
 	// Layout first to obtain Gio's current (scrolled and wrapped) regions,
 	// then replay its text above our ink-height selection backgrounds.

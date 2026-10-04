@@ -85,3 +85,5 @@ Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外
 | [Plot](../../docs/kit/plot.md) | 可缩放平移的 x/y 绘图 |
 | [ColorPicker](../../docs/kit/color_picker.md) | 颜色选择 |
 | [Questionnaire](../../docs/kit/questionnaire.md) | 分页问卷与答案模型 |
+
+原子输入引用由 `el.InputDocument` 接入 `ui/internal/inputcontent`，后者只保存文本、引用范围、选区和编辑事务，不依赖 Gio 或其他 Keel 模块。kit 和 markdown 仅经 el 间接依赖它。

@@ -3,6 +3,7 @@ package el
 import (
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"gioui.org/io/clipboard"
@@ -13,10 +14,12 @@ import (
 )
 
 type inputPasteRequest struct {
-	before          InputEdit
-	data            core.ClipboardData
-	err             error
-	ready, fallback bool
+	document         *InputDocument
+	documentRevision uint64
+	before           InputEdit
+	data             core.ClipboardData
+	err              error
+	ready, fallback  bool
 }
 
 // OnPaste handles clipboard contents before default text insertion. Return true
@@ -45,6 +48,10 @@ func (e *engine) requestInputPaste(n *Node, st *elemState) {
 	a, b := st.editor.Selection()
 	r := &inputPasteRequest{before: InputEdit{Text: st.editor.Text(), Start: a, End: b}}
 	st.inputPaste = r
+	if d := n.input.document; d != nil {
+		r.document = d
+		r.documentRevision = d.revision
+	}
 	if reader := n.input.pasteReader; reader != nil {
 		var once sync.Once
 		reader(func(data core.ClipboardData, err error) {
@@ -82,10 +89,13 @@ func (e *engine) inputPasteEvent(n *Node, st *elemState) (widget.EditorEvent, bo
 	}
 	start, end := st.editor.Selection()
 	valid := e.gtx.Enabled() && !n.input.readOnly && !st.disabled && st.editor.Text() == r.before.Text && start == r.before.Start && end == r.before.End
-	if n.input.bind != nil && *n.input.bind != r.before.Text {
+	if n.input.document == nil && n.input.bind != nil && *n.input.bind != r.before.Text {
 		valid = false
 	}
 	if selection := st.inputSelection; selection != nil && (selection[0] != r.before.Start || selection[1] != r.before.End) {
+		valid = false
+	}
+	if r.document != nil && (n.input.document != r.document || r.document.revision != r.documentRevision) {
 		valid = false
 	}
 	if !valid {
@@ -129,9 +139,20 @@ func (e *engine) inputPasteEvent(n *Node, st *elemState) (widget.EditorEvent, bo
 	if fn := n.input.onPaste; fn != nil {
 		core.Call(e.gtx, func() { consumed = fn(r.data) })
 	}
-	if consumed || r.data.Text == "" || n.input.bind != nil && *n.input.bind != r.before.Text {
+	if consumed || r.data.Text == "" || n.input.document == nil && n.input.bind != nil && *n.input.bind != r.before.Text || r.document != nil && r.document.revision != r.documentRevision {
 		return nil, true
 	}
-	st.editor.Insert(r.data.Text)
+	if d := n.input.document; d != nil {
+		text := r.data.Text
+		if !n.input.multiline {
+			text = strings.ReplaceAll(text, "\n", " ")
+		}
+		if err := documentReplaceSelection(d, text); err != nil {
+			return nil, true
+		}
+		documentSyncEditor(st, d)
+	} else {
+		st.editor.Insert(r.data.Text)
+	}
 	return widget.ChangeEvent{}, true
 }

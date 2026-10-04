@@ -318,7 +318,7 @@
 | [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。第一百六十六批完成 Rotate、SVGIcon/SVGIconFile 与原色模式，验证双倍率、非零 viewBox、渐变/变换与透明度像素，修复半透明颜色变暗。SVG 为 oksvg 支持的子集，按物理像素栅格化，并非完整浏览器 SVG。 |
 | [Image](https://gpui-kit.com/component/image/) | 主体已有 | [适配/裁剪/预览、异步源加载、内存缓存、自定义加载/失败内容及重试](../../ui/kit/image.go) | 第一百五十六批补齐登记的 Source/Cache 与 LoadingContent/Fallback。HTTP(S)、文件/data URL 使用有大小限制的栅格解码；默认 15 秒超时、共享 64MiB 估算 LRU、同源请求合并，支持取消及过期结果拒绝。没有 SVG、GIF 动画、HTTP 缓存头/ETag、磁盘缓存或自动过期；卸载取消由应用调用 Source(空字符串)。窗口 Agent 与缓存行为已验，真机未验收。 |
 | [Input Group](https://gpui-kit.com/component/input-group/) | 主体已有 | [四方向/多附加内容、TextArea 组合、统一边框、标签聚焦与按钮操作](../../ui/kit/input_group.go) | 第九批已补齐 block addon 和独立附加内容配置；按钮直接使用 kit.Button。Textarea 最大行数已在第一百一十三批补齐；Token 仍见 Textarea 条目，不计作已完成。 |
-| [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 第一百六十七批完成模板/数字掩码、编辑菜单、OnPaste/PasteReader；自动测试验证选区、撤销、受限菜单、富粘贴回退和过期结果拒绝。macOS 原生桥接已实际读取图片快照，原生格式及窗口交互仍未全部验收。仍缺原子 inline token 与触屏选择菜单，其他平台富读取待补。Filter 是字符白名单。 |
+| [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 第一百六十七批完成模板/数字掩码、编辑菜单、OnPaste/PasteReader；自动测试验证选区、撤销、受限菜单、富粘贴回退和过期结果拒绝。macOS 原生桥接已实际读取图片快照，原生格式及窗口交互仍未全部验收。第一百七十四批接入原子引用基础编辑；自定义 token 渲染、整块软换行和原生 IME 验收仍缺。触屏选择菜单、其他平台富读取待补。Filter 是字符白名单。 |
 | [Kbd](https://gpui-kit.com/component/kbd/) | 主体已有 | [平台键帽、Plain、动作键位、独立字号与自定义样式](../../ui/kit/kbd.go) | 第二十五批已补齐登记的尺寸缺口及样式回调；Size 单位 sp，默认仍继承。KbdFor 读取动作首个绑定，不提供上游按焦点/上下文查询绑定的独立入口。 |
 | [Label](https://gpui-kit.com/component/label/) | 主体已有 | [整段排版、全部/前缀匹配高亮、遮罩、次级文案和样式](../../ui/kit/label.go) | 第八十四批补齐登记缺口。匹配区分大小写且不重叠；遮罩按 rune 计数并覆盖 Agent 语义，次级文案仍可见。连字/组合字符按整个字形簇着色，彩色位图字形保留原色。样式通过 TextEl 配置；字段聚焦使用 FocusOnPress，修正旧表误称的 For 接口。 |
 | [List](https://gpui-kit.com/component/list/) | 主体已有 | [分组头尾、自定义行、搜索、分页、稳定 ID、多选、键盘与拖动](../../ui/kit/list.go) | 第一百四十八批关闭登记主要缺口。分组按相邻 Group 划分，组头/页尾和数据使用统一行高；搜索默认关闭，使用本地包含匹配，远端结果过期校验由应用负责。加载阈值为底部两行，未提供 delegate 的所有自定义状态插槽；真机视觉/拖动未验收。 |
@@ -354,7 +354,7 @@
 | [Tabs](https://gpui-kit.com/component/tabs/) | 主体已有 | [四种外观、图标/富标签、单项禁用、页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 第十二、十三批已关闭登记的外观、禁用、内容、最大宽度及滚动接口缺口。默认仍为溢出菜单；Scrollable 开启时改为滚动轨道，ScrollTo 只定位不选择。自定义标签应为展示内容，宽度上限不包含独立关闭按钮。 |
 | [Tag](https://gpui-kit.com/component/tag/) | 主体已有 | [语义/自定义颜色、描边、圆角、尺寸、富内容、移除与选中](../../ui/kit/tag.go) | 第十四批已关闭登记缺口；默认保留主题染色胶囊，实心底色可用 Appearance。Size 为最小高度，长文字仍换行；自定义内容限展示元素。 |
 | [TextView](https://gpui-kit.com/component/text-view/) | 主体已有 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 第一百六十九批完成代码块操作与语言展示、RenderedText/区间高亮与定位、MaxLines/IsClamped、流式淡入及 Goldmark 块/行内插件，并通过交互和双倍率像素测试。范围用渲染文本 UTF-8 字节；MaxLines 按正文行高预算；含插件时整篇解析，自定义块自行管理选区。HTML/扩展 TeX 已有；不是完整 TeX/CSS，原生窗口未验收。 |
-| [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、AutoGrow 行数范围、错误显示](../../ui/kit/input.go) | 第一百一十三批补齐 AutoGrow(min,max)，包含软换行、上限后内部滚动和删除后缩回；Rows 恢复旧模式。第一百六十七批完成编辑菜单和富粘贴钩子；仍缺 inline token、触屏选择菜单和非 macOS 富读取。 |
+| [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、AutoGrow 行数范围、错误显示](../../ui/kit/input.go) | 第一百一十三批补齐 AutoGrow(min,max)，包含软换行、上限后内部滚动和删除后缩回；Rows 恢复旧模式。第一百六十七批完成编辑菜单和富粘贴钩子；第一百七十四批接入原子引用基础编辑；仍缺自定义 token 渲染、整块软换行、原生 IME 验收、触屏选择菜单和非 macOS 富读取。 |
 | [Theme](https://gpui-kit.com/component/theme/) | 主体已有 | [语义配色、间距/字号/圆角/阴影刻度、浅深切换、注册与 JSON 主题、局部作用域、渐变、目录监听](../../ui/theme/registry.go) | 核心主题机制已完成；Keel 7 套内置（含 light/dark），GPUI 文档称 20+。Keel 渐变 JSON 为 from/to/angle，仅 Bg/Primary；GPUI 是可选背景 token 的 CSS 两色渐变，配置不兼容。 |
 | [TimeField](https://gpui-kit.com/component/time-field/) | 主体已有 | [分段、时分秒、12/24 小时、四档尺寸及快速键盘编辑](../../ui/kit/time_field.go) | 第一百六十二批补齐 Size 四档和 SegmentKeys(true)：左右切段、两位有效数字自动跳段、a/p 时段快捷键、删除重置、单段循环。输入、粘贴、回调、禁用、双倍率及虚拟窗口连续输入已验证；默认保留 Enter/移焦提交与进位。尚未重做各平台真机验收。 |
 | [TitleBar](https://gpui-kit.com/component/title-bar/) | 主体已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 自绘标题栏与窗口控制已实现；macOS 窗口初始居中已实测。标题栏全部系统行为及 Windows/Linux 真机验收仍待完成。 |
@@ -509,3 +509,12 @@
 - [x] 测试覆盖组合字符、中文、ZWJ emoji、旗帜、越界选择、快照隔离和撤销分支；10 秒模糊测试完成 49,362 次随机输入，无失败。
 - [x] 全仓构建、UI/native vet、全量测试通过。
 - [ ] Input/Textarea 的渲染、光标、复制、IME 和点击行为尚未接入。此批仅完成内部内容模型，组件继续标记为部分覆盖。
+
+## 第一百七十四批：Input/Textarea 原子引用基础接入
+
+- [x] InputDocument/Content/SetContent/ReplaceWithToken 接入 Input、TextArea 和 el 输入；显示名与提交文本分离，选区 API 使用提交文本坐标。
+- [x] 普通/按词移动和删除、整段选择、复制、剪切、纯文本及异步富粘贴、引用元数据撤销/重做；同文替换移除引用，草稿重置拒绝迟到粘贴。
+- [x] 输入法组合编辑合并撤销，组合期间拒绝插入引用；SetValue/SetContent 静默重置。真实 Gio 事件测试覆盖这些操作、只读、禁用及密码模式退出。
+- [x] 主题背景、引用语义名称、点击选择/激活、应用快捷键激活；拖选与 Shift 点击不激活，只读允许激活。组件库示例浅色 1×、深色 2× 离屏截图已检查。
+- [x] 全仓构建、UI/native vet、全量测试通过；随后补充的禁用前排队剪切保护通过 token 专项测试和 vet。
+- [ ] 自定义图标/内容及任意宽度 token、软换行时整块移动、原生输入法候选位置/组合下划线和跨平台验收仍缺。Input/Textarea 保持部分覆盖，未标为完整 token 对齐。

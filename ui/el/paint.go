@@ -24,6 +24,7 @@ import (
 	"gioui.org/widget/material"
 
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/internal/inputcontent"
 	"github.com/dyike/keel/ui/theme"
 	"golang.org/x/image/math/fixed"
 )
@@ -81,7 +82,9 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 		h = max(h, e.dp(72))
 		if spec := n.input; spec.minRows > 0 {
 			value := ""
-			if spec.bind != nil {
+			if spec.document != nil {
+				value = spec.document.Content().Presentation().Text
+			} else if spec.bind != nil {
 				value = *spec.bind
 			} else if st := e.store.states[n.key]; st != nil {
 				value = st.lastText
@@ -508,74 +511,79 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 			core.Call(gtx, func() { fn(e) })
 		}
 	}
-	e.inputPasteKeys(n, st)
-	if spec.transform != nil || spec.transformEdit != nil {
-		e.inputUndoKeys(n, st)
-	}
-	// User edits first, then program changes to the bound string.
-	for {
-		beforeStart, beforeEnd := ed.Selection()
-		before := InputEdit{Text: st.lastText, Start: beforeStart, End: beforeEnd}
-		ev, ok := ed.Update(gtx)
-		if !ok && len(st.inputActions) > 0 {
-			action := st.inputActions[0]
-			st.inputActions = st.inputActions[1:]
-			ev, ok = e.inputAction(n, st, action)
+	if spec.document != nil {
+		e.inputDocumentEvents(n, st)
+	} else {
+		st.inputDocument = nil
+		e.inputPasteKeys(n, st)
+		if spec.transform != nil || spec.transformEdit != nil {
+			e.inputUndoKeys(n, st)
 		}
-		if !ok {
-			ev, ok = e.inputPasteEvent(n, st)
-		}
-		if !ok {
-			break
-		}
-		switch ev.(type) {
-		case widget.ChangeEvent:
-			text := ed.Text()
-			if text == st.lastText {
-				break // SetText below, not the user
+		// User edits first, then program changes to the bound string.
+		for {
+			beforeStart, beforeEnd := ed.Selection()
+			before := InputEdit{Text: st.lastText, Start: beforeStart, End: beforeEnd}
+			ev, ok := ed.Update(gtx)
+			if !ok && len(st.inputActions) > 0 {
+				action := st.inputActions[0]
+				st.inputActions = st.inputActions[1:]
+				ev, ok = e.inputAction(n, st, action)
 			}
-			if spec.transform != nil || spec.transformEdit != nil {
-				start, end := ed.Selection()
-				normalized := InputEdit{Text: text, Start: start, End: end}
-				if spec.transformEdit != nil {
-					normalized = spec.transformEdit(before, normalized)
-				} else {
-					normalized = spec.transform(normalized)
-				}
-				if normalized.Text != text {
-					ed.SetText(normalized.Text)
-				}
-				if normalized.Text != text || normalized.Start != start || normalized.End != end {
-					ed.SetCaret(normalized.Start, normalized.End)
-				}
-				text = ed.Text()
-				if text == st.lastText {
-					break
-				}
-				st.inputUndo = append(st.inputUndo, before)
-				if len(st.inputUndo) > 100 {
-					st.inputUndo = st.inputUndo[1:]
-				}
-				st.inputRedo = nil
+			if !ok {
+				ev, ok = e.inputPasteEvent(n, st)
 			}
-			st.lastText = text
-			if spec.bind != nil {
-				*spec.bind = text
+			if !ok {
+				break
 			}
-			if spec.onChange != nil {
-				core.Call(gtx, func() { spec.onChange(text) })
-			}
-		case widget.SubmitEvent:
-			if spec.onSubmit != nil {
+			switch ev.(type) {
+			case widget.ChangeEvent:
 				text := ed.Text()
-				core.Call(gtx, func() { spec.onSubmit(text) })
+				if text == st.lastText {
+					break // SetText below, not the user
+				}
+				if spec.transform != nil || spec.transformEdit != nil {
+					start, end := ed.Selection()
+					normalized := InputEdit{Text: text, Start: start, End: end}
+					if spec.transformEdit != nil {
+						normalized = spec.transformEdit(before, normalized)
+					} else {
+						normalized = spec.transform(normalized)
+					}
+					if normalized.Text != text {
+						ed.SetText(normalized.Text)
+					}
+					if normalized.Text != text || normalized.Start != start || normalized.End != end {
+						ed.SetCaret(normalized.Start, normalized.End)
+					}
+					text = ed.Text()
+					if text == st.lastText {
+						break
+					}
+					st.inputUndo = append(st.inputUndo, before)
+					if len(st.inputUndo) > 100 {
+						st.inputUndo = st.inputUndo[1:]
+					}
+					st.inputRedo = nil
+				}
+				st.lastText = text
+				if spec.bind != nil {
+					*spec.bind = text
+				}
+				if spec.onChange != nil {
+					core.Call(gtx, func() { spec.onChange(text) })
+				}
+			case widget.SubmitEvent:
+				if spec.onSubmit != nil {
+					text := ed.Text()
+					core.Call(gtx, func() { spec.onSubmit(text) })
+				}
 			}
 		}
-	}
-	if spec.bind != nil && *spec.bind != st.lastText {
-		st.inputUndo, st.inputRedo = nil, nil
-		st.lastText = *spec.bind
-		ed.SetText(*spec.bind)
+		if spec.bind != nil && *spec.bind != st.lastText {
+			st.inputUndo, st.inputRedo = nil, nil
+			st.lastText = *spec.bind
+			ed.SetText(*spec.bind)
+		}
 	}
 	focused := gtx.Enabled() && gtx.Focused(ed)
 	if focused && !st.inputFocused && spec.selectOnFocus {
@@ -583,7 +591,15 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	}
 	st.inputFocused = focused
 	if selection := st.inputSelection; selection != nil {
-		ed.SetCaret(selection[0], selection[1])
+		if spec.document != nil {
+			d := spec.document
+			if r, err := inputcontent.ByteRange(d.Content().Text(), InputRange{Start: selection[0], End: selection[1]}); err == nil {
+				_ = d.session.SelectSource(r)
+				documentSyncEditor(st, d)
+			}
+		} else {
+			ed.SetCaret(selection[0], selection[1])
+		}
 		st.inputSelection = nil
 	}
 	// A single-line box taller than its line (theme.ControlHeight) centers
@@ -600,9 +616,19 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	me.TextSize, me.Color, me.HintColor = ts.size, *ts.color, theme.Muted
 	me.Font = textFont(ts)
 	me.LineHeightScale = ts.lineHeight
-	st.caret.Layout(g, me, theme.Material.Shaper)
+	if spec.document != nil {
+		st.caret.LayoutDecorated(g, me, theme.Material.Shaper, func(g layout.Context) { e.paintInputTokens(n, st, g) })
+	} else {
+		st.caret.Layout(g, me, theme.Material.Shaper)
+	}
+	if spec.document != nil {
+		e.inputDocumentIME(n, st, g)
+	}
 	// Keep the value in the semantic tree for agents.
 	value := ed.Text()
+	if spec.document != nil {
+		value = spec.document.Content().Text()
+	}
 	if spec.password {
 		value = strings.Repeat("•", ed.Len())
 	}

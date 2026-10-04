@@ -15,7 +15,7 @@ github.com/dyike/keel
 │   ├── kit/              组件：Button、Input、Table、Dialog、Chart …（一个组件一个文件）
 │   ├── window/           窗口：Open、Main、快捷键、截图
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
-│   └── internal/         loop（帧锁）、editorstyle（输入绘制）、imageload（图片加载）、uitest（测试工具）
+│   └── internal/         loop（帧锁）、editorstyle（输入绘制）、inputcontent（原子引用编辑）、imageload（图片加载）、uitest（测试工具）
 ├── native/
 │   ├── permission/       权限检查与申请
 │   ├── screen/           显示器列表、截图
@@ -47,6 +47,7 @@ ui:
 
   theme、locale ──► internal/loop（切换主题或语言时通知所有窗口重绘）
   el ──► internal/editorstyle（输入框绘制）
+  el ──► internal/inputcontent（原子引用内容与编辑事务）
   markdown ──► internal/imageload（图片解码与占位）
 
 native:
@@ -81,6 +82,7 @@ native:
 | `ui/window` | 与窗口绑定的东西：生命周期、快捷键、根视图、截图 | 具体组件 |
 | `ui/el` | 元素、样式、布局引擎、元素状态、视图 | 业务组件（它们在应用里写成函数或视图） |
 | `ui/internal/loop` | 跨窗口共享的可变状态：帧锁、更新队列 | 任何 Gio 类型 |
+| `ui/internal/inputcontent` | 原子输入引用、字素边界、坐标映射与撤销事务 | Gio、其他 Keel 模块及平台事件 |
 | `ui/internal/editorstyle` | 输入框的光标、选区绘制和字形测量 | 具体 Keel 组件、窗口和主题 |
 | `ui/internal/imageload` | 图片来源解析、异步加载、尺寸限制、加载中和失败占位 | 组件外观、点击等交互 |
 

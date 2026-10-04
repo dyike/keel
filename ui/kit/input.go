@@ -10,6 +10,8 @@ import (
 // InputView is a labelled text field with optional prefix, suffix, clear
 // button and error message. TextArea makes a multi-line one.
 type InputView struct {
+	onTokenActivate                func(InputToken)
+	document                       *el.InputDocument
 	size                           InputSize
 	onPaste                        func(core.ClipboardData) bool
 	pasteReader                    core.ClipboardReader
@@ -35,9 +37,12 @@ func Input(label string) *InputView { return &InputView{label: label} }
 func TextArea(label string) *InputView { return &InputView{label: label, multiline: true, rows: 3} }
 
 func (v *InputView) Placeholder(s string) *InputView { v.placeholder = s; return v }
-func (v *InputView) Password() *InputView            { v.password = true; return v }
+func (v *InputView) Password() *InputView            { v.password = true; v.document = nil; return v }
 func (v *InputView) Clearable() *InputView           { v.clearable = true; return v }
 func (v *InputView) MaxLength(n int) *InputView {
+	if n > 0 {
+		v.document = nil
+	}
 	v.maxLen = n
 	if v.mask != nil {
 		v.SetValue(v.value)
@@ -54,6 +59,9 @@ func (v *InputView) SetValue(s string) {
 		s = v.formatMask(s).text
 	}
 	v.value = s
+	if v.document != nil {
+		_ = v.document.SetText(s)
+	}
 }
 func (v *InputView) SetDisabled(on bool) { v.disabled = on }
 func (v *InputView) SetReadOnly(on bool) { v.readOnly = on }
@@ -80,6 +88,9 @@ func (v *InputView) AutoGrow(minRows, maxRows int) *InputView {
 
 // Filter accepts only these runes, typed or pasted; "" accepts everything.
 func (v *InputView) Filter(chars string) *InputView {
+	if chars != "" {
+		v.document = nil
+	}
 	v.filter = chars
 	if v.mask != nil {
 		v.SetValue(v.value)
@@ -135,6 +146,9 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 	if v.mask != nil && !v.multiline {
 		text.MaxLen(0).Filter("").TransformEdit(v.transformMask)
 	}
+	if v.document != nil {
+		text.Document(v.document).OnTokenActivate(v.onTokenActivate)
+	}
 	text.OnPaste(v.onPaste).PasteReader(v.pasteReader).OnPasteError(v.onPasteError)
 	if v.password {
 		text.Password()
@@ -151,7 +165,7 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 		box.Child(el.Div().Name(locale.Current().Name(locale.Current().Clear, name)).P(theme.SpaceXxs).Rounded(theme.RadiusSm).
 			CursorPointer().Focusable(false).Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
 			OnClick(func() {
-				v.value = ""
+				v.SetValue("")
 				cx.Focus(v.FocusID())
 				if v.onChange != nil {
 					v.onChange("")

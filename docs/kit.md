@@ -6,7 +6,7 @@
 
 kit 的枚举常量一律以类型名作前缀，去掉类型名中的 Name / Shape / Status / Variant 后缀：ToneNeutral / ToneInfo / ToneSuccess / ToneWarning / ToneDanger，AvatarOnline / AvatarBusy / AvatarOffline，ButtonPrimary / ButtonSecondary / ButtonGhost / ButtonDanger；IconCheck、MarkerDot 沿用现有命名。不保留旧名称的兼容别名。el 是底层布局库，el.Bottom、el.Start 等布局短名不受这条规则限制。
 
-kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `window`。el 缺少的基础能力先在 el 中实现，不在各组件里复制 Gio 输入路由、定时或浮层机制。依赖测试按传递依赖登记 `internal/loop` 和 `internal/editorstyle`，它们不是 kit 的直接依赖。
+kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `window`。el 缺少的基础能力先在 el 中实现，不在各组件里复制 Gio 输入路由、定时或浮层机制。依赖测试按传递依赖登记 `internal/loop`、`internal/editorstyle` 和 `internal/inputcontent`，它们不是 kit 的直接依赖。
 
 构造函数 `Xxx(...)` 返回 `*XxxView`。组件以 `Render(*el.Context) el.Element` 接入 el，实例保留业务状态，Render 根据当前状态生成元素树。动态列表使用稳定 ID，不用数组位置代表可移动项目。
 
