@@ -164,6 +164,7 @@ func TestCarouselKeysDotsAutoplay(t *testing.T) {
 	h.Move(390, 290) // away from the carousel
 	c.advance(h, 3*time.Second)
 	h.Frame()
+	c.advance(h, carouselTransition)
 	if car.Value() != 0 || !shown(h, "第一张") {
 		t.Fatalf("autoplay wraps: %d", car.Value())
 	}

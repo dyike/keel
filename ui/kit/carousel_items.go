@@ -157,7 +157,7 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 	} else {
 		maximum = cycle
 	}
-	geometry := &carouselGeometry{points: points, maximum: maximum, cycle: cycle, vertical: v.vertical}
+	geometry := &carouselGeometry{points: points, maximum: maximum, cycle: cycle, viewport: viewport, vertical: v.vertical}
 	spacer := func() *el.DivEl {
 		d := el.Div().NoShrink()
 		if v.vertical {
@@ -221,6 +221,7 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 				target = v.drag.offset
 			}
 		}
+		target = v.motionOffset(cx, geometry, target, gtx.Enabled())
 		if cycle > 0 {
 			target = geometry.normalized(target)
 			center := target + viewport/2

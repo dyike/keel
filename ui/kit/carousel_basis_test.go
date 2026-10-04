@@ -14,7 +14,7 @@ func TestCarouselFractionalAndMixedBasis(t *testing.T) {
 			var cx *el.Context
 			content := car.Content()
 			width := float32(240)
-			h := renderView(el.ViewFunc(func(c *el.Context) el.Element { cx = c; return el.Div().W(el.Dp(width)).Child(content.Render(c)) }), 300, scale)
+			h, advance := renderCarouselClock(el.ViewFunc(func(c *el.Context) el.Element { cx = c; return el.Div().W(el.Dp(width)).Child(content.Render(c)) }), 300, scale)
 			state := func() (float32, float32, float32) {
 				id := autoID("carousel", car) + "/stage"
 				if vertical {
@@ -23,6 +23,8 @@ func TestCarouselFractionalAndMixedBasis(t *testing.T) {
 				return cx.ScrollStateX(id)
 			}
 			settle := func() {
+				h.Frame()
+				advance(carouselTransition)
 				for i := 0; i < 5; i++ {
 					h.Frame()
 				}

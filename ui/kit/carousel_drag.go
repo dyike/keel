@@ -10,6 +10,7 @@ type carouselGeometry struct {
 	points   []float32
 	maximum  float32
 	cycle    float32
+	viewport float32
 	vertical bool
 }
 
@@ -39,6 +40,10 @@ func (v *CarouselView) handleDrag(e el.DragEvent, g *carouselGeometry) {
 	switch e.Kind {
 	case el.DragStart:
 		origin := g.points[v.current]
+		if v.motion.ready {
+			origin = v.motion.offset
+		}
+		v.motion.running, v.motion.pending = false, false
 		if v.scroll.active {
 			origin = v.scroll.offset
 		}
@@ -50,7 +55,7 @@ func (v *CarouselView) handleDrag(e el.DragEvent, g *carouselGeometry) {
 			return
 		}
 		if e.Canceled {
-			v.drag.active = false
+			v.animateTo(0)
 			return
 		}
 		delta := v.drag.start - position
@@ -64,12 +69,12 @@ func (v *CarouselView) handleDrag(e el.DragEvent, g *carouselGeometry) {
 			return
 		}
 		moved, offset := v.drag.moved, v.drag.offset
-		v.drag.active = false
 		if !moved {
+			v.animateTo(0)
 			return
 		}
 		best := g.nearest(offset, v.current)
-		v.goTo(best)
+		v.transitionTo(best, 0)
 	}
 }
 

@@ -32,6 +32,7 @@ type CarouselView struct {
 	drag                  carouselDrag
 	scrollable, wheelStep bool
 	scroll                carouselScroll
+	motion                carouselMotion
 }
 
 func Carousel(slides ...el.View) *CarouselView {
@@ -102,10 +103,20 @@ func (v *CarouselView) SetValue(i int) {
 }
 
 func (v *CarouselView) goTo(i int) {
-	v.cancelGestures()
+	direction := 0
+	if i > v.current {
+		direction = 1
+	} else if i < v.current {
+		direction = -1
+	}
+	v.transitionTo(i, direction)
+}
+
+func (v *CarouselView) transitionTo(i, direction int) {
 	if v.disabled || len(v.slides) == 0 {
 		return
 	}
+	v.animateTo(direction)
 	if v.looping {
 		i = (i%len(v.slides) + len(v.slides)) % len(v.slides)
 	} else {
@@ -136,10 +147,9 @@ func (v *CarouselView) render(cx *el.Context, navigation bool) el.Element {
 		cx.AfterEnabled(id, carouselKey{id, cur}, v.autoplay, func() { v.goTo(cur + 1) })
 	}
 	stage := el.Div().ID(id + "/stage").H(el.Dp(v.height)).Rounded(theme.RadiusLg).Bg(theme.Subtle).Items(el.Stretch).Justify(el.Center)
-	if v.scrollable || v.draggable || v.perView > 1 || v.basis > 0 || len(v.itemBasis) > 0 || len(v.itemSizes) > 0 {
+	if len(v.slides) > 0 {
 		v.multiStage(cx, stage, id+"/stage")
-	} else if v.current < len(v.slides) && v.slides[v.current] != nil {
-		stage.Child(v.slides[v.current].Render(cx))
+
 	}
 	dots := el.Div().ID(id + "/dots").Row().Gap(theme.SpaceSm).Justify(el.Center)
 	for i := range v.slides {

@@ -14,8 +14,10 @@ func TestCarouselFixedItemSizes(t *testing.T) {
 			content := car.Content()
 			width := float32(240)
 			var cx *el.Context
-			h := renderView(el.ViewFunc(func(c *el.Context) el.Element { cx = c; return el.Div().W(el.Dp(width)).Child(content.Render(c)) }), 300, scale)
+			h, advance := renderCarouselClock(el.ViewFunc(func(c *el.Context) el.Element { cx = c; return el.Div().W(el.Dp(width)).Child(content.Render(c)) }), 300, scale)
 			settle := func() {
+				h.Frame()
+				advance(carouselTransition)
 				for i := 0; i < 5; i++ {
 					h.Frame()
 				}

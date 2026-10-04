@@ -34,6 +34,7 @@ func (v *CarouselView) WheelStep(on bool) *CarouselView {
 }
 
 func (v *CarouselView) cancelGestures() {
+	v.motion = carouselMotion{}
 	v.drag.active = false
 	v.scroll.active = false
 }
@@ -43,6 +44,9 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 		return
 	}
 	offset := g.points[v.current]
+	if v.motion.ready {
+		offset = v.motion.offset
+	}
 	if v.scroll.active {
 		offset = v.scroll.offset
 	}
@@ -85,6 +89,10 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 		}
 		if !v.scroll.active {
 			v.scroll.offset = g.points[v.current]
+			if v.motion.ready {
+				v.scroll.offset = v.motion.offset
+			}
+			v.motion.running, v.motion.pending = false, false
 		}
 		v.scroll.active = true
 		v.scroll.vertical = g.vertical
@@ -102,7 +110,7 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 				return
 			}
 			best := g.nearest(v.scroll.offset, v.current)
-			v.goTo(best)
+			v.transitionTo(best, 0)
 		})
 	}
 }

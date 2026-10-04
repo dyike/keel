@@ -55,6 +55,8 @@ func TestCarouselSmoothScrollDebouncesAndSnaps(t *testing.T) {
 			if car.Value() != 1 || calls != 1 || car.scroll.active {
 				t.Fatal("idle snap", car.Value(), calls, car.scroll)
 			}
+			now = now.Add(carouselTransition)
+			h.Frame()
 			id := autoID("carousel", car) + "/stage"
 			offset, _, _ := cx.ScrollStateX(id)
 			if vertical {
