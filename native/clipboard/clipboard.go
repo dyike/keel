@@ -1,5 +1,5 @@
 // Package clipboard reads a bounded snapshot of text, encoded images and file
-// paths without linking to the UI. macOS uses AppKit; Windows uses Win32.
+// paths without linking to the UI. macOS uses AppKit; Windows uses Win32; Linux uses X11.
 package clipboard
 
 import (

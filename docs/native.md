@@ -8,7 +8,7 @@
 | `native/screen` | 列出显示器；截图 | 截图需要屏幕录制 |
 | `native/input` | 移动鼠标、点击、按键 | 读取鼠标位置以外的操作都需要辅助功能 |
 | `native/hotkey` | 全局快捷键 | 无 |
-| `native/clipboard` | 异步读取文本、编码图片、文件路径（macOS / Windows） | 无 |
+| `native/clipboard` | 异步读取文本、编码图片、文件路径（macOS / Windows / Linux X11） | 无 |
 
 支持三个平台，其他平台以及关闭 cgo 构建的 macOS 上，所有函数返回 `native.ErrUnsupported`，程序照常编译。
 
@@ -129,6 +129,10 @@ macOS 上需要 `window.Main()` 在运行：快捷键事件由主线程的事件
 
 macOS 使用 AppKit，图片优先 PNG、其次 TIFF。Windows 使用 Win32，读取 Unicode 文本、PNG、CF_DIB 和 CF_HDROP；DIB 添加 BMP 文件头后以 `image/bmp` 返回，不解码像素。文件引用优先于资源管理器附带的图片预览。文本、路径 UTF-8 字节与编码图片合计最多 16MiB，文件最多 128 个；错误不返回部分结果。Windows 读取期间保持剪贴板打开，并在关闭前复制所有数据；剪贴板占用时最多尝试 8 次，间隔 15ms。
 
-DIB 支持 40/108/124 字节头的 RGB、调色板和位域布局；压缩位图及带独立颜色配置文件的 V5 布局暂不支持。HTML/RTF 尚未作为独立格式返回。Linux、iOS 及无 cgo 的 macOS 返回 `ErrUnsupported`。
+DIB 支持 40/108/124 字节头的 RGB、调色板和位域布局；压缩位图及带独立颜色配置文件的 V5 布局暂不支持。HTML/RTF 尚未作为独立格式返回。iOS 及无 cgo 的 macOS 返回 `ErrUnsupported`。
 
 组件库的 Input/Textarea 和 CodeEditor 示例已共用这个读取适配；失败时沿原有 Gio 文本通路粘贴。Windows 已通过格式解析、像素解码、错误/上限测试和交叉编译，系统剪贴板及真实窗口粘贴尚未在 Windows 真机验收。
+
+Linux X11 使用独立连接读取 CLIPBOARD，支持 UTF-8/Latin-1 文本、PNG/JPEG/TIFF/BMP/WebP 编码图片、URI 列表及 GNOME 文件引用。只返回本机绝对路径，忽略远程文件主机和非文件 URL，不执行复制或剪切。遵守相同的 16MiB/128 文件限制；处理 INCR 分块传输，整个连接与读取限时 5 秒。读取前后检查所有者及其提供的 TIMESTAMP；不提供时间戳的旧应用若在同一所有者内部更改内容，无法保证跨格式原子快照。
+
+连接使用 DISPLAY 和 XAUTHORITY（默认 ~/.Xauthority），支持 MIT-MAGIC-COOKIE-1。纯 Wayland 尚无读取后端；有 DISPLAY 时通过 X11/XWayland 请求。格式、分块协议替身、错误上限测试与交叉编译通过，Linux 桌面真实剪贴板和 XWayland 桥接仍待验收。
