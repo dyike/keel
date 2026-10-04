@@ -6,9 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"image"
-	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -174,23 +171,9 @@ func displayName(base string) string {
 	return strings.Join(words, " ")
 }
 
-// placeholderIcon is the template icon on Apple's grid: an 824px body
-// centered in a 1024px canvas, so it sits level with other Dock icons.
+// placeholderIcon is the template artwork, full bleed at 1024px; keel
+// build cuts it into each platform's shape.
 func placeholderIcon() ([]byte, error) {
 	svg, _ := templates.ReadFile("template/appicon.svg")
-	body, err := svgicon.Render(svg, 824)
-	if err != nil {
-		return nil, err
-	}
-	img, err := png.Decode(bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	canvas := image.NewNRGBA(image.Rect(0, 0, 1024, 1024))
-	draw.Draw(canvas, image.Rect(100, 100, 924, 924), img, image.Point{}, draw.Over)
-	var b bytes.Buffer
-	if err := png.Encode(&b, canvas); err != nil {
-		return nil, err
-	}
-	return b.Bytes(), nil
+	return svgicon.Render(svg, 1024)
 }

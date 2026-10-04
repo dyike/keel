@@ -13,7 +13,8 @@ import (
 	"runtime"
 	"strings"
 
-	"golang.org/x/image/draw"
+	"github.com/tc-hib/winres"
+	"github.com/tc-hib/winres/version"
 )
 
 // gogio is Gio's packager, pinned to the release Keel builds on.
@@ -43,25 +44,25 @@ func (c *cli) build(args []string) error {
 	if !filepath.IsAbs(outDir) {
 		outDir = filepath.Join(dir, outDir)
 	}
-	icon := filepath.Join(dir, cfg.Icon)
-	if err := checkIcon(icon); err != nil {
+	icons, err := loadIcons(dir, cfg)
+	if err != nil {
 		return err
 	}
 	main := "./" + filepath.ToSlash(filepath.Clean(cfg.Main))
 	switch *target {
 	case "darwin", "macos":
-		return c.buildDarwin(dir, cfg, outDir, icon, main, *arch, *sign)
+		return c.buildDarwin(dir, cfg, icons, outDir, main, *arch, *sign)
 	case "windows":
-		return c.buildWindows(dir, cfg, outDir, icon, main, *arch)
+		return c.buildWindows(dir, cfg, icons, outDir, main, *arch)
 	case "linux":
-		return c.buildLinux(dir, cfg, outDir, icon, main, *arch)
+		return c.buildLinux(dir, cfg, icons, outDir, main, *arch)
 	case "js", "web":
 		return c.command(dir, nil, "go", "run", gogio, "-target", "js", "-o", filepath.Join(outDir, "web"), main)
 	}
 	return fmt.Errorf("unknown target %q: use darwin, windows, linux or js", *target)
 }
 
-func (c *cli) buildDarwin(dir string, cfg *Config, outDir, icon, main, arch, sign string) error {
+func (c *cli) buildDarwin(dir string, cfg *Config, icons *iconSet, outDir, main, arch, sign string) error {
 	if runtime.GOOS != "darwin" && !c.dryRun {
 		return errors.New("macOS apps are built on a Mac: the toolchain needs Xcode's cgo and iconutil")
 	}
@@ -72,8 +73,22 @@ func (c *cli) buildDarwin(dir string, cfg *Config, outDir, icon, main, arch, sig
 	if err := c.mkdir(outDir); err != nil {
 		return err
 	}
+	// gogio makes the .icns sizes from one 1024px image: the macOS one.
+	tmp, err := os.MkdirTemp("", "keel-icon")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+	iconPath := filepath.Join(tmp, "macos.png")
+	mac, err := icons.icon("darwin", 1024)
+	if err != nil {
+		return err
+	}
+	if err := writePNG(iconPath, mac); err != nil {
+		return err
+	}
 	if err := c.command(dir, nil, "go", "run", gogio, "-target", "macos", "-arch", arch,
-		"-appid", cfg.AppID, "-version", cfg.fourPart(), "-icon", icon, "-o", app, main); err != nil {
+		"-appid", cfg.AppID, "-version", cfg.fourPart(), "-icon", iconPath, "-o", app, main); err != nil {
 		return err
 	}
 	if err := c.writeInfoPlist(app, cfg); err != nil {
@@ -95,36 +110,99 @@ func (c *cli) buildDarwin(dir string, cfg *Config, outDir, icon, main, arch, sig
 	return nil
 }
 
-func (c *cli) buildWindows(dir string, cfg *Config, outDir, icon, main, arch string) error {
-	if arch == "" {
-		arch = "amd64"
+// buildWindows links a .syso with the icon (every size Windows asks for),
+// a manifest (per-monitor DPI, common controls 6) and version information,
+// then builds a GUI executable. Windows needs no cgo, so any OS will do.
+func (c *cli) buildWindows(dir string, cfg *Config, icons *iconSet, outDir, main, arches string) error {
+	if arches == "" {
+		arches = "amd64"
 	}
-	exe := filepath.Join(outDir, cfg.Binary+".exe")
+	mainDir := filepath.Join(dir, filepath.FromSlash(main))
+	if others, _ := filepath.Glob(filepath.Join(mainDir, "*.syso")); len(others) > 0 {
+		return fmt.Errorf("%w: %s", errOtherSyso, strings.Join(others, ", "))
+	}
 	if err := c.mkdir(outDir); err != nil {
 		return err
 	}
-	// gogio leaves the icon and manifest as .syso files beside the code;
-	// keep only those that were already there.
-	mainDir := filepath.Join(dir, filepath.FromSlash(main))
-	before, _ := filepath.Glob(filepath.Join(mainDir, "*_windows_*.syso"))
-	err := c.command(dir, nil, "go", "run", gogio, "-target", "windows", "-arch", arch,
-		"-version", cfg.fourPart(), "-icon", icon, "-o", exe, main)
-	after, _ := filepath.Glob(filepath.Join(mainDir, "*_windows_*.syso"))
-	for _, f := range after {
-		if !contains(before, f) {
-			os.Remove(f)
-		}
-	}
+	rs, err := windowsResources(cfg, icons)
 	if err != nil {
 		return err
 	}
-	c.done(exe)
-	return nil
+	list := strings.Split(arches, ",")
+	for _, arch := range list {
+		arch = strings.TrimSpace(arch)
+		if arch != "amd64" && arch != "arm64" && arch != "386" {
+			return fmt.Errorf("windows arch %q: use amd64, arm64 or 386", arch)
+		}
+		exe := filepath.Join(outDir, cfg.Binary+".exe")
+		if len(list) > 1 {
+			exe = filepath.Join(outDir, cfg.Binary+"-"+arch+".exe")
+		}
+		syso := filepath.Join(mainDir, "zz_keel_windows_"+arch+".syso")
+		if c.dryRun {
+			fmt.Fprintln(c.out, "write", syso, "(icon, manifest, version)")
+		} else {
+			var b bytes.Buffer
+			if err := rs.WriteObject(&b, winres.Arch(arch)); err != nil {
+				return err
+			}
+			if err := os.WriteFile(syso, b.Bytes(), 0o644); err != nil {
+				return err
+			}
+		}
+		err := c.command(dir, []string{"GOOS=windows", "GOARCH=" + arch, "CGO_ENABLED=0"},
+			"go", "build", "-ldflags", "-H=windowsgui", "-o", exe, main)
+		os.Remove(syso)
+		if err != nil {
+			return err
+		}
+		c.done(exe)
+	}
+	// The same icon as a file, for installers and shortcuts.
+	if c.dryRun {
+		fmt.Fprintln(c.out, "write", filepath.Join(outDir, cfg.Binary+".ico"))
+		return nil
+	}
+	return writeICO(icons, filepath.Join(outDir, cfg.Binary+".ico"))
+}
+
+func windowsResources(cfg *Config, icons *iconSet) (*winres.ResourceSet, error) {
+	rs := &winres.ResourceSet{}
+	ico, err := icons.windowsIcon()
+	if err != nil {
+		return nil, err
+	}
+	if err := rs.SetIcon(winres.Name("APPICON"), ico); err != nil {
+		return nil, err
+	}
+	rs.SetManifest(winres.AppManifest{
+		Description:         cfg.Name,
+		Compatibility:       winres.Win10AndAbove,
+		ExecutionLevel:      winres.AsInvoker,
+		DPIAwareness:        winres.DPIPerMonitorV2,
+		UseCommonControlsV6: true,
+		LongPathAware:       true,
+	})
+	// One string table (en-US), and the numeric versions set directly:
+	// SetFileVersion would add a second, language-neutral table.
+	vi := version.Info{}
+	vi.FileVersion, vi.ProductVersion = cfg.versionWords(), cfg.versionWords()
+	for key, value := range map[string]string{
+		version.ProductName: cfg.Name, version.FileDescription: cfg.Name,
+		version.OriginalFilename: cfg.Binary + ".exe", version.InternalName: cfg.Binary,
+		version.ProductVersion: cfg.Version, version.FileVersion: cfg.Version,
+	} {
+		if err := vi.Set(version.LangDefault, key, value); err != nil {
+			return nil, err
+		}
+	}
+	rs.SetVersionInfo(vi)
+	return rs, nil
 }
 
 // buildLinux writes the binary with its app ID, a .desktop entry named
 // after the ID, the icon in the hicolor sizes, and an install script.
-func (c *cli) buildLinux(dir string, cfg *Config, outDir, icon, main, arch string) error {
+func (c *cli) buildLinux(dir string, cfg *Config, icons *iconSet, outDir, main, arch string) error {
 	if runtime.GOOS != "linux" && !c.dryRun {
 		return errors.New("Linux apps are built on Linux: Gio's window code needs cgo against Wayland and X11 headers")
 	}
@@ -148,22 +226,13 @@ func (c *cli) buildLinux(dir string, cfg *Config, outDir, icon, main, arch strin
 	if err := os.WriteFile(filepath.Join(dist, cfg.AppID+".desktop"), []byte(desktop), 0o644); err != nil {
 		return err
 	}
-	src, err := decodePNG(icon)
-	if err != nil {
-		return err
-	}
-	for _, size := range []int{128, 256, 512} {
-		dst := image.NewNRGBA(image.Rect(0, 0, size, size))
-		draw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Src, nil)
-		var b bytes.Buffer
-		if err := png.Encode(&b, dst); err != nil {
+	for _, size := range linuxIconSizes {
+		img, err := icons.icon("linux", size)
+		if err != nil {
 			return err
 		}
 		path := filepath.Join(dist, "icons", "hicolor", fmt.Sprintf("%dx%d", size, size), "apps", cfg.AppID+".png")
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			return err
-		}
-		if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
+		if err := writePNG(path, img); err != nil {
 			return err
 		}
 	}
@@ -204,22 +273,6 @@ func (c *cli) done(path string) {
 	}
 }
 
-// checkIcon wants a square PNG; under 512 pixels is allowed but warned.
-func checkIcon(path string) error {
-	img, err := decodePNG(path)
-	if err != nil {
-		return err
-	}
-	b := img.Bounds()
-	if b.Dx() != b.Dy() {
-		return fmt.Errorf("icon %s is %dx%d; it must be square", filepath.Base(path), b.Dx(), b.Dy())
-	}
-	if b.Dx() < 512 {
-		fmt.Fprintf(os.Stderr, "keel: icon %s is %dpx; 1024px looks sharp on every screen\n", filepath.Base(path), b.Dx())
-	}
-	return nil
-}
-
 func decodePNG(path string) (image.Image, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -231,15 +284,6 @@ func decodePNG(path string) (image.Image, error) {
 		return nil, fmt.Errorf("icon %s is not a PNG: %w", filepath.Base(path), err)
 	}
 	return img, nil
-}
-
-func contains(list []string, s string) bool {
-	for _, x := range list {
-		if x == s {
-			return true
-		}
-	}
-	return false
 }
 
 // writeInfoPlist replaces gogio's minimal Info.plist with a complete one:

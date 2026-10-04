@@ -4,6 +4,7 @@
 //	keel run               run it
 //	keel build             package it for this platform, into dist/
 //	keel build -target windows
+//	keel icon              write each platform's icons, to check them
 //	keel doctor            check the toolchain for each target
 //
 // Install with go install github.com/dyike/keel/cmd/keel@latest.
@@ -36,6 +37,7 @@ Usage:
   keel new <dir> [flags]     create a project in dir
   keel run [-- args]         run the project in this directory
   keel build [flags]         package the project into dist/
+  keel icon [-o dir]         write each platform's icons, to check them
   keel doctor                check the toolchain for each target
   keel version               print the version
 
@@ -55,6 +57,8 @@ func (c *cli) main(args []string) int {
 		err = c.runProject(args[1:])
 	case "build":
 		err = c.build(args[1:])
+	case "icon":
+		err = c.iconCommand(args[1:])
 	case "doctor":
 		err = c.doctor(args[1:])
 	case "version":

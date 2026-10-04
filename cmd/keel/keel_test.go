@@ -76,11 +76,8 @@ func TestNewAndBuildPlans(t *testing.T) {
 	if err != nil || img.Bounds().Dx() != 1024 || img.Bounds().Dy() != 1024 {
 		t.Fatal("icon size", err)
 	}
-	if _, _, _, a := img.At(40, 40).RGBA(); a != 0 {
-		t.Fatal("the icon keeps Apple's margin transparent")
-	}
-	if _, _, _, a := img.At(512, 150).RGBA(); a == 0 {
-		t.Fatal("the icon body is opaque")
+	if _, _, _, a := img.At(2, 2).RGBA(); a != 0xffff {
+		t.Fatal("the artwork is full bleed; keel build shapes it per platform")
 	}
 	if code := c.main([]string{"new", "my-notes", "-offline"}); code == 0 {
 		t.Fatal("a non-empty directory must be refused")
@@ -103,7 +100,7 @@ func TestNewAndBuildPlans(t *testing.T) {
 	if p := plan("-target", "darwin", "-sign", "Developer ID Application: X"); !strings.Contains(p, "--options runtime --timestamp --sign Developer ID Application: X") {
 		t.Fatal("signed plan:\n" + p)
 	}
-	if p := plan("-target", "windows"); !strings.Contains(p, "-target windows -arch amd64 -version 0.1.0.1") || !strings.Contains(p, "my-notes.exe") {
+	if p := plan("-target", "windows"); !strings.Contains(p, "zz_keel_windows_amd64.syso") || !strings.Contains(p, "-H=windowsgui") || !strings.Contains(p, "my-notes.exe") || !strings.Contains(p, "my-notes.ico") {
 		t.Fatal("windows plan:\n" + p)
 	}
 	if p := plan("-target", "linux"); !strings.Contains(p, "-X gioui.org/app.ID=dev.keel.notes") || !strings.Contains(p, "dev.keel.notes.desktop") {

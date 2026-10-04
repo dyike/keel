@@ -47,7 +47,7 @@ func (c *cli) doctor(args []string) error {
 	case "linux":
 		fmt.Fprintln(c.out, "  linux        here")
 	}
-	fmt.Fprintln(c.out, "  The first build downloads the packager,", gogio)
+	fmt.Fprintln(c.out, "  The first macOS or js build downloads Gio's packager,", gogio)
 	if !ok {
 		return fmt.Errorf("fix the items above")
 	}
