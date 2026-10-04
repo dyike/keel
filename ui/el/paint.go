@@ -482,12 +482,18 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	// its ends, so OnKey takes them before the editor sees them. Escape also
 	// reaches the handler for inline controls; modal layers handle it earlier.
 	if n.onKey != nil && !spec.multiline && gtx.Enabled() {
+		filters := []event.Filter{
+			key.Filter{Focus: ed, Name: key.NameUpArrow}, key.Filter{Focus: ed, Name: key.NameDownArrow},
+			key.Filter{Focus: ed, Name: key.NamePageUp}, key.Filter{Focus: ed, Name: key.NamePageDown},
+			key.Filter{Focus: ed, Name: key.NameEscape},
+		}
+		for _, name := range spec.captureKeys {
+			if name != "" {
+				filters = append(filters, key.Filter{Focus: ed, Name: key.Name(name)})
+			}
+		}
 		for {
-			ev, ok := gtx.Event(
-				key.Filter{Focus: ed, Name: key.NameUpArrow}, key.Filter{Focus: ed, Name: key.NameDownArrow},
-				key.Filter{Focus: ed, Name: key.NamePageUp}, key.Filter{Focus: ed, Name: key.NamePageDown},
-				key.Filter{Focus: ed, Name: key.NameEscape},
-			)
+			ev, ok := gtx.Event(filters...)
 			if !ok {
 				break
 			}
@@ -557,6 +563,15 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		st.inputUndo, st.inputRedo = nil, nil
 		st.lastText = *spec.bind
 		ed.SetText(*spec.bind)
+	}
+	focused := gtx.Enabled() && gtx.Focused(ed)
+	if focused && !st.inputFocused && spec.selectOnFocus {
+		ed.SetCaret(0, ed.Len())
+	}
+	st.inputFocused = focused
+	if selection := st.inputSelection; selection != nil {
+		ed.SetCaret(selection[0], selection[1])
+		st.inputSelection = nil
 	}
 	// A single-line box taller than its line (theme.ControlHeight) centers
 	// the line, like a native field; the editor keeps the line's height.

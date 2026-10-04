@@ -356,7 +356,7 @@
 | [TextView](https://gpui-kit.com/component/text-view/) | 部分 | [Markdown、HTML 富文本、扩展 TeX、图片、选择复制、代码块、流式渲染](../../ui/markdown) | 缺富文本整体 max_lines/is_clamped、逐流式增量淡入、公开区间高亮/跳转、Markdown 插件与代码块操作扩展接口。HTML/扩展 TeX 已完成。 |
 | [Textarea](https://gpui-kit.com/component/textarea/) | 部分 | [多行、只读、Rows 最小高度、AutoGrow 行数范围、错误显示](../../ui/kit/input.go) | 第一百一十三批补齐 AutoGrow(min,max)，包含软换行、上限后内部滚动和删除后缩回；Rows 恢复旧模式。仍缺 inline token。 |
 | [Theme](https://gpui-kit.com/component/theme/) | 主体已有 | [语义配色、间距/字号/圆角/阴影刻度、浅深切换、注册与 JSON 主题、局部作用域、渐变、目录监听](../../ui/theme/registry.go) | 核心主题机制已完成；Keel 7 套内置（含 light/dark），GPUI 文档称 20+。Keel 渐变 JSON 为 from/to/angle，仅 Bg/Primary；GPUI 是可选背景 token 的 CSS 两色渐变，配置不兼容。 |
-| [TimeField](https://gpui-kit.com/component/time-field/) | 主体已有 | [时分秒、步进/进位、12/24 小时、Tab 与本地化](../../ui/kit/time_field.go) | 分段、时分秒、12/24 小时、键盘修改已完成；缺组件级尺寸档。本轮未重做真机键盘验收。 |
+| [TimeField](https://gpui-kit.com/component/time-field/) | 主体已有 | [分段、时分秒、12/24 小时、四档尺寸及快速键盘编辑](../../ui/kit/time_field.go) | 第一百六十二批补齐 Size 四档和 SegmentKeys(true)：左右切段、两位有效数字自动跳段、a/p 时段快捷键、删除重置、单段循环。输入、粘贴、回调、禁用、双倍率及虚拟窗口连续输入已验证；默认保留 Enter/移焦提交与进位。尚未重做各平台真机验收。 |
 | [TitleBar](https://gpui-kit.com/component/title-bar/) | 主体已有 | [自定义标题栏、窗口控制、macOS 双击偏好与失焦外观](../../ui/kit/title_bar.go) | 自绘标题栏与窗口控制已实现；macOS 窗口初始居中已实测。标题栏全部系统行为及 Windows/Linux 真机验收仍待完成。 |
 | [Toggle](https://gpui-kit.com/component/toggle/) | 主体已有 | [状态按钮、图标、单选/多选组、ghost/outline 和四档尺寸](../../ui/kit/toggle_group.go) | 第八十五批补齐 Toggle 与 ToggleGroup 的 Variant、Size，默认保留原有 Surface 加边框外观。尺寸同步调整高度/字号/图标/留白；样式切换保留焦点与选择。第八十六批补齐 Segmented、Gap/ResetGap，零间距共享接缝、首尾外侧圆角，正间距恢复独立按钮。第八十七批补齐 Item 配置快照，支持组内图标、独立显示文字、禁用及显式外观/尺寸覆盖；登记缺口已关闭。组持有选择与回调，源 Toggle 的值/回调不透传，混合尺寸不自动拉齐；不表示 API 和默认样式完全相同。 |
 | [Toolbar](https://gpui-kit.com/component/toolbar/) | 主体已有 | [左右区域、尺寸、工具分组、溢出与键盘](../../ui/kit/toolbar.go) | 主体覆盖；命令用 ToolbarItem，自定义内容用 Leading/Trailing，缺任意位置插入 compound 自定义组的接口。 |
@@ -415,3 +415,11 @@
 - [x] 修复横向滚动容器内居中列未平分可用宽度的问题，随实际视口更新；空间不足保留最小列宽并允许滚动。
 - [x] 导航策略、Tab 跳过禁用项、方向切换、窄窗口、双倍率与浅深色连接线像素验证通过。
 - [x] 示例、文档和覆盖表同步；独立提交内容通过构建、vet、全量测试。
+
+## 第一百六十二批：TimeField 尺寸与快速分段编辑
+
+- [x] 四档 Size 同步框体、文字、图标及分段宽度；不改变时间值。
+- [x] SegmentKeys：左右切段、有效两位输入/粘贴跳段、独立循环、删除重置及 a/p 时段选择；默认编辑行为不变。
+- [x] 底层 CaptureKeys、SelectOnFocus、SelectInput 支持对应行为；中文选区和带修饰键编辑回归通过。
+- [x] 双倍率尺寸、连续输入、粘贴、回调、无效输入及禁用验证通过；虚拟窗口连续输入时分秒通过。
+- [x] 独立提交内容通过构建、vet、全量测试；示例、文档和覆盖表同步。

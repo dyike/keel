@@ -16,6 +16,8 @@ import (
 // valid time reverts to the last value. ↑ ↓ change it by a minute,
 // PageUp and PageDown by an hour, wrapping around midnight.
 type TimeFieldView struct {
+	size               TimeFieldSize
+	segmentKeys        bool
 	name               string // accessible name from a Form row when label is empty
 	label, text, err   string
 	value              time.Duration // since midnight
@@ -112,6 +114,7 @@ func (v *TimeFieldView) Render(cx *el.Context) el.Element {
 		return v.renderSegments(cx)
 	}
 	id := autoID("time", v)
+	height, font, icon, padding, verticalPadding := v.sizeMetrics()
 	if v.focused && !cx.Enabled(id) {
 		v.focused = false
 		v.text = formatClock(v.value)
@@ -123,7 +126,7 @@ func (v *TimeFieldView) Render(cx *el.Context) el.Element {
 		v.focused = focused
 	}
 	field := fieldText(el.Input().ID(v.FocusID()).Name(v.a11y()).Placeholder("HH:MM").Bind(&v.text)).
-		Filter("0123456789:").MaxLen(5).W(el.Dp(64)).NoShrink().
+		Filter("0123456789:").MaxLen(5).TextSize(font).W(el.Dp(64 * font / theme.TextControl)).NoShrink().
 		OnSubmit(func(string) { v.commit() }).
 		OnKey(func(e el.KeyEvent) bool {
 			if e.State == el.KeyPress {
@@ -137,8 +140,8 @@ func (v *TimeFieldView) Render(cx *el.Context) el.Element {
 			}
 			return true
 		})
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).W(el.Auto).
-		Child(Icon(IconClock).Size(16).Color(theme.Muted).Render(cx), field)
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).W(el.Auto).MinH(el.Dp(height)).Px(padding).Py(verticalPadding).TextSize(font).
+		Child(Icon(IconClock).Size(icon).Color(theme.Muted).Render(cx), field)
 	return labelled(v.label, el.Div().Items(el.Start).Child(box), v.err)
 }
 

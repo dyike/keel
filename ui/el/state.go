@@ -99,6 +99,8 @@ type elemState struct {
 	editor               widget.Editor
 	caret                editorstyle.Caret
 	edInit               bool
+	inputFocused         bool
+	inputSelection       *[2]int
 	inputUndo, inputRedo []InputEdit
 	lastText             string // what Bind last synced, to spot program changes
 }

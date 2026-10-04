@@ -7,6 +7,8 @@ import "github.com/dyike/keel/ui/theme"
 type InputEl struct{ Styled[InputEl] }
 
 type inputSpec struct {
+	captureKeys      []string
+	selectOnFocus    bool
 	placeholder      string
 	bind             *string
 	multiline        bool
@@ -89,4 +91,30 @@ type InputEdit struct {
 func (e *InputEl) Transform(fn func(InputEdit) InputEdit) *InputEl {
 	e.n.input.transform = fn
 	return e
+}
+
+// CaptureKeys reserves named, unmodified keys for OnKey before the single-line
+// editor handles them. The handler owns these keys even when it returns false.
+// Ordinary editing shortcuts with modifiers remain with the editor.
+func (e *InputEl) CaptureKeys(names ...string) *InputEl {
+	e.n.input.captureKeys = append([]string(nil), names...)
+	return e
+}
+
+// SelectOnFocus selects the complete value when the input gains focus.
+func (e *InputEl) SelectOnFocus(on bool) *InputEl { e.n.input.selectOnFocus = on; return e }
+
+// SelectInput schedules rune-based selection in an input after its next Bind
+// synchronization. It does not change text or focus. Missing or disabled inputs
+// are ignored, and the editor clamps the endpoints to its content.
+func (cx *Context) SelectInput(id string, start, end int) {
+	if !cx.root.e.gtx.Enabled() {
+		return
+	}
+	for _, st := range cx.root.store.states {
+		if st.id == id && st.edInit && !st.disabled {
+			st.inputSelection = &[2]int{start, end}
+			return
+		}
+	}
 }

@@ -81,6 +81,7 @@ type timeBlurKey struct {
 
 func (v *TimeFieldView) renderSegments(cx *el.Context) el.Element {
 	id := autoID("time", v)
+	height, font, icon, padding, verticalPadding := v.sizeMetrics()
 	mode := v.uses12()
 	if !v.localeReady || mode != v.lastHour12 {
 		v.syncParts()
@@ -92,8 +93,8 @@ func (v *TimeFieldView) renderSegments(cx *el.Context) el.Element {
 		v.partFocused = [3]bool{}
 		v.syncParts()
 	}
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.segmentID(0)).W(el.Auto).Gap(theme.SpaceXs).
-		Child(Icon(IconClock).Size(16).Color(theme.Muted).Render(cx))
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.segmentID(0)).W(el.Auto).MinH(el.Dp(height)).Px(padding).Py(verticalPadding).TextSize(font).Gap(theme.SpaceXs * font / theme.TextControl).
+		Child(Icon(IconClock).Size(icon).Color(theme.Muted).Render(cx))
 	text := locale.Current()
 	names := []string{text.Hour, text.Minute, text.Second}
 	count := 2
@@ -112,9 +113,13 @@ func (v *TimeFieldView) renderSegments(cx *el.Context) el.Element {
 			box.Child(el.Text(":"))
 		}
 		field := fieldText(el.Input().ID(partID).Name(text.Name(names[i], v.a11y())).Bind(&v.parts[i])).Filter("0123456789").MaxLen(2).
-			W(el.Dp(28)).NoShrink().
+			TextSize(font).W(el.Dp(28 * font / theme.TextControl)).NoShrink().
 			OnSubmit(func(string) { v.commitSegment(i) }).
+			OnChange(func(text string) { v.segmentChanged(cx, i, text) }).
 			OnKey(func(e el.KeyEvent) bool {
+				if v.segmentKeys {
+					return v.segmentKey(cx, i, e)
+				}
 				steps := map[key.Name]int{key.NameUpArrow: 1, key.NameDownArrow: -1, key.NamePageUp: 10, key.NamePageDown: -10}
 				step, ok := steps[key.Name(e.Name)]
 				if !ok || e.Modifiers != 0 {
@@ -126,6 +131,12 @@ func (v *TimeFieldView) renderSegments(cx *el.Context) el.Element {
 				}
 				return true
 			})
+		if v.segmentKeys {
+			field.SelectOnFocus(true).CaptureKeys(string(key.NameLeftArrow), string(key.NameRightArrow), string(key.NameDeleteBackward), string(key.NameDeleteForward))
+			if mode {
+				field.CaptureKeys(string(key.NameLeftArrow), string(key.NameRightArrow), string(key.NameDeleteBackward), string(key.NameDeleteForward), "A", "P")
+			}
+		}
 		box.Child(field)
 	}
 	if mode {
@@ -133,7 +144,7 @@ func (v *TimeFieldView) renderSegments(cx *el.Context) el.Element {
 		if v.value >= 12*time.Hour {
 			period = text.PM
 		}
-		box.Child(Button(period, func() {
+		periodButton := Button(period, func() {
 			base := v.value
 			for i, active := range v.partFocused {
 				if active {
@@ -142,7 +153,11 @@ func (v *TimeFieldView) renderSegments(cx *el.Context) el.Element {
 				}
 			}
 			v.setUser(base + 12*time.Hour)
-		}).Name(text.Name(text.Period, v.a11y())).Variant(ButtonGhost).Size(24).Render(cx))
+		}).ID(v.periodID()).Name(text.Name(text.Period, v.a11y())).Variant(ButtonGhost).Size(max(16, height-8)).Render(cx)
+		if v.segmentKeys {
+			periodButton.(*el.DivEl).OnKey(func(e el.KeyEvent) bool { return v.segmentKey(cx, count, e) })
+		}
+		box.Child(periodButton)
 	}
 	return labelled(v.label, el.Div().Items(el.Start).Child(box), v.err)
 }

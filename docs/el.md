@@ -374,3 +374,5 @@ row := el.Div().Row().Items(el.ContentBottom).Child(avatar, body)
 ```
 
 布局使用当前帧尺寸计算对齐线以上和以下所需空间，支持 Row 和 Wrap 的每一行。目标不接受绝对定位节点；容器显式限高时仍遵守限高。此模式不用于纵向容器或 Grid。
+
+`el.Input().SelectOnFocus(true)` 在获得焦点时选中全部内容。`CaptureKeys(names...)` 让单行输入的 OnKey 提前接收指定的无修饰键；这些键由回调完全负责，返回 false 也不会交还编辑器，带修饰键的快捷键不受影响。`cx.SelectInput(id, start, end)` 在下一次 Bind 同步后设置 rune 选区，不改变焦点或文字；端点由编辑器限制到有效范围，缺失或禁用输入忽略。上述接口用于 TimeField 的快速分段编辑，已验证中文 rune 选区、范围限制及带修饰键的编辑行为。
