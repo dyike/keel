@@ -1,10 +1,13 @@
 package kit
 
 import (
+	"gioui.org/f32"
+	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"image"
 	"image/color"
+	"math"
 
 	"gioui.org/unit"
 	giowidget "gioui.org/widget"
@@ -56,9 +59,12 @@ const (
 
 // IconView wraps a Gio vector icon. Labels belong to its containing control.
 type IconView struct {
-	icon  *giowidget.Icon
-	size  float32
-	color *color.NRGBA
+	svg            *svgIcon
+	originalColors bool
+	rotation       float32
+	icon           *giowidget.Icon
+	size           float32
+	color          *color.NRGBA
 }
 
 var iconData = [...][]byte{
@@ -119,11 +125,23 @@ func Icon(name IconName) *IconView {
 // VectorIcon supports custom Gio icons, including icons decoded by widget.NewIcon.
 func VectorIcon(icon *giowidget.Icon) *IconView { return &IconView{icon: icon, size: 18} }
 func (i *IconView) Size(dp float32) *IconView {
-	if dp > 0 {
+	if dp > 0 && finiteNumber(float64(dp)) {
 		i.size = dp
 	}
 	return i
 }
+
+// Rotate rotates the icon clockwise around its layout center, in degrees.
+// It does not change layout size. Negative angles rotate counterclockwise;
+// non-finite values are ignored. A non-square or tightly cropped icon may paint
+// outside its original box, subject to ancestor clipping.
+func (i *IconView) Rotate(degrees float32) *IconView {
+	if finiteNumber(float64(degrees)) {
+		i.rotation = float32(math.Mod(float64(degrees), 360))
+	}
+	return i
+}
+
 func (i *IconView) Color(c color.NRGBA) *IconView { i.color = &c; return i }
 func (i *IconView) Render(*el.Context) el.Element {
 	c := theme.Text
@@ -131,11 +149,17 @@ func (i *IconView) Render(*el.Context) el.Element {
 		c = *i.color
 	}
 	return el.Widget(core.Func(func(gtx core.C) core.D {
-		if i.icon == nil {
+		if i.icon == nil && i.svg == nil {
 			return core.D{}
 		}
 		size := gtx.Constraints.Constrain(image.Pt(gtx.Dp(unit.Dp(i.size)), gtx.Dp(unit.Dp(i.size))))
 		gtx.Constraints.Min, gtx.Constraints.Max = size, size
+		if i.rotation != 0 {
+			defer op.Affine(f32.Affine2D{}.Rotate(f32.Pt(float32(size.X)/2, float32(size.Y)/2), i.rotation*math.Pi/180)).Push(gtx.Ops).Pop()
+		}
+		if i.svg != nil {
+			return i.svg.layout(gtx, size, c, i.originalColors)
+		}
 		return i.icon.Layout(gtx, c)
 	})).Size(el.Dp(i.size))
 }

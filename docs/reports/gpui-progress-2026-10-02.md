@@ -315,7 +315,7 @@
 | [Form](https://gpui-kit.com/component/form/) | 主体已有 | [多列/跨列、字段描述/必填/显隐、校验与异步提交](../../ui/kit/form.go) | 第一百四十二批关闭登记主要缺口。默认仍是侧标签，VerticalLabels 可改上下排列；响应式列数和控件尺寸由应用配置，不提供统一尺寸枚举。Required 仅标记，业务校验仍用回调；Keel 另有异步提交状态管理。未做真机视觉验收。 |
 | [GroupBox](https://gpui-kit.com/component/group-box/) | 主体已有 | [标题、描述、内容分组、四种外观、框外 footer 与标题/正文样式](../../ui/kit/group_box.go) | 第十六批已关闭登记缺口；默认保留 Keel 原有背景加边框，GroupBoxNormal 对应无装饰。样式回调作用于每帧新建元素，不应保留元素引用。 |
 | [HoverCard](https://gpui-kit.com/component/hover-card/) | 主体已有 | [悬停卡片、延迟、定位、跨目标与取消](../../ui/kit/hover_card.go) | 第三批已补齐实例开关延时、方向/对齐及间距配置；默认仍为 700/300ms，键盘焦点立即打开，边缘避让保留。此表登记缺口已关闭。 |
-| [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。Keel 缺直接 SVG 加载和组件级旋转。 |
+| [Icon](https://gpui-kit.com/component/icon/) | 主体已有 | [内置矢量图标、自定义图标、尺寸与颜色](../../ui/kit/icon.go) | 实现路线不同：Keel 用 Gio/IconVG 图标；GPUI 文档提供 SVG 路径/字节与旋转接口。第一百六十六批完成 Rotate、SVGIcon/SVGIconFile 与原色模式，验证双倍率、非零 viewBox、渐变/变换与透明度像素，修复半透明颜色变暗。SVG 为 oksvg 支持的子集，按物理像素栅格化，并非完整浏览器 SVG。 |
 | [Image](https://gpui-kit.com/component/image/) | 主体已有 | [适配/裁剪/预览、异步源加载、内存缓存、自定义加载/失败内容及重试](../../ui/kit/image.go) | 第一百五十六批补齐登记的 Source/Cache 与 LoadingContent/Fallback。HTTP(S)、文件/data URL 使用有大小限制的栅格解码；默认 15 秒超时、共享 64MiB 估算 LRU、同源请求合并，支持取消及过期结果拒绝。没有 SVG、GIF 动画、HTTP 缓存头/ETag、磁盘缓存或自动过期；卸载取消由应用调用 Source(空字符串)。窗口 Agent 与缓存行为已验，真机未验收。 |
 | [Input Group](https://gpui-kit.com/component/input-group/) | 主体已有 | [四方向/多附加内容、TextArea 组合、统一边框、标签聚焦与按钮操作](../../ui/kit/input_group.go) | 第九批已补齐 block addon 和独立附加内容配置；按钮直接使用 kit.Button。Textarea 最大行数已在第一百一十三批补齐；Token 仍见 Textarea 条目，不计作已完成。 |
 | [Input](https://gpui-kit.com/component/input/) | 部分 | [单行、密码、长度、前后缀、清空、校验、禁用、标签聚焦](../../ui/kit/input.go) | 缺格式化 mask、原子 inline token、可拦截富剪贴板的 on_paste 和专用上下文菜单配置；Filter 是字符白名单，不能当作 mask。 |
@@ -444,3 +444,10 @@
 - [x] Toolbar 自定义组与溢出替代视图：修复浮层先于内部菜单注册，验证嵌套 Select、Esc、禁用、宽度变化及 SetItems 清理。
 - [x] Questionnaire 自定义布局与四档尺寸：验证必填校验、答案副本、禁用提交、五种题型、双倍率、省略部件和恢复输入；已有键盘及状态测试通过。
 - [x] 本批独立提交内容通过全仓构建、UI/native vet、全量测试。原生窗口视觉和输入法未验收；跨浮层移动控件仍不保证保留框架内部选区。
+
+## 第一百六十六批：SVG 图标与旋转
+
+- [x] SVGIcon/SVGIconFile 支持本地文件和字节输入、严格子集解析、1MiB 限制；Rotate 支持内置及 SVG 图标，过滤非有限尺寸/角度。
+- [x] 验证双倍率非零 viewBox、居中比例、90° 旋转、渐变、组变换、原色/主题着色、缓存尺寸更新及 2048px 栅格上限。
+- [x] 修复 SVG 半透明像素在 Gio 中变暗，测试覆盖染色和源色透明度。
+- [x] 独立提交内容通过全仓构建、UI/native vet 和全量测试。SVG 仍限解析器支持的子集，原生视觉未验收。

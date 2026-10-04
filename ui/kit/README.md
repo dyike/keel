@@ -3,6 +3,7 @@
 Keel 的组件，全部基于 el：展示、浮层、表单、数据、应用外壳和可视化。焦点、禁用、定时和浮层能力由 el 提供。
 
 - 直接依赖：`core`、`theme`、`locale`、`el`。
+- SVG 图标解析/栅格化依赖第三方 `oksvg`、`rasterx`；支持范围和缓存限制见 [Icon](../../docs/kit/icon.md)。
 - 不依赖：`window`。
 - 调用者：应用视图和示例。
 
