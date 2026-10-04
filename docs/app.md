@@ -41,13 +41,14 @@ window.Main()
 | --- | --- |
 | `Close()` | 等同于用户点关闭按钮 |
 | `Raise()` | 把窗口置于最前 |
+| `Activate(token)` | 用别的程序给的激活令牌（如系统通知被点击时的 `Activation.Token`）把窗口置前，可以通过窗口管理器的防抢焦点；目前 X11 使用令牌，其他平台或空令牌等同 `Raise` |
 | `Minimize()` | 最小化到 Dock 或任务栏 |
 | `ToggleMaximize()` | 最大化（macOS 上是缩放），已最大化时还原 |
 | `Maximized()` | 当前是否最大化，在 UI 代码里读取 |
 | `Frameless()` | 是否无边框窗口 |
 | `Closed() bool` | 窗口是否已销毁。在回调或 `core.Update` 里调用 |
 
-`Close` 和 `Raise` 是异步的：调用立即返回，动作在当前回调结束后才执行。所以 `w.Close()` 之后马上读 `w.Closed()`，得到的仍是 `false`。它们这样设计是为了避免死锁，原因见[架构 · 不能在锁内等待主线程](architecture.md#不能在锁内等待主线程)。
+`Close`、`Raise` 和 `Activate` 是异步的：调用立即返回，动作在当前回调结束后才执行。所以 `w.Close()` 之后马上读 `w.Closed()`，得到的仍是 `false`。它们这样设计是为了避免死锁，原因见[架构 · 不能在锁内等待主线程](architecture.md#不能在锁内等待主线程)。
 
 窗口关闭后不能重新打开。"同一时间只保留一个设置窗口"的写法：
 

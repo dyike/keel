@@ -103,15 +103,19 @@ func main() {
 		}
 	})
 	w := window.Open(window.Options{Title: "Keel 系统通知", Width: 520, Height: 460, Content: el.Root(d)})
-	d.notifier.OnSystemActivation(func(activation kit.NoticeActivation) {
-		if activation.Token != "" {
-			d.record("收到系统激活令牌；当前窗口后端仍使用 Raise")
-		}
-	})
+	// OnSystemActivation runs first and carries the token; OnSystemActivate
+	// then raises the window with it.
+	token := ""
+	d.notifier.OnSystemActivation(func(activation kit.NoticeActivation) { token = activation.Token })
 	d.notifier.OnSystemActivate(func() {
 		if !w.Closed() {
-			d.record("请求窗口置前")
-			w.Raise()
+			if token != "" {
+				d.record("用系统激活令牌请求窗口置前")
+			} else {
+				d.record("请求窗口置前")
+			}
+			w.Activate(token)
+			token = ""
 		}
 	})
 	window.Main()

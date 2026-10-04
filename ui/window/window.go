@@ -43,6 +43,7 @@ type Window struct {
 	closed                    bool // guarded by the frame lock
 	focused                   bool
 	nativeView, lastTitleView uintptr
+	x11Window                 uint32 // the X11 window ID on Linux X11, for Activate
 	titleArea, lastTitleArea  [4]float32
 	maximized                 bool // guarded by the frame lock; from the platform's config
 	deco                      widget.Decorations
@@ -99,6 +100,18 @@ func (w *Window) Close() { w.perform(system.ActionClose) }
 
 // Raise brings the window to the front.
 func (w *Window) Raise() { w.perform(system.ActionRaise) }
+
+// Activate brings the window to the front with an activation token that
+// another program granted, such as notification.Activation.Token after a
+// system notification was clicked. Window managers let a token through
+// their focus-stealing prevention, where a plain Raise may only flash the
+// taskbar. On X11 the token is a startup ID; elsewhere, or with an empty
+// token, Activate is Raise.
+func (w *Window) Activate(token string) {
+	if token == "" || w.win == nil || !platformActivate(w, token) {
+		w.Raise()
+	}
+}
 
 // Minimize hides the window in the Dock or taskbar.
 func (w *Window) Minimize() { w.perform(system.ActionMinimize) }

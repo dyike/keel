@@ -101,7 +101,7 @@ n.NotifyKey("download", kit.Notice{
 
 `OnSystemActivate(fn)` 设置应用的窗口唤起回调，例如 `func(){ if !w.Closed() { w.Raise() } }`。响应先从管理列表取出通知、安排系统撤回，再依次调用窗口唤起、尚未执行过的应用内 OnClose、最新 Notice.OnClick。重复响应、已删除通知和已切换为纯应用内的通知被忽略。应用内已超时仍可响应系统打开动作，但不重复调用 OnClose；仅系统模式不调用 OnClose。
 
-示例在 macOS/Linux 选择支持点击的原生适配器并连接 Window.Raise；Linux 服务需要 actions 能力。Linux ActivationToken 已通过数据回调传递，示例仍调用 Window.Raise；窗口后端消费令牌尚未接入。窗口实际能否置前由操作系统决定，原生点击和窗口唤起仍待真实系统验收。
+示例在 macOS/Linux/Windows 选择支持点击的原生适配器；Linux 服务需要 actions 能力。示例在 OnSystemActivation 里记下令牌，在 OnSystemActivate 里调用 `Window.Activate(token)`：X11 把令牌作为启动 ID 写到窗口上，再带着其中的时间戳请求激活，窗口管理器据此放行而不是只闪任务栏；Wayland 的 xdg-activation 尚未接入，和其他平台一样退回 Raise。窗口实际能否置前由操作系统决定，原生点击和窗口唤起仍待真实系统验收。
 
 `NoticeSystemActivationBackend` 增加 `PostActivated(id,title,body,activated,done)`，其中 activated 接收 `NoticeActivation{Token: ...}`。后端同时实现两种交互接口时优先使用带激活数据的接口；只实现 PostInteractive 的后端继续工作，激活数据为空。
 
