@@ -32,6 +32,7 @@ type VariableListView struct {
 	anchorDelta      float32
 	restore          bool
 	reveal           string
+	revealAlign      ScrollAlign
 	followEnd        bool
 	end, endApplied  int
 	role             string
@@ -139,10 +140,25 @@ func (v *VariableListView) ScrollTo(cx *el.Context, i int) {
 // ScrollToKey minimally reveals the row with key, independent of its current
 // index. Missing keys are ignored, leaving any pending reveal unchanged.
 func (v *VariableListView) ScrollToKey(cx *el.Context, key string) {
+	v.ScrollToKeyAlign(cx, key, ScrollNearest)
+}
+
+// ScrollToAlign scrolls row i to the top, center or bottom of the viewport,
+// as far as the content allows; rows not yet measured use their estimate
+// and settle once measured.
+func (v *VariableListView) ScrollToAlign(cx *el.Context, i int, align ScrollAlign) {
+	if i < 0 || i >= len(v.keys) {
+		return
+	}
+	v.ScrollToKeyAlign(cx, v.keys[i], align)
+}
+
+// ScrollToKeyAlign is ScrollToAlign by stable key.
+func (v *VariableListView) ScrollToKeyAlign(cx *el.Context, key string, align ScrollAlign) {
 	if _, ok := v.indices[key]; !ok {
 		return
 	}
-	v.reveal = key
+	v.reveal, v.revealAlign = key, align
 	cx.After(revealKey{v.ID()}, 0, func() {})
 }
 
@@ -170,12 +186,7 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 		}
 	}
 	if i, ok := v.indices[v.reveal]; ok {
-		top, bottom := v.sums.prefix(i), v.sums.prefix(i+1)
-		if top < off {
-			off = top
-		} else if bottom > off+view {
-			off = min(top, bottom-view)
-		}
+		off = alignedOffset(v.revealAlign, off, view, total, v.sums.prefix(i), v.sums.prefix(i+1))
 	}
 	if atEnd {
 		off = max(total-view, 0)

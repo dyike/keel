@@ -21,6 +21,7 @@ type VirtualListView struct {
 	row                           func(cx *el.Context, i int) el.Element
 	itemKey                       func(int) string
 	reveal                        int // row to scroll to once the viewport exists, -1 none
+	revealAlign                   ScrollAlign
 }
 
 func VirtualList(count int, rowHeight float32, row func(cx *el.Context, i int) el.Element) *VirtualListView {
@@ -53,11 +54,15 @@ func (v *VirtualListView) ID() string { return autoID("vlist", v) }
 // ScrollTo scrolls as little as needed to show row i; call it from Render or
 // a callback. A list that is not on screen yet (another tab) scrolls when it
 // first shows.
-func (v *VirtualListView) ScrollTo(cx *el.Context, i int) {
+func (v *VirtualListView) ScrollTo(cx *el.Context, i int) { v.ScrollToAlign(cx, i, ScrollNearest) }
+
+// ScrollToAlign scrolls row i to the top, center or bottom of the viewport,
+// as far as the content allows, or minimally with ScrollNearest.
+func (v *VirtualListView) ScrollToAlign(cx *el.Context, i int, align ScrollAlign) {
 	if i < 0 || i >= v.count {
 		return
 	}
-	v.reveal = i
+	v.reveal, v.revealAlign = i, align
 	v.applyReveal(cx)
 }
 
@@ -76,7 +81,13 @@ func (v *VirtualListView) applyReveal(cx *el.Context) {
 		return
 	}
 	i := min(v.reveal, v.count-1)
-	virtualReveal(cx, v.ID(), v.horizontal, float32(i)*v.rowH, float32(i+1)*v.rowH)
+	start, end := float32(i)*v.rowH, float32(i+1)*v.rowH
+	if v.revealAlign == ScrollNearest {
+		virtualReveal(cx, v.ID(), v.horizontal, start, end)
+	} else {
+		off, view, _ := virtualState(cx, v.ID(), v.horizontal)
+		virtualScroll(cx, v.ID(), v.horizontal, alignedOffset(v.revealAlign, off, view, float32(v.count)*v.rowH, start, end))
+	}
 	v.reveal = -1
 }
 

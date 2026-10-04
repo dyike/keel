@@ -92,3 +92,37 @@ func (v *VariableListView) Width(dp float32) *VariableListView {
 
 // ScrollToEnd reveals the final stable key on the current axis.
 func (v *VariableListView) ScrollToEnd(cx *el.Context) { v.ScrollTo(cx, len(v.keys)-1) }
+
+// ScrollAlign is where ScrollToAlign puts a row in the viewport.
+type ScrollAlign uint8
+
+const (
+	// ScrollNearest scrolls as little as needed to show the row.
+	ScrollNearest ScrollAlign = iota
+	// ScrollStart puts the row at the viewport's top (or left).
+	ScrollStart
+	// ScrollCenter centers the row.
+	ScrollCenter
+	// ScrollEnd puts the row at the viewport's bottom (or right).
+	ScrollEnd
+)
+
+// alignedOffset is the scroll offset showing [start, end) by align, from
+// the current offset in a viewport of view over total content.
+func alignedOffset(align ScrollAlign, off, view, total, start, end float32) float32 {
+	switch align {
+	case ScrollStart:
+		off = start
+	case ScrollCenter:
+		off = start - (view-(end-start))/2
+	case ScrollEnd:
+		off = end - view
+	default:
+		if start < off {
+			off = start
+		} else if end > off+view {
+			off = min(start, end-view)
+		}
+	}
+	return min(max(off, 0), max(total-view, 0))
+}

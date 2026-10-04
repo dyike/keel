@@ -11,7 +11,7 @@ logs := kit.VirtualList(len(lines), 24, func(cx *el.Context, i int) el.Element {
 - `VirtualList` 每行高度相同（`rowHeight`，单位 dp）；自然高度内容使用下方的 `VariableList`。
 - 沿滚动轴在可视区前后各多构建一屏，滚动的那一帧也不会露出空白。
 - `Height(dp)` 设置可视高度（默认 320），`Fill()` 改为撑满父容器给的空间。
-- `SetCount(n)` 更新行数；`ScrollTo(cx, i)` 以最小滚动量让第 i 行可见。列表还没显示时（比如在另一个标签页），会在第一次显示时再滚动。
+- `SetCount(n)` 更新行数；`ScrollTo(cx, i)` 以最小滚动量让第 i 行可见。列表还没显示时（比如在另一个标签页），会在第一次显示时再滚动。`ScrollToAlign(cx, i, align)` 指定位置：`kit.ScrollStart` 顶部（横向时左侧）、`kit.ScrollCenter` 居中、`kit.ScrollEnd` 底部，`kit.ScrollNearest` 等同 ScrollTo；靠近首尾时按内容能滚到的范围截住。
 - 每行包着一个带稳定 ID 的元素，行在窗口里移动时状态不会丢。
 
 Agent：只列出可视区里的行。
