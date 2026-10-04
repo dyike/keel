@@ -39,14 +39,15 @@ type scopedAction struct {
 // frame. Do not also register the same action through the global Action method.
 // The innermost focused target wins for repeated actions or chords; ties use
 // declaration order. An inner empty binding also suppresses outer handlers.
-// This does not dispatch menu clicks; Menu.ActionItem owns its callback.
+// Perform runs the handler as if from targetID (see Perform).
 func (cx *Context) ActionAt(targetID, action string, fn func()) {
 	cx.actions = append(cx.actions, scopedAction{targetID, action, fn})
 }
 
 type actionBindingTarget struct {
-	contexts []string
-	depth    int
+	contexts  []string
+	depth     int
+	ancestors []string // IDs of enclosing elements, inner first
 }
 
 func (cx *Context) prepareScopedActions() {
@@ -89,8 +90,8 @@ func (cx *Context) prepareActionBindings(tree *Node) {
 			roots = append(roots, d.layer.content.node())
 		}
 	}
-	var collect func(*Node, []string, int)
-	collect = func(n *Node, contexts []string, depth int) {
+	var collect func(*Node, []string, []string, int)
+	collect = func(n *Node, contexts, ancestors []string, depth int) {
 		if n.style.hidden || n.disabled {
 			return
 		}
@@ -98,14 +99,15 @@ func (cx *Context) prepareActionBindings(tree *Node) {
 			contexts = append([]string{n.keyContext}, contexts...)
 		}
 		if n.id != "" {
-			cx.bindingTargets[n.id] = actionBindingTarget{slices.Clone(contexts), depth}
+			cx.bindingTargets[n.id] = actionBindingTarget{slices.Clone(contexts), depth, slices.Clone(ancestors)}
+			ancestors = append([]string{n.id}, ancestors...)
 		}
 		for _, c := range n.children {
-			collect(c.node(), contexts, depth+1)
+			collect(c.node(), contexts, ancestors, depth+1)
 		}
 	}
 	for _, root := range roots {
-		collect(root, nil, 0)
+		collect(root, nil, nil, 0)
 	}
 	var resolve func(*Node)
 	resolve = func(n *Node) {
@@ -127,4 +129,31 @@ func (cx *Context) prepareActionBindings(tree *Node) {
 	for _, root := range roots {
 		resolve(root)
 	}
+}
+
+// Perform runs the handler a key press bound to action would run with focus
+// at targetID: the innermost ActionAt declared on targetID or an element
+// enclosing it, else a global Action handler. It works without any key
+// bound, which is what menus and command palettes need. Call it from a
+// callback; it sees this frame's declarations and reports whether a
+// handler ran. Hidden or disabled targets run nothing.
+func (cx *Context) Perform(targetID, action string) bool {
+	if target, ok := cx.bindingTargets[targetID]; ok {
+		scope := append([]string{targetID}, target.ancestors...)
+		for _, id := range scope { // inner first
+			for _, a := range cx.actions {
+				if a.action == action && a.target == id && a.fn != nil {
+					core.Call(cx.root.e.gtx, a.fn)
+					return true
+				}
+			}
+		}
+	} else if targetID != "" {
+		return false
+	}
+	if fn := cx.globalActions[action]; fn != nil {
+		core.Call(cx.root.e.gtx, fn)
+		return true
+	}
+	return false
 }

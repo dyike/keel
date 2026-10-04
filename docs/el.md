@@ -138,6 +138,7 @@ func (v *editor) Render(cx *el.Context) el.Element {
 
 - 键位表是全局的，`core.Bind` 替换一个动作的全部按键，不传按键就是解绑；按键写错时返回错误，什么都不改。
 - 改键后所有窗口重绘，下一帧起生效；`cx.Action` 每帧按当前键位表注册，不用重启。
+- `cx.Perform(targetID, action)` 在回调里直接执行一个动作，效果和焦点在 targetID 时按下它的快捷键一样：先找包住该元素的最内层 `cx.ActionAt`，再找 `cx.Action`；不需要绑定键。菜单的 `ActionItem` 和命令面板用它共用命令实现，返回值表示是否有处理器运行。
 - `core.Bindings(name)` 查一个动作的按键，`core.Keymap()` 返回全部，可以用来做快捷键设置页。
 - 显示按键用 `kit.KbdFor(name)` 和 `Menu.ActionItem`，它们跟着键位表变。
 

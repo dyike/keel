@@ -92,8 +92,9 @@ func (v *MenuView) Width(dp float32) *MenuView {
 
 // ActionItem adds a command that shows the key bound to a keymap action
 // (core.Bind/BindIn), following rebinding and the trigger or ActionContext.
-// Handle keys with cx.ActionAt for scoped bindings, or cx.Action for global
-// ones; the menu only runs fn when the item is chosen.
+// With fn nil, choosing it runs the action's handler where the menu acts,
+// as its key would: the innermost cx.ActionAt enclosing the trigger or
+// ActionContext, else cx.Action. Otherwise only fn runs.
 func (v *MenuView) ActionItem(label, keymapAction string, fn func()) *MenuView {
 	v.items = append(v.items, menuItem{label: label, keymapAction: keymapAction, action: fn})
 	return v
@@ -101,7 +102,7 @@ func (v *MenuView) ActionItem(label, keymapAction string, fn func()) *MenuView {
 
 // ActionContext chooses the element ID whose KeyContext ancestry resolves
 // ActionItem hints. Empty restores the trigger context (inherited by submenus).
-// This affects hints only: item callbacks still own command dispatch.
+// It also picks the handler an ActionItem without a callback runs.
 func (v *MenuView) ActionContext(id string) *MenuView { v.actionContext = id; return v }
 
 func (v *MenuView) keyTarget() string {
@@ -432,6 +433,8 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Elem
 		}
 		if it.action != nil {
 			it.action()
+		} else if it.keymapAction != "" {
+			cx.Perform(v.keyTarget(), it.keymapAction)
 		}
 	}
 	row := el.Div().ID(v.itemID(i)).NoShrink().Role("menuitem").Name(it.label).Row().Items(el.Center).Gap(theme.SpaceLg).

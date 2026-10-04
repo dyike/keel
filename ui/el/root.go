@@ -42,6 +42,7 @@ type Context struct {
 	layers         []overlayDecl
 	shortcuts      []viewShortcut
 	actions        []scopedAction
+	globalActions  map[string]func() // by name, for Perform
 	bindingTargets map[string]actionBindingTarget
 	root           *RootWidget
 }
@@ -114,6 +115,12 @@ func (cx *Context) Shortcut(chord string, fn func()) {
 // has focus and this view is rendered: every chord bound to name runs fn.
 // Rebinding takes effect on the next frame; an unbound action does nothing.
 func (cx *Context) Action(name string, fn func()) {
+	if cx.globalActions == nil {
+		cx.globalActions = map[string]func(){}
+	}
+	if _, ok := cx.globalActions[name]; !ok {
+		cx.globalActions[name] = fn
+	}
 	for _, chord := range core.Bindings(name) {
 		if k, mods, err := core.ParseShortcut(chord); err == nil {
 			cx.shortcuts = append(cx.shortcuts, viewShortcut{k, mods, fn})
@@ -202,6 +209,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 		r.beginTimers()
 		cx.shortcuts = nil
 		cx.actions = nil
+		cx.globalActions = nil
 		cx.layers = nil
 		tree = r.view.Render(&cx).node()
 		cx.prepareActionBindings(tree)
