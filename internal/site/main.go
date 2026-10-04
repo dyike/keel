@@ -147,6 +147,9 @@ func (s *site) build(demo string) error {
 			return err
 		}
 	}
+	if err := s.writeIcons(); err != nil {
+		return err
+	}
 	// GitHub Pages would otherwise run Jekyll and drop files it dislikes.
 	if err := s.write(".nojekyll", nil); err != nil {
 		return err
@@ -319,4 +322,31 @@ func relURL(from, target string) string {
 		return "./"
 	}
 	return rel
+}
+
+// iconSource is the one source of the Keel icon.
+const iconSource = "docs/images/keel.svg"
+
+// writeIcons publishes the icon as the favicon, with PNGs for browsers and
+// home screens that want bitmaps.
+func (s *site) writeIcons() error {
+	svg, err := os.ReadFile(filepath.Join(s.root, iconSource))
+	if err != nil {
+		return err
+	}
+	for name, data := range map[string][]byte{"favicon.svg": svg, iconSource: svg} {
+		if err := s.write(name, data); err != nil {
+			return err
+		}
+	}
+	for name, size := range map[string]int{"favicon-32.png": 32, "apple-touch-icon.png": 180, "icon-512.png": 512} {
+		data, err := renderIcon(svg, size)
+		if err != nil {
+			return err
+		}
+		if err := s.write(name, data); err != nil {
+			return err
+		}
+	}
+	return nil
 }

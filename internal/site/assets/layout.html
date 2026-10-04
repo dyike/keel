@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{if .Home}}Keel · 纯 Go 桌面界面框架{{else}}{{.Page.Title}} · Keel{{end}}</title>
 <meta name="description" content="Keel：用纯 Go 写桌面界面，GPUI 风格的元素与组件库，基于 Gio。">
+<link rel="icon" href="{{.Root}}favicon.svg" type="image/svg+xml">
+<link rel="icon" href="{{.Root}}favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="{{.Root}}apple-touch-icon.png">
 <link rel="stylesheet" href="{{.Root}}assets/site.css">
 <link rel="stylesheet" href="{{.Root}}assets/code.css">
 <script defer src="{{.Root}}assets/site.js"></script>
@@ -12,7 +15,7 @@
 <body data-root="{{.Root}}">
 <header class="top">
   <button class="menu" type="button" aria-label="目录">☰</button>
-  <a class="brand" href="{{.Root}}"><span class="logo">K</span>Keel</a>
+  <a class="brand" href="{{.Root}}"><img class="logo" src="{{.Root}}favicon.svg" alt="" width="26" height="26">Keel</a>
   <nav class="links">
     <a href="{{.Root}}docs/getting-started.html">文档</a>
     <a href="{{.Root}}docs/kit.html">组件</a>
@@ -27,6 +30,7 @@
 </header>
 {{if .Home}}
 <section class="hero">
+  <img class="hero-logo" src="{{.Root}}favicon.svg" alt="Keel" width="88" height="88">
   <h1>用纯 Go 写桌面界面</h1>
   <p>GPUI 风格的视图与链式样式，80 多个组件，Markdown 与代码编辑器，Agent 自动化测试；macOS、Windows、Linux 与浏览器。</p>
   <div class="actions">

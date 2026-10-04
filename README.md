@@ -1,3 +1,5 @@
+<p><img src="docs/images/keel.svg" alt="Keel" width="80" height="80"></p>
+
 # Keel
 
 用纯 Go 写桌面界面，不需要 HTML、CSS、JavaScript 或 WebView。界面由 [Gio](https://gioui.org) 绘制；Gio 没有的原生能力（权限、截图、合成输入、全局快捷键）在 `native/` 下。

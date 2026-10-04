@@ -47,6 +47,7 @@ const demoPage = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, user-scalable=no">
 <title>Keel 组件库</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <style>
   html, body { margin: 0; padding: 0; height: 100%%; overflow: hidden; }
   body { background: #f5f6f8; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; color: #1f2328; }
