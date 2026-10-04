@@ -53,6 +53,7 @@ type Node struct {
 	palette       *theme.Palette // Themed: colors for this subtree
 	onDoubleClick func()
 	onDrag        func(DragEvent)
+	dragAccept    func(float32, float32) bool
 	onScroll      *scrollHandler
 	role, name    string
 	value         string

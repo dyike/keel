@@ -182,6 +182,19 @@ func (e *engine) paintContent(n *Node) {
 	if n.id != "" || n.interactive() || n.onScroll != nil || (n.style.scrollY || n.style.scrollX) || n.input != nil {
 		state = e.store.get(n.key)
 	}
+	if gtx.Enabled() {
+		if n.onClick != nil || n.onDoubleClick != nil || n.onDrag != nil || n.input != nil || n.widget != nil || n.style.scrollX || n.style.scrollY {
+			bounds := image.Rectangle{Min: e.origin, Max: e.origin.Add(n.size)}.Intersect(e.visible)
+			for _, scope := range e.dragScopes {
+				scope.drag.blocked = append(scope.drag.blocked, bounds.Sub(scope.origin))
+			}
+		}
+		if state != nil && n.onDrag != nil && n.dragAccept != nil {
+			state.conditionalDrag.blocked = state.conditionalDrag.blocked[:0]
+			e.dragScopes = append(e.dragScopes, dragScope{&state.conditionalDrag, e.origin})
+			defer func() { e.dragScopes = e.dragScopes[:len(e.dragScopes)-1] }()
+		}
+	}
 	if state != nil && gtx.Enabled() {
 		state.enabledFrame = e.store.frame
 	}
@@ -273,7 +286,11 @@ func (e *engine) paintContent(n *Node) {
 				// the element is clickable, and visible to agents, at once.
 				state.click.Update(gtx.Source)
 				if n.onDrag != nil {
-					state.drag.Update(gtx.Metric, gtx.Source, gesture.Both)
+					if n.dragAccept != nil {
+						state.conditionalDrag.update(gtx.Metric, gtx.Source, n.dragAccept)
+					} else {
+						state.drag.Update(gtx.Metric, gtx.Source, gesture.Both)
+					}
 				}
 				state.fresh = false
 			}
@@ -290,7 +307,11 @@ func (e *engine) paintContent(n *Node) {
 			}
 			state.click.Add(gtx.Ops)
 			if n.onDrag != nil {
-				state.drag.Add(gtx.Ops)
+				if n.dragAccept != nil {
+					state.conditionalDrag.add(gtx.Ops)
+				} else {
+					state.drag.Add(gtx.Ops)
+				}
 			}
 			if gtx.Enabled() {
 				state.onClick, state.onDoubleClick, state.clickable = n.onClick, n.onDoubleClick, true

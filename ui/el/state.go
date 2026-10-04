@@ -52,18 +52,20 @@ type elemState struct {
 	enabledFrame uint64 // last live, visible, enabled paint
 	frame        uint64 // last frame the element was painted in
 
-	click         gesture.Click
-	onClick       func()
-	onContextMenu func()
-	contextButton pointer.Buttons
-	contextTag    struct{}
-	onDoubleClick func()
-	drag          gesture.Drag
-	onDrag        func(DragEvent)
-	onScroll      *scrollHandler
-	scrollTag     struct{}
-	size          image.Point // painted size in px, for drag events
-	clickable     bool        // registered a click area last frame
+	click           gesture.Click
+	onClick         func()
+	onContextMenu   func()
+	contextButton   pointer.Buttons
+	contextTag      struct{}
+	onDoubleClick   func()
+	drag            gesture.Drag
+	conditionalDrag conditionalDrag
+	onDrag          func(DragEvent)
+	dragAccept      func(float32, float32) bool
+	onScroll        *scrollHandler
+	scrollTag       struct{}
+	size            image.Point // painted size in px, for drag events
+	clickable       bool        // registered a click area last frame
 	// FocusOnPress, and an input's padding: a press here focuses pressFocus,
 	// or this input's own editor.
 	pressTag    struct{}

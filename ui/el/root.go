@@ -344,7 +344,13 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			r.clickModifiers = 0
 		}
 		for st.onDrag != nil {
-			ev, ok := st.drag.Update(gtx.Metric, gtx.Source, gesture.Both)
+			var ev pointer.Event
+			var ok bool
+			if st.dragAccept != nil {
+				ev, ok = st.conditionalDrag.update(gtx.Metric, gtx.Source, st.dragAccept)
+			} else {
+				ev, ok = st.drag.Update(gtx.Metric, gtx.Source, gesture.Both)
+			}
 			if !ok {
 				break
 			}

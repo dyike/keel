@@ -330,6 +330,8 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 
 拖动结束时 `DragEvent.Canceled` 区分取消与正常释放。需要在松手后提交变更的组件应在取消时丢弃暂存结果。
 
+`DragAccept(func(dx, dy float32) bool)` 与 OnDrag 配合，在初始移动达到 3dp 时决定是否接管。参数是指针相对按下位置的 dp 位移，不是滚动增量；函数应只判断、不修改状态。返回 false 时报告一次 Canceled 的 DragEnd，并让外层手势处理器有机会接管；返回 true 后，本次拖动不再重新判断方向。从可点击、可拖动、输入、滚动容器或嵌入 Widget 子树的可见区域按下时，优先留给子组件，不启动本层拖动。传 nil 恢复普通拖动。适合轮播在起始边界或跨轴拖动时让出手势；外层 ScrollX/ScrollY 的原生拖动滚动按 Gio 规则主要接收触摸，桌面鼠标仍使用滚轮或滚动条。
+
 `cx.ViewportSize()` 在 Render 阶段返回根视口可用宽高（dp），用于限制命令面板等窗口内浮层的高度，避免键盘滚动目标位于窗口之外。
 
 `cx.Countdown(id, key, duration, paused, fn)` 声明保留剩余时间的一次性倒计时。显式 paused、所属元素不可见/禁用/被模态遮挡时暂停，恢复后继续剩余时间；改 duration 重启，省略声明取消。与 `AfterEnabled` 恢复后重新等待完整延迟的语义不同，通知倒计时用 Countdown，悬停提示延迟继续用 AfterEnabled。

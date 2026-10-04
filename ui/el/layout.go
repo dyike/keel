@@ -25,6 +25,7 @@ type engine struct {
 	m                      unit.Metric
 	store                  *store
 	scrollParents          []*elemState
+	dragScopes             []dragScope
 	horizontalView         *image.Rectangle
 	scratch                op.Ops          // measuring passes record here and discard
 	origin                 image.Point     // absolute position of the node being painted's parent

@@ -170,11 +170,18 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 		st.onContextMenu, st.contextButton = n.onContextMenu, n.contextButton
 		st.onClick, st.onDoubleClick, st.onDrag = n.onClick, n.onDoubleClick, n.onDrag
 		st.onScroll = n.onScroll
+		if (st.dragAccept == nil) != (n.dragAccept == nil) {
+			st.drag = gesture.Drag{}
+			st.conditionalDrag = conditionalDrag{}
+			st.fresh = true
+		}
+		st.dragAccept = n.dragAccept
 		if st.disabled {
 			st.inputPaste = nil
 			st.pressedKey = ""
 			st.click = gesture.Click{}
 			st.drag = gesture.Drag{}
+			st.conditionalDrag = conditionalDrag{}
 			st.scrollbarX, st.scrollbarY = scrollbarState{}, scrollbarState{}
 			st.fresh = true
 			if r.e.gtx.Focused(st) || r.e.gtx.Focused(&st.editor) {

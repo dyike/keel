@@ -17,11 +17,12 @@ func TestCarouselContinuousLoopSeam(t *testing.T) {
 			for i := range slides {
 				slides[i] = el.ViewFunc(func(cx *el.Context) el.Element {
 					renders[i]++
-					return el.Div().Grow().Name([]string{"first", "second", "last"}[i]).OnClick(func() { clicks++ })
+					name := []string{"first", "second", "last"}[i]
+					return el.Div().Grow().Name(name).Child(el.Div().W(el.Dp(40)).H(el.Dp(24)).Name("action " + name).OnClick(func() { clicks++ }))
 				})
 			}
 			car := Carousel(slides...).Gap(8).Height(200).Vertical(vertical).OnChange(func(int) { changes++ })
-			h := renderView(el.ViewFunc(func(c *el.Context) el.Element { return car.Content().Render(c) }), 200, scale)
+			h, advance := renderCarouselClock(el.ViewFunc(func(c *el.Context) el.Element { return car.Content().Render(c) }), 200, scale)
 			for i := 0; i < 5; i++ {
 				h.Frame()
 			}
@@ -64,7 +65,8 @@ func TestCarouselContinuousLoopSeam(t *testing.T) {
 			if car.Value() != 2 || changes != 1 || clicks != 0 {
 				t.Fatal("release selection", car.Value(), changes, clicks)
 			}
-			click(t, h, "last")
+			advance(carouselTransition)
+			click(t, h, "action last")
 			if clicks != 1 {
 				t.Fatal("translated hit area", clicks)
 			}

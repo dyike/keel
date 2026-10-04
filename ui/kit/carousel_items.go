@@ -192,7 +192,23 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 
 	v.scrollInput(cx, stage, id, geometry)
 	if v.draggable {
-		stage.OnDrag(func(e el.DragEvent) { v.handleDrag(e, geometry) })
+		stage.OnDrag(func(e el.DragEvent) { v.handleDrag(e, geometry) }).DragAccept(func(dx, dy float32) bool {
+			along, cross := dx, dy
+			if v.vertical {
+				along, cross = dy, dx
+			}
+			if math.Abs(float64(along)) < math.Abs(float64(cross)) {
+				return false
+			}
+			if geometry.cycle > 0 {
+				return true
+			}
+			origin := geometry.points[v.current]
+			if v.drag.active {
+				origin = v.drag.origin
+			}
+			return along < 0 && origin < geometry.maximum || along > 0 && origin > 0
+		})
 	}
 	// Each cell and gap is independently rounded by the layout engine.
 	stage.Decorate(func(gtx core.C, draw func()) {
