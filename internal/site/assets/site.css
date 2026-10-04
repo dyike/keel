@@ -115,7 +115,8 @@ article hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
   .brand, .version, .menu { flex: none; }
   .version { margin-left: -4px; }
   .search { flex: 1 1 auto; min-width: 0; }
-  .search input { width: 100%; min-width: 0; }
+  /* 16px: iOS Safari zooms the page into any smaller text field. */
+  .search input { width: 100%; min-width: 0; font-size: 16px; }
   .search kbd { display: none; }
   .gh span { display: none; }
   .results { position: fixed; left: 12px; right: 12px; top: calc(var(--header) - 4px); width: auto; }

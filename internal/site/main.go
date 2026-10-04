@@ -11,7 +11,9 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -118,9 +120,21 @@ func (s *site) build(demo string) error {
 	if err != nil {
 		return err
 	}
+	// Stylesheets and scripts are linked with a hash of their contents, so
+	// a deploy never pairs new pages with cached old ones (Pages caches
+	// them for ten minutes).
+	files := map[string][]byte{"code.css": codeCSS()}
+	for _, name := range []string{"site.css", "site.js"} {
+		files[name], _ = assets.ReadFile("assets/" + name)
+	}
+	asset := map[string]string{}
+	for name, data := range files {
+		sum := sha256.Sum256(data)
+		asset[name] = "assets/" + name + "?v=" + hex.EncodeToString(sum[:5])
+	}
 	for _, p := range s.order {
 		var b bytes.Buffer
-		if err := tmpl.Execute(&b, map[string]any{"Page": p, "Nav": s.nav, "Repo": s.repo, "Home": p.Out == "index.html", "Version": s.version,
+		if err := tmpl.Execute(&b, map[string]any{"Page": p, "Nav": s.nav, "Repo": s.repo, "Home": p.Out == "index.html", "Version": s.version, "Asset": asset,
 			"Root": relURL(p.Out, "."), "Demo": relURL(p.Out, "demo/index.html"), "Source": s.repo + "/blob/" + s.branch + "/" + p.Src}); err != nil {
 			return fmt.Errorf("%s: %w", p.Src, err)
 		}
@@ -128,14 +142,10 @@ func (s *site) build(demo string) error {
 			return err
 		}
 	}
-	for _, name := range []string{"site.css", "site.js"} {
-		data, _ := assets.ReadFile("assets/" + name)
+	for name, data := range files {
 		if err := s.write("assets/"+name, data); err != nil {
 			return err
 		}
-	}
-	if err := s.write("assets/code.css", codeCSS()); err != nil {
-		return err
 	}
 	if err := s.writeSearch(); err != nil {
 		return err

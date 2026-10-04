@@ -8,9 +8,9 @@
 <link rel="icon" href="{{.Root}}favicon.svg" type="image/svg+xml">
 <link rel="icon" href="{{.Root}}favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="{{.Root}}apple-touch-icon.png">
-<link rel="stylesheet" href="{{.Root}}assets/site.css">
-<link rel="stylesheet" href="{{.Root}}assets/code.css">
-<script defer src="{{.Root}}assets/site.js"></script>
+<link rel="stylesheet" href="{{.Root}}{{index .Asset "site.css"}}">
+<link rel="stylesheet" href="{{.Root}}{{index .Asset "code.css"}}">
+<script defer src="{{.Root}}{{index .Asset "site.js"}}"></script>
 </head>
 <body data-root="{{.Root}}">
 <header class="top">
