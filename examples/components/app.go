@@ -74,11 +74,15 @@ func displayName(name string) string {
 }
 
 func (g *gallery) header(cx *el.Context) el.Element {
+	logo := el.Div().NoShrink().Size(el.Dp(24)).Rounded(6).Bg(theme.Primary).Center().TextColor(theme.OnColor).TextSize(13).Bold().Child(el.Text("K"))
+	if g.nav.Collapsed() {
+		return el.Div().Gap(12).Items(el.Center).Child(
+			logo,
+			kit.Button("", func() { g.nav.SetCollapsed(false) }).Name("搜索组件").Icon(kit.IconSearch).Variant(kit.ButtonGhost).Size(32).Render(cx),
+		)
+	}
 	return el.Div().Gap(12).Items(el.Stretch).Child(
-		el.Div().Row().Gap(8).Items(el.Center).Px(4).Child(
-			el.Div().Size(el.Dp(24)).Rounded(6).Bg(theme.Primary).Center().TextColor(theme.OnColor).TextSize(13).Bold().Child(el.Text("K")),
-			el.Text("Keel 组件").Bold(),
-		),
+		el.Div().Row().Gap(8).Items(el.Center).Px(4).Child(logo, el.Text("Keel 组件").Bold()),
 		g.search.Render(cx),
 	)
 }
