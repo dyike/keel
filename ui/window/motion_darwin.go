@@ -6,11 +6,15 @@ package window
 #cgo LDFLAGS: -framework AppKit
 void keel_watch_motion(void);
 void keel_watch_scroll(void);
+void keel_watch_scrollers(void);
+int keel_overlay_scrollers(void);
 */
 import "C"
 
 import (
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/internal/loop"
 	"github.com/dyike/keel/ui/theme"
 	"sync"
 )
@@ -27,6 +31,7 @@ func watchSystemPreferences() {
 		}()
 		C.keel_watch_motion()
 		C.keel_watch_scroll()
+		C.keel_watch_scrollers()
 	})
 }
 
@@ -53,3 +58,15 @@ func keel_scroll_event(precise, active, momentum, ended C.int) {
 	}
 	core.ReportScrollGesture(device, active != 0, momentum != 0, ended != 0)
 }
+
+//export keel_scrollers_changed
+func keel_scrollers_changed(overlay C.int) {
+	mode := el.ScrollbarAlways
+	if overlay != 0 {
+		mode = el.ScrollbarScrolling
+	}
+	el.SetSystemScrollbars(mode)
+	go loop.InvalidateAll()
+}
+
+func overlayScrollers() bool { return C.keel_overlay_scrollers() != 0 }

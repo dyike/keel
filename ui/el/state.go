@@ -87,6 +87,9 @@ type elemState struct {
 	scrollbarX, scrollbarY   scrollbarState
 	scrollHover              gesture.Hover
 	scrollVisibleUntil       time.Time
+	scrollShownAt            time.Time // when hidden bars began to show
+	scrollWantedAt           time.Time // the last frame the bars were wanted
+	scrollAlpha              float32
 	scrollableX, scrollableY bool
 
 	scrollHorizontal                                                 gesture.Scroll

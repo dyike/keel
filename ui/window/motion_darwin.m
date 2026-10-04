@@ -16,3 +16,22 @@ void keel_watch_motion(void) {
         keel_motion_changed(workspace.accessibilityDisplayShouldReduceMotion);
     });
 }
+
+extern void keel_scrollers_changed(int overlay);
+
+int keel_overlay_scrollers(void) { return NSScroller.preferredScrollerStyle == NSScrollerStyleOverlay; }
+
+// Overlay scrollers ("Show scroll bars: automatically / when scrolling")
+// hide at rest; legacy ones ("always") stay.
+void keel_watch_scrollers(void) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        static id observer;
+        observer = [NSNotificationCenter.defaultCenter
+            addObserverForName:NSPreferredScrollerStyleDidChangeNotification
+            object:nil queue:NSOperationQueue.mainQueue
+            usingBlock:^(NSNotification *notification) {
+                keel_scrollers_changed(keel_overlay_scrollers());
+            }];
+        keel_scrollers_changed(keel_overlay_scrollers());
+    });
+}

@@ -1,4 +1,4 @@
-//go:build !darwin || ios || !cgo
+//go:build (!darwin || ios || !cgo) && !windows
 
 package window
 

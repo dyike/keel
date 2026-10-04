@@ -96,6 +96,7 @@ type Style struct {
 	contentBottom           *Node
 	scrollX, scrollY        bool
 	scrollbarMode           ScrollbarMode
+	scrollbarModeSet        bool
 	controlledScroll        *[2]float32
 	pinX                    int // -1 left, +1 right of nearest horizontal viewport
 	translate               [2]float32

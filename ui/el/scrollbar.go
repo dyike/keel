@@ -2,6 +2,7 @@ package el
 
 import (
 	"image"
+	"image/color"
 	"math"
 
 	"gioui.org/gesture"
@@ -101,20 +102,24 @@ func (s *scrollbarState) update(gtx core.C, track image.Rectangle, horizontal bo
 	return offset
 }
 
-func (s *scrollbarState) paint(gtx core.C, track image.Rectangle, horizontal bool, offset, view, total, minimum int) {
+// paint draws the bar at alpha opacity; a fading bar takes no input.
+func (s *scrollbarState) paint(gtx core.C, track image.Rectangle, horizontal bool, offset, view, total, minimum int, alpha float32, input bool) {
 	thumb := scrollbarThumb(track, horizontal, offset, view, total, minimum)
 	if thumb.Empty() {
 		return
 	}
 	defer clip.Rect(track).Push(gtx.Ops).Pop()
-	s.drag.Add(gtx.Ops)
-	pass := pointer.PassOp{}.Push(gtx.Ops)
-	hover := clip.Rect(track).Push(gtx.Ops)
-	s.hover.Add(gtx.Ops)
-	hover.Pop()
-	pass.Pop()
+	if input {
+		s.drag.Add(gtx.Ops)
+		pass := pointer.PassOp{}.Push(gtx.Ops)
+		hover := clip.Rect(track).Push(gtx.Ops)
+		s.hover.Add(gtx.Ops)
+		hover.Pop()
+		pass.Pop()
+	}
+	fade := func(c color.NRGBA) color.NRGBA { c.A = uint8(float32(c.A) * alpha); return c }
 	if s.hovered || s.active {
-		paint.FillShape(gtx.Ops, theme.Subtle, clip.Rect(track).Op())
+		paint.FillShape(gtx.Ops, fade(theme.Subtle), clip.Rect(track).Op())
 	}
 	// The bar overlays content, so at rest it is a thin translucent line that
 	// keeps the text beneath readable; hovering or dragging widens it.
@@ -137,7 +142,7 @@ func (s *scrollbarState) paint(gtx core.C, track image.Rectangle, horizontal boo
 		thumb.Max.X -= inset
 	}
 	r := max(1, mainOf(thumb.Size(), !horizontal)/2)
-	paint.FillShape(gtx.Ops, color, clip.UniformRRect(thumb, r).Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, fade(color), clip.UniformRRect(thumb, r).Op(gtx.Ops))
 }
 
 func (st *elemState) scrollKey(gtx core.C, ev key.Event) bool {
