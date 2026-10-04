@@ -19,8 +19,8 @@ const (
 )
 
 // ScrollGesture is what the platform reports about scroll input beyond the
-// deltas Gio delivers. Only macOS reports it today; elsewhere Phases is false
-// and components fall back to timing.
+// deltas Gio delivers. macOS and Wayland report it; elsewhere Phases is
+// false and components fall back to timing.
 type ScrollGesture struct {
 	Device ScrollDevice
 	// Phases is true once the platform has reported gesture phases, so
@@ -36,11 +36,29 @@ type ScrollGesture struct {
 
 var scrollGesture struct {
 	sync.Mutex
-	g ScrollGesture
+	g    ScrollGesture
+	poll func()
 }
 
-// CurrentScrollGesture returns the latest platform scroll state.
+// SetScrollGesturePoll installs a function that brings the state up to date
+// from queued platform events; window backends without push notification
+// (Wayland) use it. CurrentScrollGesture calls it first.
+func SetScrollGesturePoll(fn func()) {
+	scrollGesture.Lock()
+	scrollGesture.poll = fn
+	scrollGesture.Unlock()
+}
+
+// CurrentScrollGesture returns the latest platform scroll state. Components
+// waiting on a gesture's end should re-check it every frame or so: on some
+// platforms the end is only seen when polled.
 func CurrentScrollGesture() ScrollGesture {
+	scrollGesture.Lock()
+	poll := scrollGesture.poll
+	scrollGesture.Unlock()
+	if poll != nil {
+		poll()
+	}
 	scrollGesture.Lock()
 	defer scrollGesture.Unlock()
 	return scrollGesture.g

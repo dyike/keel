@@ -116,6 +116,12 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 				delay = 0 // the fingers lifted
 			} else if gesture.Active {
 				delay = time.Second // fingers still down: wait for the lift, unless it never comes
+				// Look again soon: some platforms report the lift only when asked.
+				cx.AfterEnabled(id, struct {
+					ID       string
+					Sequence uint64
+					Poll     bool
+				}{id, v.scroll.sequence, true}, 50*time.Millisecond, func() {})
 			}
 		}
 		sequence := v.scroll.sequence

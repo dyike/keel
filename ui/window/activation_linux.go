@@ -27,6 +27,7 @@ func activationWindowEvent(w *Window, e any) {
 		loop.Unlock()
 		w.waylandSurface.Store((*byte)(e.Surface))
 		w.waylandDisplay.Store((*byte)(e.Display))
+		watchWaylandScroll(w, e.Display)
 	}
 }
 
