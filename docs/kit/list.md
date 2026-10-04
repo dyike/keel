@@ -48,4 +48,21 @@ list.Searchable(true).RenderItem(func(cx *el.Context, row kit.ListItemContext) e
 
 失败用 `SetLoadError(message)`，停止自动请求并显示重试按钮；点击后再调用加载函数。禁用时不发起请求，已发出的网络任务由应用取消。远端搜索或加载的结果过期校验也由应用管理，交付前应核对查询/请求标识；组件未提供异步 token API。SetQuery 和 SetEntries 重置本轮请求标记，过滤后不足一屏可继续加载。
 
+## 状态内容
+
+```go
+files := kit.List().Searchable(true).
+    InitialContent(kit.Label("输入文件名开始搜索")).
+    EmptyContent(kit.Label("这个文件夹是空的")).
+    NoMatchesContent(kit.Label("没有找到匹配的文件")).
+    LoadingContent(kit.Skeleton()).
+    ErrorContent(func(msg string, retry func()) el.View { /* 自定义错误和重试 */ })
+```
+
+- `EmptyContent`：列表没有数据、也没有搜索词时显示。
+- `NoMatchesContent`：有搜索词但没有结果时显示。
+- `InitialContent`：可搜索列表还没输入搜索词时，代替整个列表显示，输入后显示结果。
+- `LoadingContent`、`ErrorContent`：替换加载更多时的转圈和出错时的文字加"重试"；`retry` 重新发起加载。
+- 都传 nil 恢复默认。状态内容显示在列表下方，和默认文字的位置相同。
+
 示例 `go run ./examples/components -section list` 展示搜索、分组、图标和行内操作。自动测试覆盖原有选择/拖动回归，以及搜索源索引、分组页尾、范围跳过隐藏项、子按钮隔离、加载去重/失败重试/禁用；未做真机视觉与拖动验收。

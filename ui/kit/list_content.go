@@ -1,8 +1,11 @@
 package kit
 
 import (
-	"github.com/dyike/keel/ui/el"
 	"strings"
+
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/locale"
+	"github.com/dyike/keel/ui/theme"
 )
 
 type listDisplayRow struct{ index, kind int }
@@ -123,4 +126,61 @@ func (v *ListView) loadNearEnd(cx *el.Context) {
 			v.requestMore()
 		}
 	})
+}
+
+type listSlots struct {
+	empty, noMatches, initial, loading el.View
+	err                                func(message string, retry func()) el.View
+}
+
+// EmptyContent shows view when the list has no items and no search is
+// active. Nil restores the default message.
+func (v *ListView) EmptyContent(view el.View) *ListView { v.slots.empty = view; return v }
+
+// NoMatchesContent shows view when a search finds nothing. Nil restores
+// the default message.
+func (v *ListView) NoMatchesContent(view el.View) *ListView { v.slots.noMatches = view; return v }
+
+// InitialContent shows view in place of the rows while a searchable list
+// has an empty query, as for a search that has not started. Nil turns it
+// off.
+func (v *ListView) InitialContent(view el.View) *ListView { v.slots.initial = view; return v }
+
+// LoadingContent replaces the spinner shown while more rows load.
+func (v *ListView) LoadingContent(view el.View) *ListView { v.slots.loading = view; return v }
+
+// ErrorContent replaces the load error message and its Retry button; retry
+// requests the rows again.
+func (v *ListView) ErrorContent(fn func(message string, retry func()) el.View) *ListView {
+	v.slots.err = fn
+	return v
+}
+
+// stateContent is what shows below the rows: loading, a load error, or an
+// empty or unmatched list.
+func (v *ListView) stateContent(cx *el.Context) el.Element {
+	text := locale.Current()
+	slot := func(view el.View, name string) el.Element {
+		return el.Div().ID(autoID("list", v) + "/" + name).Items(el.Stretch).Child(view.Render(cx))
+	}
+	switch {
+	case v.loading && v.slots.loading != nil:
+		return slot(v.slots.loading, "loading")
+	case v.loading:
+		return Spinner().Render(cx)
+	case v.loadError != "" && v.slots.err != nil:
+		if view := v.slots.err(v.loadError, v.requestMore); view != nil {
+			return slot(view, "error")
+		}
+		fallthrough
+	case v.loadError != "":
+		return el.Div().Items(el.Stretch).Child(el.Text(v.loadError).TextColor(theme.Danger), Button(text.Retry, v.requestMore).Render(cx))
+	case len(v.display) > 0:
+		return nil
+	case v.query == "" && v.slots.empty != nil:
+		return slot(v.slots.empty, "empty")
+	case v.query != "" && v.slots.noMatches != nil:
+		return slot(v.slots.noMatches, "no-matches")
+	}
+	return el.Text(text.NoMatches).TextColor(theme.Muted)
 }

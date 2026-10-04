@@ -42,6 +42,7 @@ type ListView struct {
 	onLoadMore                      func()
 	loading, hasMore, loadRequested bool
 	loadError                       string
+	slots                           listSlots
 }
 
 func List(items ...string) *ListView {
@@ -206,13 +207,13 @@ func (v *ListView) Render(cx *el.Context) el.Element {
 	if v.searchable {
 		root.Child(el.Input().ID(autoID("list", v) + "/search").Name(locale.Current().Search).Bind(&v.query).OnChange(func(s string) { v.SetQuery(s) }))
 	}
+	if v.slots.initial != nil && v.searchable && v.query == "" {
+		// Nothing asked yet: the initial view stands in for the rows.
+		return root.Child(el.Div().ID(autoID("list", v) + "/initial").Items(el.Stretch).Child(v.slots.initial.Render(cx)))
+	}
 	root.Child(frame)
-	if v.loading {
-		root.Child(Spinner().Render(cx))
-	} else if v.loadError != "" {
-		root.Child(el.Text(v.loadError).TextColor(theme.Danger), Button(locale.Current().Retry, v.requestMore).Render(cx))
-	} else if len(v.display) == 0 {
-		root.Child(el.Text(locale.Current().NoMatches).TextColor(theme.Muted))
+	if state := v.stateContent(cx); state != nil {
+		root.Child(state)
 	}
 	return root
 }
