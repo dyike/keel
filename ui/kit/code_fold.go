@@ -87,6 +87,7 @@ func (v *CodeEditorView) buildRows() {
 		return
 	}
 	v.rowsRev, v.rowsKey = v.buf.revision, key
+	v.rowsGen++
 	if len(v.folds) == 0 {
 		v.rows = nil
 		return

@@ -14,7 +14,7 @@ const sampleGo = `package main
 
 import "fmt"
 
-// greet returns a greeting for name.
+// greet returns a greeting for name. An empty name greets the whole world, so callers never need to check for one before asking.
 func greet(name string) string {
 	if name == "" {
 		name = "世界"
@@ -59,8 +59,9 @@ func init() {
 			return true
 		}).OnPasteError(func(err error) { status = "富剪贴板读取失败，回退文本：" + err.Error() })
 		ed.OnChange(func(string) { l, c := ed.Cursor(); status = fmt.Sprintf("第 %d 行，第 %d 列", l+1, c+1) })
-		showWS := false
-		annotations := ed.Decorations(kit.CodeDecoration{Range: kit.CodeRange{Line: 5, Col: 5, EndLine: 5, EndCol: 10}, Style: kit.CodeDecorationFill})
+		showWS, wrap := false, false
+		annotations := ed.Decorations(kit.CodeDecoration{Range: kit.CodeRange{Line: 5, Col: 5, EndLine: 5, EndCol: 10}, Style: kit.CodeDecorationFill},
+			kit.CodeDecoration{Range: kit.CodeRange{Line: 6, Col: 1, EndLine: 8, EndCol: 2}, Style: kit.CodeDecorationFrame})
 		query := kit.Input("自定义查找").OnChange(func(value string) { ed.SetSearchQuery(value, kit.CodeSearchOptions{}) })
 		customRules := false
 		ed.OnDefinition(func(line, col int) {
@@ -75,6 +76,7 @@ func init() {
 				el.Text("输入时弹出补全（Ctrl+Space 手动触发），指针停在第 7 行或红色波浪线上看提示，按住 ⌘/Ctrl 点函数名跳转。⌘/Ctrl+F 查找替换，⌘/Ctrl+D 选下一处相同文字，⌘/Ctrl+Alt+↑↓ 或 Alt+点击加光标，Alt+Shift 拖动选列，行号左边的箭头折叠。Tab 缩进，先按 Esc 再按 Tab 离开编辑器。").TextColor(theme.Muted),
 				el.Div().Row().Wrap().Gap(8).Child(
 					kit.Button("显示空白", func() { showWS = !showWS; ed.ShowWhitespace(showWS) }).Variant(kit.ButtonSecondary).Size(28).Render(cx),
+					kit.Button("软换行", func() { wrap = !wrap; ed.SoftWrap(wrap) }).Variant(kit.ButtonSecondary).Size(28).Render(cx),
 					kit.Button("全部折叠", ed.FoldAll).Variant(kit.ButtonSecondary).Size(28).Render(cx),
 					kit.Button("全部展开", ed.UnfoldAll).Variant(kit.ButtonSecondary).Size(28).Render(cx),
 					kit.Button("查找替换", func() { ed.OpenSearch(true) }).Variant(kit.ButtonSecondary).Size(28).Render(cx),

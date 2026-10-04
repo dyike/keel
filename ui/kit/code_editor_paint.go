@@ -146,21 +146,15 @@ func (v *CodeEditorView) colX(line int) []int {
 // posAt maps a point in the editor to the nearest text position.
 func (v *CodeEditorView) posAt(p f32.Point) codePos {
 	m := v.metrics
-	line := v.lineOf(int((p.Y + v.scrollY) / float32(max(1, m.lh))))
-	x := int(p.X+v.scrollX) - m.textOrigin
-	xs := v.colX(line)
-	col := 0
-	for col < len(xs)-1 && x > (xs[col]+xs[col+1])/2 {
-		col++
-	}
-	return codePos{line, col}
+	vr := v.vrow(int((p.Y + v.scrollY) / float32(max(1, m.lh))))
+	return codePos{vr.line, v.colIn(vr, int(p.X+v.scrollX)-m.textOrigin)}
 }
 
 // caretPoint is a position's top-left in editor coordinates.
 func (v *CodeEditorView) caretPoint(p codePos) image.Point {
 	m := v.metrics
-	x := m.textOrigin + v.colX(p.line)[p.col] - int(v.scrollX)
-	return image.Pt(x, v.rowOf(p.line)*m.lh-int(v.scrollY))
+	x := m.textOrigin + v.rowX(p) - int(v.scrollX)
+	return image.Pt(x, v.vrowOf(p)*m.lh-int(v.scrollY))
 }
 
 func (v *CodeEditorView) layout(gtx core.C) core.D {
@@ -196,7 +190,7 @@ func (v *CodeEditorView) layout(gtx core.C) core.D {
 
 	paint.FillShape(gtx.Ops, theme.CodeBg, clip.Rect{Max: m.size}.Op())
 	first := max(0, int(v.scrollY)/max(1, m.lh))
-	last := min(v.rowCount()-1, first+v.visible+1)
+	last := min(v.vrowCount()-1, first+v.visible+1)
 	for row := first; row <= last; row++ {
 		v.paintLine(gtx, row)
 	}
@@ -237,13 +231,16 @@ func (v *CodeEditorView) selectionOn(line int, fn func(a, b int, spill bool)) {
 
 func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 	m := v.metrics
-	line := v.lineOf(row)
+	vr := v.vrow(row)
+	line := vr.line
 	top := row*m.lh - int(v.scrollY)
 	xs := v.colX(line)
-	ox := m.textOrigin - int(v.scrollX)
+	ox := m.textOrigin - int(v.scrollX) - xs[vr.start]
+	last := vr.end == len(xs)-1 // the row holding the line's end
 	rect := func(a, b int) image.Rectangle {
-		// Ranges from diagnostics or a stale pointer may pass the line's end.
-		a, b = min(max(a, 0), len(xs)-1), min(max(b, 0), len(xs)-1)
+		// Ranges from diagnostics or a stale pointer may pass the line's end;
+		// a wrapped row shows only its own columns.
+		a, b = min(max(a, vr.start), vr.end), min(max(b, vr.start), vr.end)
 		return image.Rect(ox+xs[a], top, ox+xs[b], top+m.lh)
 	}
 	if v.focused && len(v.sels) == 1 && v.primary().empty() && v.primary().caret.line == line {
@@ -252,7 +249,7 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 		paint.FillShape(gtx.Ops, c, clip.Rect{Min: image.Pt(m.gutter, top), Max: image.Pt(m.size.X, top+m.lh)}.Op())
 	}
 	decorations := v.lineDecorations(line)
-	paintCodeDecorations(gtx, decorations, rect)
+	v.paintDecorations(gtx, row, m.textOrigin-int(v.scrollX), top, decorations)
 	// Find results, the chosen one stronger.
 	if (v.search.open || v.search.active) && len(v.search.matches) > 0 {
 		ms := v.search.matches
@@ -268,8 +265,10 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 	}
 	v.selectionOn(line, func(a, b int, spill bool) {
 		r := rect(a, b)
-		if spill {
+		if spill && last {
 			r.Max.X += m.space
+		} else if b > vr.end && a < vr.end && !last {
+			r.Max.X = m.size.X // selection continues on the next row
 		}
 		paint.FillShape(gtx.Ops, theme.Highlight, clip.Rect(r).Op())
 	})
@@ -277,7 +276,7 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 	l := v.buf.line(line)
 	spans := v.buf.spans(line)
 	si := 0
-	for i := 0; i < len(l); {
+	for i := vr.start; i < vr.end; {
 		if l[i] == '\t' {
 			i++
 			continue
@@ -286,7 +285,7 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 			si++
 		}
 		c := theme.CodeText
-		end := len(l)
+		end := vr.end
 		if si < len(spans) && spans[si].start <= i {
 			end = min(end, spans[si].end)
 			if spans[si].color.A != 0 {
@@ -316,17 +315,17 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 		i = j
 	}
 	if v.whitespace {
-		v.paintWhitespace(gtx, l, xs, ox, top)
+		v.paintWhitespace(gtx, l, xs, ox, top, vr.start, vr.end)
 	}
 	// A folded region shows as a pill after its header.
-	if v.folds[line] {
+	if v.folds[line] && last {
 		x := ox + xs[len(xs)-1] + m.space
 		r := image.Rect(x, top+m.lh/6, x+v.textWidth("…")+gtx.Dp(12), top+m.lh-m.lh/6)
 		paint.FillShape(gtx.Ops, theme.Subtle, clip.UniformRRect(r, r.Dy()/2).Op(gtx.Ops))
 		v.paintText(gtx, "…", image.Pt(r.Min.X+gtx.Dp(6), top+m.baseline), theme.Muted)
 	}
 	// The word a Cmd/Ctrl+click would look up.
-	if v.linkFrom != v.linkTo && v.linkFrom.line == line && v.linkFrom.line < v.buf.count() {
+	if v.linkFrom != v.linkTo && v.linkFrom.line == line && v.linkFrom.line < v.buf.count() && v.linkTo.col > vr.start && v.linkFrom.col < vr.end+1 {
 		r := rect(v.linkFrom.col, v.linkTo.col)
 		paint.FillShape(gtx.Ops, theme.Primary, clip.Rect{Min: image.Pt(r.Min.X, r.Max.Y-gtx.Dp(3)), Max: image.Pt(r.Max.X, r.Max.Y-gtx.Dp(2))}.Op())
 	}
@@ -345,18 +344,23 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 		if a == b && b < len(xs)-1 {
 			b++
 		}
+		if b <= vr.start && vr.start > 0 || a >= vr.end && !last {
+			continue // on another row of the wrapped line
+		}
+		a, b = max(a, vr.start), min(b, vr.end)
 		x0, x1 := ox+xs[a], max(ox+xs[b], ox+xs[a]+m.px/2)
 		squiggle(gtx, x0, x1, top+m.lh-gtx.Dp(3), gtx.Dp(2), codeSeverityColor(d.Severity))
 	}
 }
 
 // paintWhitespace marks spaces with dots and tabs with arrows.
-func (v *CodeEditorView) paintWhitespace(gtx core.C, l []rune, xs []int, ox, top int) {
+func (v *CodeEditorView) paintWhitespace(gtx core.C, l []rune, xs []int, ox, top, from, to int) {
 	m := v.metrics
 	c := theme.Muted
 	c.A = 0x70
 	y := top + m.lh/2
-	for i, r := range l {
+	for i := from; i < to; i++ {
+		r := l[i]
 		x0, x1 := ox+xs[i], ox+xs[i+1]
 		if x1 < m.gutter || x0 > m.size.X {
 			continue
@@ -403,7 +407,11 @@ func (v *CodeEditorView) paintText(gtx core.C, s string, at image.Point, c color
 
 func (v *CodeEditorView) paintGutter(gtx core.C, row int) {
 	m := v.metrics
-	line := v.lineOf(row)
+	vr := v.vrow(row)
+	if vr.start > 0 {
+		return // a wrapped line's continuation
+	}
+	line := vr.line
 	top := row*m.lh - int(v.scrollY)
 	num := strconv.Itoa(line + 1)
 	c := theme.Muted
@@ -483,7 +491,7 @@ func (v *CodeEditorView) paintCarets(gtx core.C) {
 
 func (v *CodeEditorView) paintScrollbar(gtx core.C) {
 	m := v.metrics
-	total := v.rowCount() * m.lh
+	total := v.vrowCount() * m.lh
 	if total <= m.size.Y {
 		return
 	}
@@ -497,7 +505,7 @@ func (v *CodeEditorView) paintScrollbar(gtx core.C) {
 	if v.search.open || v.search.active {
 		tc := theme.Warning
 		for _, mt := range v.search.matches {
-			ty := v.rowOf(mt.from.line) * m.size.Y / max(1, v.rowCount())
+			ty := v.vrowOf(mt.from) * m.size.Y / max(1, v.vrowCount())
 			paint.FillShape(gtx.Ops, tc, clip.Rect{Min: image.Pt(m.size.X-w-gtx.Dp(2), ty), Max: image.Pt(m.size.X-gtx.Dp(2), ty+max(1, gtx.Dp(2)))}.Op())
 		}
 	}
@@ -662,9 +670,12 @@ func (v *CodeEditorView) highlight() {
 
 func (v *CodeEditorView) clampScroll() {
 	m := v.metrics
-	maxY := float32(max(0, v.rowCount()*m.lh-m.size.Y+m.lh))
+	maxY := float32(max(0, v.vrowCount()*m.lh-m.size.Y+m.lh))
 	v.scrollY = min(max(v.scrollY, 0), maxY)
 	v.scrollX = max(v.scrollX, 0)
+	if v.wrap {
+		v.scrollX = 0
+	}
 }
 
 // scrollToCaret keeps the primary caret in view.
@@ -674,11 +685,14 @@ func (v *CodeEditorView) scrollToCaret() {
 		return
 	}
 	c := v.primary().caret
-	y := float32(v.rowOf(c.line) * m.lh)
+	y := float32(v.vrowOf(c) * m.lh)
 	if y < v.scrollY {
 		v.scrollY = y
 	} else if bottom := y + float32(m.lh) - float32(m.size.Y); bottom > v.scrollY {
 		v.scrollY = bottom
+	}
+	if v.wrap {
+		return
 	}
 	x := float32(v.colX(c.line)[c.col])
 	view := float32(m.size.X - m.textOrigin - m.pad)

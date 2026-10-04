@@ -70,7 +70,11 @@ type CodeEditorView struct {
 	hardTabs      int // 0 detect, 1 tabs, 2 spaces
 	sels          []codeSel
 	prim          int // the primary selection, the one the caret APIs report
-	goalX         int // px, kept across vertical moves of the primary caret
+	goalX         int // px from the row start, kept across vertical moves of the primary caret
+	wrap          bool
+	vrows         []codeVRow // visual rows with soft wrap; nil without
+	vrowsKey      codeWrapKey
+	rowsGen       uint64 // counts fold row rebuilds
 	scrollX       float32
 	scrollY       float32 // px from the first display row
 	reveal        bool    // scroll the primary caret into view on the next frame

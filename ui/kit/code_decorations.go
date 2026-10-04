@@ -232,9 +232,10 @@ func codeTextChange(before, after string) (codePos, codePos, codePos) {
 }
 
 type codeLineDecoration struct {
-	a, b  int
-	style CodeDecorationStyle
-	color color.NRGBA
+	a, b     int // columns on this line; text styles use them
+	style    CodeDecorationStyle
+	color    color.NRGBA
+	from, to codePos // the whole range, for shapes that span rows
 }
 
 func (v *CodeEditorView) lineDecorations(line int) []codeLineDecoration {
@@ -243,6 +244,7 @@ func (v *CodeEditorView) lineDecorations(line int) []codeLineDecoration {
 	for _, c := range v.decorations {
 		for _, i := range c.atLine(line) {
 			d := c.entries[i]
+			from, to := d.Range.positions()
 			a, b := 0, n
 			if d.Range.Line == line {
 				a = d.Range.Col
@@ -251,8 +253,8 @@ func (v *CodeEditorView) lineDecorations(line int) []codeLineDecoration {
 				b = d.Range.EndCol
 			}
 			a, b = min(max(a, 0), n), min(max(b, 0), n)
-			if a == b {
-				continue
+			if a == b && (line >= d.Range.EndLine || d.Style == CodeDecorationText || d.Style == CodeDecorationUnderline) {
+				continue // an empty line inside a fill or frame still joins it up
 			}
 			color := theme.CodeText
 			if d.Style == CodeDecorationFill {
@@ -261,27 +263,87 @@ func (v *CodeEditorView) lineDecorations(line int) []codeLineDecoration {
 			if d.Color != nil {
 				color = *d.Color
 			}
-			out = append(out, codeLineDecoration{a, b, d.Style, color})
+			out = append(out, codeLineDecoration{a, b, d.Style, color, from, to})
 		}
 	}
 	return out
 }
-func paintCodeDecorations(gtx core.C, ds []codeLineDecoration, rect func(int, int) image.Rectangle) {
+
+// decorationSpan is the x range, from the row's start, that a range covers
+// on visual row r. A fill or frame that runs past a line's end covers one
+// space more, like a selection, so ranges over several lines connect.
+func (v *CodeEditorView) decorationSpan(from, to codePos, style CodeDecorationStyle, r int) (x0, x1 int, ok bool) {
+	if r < 0 || r >= v.vrowCount() {
+		return 0, 0, false
+	}
+	vr := v.vrow(r)
+	if vr.line < from.line || vr.line > to.line {
+		return 0, 0, false
+	}
+	xs := v.colX(vr.line)
+	n := len(xs) - 1
+	a, b := 0, n
+	if vr.line == from.line {
+		a = min(from.col, n)
+	}
+	if vr.line == to.line {
+		b = min(to.col, n)
+	}
+	a, b = max(a, vr.start), min(b, vr.end)
+	spill := vr.line < to.line && vr.end == n && style != CodeDecorationUnderline
+	if a > b || a == b && !spill {
+		return 0, 0, false
+	}
+	x0, x1 = xs[a]-xs[vr.start], xs[b]-xs[vr.start]
+	if spill {
+		x1 += v.metrics.space
+	}
+	return x0, x1, true
+}
+
+// paintDecorations draws fills, frames and underlines on visual row r, whose
+// text starts at x ox. A frame over several rows is one outline: each row
+// draws its sides, and its top and bottom only where the neighbouring row
+// does not continue the shape.
+func (v *CodeEditorView) paintDecorations(gtx core.C, r, ox, top int, ds []codeLineDecoration) {
+	lh := v.metrics.lh
+	w := max(1, gtx.Dp(1))
 	for _, style := range []CodeDecorationStyle{CodeDecorationFill, CodeDecorationFrame, CodeDecorationUnderline} {
 		for _, d := range ds {
 			if d.style != style {
 				continue
 			}
-			r := rect(d.a, d.b)
+			x0, x1, ok := v.decorationSpan(d.from, d.to, style, r)
+			if !ok {
+				continue
+			}
+			rect := image.Rect(ox+x0, top, ox+x1, top+lh)
 			switch style {
 			case CodeDecorationFill:
-				paint.FillShape(gtx.Ops, d.color, clip.Rect(r).Op())
-			case CodeDecorationFrame:
-				paint.FillShape(gtx.Ops, d.color, clip.Stroke{Path: clip.Rect(r).Path(), Width: float32(gtx.Dp(1))}.Op())
+				paint.FillShape(gtx.Ops, d.color, clip.Rect(rect).Op())
 			case CodeDecorationUnderline:
-				r.Min.Y = r.Max.Y - gtx.Dp(2)
-				r.Max.Y = r.Min.Y + max(1, gtx.Dp(1))
-				paint.FillShape(gtx.Ops, d.color, clip.Rect(r).Op())
+				rect.Min.Y = rect.Max.Y - gtx.Dp(2)
+				rect.Max.Y = rect.Min.Y + w
+				paint.FillShape(gtx.Ops, d.color, clip.Rect(rect).Op())
+			case CodeDecorationFrame:
+				fill := func(r image.Rectangle) { paint.FillShape(gtx.Ops, d.color, clip.Rect(r).Op()) }
+				fill(image.Rect(rect.Min.X, top, rect.Min.X+w, top+lh))
+				fill(image.Rect(rect.Max.X-w, top, rect.Max.X, top+lh))
+				edge := func(y, neighbour int) {
+					p0, p1, joined := v.decorationSpan(d.from, d.to, style, neighbour)
+					if !joined || p1 <= x0 || p0 >= x1 {
+						fill(image.Rect(rect.Min.X, y, rect.Max.X, y+w))
+						return
+					}
+					if p0 > x0 {
+						fill(image.Rect(rect.Min.X, y, ox+p0+w, y+w))
+					}
+					if p1 < x1 {
+						fill(image.Rect(ox+p1-w, y, rect.Max.X, y+w))
+					}
+				}
+				edge(top, r-1)
+				edge(top+lh-w, r+1)
 			}
 		}
 	}

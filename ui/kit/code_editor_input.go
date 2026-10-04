@@ -149,12 +149,12 @@ func (v *CodeEditorView) update(gtx core.C) {
 
 func (v *CodeEditorView) pointer(gtx core.C) {
 	m := v.metrics
-	total := v.rowCount()*m.lh - m.size.Y + m.lh
+	total := v.vrowCount()*m.lh - m.size.Y + m.lh
 	if d := v.scroll.Update(gtx.Metric, gtx.Source, gtx.Now, 1, pointer.ScrollRange{}, pointer.ScrollRange{Min: -int(v.scrollY), Max: max(0, total-int(v.scrollY))}); d != 0 {
 		v.scrollY += float32(d)
 		v.hoverText = ""
 	}
-	if d := v.scrollH.Update(gtx.Metric, gtx.Source, gtx.Now, 0, pointer.ScrollRange{Min: -int(v.scrollX), Max: 1 << 20}, pointer.ScrollRange{}); d != 0 {
+	if d := v.scrollH.Update(gtx.Metric, gtx.Source, gtx.Now, 0, pointer.ScrollRange{Min: -int(v.scrollX), Max: 1 << 20}, pointer.ScrollRange{}); d != 0 && !v.wrap {
 		v.scrollX += float32(d)
 	}
 	for {
@@ -187,7 +187,7 @@ func (v *CodeEditorView) pointer(gtx core.C) {
 				v.comp = nil
 			}
 			if e.Position.X < float32(m.gutter) {
-				line := v.lineOf(int((e.Position.Y + v.scrollY) / float32(max(1, m.lh))))
+				line := v.vrow(int((e.Position.Y + v.scrollY) / float32(max(1, m.lh)))).line
 				if e.Position.X < float32(m.foldW) {
 					v.toggleFold(line)
 					continue
@@ -284,14 +284,14 @@ func (v *CodeEditorView) columnSelect(a, b f32.Point) {
 	m := v.metrics
 	ra := int((a.Y + v.scrollY) / float32(max(1, m.lh)))
 	rb := int((b.Y + v.scrollY) / float32(max(1, m.lh)))
-	ra, rb = min(max(ra, 0), v.rowCount()-1), min(max(rb, 0), v.rowCount()-1)
+	ra, rb = min(max(ra, 0), v.vrowCount()-1), min(max(rb, 0), v.vrowCount()-1)
 	step := 1
 	if rb < ra {
 		step = -1
 	}
 	var sels []codeSel
 	for r := ra; ; r += step {
-		line := v.lineOf(r)
+		line := v.vrow(r).line
 		pa := v.posAt(f32.Pt(a.X, float32(r*m.lh)-v.scrollY))
 		pb := v.posAt(f32.Pt(b.X, float32(r*m.lh)-v.scrollY))
 		sels = append(sels, codeSel{codePos{line, pa.col}, codePos{line, pb.col}})
@@ -578,11 +578,11 @@ func (v *CodeEditorView) command(gtx core.C, e key.Event) {
 		goal := v.goalX
 		if goal < 0 {
 			c := v.primary().caret
-			goal = v.colX(c.line)[c.col]
+			goal = v.rowX(c)
 		}
 		prim := v.prim
 		for i, s := range v.sels {
-			x := v.colX(s.caret.line)[s.caret.col]
+			x := v.rowX(s.caret)
 			if i == prim {
 				x = goal
 			}
@@ -771,14 +771,8 @@ func (v *CodeEditorView) command(gtx core.C, e key.Event) {
 
 // vertical moves a caret by display rows, to the column nearest x.
 func (v *CodeEditorView) vertical(c codePos, rows, x int) codePos {
-	row := min(max(v.rowOf(c.line)+rows, 0), v.rowCount()-1)
-	line := v.lineOf(row)
-	xs := v.colX(line)
-	col := 0
-	for col < len(xs)-1 && x > (xs[col]+xs[col+1])/2 {
-		col++
-	}
-	return codePos{line, col}
+	vr := v.vrow(min(max(v.vrowOf(c)+rows, 0), v.vrowCount()-1))
+	return codePos{vr.line, v.colIn(vr, x)}
 }
 
 // addCaretVertical adds a caret above or below the outermost caret in that
@@ -787,7 +781,7 @@ func (v *CodeEditorView) addCaretVertical(dir int) {
 	x := v.goalX
 	if x < 0 {
 		c := v.primary().caret
-		x = v.colX(c.line)[c.col]
+		x = v.rowX(c)
 	}
 	edge := v.sels[0].caret
 	if dir > 0 {
