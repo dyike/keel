@@ -144,6 +144,22 @@ func (cx *Context) Focused(id string) bool {
 	return false
 }
 
+// FocusVisible reports whether the element with id has focus that should
+// show a ring: focus from the keyboard or a program, not from a pointer
+// press. Controls that draw their ring on a part use it with a transparent
+// FocusStyle on the focusable element.
+func (cx *Context) FocusVisible(id string) bool {
+	if id == "" {
+		return false
+	}
+	for _, st := range cx.root.store.states {
+		if st.id == id && !st.disabled && cx.root.source.Focused(st) && !st.pointerFocus {
+			return true
+		}
+	}
+	return false
+}
+
 // Focus requests focus by ID in this root. It is applied after painting.
 // The first visible Focusable element or input with that ID wins. An empty ID clears
 // focus; missing, hidden or off-screen targets leave the current focus alone.

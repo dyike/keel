@@ -18,6 +18,7 @@ func TestSwitchFocusRingVisibilityAndKeyboard(t *testing.T) {
 	calls := 0
 	s := kit.Switch("Setting", false).OnChange(func(bool) { calls++ })
 	w := openTest(t, Options{Width: 300, Height: 120, Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().Items(el.Start).Child(s.Render(cx)) }))})
+	var minX, maxX int
 	count := func() int {
 		b, err := w.screenshot()
 		if err != nil {
@@ -28,10 +29,12 @@ func TestSwitchFocusRingVisibilityAndKeyboard(t *testing.T) {
 			t.Fatal(err)
 		}
 		n := 0
+		minX, maxX = im.Bounds().Max.X, 0
 		for y := 0; y < im.Bounds().Max.Y; y++ {
 			for x := 0; x < im.Bounds().Max.X; x++ {
 				if color.NRGBAModel.Convert(im.At(x, y)).(color.NRGBA) == theme.Primary {
 					n++
+					minX, maxX = min(minX, x), max(maxX, x)
 				}
 			}
 		}
@@ -46,6 +49,9 @@ func TestSwitchFocusRingVisibilityAndKeyboard(t *testing.T) {
 	}
 	if count() == 0 {
 		t.Fatal("keyboard focus ring missing")
+	}
+	if maxX-minX > 48 {
+		t.Fatalf("the ring should hug the 36dp track, not the label: spans %d px", maxX-minX)
 	}
 	s.FocusRing(false)
 	if count() != 0 {

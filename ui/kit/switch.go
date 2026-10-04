@@ -100,15 +100,19 @@ func (v *SwitchView) Render(cx *el.Context) el.Element {
 	}
 	spacer := el.Div().W(el.Dp(max(0, width-knobSize-2*theme.SpaceXxs) * position)).NoShrink()
 	body := el.Div().ID("track").W(el.Dp(width)).H(el.Dp(height)).NoShrink().Rounded(theme.RadiusFull).Bg(track).Px(theme.SpaceXxs).Row().Items(el.Center).Child(spacer, knob)
+	// The focus ring hugs the track, as the label is not the control.
+	if !v.quietFocus && !v.disabled && cx.FocusVisible(v.FocusID()) {
+		const gap = 3
+		body.Child(el.Div().ID("ring").Absolute().Top(-gap).Left(-gap).W(el.Dp(width+2*gap)).H(el.Dp(height+2*gap)).
+			Rounded(theme.RadiusFull).Border(2, theme.Primary))
+	}
 	row := checkLabelSide(autoID("switch", v), "switch", v.label, v.name, v.value, v.disabled, body, func() {
 		v.value = !v.value
 		if v.onChange != nil {
 			v.onChange(v.value)
 		}
 	}, v.labelLeft)
-	if v.quietFocus {
-		row.FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}) })
-	}
+	row.FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}) })
 	if v.tabStop != nil {
 		row.TabStop(*v.tabStop)
 	}
