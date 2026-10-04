@@ -348,7 +348,7 @@
 | [Slider](https://gpui-kit.com/component/slider/) | 主体已有 | [单值/双端范围、横纵向、线性/对数、步长、拖动/键盘、结束回调及外观](../../ui/kit/slider.go) | 第一百五十九批补齐 Appearance：轨道/填充/滑块/边框颜色、尺寸及圆角可配置，双端共用外观。滑块中心与拖动映射同步，默认恢复、主题变化、无效值回退、横纵双倍率和像素回归已验证。登记外观缺口关闭；接口不与上游逐项同名。 |
 | [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称、自定义图标/颜色/周期](../../ui/kit/spinner.go) | 第十九、二十批已补齐图标、颜色和速度配置；Period 为每周时长，默认一秒匀速。上游描述的默认 0.8 秒及缓动曲线不同。 |
 | [StatusBar](https://gpui-kit.com/component/status-bar/) | 主体已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | 左右内容与自定义 View 已覆盖；Keel 另有优先级溢出菜单，本轮未发现新的主要功能缺口。 |
-| [Stepper](https://gpui-kit.com/component/stepper/) | 主体已有 | [横纵步骤、图标/富内容、尺寸、导航、键盘、滚动与单步禁用](../../ui/kit/stepper.go) | 第六批已补齐 Vertical、Size、StepperItem 与 SetItemDisabled。此表登记缺口已关闭；导航仍限已完成步骤，GPUI 文档的文本居中布局未提供独立开关。 |
+| [Stepper](https://gpui-kit.com/component/stepper/) | 主体已有 | [横纵步骤、图标/富内容、尺寸、导航、键盘、滚动、单步禁用及文字居中](../../ui/kit/stepper.go) | 第一百六十一批补齐 TextCenter、Navigation(None/Completed/All)、Horizontal。居中列按实际视口等分，窄窗口可滚动；导航、禁用、双倍率布局及浅深色连接线像素已验证。默认只读，Navigable 保持仅返回已完成步骤。 |
 | [Switch](https://gpui-kit.com/component/switch/) | 主体已有 | [布尔开关、标签、禁用与键盘](../../ui/kit/switch.go) | 第三十四批已补齐大小、选中颜色和标签侧配置。第三十五批补齐滑块过渡；第三十六批补齐 FocusRing；第三十七批补齐单 root 的 TabStop/TabIndex。焦点轮廓沿整行而非仅轨道，跨 root 排序不支持；Tooltip 可组合。当前无 Loading 接口，上游此页也未列为能力。 |
 | [Table](https://gpui-kit.com/component/table/) | 主体已有 | [静态 Header/Body/Footer/Caption 及任意行/单元格组合](../../ui/kit/table_static.go) | 第一百四十四批新增独立 StaticTable 和部件元素，登记缺口关闭。TableDataCell 避开已有选区坐标类型 TableCell；各行独立配置列宽，Caption 默认位于根容器内。数据交互继续用原 TableView，差距见 DataTable；真机视觉未验收。 |
 | [Tabs](https://gpui-kit.com/component/tabs/) | 主体已有 | [四种外观、图标/富标签、单项禁用、页面状态、溢出、关闭与焦点恢复、拖动排序](../../ui/kit/tabs.go) | 第十二、十三批已关闭登记的外观、禁用、内容、最大宽度及滚动接口缺口。默认仍为溢出菜单；Scrollable 开启时改为滚动轨道，ScrollTo 只定位不选择。自定义标签应为展示内容，宽度上限不包含独立关闭按钮。 |
@@ -408,3 +408,10 @@
 - [x] 偏移变化触发 900ms 显示计时，拖动期间保持；隐藏滚动条不拦截内容点击。
 - [x] 横纵双倍率、空闲超时、悬停及拖出视口回归通过；窗口像素确认常显与隐藏状态切换。
 - [x] 示例、文档及覆盖表同步；独立提交内容通过构建、vet、全量测试。
+
+## 第一百六十一批：Stepper 居中与导航策略
+
+- [x] TextCenter、Horizontal、Navigation 三种策略；当前项重复点击不触发回调，禁用项不可导航。
+- [x] 修复横向滚动容器内居中列未平分可用宽度的问题，随实际视口更新；空间不足保留最小列宽并允许滚动。
+- [x] 导航策略、Tab 跳过禁用项、方向切换、窄窗口、双倍率与浅深色连接线像素验证通过。
+- [x] 示例、文档和覆盖表同步；独立提交内容通过构建、vet、全量测试。

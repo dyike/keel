@@ -35,4 +35,10 @@ steps.SetValue(2)
 - `StepperItem.Disabled` 或 `SetItemDisabled(index, on)` 禁止该步点击和键盘聚焦，不改变其完成状态，不阻止 `SetValue` 程序跳转。越界索引忽略。
 - `StepperItem.Content` 可提供多行说明等展示内容；`Label` 仍是 Agent 名称。内容不应嵌套按钮或输入框。
 - `SetEntries` 和 `Entries()` 都复制条目切片，内容 View 不深拷贝。替换条目时保留当前索引并按新长度收敛，不触发 `OnChange`。
-- 自定义条目仍遵守 `Navigable()`：只允许回到已完成步骤；单项、整个组件与祖先禁用均阻止导航。
+- 自定义条目遵守配置的导航范围；单项、整个组件与祖先禁用均阻止导航。
+
+`TextCenter(true)` 使横向步骤的文字/富内容位于标记下方并居中，连接线沿相邻标记圆心排列。各列平分可用宽度，最小宽度为标记直径的三倍，不足时横向滚动；自定义内容可以自行设定内部排版。竖向模式保留标记在内容左边，只设置文字居中。false 恢复原布局。`Horizontal()` 可从竖向切回横向。
+
+`Navigation(kit.StepperNavigationNone / StepperNavigationCompleted / StepperNavigationAll)` 分别为只读、只可返回已完成步骤、可选择任意未禁用步骤。默认 None，`Navigable()` 等同于 Completed。All 包含尚未开始的步骤；点击当前步骤不触发 OnChange。配置变化及 SetValue 均不触发回调。
+
+已验证三种导航策略、当前项重复点击、Tab 跳过禁用项、动态方向切换、双倍率等宽列及窄窗口滚动；浅深色窗口像素回归确认连接线随完成状态着色。

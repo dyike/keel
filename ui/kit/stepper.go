@@ -1,6 +1,8 @@
 package kit
 
 import (
+	"gioui.org/op"
+	"github.com/dyike/keel/ui/core"
 	"slices"
 	"strconv"
 
@@ -20,13 +22,14 @@ type StepperItem struct {
 // StepperView shows progress through a sequence of steps. Steps before the
 // current one are done; with Navigable the user may click back to them.
 type StepperView struct {
-	steps     []StepperItem
-	vertical  bool
-	size      float32
-	current   int
-	navigable bool
-	disabled  bool
-	onChange  func(int)
+	steps      []StepperItem
+	vertical   bool
+	size       float32
+	current    int
+	navigation StepperNavigation
+	textCenter bool
+	disabled   bool
+	onChange   func(int)
 }
 
 func Stepper(steps ...string) *StepperView {
@@ -62,7 +65,7 @@ func (v *StepperView) Size(dp float32) *StepperView {
 }
 
 // Navigable lets the user click a finished step to return to it.
-func (v *StepperView) Navigable() *StepperView            { v.navigable = true; return v }
+func (v *StepperView) Navigable() *StepperView            { return v.Navigation(StepperNavigationCompleted) }
 func (v *StepperView) OnChange(fn func(int)) *StepperView { v.onChange = fn; return v }
 
 func (v *StepperView) SetDisabled(on bool) { v.disabled = on }
@@ -90,6 +93,11 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 		row.WFull().Items(el.Start)
 	} else {
 		row.Row().Items(el.Center)
+	}
+	centered := v.textCenter && !v.vertical
+	available, _ := cx.LastSize(id + "/scroll")
+	if centered {
+		row.W(el.Dp(max(available, size*3*float32(len(v.steps))))).Gap(0).Items(el.Start)
 	}
 	for i, s := range v.steps {
 		i := i
@@ -120,7 +128,32 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 		if i == v.current {
 			label.Bold()
 		}
-		step := el.Div().ID(id + "/" + strconv.Itoa(i)).Role("step").Name(s.Label).Value(state).Disabled(s.Disabled).Row().Items(el.Center).Gap(theme.SpaceSm).TextSize(font).Child(dot)
+		step := el.Div().ID(id + "/" + strconv.Itoa(i)).Role("step").Name(s.Label).Value(state).Disabled(s.Disabled).Row().Items(el.Center).Gap(theme.SpaceSm).TextSize(font)
+		if centered {
+			step.Col().Grow().W(el.Dp(0)).MinW(el.Dp(size * 3)).Items(el.Center).TextAlign(el.Center)
+			left := el.Div().Grow().W(el.Dp(0)).H(el.Dp(2))
+			right := el.Div().Grow().W(el.Dp(0)).H(el.Dp(2))
+			if i > 0 {
+				line := theme.Border
+				if i <= v.current {
+					line = theme.Primary
+				}
+				left.Bg(line)
+			}
+			if i+1 < len(v.steps) {
+				line := theme.Border
+				if i < v.current {
+					line = theme.Primary
+				}
+				right.Bg(line)
+			}
+			step.Child(el.Div().Row().WFull().H(el.Dp(size)).Items(el.Center).Gap(theme.SpaceXs).Child(left, dot, right))
+		} else {
+			step.Child(dot)
+			if v.textCenter {
+				step.TextAlign(el.Center)
+			}
+		}
 		if s.Content != nil {
 			step.Child(s.Content.Render(cx))
 		} else {
@@ -129,15 +162,18 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 		if v.vertical {
 			step.MaxW(el.Full)
 		}
-		if v.navigable && i < v.current && !s.Disabled {
+		if v.canNavigate(i) {
 			step.Focusable(true).CursorPointer().OnClick(func() {
+				if !v.canNavigate(i) || v.current == i {
+					return
+				}
 				v.current = i
 				if v.onChange != nil {
 					v.onChange(i)
 				}
 			})
 		}
-		if i > 0 {
+		if i > 0 && !centered {
 			line := theme.Border
 			if i <= v.current {
 				line = theme.Primary
@@ -154,6 +190,15 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 		row.Child(step)
 	}
 	viewport := el.Div().ID(id + "/scroll").WFull().Disabled(v.disabled).Child(row)
+	if centered {
+		viewport.Decorate(func(gtx core.C, draw func()) {
+			width, _ := cx.LayoutSize(viewport)
+			if gtx.Enabled() && width != available {
+				gtx.Execute(op.InvalidateCmd{})
+			}
+			draw()
+		})
+	}
 	if v.vertical {
 		return viewport.ScrollY()
 	}
