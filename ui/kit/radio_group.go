@@ -238,12 +238,6 @@ func (v *RadioGroupView) renderItem(cx *el.Context, i int) el.Element {
 	o := v.options[i]
 	on := o == v.value
 	disabled := v.disabled || v.optionDisabled[o]
-	ring, fill := theme.Muted, theme.Surface
-	if disabled {
-		ring, fill = theme.Border, theme.Subtle
-	} else if on {
-		ring = theme.Primary
-	}
 	size, textSize := v.size, v.textSize
 	if sizes := v.itemSizes[o]; sizes != [2]float32{} {
 		if sizes[0] > 0 {
@@ -253,14 +247,7 @@ func (v *RadioGroupView) renderItem(cx *el.Context, i int) el.Element {
 			textSize = sizes[1]
 		}
 	}
-	if size == 0 {
-		size = 18
-	}
-	inner := el.Div().Size(el.Dp(size * 16 / 18)).Rounded(theme.RadiusFull).Bg(fill).Center()
-	if on {
-		inner.Child(el.Div().Size(el.Dp(size * 8 / 18)).Rounded(theme.RadiusFull).Bg(ring))
-	}
-	dot := el.Div().Size(el.Dp(size)).NoShrink().Rounded(theme.RadiusFull).Bg(ring).Center().Child(inner)
+	dot := radioDot(size, on, disabled)
 	label := o
 	if v.content[o] != nil {
 		label = ""
@@ -331,4 +318,22 @@ func (v *RadioGroupView) a11y() string {
 		return v.label
 	}
 	return v.name
+}
+
+// radioDot draws a radio's ring, filled with a dot when on; size 0 is 18dp.
+func radioDot(size float32, on, disabled bool) *el.DivEl {
+	if size == 0 {
+		size = 18
+	}
+	ring, fill := theme.Muted, theme.Surface
+	if disabled {
+		ring, fill = theme.Border, theme.Subtle
+	} else if on {
+		ring = theme.Primary
+	}
+	inner := el.Div().Size(el.Dp(size * 16 / 18)).Rounded(theme.RadiusFull).Bg(fill).Center()
+	if on {
+		inner.Child(el.Div().Size(el.Dp(size * 8 / 18)).Rounded(theme.RadiusFull).Bg(ring))
+	}
+	return el.Div().Size(el.Dp(size)).NoShrink().Rounded(theme.RadiusFull).Bg(ring).Center().Child(inner)
 }

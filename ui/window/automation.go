@@ -205,7 +205,7 @@ type Element struct {
 	Name     string `json:"name,omitempty"`
 	Value    string `json:"value,omitempty"`    // textbox content, select choice, progress
 	Checked  *bool  `json:"checked,omitempty"`  // checkbox, radio, switch
-	Selected *bool  `json:"selected,omitempty"` // tab, row, option
+	Selected *bool  `json:"selected,omitempty"` // tab, row, option; a button only when selected
 	Disabled bool   `json:"disabled,omitempty"`
 	X        int    `json:"x"`
 	Y        int    `json:"y"`
@@ -246,6 +246,10 @@ func (w *Window) snapshot() []Element {
 				e.Checked = &state
 			case "tab", "row", "option", "disclosure", "toggle", "tag", "gridcell":
 				e.Selected = &state
+			case "button":
+				if state { // a selected button (kit.Button.Selected); others stay quiet
+					e.Selected = &state
+				}
 			}
 			if role != "text" && !containerRoles[role] && e.Name == "" {
 				e.Name = childText(n)

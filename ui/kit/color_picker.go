@@ -36,6 +36,11 @@ type ColorPickerView struct {
 	disabled   bool
 	swatches   []color.NRGBA
 	hex        string
+	parts      [4]string // RGB or HSL fields, then alpha percent
+	format     ColorFormat
+	side       el.Side
+	align      el.Align
+	placed     bool
 	focused    bool
 	onChange   func(color.NRGBA)
 }
@@ -69,7 +74,7 @@ func (p *ColorPickerView) SetDisabled(on bool) {
 		if p.popover != nil {
 			p.popover.SetValue(false)
 		}
-		p.hex = hexOf(p.Value(), p.alpha)
+		p.syncDrafts()
 	}
 }
 
@@ -86,12 +91,12 @@ func (p *ColorPickerView) SetValue(c color.NRGBA) {
 		p.h = h // keep the hue of grays and black
 	}
 	p.s, p.v, p.a = s, v, float64(c.A)/255
-	p.hex = hexOf(c, p.alpha)
+	p.syncDrafts()
 }
 
 func (p *ColorPickerView) changed() {
 	c := p.Value()
-	p.hex = hexOf(c, p.alpha)
+	p.syncDrafts()
 	if p.onChange != nil {
 		p.onChange(c)
 	}
@@ -200,12 +205,12 @@ func (p *ColorPickerView) renderPanel(cx *el.Context) el.Element {
 	id := autoID("color", p)
 	if p.focused && !cx.Enabled(id) {
 		p.focused = false
-		p.hex = hexOf(p.Value(), p.alpha)
+		p.syncDrafts()
 	}
-	focused := !p.disabled && cx.FocusWithin(id+"/hex")
+	focused := !p.disabled && cx.FocusWithin(id+"/fields")
 	if p.focused && !focused {
 		// Decide after this frame's disabled ancestry and modal state are known.
-		cx.AfterEnabled(id, pickerBlurKey{id}, 0, func() { p.commitHex(); p.focused = false })
+		cx.AfterEnabled(id, pickerBlurKey{id}, 0, func() { p.commitDraft(); p.focused = false })
 	} else {
 		p.focused = focused
 	}
@@ -328,16 +333,7 @@ func (p *ColorPickerView) renderPanel(cx *el.Context) el.Element {
 			gradient(gtx, box, c0, c, false)
 		}, func(f float64) { p.set(p.h, p.s, p.v, f) }, func(d float64) { p.set(p.h, p.s, p.v, p.a+d*0.02) }))
 	}
-	maxLen := 7
-	if p.alpha {
-		maxLen = 9
-	}
-	preview := el.Div().Size(el.Dp(m.control)).NoShrink().Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(p.Value())
-	hex := fieldText(el.Input().ID(id + "/hex").Name("HEX").Bind(&p.hex)).Filter("#0123456789abcdefABCDEF").MaxLen(maxLen).
-		OnSubmit(func(string) { p.commitHex() })
-	frame := fieldFrame(id+"/hexbox", focused, false, p.disabled, false).FocusOnPress(id + "/hex").Grow().W(el.Dp(0))
-	(&InputView{size: InputSize(p.size)}).applySize(hex, frame)
-	col.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceMd).Child(preview, frame.Child(hex)))
+	col.Child(p.fields(cx, id, focused))
 	if len(p.swatches) > 0 {
 		row := el.Div().Row().Wrap().Gap(theme.SpaceSm)
 		for i, c := range p.swatches {

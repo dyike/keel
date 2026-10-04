@@ -259,7 +259,7 @@ func (e *engine) paintContent(n *Node) {
 	defer func() { e.paintTextColor = savedColor; n.textStyle = savedText }()
 
 	rect := image.Rectangle{Max: n.size}
-	radius := min(e.dp(st.radius), min(n.size.X, n.size.Y)/2)
+	radius := e.cornersOf(st, n.size)
 
 	// The shadow lies outside the element, so it goes down before the
 	// element's own clip.
@@ -281,7 +281,7 @@ func (e *engine) paintContent(n *Node) {
 		}()
 	}
 	if len(sem) > 0 || state != nil && (n.interactive() || (n.style.scrollY || n.style.scrollX) || n.input != nil) {
-		defer clip.UniformRRect(rect, radius).Push(gtx.Ops).Pop()
+		defer radius.rrect(rect).Push(gtx.Ops).Pop()
 
 		for _, o := range sem {
 			o.Add(gtx.Ops)
@@ -449,21 +449,54 @@ func (e *engine) semantics(n *Node) []interface{ Add(*op.Ops) } {
 	return ops
 }
 
-func (e *engine) paintBox(st Style, rect image.Rectangle, radius int) {
+// corners are the radii in px of a box's corners: top left, top right,
+// bottom right, bottom left.
+type corners [4]int
+
+// cornersOf resolves a style's radius, or its separate corners, for a box of
+// size, never more than half the shorter side.
+func (e *engine) cornersOf(st Style, size image.Point) corners {
+	limit := min(size.X, size.Y) / 2
+	var c corners
+	for i := range c {
+		r := st.radius
+		if st.corners != nil {
+			r = st.corners[i]
+		}
+		c[i] = min(e.dp(r), limit)
+	}
+	return c
+}
+
+func (c corners) rrect(rect image.Rectangle) clip.RRect {
+	return clip.RRect{Rect: rect, NW: c[0], NE: c[1], SE: c[2], SW: c[3]}
+}
+
+// inset is c for a box shrunk by d on every side.
+func (c corners) inset(d int) corners {
+	for i := range c {
+		c[i] = max(c[i]-d, 0)
+	}
+	return c
+}
+
+func (c corners) max() int { return max(c[0], c[1], c[2], c[3]) }
+
+func (e *engine) paintBox(st Style, rect image.Rectangle, radius corners) {
 	ops := e.gtx.Ops
 	if g := st.gradient; g != nil {
 		paintGradient(ops, *g, rect, radius)
 	} else if st.bg != nil {
-		paint.FillShape(ops, *st.bg, clip.UniformRRect(rect, radius).Op(ops))
+		paint.FillShape(ops, *st.bg, radius.rrect(rect).Op(ops))
 	}
 	if bw := e.dp(st.borderWidth); bw > 0 {
 		// Stroke centered on a rectangle inset by half the width, so the
 		// border stays inside the element.
 		h := bw / 2
 		r := image.Rectangle{Min: rect.Min.Add(image.Pt(h, h)), Max: rect.Max.Sub(image.Pt(bw-h, bw-h))}
-		path := clip.UniformRRect(r, max(radius-h, 0)).Path(ops)
+		path := radius.inset(h).rrect(r).Path(ops)
 		if st.borderDashed {
-			path = dashedBorderPath(ops, r, float32(max(radius-h, 0)), float32(e.dp(4)), float32(e.dp(3)))
+			path = dashedBorderPath(ops, r, float32(radius.inset(h).max()), float32(e.dp(4)), float32(e.dp(3)))
 		}
 		paint.FillShape(ops, st.borderColor, clip.Stroke{Path: path, Width: float32(bw)}.Op())
 	}
@@ -472,7 +505,7 @@ func (e *engine) paintBox(st Style, rect image.Rectangle, radius int) {
 // paintShadow approximates a blurred shadow with rounded rectangles that grow
 // and fade: their translucent layers add up to theme.Shadow under the element
 // and thin out to nothing Blur dp beyond its edge.
-func (e *engine) paintShadow(sh theme.Elevation, rect image.Rectangle, radius int) {
+func (e *engine) paintShadow(sh theme.Elevation, rect image.Rectangle, radius corners) {
 	ops := e.gtx.Ops
 	blur, offset := e.dp(sh.Blur), e.dp(sh.Offset)
 	if blur <= 0 || theme.Shadow.A == 0 {
@@ -485,7 +518,7 @@ func (e *engine) paintShadow(sh theme.Elevation, rect image.Rectangle, radius in
 	for i := 1; i <= layers; i++ {
 		grow := blur * i / layers
 		r := image.Rectangle{Min: base.Min.Sub(image.Pt(grow, grow)), Max: base.Max.Add(image.Pt(grow, grow))}
-		paint.FillShape(ops, c, clip.UniformRRect(r, radius+grow).Op(ops))
+		paint.FillShape(ops, c, radius.inset(-grow).rrect(r).Op(ops))
 	}
 }
 
@@ -949,13 +982,13 @@ func (e *engine) textShift(n *Node) int {
 // paintGradient fills a rounded rectangle with g. The stops sit where the
 // gradient line, through the center at g.Angle, leaves the rectangle, so the
 // corners get the end colors whatever the angle.
-func paintGradient(ops *op.Ops, g theme.Gradient, rect image.Rectangle, radius int) {
+func paintGradient(ops *op.Ops, g theme.Gradient, rect image.Rectangle, radius corners) {
 	a := float64(g.Angle) * math.Pi / 180
 	dx, dy := math.Cos(a), math.Sin(a)
 	w, h := float64(rect.Dx()), float64(rect.Dy())
 	half := (math.Abs(w*dx) + math.Abs(h*dy)) / 2
 	cx, cy := float64(rect.Min.X)+w/2, float64(rect.Min.Y)+h/2
-	defer clip.UniformRRect(rect, radius).Push(ops).Pop()
+	defer radius.rrect(rect).Push(ops).Pop()
 	paint.LinearGradientOp{
 		Stop1: f32.Pt(float32(cx-dx*half), float32(cy-dy*half)), Color1: g.From,
 		Stop2: f32.Pt(float32(cx+dx*half), float32(cy+dy*half)), Color2: g.To,

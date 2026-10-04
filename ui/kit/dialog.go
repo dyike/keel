@@ -41,6 +41,9 @@ type DialogView struct {
 	confirming                           bool
 	generation                           uint64
 	onCancel                             func() // message dialogs: run on Esc, scrim or the cancel button
+	icon                                 IconName
+	iconTone                             Tone
+	iconSet                              bool // the tone was chosen; otherwise it follows the dialog
 }
 
 func Dialog(title string) *DialogView { return &DialogView{title: title, width: 420} }
@@ -49,7 +52,16 @@ func (v *DialogView) Body(b el.View) *DialogView          { v.body = b; return v
 func (v *DialogView) Footer(views ...el.View) *DialogView { v.footer = slices.Clone(views); return v }
 func (v *DialogView) OnClose(fn func()) *DialogView       { v.onClose = fn; return v }
 func (v *DialogView) SetTitle(s string)                   { v.title = s }
-func (v *DialogView) Value() bool                         { return v.open }
+
+// Icon shows an icon before the title, such as IconWarning on a destructive
+// confirmation. Its color follows the tone: danger for ConfirmDanger, info
+// otherwise, unless IconTone sets one. IconNone removes it. It persists
+// across message reuse.
+func (v *DialogView) Icon(name IconName) *DialogView { v.icon = name; return v }
+
+// IconTone colors the title icon: ToneInfo, ToneSuccess, ToneWarning or ToneDanger.
+func (v *DialogView) IconTone(t Tone) *DialogView { v.iconTone, v.iconSet = t, true; return v }
+func (v *DialogView) Value() bool                 { return v.open }
 func (v *DialogView) SetValue(open bool) {
 	v.generation++
 	v.open = open && !v.disabled
@@ -211,6 +223,16 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 	cx.Overlay(id, layer)
 	if v.title != "" || v.closeButton {
 		header := el.Div().ID(id + "/header").Row().Items(el.Center).Gap(theme.SpaceMd)
+		if v.icon != IconNone {
+			tone := v.iconTone
+			if !v.iconSet {
+				tone = ToneInfo
+				if v.alert {
+					tone = ToneDanger
+				}
+			}
+			header.Child(Icon(v.icon).Size(22).Color(tone.color()).Render(cx)) // decorative: the title says it
+		}
 		header.Child(el.Text(v.title).TextSize(theme.TextLg).Bold().Grow())
 		if v.closeButton {
 			header.Child(Button("", v.close).ID(id + "/close").Name(locale.Current().Close).Icon(IconClose).Variant(ButtonGhost).Size(28).Render(cx))

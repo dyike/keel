@@ -106,6 +106,7 @@ type Style struct {
 	top, right, bottom      *float32
 	left                    *float32
 	bg                      *color.NRGBA
+	corners                 *[4]float32     // per-corner radii; overrides radius
 	gradient                *theme.Gradient // painted instead of bg when set
 	borderWidth, radius     float32
 	borderColor             color.NRGBA

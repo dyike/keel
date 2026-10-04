@@ -53,6 +53,7 @@ type Doc struct {
 	pendingAnchor     string
 	images            map[string]*imageload.Asset
 	imageLoader       imageload.Loader
+	showFrontMatter   bool
 
 	parses int // chunks parsed so far, for tests
 }
@@ -143,6 +144,10 @@ func (d *Doc) update() {
 // and display-math fences. A blank line followed by an indented line does not split: that line
 // continues a list item or an indented code block.
 func split(src string) []string {
+	// Front matter may hold blank lines: it is one chunk of its own.
+	if block, _, rest := splitFrontMatter(src); block != "" {
+		return append([]string{block}, split(rest)...)
+	}
 	var chunks []string
 	var cur strings.Builder
 	fence := "" // the open fence marker, e.g. "```"

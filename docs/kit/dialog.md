@@ -55,3 +55,12 @@ dlg.Confirm("提交", "确认提交？", submit)
 `BeforeCancel(func() bool)` 在 Esc、遮罩、取消按钮和标题关闭按钮执行前运行。false 保持模态与焦点，不调用 OnClose，用户可再次尝试；true 继续原关闭流程。nil 清除，标准消息复用时保留。回调内 SetValue/禁用/替换消息会中止旧取消操作。
 
 程序调用 SetValue(false)、SetDisabled(true) 不经过取消校验。所属元素隐藏、禁用或移除时的浮层清理也绕过校验，并沿用 OnClose 通知；校验不能让脱离视图树的对话框继续存在。底层 `el.Layer.BeforeDismiss` 提供相同的用户关闭校验入口。
+
+## 标题图标
+
+`Icon(kit.IconWarning)` 在标题前显示图标，复用同一个对话框显示不同消息时保留。颜色随语气：`ConfirmDanger` 默认用危险色，其他默认用提示色，`IconTone(kit.ToneSuccess)` 等可以指定。`Icon(kit.IconNone)` 去掉图标。图标只是装饰，不单独播报，标题已经说明意思。
+
+```go
+dlg.Icon(kit.IconWarning).ConfirmDanger("删除订单", "删除后不能恢复。", "删除", remove)
+dlg.Icon(kit.IconCheck).IconTone(kit.ToneSuccess).Alert("导出完成", "共 36 条记录。", nil)
+```

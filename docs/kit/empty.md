@@ -30,3 +30,7 @@ kit.Empty("没有结果").
 ```
 
 默认布局仍保留 Keel 的 Surface 背景和间距；Empty 不新增自动播报或焦点目标，内容的按钮与输入框保持自身行为。
+
+## 预设样式
+
+`Variant(kit.EmptyOutline)` 显示虚线圆角边框、透明底，适合上传、拖放区域；`Variant(kit.EmptyMuted)` 用 `theme.Subtle` 浅底和圆角，适合放在卡片、面板里。默认 `EmptyPlain` 保持原来的 Surface 底色。之后仍可以用 `PartStyle(kit.EmptyPartRoot, ...)` 进一步调整。

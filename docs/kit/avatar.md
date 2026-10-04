@@ -17,3 +17,15 @@ avatar := kit.Avatar("Ada Lovelace").Source("https://example.com/ada.png")
 不做跨实例图片缓存；需要认证请求或统一缓存时，由应用通过 `Image` 提供像素。直接调用 `core.DecodeImage(ctx, source)` 可复用同一解码器，应在后台线程使用并自行提供超时。
 
 头像组见 [AvatarGroup](avatar_group.md)。
+
+## 外观
+
+| 方法 | 作用 |
+| --- | --- |
+| `Rounded(dp)` | 圆角，默认是圆形；团队、应用头像常用圆角方形，如 `Rounded(theme.RadiusLg)` |
+| `Colors(bg, fg)` | 首字母和占位图标的背景色、文字色；零值保持默认（按名字选底色，文字用 `theme.Text`） |
+| `Border(dp, c)` | 外圈，如叠放头像之间用 `theme.Surface` 色的环隔开；0 去掉 |
+| `Placeholder(icon)` | 没有图片也没有名字时显示的图标，默认 `IconUser`；`IconNone` 什么都不显示 |
+| `Style(fn)` | 每帧在默认样式之后调整头像外框，处理以上方法不覆盖的情况 |
+
+没有名字时显示占位图标，不再显示问号。

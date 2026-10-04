@@ -310,6 +310,8 @@ func (s *Styled[T]) My(v float32) *T {
 }
 func (s *Styled[T]) Mt(v float32) *T { s.n.style.margin.Top = v; return s.self }
 func (s *Styled[T]) Mb(v float32) *T { s.n.style.margin.Bottom = v; return s.self }
+func (s *Styled[T]) Ml(v float32) *T { s.n.style.margin.Left = v; return s.self }
+func (s *Styled[T]) Mr(v float32) *T { s.n.style.margin.Right = v; return s.self }
 
 // Scrolling and positioning.
 
@@ -374,7 +376,18 @@ func (s *Styled[T]) Border(dp float32, c color.NRGBA) *T {
 func (s *Styled[T]) BorderDashed(on bool) *T { s.n.style.BorderDashed(on); return s.self }
 
 // Rounded rounds the corners by dp; backgrounds, borders and hit areas follow.
-func (s *Styled[T]) Rounded(dp float32) *T { s.n.style.radius = dp; return s.self }
+func (s *Styled[T]) Rounded(dp float32) *T {
+	s.n.style.radius, s.n.style.corners = dp, nil
+	return s.self
+}
+
+// RoundedCorners rounds each corner separately, in dp: top left, top right,
+// bottom right, bottom left. Joined controls, such as a button group, use it
+// to round only their outer corners. A later Rounded makes them uniform again.
+func (s *Styled[T]) RoundedCorners(topLeft, topRight, bottomRight, bottomLeft float32) *T {
+	s.n.style.corners = &[4]float32{topLeft, topRight, bottomRight, bottomLeft}
+	return s.self
+}
 
 // CursorPointer shows a hand over the element.
 func (s *Styled[T]) CursorPointer() *T { s.n.style.cursor = pointer.CursorPointer; return s.self }

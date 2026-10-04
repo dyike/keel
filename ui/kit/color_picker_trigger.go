@@ -67,11 +67,14 @@ func (p *ColorPickerView) metrics() colorPickerMetrics {
 func (p *ColorPickerView) ensurePopover() {
 	if p.popover == nil {
 		p.popover = Popover(el.ViewFunc(p.renderPanel))
+		if p.placed {
+			p.popover.Placement(p.side, p.align)
+		}
 	}
 }
 func (p *ColorPickerView) cancelPopupDraft() {
 	p.focused = false
-	p.hex = hexOf(p.Value(), p.alpha)
+	p.syncDrafts()
 }
 func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 	var content el.Element
@@ -89,7 +92,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 		})
 		label := p.label
 		if label == "" {
-			label = hexOf(p.Value(), p.alpha)
+			label = p.Text()
 		}
 		trigger := Button("", p.popover.Toggle).ID(id + "/trigger").Name(label).Variant(ButtonSecondary).Size(p.metrics().control)
 		trigger.Content(el.ViewFunc(func(cx *el.Context) el.Element {
@@ -99,7 +102,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 			} else {
 				row.Child(el.Div().Size(el.Dp(16)).Rounded(theme.RadiusSm).Border(1, theme.Border).Bg(p.Value()))
 			}
-			return row.Child(el.Text(hexOf(p.Value(), p.alpha)).MaxLines(1))
+			return row.Child(el.Text(p.Text()).MaxLines(1))
 		}))
 		trigger.SetDisabled(p.disabled)
 		p.popover.Trigger(trigger)

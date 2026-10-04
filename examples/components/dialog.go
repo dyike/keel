@@ -34,12 +34,14 @@ func (g *dialogGallery) Render(cx *el.Context) el.Element {
 		el.Text("Dialog：Esc 关闭，焦点限制在对话框内，关闭后回到按钮").Bold(),
 		el.Div().Row().Gap(8).Child(
 			kit.Button("确认", func() {
-				g.dlg.Confirm("保存修改", "离开前保存 3 处修改吗？", func() { g.msg = "已确认" })
+				g.dlg.Icon(kit.IconNone).Confirm("保存修改", "离开前保存 3 处修改吗？", func() { g.msg = "已确认" })
 			}).Render(cx),
 			kit.Button("删除", func() {
-				g.dlg.ConfirmDanger("删除订单", "删除 SO-1001 后不能恢复。点遮罩不会关闭，Esc 等于取消。", "删除", func() { g.msg = "已删除" })
+				g.dlg.Icon(kit.IconWarning).ConfirmDanger("删除订单", "删除 SO-1001 后不能恢复。点遮罩不会关闭，Esc 等于取消。", "删除", func() { g.msg = "已删除" })
 			}).Variant(kit.ButtonDanger).Render(cx),
-			kit.Button("提示", func() { g.dlg.Alert("导出完成", "共 36 条记录 Exported.", nil) }).Variant(kit.ButtonSecondary).Render(cx),
+			kit.Button("提示", func() {
+				g.dlg.Icon(kit.IconCheck).IconTone(kit.ToneSuccess).Alert("导出完成", "共 36 条记录 Exported.", nil)
+			}).Variant(kit.ButtonSecondary).Render(cx),
 			kit.Button("自定义", func() { g.edit.SetValue(true) }).Variant(kit.ButtonSecondary).Render(cx),
 		),
 		el.Text(g.msg).TextColor(theme.Muted),

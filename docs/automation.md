@@ -103,7 +103,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | 角色 | 来自 | 额外信息 |
 | --- | --- | --- |
 | `text` | `el.Text`、`kit.Kbd` | |
-| `button` | `kit.Button`、带 `OnClick` 的 `el.Div` | `disabled`；kit 加载时 `value: loading` |
+| `button` | `kit.Button`、带 `OnClick` 的 `el.Div` | `disabled`；kit 加载时 `value: loading`；选中的按钮（`Selected(true)`）有 `selected: true`，未选中时不列出 |
 | `link` | `kit.Link` | |
 | `textbox` | `kit.Input`、`kit.TextArea`、`el.Input` | `value`；密码框的值是等长的 `•` |
 | `checkbox` | `kit.Checkbox` | `checked` / `unchecked`；半选时 `value` 为 mixed |

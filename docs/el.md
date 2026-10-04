@@ -73,9 +73,9 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 | 方向与对齐 | `Row()`、`Col()`（默认）、`Wrap()` 自动换行、`Grid(columns)` 等宽列网格、`ColSpan(n)` 跨列、`Gap(dp)`、`Justify(Start/Center/End/SpaceBetween/SpaceAround)`、`Items(Start/Center/End/Stretch)`、`Center()` |
 | 伸缩 | `Grow()` 等于 CSS 的 `flex: 1`：初始尺寸按 0 算，分享剩余空间；其他元素空间不够时按比例收缩，`NoShrink()` 禁止收缩 |
 | 尺寸 | `W(l)`、`H(l)`、`Size(l)`、`MinW/MinH/MaxW/MaxH(l)`、`WFull()`、`HFull()`；长度用 `el.Dp(40)`、随字号缩放的 `el.Sp(40)`、`el.Frac(0.5)`、`el.Full` |
-| 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`（外边距），单位 dp |
+| 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`、`Ml`、`Mr`（外边距），单位 dp |
 | 滚动与定位 | `ScrollX()` 横向滚动（需要约束宽度）、`ScrollY()` 纵向滚动（需要确定的高度），`StickToBottom()` 跟随到底，`ScrollToEndOn(v)` 在 v 变化时跳到底部；`Absolute()` + `Top/Right/Bottom/Left` 绝对定位，同时给左右会拉伸宽度 |
-| 外观 | `Bg(c)`、`Border(dp, c)`、`Rounded(dp)`（用 `theme.RadiusSm/Md/Lg/Xl/Full`）、`Shadow(theme.ElevationSm/Md/Lg)` 阴影画在元素外面、不改变尺寸，`Opacity(a)` 设置整个子树 0–1 透明度（0 完全不绘制，仍保留布局和交互），`CursorPointer()`、`Hidden(b)`、`IsHidden()`（读取本元素声明的隐藏值，不包含祖先） |
+| 外观 | `Bg(c)`、`Border(dp, c)`、`Rounded(dp)`（用 `theme.RadiusSm/Md/Lg/Xl/Full`），`RoundedCorners(左上, 右上, 右下, 左下)` 分别设置四个角，比如按钮组只圆外侧的角、`Shadow(theme.ElevationSm/Md/Lg)` 阴影画在元素外面、不改变尺寸，`Opacity(a)` 设置整个子树 0–1 透明度（0 完全不绘制，仍保留布局和交互），`CursorPointer()`、`Hidden(b)`、`IsHidden()`（读取本元素声明的隐藏值，不包含祖先） |
 | 文字（向下继承） | `TextColor(c)`、`TextSize(sp)`（用 `theme.TextXs` … `theme.TextHeading`）、`Bold()`、`Medium()`、`Mono()` 等宽字体（`theme.MonoFace`）、`LineHeight(倍数)`、`MaxLines(n)` |
 | 状态变体 | `Hover(func(*el.Style))`、`Active(func(*el.Style))`：悬停、按下时的颜色变化，背景在 120ms 内渐变过去；开启减少动画（`theme.SetReducedMotion`，自动化模式默认开启）时直接切换 |
 | 交互 | `OnClick(fn)`、`OnDoubleClick(fn)` |

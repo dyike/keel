@@ -55,7 +55,8 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 
 - [Kbd](kit/kbd.md)：继承字号的快捷键键帽，支持平台格式和 Plain。
 
-- [Button](kit/button.md)：操作按钮，支持焦点、禁用、图标和固定尺寸的加载状态。
+- [Button](kit/button.md)：操作按钮，支持焦点、禁用、图标、选中和固定尺寸的加载状态。
+- [ButtonGroup](kit/button_group.md)：几个按钮连成一体的按钮组，横向或竖向。
 
 - [Alert](kit/alert.md)：行内/横幅状态提示，支持尺寸、图标与富正文。
 - [Empty](kit/empty.md)：空状态说明。
@@ -77,7 +78,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 
 表单控件：
 
-- [Checkbox](kit/checkbox.md)、[Switch](kit/switch.md)、[RadioGroup](kit/radio_group.md)、[Toggle](kit/toggle.md)、[ToggleGroup](kit/toggle_group.md)：选择与开关。
+- [Checkbox](kit/checkbox.md)、[Switch](kit/switch.md)、[RadioGroup](kit/radio_group.md)、[Radio](kit/radio.md)、[Toggle](kit/toggle.md)、[ToggleGroup](kit/toggle_group.md)：选择与开关。
 - [Input / TextArea](kit/input.md)：文本框，支持前后缀、清空、错误提示。
 - [Input Group](kit/input_group.md)：统一边框的输入/多行编辑器与四方向图标、文字、按钮组合。
 - [Select](kit/select.md)、[Combobox](kit/combobox.md)：下拉选择、可筛选输入。

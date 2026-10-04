@@ -42,6 +42,7 @@ type ButtonView struct {
 	icon              *IconView
 	disabled, loading bool
 	outline, compact  bool
+	selected          bool
 	content           el.View
 	appearance        func(ButtonAppearance) ButtonAppearance
 }
@@ -90,7 +91,16 @@ func (v *ButtonView) Icon(name IconName) *ButtonView { v.icon = Icon(name); retu
 func (v *ButtonView) Loading(on bool) *ButtonView    { v.SetLoading(on); return v }
 func (v *ButtonView) SetText(s string)               { v.text = s }
 func (v *ButtonView) SetDisabled(on bool)            { v.disabled = on }
-func (v *ButtonView) SetLoading(on bool)             { v.loading = on }
+
+// Selected shows the button as chosen, such as the current view in a toolbar
+// or the active filter, and reports it to agents. Filled buttons darken;
+// secondary, ghost, text and outline buttons take the selection colors.
+// Clicking does not toggle it: set it from OnClick. For a set of mutually
+// exclusive options, use ToggleGroup.
+func (v *ButtonView) Selected(on bool) *ButtonView { v.selected = on; return v }
+func (v *ButtonView) SetSelected(on bool)          { v.selected = on }
+func (v *ButtonView) IsSelected() bool             { return v.selected }
+func (v *ButtonView) SetLoading(on bool)           { v.loading = on }
 func (v *ButtonView) activate() {
 	if !v.disabled && !v.loading && v.onClick != nil {
 		v.onClick()
@@ -103,6 +113,12 @@ func (v *ButtonView) Render(cx *el.Context) el.Element {
 
 // renderWithRadius lets composite controls refine corners without mutating the button.
 func (v *ButtonView) renderWithRadius(cx *el.Context, radius float32) *el.DivEl {
+	return v.renderCorners(cx, [4]float32{radius, radius, radius, radius})
+}
+
+// renderCorners rounds each corner separately (top left, top right, bottom
+// right, bottom left), for buttons joined into a group.
+func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl {
 	bg, hover, fg := theme.Primary, theme.PrimaryHover, theme.OnColor
 	switch v.variant {
 	case ButtonSecondary:
@@ -155,6 +171,18 @@ func (v *ButtonView) renderWithRadius(cx *el.Context, radius float32) *el.DivEl 
 	if v.appearance != nil {
 		appearance = v.appearance(appearance)
 	}
+	if v.selected {
+		filled := !v.outline && appearance.Background.A > 0 && v.variant != ButtonSecondary
+		if filled {
+			appearance.Background, appearance.Hover = appearance.Active, appearance.Active
+		} else {
+			appearance.Background, appearance.Hover, appearance.Active = theme.Highlight, theme.Highlight, theme.Highlight
+			appearance.Foreground, appearance.HoverForeground, appearance.ActiveForeground = theme.PrimaryText, theme.PrimaryText, theme.PrimaryText
+			if v.outline {
+				appearance.Border = theme.PrimaryText
+			}
+		}
+	}
 	bg, fg = appearance.Background, appearance.Foreground
 	disabledBg := theme.Subtle
 	if v.outline || v.variant == ButtonGhost || v.variant == ButtonLink || v.variant == ButtonText {
@@ -180,7 +208,7 @@ func (v *ButtonView) renderWithRadius(cx *el.Context, radius float32) *el.DivEl 
 		name = v.text
 	}
 	box := el.Div().ID(v.id).Role("button").Name(name).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(theme.SpaceSm).Items(el.Center).Justify(el.Center).
-		Rounded(radius).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
+		RoundedCorners(corners[0], corners[1], corners[2], corners[3]).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
 		Disabled(v.disabled).
 		DisabledStyle(func(s *el.Style) { s.Bg(disabledBg).TextColor(theme.Muted).BorderColor(theme.Border) }).
 		FocusStyle(func(s *el.Style) { s.BorderColor(appearance.Focus) })
@@ -202,6 +230,9 @@ func (v *ButtonView) renderWithRadius(cx *el.Context, radius float32) *el.DivEl 
 	}
 	if v.loading {
 		box.Value("loading")
+	}
+	if v.selected {
+		box.Selected(true)
 	}
 	if v.content != nil {
 		content := el.Div().MaxW(el.Full).Child(v.content.Render(cx))

@@ -24,3 +24,9 @@ Tab / Shift+Tab 聚焦；Space / Enter 松开时激活一次。Hover、Active �
 Agent 角色为 button，name 为文案；加载时 value 为 loading，disabled 为 false；只有自身或父元素禁用时 disabled 为 true。图标和 Spinner 是按钮内部装饰，不单独列入快照。
 
 验证：`go run ./examples/components -section button`，加 `-theme dark` 检查深色。示例覆盖九种变体、描边/紧凑配置、自定义内容/配色、三个尺寸、图标、禁用、加载切换和窄容器。
+
+## 选中状态
+
+`Selected(true)` / `SetSelected(on)` 把按钮显示为已选中，例如工具栏里当前的视图、已启用的筛选；Agent 看到的 `selected` 为 true。实心按钮颜色加深；次要、轻量、文字和描边按钮换成选中底色 `Highlight` 和 `PrimaryText` 文字，描边按钮的边框也变成 `PrimaryText`。点击不会自动切换，需要在 OnClick 里设置；一组互斥选项直接用 [ToggleGroup](toggle_group.md)。
+
+按钮组见 [ButtonGroup](button_group.md)。

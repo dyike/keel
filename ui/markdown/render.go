@@ -125,6 +125,8 @@ func (d *Doc) block(cx *el.Context, b *block, last bool) el.Element {
 		return d.table(cx, b)
 	case rule:
 		return el.Div().H(el.Dp(1)).Bg(theme.Border).My(4)
+	case frontMatter:
+		return d.frontMatterTable(b)
 	case group:
 		content := el.Div().Gap(12)
 		for i := range b.children {

@@ -33,3 +33,5 @@ plans.Content("专业", el.ViewFunc(func(cx *el.Context) el.Element {
 默认使用组内单个 Tab 停靠点。`TabStop(false)` 或 `TabIndex(-1)` 可跳过整组，仍允许鼠标和方向键选择；非负 TabIndex 按升序排列，同值按树顺序，范围限单 el root。`ItemTab(value, stop, index)` 可覆盖单项配置，该项显式参与停靠判断，不再受默认单停靠点限制；`ClearItemTab(value)` 恢复组配置。逐项覆盖重排保留，删除清理，未知选项忽略。禁用项始终不能停靠；Tab 移动本身不改变选中值。
 
 `ItemSize(value, dp, sp)` 可逐项覆盖圆点和字号，各参数为 0 时继承组配置；`ItemSize(value, 0, 0)` 清除覆盖。正值沿用组的上下限，未知选项或任一负值/非有限值忽略整个调用。重排保留覆盖，删除选项会清理。独立 Item 同样生效。
+
+单个、位置自由的单选按钮见 [Radio](radio.md)。

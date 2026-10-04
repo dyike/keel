@@ -16,12 +16,14 @@ type buttonDemo struct {
 	toggle  *kit.ButtonView
 	count   int
 	loading bool
+	bold    *kit.ButtonView
 }
 
 func buttonGallery() core.Widget {
 	v := &buttonDemo{}
 	v.save = kit.Button("保存 Save 123", func() { v.count++ }).Icon(kit.IconPlus)
 	v.toggle = kit.Button("切换加载状态", func() { v.loading = !v.loading; v.save.SetLoading(v.loading) }).Variant(kit.ButtonSecondary)
+	v.bold = kit.Button("加粗", nil).Variant(kit.ButtonGhost).Selected(true)
 	return el.Embed(v)
 }
 func (v *buttonDemo) Render(cx *el.Context) el.Element {
@@ -55,5 +57,8 @@ func (v *buttonDemo) Render(cx *el.Context) el.Element {
 		el.Text(fmt.Sprintf("保存次数：%d", v.count)).TextColor(theme.Muted),
 		row(kit.Button("加载中", nil).Loading(true), kit.Button("加载图标", nil).Icon(kit.IconPlus).Loading(true), disabled),
 		el.Div().W(el.Dp(140)).Child(kit.Button("窄容器中文 English 123", nil).Render(cx)),
+		el.Text("选中状态").TextSize(16).Bold(),
+		row(kit.Button("已选中", nil).Selected(true), kit.Button("次要已选中", nil).Variant(kit.ButtonSecondary).Selected(true),
+			kit.Button("描边已选中", nil).Outline(true).Selected(true), v.bold),
 	)
 }

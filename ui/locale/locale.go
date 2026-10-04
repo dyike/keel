@@ -60,6 +60,7 @@ type Strings struct {
 	ChartValue, ChartShare                          string
 	ShowTable, ShowChart, ResetView                 string
 	ColorShade, Hue, Opacity                        string
+	ColorFormat                                     string
 	Previous, Next, Submit, Required, AnswerOrSkip  string
 	// Progress formats "question i of n", e.g. "第 3 / 10 题".
 	Progress func(i, n int) string
@@ -115,7 +116,7 @@ func Chinese() Strings {
 		Minimize: "最小化", Maximize: "最大化", Restore: "还原",
 		CandleOpen: "开盘", CandleHigh: "最高", CandleLow: "最低", CandleClose: "收盘",
 		ChartValue: "数值", ChartShare: "占比", ShowTable: "查看数据表", ShowChart: "查看图表", ResetView: "复位",
-		ColorShade: "饱和度与亮度", Hue: "色相", Opacity: "不透明度",
+		ColorShade: "饱和度与亮度", Hue: "色相", Opacity: "不透明度", ColorFormat: "颜色格式",
 		Previous: "上一题", Next: "下一题", Submit: "提交", Required: "这一题必须回答", AnswerOrSkip: "请作答或选择跳过",
 		Progress:     func(i, n int) string { return "第 " + strconv.Itoa(i) + " / " + strconv.Itoa(n) + " 题" },
 		Total:        func(n int) string { return "共 " + strconv.Itoa(n) + " 条" },
@@ -153,7 +154,7 @@ func English() Strings {
 		Minimize: "Minimize", Maximize: "Maximize", Restore: "Restore",
 		CandleOpen: "Open", CandleHigh: "High", CandleLow: "Low", CandleClose: "Close",
 		ChartValue: "Value", ChartShare: "Share", ShowTable: "Show data table", ShowChart: "Show chart", ResetView: "Reset view",
-		ColorShade: "Saturation and brightness", Hue: "Hue", Opacity: "Opacity",
+		ColorShade: "Saturation and brightness", Hue: "Hue", Opacity: "Opacity", ColorFormat: "Color format",
 		Previous: "Previous", Next: "Next", Submit: "Submit", Required: "This question needs an answer", AnswerOrSkip: "Answer or choose Skip",
 		Progress: func(i, n int) string { return "Question " + strconv.Itoa(i) + " of " + strconv.Itoa(n) },
 		Total: func(n int) string {

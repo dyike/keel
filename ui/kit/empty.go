@@ -18,8 +18,23 @@ const (
 	EmptyPartFooter
 )
 
+// EmptyVariant is the surface an Empty sits on.
+type EmptyVariant uint8
+
+const (
+	// EmptyPlain is the default: the Surface color, no border.
+	EmptyPlain EmptyVariant = iota
+	// EmptyOutline draws a dashed rounded border on a transparent surface,
+	// the usual look for a drop zone or an area waiting to be filled.
+	EmptyOutline
+	// EmptyMuted fills a rounded area with the subtle background color, to
+	// set the empty state apart inside a card or panel.
+	EmptyMuted
+)
+
 // EmptyView explains why a region contains no results.
 type EmptyView struct {
+	variant                             EmptyVariant
 	title, description                  string
 	icon                                IconName
 	action                              el.View
@@ -36,8 +51,17 @@ func (v *EmptyView) Action(e el.View) *EmptyView     { v.action = e; return v }
 // Media replaces the icon with arbitrary content, preserving its size and semantics.
 // Nil restores the configured icon; IconNone hides that fallback.
 func (v *EmptyView) Media(view el.View) *EmptyView { v.media = view; return v }
-func (v *EmptyView) SetTitle(s string)             { v.title = s }
-func (v *EmptyView) SetDescription(s string)       { v.description = s }
+
+// Variant picks the surface: EmptyPlain, EmptyOutline or EmptyMuted.
+// PartStyle(EmptyPartRoot, ...) still adjusts it afterwards.
+func (v *EmptyView) Variant(variant EmptyVariant) *EmptyView {
+	if variant <= EmptyMuted {
+		v.variant = variant
+	}
+	return v
+}
+func (v *EmptyView) SetTitle(s string)       { v.title = s }
+func (v *EmptyView) SetDescription(s string) { v.description = s }
 
 // Heading replaces the title text; nil restores it.
 func (v *EmptyView) Heading(view el.View) *EmptyView { v.heading = view; return v }
@@ -69,7 +93,16 @@ func (v *EmptyView) part(part EmptyPart, id string, box *el.DivEl) *el.DivEl {
 	return box.ID(id)
 }
 func (v *EmptyView) Render(cx *el.Context) el.Element {
-	box := v.part(EmptyPartRoot, "empty", el.Div().P(theme.Space2xl).Gap(theme.SpaceMd).Items(el.Center).Bg(theme.Surface))
+	root := el.Div().P(theme.Space2xl).Gap(theme.SpaceMd).Items(el.Center)
+	switch v.variant {
+	case EmptyOutline:
+		root.Rounded(theme.RadiusLg).Border(1, theme.Border).BorderDashed(true)
+	case EmptyMuted:
+		root.Rounded(theme.RadiusLg).Bg(theme.Subtle)
+	default:
+		root.Bg(theme.Surface)
+	}
+	box := v.part(EmptyPartRoot, "empty", root)
 	header := v.part(EmptyPartHeader, "header", el.Div().Gap(theme.SpaceMd).Items(el.Center).MaxW(el.Full))
 	hasHeader := false
 	if v.media != nil || v.icon != IconNone {

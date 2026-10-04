@@ -1,6 +1,8 @@
 package markdown
 
 import (
+	"strings"
+
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/yuin/goldmark"
@@ -76,6 +78,15 @@ func (d *Doc) Plugins(plugins ...Plugin) *Doc {
 }
 
 func (d *Doc) parseSource(src string) []block {
+	// Only the document's first chunk, or the whole document when parsed in
+	// one context, can start with front matter; split keeps it whole.
+	if fm, yaml, rest := splitFrontMatter(src); fm != "" && d.startsWith(src) {
+		out := []block{{kind: frontMatter, code: strings.TrimRight(yaml, "\n")}}
+		if strings.TrimSpace(rest) != "" {
+			out = append(out, d.parseSource(rest)...)
+		}
+		return out
+	}
 	if d.plugins == nil {
 		return parse(src)
 	}
@@ -111,4 +122,9 @@ func (r *richBlock) hasInlineObjects() bool {
 		}
 	}
 	return false
+}
+
+// startsWith reports whether src is the beginning of the document.
+func (d *Doc) startsWith(src string) bool {
+	return strings.HasPrefix(d.src, src) || strings.HasPrefix(src, d.src)
 }

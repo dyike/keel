@@ -53,6 +53,8 @@ func init() {
 				},
 			},
 		})
+		fmDoc := markdown.New("---\ntitle: 发布说明 v0.0.2\nauthor: yike\ndate: 2026-10-04\n---\n## 正文从这里开始\n\n文档开头 `---` 之间的 YAML 元数据默认不显示，可以用 `Meta()` 读取。\n")
+		showMeta := false
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			if streamRun {
 				cx.After(struct {
@@ -98,7 +100,10 @@ func init() {
 					fadeDoc.SetSource("")
 					fadeDoc.SetStreaming(true)
 					streamAt, streamRun = 0, true
-				}).Render(cx), fadeDoc.Render(cx), pluginDoc.Render(cx))
+				}).Render(cx), fadeDoc.Render(cx), pluginDoc.Render(cx),
+				kit.Button("显示 / 隐藏 YAML 元数据", func() { showMeta = !showMeta; fmDoc.ShowFrontMatter(showMeta) }).Variant(kit.ButtonSecondary).Render(cx),
+				el.Text("Meta()[\"title\"] = "+fmDoc.Meta()["title"]).TextColor(theme.Muted),
+				fmDoc.Render(cx))
 		}))
 	})
 }

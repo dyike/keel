@@ -32,7 +32,8 @@ const (
 	rule
 	footnoteList
 	footnoteItem
-	group // several blocks from one HTML block, drawn one after another
+	group       // several blocks from one HTML block, drawn one after another
+	frontMatter // YAML metadata at the top; code holds it
 )
 
 type block struct {
