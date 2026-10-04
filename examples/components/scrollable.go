@@ -10,6 +10,8 @@ import (
 
 func init() {
 	registerSection("scrollable", "shell", func() core.Widget {
+		mode := el.ScrollbarAlways
+		names := []string{"常显", "悬停显示", "滚动时显示"}
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			row := el.Div().Row().Gap(12)
 			for i := 0; i < 8; i++ {
@@ -18,7 +20,8 @@ func init() {
 			return el.Div().P(24).Gap(16).Items(el.Stretch).Child(
 				el.Text("横向滚动").TextSize(24).Bold(),
 				el.Text("支持触控板、拖动底部滑块或点击轨道；Tab 聚焦后可用方向键、Home / End。"),
-				el.Div().ID("cards").Focusable(true).ScrollX().H(el.Dp(120)).Child(row),
+				el.Div().ID("cards").Focusable(true).ScrollX().Scrollbars(mode).H(el.Dp(120)).Child(row),
+				kit.Button("显示策略："+names[int(mode)], func() { mode = (mode + 1) % 3 }).Render(cx),
 				kit.Button("查看最后一张", func() { cx.ScrollIntoViewX("cards", 7*162, 7*162+150) }).Render(cx))
 		}))
 	})

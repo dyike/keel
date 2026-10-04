@@ -588,6 +588,7 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		st = &copy
 	}
 	previousX, previousY := st.scrollX, st.scrollY
+	viewportHovered := st.scrollHover.Update(gtx.Source)
 	bw := e.dp(n.style.borderWidth)
 	pl, pt, pr, pb := e.edges(n.style.pad)
 	viewport := image.Rect(bw, bw, n.size.X-bw, n.size.Y-bw)
@@ -653,6 +654,20 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		gtx.Execute(op.InvalidateCmd{})
 	}
 
+	if st.scrollX != previousX || st.scrollY != previousY || st.scrollbarX.active || st.scrollbarY.active {
+		st.scrollVisibleUntil = gtx.Now.Add(ScrollbarLinger)
+	}
+	showBars := true
+	switch n.style.scrollbarMode {
+	case ScrollbarHover:
+		showBars = viewportHovered || st.scrollbarX.active || st.scrollbarY.active
+	case ScrollbarScrolling:
+		showBars = gtx.Now.Before(st.scrollVisibleUntil) || st.scrollbarX.active || st.scrollbarY.active
+		if showBars && gtx.Enabled() && n.style.controlledScroll == nil {
+			gtx.Execute(op.InvalidateCmd{At: st.scrollVisibleUntil})
+		}
+	}
+
 	// The viewport is its own area with the scroll handler, so it is a node
 	// in the semantic tree and agents only see what shows through it.
 	stk := clip.Rect(viewport).Push(gtx.Ops)
@@ -682,10 +697,15 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	e.visible, e.origin = savedVis, savedOrigin
 	off.Pop()
 
-	if n.style.scrollY && n.style.controlledScroll == nil {
+	if n.style.scrollbarMode == ScrollbarHover && n.style.controlledScroll == nil {
+		pass := pointer.PassOp{}.Push(gtx.Ops)
+		st.scrollHover.Add(gtx.Ops)
+		pass.Pop()
+	}
+	if showBars && n.style.scrollY && n.style.controlledScroll == nil {
 		st.scrollbarY.paint(gtx, yTrack, false, st.scrollY, viewport.Dy(), total, e.dp(24))
 	}
-	if n.style.scrollX && n.style.controlledScroll == nil {
+	if showBars && n.style.scrollX && n.style.controlledScroll == nil {
 		st.scrollbarX.paint(gtx, xTrack, true, st.scrollX, viewport.Dx(), totalX, e.dp(24))
 	}
 	stk.Pop()

@@ -79,6 +79,8 @@ type elemState struct {
 	fresh                 bool // created this frame: dispatch has not seen it yet
 
 	scrollbarX, scrollbarY   scrollbarState
+	scrollHover              gesture.Hover
+	scrollVisibleUntil       time.Time
 	scrollableX, scrollableY bool
 
 	scrollHorizontal                                                 gesture.Scroll

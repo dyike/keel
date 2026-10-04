@@ -338,7 +338,7 @@
 | [Rating](https://gpui-kit.com/component/rating/) | 主体已有 | [评分、已填星减分、尺寸/颜色、半星/小数展示、只读与键盘](../../ui/kit/rating.go) | 第二十四批已关闭登记缺口；按上游源码明确为点已填第 i 星设 i−1 分，并非总分减一。Size 为 dp，默认 22；小数只用于展示，编辑仍选整星。 |
 | [Resizable](https://gpui-kit.com/component/resizable/) | 主体已有 | [双面板](../../ui/kit/resizable.go)、[独立多面板组、尺寸范围、显隐、拖动/键盘和状态查询](../../ui/kit/resizable_group.go) | 第八十八至九十批补齐双面板 Max、Visible、HandleAppearance。第九十一批新增 ResizableGroup，按稳定 ID 配置/重排，支持相邻调整、逐项范围/显隐、尺寸读写和回调，登记的主体缺口已关闭。空间分配从末端吸收余量，最小尺寸不足时按比例压缩；把手动画未对齐上游主题运动 token/透明度渐变，不表示所有 API/视觉一致。 |
 | [Root View](https://gpui-kit.com/component/root/) | 主体已有 | [根布局、统一浮层宿主、窗口快捷键](../../ui/el/root.go) | 架构差异：Keel 已有 root/overlay/focus/shortcut；Dialog/Sheet/Notifier 需应用挂载，GPUI 0.7 根视图自动挂载这些层。 |
-| [Scrollable](https://gpui-kit.com/component/scrollable/) | 主体已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位与尾部跟随](../../ui/el/viewport.go) | 双轴滚动、滚动条与定位已有，通过 el 组合；缺组件级 Always/Hover/Scrolling 显示策略。没有独立类型本身不计功能缺失。 |
+| [Scrollable](https://gpui-kit.com/component/scrollable/) | 主体已有 | [ScrollX/ScrollY、滚动条拖动/轨道点击、定位、尾部跟随及显示策略](../../ui/el/viewport.go) | 第一百六十批补齐 Scrollbars 的 Always/Hover/Scrolling。两轴共用策略，空闲 900ms 隐藏、拖动期间保持，隐藏不保留滚动条命中区。横纵双倍率、拖出视口、点击穿透及窗口像素验证通过。目前不自动读取系统偏好，无渐隐动画。 |
 | [Select](https://gpui-kit.com/component/select/) | 主体已有 | [过滤/自定义匹配、分组、多选、富选项/已选展示、清空和菜单配置](../../ui/kit/select.go) | 第一百五十五批补齐登记的展示和菜单缺口，另补 Size/RowHeight/Appearance。自定义行按统一高度虚拟化，内容限展示；Agent 值保持存储值，不随自定义展示或标题前缀变化。高度预算含搜索/留白/边框，受窗口可用空间约束；配置为 dp 而非上游统一尺寸枚举。浅深色虚拟窗口及 Agent 已验，真机未验收。 |
 | [Settings](https://gpui-kit.com/component/settings/) | 主体已有 | [多页面/多分组、重置、页尾、关键词、富描述、自定义行与禁用](../../ui/kit/settings.go) | 第一百四十一批关闭登记主要缺口。Markdown 通过 DescriptionContent 组合，搜索文本由 Description 提供；默认值由 Reset 回调维护。尺寸使用 RowSpacing 和控件自身配置，未提供 GPUI 四档统一 Size；导航仅到页面，不含分组导航。接口与默认外观不完全相同，真机视觉未验收。 |
 | [Sheet](https://gpui-kit.com/component/sheet/) | 主体已有 | [侧边抽屉、遮罩、长内容、焦点与禁用继承](../../ui/kit/sheet.go) | 第五十一批补齐独立 Footer 及 Keyboard/Overlay/OverlayClosable/CloseButton。第五十二批补齐 MarginTop 及动画裁剪。第五十三批补齐 PanelStyle 面板样式。第五十四批补齐四方向拖动调整尺寸及回调；当前登记缺口已关闭。把手默认开启，用户最小尺寸 80dp，最大为可用窗口尺寸，支持键盘和取消恢复；不表示各平台真机验收完成。 |
@@ -401,3 +401,10 @@
 - [x] 布局与拖动映射跟随滑块尺寸；有限性、尺寸及圆角上限防止异常配置破坏绘制。
 - [x] 横纵方向、双端范围、双倍率、键盘端点、禁用、默认恢复和主题变化回归通过；窗口像素确认四类自定义颜色实际绘制。
 - [x] 独立提交内容通过构建、vet、全量测试；示例和覆盖表已同步。
+
+## 第一百六十批：滚动条显示策略
+
+- [x] Scrollbars 支持 Always、Hover、Scrolling，默认行为不变，两轴共用策略。
+- [x] 偏移变化触发 900ms 显示计时，拖动期间保持；隐藏滚动条不拦截内容点击。
+- [x] 横纵双倍率、空闲超时、悬停及拖出视口回归通过；窗口像素确认常显与隐藏状态切换。
+- [x] 示例、文档及覆盖表同步；独立提交内容通过构建、vet、全量测试。

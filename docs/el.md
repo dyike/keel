@@ -201,6 +201,8 @@ return el.Div().Hidden(!visible).Child(el.Text("已保存"))
 
 `ScrollX()` 让子内容横向延展并裁剪到视口，可与 `ScrollY()` 组合。支持水平滚轮和触控板水平手势；横纵轴分别消费对应滚动量。`cx.ScrollStateX(id)` 返回偏移、视口宽度、内容宽度（dp）；`cx.ScrollIntoViewX(id, left, right)` 最小滚动以显示目标区间。横纵滚动条支持拖动滑块、点击轨道定位，并随浅深色主题切换。滚动容器添加 `Focusable(true)` 后可用 Tab 聚焦，再用方向键、PageUp/PageDown、Home/End 滚动；双轴容器的 Shift+PageUp/PageDown、Shift+Home/End 操作横轴。组件自身 `OnKey` 优先处理（如表格行选择）。示例：`go run ./examples/components -section scrollable`。
 
+`Scrollbars(el.ScrollbarAlways / el.ScrollbarHover / el.ScrollbarScrolling)` 设置单个滚动容器的显示策略，两轴共用；默认 Always，只有内容溢出才出现。Hover 在指针进入整个视口时显示；Scrolling 在偏移实际变化后显示，停止 900ms 后隐藏，鼠标拖动滚动条期间持续显示。程序定位、键盘滚动也会显示；停在边界且偏移不变不会重新计时。隐藏后不保留滚动条点击区域，内容仍能接收指针事件；滚轮和键盘滚动不受策略影响。`ScrollOffset` 的受控模式仍隐藏所有滚动条。当前是组件配置，没有自动读取系统滚动条偏好或渐隐动画。已验证横纵双倍率交互、空闲隐藏后的点击穿透、拖出视口时继续拖动和显示策略切换的窗口像素。
+
 `cx.ScrollState(id)` 返回带 ID 的 `ScrollY` 元素上一帧的滚动偏移、可视高度、内容高度，单位 dp；第一次绘制之前三个值都是 0。虚拟列表用它决定构建哪些行。`cx.ScrollIntoView(id, top, bottom)` 以最小的滚动量让内容中 `[top, bottom]` 这一段可见，在下一次绘制时生效。
 
 `KeepBottomOn(version)`：`version` 变化的那一帧，保持到底部的距离不变，在上方插入内容（比如加载更早的聊天记录）时画面不会跳动。在插入内容的同一个回调里递增 version，用法和 `ScrollToEndOn` 一样。
