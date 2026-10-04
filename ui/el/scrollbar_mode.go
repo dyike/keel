@@ -3,6 +3,8 @@ package el
 import (
 	"sync/atomic"
 	"time"
+
+	"github.com/dyike/keel/ui/theme"
 )
 
 // ScrollbarMode controls when an overflowing scroll container shows its bars.
@@ -39,7 +41,7 @@ func (s *Styled[T]) Scrollbars(mode ScrollbarMode) *T {
 	return s.self
 }
 
-var scrollbarDefault, scrollbarSystem atomic.Uint32 // ScrollbarMode values
+var scrollbarDefault atomic.Uint32 // a ScrollbarMode
 
 // SetScrollbarDefault sets the mode of scroll containers that do not choose
 // one, ScrollbarAlways by default. Pass ScrollbarSystem to follow the
@@ -50,17 +52,15 @@ func SetScrollbarDefault(mode ScrollbarMode) {
 	}
 }
 
-// SetSystemScrollbars records the platform's preference; ui/window calls it
-// when the setting is read or changes. Always and Scrolling are meaningful.
-func SetSystemScrollbars(mode ScrollbarMode) {
-	if mode <= ScrollbarScrolling {
-		scrollbarSystem.Store(uint32(mode))
-	}
-}
-
 // SystemScrollbars is the platform's preference as last read: Scrolling
 // where bars hide at rest, otherwise Always.
-func SystemScrollbars() ScrollbarMode { return ScrollbarMode(scrollbarSystem.Load()) }
+// ui/window reads the setting into theme.SystemScrollbarsAutoHide.
+func SystemScrollbars() ScrollbarMode {
+	if theme.SystemScrollbarsAutoHide() {
+		return ScrollbarScrolling
+	}
+	return ScrollbarAlways
+}
 
 // resolveScrollbars is the mode an element shows its bars by.
 func resolveScrollbars(mode ScrollbarMode, set bool) ScrollbarMode {
@@ -68,7 +68,7 @@ func resolveScrollbars(mode ScrollbarMode, set bool) ScrollbarMode {
 		mode = ScrollbarMode(scrollbarDefault.Load())
 	}
 	if mode == ScrollbarSystem {
-		mode = ScrollbarMode(scrollbarSystem.Load())
+		mode = SystemScrollbars()
 	}
 	return mode
 }

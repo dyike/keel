@@ -30,12 +30,12 @@ func TestScrollbarFadeAndModes(t *testing.T) {
 	}
 
 	defer SetScrollbarDefault(ScrollbarAlways)
-	defer SetSystemScrollbars(ScrollbarAlways)
+	defer theme.SetSystemScrollbarsAutoHide(false)
 	if resolveScrollbars(0, false) != ScrollbarAlways {
 		t.Fatal("default is Always")
 	}
 	SetScrollbarDefault(ScrollbarSystem)
-	SetSystemScrollbars(ScrollbarScrolling)
+	theme.SetSystemScrollbarsAutoHide(true)
 	if resolveScrollbars(0, false) != ScrollbarScrolling {
 		t.Fatal("system default follows the platform")
 	}

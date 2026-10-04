@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/sys/windows/registry"
 
-	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/theme"
 )
 
 var preferencesOnce sync.Once
@@ -22,7 +22,7 @@ func watchSystemPreferences() {
 		}
 		defer k.Close()
 		if v, _, err := k.GetIntegerValue("DynamicScrollbars"); err == nil && v != 0 {
-			el.SetSystemScrollbars(el.ScrollbarScrolling)
+			theme.SetSystemScrollbarsAutoHide(true)
 		}
 	})
 }

@@ -12,11 +12,10 @@ int keel_overlay_scrollers(void);
 import "C"
 
 import (
-	"github.com/dyike/keel/ui/core"
-	"github.com/dyike/keel/ui/el"
-	"github.com/dyike/keel/ui/internal/loop"
-	"github.com/dyike/keel/ui/theme"
 	"sync"
+
+	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/theme"
 )
 
 var motionOnce sync.Once
@@ -61,12 +60,7 @@ func keel_scroll_event(precise, active, momentum, ended C.int) {
 
 //export keel_scrollers_changed
 func keel_scrollers_changed(overlay C.int) {
-	mode := el.ScrollbarAlways
-	if overlay != 0 {
-		mode = el.ScrollbarScrolling
-	}
-	el.SetSystemScrollbars(mode)
-	go loop.InvalidateAll()
+	theme.SetSystemScrollbarsAutoHide(overlay != 0)
 }
 
 func overlayScrollers() bool { return C.keel_overlay_scrollers() != 0 }

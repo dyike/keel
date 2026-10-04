@@ -1,6 +1,10 @@
 package theme
 
-import "github.com/dyike/keel/ui/internal/loop"
+import (
+	"sync/atomic"
+
+	"github.com/dyike/keel/ui/internal/loop"
+)
 
 // ReducedMotion is the effective preference. It follows the system by default;
 // SetReducedMotion gives the application an explicit override.
@@ -31,3 +35,17 @@ func applyMotion(reduce bool) {
 		loop.InvalidateAll()
 	}
 }
+
+var scrollbarsAutoHide atomic.Bool
+
+// SetSystemScrollbarsAutoHide is the window backend's bridge for the
+// platform's "hide scroll bars at rest" setting; el's ScrollbarSystem mode
+// follows it. Safe from any goroutine.
+func SetSystemScrollbarsAutoHide(hide bool) {
+	if scrollbarsAutoHide.Swap(hide) != hide {
+		loop.InvalidateAll()
+	}
+}
+
+// SystemScrollbarsAutoHide reports the platform's last known setting.
+func SystemScrollbarsAutoHide() bool { return scrollbarsAutoHide.Load() }
