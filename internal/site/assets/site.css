@@ -43,7 +43,8 @@ a:hover { text-decoration: underline; }
 .results li a:hover, .results li a.active { background: var(--highlight); text-decoration: none; }
 .results small { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .results .group { color: var(--muted); font-size: 12px; margin-left: 6px; }
-.gh { color: var(--text); font-size: 14px; }
+.gh { display: flex; align-items: center; gap: 6px; flex: none; color: var(--text); font-size: 14px; }
+.gh svg { display: block; }
 
 /* Hero */
 .hero { max-width: 880px; margin: 0 auto; padding: 72px 24px 32px; text-align: center; }
@@ -109,9 +110,17 @@ article hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
   body.nav-open .side { transform: none; box-shadow: 0 0 40px rgb(0 0 0 / .25); }
   .menu { display: block; }
   .links { display: none; }
-  .search input { width: 150px; }
-  .results { width: calc(100vw - 32px); right: -60px; }
+  /* The header fits the screen: the search box takes what is left. */
+  .top { gap: 10px; padding: 0 12px; }
+  .brand, .version, .menu { flex: none; }
+  .version { margin-left: -4px; }
+  .search { flex: 1 1 auto; min-width: 0; }
+  .search input { width: 100%; min-width: 0; }
+  .search kbd { display: none; }
+  .gh span { display: none; }
+  .results { position: fixed; left: 12px; right: 12px; top: calc(var(--header) - 4px); width: auto; }
   main { padding: 24px 16px 64px; }
   .hero h1 { font-size: 32px; }
   .demo iframe { height: 420px; }
 }
+@media (max-width: 360px) { .version { display: none; } }
