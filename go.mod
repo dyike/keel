@@ -2,6 +2,10 @@ module github.com/dyike/keel
 
 go 1.26.1
 
+// v0.0.1 and v0.0.2 were published before Keel had a license; use v0.0.3
+// or later, released under AGPL-3.0 with a commercial option.
+retract [v0.0.1, v0.0.2]
+
 require (
 	gioui.org v0.10.3
 	github.com/alecthomas/chroma/v2 v2.27.0
