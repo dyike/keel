@@ -98,6 +98,7 @@ type Style struct {
 	scrollbarMode           ScrollbarMode
 	controlledScroll        *[2]float32
 	pinX                    int // -1 left, +1 right of nearest horizontal viewport
+	translate               [2]float32
 	pinOffset               float32
 	stickBottom             bool
 	endVersion, keepVersion int // ScrollToEndOn; jumps to the end when it changes

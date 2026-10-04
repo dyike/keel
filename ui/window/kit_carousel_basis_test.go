@@ -34,3 +34,31 @@ func TestCarouselBasisPreservesInputFocus(t *testing.T) {
 	}
 
 }
+
+func TestCarouselLoopRunwayPreservesInputFocus(t *testing.T) {
+	input := kit.Input("Loop input")
+	car := kit.Carousel(input, labelView("Second"), labelView("Third")).Height(220)
+	w := openTest(t, kitPage(car.Content()))
+	w.click(element(t, w, "Loop input").center())
+	w.typeText("hello")
+	car.Loop(false)
+	w.snapshot()
+	w.press("Right")
+	w.press("Backspace")
+	if input.Value() != "ello" {
+		t.Fatal("removing runway lost focus", input.Value())
+	}
+	car.Loop(true)
+	w.snapshot()
+	w.typeText("x")
+	if input.Value() != "xello" {
+		t.Fatal("restoring runway lost focus", input.Value())
+	}
+	car.Previous()
+	w.snapshot()
+	car.Next()
+	w.snapshot()
+	if input.Value() != "xello" {
+		t.Fatal("wrapping reset input state", input.Value())
+	}
+}

@@ -343,6 +343,12 @@ func (s *Styled[T]) Right(dp float32) *T  { s.n.style.right = &dp; return s.self
 func (s *Styled[T]) Bottom(dp float32) *T { s.n.style.bottom = &dp; return s.self }
 func (s *Styled[T]) Left(dp float32) *T   { s.n.style.left = &dp; return s.self }
 
+// Translate moves painting, hit areas and anchors by dp without changing layout.
+func (s *Styled[T]) Translate(x, y float32) *T {
+	s.n.style.translate = [2]float32{x, y}
+	return s.self
+}
+
 // IsHidden reports the element's declared visibility, before ancestor inheritance.
 // Composite views can use it to keep adjoining controls hidden with their body.
 func (s *Styled[T]) IsHidden() bool { return s.n.style.hidden }

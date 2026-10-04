@@ -131,6 +131,7 @@ func (e *engine) paint(n *Node) {
 			pos.X = view.Max.X - e.dp(n.style.pinOffset) - n.size.X - e.origin.X
 		}
 	}
+	pos = pos.Add(image.Pt(e.dp(n.style.translate[0]), e.dp(n.style.translate[1])))
 	abs := image.Rectangle{Min: e.origin.Add(pos), Max: e.origin.Add(pos).Add(n.size)}
 	if !n.style.absolute && !abs.Overlaps(e.visible) {
 		return

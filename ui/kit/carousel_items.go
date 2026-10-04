@@ -128,19 +128,6 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 	} else {
 		stage.Row().ScrollX()
 	}
-	for i, slide := range v.slides {
-		item := el.Div().ID(id + "/item/" + strconv.Itoa(i)).NoShrink().Items(el.Stretch).
-			Role("group").Name(strconv.Itoa(i+1) + "/" + strconv.Itoa(len(v.slides)))
-		if v.vertical {
-			item.H(el.Dp(sizes[i]))
-		} else {
-			item.W(el.Dp(sizes[i])).HFull()
-		}
-		if slide != nil {
-			item.Child(slide.Render(cx))
-		}
-		stage.Child(item)
-	}
 
 	scale := cx.PixelScale()
 	points := make([]float32, len(sizes))
@@ -153,10 +140,56 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 		}
 	}
 	maximum := max(0, total-viewport)
-	for i := range points {
-		points[i] = min(points[i], maximum)
+	cycle := total + float32(math.Round(float64(gap*scale)))/scale
+	largest := float32(0)
+	for _, size := range sizes {
+		largest = max(largest, float32(math.Round(float64(size*scale)))/scale)
 	}
-	geometry := &carouselGeometry{points: points, maximum: maximum, vertical: v.vertical}
+	// A single mounted item cannot occupy both viewport edges at once. Fall
+	// back to finite geometry when there is insufficient track to recycle it.
+	if !v.looping || len(sizes) < 2 || cycle-largest < viewport {
+		cycle = 0
+	}
+	if cycle == 0 {
+		for i := range points {
+			points[i] = min(points[i], maximum)
+		}
+	} else {
+		maximum = cycle
+	}
+	geometry := &carouselGeometry{points: points, maximum: maximum, cycle: cycle, vertical: v.vertical}
+	spacer := func() *el.DivEl {
+		d := el.Div().NoShrink()
+		if v.vertical {
+			d.H(el.Dp(cycle - gap))
+		} else {
+			d.W(el.Dp(cycle - gap))
+		}
+		return d
+	}
+	if cycle > 0 {
+		stage.Child(spacer())
+	}
+	items := make([]*el.DivEl, len(sizes))
+	for i, slide := range v.slides {
+		item := el.Div().ID(id + "/item/" + strconv.Itoa(i)).NoShrink().Items(el.Stretch).
+			Role("group").Name(strconv.Itoa(i+1) + "/" + strconv.Itoa(len(v.slides)))
+		if v.vertical {
+			item.H(el.Dp(sizes[i]))
+		} else {
+			item.W(el.Dp(sizes[i])).HFull()
+		}
+		if slide != nil {
+			item.Child(slide.Render(cx))
+		}
+		items[i] = item
+		stage.Child(item)
+	}
+
+	if cycle > 0 {
+		stage.Child(spacer())
+	}
+
 	v.scrollInput(cx, stage, id, geometry)
 	if v.draggable {
 		stage.OnDrag(func(e el.DragEvent) { v.handleDrag(e, geometry) })
@@ -187,6 +220,20 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 			} else {
 				target = v.drag.offset
 			}
+		}
+		if cycle > 0 {
+			target = geometry.normalized(target)
+			center := target + viewport/2
+			for i, item := range items {
+				itemCenter := points[i] + float32(math.Round(float64(sizes[i]*scale)))/scale/2
+				shift := float32(math.Round(float64((center-itemCenter)/cycle))) * cycle
+				if v.vertical {
+					item.Translate(0, shift)
+				} else {
+					item.Translate(shift, 0)
+				}
+			}
+			target += cycle
 		}
 		if v.vertical {
 			stage.ScrollOffset(0, target)

@@ -295,7 +295,7 @@
 | [Bubble](https://gpui-kit.com/component/bubble/) | 主体已有 | [可复用气泡、外观、对齐和独立反应槽](../../ui/kit/bubble.go) | 第七十三批补齐七种显式外观、独立对齐、Content/Reactions 槽、上下位置/左右对齐及三分区样式；默认 Auto 保留 Mine 主色和 75% 宽度。第七十四批补齐 BubbleGroup 的纵向排列、间距/样式、动态更新和组级禁用。第七十五批补齐 ReactionActions 直接按钮的胶囊圆角、紧凑内边距和窄布局换行，登记缺口已关闭。反应区采用紧邻内容边缘的流式布局；默认 Auto/75% 与上游 Filled/80% 不同，不表示外观和组合 API 完全相同。 |
 | [Button](https://gpui-kit.com/component/button/) | 主体已有 | [九种变体、描边/紧凑、自定义内容/配色、禁用、尺寸、图标、加载](../../ui/kit/button.go) | 第十一批已关闭登记的变体、样式和内容缺口。Outline/Compact 为叠加配置；自定义内容限展示元素。Tooltip 可外部组合，本项不表示与上游所有组合接口完全相同。 |
 | [Calendar](https://gpui-kit.com/component/calendar/) | 主体已有 | [年月切换、多月、范围、禁用日期、键盘](../../ui/kit/calendar.go) | 主体覆盖；禁用日期用函数、年份限制可用 Bounds 表达。缺组件尺寸档，API 组织不同。 |
-| [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 第七十六批补齐 Vertical 的竖向导航布局、上下方向键、Home/End 及方向切换焦点保留。第七十七批补齐 Loop、非循环边界禁用、公开 Previous/Next 和 CanPrevious/CanNext、末项自动播放停止与返回后重启。第七十八批补齐独立内容区、前后控件和分页项及 Button 外观/内容配置。第七十九批补齐横纵等尺寸多项视口与间距。第八十批补齐分数槽位及逐项比例覆盖；第八十一批补齐逐项固定 dp 尺寸和超视口项目。比例仍限制在一个视口内，超大项目可用固定尺寸；超大内容默认从开头裁剪，内部浏览需自行组合滚动。第八十二批补齐鼠标/触摸拖动及释放吸附与选中回调。第八十三批补齐连续滚动停顿吸附、显式逐事件换页和滚动起始边界路由。仍缺原生手势结束/滚轮设备识别、指针边界移交和循环轨道衔接；系统惯性及真机触控板手感待验收。 |
+| [Carousel](https://gpui-kit.com/component/carousel/) | 部分 | [轮播、指示器、键盘、禁用与定时暂停](../../ui/kit/carousel.go) | 第七十六批补齐 Vertical 的竖向导航布局、上下方向键、Home/End 及方向切换焦点保留。第七十七批补齐 Loop、非循环边界禁用、公开 Previous/Next 和 CanPrevious/CanNext、末项自动播放停止与返回后重启。第七十八批补齐独立内容区、前后控件和分页项及 Button 外观/内容配置。第七十九批补齐横纵等尺寸多项视口与间距。第八十批补齐分数槽位及逐项比例覆盖；第八十一批补齐逐项固定 dp 尺寸和超视口项目。比例仍限制在一个视口内，超大项目可用固定尺寸；超大内容默认从开头裁剪，内部浏览需自行组合滚动。第八十二批补齐鼠标/触摸拖动及释放吸附与选中回调。第八十三批补齐连续滚动停顿吸附、显式逐事件换页和滚动起始边界路由。第一百七十七批补齐足够长轨道的首尾连续拖动/滚动，原项目跨周期复用，短轨道保留索引循环；补齐滚动转拖动的偏移衔接。仍缺吸附过渡动画、原生手势结束/滚轮设备识别和指针边界移交；系统惯性及真机触控板手感待验收。 |
 | [Chart](https://gpui-kit.com/component/chart/) | 主体已有 | [折线/柱/面积/饼环/蜡烛、雷达/桑基、轴域/刻度/参考线/样式及提示](../../ui/kit/chart.go) | 第一百五十一批补齐雷达/桑基及公共配置；第一百六十八批完成轴内标签、Gutter、FutureSlots、四向柱图及逐柱渐变、最小流带宽度、饼图自定义提示和共享悬停过渡，并通过自动布局、命中、GPU 像素及动画测试。雷达标签使用固定槽，桑基保持输入顺序松弛布局；平滑线为逐段 smoothstep。第一百七十批补齐 PointCount 和多停靠点 BarGradient/ChartToBar 映射；第一百七十二批按实际标签边界避让，省略冲突标签并保留节点语义/悬停数据。原生真机未验收。 |
 | [Checkbox](https://gpui-kit.com/component/checkbox/) | 主体已有 | [布尔选择、半选、回调、禁用](../../ui/kit/checkbox.go) | 第三十八批已补齐 Size/TextSize、TabIndex/TabStop，保留半选能力。尺寸使用连续 dp/sp，Tab 排序限单 el root；焦点轮廓仍沿整行。 |
 | [Clipboard](https://gpui-kit.com/component/clipboard/) | 主体已有 | [通用复制按钮、提示与连续复制反馈](../../ui/kit/copy_button.go) | 第五批已补齐 OnCopied、Content 与反馈状态查询；回调表示已提交写入请求，非操作系统成功确认。此表登记缺口已关闭。 |
@@ -534,3 +534,11 @@
 - [x] native Message.OnActivate/Activation 和 kit NoticeSystemActivationBackend/OnSystemActivation 接通数据；kit 先移除通知，再按 UI 帧顺序交付数据、窗口钩子及通知回调。其他平台和原有交互后端保留空令牌行为。
 - [x] 协议测试覆盖多个通知、迟到/重复信号、异常来源/载荷和生命周期；kit 测试覆盖接口优先级、回调顺序、空令牌及 UI 队列。全仓构建、UI/native vet、全量测试通过；native 包 Linux/Windows/WebAssembly 交叉构建通过。
 - [ ] Keel Window.Raise 尚不消费令牌；示例显示是否收到令牌，但不声称 Wayland 激活成功。Linux 真实桌面验收与 Windows 通知后端仍缺，Notification 保持部分覆盖。
+
+## 第一百七十七批：Carousel 连续循环轨道
+
+- [x] 横纵轨道支持拖动、连续滚动跨首尾；按圆周距离选择最近项目，每个原项目只挂载一次。轨道长度不足以安全复用项目时保留有限轨道和索引循环。
+- [x] el.Translate 同步移位绘制、点击区域和浮层锚点，不改变布局占位；从活动滚动开始拖动时接续当前偏移。
+- [x] 事件测试覆盖横纵双倍率跨界拖动、首尾间距、释放回调、移位后点击、循环开关、短轨道回退、双向连续滚动及多周期吸附。底层测试验证移位后的裁剪、点击和锚点；窗口测试验证增删循环占位后输入焦点及内容保留。
+- [x] 全仓构建、UI/native vet、全量测试通过；随后增加的输入焦点回归单独通过。
+- [ ] 吸附过渡动画、原生手势阶段/设备识别、指针边界移交和触控板真机验收仍未完成，Carousel 保持部分覆盖。

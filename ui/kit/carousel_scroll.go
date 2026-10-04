@@ -47,10 +47,10 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 		offset = v.scroll.offset
 	}
 	r := el.ScrollRange{}
-	if v.scroll.active || offset > 0 {
+	if g.cycle > 0 || v.scroll.active || offset > 0 {
 		r.Min = -1e6
 	}
-	if v.scroll.active || offset < g.maximum {
+	if g.cycle > 0 || v.scroll.active || offset < g.maximum {
 		r.Max = 1e6
 	}
 	if v.wheelStep {
@@ -89,7 +89,7 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 		v.scroll.active = true
 		v.scroll.vertical = g.vertical
 		v.scroll.maximum = g.maximum
-		v.scroll.offset = min(max(v.scroll.offset+delta, 0), g.maximum)
+		v.scroll.offset = g.constrain(v.scroll.offset + delta)
 		v.scroll.sequence++
 	})
 	if v.scroll.active {
@@ -101,14 +101,7 @@ func (v *CarouselView) scrollInput(cx *el.Context, stage *el.DivEl, id string, g
 			if !v.scroll.active || v.scroll.sequence != sequence {
 				return
 			}
-			best := v.current
-			distance := math.Abs(float64(g.points[best] - v.scroll.offset))
-			for i, p := range g.points {
-				d := math.Abs(float64(p - v.scroll.offset))
-				if d < distance {
-					best, distance = i, d
-				}
-			}
+			best := g.nearest(v.scroll.offset, v.current)
 			v.goTo(best)
 		})
 	}
