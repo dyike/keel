@@ -5,6 +5,7 @@ import (
 	"gioui.org/f32"
 	"gioui.org/io/event"
 	"gioui.org/io/pointer"
+	"gioui.org/io/semantic"
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
@@ -437,7 +438,36 @@ func (v *SankeyChartView) Render(cx *el.Context) el.Element {
 	}
 	g := v.layout(w, v.height)
 	plot := el.Div().WFull().H(el.Dp(v.height)).Child(el.Widget(core.Func(v.draw)).WFull().H(el.Dp(v.height)))
-	for i, r := range g.nodes {
+	var labels sankeyLabelPlacement
+	plot.Decorate(func(gtx core.C, draw func()) {
+		origin, _ := cx.PaintGeometry()
+		labels.reset(image.Rectangle{Min: origin, Max: origin.Add(gtx.Constraints.Max)}, gtx.Dp(2))
+		draw()
+	})
+	order := make([]int, len(g.nodes))
+	for i := range order {
+		order[i] = i
+	}
+	slices.SortStableFunc(order, func(a, b int) int {
+		if a == b {
+			return 0
+		}
+		if a == v.hover {
+			return -1
+		}
+		if b == v.hover {
+			return 1
+		}
+		if v.values[a] > v.values[b] {
+			return -1
+		}
+		if v.values[a] < v.values[b] {
+			return 1
+		}
+		return 0
+	})
+	for _, i := range order {
+		r := g.nodes[i]
 		data := v.datum(i)
 		var label el.Element = el.Div().Child(el.Text(v.format(data.Value)).TextSize(theme.TextXs).MaxLines(1), el.Text(data.Node.Name).TextSize(theme.TextXs).TextColor(theme.Muted).MaxLines(1))
 		if v.labels != nil {
@@ -451,7 +481,14 @@ func (v *SankeyChartView) Render(cx *el.Context) el.Element {
 			left = max(0, r.x-104)
 			labelW = max(0, r.x-left-4)
 		}
-		plot.Child(el.Div().Absolute().Left(left).Top(max(0, min(v.height-28, r.y+r.h/2-14))).W(el.Dp(labelW)).Role("img").Name(data.Node.Name).Value(v.format(data.Value)).Child(label))
+		box := el.Div().Absolute().Left(left).Top(max(0, min(v.height-28, r.y+r.h/2-14))).W(el.Dp(labelW)).Child(label)
+		box.Decorate(func(gtx core.C, draw func()) {
+			origin, _ := cx.PaintGeometry()
+			if labels.take(image.Rectangle{Min: origin, Max: origin.Add(gtx.Constraints.Max)}) {
+				draw()
+			}
+		})
+		plot.Child(box)
 	}
 	if v.hover >= 0 && v.hover < len(v.nodes) {
 		data := v.datum(v.hover)
@@ -544,6 +581,10 @@ func (v *SankeyChartView) draw(gtx core.C) core.D {
 		rect := image.Rect(int(r.x*px), int(r.y*px), int((r.x+r.w)*px), int((r.y+r.h)*px))
 		radius := int(min(v.radius, r.w/2, r.h/2) * px)
 		paint.FillShape(gtx.Ops, v.nodeColor(i), clip.UniformRRect(rect, radius).Op(gtx.Ops))
+		area := clip.Rect(rect).Push(gtx.Ops)
+		core.Role("img", v.format(v.values[i])).Add(gtx.Ops)
+		semantic.LabelOp(v.nodes[i].Name).Add(gtx.Ops)
+		area.Pop()
 	}
 	return core.D{Size: size}
 }

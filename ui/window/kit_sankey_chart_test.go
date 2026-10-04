@@ -66,7 +66,7 @@ func TestKitRadarAndSankeyPixelsAndAgent(t *testing.T) {
 				target = "Speed"
 			}
 			e := element(t, w, target)
-			x, y := float32(e.X-7), float32(e.Y+e.Height/2)
+			x, y := float32(e.X+e.Width/2), float32(e.Y+e.Height/2)
 			if name == "radar" {
 				x, y = float32(e.X+e.Width/2), float32(e.Y+e.Height+32)
 			}
