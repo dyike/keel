@@ -14,7 +14,11 @@ func init() {
 		volume := kit.Slider("音量", 0, 100).Step(5)
 		volume.SetValue(40)
 		temp := kit.Slider("温度 °C", -10, 40).Step(0.5)
-		price := kit.RangeSlider("价格区间", 0, 100).Step(5)
+		price := kit.RangeSlider("价格区间", 0, 100).Step(5).Appearance(func(a *kit.SliderAppearance) {
+			a.TrackSize, a.ThumbSize = 8, 24
+			a.TrackRadius, a.ThumbRadius = 2, 4
+			a.FillColor, a.ThumbBorderColor = theme.Success, theme.Success
+		})
 		price.SetValues(20, 80)
 		level := kit.RangeSlider("竖向区间", 0, 100).Vertical(180).Step(5)
 		level.SetValues(25, 75)

@@ -34,3 +34,17 @@ frequency := kit.Slider("频率 Hz", 20, 20000).
 `OnRelease(func(float64))` 接收单值操作结束时的值；`OnRangeRelease(func(low, high float64))` 接收双端范围。鼠标/触摸释放触发一次；导航按键重复按下只改变值，释放最后操作的导航键时触发一次。没有数值变化的有效点击也会触发。`OnChange` / `OnRangeChange` 仍在值变化时连续触发。
 
 程序赋值、拖动取消、失焦后的按键释放及禁用操作不触发结束回调；取消不撤销已经产生的值变化。可用 OnChange 更新预览，用 OnRelease 提交开销较大的操作。传 nil 可移除对应回调。
+
+`Appearance(func(*kit.SliderAppearance))` 配置当前实例的轨道与滑块外观；每次渲染先读取当前主题默认值，再运行回调，传 nil 恢复默认。双端共用外观，配置不会改变值或触发值回调。
+
+```go
+price.Appearance(func(a *kit.SliderAppearance) {
+    a.TrackSize, a.ThumbSize = 8, 24
+    a.TrackRadius, a.ThumbRadius = 2, 4
+    a.FillColor, a.ThumbBorderColor = theme.Success, theme.Success
+})
+```
+
+颜色包括 `TrackColor`、`FillColor`、`ThumbColor`、`ThumbBorderColor`；尺寸为 dp。默认轨道 4、滑块 16、边框 2；轨道/滑块尺寸必须为有限正数，无效值回退默认，最大 1024dp。边框与圆角允许 0，无效值回退默认；边框和滑块圆角最大为滑块尺寸的一半；轨道圆角最大 1024dp。横向最小宽度、竖向最小高度为滑块尺寸，指针数值映射使用滑块中心之间的距离。自身禁用时填充和滑块边框改为主题 Muted，键盘焦点仍显示主题焦点色。
+
+已验证横纵方向、双端范围、双倍率布局、默认恢复、禁用与键盘操作，并覆盖自定义颜色的窗口像素回归。

@@ -21,6 +21,7 @@ const (
 // SliderView picks a number in a range by dragging or with the keyboard:
 // ← ↓ and → ↑ step, PageUp / PageDown move ten steps, Home / End jump to the ends.
 type SliderView struct {
+	appearance            func(*SliderAppearance)
 	label                 string
 	name                  string
 	min, max, step, value float64
@@ -267,15 +268,16 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 	if v.paired {
 		lo, hi = v.fraction(v.value), v.fraction(v.upper)
 	}
-	fill := theme.Primary
-	if v.disabled {
-		fill = theme.Muted
-	}
-	bar := el.Div().Rounded(theme.RadiusFull).Bg(theme.Border)
+	appearance := v.resolveAppearance()
+	thumbSize := appearance.ThumbSize
+	crossSize := max(float32(20), thumbSize+4, appearance.TrackSize)
+	thumbInset := (crossSize - thumbSize) / 2
+	fill := appearance.FillColor
+	bar := el.Div().Rounded(appearance.TrackRadius).Bg(appearance.TrackColor)
 	if v.vertical > 0 {
-		bar.W(el.Dp(4)).HFull().Child(el.Div().H(el.Frac(1-hi)).NoShrink(), el.Div().W(el.Dp(4)).H(el.Frac(hi-lo)).NoShrink().Bg(fill))
+		bar.W(el.Dp(appearance.TrackSize)).HFull().Child(el.Div().H(el.Frac(1-hi)).NoShrink(), el.Div().W(el.Dp(appearance.TrackSize)).H(el.Frac(hi-lo)).NoShrink().Bg(fill))
 	} else {
-		bar.H(el.Dp(4)).WFull().Row().Child(el.Div().W(el.Frac(lo)).NoShrink(), el.Div().H(el.Dp(4)).W(el.Frac(hi-lo)).NoShrink().Bg(fill))
+		bar.H(el.Dp(appearance.TrackSize)).WFull().Row().Child(el.Div().W(el.Frac(lo)).NoShrink(), el.Div().H(el.Dp(appearance.TrackSize)).W(el.Frac(hi-lo)).NoShrink().Bg(fill))
 	}
 	keyHandler := func(upper bool) func(el.KeyEvent) bool {
 		return func(e el.KeyEvent) bool {
@@ -316,7 +318,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 	}
 	knob := func(x float64, upper bool) el.Element {
 		frac := v.fraction(x)
-		thumb := el.Div().Size(el.Dp(16)).NoShrink().Rounded(theme.RadiusLg).Bg(theme.Surface).Border(2, fill)
+		thumb := el.Div().Size(el.Dp(thumbSize)).NoShrink().Rounded(appearance.ThumbRadius).Bg(appearance.ThumbColor).Border(appearance.ThumbBorderWidth, appearance.ThumbBorderColor)
 		if v.paired {
 			name := locale.Current().LowerValue
 			if upper {
@@ -327,15 +329,15 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 		}
 		layer := el.Div().Absolute()
 		if v.vertical > 0 {
-			return layer.Left(2).Top(0).Bottom(16).Child(el.Div().H(el.Frac(1-frac)).NoShrink(), thumb)
+			return layer.Left(thumbInset).Top(0).Bottom(thumbSize).Child(el.Div().H(el.Frac(1-frac)).NoShrink(), thumb)
 		}
-		return layer.Top(2).Left(0).Right(16).Row().Child(el.Div().W(el.Frac(frac)).NoShrink(), thumb)
+		return layer.Top(thumbInset).Left(0).Right(thumbSize).Row().Child(el.Div().W(el.Frac(frac)).NoShrink(), thumb)
 	}
 	track := el.Div().ID(autoID("slider", v)).Disabled(v.disabled).Rounded(theme.RadiusFull).Child(bar, knob(v.value, false))
 	if v.vertical > 0 {
-		track.W(el.Dp(20)).H(el.Dp(v.vertical)).Py(theme.SpaceMd).Items(el.Center)
+		track.W(el.Dp(crossSize)).H(el.Dp(max(v.vertical, thumbSize))).Py(thumbSize / 2).Items(el.Center)
 	} else {
-		track.H(el.Dp(20)).Px(theme.SpaceMd).Justify(el.Center)
+		track.H(el.Dp(crossSize)).MinW(el.Dp(thumbSize)).Px(thumbSize / 2).Justify(el.Center)
 	}
 	if v.paired {
 		track.Child(knob(v.upper, true))
@@ -348,9 +350,9 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 			v.dragging = false
 			return
 		}
-		pos, size := e.X-8, e.W-16
+		pos, size := e.X-thumbSize/2, e.W-thumbSize
 		if v.vertical > 0 {
-			pos, size = e.H-8-e.Y, e.H-16
+			pos, size = e.H-thumbSize/2-e.Y, e.H-thumbSize
 		}
 		if size <= 0 {
 			v.dragging = false

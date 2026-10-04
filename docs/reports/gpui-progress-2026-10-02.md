@@ -345,7 +345,7 @@
 | [Shimmer](https://gpui-kit.com/component/shimmer/) | 主体已有 | [可读文字扫光、周期、宽度、反向、单次、重播、减少动画](../../ui/kit/shimmer_text.go) | 第六十五批新增独立 ShimmerText；文字保持字体/字重/行高与截断，单次结束恢复普通文字。默认 2 秒、半宽 0.3、主题 PrimaryText 高光，支持自定义配色。彩色位图字形保留原色，不参与高光着色。 |
 | [Sidebar](https://gpui-kit.com/component/sidebar/) | 主体已有 | [嵌套分组、收起、选中、固定头尾、键盘滚动、左右展示及条目扩展](../../ui/kit/sidebar.go) | 第一百五十八批补齐 Side、BorderWidth、Collapsible、Suffix/SetSuffix、ContextMenu/SetContextMenu。尾部操作独立，菜单支持子菜单与隐藏/禁用清理；交互、双倍率布局、浅深色像素已验证。登记展示缺口关闭；应用负责父布局位置，Menu 实例不可跨条目共享。 |
 | [Skeleton](https://gpui-kit.com/component/skeleton/) | 主体已有 | [占位形状、尺寸、次级色阶、自定义圆角与加载动画](../../ui/kit/skeleton.go) | 第二十三批已关闭登记缺口；保留 Keel 的 1.5 秒明暗脉冲/可选扫光及减少动画，默认颜色来自 Subtle/SubtleHover，与上游独立 skeleton token、2 秒透明度动画不同。 |
-| [Slider](https://gpui-kit.com/component/slider/) | 主体已有 | [单值/双端范围、横纵向、线性/对数、步长、拖动/键盘与结束回调](../../ui/kit/slider.go) | 第十批已关闭对数刻度和 Release 缺口；无效对数范围回退线性，取消不回滚已有值。轨道/滑块颜色与大小仍使用统一样式，未提供逐项外观配置。 |
+| [Slider](https://gpui-kit.com/component/slider/) | 主体已有 | [单值/双端范围、横纵向、线性/对数、步长、拖动/键盘、结束回调及外观](../../ui/kit/slider.go) | 第一百五十九批补齐 Appearance：轨道/填充/滑块/边框颜色、尺寸及圆角可配置，双端共用外观。滑块中心与拖动映射同步，默认恢复、主题变化、无效值回退、横纵双倍率和像素回归已验证。登记外观缺口关闭；接口不与上游逐项同名。 |
 | [Spinner](https://gpui-kit.com/component/spinner/) | 主体已有 | [不确定动画、减少动画、可访问名称、自定义图标/颜色/周期](../../ui/kit/spinner.go) | 第十九、二十批已补齐图标、颜色和速度配置；Period 为每周时长，默认一秒匀速。上游描述的默认 0.8 秒及缓动曲线不同。 |
 | [StatusBar](https://gpui-kit.com/component/status-bar/) | 主体已有 | [固定状态栏、左右内容组、按优先级收起的溢出菜单](../../ui/kit/status_bar.go) | 左右内容与自定义 View 已覆盖；Keel 另有优先级溢出菜单，本轮未发现新的主要功能缺口。 |
 | [Stepper](https://gpui-kit.com/component/stepper/) | 主体已有 | [横纵步骤、图标/富内容、尺寸、导航、键盘、滚动与单步禁用](../../ui/kit/stepper.go) | 第六批已补齐 Vertical、Size、StepperItem 与 SetItemDisabled。此表登记缺口已关闭；导航仍限已完成步骤，GPUI 文档的文本居中布局未提供独立开关。 |
@@ -394,3 +394,10 @@
 - [x] ContextMenu / SetContextMenu：右键不改变选中项，菜单命令与子菜单可用，过滤、禁用和替换关闭旧菜单。
 - [x] 示例增加尾部刷新、条目右键菜单和左右切换；新增交互、双倍率布局和浅深色像素回归。
 - [x] 独立提交内容通过构建、vet、全量测试；覆盖表登记的 Sidebar 展示缺口关闭，不代表与上游 API 完全相同。
+
+## 第一百五十九批：Slider 自定义外观
+
+- [x] Appearance / SliderAppearance：当前主题默认值基础上配置颜色、尺寸和圆角，nil 恢复默认。
+- [x] 布局与拖动映射跟随滑块尺寸；有限性、尺寸及圆角上限防止异常配置破坏绘制。
+- [x] 横纵方向、双端范围、双倍率、键盘端点、禁用、默认恢复和主题变化回归通过；窗口像素确认四类自定义颜色实际绘制。
+- [x] 独立提交内容通过构建、vet、全量测试；示例和覆盖表已同步。
