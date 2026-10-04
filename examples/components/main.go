@@ -62,6 +62,6 @@ func main() {
 	if *section == "" && *width == 680 {
 		*width = 1200 // the app needs room for its sidebar
 	}
-	window.Open(window.Options{Title: "Keel · 组件", Width: *width, Height: 860, Content: content})
+	mainWindow = window.Open(window.Options{Title: "Keel · 组件", Width: *width, Height: 860, Content: content})
 	window.Main()
 }

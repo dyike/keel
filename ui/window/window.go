@@ -3,7 +3,9 @@ package window
 import (
 	"image"
 	"os"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	gioapp "gioui.org/app"
 	"gioui.org/io/system"
@@ -43,7 +45,9 @@ type Window struct {
 	closed                    bool // guarded by the frame lock
 	focused                   bool
 	nativeView, lastTitleView uintptr
-	x11Window                 uint32 // the X11 window ID on Linux X11, for Activate
+	x11Window                 uint32               // the X11 window ID on Linux X11, for Activate
+	waylandDisplay            atomic.Pointer[byte] // the window's wl_display on Linux Wayland
+	waylandSurface            atomic.Pointer[byte] // its wl_surface, for Activate
 	titleArea, lastTitleArea  [4]float32
 	maximized                 bool // guarded by the frame lock; from the platform's config
 	deco                      widget.Decorations
@@ -101,12 +105,18 @@ func (w *Window) Close() { w.perform(system.ActionClose) }
 // Raise brings the window to the front.
 func (w *Window) Raise() { w.perform(system.ActionRaise) }
 
+// WaylandDisplay is this window's wl_display on Linux Wayland, nil elsewhere
+// or before the window is shown. Pass it to native/clipboard's
+// UseWaylandDisplay to read the clipboard while this window has focus.
+func (w *Window) WaylandDisplay() unsafe.Pointer { return unsafe.Pointer(w.waylandDisplay.Load()) }
+
 // Activate brings the window to the front with an activation token that
 // another program granted, such as notification.Activation.Token after a
 // system notification was clicked. Window managers let a token through
 // their focus-stealing prevention, where a plain Raise may only flash the
-// taskbar. On X11 the token is a startup ID; elsewhere, or with an empty
-// token, Activate is Raise.
+// taskbar. On Wayland the token goes to xdg-activation; on X11 it is a
+// startup ID. Elsewhere, with an empty token, or if the platform refuses,
+// Activate is Raise.
 func (w *Window) Activate(token string) {
 	if token == "" || w.win == nil || !platformActivate(w, token) {
 		w.Raise()

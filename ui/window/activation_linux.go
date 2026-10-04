@@ -4,6 +4,7 @@ package window
 
 import (
 	"sync"
+	"unsafe"
 
 	gioapp "gioui.org/app"
 	"github.com/jezek/xgb"
@@ -18,10 +19,14 @@ func activationWindowEvent(w *Window, e any) {
 		loop.Lock()
 		w.x11Window = uint32(e.Window)
 		loop.Unlock()
+		w.waylandDisplay.Store(nil)
+		w.waylandSurface.Store(nil)
 	case gioapp.WaylandViewEvent:
 		loop.Lock()
 		w.x11Window = 0
 		loop.Unlock()
+		w.waylandSurface.Store((*byte)(e.Surface))
+		w.waylandDisplay.Store((*byte)(e.Display))
 	}
 }
 
@@ -32,9 +37,19 @@ var x11 struct {
 	conn *xgb.Conn
 }
 
-// platformActivate tags the window with the startup ID and asks the window
-// manager to activate it, per the startup-notification and EWMH specs.
+// platformActivate hands the token to the compositor on Wayland, and on X11
+// tags the window with the startup ID and asks the window manager to
+// activate it, per the startup-notification and EWMH specs.
 func platformActivate(w *Window, token string) bool {
+	if display, surface := unsafe.Pointer(w.waylandDisplay.Load()), unsafe.Pointer(w.waylandSurface.Load()); display != nil && surface != nil {
+		// Wayland: the token goes to xdg-activation with our surface.
+		go func() {
+			if w.isClosed() || waylandActivate(display, surface, token) != 0 {
+				w.Raise()
+			}
+		}()
+		return true
+	}
 	loop.Lock()
 	win := w.x11Window
 	loop.Unlock()

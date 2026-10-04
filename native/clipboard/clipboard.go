@@ -1,5 +1,6 @@
 // Package clipboard reads a bounded snapshot of text, encoded images and file
-// paths without linking to the UI. macOS uses AppKit; Windows uses Win32; Linux uses X11.
+// paths without linking to the UI. macOS uses AppKit; Windows uses Win32; Linux
+// uses Wayland when given a display (UseWaylandDisplay), else X11.
 package clipboard
 
 import (
@@ -27,13 +28,14 @@ type Data struct {
 // done runs once on a background goroutine. UI callers must dispatch UI changes.
 // macOS supports PNG/TIFF and file URLs, up to 128 items and 16MiB encoded data.
 // Windows supports Unicode text, PNG or packed DIB (returned as image/bmp),
-// and file paths, with the same limits. Other platforms return
+// and file paths, with the same limits. Linux reads text, file URIs and
+// PNG/JPEG/TIFF/BMP/WebP over Wayland or X11. Other platforms return
 // native.ErrUnsupported. Nil done is ignored.
 func Read(done func(Data, error)) {
 	if done == nil {
 		return
 	}
-	sys.ClipboardRead(func(raw []byte, err error) {
+	finish := func(raw []byte, err error) {
 		if err != nil {
 			done(Data{}, err)
 			return
@@ -44,5 +46,16 @@ func Read(done func(Data, error)) {
 			return
 		}
 		done(data, nil)
-	})
+	}
+	if waylandDisplay.Load() != nil {
+		go func() {
+			if raw, ok, err := readWayland(); ok {
+				finish(raw, err)
+			} else {
+				sys.ClipboardRead(finish)
+			}
+		}()
+		return
+	}
+	sys.ClipboardRead(finish)
 }

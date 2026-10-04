@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/dyike/keel/native/clipboard"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/theme"
+	"github.com/dyike/keel/ui/window"
 )
 
 func init() {
@@ -55,7 +57,14 @@ func init() {
 }
 
 // readComponentClipboard keeps the native-to-UI adaptation in the application.
+// mainWindow is the gallery's window; on Wayland the clipboard is read
+// through its connection.
+var mainWindow *window.Window
+
 func readComponentClipboard(done func(core.ClipboardData, error)) {
+	if mainWindow != nil {
+		clipboard.UseWaylandDisplay(mainWindow.WaylandDisplay())
+	}
 	clipboard.Read(func(data clipboard.Data, err error) {
 		result := core.ClipboardData{Text: data.Text, Files: data.Files}
 		for _, img := range data.Images {

@@ -120,3 +120,12 @@ func clipboardURIs(data []byte, gnome bool) ([]string, error) {
 	}
 	return files, nil
 }
+
+// ClipboardByteLimit bounds one clipboard snapshot.
+const ClipboardByteLimit = clipboardByteLimit
+
+// CollectMIMEClipboard builds a snapshot from MIME-typed data, as X11 and
+// Wayland offer it; targets lists the offered types.
+func CollectMIMEClipboard(targets map[string]bool, read func(string) ([]byte, error)) ([]byte, error) {
+	return collectXClipboard(targets, read)
+}

@@ -41,7 +41,7 @@ window.Main()
 | --- | --- |
 | `Close()` | 等同于用户点关闭按钮 |
 | `Raise()` | 把窗口置于最前 |
-| `Activate(token)` | 用别的程序给的激活令牌（如系统通知被点击时的 `Activation.Token`）把窗口置前，可以通过窗口管理器的防抢焦点；目前 X11 使用令牌，其他平台或空令牌等同 `Raise` |
+| `Activate(token)` | 用别的程序给的激活令牌（如系统通知被点击时的 `Activation.Token`）把窗口置前，可以通过窗口管理器的防抢焦点；Wayland 走 xdg-activation，X11 写启动 ID 后请求激活，其他平台或空令牌等同 `Raise` |
 | `Minimize()` | 最小化到 Dock 或任务栏 |
 | `ToggleMaximize()` | 最大化（macOS 上是缩放），已最大化时还原 |
 | `Maximized()` | 当前是否最大化，在 UI 代码里读取 |

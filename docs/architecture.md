@@ -24,6 +24,7 @@ github.com/dyike/keel
 │   ├── notification/     系统通知（不依赖 UI）
 │   ├── clipboard/        异步读取文本、编码图片和文件路径（不依赖 UI）
 │   ├── internal/sys/     cgo 绑定，所有 Objective-C 代码只在这里
+│   ├── internal/wlclip/  Linux Wayland 剪贴板的 cgo 绑定（只有 clipboard 引用）
 │   └── native.go         共用的错误值
 ├── cmd/
 │   └── keel-mcp/         MCP server：Agent 用它对应用做端到端测试
@@ -183,6 +184,6 @@ kit.Button("刷新", func() {
 
 `ui/plot` 面向自定义图表，直接依赖 core 和 theme（主题字体），不依赖 kit、el 或 window；应用可将绘制嵌入 Widget。成品 Chart/Plot 保留在 kit，现有绘制实现尚未迁移到公共包。
 
-`native/clipboard` 只依赖 native/internal/sys 与 native；macOS 在主队列读取剪贴板快照，再由后台 goroutine 交付。应用将结果适配为 core.ClipboardData，通过 Input/TextArea.PasteReader 接入；el 在 core.Update 后处理完成，不在帧锁内等待主线程。UI 模块没有新增 native 依赖。
+`native/clipboard` 依赖 native/internal/sys、native/internal/wlclip 与 native；wlclip 是 Linux Wayland 读取剪贴板的 cgo 绑定，单独成包，只用截图、快捷键等模块的程序因此不链接 libwayland。Wayland 连接由应用从 `window.Window.WaylandDisplay()` 取出交给 `clipboard.UseWaylandDisplay`，两组模块仍互不引用。macOS 在主队列读取剪贴板快照，再由后台 goroutine 交付。应用将结果适配为 core.ClipboardData，通过 Input/TextArea.PasteReader 接入；el 在 core.Update 后处理完成，不在帧锁内等待主线程。UI 模块没有新增 native 依赖。
 
 SVG 图标由 `ui/kit` 内的 `oksvg` 与 `rasterx` 解析并按物理像素栅格化，仍通过 Gio 绘制；不新增 Keel 模块依赖。入口、格式子集和缓存上限见 [Icon](kit/icon.md)。
