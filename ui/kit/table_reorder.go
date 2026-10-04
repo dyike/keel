@@ -3,6 +3,7 @@ package kit
 import (
 	"image"
 	"slices"
+	"time"
 
 	"gioui.org/f32"
 	"github.com/dyike/keel/ui/el"
@@ -14,7 +15,9 @@ type tableHeaderGeometry struct {
 }
 type tableColumnDrag struct {
 	column, target, position int
-	start                    f32.Point
+	start, pointer           f32.Point
+	tick                     int
+	last                     time.Time
 	moved, valid, after      bool
 }
 
@@ -58,7 +61,7 @@ func (v *TableView) dragColumn(c int, e el.DragEvent) {
 	}
 	p := geom.origin.Add(f32.Pt(e.X, e.Y))
 	if e.Kind == el.DragStart {
-		v.columnDrag = &tableColumnDrag{column: c, start: p, target: -1}
+		v.columnDrag = &tableColumnDrag{column: c, start: p, pointer: p, target: -1}
 		return
 	}
 	drag := v.columnDrag
@@ -72,6 +75,24 @@ func (v *TableView) dragColumn(c int, e el.DragEvent) {
 	if abs32(p.X-drag.start.X) >= 3 {
 		drag.moved = true
 	}
+	drag.pointer = p
+	v.updateColumnDrop(drag)
+	if e.Kind != el.DragEnd {
+		return
+	}
+	v.columnDrag = nil
+	if !drag.valid {
+		return
+	}
+	from := slices.Index(v.columns, c)
+	v.MoveColumn(c, drag.position)
+	if v.onColumnMove != nil {
+		v.onColumnMove(c, from, drag.position)
+	}
+}
+
+func (v *TableView) updateColumnDrop(drag *tableColumnDrag) {
+	p := drag.pointer
 	drag.valid = false
 	if drag.moved {
 		// Frozen headers paint over the scrolling strip, so prefer their hit areas.
@@ -90,25 +111,75 @@ func (v *TableView) dragColumn(c int, e el.DragEvent) {
 			if after {
 				position++
 			}
-			from := slices.Index(v.columns, c)
+			from := slices.Index(v.columns, drag.column)
 			if position > from {
 				position--
 			}
 			drag.target, drag.after, drag.position = target, after, position
-			drag.valid = position != from && v.canMoveColumn(c, position)
+			drag.valid = position != from && v.canMoveColumn(drag.column, position)
 			break
 		}
 	}
-	if e.Kind != el.DragEnd {
+}
+
+// Use the unfrozen header strip as the scroll zone. Keeping the pointer still
+// must keep scrolling; timer ownership stops ticks when the table is hidden.
+func (v *TableView) scrollColumnDrag(cx *el.Context) {
+	d := v.columnDrag
+	if d == nil || !d.moved || v.disabled {
 		return
 	}
-	v.columnDrag = nil
-	if !drag.valid {
+	left, right := float32(1e9), float32(-1e9)
+	top, bottom := float32(1e9), float32(-1e9)
+	for _, g := range v.headerGeometry {
+		if g.bounds.Max.X <= g.bounds.Min.X {
+			continue
+		}
+		left = min(left, g.bounds.Min.X)
+		right = max(right, g.bounds.Max.X)
+		top = min(top, g.bounds.Min.Y)
+		bottom = max(bottom, g.bounds.Max.Y)
+	}
+	cols := v.visibleColumns()
+	l, r := v.frozenCounts(cols)
+	for _, c := range cols[:l] {
+		left = max(left, v.headerGeometry[c].bounds.Max.X)
+	}
+	for _, c := range cols[len(cols)-r:] {
+		right = min(right, v.headerGeometry[c].bounds.Min.X)
+	}
+	p := d.pointer
+	if p.Y < top || p.Y >= bottom || p.X < left || p.X >= right || right <= left {
+		d.last = time.Time{}
 		return
 	}
-	from := slices.Index(v.columns, c)
-	v.MoveColumn(c, drag.position)
-	if v.onColumnMove != nil {
-		v.onColumnMove(c, from, drag.position)
+	zone := min(float32(32), (right-left)/3)
+	speed := float32(0)
+	if p.X < left+zone {
+		speed = -360 * (left + zone - p.X) / zone
 	}
+	if p.X > right-zone {
+		speed = 360 * (p.X - right + zone) / zone
+	}
+	id := autoID("table", v)
+	offset, viewport, content := cx.ScrollStateX(id)
+	if speed == 0 || speed < 0 && offset <= 0 || speed > 0 && offset >= content-viewport {
+		d.last = time.Time{}
+		return
+	}
+	if d.last.IsZero() {
+		d.last = cx.Now()
+	}
+	cx.AfterEnabled(id, struct {
+		Drag *tableColumnDrag
+		Tick int
+	}{d, d.tick}, 16*time.Millisecond, func() {
+		if v.columnDrag != d || v.disabled {
+			return
+		}
+		dt := min(cx.Now().Sub(d.last), 50*time.Millisecond)
+		d.last = cx.Now()
+		d.tick++
+		cx.ScrollToX(id, offset+speed*float32(dt.Seconds()))
+	})
 }

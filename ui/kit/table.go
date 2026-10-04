@@ -471,6 +471,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 }
 
 func (v *TableView) Render(cx *el.Context) el.Element {
+	v.scrollColumnDrag(cx)
 	v.loadNearEnd(cx)
 	v.renderContextMenu(cx)
 	if v.reveal {
@@ -490,8 +491,16 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 	head.Decorate(func(gtx core.C, draw func()) {
 		if gtx.Enabled() {
 			v.headerGeometry = make(map[int]tableHeaderGeometry)
+			if d := v.columnDrag; d != nil {
+				// Gio reports window coordinates when a captured header is culled.
+				// Preserve its event mapping without giving it a drop target.
+				v.headerGeometry[d.column] = tableHeaderGeometry{}
+			}
 		}
 		draw()
+		if gtx.Enabled() && v.columnDrag != nil {
+			v.updateColumnDrop(v.columnDrag)
+		}
 	})
 	var minWidth float32
 	for _, c := range v.visibleColumns() {
