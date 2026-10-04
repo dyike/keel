@@ -27,6 +27,8 @@ a:hover { text-decoration: underline; }
 .hero-logo { display: block; margin: 0 auto 20px; filter: drop-shadow(0 8px 20px rgb(37 99 235 / .35)); }
 /* The README opens with the logo, which the home page's hero already shows. */
 .layout.home article > p:first-child:has(> img[alt="Keel"]:only-child) { display: none; }
+.version { margin-left: -12px; padding: 1px 7px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font: 12px var(--mono); }
+.version:hover { text-decoration: none; color: var(--primary-text); border-color: var(--primary); }
 .links { display: flex; gap: 18px; }
 .links a { color: var(--text); font-size: 14px; }
 .menu { display: none; background: none; border: 0; color: var(--text); font-size: 20px; cursor: pointer; }

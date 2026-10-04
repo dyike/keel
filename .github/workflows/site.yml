@@ -6,6 +6,7 @@ name: Site
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the tags, for the version in the header
 
       - uses: actions/setup-go@v5
         with:
@@ -44,7 +47,9 @@ jobs:
           python internal/site/subset_font.py . NotoSansSC-Regular.otf demo/font.otf
 
       - name: Build the site
-        run: go run ./internal/site -out _site -demo demo -repo "https://github.com/${{ github.repository }}" -branch "${{ github.ref_name }}"
+        run: |
+          version=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          go run ./internal/site -out _site -demo demo -repo "https://github.com/${{ github.repository }}" -branch main -version "$version"
 
       - uses: actions/upload-pages-artifact@v3
         with:

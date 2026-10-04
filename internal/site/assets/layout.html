@@ -16,6 +16,7 @@
 <header class="top">
   <button class="menu" type="button" aria-label="目录">☰</button>
   <a class="brand" href="{{.Root}}"><img class="logo" src="{{.Root}}favicon.svg" alt="" width="26" height="26">Keel</a>
+  {{with .Version}}<a class="version" href="{{$.Repo}}/releases/tag/{{.}}" title="版本说明">{{.}}</a>{{end}}
   <nav class="links">
     <a href="{{.Root}}docs/getting-started.html">文档</a>
     <a href="{{.Root}}docs/kit.html">组件</a>
@@ -38,7 +39,7 @@
     <a class="btn" href="{{.Demo}}">在线体验组件库</a>
     <a class="btn" href="{{.Repo}}">GitHub</a>
   </div>
-  <pre class="install"><code>go get github.com/dyike/keel</code></pre>
+  <pre class="install"><code>go get github.com/dyike/keel{{with .Version}}@{{.}}{{end}}</code></pre>
 </section>
 {{end}}
 <div class="layout{{if .Home}} home{{end}}">

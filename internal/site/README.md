@@ -11,7 +11,7 @@ go run ./internal/site -out _site -demo /tmp/demo
 python3 -m http.server --directory _site
 ```
 
-不带 `-demo` 时只生成文档，组件页里的在线示例无法加载。
+不带 `-demo` 时只生成文档，组件页里的在线示例无法加载。`-version v0.0.1` 在页头显示版本号并链接到 GitHub 的版本说明；CI 取最近的 `v*` 标签，推送新标签时也会重新发布。
 
 `docs/reports/` 下的进度报告不发布：它们是工作记录，不是文档。其他文档里指向它们的表格行或列表项，在站点上会一并去掉。
 

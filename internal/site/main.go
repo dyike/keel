@@ -36,8 +36,9 @@ func main() {
 	repo := flag.String("repo", "https://github.com/dyike/keel", "GitHub URL for links to source files")
 	branch := flag.String("branch", "main", "branch for links to source files")
 	demo := flag.String("demo", "", "gogio -target js output of examples/components to publish as demo/")
+	version := flag.String("version", "", "release shown in the header, such as v0.0.1; empty shows none")
 	flag.Parse()
-	s := &site{root: *root, out: *out, repo: strings.TrimSuffix(*repo, "/"), branch: *branch}
+	s := &site{root: *root, out: *out, repo: strings.TrimSuffix(*repo, "/"), branch: *branch, version: *version}
 	if err := s.build(*demo); err != nil {
 		log.Fatal(err)
 	}
@@ -48,6 +49,7 @@ func main() {
 
 type site struct {
 	root, out, repo, branch string
+	version                 string           // release tag, or ""
 	pages                   map[string]*page // by repository path of the .md file
 	order                   []*page
 	sections                map[string]bool // gallery sections, by name
@@ -118,7 +120,7 @@ func (s *site) build(demo string) error {
 	}
 	for _, p := range s.order {
 		var b bytes.Buffer
-		if err := tmpl.Execute(&b, map[string]any{"Page": p, "Nav": s.nav, "Repo": s.repo, "Home": p.Out == "index.html",
+		if err := tmpl.Execute(&b, map[string]any{"Page": p, "Nav": s.nav, "Repo": s.repo, "Home": p.Out == "index.html", "Version": s.version,
 			"Root": relURL(p.Out, "."), "Demo": relURL(p.Out, "demo/index.html"), "Source": s.repo + "/blob/" + s.branch + "/" + p.Src}); err != nil {
 			return fmt.Errorf("%s: %w", p.Src, err)
 		}
