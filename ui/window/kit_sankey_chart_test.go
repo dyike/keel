@@ -76,6 +76,12 @@ func TestKitRadarAndSankeyPixelsAndAgent(t *testing.T) {
 			if _, err := w.find("", "hover:"+target); err != nil {
 				t.Fatal(name, "hover tooltip missing", err)
 			}
+			if name == "radar" {
+				tip := element(t, w, "hover:"+target)
+				if tip.Y <= int(y) || tip.X < int(x) {
+					t.Fatalf("radar tooltip is detached from pointer (%v, %v): %+v", x, y, tip)
+				}
+			}
 			core.Update(func() {
 				if name == "radar" {
 					radar.SetDisabled(true)

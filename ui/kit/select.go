@@ -178,7 +178,11 @@ func (v *SelectView) Render(cx *el.Context) el.Element {
 		field.Bg(color.NRGBA{}).Border(0, color.NRGBA{})
 	}
 	trigger := el.Div().ID(id).Role("select").Name(name).Value(strings.Join(v.Values(), ", ")).
-		Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(theme.SpaceSm).Focusable(true).
+		Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(theme.SpaceSm).Focusable(true).FocusStyle(func(s *el.Style) {
+		if !v.plain {
+			s.BorderColor(color.NRGBA{})
+		}
+	}).
 		OnClick(func() { v.setOpen(cx, !v.open) }).
 		OnKey(func(e el.KeyEvent) bool {
 			if key.Name(e.Name) != key.NameDownArrow {

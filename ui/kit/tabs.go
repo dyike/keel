@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"image/color"
 	"slices"
 	"strconv"
 
@@ -198,7 +199,7 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		on := i == v.current
 		tab := el.Div().ID(v.tabID(i)).Role("tab").Name(p.Title).Selected(on).
 			Px(14).H(el.Dp(v.height - 2)).CursorPointer().TextColor(theme.Muted).Focusable(on).Disabled(p.Disabled).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).
-			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
+			Rounded(theme.RadiusMd).FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}); s.Bg(theme.SubtleHover) }).
 			Hover(func(s *el.Style) { s.TextColor(theme.Text) }).
 			OnClick(func() { v.choose(cx, i) }).
 			OnKey(func(e el.KeyEvent) bool {

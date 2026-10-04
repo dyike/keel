@@ -199,7 +199,11 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 		cx.Focus(v.cal.FocusID())
 	}
 	field := el.Div().ID(id).Row().Items(el.Center).Gap(theme.SpaceMd*ratio).Grow().MinW(el.Dp(0)).Disabled(v.disabled).Role("button").Name(v.a11y()).Value(v.text()).
-		Focusable(true).OnClick(func() { setOpen(!v.open) }).
+		Focusable(true).FocusStyle(func(s *el.Style) {
+		if !v.plain {
+			s.BorderColor(color.NRGBA{})
+		}
+	}).OnClick(func() { setOpen(!v.open) }).
 		OnKey(func(e el.KeyEvent) bool {
 			if key.Name(e.Name) != key.NameDownArrow {
 				return false

@@ -90,3 +90,24 @@ func TestToggleSegmentedCorners(t *testing.T) {
 		t.Fatal("separated segment lacks corner")
 	}
 }
+
+func TestToggleMiddleSelectionHasBothEdges(t *testing.T) {
+	v := kit.ToggleGroup("Alpha", "Beta", "Gamma").Segmented(true).Variant(kit.ToggleOutline)
+	v.SetValue("Beta")
+	w := openTest(t, kitPage(v))
+	b := element(t, w, "Beta")
+	data, err := w.screenshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	im, err := png.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, x := range []int{b.X, b.X + b.Width - 1} {
+		got := color.NRGBAModel.Convert(im.At(x, b.Y+b.Height/2)).(color.NRGBA)
+		if int(got.B)-int(got.R) < 50 {
+			t.Fatalf("selected edge at %d: %v, want %v", x, got, theme.Primary)
+		}
+	}
+}

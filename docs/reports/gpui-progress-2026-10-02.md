@@ -375,3 +375,14 @@
 - 文本与底层：`ui/markdown/markdown.go`、`html.go`、`render.go`、`ui/el/element.go`、`overlay.go`、`viewport.go`；头尾、分段等扩展见 `sidebar_items.go`、`tabs_reorder.go`、`time_field_segments.go`。
 
 初次复核只更新比较报告；后续组件改动与验证按上方批次记录，未重做性能跑分。性能、视觉和系统读屏需独立验收，不能由上述组件覆盖数推导。
+
+
+## 2026-10-04 截图反馈修复（第一百五十七批）
+
+- [x] PlotPrimitives：示例几何统一按屏幕缩放换算，环图垂直居中，补充纵轴刻度和正负堆叠说明。
+- [x] RadarChart：提示框改为跟随指针的锚定浮层，复用窗口边界避让，不再按直角坐标图的分类索引定位。
+- [x] Tabs / ToggleGroup：去除叠加的方形焦点边框；中间选中项保留左右边线。键盘焦点仍有视觉反馈。
+- [x] DatePicker / Select（含 Form 内复用）：有外框时不再给内部触发器重复绘制焦点框；无框模式保留焦点提示。
+- [x] Layout / Skeleton：增加用途说明；Skeleton 增加加载完成对照按钮。
+- [x] 构建、vet、全量测试通过；新增窗口像素回归覆盖内部重复焦点框、选中边线，雷达提示框增加位置断言。
+- [ ] 本轮尚未逐页进行原生窗口人工视觉验收；上述自动渲染检查不等同于整批新增 API 已完成验收。

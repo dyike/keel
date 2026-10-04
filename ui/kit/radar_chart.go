@@ -65,7 +65,8 @@ func (v *ChartView) radar(cx *el.Context) el.Element {
 		w = max(1, w-2*theme.SpaceLg)
 	}
 	r := v.radarRadius(w, v.height)
-	plot := el.Div().H(el.Dp(v.height)).WFull().Child(el.Widget(core.Func(v.drawRadar)).H(el.Dp(v.height)).WFull())
+	id := autoID("radar", v)
+	plot := el.Div().ID(id).H(el.Dp(v.height)).WFull().Child(el.Widget(core.Func(v.drawRadar)).H(el.Dp(v.height)).WFull())
 	for i, label := range v.labels {
 		p := radarPoint(i, len(v.labels), r+14)
 		var content el.Element = el.Text(label).TextSize(theme.TextXs).TextColor(theme.Muted).MaxLines(2)
@@ -76,8 +77,10 @@ func (v *ChartView) radar(cx *el.Context) el.Element {
 		}
 		plot.Child(el.Div().Absolute().Left(max(0, min(w-72, w/2+p.X-36))).Top(max(0, min(v.height-20, v.height/2+p.Y-8))).W(el.Dp(72)).Items(el.Center).Child(content))
 	}
-	if tip := v.tooltip(cx); tip != nil {
-		plot.Child(tip)
+	if v.hover >= 0 && v.hover < len(v.labels) && !v.disabled {
+		plot.Child(el.Div().ID(id + "/point").Absolute().Left(v.pointerX).Top(v.pointerY).Size(el.Dp(1)))
+		panel := v.tooltipPanel(cx).W(el.Dp(168)).Role("tooltip").Disabled(true).Shadow(theme.ElevationSm)
+		cx.Overlay(id+"/tooltip", el.Anchored(id+"/point", panel).Owner(id).Placement(el.Bottom, el.Start).Offset(12))
 	}
 	return plot
 }
@@ -111,7 +114,8 @@ func (v *ChartView) drawRadar(gtx core.C) core.D {
 				}
 				next = int(math.Round(a*float64(n)/(2*math.Pi))) % n
 			}
-			if next != v.hover {
+			if next != v.hover || (next >= 0 && (v.pointerX != e.Position.X/px || v.pointerY != e.Position.Y/px)) {
+				v.pointerX, v.pointerY = e.Position.X/px, e.Position.Y/px
 				v.hover = next
 				gtx.Execute(op.InvalidateCmd{})
 			}

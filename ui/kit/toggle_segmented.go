@@ -28,7 +28,7 @@ func (v *ToggleGroupView) ResetGap() *ToggleGroupView { v.gap = nil; return v }
 
 func decorateToggleSegment(b *el.DivEl, cx *el.Context, id string, first, last, on bool, variant ToggleVariant) {
 	// Preserve the usual 1dp layout inset while painting the connected border ourselves.
-	b.Rounded(0).Border(1, color.NRGBA{}).FocusStyle(func(s *el.Style) {})
+	b.Rounded(0).Border(1, color.NRGBA{}).FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}) })
 	b.Decorate(func(gtx core.C, draw func()) {
 		rect := image.Rectangle{Max: gtx.Constraints.Max}
 		radius := min(gtx.Dp(unit.Dp(theme.RadiusMd)), min(rect.Dx(), rect.Dy())/2)
@@ -63,7 +63,7 @@ func decorateToggleSegment(b *el.DivEl, cx *el.Context, id string, first, last, 
 		}
 		// Only the preceding segment draws a shared separator. Focus keeps a full outline.
 		visible := rect
-		if !first && !focused {
+		if !first && !focused && !on {
 			visible.Min.X = bw
 		}
 		defer clip.Rect(visible).Push(gtx.Ops).Pop()

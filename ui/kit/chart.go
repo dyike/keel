@@ -44,22 +44,23 @@ const axisWidth = 52 // dp for the y-axis labels
 // crosshair and a tooltip with every series' value; the data-table toggle
 // shows the same numbers as a Table. Two or more series get a legend.
 type ChartView struct {
-	options  chartOptions
-	kind     ChartKind
-	title    string
-	labels   []string
-	series   []Series
-	height   float32
-	stacked  bool
-	format   func(float64) string
-	table    bool
-	tbl      *TableView
-	hover    int
-	tag      int // pointer handler tag
-	candles  []Candle
-	hidden   []bool
-	disabled bool
-	plotW    float32 // painted plot width, dp
+	pointerX, pointerY float32
+	options            chartOptions
+	kind               ChartKind
+	title              string
+	labels             []string
+	series             []Series
+	height             float32
+	stacked            bool
+	format             func(float64) string
+	table              bool
+	tbl                *TableView
+	hover              int
+	tag                int // pointer handler tag
+	candles            []Candle
+	hidden             []bool
+	disabled           bool
+	plotW              float32 // painted plot width, dp
 }
 
 // LineChart plots each series as a line across the labels, e.g. months.
@@ -279,7 +280,11 @@ func (v *ChartView) tooltip(cx *el.Context) el.Element {
 	if left+w > v.plotW {
 		left = center - 12 - w
 	}
-	tip := el.Div().Absolute().Top(8).Left(max(left, 0)).W(el.Dp(w)).P(theme.SpaceMd).Gap(theme.SpaceXs).Rounded(theme.RadiusMd).
+	return v.tooltipPanel(cx).Absolute().Top(8).Left(max(left, 0)).W(el.Dp(w))
+}
+
+func (v *ChartView) tooltipPanel(cx *el.Context) *el.DivEl {
+	tip := el.Div().P(theme.SpaceMd).Gap(theme.SpaceXs).Rounded(theme.RadiusMd).
 		Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch).
 		Child()
 	if v.options.tooltip != nil {
