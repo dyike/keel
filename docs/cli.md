@@ -59,7 +59,7 @@ keel build -target js         # WebAssembly
 keel build -n                 # 只打印要执行的命令
 ```
 
-输出在 `dist/`（`-o` 可改）。macOS 和浏览器第一次打包会下载 Gio 的打包工具 gogio。
+输出在 `dist/`（`-o` 可改）。打包默认去掉符号表、调试信息和本机路径（`-s -w -trimpath`），体积约小四分之一，崩溃时仍会打印函数名；要用调试器时加 `-debug` 保留。macOS 和浏览器第一次打包会下载 Gio 的打包工具 gogio。
 
 | 目标 | 产物 | 图标 | 能在哪里打包 |
 | --- | --- | --- | --- |
