@@ -1,11 +1,23 @@
 package main
 
 import (
+	_ "embed"
+	"log"
+
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/window"
 )
 
+// appIcon is the artwork in keel.json. Built in, the Dock and taskbar show
+// it under keel run too; keel build also packages it for each platform.
+//
+//go:embed appicon.png
+var appIcon []byte
+
 func main() {
+	if err := window.SetIcon(appIcon); err != nil {
+		log.Print(err)
+	}
 	window.Open(window.Options{
 		Title:   {{printf "%q" .Name}},
 		Width:   720,

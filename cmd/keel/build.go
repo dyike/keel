@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/dyike/keel/internal/appicon"
 	"github.com/tc-hib/winres"
 	"github.com/tc-hib/winres/version"
 )
@@ -228,7 +229,7 @@ func (c *cli) buildLinux(dir string, cfg *Config, icons *iconSet, outDir, main, 
 	if err := os.WriteFile(filepath.Join(dist, cfg.AppID+".desktop"), []byte(desktop), 0o644); err != nil {
 		return err
 	}
-	for _, size := range linuxIconSizes {
+	for _, size := range appicon.LinuxSizes {
 		img, err := icons.icon("linux", size)
 		if err != nil {
 			return err

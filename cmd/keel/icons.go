@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/dyike/keel/internal/appicon"
 	"github.com/tc-hib/winres"
 	"golang.org/x/image/draw"
 )
@@ -52,15 +53,15 @@ func (s *iconSet) icon(platform string, size int) (image.Image, error) {
 		draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Src, nil)
 		return dst, nil
 	}
-	shape := map[string]iconShape{"darwin": macShape, "windows": winShape, "linux": linuxShape}[platform]
-	return shape.render(s.art, size, s.cfg.IconMask != "none"), nil
+	shape := map[string]appicon.Shape{"darwin": appicon.MacOS, "windows": appicon.Windows, "linux": appicon.Linux}[platform]
+	return shape.Render(s.art, size, s.cfg.IconMask != "none"), nil
 }
 
 // windowsIcon holds every Windows size, each drawn at its own size so small
 // ones stay crisp.
 func (s *iconSet) windowsIcon() (*winres.Icon, error) {
 	var imgs []image.Image
-	for _, size := range windowsIconSizes {
+	for _, size := range appicon.WindowsSizes {
 		img, err := s.icon("windows", size)
 		if err != nil {
 			return nil, err
@@ -113,7 +114,7 @@ func (c *cli) iconCommand(args []string) error {
 	if err := writePNG(filepath.Join(outDir, "macos.png"), mac); err != nil {
 		return err
 	}
-	for _, size := range windowsIconSizes {
+	for _, size := range appicon.WindowsSizes {
 		img, err := set.icon("windows", size)
 		if err != nil {
 			return err
@@ -125,7 +126,7 @@ func (c *cli) iconCommand(args []string) error {
 	if err := writeICO(set, filepath.Join(outDir, "windows.ico")); err != nil {
 		return err
 	}
-	for _, size := range linuxIconSizes {
+	for _, size := range appicon.LinuxSizes {
 		img, err := set.icon("linux", size)
 		if err != nil {
 			return err

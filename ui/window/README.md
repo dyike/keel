@@ -6,6 +6,7 @@
 | --- | --- |
 | `window.go` | `Open`、`Main`、`Options`（含 `Overlay`）、`Window`（`Raise`、`Activate`、`WaylandDisplay` …） |
 | `shortcut.go` | 快捷键解析与分发 |
+| `icon*.go` | `SetIcon`：运行时的应用图标（macOS 程序坞、Windows 窗口、X11 `_NET_WM_ICON`），形状由 `internal/appicon` 按平台规范裁出 |
 | `root.go` | 窗口根视图：背景、滚动、24dp 边距 |
 | `position_*` | 首次显示居中；macOS 按屏幕可用区域计算，其他平台使用 Gio 动作 |
 | `screenshot.go` | `Screenshot` 离屏渲染成 PNG |
@@ -18,7 +19,7 @@
 | `automation_server.go` | 自动化协议：`KEEL_AUTOMATION` socket 上的 JSON 请求 |
 | `testdata/raise` | 真实窗口死锁回归测试 |
 
-- **依赖**：`core`、`theme`，以及 Linux 上的 `jezek/xgb`（X11 激活）和 libwayland-client（Gio 本来就链接）。不依赖 `el`、`kit`：窗口只认 `core.Widget` 接口，系统偏好经 `theme` 交给 el。
+- **依赖**：`core`、`theme`、`internal/appicon`（图标形状，和脚手架共用），以及 Linux 上的 `jezek/xgb`（X11 激活）和 libwayland-client（Gio 本来就链接）。不依赖 `el`、`kit`：窗口只认 `core.Widget` 接口，系统偏好经 `theme` 交给 el。
 - **被谁依赖**：应用代码。`cmd/keel-mcp` 通过 socket 协议驱动它，不引用它的代码。
 
 设置环境变量 `KEEL_AUTOMATION=1`（或 socket 路径）启动应用时，每个窗口会多一个影子窗口，供 Agent 操作；真实窗口照常显示，Agent 的操作会实时反映在屏幕上。再加 `KEEL_HEADLESS=1` 则不显示窗口，见 [Agent 端到端测试](../../docs/automation.md)。

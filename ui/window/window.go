@@ -229,6 +229,7 @@ func (w *Window) run() {
 			w.markShown()
 		default:
 			platformWindowEvent(w, e)
+			iconWindowEvent(w, e)
 		}
 	}
 }

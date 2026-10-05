@@ -18,7 +18,7 @@ keel run
 
 | 文件 | 内容 |
 | --- | --- |
-| `main.go` | 打开窗口，挂上界面 |
+| `main.go` | 设置应用图标，打开窗口，挂上界面 |
 | `app.go` | 界面：一个视图结构体和它的 `Render` |
 | `keel.json` | 应用名、ID、版本、图标，打包时读取 |
 | `appicon.png` | 1024×1024 的占位原图（满版，不带圆角），替换成自己的 |
@@ -48,7 +48,7 @@ keel run
 
 ## 运行
 
-`keel run` 等同于 `go run`，并把 `appid` 告诉 Gio（Linux 上窗口的 app_id）。`keel run -- --flag` 把 `--` 之后的参数交给应用。
+`keel run` 等同于 `go run`，并把 `appid` 告诉 Gio（Linux 上窗口的 app_id）。生成的 `main.go` 把 `appicon.png` 编进程序并调用 `window.SetIcon`，所以运行时程序坞和任务栏也显示自己的图标（Wayland 除外，见[窗口与应用 · 应用图标](app.md#应用图标)）。`keel run -- --flag` 把 `--` 之后的参数交给应用。
 
 ## 打包
 

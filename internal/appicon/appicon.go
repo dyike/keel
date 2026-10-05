@@ -1,4 +1,7 @@
-package main
+// Package appicon cuts full-bleed app artwork into each platform's icon
+// shape: Apple's macOS template, Microsoft's Windows grid, GNOME's template.
+// keel build and ui/window share it, so packaged and running apps match.
+package appicon
 
 import (
 	"image"
@@ -9,11 +12,10 @@ import (
 	"golang.org/x/image/vector"
 )
 
-// Each platform has its own icon shape. keel.json's icon is full-bleed
-// square artwork; iconShape cuts it into the platform's plate, at the
-// platform's size within the canvas, with its corner style and shadow.
-type iconShape struct {
-	name string
+// Shape is one platform's icon: a plate of a given size, corner style and
+// shadow that full-bleed square artwork is cut into.
+type Shape struct {
+	Name string
 	// body is the plate's side as a fraction of the canvas, centered.
 	body float64
 	// radius is the corner radius as a fraction of the canvas.
@@ -23,38 +25,38 @@ type iconShape struct {
 	smoothing float64
 	// shadow, if set, is drawn under the plate: offset down and blur, as
 	// fractions of the canvas, and opacity.
-	shadow *iconShadow
+	shadow *shadow
 }
 
-type iconShadow struct{ dy, blur, alpha float64 }
+type shadow struct{ dy, blur, alpha float64 }
 
 var (
 	// macOS (Big Sur and later): an 824px plate on a 1024px canvas with
 	// 185.4px continuous corners and a 28px blur, 12px down, 50% black
 	// shadow, from Apple's app icon template.
-	macShape = iconShape{name: "macOS", body: 824.0 / 1024, radius: 185.4 / 1024, smoothing: 0.6,
-		shadow: &iconShadow{dy: 12.0 / 1024, blur: 28.0 / 1024, alpha: 0.5}}
+	MacOS = Shape{Name: "macOS", body: 824.0 / 1024, radius: 185.4 / 1024, smoothing: 0.6,
+		shadow: &shadow{dy: 12.0 / 1024, blur: 28.0 / 1024, alpha: 0.5}}
 	// Windows 11: the square keyline of Microsoft's 48px icon grid, 42px,
 	// with 2px exterior corners; no shadow, transparent around.
-	winShape = iconShape{name: "Windows", body: 42.0 / 48, radius: 2.0 / 48}
+	Windows = Shape{Name: "Windows", body: 42.0 / 48, radius: 2.0 / 48}
 	// GNOME: the square keyline of the 128px app icon template, 104px
 	// with 8px corners.
-	linuxShape = iconShape{name: "Linux", body: 104.0 / 128, radius: 8.0 / 128}
+	Linux = Shape{Name: "Linux", body: 104.0 / 128, radius: 8.0 / 128}
 )
 
 // Sizes each platform asks for.
 var (
 	// Every size Windows 11 requests at 100–400% scale; Microsoft's minimum
 	// is 16, 24, 32, 48 and 256.
-	windowsIconSizes = []int{16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 256}
+	WindowsSizes = []int{16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 256}
 	// The hicolor theme's usual app icon sizes.
-	linuxIconSizes = []int{16, 24, 32, 48, 64, 128, 256, 512}
+	LinuxSizes = []int{16, 24, 32, 48, 64, 128, 256, 512}
 )
 
-// shapeIcon draws art (square) as a size×size icon of this shape. With mask
+// Render draws art (square) as a size×size icon of this shape. With mask
 // false the art keeps its own outline and transparency and is only fitted
 // to the plate's box.
-func (s iconShape) render(art image.Image, size int, mask bool) *image.NRGBA {
+func (s Shape) Render(art image.Image, size int, mask bool) *image.NRGBA {
 	canvas := image.NewNRGBA(image.Rect(0, 0, size, size))
 	side := s.body * float64(size)
 	off := (float64(size) - side) / 2

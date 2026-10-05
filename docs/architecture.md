@@ -33,6 +33,7 @@ github.com/dyike/keel
 ├── internal/
 │   ├── deps/             模块边界检查
 │   ├── svgicon/          把 SVG 图标画成 PNG（站点和脚手架共用）
+│   ├── appicon/          按 macOS、Windows、GNOME 规范裁出应用图标（脚手架和 ui/window 共用）
 │   └── site/             文档站生成器
 ├── examples/
 └── docs/

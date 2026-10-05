@@ -35,6 +35,17 @@ window.Main()
 
 `window.Main()` 必须在 `main` goroutine 里调用，而且不会返回。最后一个窗口关闭时进程退出。
 
+## 应用图标
+
+`window.SetIcon(png)` 在程序运行时设置应用图标，参数是满版的正方形 PNG 原图（和脚手架项目的 `appicon.png` 一样），按各平台的规范裁形状：
+
+- **macOS**：程序坞图标，Apple 的连续圆角和阴影。
+- **Windows**：每个窗口的标题栏和任务栏按钮，按窗口的 DPI 选尺寸。
+- **Linux X11**：每个窗口的 `_NET_WM_ICON`。
+- **Linux Wayland、浏览器**：不处理。Wayland 由合成器按 app_id 找已安装的 `.desktop` 文件取图标（`keel build` 生成的安装包会装上），浏览器用页面图标。
+
+打好的包本身就带图标，`SetIcon` 补的是 `go run` / `keel run` 这种直接跑可执行文件的情况，否则系统只会显示通用图标。它对已打开和之后打开的窗口都生效，可以在 `Open` 之前调用，也可以随时换。脚手架生成的 `main.go` 已经用 `//go:embed appicon.png` 把图标编进程序并调用它。
+
 ## Window 的方法
 
 | 方法 | 说明 |

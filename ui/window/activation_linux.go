@@ -65,7 +65,9 @@ func platformActivate(w *Window, token string) bool {
 	return true
 }
 
-func x11Activate(win xproto.Window, token string) error {
+// withX11 runs fn on the shared connection, opening it on first use and
+// dropping it after an error so the next call reconnects.
+func withX11(fn func(c *xgb.Conn, atom func(string) (xproto.Atom, error)) error) error {
 	x11.Lock()
 	defer x11.Unlock()
 	if x11.conn == nil {
@@ -83,10 +85,23 @@ func x11Activate(win xproto.Window, token string) error {
 		}
 		return r.Atom, nil
 	}
+	err := fn(c, atom)
+	if err != nil {
+		c.Close()
+		x11.conn = nil
+	}
+	return err
+}
+
+func x11Activate(win xproto.Window, token string) error {
+	return withX11(func(c *xgb.Conn, atom func(string) (xproto.Atom, error)) error {
+		return x11ActivateOn(c, atom, win, token)
+	})
+}
+
+func x11ActivateOn(c *xgb.Conn, atom func(string) (xproto.Atom, error), win xproto.Window, token string) error {
 	startup, err := atom("_NET_STARTUP_ID")
 	if err != nil {
-		x11.conn.Close()
-		x11.conn = nil
 		return err
 	}
 	utf8, err := atom("UTF8_STRING")
