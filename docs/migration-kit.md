@@ -2,6 +2,19 @@
 
 仓库已删除 `ui/widget` 和 `ui/layout`，不提供兼容别名。应用结构用 `ui/el`，通用组件用 `ui/kit`；窗口仍由 `ui/window` 管理。下面列出本轮组件补全影响调用方的地方。
 
+## 代码高亮和网络图片改为按需引入（v0.0.7）
+
+为了减小程序体积，这两个功能不再默认链接，各约 4 MB：
+
+```go
+import (
+    _ "github.com/dyike/keel/ui/highlight" // CodeEditor、TextView、Markdown 代码块的语法颜色
+    _ "github.com/dyike/keel/ui/netimage"  // Image、Avatar、Attachment、Markdown 图片的 http(s) 地址
+)
+```
+
+升级后如果代码变成纯文本，或网络图片报 `core.ErrNoImageFetcher`，在 main 包里加上对应的一行即可。本地文件和 data URL 的图片不受影响。
+
 ## 页面与状态
 
 旧的 Column / Row / Card 改为 `el.Div()`，按需设置 Row、Gap、Padding、Bg 和 Border；kit 视图通过 `Render(cx)` 加入元素树，页面通过 `el.Root(view)` 交给窗口。旧组件到新组件的具体参数见 [组件索引](kit.md)。

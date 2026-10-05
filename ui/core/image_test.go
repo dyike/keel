@@ -9,6 +9,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -26,7 +27,23 @@ func imageFixture(t *testing.T) []byte {
 	}
 	return buf.Bytes()
 }
+
+// testFetcher stands in for ui/netimage, which core's tests cannot import.
+func testFetcher(ctx context.Context, url string, header map[string]string) (int, map[string]string, io.ReadCloser, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	return resp.StatusCode, nil, resp.Body, nil
+}
+
 func TestDecodeSourcesAndLimits(t *testing.T) {
+	SetImageFetcher(testFetcher)
+	defer SetImageFetcher(nil)
 	data := imageFixture(t)
 	path := filepath.Join(t.TempDir(), "image.png")
 	if err := os.WriteFile(path, data, 0600); err != nil {

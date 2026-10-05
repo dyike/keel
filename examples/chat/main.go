@@ -20,6 +20,11 @@ import (
 	"github.com/dyike/keel/ui/markdown"
 	"github.com/dyike/keel/ui/theme"
 	"github.com/dyike/keel/ui/window"
+
+	// Opt-in features this example shows: code highlighting and images
+	// loaded over the network (each about 4 MB; see docs/kit.md).
+	_ "github.com/dyike/keel/ui/highlight"
+	_ "github.com/dyike/keel/ui/netimage"
 )
 
 type message struct {

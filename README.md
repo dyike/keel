@@ -55,6 +55,8 @@ go test -race ./...
 | [ui/window](ui/window/) | 窗口：`Open`、`Main`、快捷键、截图 |
 | [ui/markdown](ui/markdown/) | Markdown 渲染，针对 AI 流式输出优化 |
 | [ui/plot](ui/plot/) | 自定义图表的底层绘图 |
+| [ui/highlight](ui/highlight/) | 可选：代码高亮（约 4 MB，按需引入） |
+| [ui/netimage](ui/netimage/) | 可选：从 http(s) 地址加载图片（约 4 MB，按需引入） |
 | [native/permission](native/permission/) | 检查、申请系统权限 |
 | [native/screen](native/screen/) | 显示器列表、截图 |
 | [native/input](native/input/) | 合成鼠标、键盘事件 |

@@ -32,7 +32,7 @@ photo := kit.Image(nil, "商品照片").Size(320, 180).
     Cache(cache).Source("https://example.com/photo.webp")
 ```
 
-Source 支持 HTTP(S)、本地路径/file URL、data URL，格式为 PNG、JPEG、WebP、GIF（含动图）和 SVG，大小限制与 core.DecodeImage 相同。请求在后台执行，默认 15 秒超时；结果通过 UI 队列提交。重复同一地址不重载；Source("") 取消并清空。SetImage/SetError 也会取消并移除当前 Source，旧结果不能覆盖它们。组件卸载不会自动取消，应用可在不再使用时调用 Source("")。
+Source 支持本地路径/file URL、data URL，以及 HTTP(S) 地址——网络地址要在应用里引入 `_ "github.com/dyike/keel/ui/netimage"`（约 4 MB，不引入时返回 `core.ErrNoImageFetcher`）；格式为 PNG、JPEG、WebP、GIF（含动图）和 SVG，大小限制与 core.DecodeImage 相同。请求在后台执行，默认 15 秒超时；结果通过 UI 队列提交。重复同一地址不重载；Source("") 取消并清空。SetImage/SetError 也会取消并移除当前 Source，旧结果不能覆盖它们。组件卸载不会自动取消，应用可在不再使用时调用 Source("")。
 
 Loading 返回请求状态，ImageError 返回加载错误。LoadingContent/Fallback 接受自定义 View，nil 恢复默认替代文字/错误；固定 Size 可预留加载区域，自定义内容应适配该区域。自定义失败内容后仍保留内置重试按钮。Source 模式下 Retry 清除当前源缓存并重新加载；没有 Source 时使用原 OnRetry 回调。自身或父级禁用阻止按钮，程序 Source/SetImage 仍可更新。
 
@@ -52,4 +52,4 @@ dir, _ := os.UserCacheDir()
 cache := kit.NewImageCache(32 << 20).Disk(filepath.Join(dir, "myapp", "images"), 256<<20, 24*time.Hour)
 ```
 
-`Disk(目录, 上限字节, 有效期)` 把 HTTP(S) 图片的原始字节存到磁盘，重启后不必重新下载。有效期内直接使用本地副本；过期后带 `If-None-Match` / `If-Modified-Since` 重新验证，服务器返回 304 就继续用本地副本并刷新有效期。网络失败或服务器 5xx 时使用过期副本。总大小超过上限时按最近使用时间淘汰。`Cache-Control: no-store` 的响应不落盘；本地文件和 data URL 不复制。本地副本解码失败会被删除。目录为空或上限 ≤ 0 关闭磁盘缓存。内存层仍按原规则工作，磁盘层只在内存未命中时读取。
+`Disk(目录, 上限字节, 有效期)`（同样需要 `ui/netimage`）把 HTTP(S) 图片的原始字节存到磁盘，重启后不必重新下载。有效期内直接使用本地副本；过期后带 `If-None-Match` / `If-Modified-Since` 重新验证，服务器返回 304 就继续用本地副本并刷新有效期。网络失败或服务器 5xx 时使用过期副本。总大小超过上限时按最近使用时间淘汰。`Cache-Control: no-store` 的响应不落盘；本地文件和 data URL 不复制。本地副本解码失败会被删除。目录为空或上限 ≤ 0 关闭磁盘缓存。内存层仍按原规则工作，磁盘层只在内存未命中时读取。

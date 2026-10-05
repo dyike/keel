@@ -1,12 +1,13 @@
 package markdown
 
 import (
-	"github.com/dyike/keel/ui/locale"
 	"image"
 	"image/color"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dyike/keel/ui/locale"
 
 	"gioui.org/font"
 	"gioui.org/io/semantic"
@@ -14,9 +15,6 @@ import (
 	"gioui.org/op"
 	"gioui.org/text"
 	"gioui.org/unit"
-	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
-	"github.com/alecthomas/chroma/v2/styles"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
@@ -361,37 +359,33 @@ func (r *richBlock) Layout(gtx core.C) core.D {
 	return d
 }
 
-// highlight colors code with chroma; unknown languages are guessed, then plain.
+// highlight colors code with the installed core.Highlighter (import
+// ui/highlight); unknown languages are guessed, then plain.
 func highlight(lang, code string) *richBlock {
 	// Tabs render as a narrow space in proportional-width shaping; expand them.
 	code = strings.ReplaceAll(code, "\t", "    ")
 	r := &richBlock{plain: code, code: true, lineH: 1.45, base: theme.BodySize * 0.9}
-	lexer := lexers.Get(lang)
-	if lexer == nil && lang == "" {
-		lexer = lexers.Analyse(code)
-	}
-	if lexer == nil {
-		lexer = lexers.Fallback
-	}
-	style := styles.Get(codeStyle())
 	base := run{size: theme.BodySize * 0.9, color: theme.CodeText, font: font.Font{Typeface: MonoFace}}
-	it, err := chroma.Coalesce(lexer).Tokenise(nil, code)
-	if err != nil {
+	var tokens []core.CodeToken
+	ok := false
+	if h := core.CurrentHighlighter(); h != nil {
+		tokens, ok = h.Highlight(code, core.HighlightOptions{Language: lang, Guess: lang == "", Style: codeStyle()})
+	}
+	if !ok {
 		base.text = code
 		r.runs = []run{base}
 		return r
 	}
-	for _, tok := range it.Tokens() {
+	for _, tok := range tokens {
 		rn := base
-		rn.text = tok.Value
-		e := style.Get(tok.Type)
-		if e.Colour.IsSet() {
-			rn.color = color.NRGBA{R: e.Colour.Red(), G: e.Colour.Green(), B: e.Colour.Blue(), A: 0xff}
+		rn.text = tok.Text
+		if tok.Color.A != 0 {
+			rn.color = tok.Color
 		}
-		if e.Bold == chroma.Yes {
+		if tok.Bold {
 			rn.font.Weight = font.Bold
 		}
-		if e.Italic == chroma.Yes {
+		if tok.Italic {
 			rn.font.Style = font.Italic
 		}
 		r.runs = append(r.runs, rn)

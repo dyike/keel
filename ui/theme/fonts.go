@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"gioui.org/font"
-	"gioui.org/font/gofont"
 	"gioui.org/font/opentype"
 	"gioui.org/text"
 
@@ -32,7 +31,7 @@ func LoadFonts(files ...[]byte) error {
 		faces = append(faces, f...)
 	}
 	loaded = append(loaded, faces...)
-	Material.Shaper = text.NewShaper(text.WithCollection(append(loaded[:len(loaded):len(loaded)], gofont.Collection()...)))
+	Material.Shaper = text.NewShaper(text.WithCollection(append(loaded[:len(loaded):len(loaded)], fallbackFaces()...)))
 	revision++
 	loop.InvalidateAll()
 	return nil
@@ -44,6 +43,6 @@ func LoadFonts(files ...[]byte) error {
 func NewShaper(extra ...font.FontFace) *text.Shaper {
 	faces := append([]font.FontFace{}, extra...)
 	faces = append(faces, loaded...)
-	faces = append(faces, gofont.Collection()...)
+	faces = append(faces, fallbackFaces()...)
 	return text.NewShaper(text.WithCollection(faces))
 }

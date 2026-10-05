@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/dyike/keel/ui/core"
 )
 
 // maxDiskImageBytes caps one download, matching the decoder's limit.
@@ -26,12 +27,11 @@ const maxDiskImageBytes = 16 << 20
 // fails, a stale copy is still used. Total size stays under max by evicting
 // the least recently used files.
 type imageDiskCache struct {
-	mu     sync.Mutex
-	dir    string
-	max    int64
-	ttl    time.Duration
-	client *http.Client
-	now    func() time.Time
+	mu  sync.Mutex
+	dir string
+	max int64
+	ttl time.Duration
+	now func() time.Time
 }
 
 type imageDiskRecord struct {
@@ -52,7 +52,7 @@ func (c *ImageCache) Disk(dir string, maxBytes int64, ttl time.Duration) *ImageC
 		c.disk = nil
 		return c
 	}
-	c.disk = &imageDiskCache{dir: dir, max: maxBytes, ttl: max(0, ttl), client: http.DefaultClient, now: time.Now}
+	c.disk = &imageDiskCache{dir: dir, max: maxBytes, ttl: max(0, ttl), now: time.Now}
 	return c
 }
 
@@ -95,48 +95,45 @@ func (d *imageDiskCache) get(ctx context.Context, source string) ([]byte, error)
 		d.touch(bodyPath, now)
 		return cached, nil
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, source, nil)
-	if err != nil {
-		return nil, err
-	}
+	header := map[string]string{}
 	if cached != nil {
 		if rec.ETag != "" {
-			req.Header.Set("If-None-Match", rec.ETag)
+			header["If-None-Match"] = rec.ETag
 		}
 		if rec.LastModified != "" {
-			req.Header.Set("If-Modified-Since", rec.LastModified)
+			header["If-Modified-Since"] = rec.LastModified
 		}
 	}
-	resp, err := d.client.Do(req)
+	status, respHeader, body, err := core.FetchImage(ctx, source, header)
 	if err != nil {
 		if cached != nil && ctx.Err() == nil {
 			return cached, nil // offline: a stale copy beats nothing
 		}
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer body.Close()
 	switch {
-	case resp.StatusCode == http.StatusNotModified && cached != nil:
+	case status == 304 && cached != nil: // Not Modified
 		rec.Checked = now
 		d.save(source, bodyPath, recordPath, nil, rec)
 		return cached, nil
-	case resp.StatusCode < 200 || resp.StatusCode >= 300:
-		if cached != nil && resp.StatusCode >= 500 {
+	case status < 200 || status >= 300:
+		if cached != nil && status >= 500 {
 			return cached, nil
 		}
-		return nil, fmt.Errorf("image HTTP status %d", resp.StatusCode)
+		return nil, fmt.Errorf("image HTTP status %d", status)
 	}
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxDiskImageBytes+1))
+	data, err := io.ReadAll(io.LimitReader(body, maxDiskImageBytes+1))
 	if err != nil {
 		return nil, err
 	}
 	if len(data) > maxDiskImageBytes {
 		return nil, fmt.Errorf("image exceeds %d bytes", maxDiskImageBytes)
 	}
-	if strings.Contains(resp.Header.Get("Cache-Control"), "no-store") {
+	if strings.Contains(respHeader["Cache-Control"], "no-store") {
 		return data, nil
 	}
-	d.save(source, bodyPath, recordPath, data, imageDiskRecord{Source: source, ETag: resp.Header.Get("ETag"), LastModified: resp.Header.Get("Last-Modified"), Checked: now})
+	d.save(source, bodyPath, recordPath, data, imageDiskRecord{Source: source, ETag: respHeader["Etag"], LastModified: respHeader["Last-Modified"], Checked: now})
 	return data, nil
 }
 

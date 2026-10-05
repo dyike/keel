@@ -16,6 +16,8 @@ github.com/dyike/keel
 │   ├── kit/              组件：Button、Input、Table、Dialog、Chart …（一个组件一个文件）
 │   ├── window/           窗口：Open、Main、快捷键、截图
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
+│   ├── highlight/        可选：代码高亮（chroma），引入后 kit 和 markdown 才着色
+│   ├── netimage/         可选：http(s) 图片加载（net/http），引入后图片才能用网络地址
 │   └── internal/         loop（帧锁）、editorstyle（输入绘制）、inputcontent（原子引用编辑）、imageload（图片加载）、uitest（测试工具）
 ├── native/
 │   ├── permission/       权限检查与申请
@@ -75,6 +77,8 @@ native:
 `cmd/keel-mcp` 不引用任何 Keel 包，也不引用 Gio：它只通过 socket 上的 JSON 协议驱动 `ui/window` 的自动化模式，见 [Agent 端到端测试](automation.md#原理)。
 
 `cmd/keel` 也不引用界面包：它只用 `internal/svgicon` 画占位图标，用 `golang.org/x/image` 和 `tc-hib/winres` 生成各平台图标与 Windows 资源，打包时调用 `go`、Gio 的 gogio 和 macOS 的 `codesign`，见 [脚手架与打包](cli.md)。
+
+**体积大的依赖按需引入。** chroma（代码高亮）和 `net/http`（网络图片）各约 4 MB，不放在 kit、markdown、el、core、window 的依赖里：core 定义 `Highlighter` 和 `ImageFetcher` 两个接口，`ui/highlight` 和 `ui/netimage` 在 `init` 里注册实现，应用用到时引入。`internal/deps` 的 `TestHeavyDependenciesAreOptIn` 防止它们被重新拉进来。
 
 这些规则由 `internal/deps` 的测试强制执行：它把每个模块允许依赖的包写成一张表，越界或者新增目录没登记，`go test ./...` 就失败。改架构时先改那张表，再改代码。
 

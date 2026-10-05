@@ -10,7 +10,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -63,19 +62,15 @@ func ReadImageSource(ctx context.Context, source string) ([]byte, error) {
 		}
 		reader = io.NopCloser(bytes.NewReader(raw))
 	case strings.HasPrefix(source, "https://") || strings.HasPrefix(source, "http://"):
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, source, nil)
+		status, _, body, err := FetchImage(ctx, source, nil)
 		if err != nil {
 			return nil, err
 		}
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, err
+		if status < 200 || status >= 300 {
+			body.Close()
+			return nil, fmt.Errorf("image HTTP status %d", status)
 		}
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			resp.Body.Close()
-			return nil, fmt.Errorf("image HTTP status %d", resp.StatusCode)
-		}
-		reader = resp.Body
+		reader = body
 	default:
 		path := source
 		if decoded, err := url.PathUnescape(source); err == nil {

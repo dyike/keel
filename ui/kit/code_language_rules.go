@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/dyike/keel/ui/core"
 )
 
 type CodeSyntaxContext uint8
@@ -46,10 +46,12 @@ var codeRuleRegistry = struct {
 }{rules: map[string]*codeLanguageRules{}}
 
 func codeLanguageKey(name string) string {
-	if lexer := lexers.Get(name); lexer != nil {
-		return strings.ToLower(lexer.Config().Name)
+	if h := core.CurrentHighlighter(); h != nil {
+		if canonical := h.Language(name); canonical != "" {
+			return strings.ToLower(canonical)
+		}
 	}
-	return name
+	return strings.ToLower(name)
 }
 func compileCodeRules(rules CodeLanguageRules) (*codeLanguageRules, error) {
 	copyPairs := func(in []CodePair) ([]CodePair, error) {

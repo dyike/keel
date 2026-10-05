@@ -1,13 +1,9 @@
 package kit
 
 import (
-	"image/color"
 	"strings"
 
-	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
-	"github.com/alecthomas/chroma/v2/styles"
-
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
 )
 
@@ -19,33 +15,30 @@ func codeStyleName() string {
 	return "github"
 }
 
-// highlightCode tokenizes text and returns colored spans per line, with the
-// syntax context of each. It reads only its arguments, so it can run off the
-// UI goroutine. An unknown language yields nil.
+// highlightCode tokenizes text with the installed core.Highlighter and
+// returns colored spans per line, with the syntax context of each. It reads
+// only its arguments, so it can run off the UI goroutine. Without a
+// highlighter (import ui/highlight) or for an unknown language it yields
+// nil, and the code stays plain.
 func highlightCode(lang, text, style string) [][]codeSpan {
-	lexer := lexers.Get(lang)
-	if lexer == nil {
+	h := core.CurrentHighlighter()
+	if h == nil {
 		return nil
 	}
-	s := styles.Get(style)
-	it, err := chroma.Coalesce(lexer).Tokenise(nil, text)
-	if err != nil {
+	tokens, ok := h.Highlight(text, core.HighlightOptions{Language: lang, Style: style})
+	if !ok {
 		return nil
 	}
 	var lines [][]codeSpan
 	var cur []codeSpan
 	col := 0
-	for _, tok := range it.Tokens() {
-		e := s.Get(tok.Type)
-		var c color.NRGBA
-		if e.Colour.IsSet() {
-			c = color.NRGBA{R: e.Colour.Red(), G: e.Colour.Green(), B: e.Colour.Blue(), A: 0xff}
-		}
+	for _, tok := range tokens {
+		c := tok.Color
 		kind := codeKindCode
-		switch {
-		case tok.Type.InCategory(chroma.Comment):
+		switch tok.Kind {
+		case core.CodeTokenComment:
 			kind = codeKindComment
-		case tok.Type.InCategory(chroma.LiteralString):
+		case core.CodeTokenString:
 			kind = codeKindString
 		}
 		start := col
@@ -54,7 +47,7 @@ func highlightCode(lang, text, style string) [][]codeSpan {
 				cur = append(cur, codeSpan{start, col, c, kind})
 			}
 		}
-		for _, r := range tok.Value {
+		for _, r := range tok.Text {
 			if r == '\n' {
 				emit()
 				lines = append(lines, cur)
@@ -68,6 +61,12 @@ func highlightCode(lang, text, style string) [][]codeSpan {
 	return append(lines, cur)
 }
 
+// knownLanguage reports whether code in lang can be highlighted.
+func knownLanguage(lang string) bool {
+	h := core.CurrentHighlighter()
+	return h != nil && h.Language(lang) != ""
+}
+
 // codeLocalReach is how far around an edit the editor re-highlights at once,
 // before the background pass over the whole file catches up.
 const codeLocalReach = 60
@@ -77,7 +76,7 @@ const codeLocalReach = 60
 // starts at a line that begins at column 0 outside a string or comment, the
 // place a lexer's state is most likely back at its root.
 func (b *codeBuffer) highlightNear(lang, style string, first, last int) {
-	if lexers.Get(lang) == nil {
+	if !knownLanguage(lang) {
 		return
 	}
 	start := first

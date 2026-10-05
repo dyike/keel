@@ -12,6 +12,17 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `win
 
 有值的交互组件提供 `Value()`、`SetValue(...)`、链式 `OnChange(...)`、`SetDisabled(bool)`。程序赋值不触发回调，只有用户操作触发。按钮等动作组件使用点击回调和 `SetDisabled`，纯展示组件不强加值与回调接口。返回切片等可变值时不能暴露内部存储。
 
+## 可选功能与体积
+
+两个功能依赖较大的库，默认不链接，用到时在应用里引入一行：
+
+| 功能 | 引入 | 体积 | 不引入时 |
+| --- | --- | --- | --- |
+| 代码高亮（CodeEditor、TextView、Markdown 代码块） | `_ "github.com/dyike/keel/ui/highlight"` | 约 4 MB | 代码显示为纯文本，其他功能照常 |
+| 网络图片（Image、Avatar、Attachment、Markdown 图片的 http(s) 地址） | `_ "github.com/dyike/keel/ui/netimage"` | 约 4 MB | 本地文件和 data URL 照常，网络地址返回 `core.ErrNoImageFetcher` |
+
+Go 的兜底字体也只带常规、粗体、斜体、等宽、等宽粗体五款；界面优先用系统字体，兜底字体只在系统没有对应字体时使用。用 `keel build` 打包时还会去掉调试信息，一个只用 kit 的应用约 10 MB。
+
 ## 状态与布局
 
 加载、忙碌状态不改变焦点和 Tab 顺序，只忽略激活。

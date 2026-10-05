@@ -6,7 +6,6 @@ import (
 	"image/color"
 
 	"gioui.org/font"
-	"gioui.org/font/gofont"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
@@ -66,7 +65,7 @@ var Material = newMaterial()
 
 func newMaterial() *material.Theme {
 	th := material.NewTheme()
-	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
+	th.Shaper = text.NewShaper(text.WithCollection(fallbackFaces()))
 	th.Palette = material.Palette{Fg: Text, Bg: Surface, ContrastBg: Primary, ContrastFg: OnColor}
 	th.Face = Face
 	th.TextSize = BodySize
