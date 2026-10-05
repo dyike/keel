@@ -14,7 +14,7 @@
 
 ## 新增组件
 
-通用组件放在 `ui/kit`，一个组件一个文件，用 `ui/el` 写成视图。完整规范和验收清单在 [kit 组件规范](kit.md)，这里只走一遍骨架。以一个计数器为例（kit 已有 `NumberInput`，这里只为说明结构）：
+通用组件放在 `ui/kit`，一个组件一个文件，用 `ui/el` 写成视图。完整规范和验收清单在 [组件开发规范](component-development.md)，这里只走一遍骨架。以一个计数器为例（kit 已有 `NumberInput`，这里只为说明结构）：
 
 ```go
 // CounterView shows a number between − and + buttons.
@@ -65,7 +65,7 @@ func (v *CounterView) Render(cx *el.Context) el.Element {
 
 - `ui/kit/counter_test.go`：用 `page(v)`、`click(t, h, "名字")` 等辅助函数（在 `kit_test.go`）走真实输入路由；
 - `ui/window/kit_*_test.go`：Agent 快照里角色、名字、值、状态正确；需要单独列出子元素的容器角色加入 `containerRoles`，并补进 [Agent 端到端测试](automation.md#元素)的表；
-- `docs/kit/counter.md`，并在 [kit.md](kit.md) 的索引和 `ui/kit/README.md` 的表里登记；
+- `docs/kit/counter.md`，并在 [组件参考](kit.md) 的对应分类登记；
 - `examples/components/counter.go`，注册 `-section counter`。
 
 ## 新增原生能力

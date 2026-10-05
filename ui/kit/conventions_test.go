@@ -13,7 +13,7 @@ import (
 	"unicode"
 )
 
-// These tests enforce docs/kit.md so reviews do not have to.
+// These tests enforce docs/component-development.md so reviews do not have to.
 
 func kitPackage(t *testing.T, dir string) (*ast.Package, *token.FileSet) {
 	t.Helper()

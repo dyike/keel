@@ -1,65 +1,39 @@
 # Keel 文档
 
-Keel 用纯 Go 写桌面界面：界面由 [Gio](https://gioui.org) 绘制，Gio 没有的原生能力（权限、截图、合成输入、全局快捷键、系统通知、富剪贴板）在 macOS 上通过 cgo 调用系统 API，在 Windows 上直接调用 Win32，在 Linux 上走 X11、Wayland 和 D-Bus。应用代码里没有 HTML、CSS、JavaScript，也没有 WebView。`keel` 命令行工具负责新建项目和按平台打包。
+第一次使用，从“快速开始”运行第一个窗口。开发应用时查“编写应用”和“组件参考”；修改框架时再看“参与开发”。
 
-## 按你要做的事找文档
+## 开始使用
 
-| 你要做的事 | 看这篇 |
-| --- | --- |
-| 第一次跑起来，写出第一个窗口 | [快速开始](getting-started.md) |
-| 新建项目，带图标打包 .app / .exe / Linux 安装包 | [脚手架与打包](cli.md) |
-| 弄清模块怎么分、谁依赖谁、线程规则 | [架构](architecture.md)，以及每个模块目录下的 README |
-| 开窗口、窗口快捷键、离屏截图 | [窗口与应用](app.md) |
-| 用 GPUI 风格写界面：视图 + 链式样式 + flexbox | [元素与视图](el.md) |
-| 自己画外观，复用 kit 的键盘导航、首字母跳转、多选 | [无样式基础层](base.md) |
-| 切换主题、写主题文件、渐变、热重载、间距刻度 | [主题](theme.md) |
-| 渲染 AI 回答（流式 Markdown、代码高亮） | [Markdown](markdown.md) |
-| 查某个组件的 API | [kit 组件规范与索引](kit.md) |
-| 查看与 GPUI Kit 的实现进度和剩余缺口 | [组件进度对照](reports/gpui-progress-2026-10-02.md) |
-| 申请权限、截屏、模拟键鼠、全局快捷键 | [原生能力](native.md) |
-| 编译成 WebAssembly 在浏览器里运行 | [在浏览器里运行](web.md) |
-| 新增组件或原生能力 | [扩展指南](extending.md) |
-| 写测试、做截图对比 | [测试](testing.md) |
-| 让 Agent 点击、输入、截图，跑端到端测试 | [Agent 端到端测试](automation.md) |
-| 中文显示方框、快捷键不生效等问题 | [常见问题](troubleshooting.md) |
-| 为什么选 Gio、为什么只有一把锁 | [设计决策](decisions.md) |
+- [快速开始](getting-started.md)：安装环境、新建项目、写第一个窗口。
+- [脚手架与打包](cli.md)：项目配置、应用图标、各平台安装包。
+- [在浏览器里运行](web.md)：WebAssembly 构建与桌面版差异。
+- [迁移到当前 kit](migration-kit.md)：旧版本 API 的替换方式。
 
-## 三分钟版本
+## 编写应用
 
-```go
-package main
+- [元素与视图](el.md)：布局、状态、事件、焦点、滚动和浮层。
+- [窗口与应用](app.md)：多窗口、生命周期、快捷键与离屏截图。
+- [主题](theme.md)：配色、字体、尺寸、局部主题与动态效果。
+- [Markdown](markdown.md)：流式输出、代码块、缓存和定制。
+- [原生能力](native.md)：权限、截图、键鼠、全局快捷键、通知和剪贴板。
+- [无样式基础层](base.md)：复用键盘导航与多选行为，自定义控件外观。
 
-import (
-    "github.com/dyike/keel/ui/el"
-    "github.com/dyike/keel/ui/kit"
-    "github.com/dyike/keel/ui/window"
-)
+## 组件参考
 
-type hello struct {
-    name   *kit.InputView
-    result string
-}
+- [组件分类与公共约定](kit.md)：按用途查组件，查看 API 和交互示例。
 
-func (h *hello) Render(cx *el.Context) el.Element {
-    return el.Div().P(24).Gap(12).Child(
-        h.name.Render(cx),
-        el.Div().Row().Child(kit.Button("打招呼", func() { h.result = "你好，" + h.name.Value() }).Render(cx)),
-        el.Text(h.result),
-    )
-}
+## 测试与调试
 
-func main() {
-    window.Open(window.Options{Title: "Hello", Content: el.Root(&hello{name: kit.Input("你的名字")})})
-    window.Main()
-}
-```
+- [Agent 端到端测试](automation.md)：通过 MCP 启动应用、操作组件与截图。
+- [常见问题](troubleshooting.md)：环境、文字排版、刷新、窗口和权限问题。
+- [测试](testing.md)：交互回归、截图矩阵和真实窗口测试。
 
-视图是一个 struct，`Render` 按当前状态搭元素树；回调改字段，下一帧就画出来。写法见[元素与视图](el.md)，组件见 [kit](kit.md)。
+## 参与开发
 
-只要记住一条规则：**回调里直接改组件；其他 goroutine 改组件要包进 `core.Update`**。原因见[架构](architecture.md#线程规则)。
+- [架构](architecture.md)：模块职责、依赖边界与线程规则。
+- [扩展指南](extending.md)：新增组件、原生能力和示例的步骤。
+- [组件开发规范](component-development.md)：API、状态、文件组织与验收要求。
+- [组件视觉规范](visual-guidelines.md)：字号、尺寸、留白、颜色和交互状态。
+- [设计决策](decisions.md)：全局取舍与历史方案。
 
-## 维护这套文档
-
-- 文档里的代码都应该能编译。改了 API，搜一遍 `docs/` 里的旧名字。
-- 新增模块时：模块目录下写 README，更新 [架构](architecture.md#模块) 的模块图，在 `internal/deps` 的允许表里登记。
-- 做了影响全局的取舍（换依赖、改线程模型），在 [设计决策](decisions.md) 里加一条。
+各模块目录下的 README 记录源码职责和实现文件；提交贡献前阅读仓库的 [贡献说明](../CONTRIBUTING.md)。

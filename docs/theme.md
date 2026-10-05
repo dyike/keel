@@ -15,6 +15,36 @@ theme.Apply(myPalette)     // 应用一个没有名字的调色板
 
 内置主题：`light`、`dark`、`nord`、`paper`、`solarized-dark`、`high-contrast`，以及带渐变的 `aurora`。
 
+## 调色板与缓存
+
+`Light()`、`Dark()`、`Current()` 返回调色板副本。自定义时修改副本，再用 `Apply` 替换全部颜色；零值字段也会应用。
+
+```go
+p := theme.Light()
+p.Primary = theme.RGB(0x15803d)
+theme.Apply(p)
+```
+
+`Apply` 递增 `theme.Revision()`，使 `cx.Cache` 失效并请求重绘。自己的渲染缓存也要把版本号纳入键。颜色应在 Render 时读取；已经构造好的静态元素、自定义固定色和 Markdown 独立配色需要应用自行更新。直接修改包级颜色变量不会同步 Material、刷新缓存或请求重绘。
+
+| 颜色 | 浅色默认值 | 用在哪里 |
+| --- | --- | --- |
+| `Bg` | `#f5f6f8` | 窗口背景 |
+| `Surface` | `#ffffff` | 卡片、输入框底色 |
+| `Border` | `#e3e5e8` | 边框、分隔线 |
+| `Text` / `Muted` | `#1f2328` / `#6b7280` | 正文 / 次要文字、占位文字 |
+| `Primary` / `PrimaryHover` / `PrimaryText` | `#2563eb` / `#1d4ed8` / `#1d4ed8` | 主按钮、焦点边框 / 悬停 / 链接等蓝色文字 |
+| `Danger` / `DangerHover` / `DangerText` | `#dc2626` / `#b91c1c` / `#b91c1c` | 危险按钮 / 悬停 / 错误文字 |
+| `Success` / `Warning` / `Info` | `#15803d` / `#a16207` / `#0369a1` | 状态正文、图标 |
+| `Subtle` / `SubtleHover` | `#eceef1` / `#e2e5e9` | 次要按钮、悬停底色 |
+| `OnColor` | `#ffffff` | 实心主色、危险色背景上的文字 |
+| `Highlight` | `#dbeafe` | 选中行、选中项 |
+| `Scrim` | 40% 黑 | 模态浮层后面的遮罩 |
+| `CodeBg` / `CodeText` | `#f0f1f3` / `#1f2328` | 代码块 |
+| `Chart` | 8 个分类色 | 图表系列颜色，按顺序使用；浅色和深色各一套，均通过色觉缺陷校验 |
+
+`OnColor` 用于 Primary / Danger 实心背景，不保证适合所有状态色背景。成功、警告和提示颜色可以用于正文和图标。
+
 ## 主题文件
 
 主题文件是 JSON：选一个基础主题，只写要改的颜色。颜色名就是 `Palette` 的字段名，不区分大小写，值可以写成 `#rgb`、`#rgba`、`#rrggbb` 或 `#rrggbbaa`。
@@ -96,3 +126,24 @@ kit 的间距都已改用这套刻度；剩下的 10、14、20dp 是刻意的视
 ## 局部主题
 
 一个窗口里的某一块想换颜色（比如浅色窗口里的深色侧栏），用 `cx.Themed`，见[元素与视图 · 局部主题](el.md#局部主题)。
+
+自己写 Gio 绘制代码时，可以用 `theme.Scope(p)` 临时替换调色板，调用返回的函数恢复；Scope 不触发重绘或改变版本号。局部主题不会自动跟随系统外观。
+
+## 字体
+
+`theme.Face` 指定正文的字体优先级，逐字形回退；`theme.MonoFace` 指定等宽字体优先级。桌面版优先使用系统字体，兜底字体只在系统没有对应字体时使用。
+
+`theme.LoadFonts(data...)` 接收 TTF、OTF、TTC 文件的字节内容，加载后重绘所有窗口。浏览器通过 `theme.FetchFonts("font.ttf")` 下载并加载；中文字体准备见 [在浏览器里运行](web.md#构建)。
+
+`BodySize` / `SmallSize` / `HeadingSize` 分别为 15 / 13 / 22sp，标准单行字段高 `ControlHeight`（36dp）。直接使用 Gio 绘制时可复用 `theme.Material` 的字形排版器。
+
+## 系统减少动画
+
+macOS 运行 `window.Main()` 后默认跟随系统“减少动态效果”，包括运行时变化。应用可以覆盖或恢复这个偏好：
+
+```go
+theme.SetReducedMotion(true) // 显式关闭动画
+theme.FollowSystemMotion()   // 恢复跟随最近的系统值
+```
+
+在 UI 回调或 `core.Update` 内调用。自动化模式使用显式覆盖，保持截图稳定；其他平台默认允许动画，应用仍可关闭。

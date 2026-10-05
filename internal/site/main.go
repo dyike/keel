@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/dyike/keel/internal/svgicon"
@@ -65,6 +64,7 @@ type site struct {
 type page struct {
 	Src, Out string // repository paths: the .md file and the .html file
 	Title    string
+	NavTitle string // optional shorter label in the sidebar
 	Group    string
 	Section  string // gallery section to embed, or ""
 	HTML     template.HTML
@@ -79,8 +79,9 @@ type heading struct {
 }
 
 type navGroup struct {
-	Title string
-	Pages []*page
+	Title    string
+	Pages    []*page
+	Children []navGroup
 }
 
 // excluded directories hold working notes and dependencies, not documentation.
@@ -112,12 +113,15 @@ func (s *site) build(demo string) error {
 			return fmt.Errorf("%s: %w", p.Src, err)
 		}
 	}
-	s.buildNav()
+	if err := s.buildNav(); err != nil {
+		return err
+	}
 	if err := os.RemoveAll(s.out); err != nil {
 		return err
 	}
 	tmpl, err := template.New("layout.html").Funcs(template.FuncMap{
 		"rel": func(from *page, to string) string { return relURL(from.Out, to) },
+		"nav": navigationView,
 	}).ParseFS(assets, "assets/layout.html")
 	if err != nil {
 		return err
@@ -249,36 +253,6 @@ func (s *site) findSections() error {
 		}
 	}
 	return nil
-}
-
-var linkRE = regexp.MustCompile(`\]\(([^)#\s]+\.md)(#[^)]*)?\)`)
-
-// buildNav orders the guide as docs/README.md lists it, and everything else
-// by title.
-func (s *site) buildNav() {
-	var guide []*page
-	if readme, err := os.ReadFile(filepath.Join(s.root, "docs/README.md")); err == nil {
-		for _, m := range linkRE.FindAllStringSubmatch(string(readme), -1) {
-			if p := s.pages[path.Join("docs", m[1])]; p != nil && p.Group == "指南" && !slices.Contains(guide, p) {
-				guide = append(guide, p)
-			}
-		}
-	}
-	if p := s.pages["docs/README.md"]; p != nil {
-		guide = append([]*page{p}, guide...)
-	}
-	groups := map[string][]*page{}
-	for _, p := range s.order {
-		if p.Group == "指南" && slices.Contains(guide, p) {
-			continue
-		}
-		groups[p.Group] = append(groups[p.Group], p)
-	}
-	for _, g := range groups {
-		sort.Slice(g, func(i, j int) bool { return strings.ToLower(g[i].Title) < strings.ToLower(g[j].Title) })
-	}
-	guide = append(guide, groups["指南"]...)
-	s.nav = []navGroup{{"指南", guide}, {"组件", groups["组件"]}, {"模块", groups["模块"]}, {"示例", groups["示例"]}}
 }
 
 func (s *site) write(rel string, data []byte) error {

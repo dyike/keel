@@ -1,139 +1,147 @@
-# kit 组件规范
+# 组件参考
 
-组件放在 `ui/kit`，用 `ui/el` 组织元素、布局和交互。演进过程见[设计决策](decisions.md#新组件基于-eluiwidget-冻结)。
+`ui/kit` 提供现成的 el 视图。按用途从下面的分类找组件，每篇文档包含用法、API 和交互说明；在线文档中的示例可以直接操作。
 
-## 模块与 API
+## 基础展示
 
-kit 的枚举常量一律以类型名作前缀，去掉类型名中的 Name / Shape / Status / Variant 后缀：ToneNeutral / ToneInfo / ToneSuccess / ToneWarning / ToneDanger，AvatarOnline / AvatarBusy / AvatarOffline，ButtonPrimary / ButtonSecondary / ButtonGhost / ButtonDanger；IconCheck、MarkerDot 沿用现有命名。不保留旧名称的兼容别名。el 是底层布局库，el.Bottom、el.Start 等布局短名不受这条规则限制。
+| 组件 | 用途 |
+| --- | --- |
+| [Label](kit/label.md) | 可换行标签、次级文案与关键词高亮 |
+| [Icon](kit/icon.md) | 矢量图标 |
+| [Image](kit/image.md) | 图片：异步加载、SVG、GIF 动图、内存与磁盘缓存、预览 |
+| [Avatar](kit/avatar.md) | 固定尺寸头像和姓名回退 |
+| [AvatarGroup](kit/avatar_group.md) | 叠放头像组、人数上限与溢出标记 |
+| [Badge](kit/badge.md) | 数字/圆点/图标角标、尺寸与自定义颜色 |
+| [Tag](kit/tag.md) | 可选择/移除标签，描边、尺寸、圆角、自定义内容与配色 |
+| [Marker](kit/marker.md) | 纯图形标记 |
+| [StatusMarker](kit/status_marker.md) | 消息状态、时间线边界和系统提示 |
+| [Kbd](kit/kbd.md) | 快捷键键帽、平台格式、独立/继承字号与自定义样式 |
+| [DescriptionList](kit/description_list.md) | 多列/跨列、横纵标签、自定义值与分隔线 |
+| [GroupBox](kit/group_box.md) | 标题/描述分组、外观、框外 footer 与样式配置 |
 
-kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`；不引用 `window`。el 缺少的基础能力先在 el 中实现，不在各组件里复制 Gio 输入路由、定时或浮层机制。依赖测试按传递依赖登记 `internal/loop`、`internal/editorstyle` 和 `internal/inputcontent`，它们不是 kit 的直接依赖。
+## 操作与导航
 
-构造函数 `Xxx(...)` 返回 `*XxxView`。组件以 `Render(*el.Context) el.Element` 接入 el，实例保留业务状态，Render 根据当前状态生成元素树。动态列表使用稳定 ID，不用数组位置代表可移动项目。
+| 组件 | 用途 |
+| --- | --- |
+| [Button](kit/button.md) | 操作按钮、图标、键盘与加载状态、选中状态 |
+| [ButtonGroup](kit/button_group.md) | 几个按钮连成一体，横向或竖向 |
+| [Link](kit/link.md) | 链接 |
+| [CopyButton](kit/copy_button.md) | 复制并显示反馈 |
+| [Tabs](kit/tabs.md) | 四种外观、图标/富标签、单项禁用、宽度上限、滚动/溢出与拖动重排 |
+| [Accordion](kit/accordion.md) | 折叠面板、四档尺寸、边框开关 |
+| [Collapsible](kit/collapsible.md) | 独立触发器与内容、可中断展开动画 |
+| [Pagination](kit/pagination.md) | 分页 |
+| [Stepper](kit/stepper.md) | 横纵步骤进度、图标、尺寸、单步禁用 |
+| [Command](kit/command.md) | 命令面板 |
 
-有值的交互组件提供 `Value()`、`SetValue(...)`、链式 `OnChange(...)`、`SetDisabled(bool)`。程序赋值不触发回调，只有用户操作触发。按钮等动作组件使用点击回调和 `SetDisabled`，纯展示组件不强加值与回调接口。返回切片等可变值时不能暴露内部存储。
+## 输入与选择
+
+| 组件 | 用途 |
+| --- | --- |
+| [Input / TextArea](kit/input.md) | 文本框、前后缀、清空、错误 |
+| [Input Group](kit/input_group.md) | 输入/多行编辑器与四方向附加内容 |
+| [Checkbox](kit/checkbox.md) | 复选框、半选 |
+| [Switch](kit/switch.md) | 开关 |
+| [Radio](kit/radio.md) | 可以放在任意位置的单个单选按钮 |
+| [RadioGroup](kit/radio_group.md) | 单选组 |
+| [Toggle](kit/toggle.md) | 保持按下的按钮 |
+| [ToggleGroup](kit/toggle_group.md) | 单选或多选按钮组 |
+| [Select](kit/select.md) | 下拉选择、可搜索 |
+| [Combobox](kit/combobox.md) | 可筛选输入 |
+| [NumberInput](kit/number_input.md) | 数字输入 |
+| [OtpInput](kit/otp_input.md) | 验证码、密码遮罩、分组与尺寸 |
+| [TimeField](kit/time_field.md) | 时间输入 |
+| [Calendar](kit/calendar.md) | 日历、范围 |
+| [DatePicker](kit/date_picker.md) | 日期字段 |
+| [Slider](kit/slider.md) | 线性/对数滑块、范围选择与结束回调 |
+| [Rating](kit/rating.md) | 星级评分、已填星减分、自定义尺寸与颜色 |
+| [ColorPicker](kit/color_picker.md) | 颜色选择 |
+| [Form](kit/form.md) | 表单与校验 |
+| [Questionnaire](kit/questionnaire.md) | 分页问卷与答案模型 |
+
+## 浮层与反馈
+
+| 组件 | 用途 |
+| --- | --- |
+| [Popover](kit/popover.md) | 触发元素旁的非模态面板 |
+| [Tooltip](kit/tooltip.md) | 富内容提示、动作键位与定位 |
+| [HoverCard](kit/hover_card.md) | 悬停预览、实例延时与锚点定位 |
+| [Menu](kit/menu.md) | 命令菜单与子菜单 |
+| [DropdownButton](kit/dropdown_button.md) | 带菜单的按钮、分体按钮 |
+| [Dialog](kit/dialog.md) | 模态对话框、确认框；`Show(cx)` 不用放进视图树 |
+| [Sheet](kit/sheet.md) | 贴边滑入的模态面板，可拖动调整尺寸；`Show(cx)` 不用放进视图树 |
+| [Notifier](kit/notifier.md) | 八个方位的通知栈、富内容与操作、系统通知投递；`WindowNotifier(cx)` 是窗口自带的一个 |
+| [Alert](kit/alert.md) | 行内/横幅提示、尺寸、图标与富内容，支持浅深色 |
+| [Empty](kit/empty.md) | 空状态富内容、媒体、操作/尾部与分区样式 |
+| [Spinner](kit/spinner.md) | 不确定进度、减少动画、自定义图标/颜色/周期 |
+| [Skeleton](kit/skeleton.md) | 占位、圆形、自定义圆角、次级色阶与 Shimmer 扫光 |
+| [Progress](kit/progress.md) | 进度条、自定义高度/颜色/圆角与轨道样式 |
+| [ProgressCircle](kit/progress_circle.md) | 圆形进度、中心内容与不确定状态 |
+| [ShimmerText](kit/shimmer_text.md) | 文字扫光 |
+
+## 列表与表格
+
+| 组件 | 用途 |
+| --- | --- |
+| [List](kit/list.md) | 长列表：单选/多选、搜索、分组、加载更多、状态插槽、拖动重排 |
+| [VirtualList](kit/virtual_list.md) | 等高虚拟列表 |
+| [VariableList](kit/variable_list.md) | 自然高度虚拟列表、稳定 key 与阅读位置保持 |
+| [Tree](kit/tree.md) | 树：懒加载、多选、拖动重排（自动展开与滚动） |
+| [Table](kit/table.md) | 表格：排序、列宽、单元格插槽 |
+
+## 聊天与内容
+
+| 组件 | 用途 |
+| --- | --- |
+| [Message](kit/message.md) | 对话消息 |
+| [MessageContent](kit/message_content.md) | 一条消息里混排多个气泡、附件和视图 |
+| [MessageGroup](kit/message_group.md) | 连续消息分组 |
+| [Bubble](kit/bubble.md) | 聊天气泡 |
+| [BubbleGroup](kit/bubble_group.md) | 连续气泡分组 |
+| [MessageScroller](kit/message_scroller.md) | 对话滚动区 |
+| [Attachment](kit/attachment.md) | 附件卡片 |
+| [AttachmentGroup](kit/attachment_group.md) | 横向排列、可滚动的附件组 |
+| [CodeEditor](kit/code_editor.md) | 代码编辑器：高亮、补全、诊断、多光标、折叠、软换行、查找替换 |
+
+## 图表与绘图
+
+| 组件 | 用途 |
+| --- | --- |
+| [Chart](kit/chart.md) | 折线图、面积图、柱状图、堆叠柱状图 |
+| [PieChart](kit/pie_chart.md) | 饼图、环形图、交互图例 |
+| [CandlestickChart](kit/candlestick_chart.md) | 开高低收、密集聚合、数据表 |
+| [RadarChart](kit/radar_chart.md) | 雷达图 |
+| [SankeyChart](kit/sankey_chart.md) | 桑基图 |
+| [Plot](kit/plot.md) | 可缩放平移的 x/y 绘图 |
+| [公共绘图基础件](kit/plot_primitives.md) | `ui/plot`：自定义图表的比例尺与即时绘制 |
+
+## 应用布局
+
+| 组件 | 用途 |
+| --- | --- |
+| [TitleBar](kit/title_bar.md) | 无边框窗口的标题栏 |
+| [Sidebar](kit/sidebar.md) | 导航侧栏 |
+| [Toolbar](kit/toolbar.md) | 工具栏与溢出菜单 |
+| [StatusBar](kit/status_bar.md) | 固定 24dp 左右状态栏 |
+| [Resizable](kit/resizable.md) | 可拖动分隔的两栏 |
+| [ResizableGroup](kit/resizable_group.md) | 多面板分割，横纵和嵌套 |
+| [Dock](kit/dock.md) | 可停靠面板、拆分、最大化、收起侧栏、跨窗口与布局保存 |
+| [Settings](kit/settings.md) | 设置页 |
+| [Carousel](kit/carousel.md) | 轮播：多项视口、拖动、触控板与滚轮、循环轨道 |
+
+## 公共用法
+
+组件实例保存状态，应在构造视图时创建一次，保存在字段里，再在 `Render(cx)` 中使用。`SetValue` 是程序赋值，不触发 `OnChange`；用户操作才触发回调。后台更新遵守 [线程规则](architecture.md#线程规则)。
+
+浮层组件需要放在 `el.Root` 中。布局和组合见 [元素与视图](el.md)，颜色和尺寸见 [主题](theme.md)，新增框架组件见 [组件开发规范](component-development.md)。
 
 ## 可选功能与体积
 
-两个功能依赖较大的库，默认不链接，用到时在应用里引入一行：
+代码高亮和网络图片按需引入：
 
-| 功能 | 引入 | 体积 | 不引入时 |
-| --- | --- | --- | --- |
-| 代码高亮（CodeEditor、TextView、Markdown 代码块） | `_ "github.com/dyike/keel/ui/highlight"` | 约 4 MB | 代码显示为纯文本，其他功能照常 |
-| 网络图片（Image、Avatar、Attachment、Markdown 图片的 http(s) 地址） | `_ "github.com/dyike/keel/ui/netimage"` | 约 4 MB | 本地文件和 data URL 照常，网络地址返回 `core.ErrNoImageFetcher` |
+| 功能 | 引入 | 不引入时 |
+| --- | --- | --- |
+| 代码高亮：CodeEditor、TextView、Markdown 代码块 | `_ "github.com/dyike/keel/ui/highlight"` | 显示纯文本 |
+| 网络图片：Image、Avatar、Attachment、Markdown 的 http(s) 地址 | `_ "github.com/dyike/keel/ui/netimage"` | 本地文件和 data URL 照常，网络地址返回 `core.ErrNoImageFetcher` |
 
-Go 的兜底字体也只带常规、粗体、斜体、等宽、等宽粗体五款；界面优先用系统字体，兜底字体只在系统没有对应字体时使用。用 `keel build` 打包时还会去掉调试信息，一个只用 kit 的应用约 10 MB。
-
-## 状态与布局
-
-加载、忙碌状态不改变焦点和 Tab 顺序，只忽略激活。
-
-回调在帧锁内改状态；后台任务通过 `core.Update` 返回 UI。组件不能根据 `gtx.Enabled()` 为 false 重置跨帧状态：它也可能表示 el 测量或离屏布局没有输入源。关闭菜单、停止拖动等重置放在 `SetDisabled(true)` 中；事件、外观与语义遵守父级禁用状态。
-
-装饰的显示、隐藏和内容变化不应改变宿主尺寸或基线，例如 Badge 计数变化不能让按钮跳动。普通内容变化可以重新排版。窄容器中遵守约束；文本检查中文、拉丁字母、数字、混排、1×/2×缩放，输入光标和选择区使用统一字形度量，不按某个截图硬补偏移。
-
-圆角、字号、阴影只用 `theme` 的刻度（`scale.go`），不写数字：同一种角色在各组件里看起来一样，改设计只改刻度。卡片用 `surface()`，浮在页面上的层（菜单、弹层、下拉、对话框、通知）用 `floating(层级)`，带阴影。
-
-所有文本类字段（Input、NumberInput、Select、Combobox、TimeField、DatePicker、InputGroup、ColorPicker 的十六进制框，以及 Select、Command、Settings 的搜索框）都用 `ui/kit/field.go` 里同一个 `fieldFrame` 画外框：高 `theme.ControlHeight`（36dp）、左右内边距 10dp、圆角 6dp，边框按"错误 → 聚焦 → 常态"取色，禁用和只读用 Subtle 底色。搜索框统一用 `searchField`，前面带搜索图标。包着文本输入的外框都调用 `FocusOnPress`，点外框任何空白处都聚焦文字。改字段外观只改这一处，不在组件里另写边框和内边距；`TestFieldsShareControlHeight` 检查各字段等高。
-
-框架自己的文字（按钮文案、无障碍名称、占位文字、计数）一律在 Render 时从 `locale.Current()` 读取，不在构造时保存，也不写死中文；`internal/deps` 的测试会拦下写死的中文字符串。拼接"动作 + 对象"形式的名称时用 `locale.Current().Name(action, target)`。应用传进来的文字（标题、菜单项）原样使用。
-
-颜色在 Render 时读取 theme 语义色，不在构造函数中保存主题快照。自定义固定色属于显式覆盖；主题切换不会替应用推断其含义。缓存必须包含主题版本，或使用支持主题失效的 `cx.Cache`。M0 不提供局部主题作用域。
-
-交互组件支持鼠标和键盘；禁用时不能激活或获得焦点，Agent 快照报告 disabled。焦点、按键、禁用、定时、浮层的具体新 API 在对应阶段 review，不在本规范预先定型。
-
-浮层组件必须先创建面板并调用 `cx.Overlay`，再渲染 Body / Footer 的内容并追加到面板。内容本身可能登记子浮层；顺序反过来会让子菜单早于父层登记，因锚点尚不可用而被关闭。模态组件用 `Layer.Owner` 绑定所属元素，继承外层的禁用和隐藏。验收必须包含真实嵌套打开、逐层 Esc、焦点返回和祖先禁用，不能只测试独立弹层。
-
-## 文件模板与验收
-
-一个组件对应 `ui/kit/<name>.go`、`<name>_test.go`、`docs/kit/<name>.md`、`examples/components/<name>.go`。在 kit README 和文档索引登记。示例注册独立 `-section <name>`，展示常用状态、边界和浅深色。
-
-组件文档包含用途、最小用法、公开 API、键盘操作（适用时）、语义、边界和验证入口；测试验证用户可观察行为，不复制实现算法。
-
-`ui/kit/conventions_test.go` 自动检查其中可以机器判断的部分：每个组件都有文档、同名示例 section 和 `ui/window` 中的 Agent 测试；枚举常量带类型名前缀；kit 和 el 的公开 API 没有兼容入口或别名。新增的 Agent 角色不需要在自动化代码里登记，只有需要单独列出子元素的容器角色才加入 `containerRoles`。
-
-提交前逐项检查：
-
-- `uitest` 驱动布局与交互；纯展示组件检查尺寸、约束、状态和颜色。
-- `ui/window` Agent 快照覆盖名称、角色、值和状态；新增 role 同步 `automation.go` 与 `docs/automation.md`。
-- 有交互时覆盖键盘、禁用、恢复、程序赋值不触发回调；嵌入 el 后连续多帧不丢状态。
-- 示例可运行，浅深色和文字布局经过截图检查。
-- 公开 API、组件文档、README、示例同时更新。
-- `go build ./... && go vet ./ui/... && go test ./... -count=1` 全部通过，包括 `cmd/keel-mcp` 端到端测试。
-
-每个组件完成后单独提交，再开始下一个。
-
-## 已实现组件
-
-- [Kbd](kit/kbd.md)：继承字号的快捷键键帽，支持平台格式和 Plain。
-
-- [Button](kit/button.md)：操作按钮，支持焦点、禁用、图标、选中和固定尺寸的加载状态。
-- [ButtonGroup](kit/button_group.md)：几个按钮连成一体的按钮组，横向或竖向。
-
-- [Alert](kit/alert.md)：行内/横幅状态提示，支持尺寸、图标与富正文。
-- [Empty](kit/empty.md)：空状态说明。
-- [Avatar](kit/avatar.md)：图片、URL 加载与姓名回退头像。
-- [AvatarGroup](kit/avatar_group.md)：叠放头像组、人数上限与溢出标记。
-- [Tag](kit/tag.md)：可选择/移除标签，支持描边、尺寸、圆角、自定义内容与配色。
-- [DescriptionList](kit/description_list.md)：多列/跨列字段说明、横纵标签与分隔线。
-- [GroupBox](kit/group_box.md)：标题/描述分组，支持外观、框外 footer 与样式配置。
-- [StatusBar](kit/status_bar.md)：状态与详情栏。
-- [Marker](kit/marker.md)：纯图形标记。
-
-[Icon](kit/icon.md)：矢量图标，默认颜色随主题切换。
-
-主题文本使用场景：选中底色 Highlight 上使用 PrimaryText；Primary 保留为按钮背景和描边。Markdown 默认使用 CodeBg/CodeText，旧包级颜色变量的零值表示跟随主题，CodeStyle 为空时按背景自动选择 github/github-dark。
-
-[Spinner](kit/spinner.md)：支持减少动画的不确定进度。
-
-[Skeleton](kit/skeleton.md)：占位、圆形和 Shimmer 扫光。
-
-表单控件：
-
-- [Checkbox](kit/checkbox.md)、[Switch](kit/switch.md)、[RadioGroup](kit/radio_group.md)、[Radio](kit/radio.md)、[Toggle](kit/toggle.md)、[ToggleGroup](kit/toggle_group.md)：选择与开关。
-- [Input / TextArea](kit/input.md)：文本框，支持前后缀、清空、错误提示。
-- [Input Group](kit/input_group.md)：统一边框的输入/多行编辑器与四方向图标、文字、按钮组合。
-- [Select](kit/select.md)、[Combobox](kit/combobox.md)：下拉选择、可筛选输入。
-- [NumberInput](kit/number_input.md)、[OtpInput](kit/otp_input.md)、[TimeField](kit/time_field.md)：数字、验证码、时间。
-- [Calendar](kit/calendar.md)、[DatePicker](kit/date_picker.md)：日期与日期范围。
-- [Slider](kit/slider.md)、[Rating](kit/rating.md)、[Stepper](kit/stepper.md)：线性/对数数值、评分、横纵步骤（图标、尺寸、单步禁用）。
-- [Form](kit/form.md)：两列表单与统一校验。
-
-数据与长内容：
-
-- [VirtualList](kit/virtual_list.md)、[List](kit/list.md)、[Tree](kit/tree.md)：只构建可见行的列表和树。
-- [Table](kit/table.md)、[Pagination](kit/pagination.md)：表格与分页。
-- [Command](kit/command.md)：命令面板。
-- [Message](kit/message.md)、[Bubble](kit/bubble.md)、[MessageScroller](kit/message_scroller.md)、[Attachment](kit/attachment.md)：对话界面。
-
-基础组件：[Tabs](kit/tabs.md)、[Accordion](kit/accordion.md)、[Collapsible](kit/collapsible.md)、[Badge](kit/badge.md)、[Progress](kit/progress.md)、[ProgressCircle](kit/progress_circle.md)、[Link](kit/link.md)、[Image](kit/image.md)。
-
-应用外壳：[TitleBar](kit/title_bar.md)、[Sidebar](kit/sidebar.md)、[Toolbar](kit/toolbar.md)、[Resizable](kit/resizable.md)、[Dock](kit/dock.md)、[Settings](kit/settings.md)、[Carousel](kit/carousel.md)。
-
-可视化与专项：[Chart](kit/chart.md)、[PieChart](kit/pie_chart.md)、[CandlestickChart](kit/candlestick_chart.md)、[Plot](kit/plot.md)、[ColorPicker](kit/color_picker.md)、[Questionnaire](kit/questionnaire.md)。
-
-浮层组件（需要 `el.Root`）：
-
-- [Popover](kit/popover.md)：触发元素旁的非模态面板。
-- [Tooltip](kit/tooltip.md)：悬停或键盘聚焦时的简短提示。
-- [HoverCard](kit/hover_card.md)：悬停预览卡片。
-- [Menu](kit/menu.md)：命令菜单，支持子菜单和键盘导航。
-- [DropdownButton](kit/dropdown_button.md)：带菜单的按钮和分体按钮。
-- [Dialog](kit/dialog.md)：模态对话框和标准确认框。
-- [Sheet](kit/sheet.md)：贴边滑入的模态面板。
-- [Notifier](kit/notifier.md)：右上角通知栈。
-
-其他：[CopyButton](kit/copy_button.md)，复制到剪贴板并显示反馈。
-
-DangerText 用于 Alert/Tag 等表面上的危险状态文字；Danger 仍用于实心危险按钮。两套默认配色的状态文字对 Surface 均以 4.5:1 为最低对比度验收。
-
-### 系统减少动画
-
-macOS 运行 `window.Main()` 后默认跟随系统“减少动态效果”，包括运行时变化。`theme.SetReducedMotion(bool)` 设置应用覆盖值；`theme.FollowSystemMotion()` 恢复跟随最近的系统值。两者在 UI 回调或 `core.Update` 内调用。自动化模式使用显式覆盖，保持截图稳定。其他平台默认允许动画，应用仍可显式关闭。
-
-原生观察者使用 [NSWorkspace 的辅助功能显示通知](https://developer.apple.com/documentation/appkit/nsworkspace/accessibilitydisplayoptionsdidchangenotification)，登记在 workspace 自己的 notification center。原生主线程不得等待 UI 帧锁；回调入队后由后台消费者更新主题。
-
-## 视觉验收
-
-字号、尺寸、间距和交互状态的共同约定见 [组件视觉规范](visual-guidelines.md)。
-
-旧组件与本轮接口变更的迁移说明见 [迁移到当前 kit](migration-kit.md)。
+两项各增加约 4 MB。`keel build` 默认去掉调试信息，只使用 kit 的应用约 10 MB。

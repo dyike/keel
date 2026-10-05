@@ -18,7 +18,7 @@
   <a class="brand" href="{{.Root}}"><img class="logo" src="{{.Root}}favicon.svg" alt="" width="26" height="26">Keel</a>
   {{with .Version}}<a class="version" href="{{$.Repo}}/releases/tag/{{.}}" title="版本说明">{{.}}</a>{{end}}
   <nav class="links">
-    <a href="{{.Root}}docs/getting-started.html">文档</a>
+    <a href="{{.Root}}docs/">文档</a>
     <a href="{{.Root}}docs/kit.html">组件</a>
     <a href="{{.Demo}}">在线组件库</a>
   </nav>
@@ -44,12 +44,7 @@
 {{end}}
 <div class="layout{{if .Home}} home{{end}}">
   <aside class="side">
-    {{range .Nav}}{{if .Pages}}
-    <details open>
-      <summary>{{.Title}}</summary>
-      <ul>{{range .Pages}}<li><a href="{{rel $.Page .Out}}"{{if eq .Out $.Page.Out}} aria-current="page"{{end}}>{{.Title}}</a></li>{{end}}</ul>
-    </details>
-    {{end}}{{end}}
+    {{range .Nav}}{{template "navGroup" (nav $.Page .)}}{{end}}
   </aside>
   <main>
     <article>
@@ -74,3 +69,11 @@
 </div>
 </body>
 </html>
+
+{{define "navGroup"}}
+<details{{if .Open}} open{{end}}>
+  <summary>{{.Group.Title}}</summary>
+  {{with .Group.Pages}}<ul>{{range .}}<li><a href="{{rel $.Page .Out}}"{{if eq .Out $.Page.Out}} aria-current="page"{{end}}>{{if .NavTitle}}{{.NavTitle}}{{else}}{{.Title}}{{end}}</a></li>{{end}}</ul>{{end}}
+  {{with .Group.Children}}<div class="nav-children">{{range .}}{{template "navGroup" (nav $.Page .)}}{{end}}</div>{{end}}
+</details>
+{{end}}

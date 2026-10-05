@@ -60,8 +60,12 @@ a:hover { text-decoration: underline; }
 .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr) 210px; max-width: 1400px; margin: 0 auto; }
 .layout.home { grid-template-columns: 250px minmax(0, 1fr) 0; }
 .side { position: sticky; top: var(--header); height: calc(100vh - var(--header)); overflow: auto; padding: 20px 12px 40px 20px; border-right: 1px solid var(--border); font-size: 14px; }
-.side summary { cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; margin: 14px 0 4px; list-style: none; }
+.side summary { cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; margin: 14px 0 4px; list-style: none; display: flex; align-items: center; justify-content: space-between; }
 .side summary::-webkit-details-marker { display: none; }
+.side summary::after { content: "›"; font-size: 16px; line-height: 1; }
+.side details[open] > summary::after { transform: rotate(90deg); }
+.nav-children { padding-left: 10px; margin-left: 5px; border-left: 1px solid var(--border); }
+.nav-children summary { letter-spacing: 0; margin-top: 10px; }
 .side ul { list-style: none; margin: 0; padding: 0; }
 .side li a { display: block; padding: 4px 10px; border-radius: 6px; color: var(--text); line-height: 1.5; }
 .side li a:hover { background: var(--bg-soft); text-decoration: none; }
