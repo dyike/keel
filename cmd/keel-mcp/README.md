@@ -3,7 +3,7 @@
 MCP server：让 Agent 对 Keel 应用做端到端测试。启动应用（或连接你用 `KEEL_AUTOMATION=1` 启动的应用），读出窗口里的元素，点击、输入、按键、滚动、截图。
 
 ```sh
-go install ./cmd/keel-mcp
+go install github.com/dyike/keel/cmd/keel-mcp@latest
 claude mcp add keel -- keel-mcp
 ```
 

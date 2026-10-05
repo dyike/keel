@@ -11,12 +11,12 @@
 
 ## 接入
 
-在 Keel 仓库里：
-
 ```sh
-go install ./cmd/keel-mcp
+go install github.com/dyike/keel/cmd/keel-mcp@latest
 claude mcp add keel -- keel-mcp
 ```
+
+修改 keel-mcp 本身时，在仓库里用 `go install ./cmd/keel-mcp` 装本地版本。
 
 `claude mcp add` 会写入 Claude Code 的配置。其他支持 MCP 的客户端，把 `keel-mcp` 配成 stdio 类型的 server 即可。`keel-mcp` 不需要参数；要测哪个应用，在 `launch` 工具里指定。
 
