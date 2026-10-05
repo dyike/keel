@@ -67,9 +67,14 @@ type page struct {
 	NavTitle string // optional shorter label in the sidebar
 	Group    string
 	Section  string // gallery section to embed, or ""
+	DemoFile string // source of this gallery section
+	DemoURL  string
+	DemoCode template.HTML
 	HTML     template.HTML
 	TOC      []heading
 	Text     string // plain text, for search
+	Previous *page
+	Next     *page
 }
 
 type heading struct {
@@ -116,6 +121,7 @@ func (s *site) build(demo string) error {
 	if err := s.buildNav(); err != nil {
 		return err
 	}
+	s.linkReadingOrder()
 	if err := os.RemoveAll(s.out); err != nil {
 		return err
 	}
@@ -166,6 +172,11 @@ func (s *site) build(demo string) error {
 		}
 	}
 	if err := s.writeIcons(); err != nil {
+		return err
+	}
+	// Keep the former scaffold page reachable after merging it into the
+	// getting-started guide, without adding another navigation/search entry.
+	if err := s.write("docs/cli.html", []byte(scaffoldRedirect)); err != nil {
 		return err
 	}
 	// GitHub Pages would otherwise run Jekyll and drop files it dislikes.
@@ -236,24 +247,49 @@ func (s *site) findSections() error {
 	if err != nil {
 		return err
 	}
+	sectionFiles := map[string]string{}
+	sectionCode := map[string][]byte{}
 	for _, f := range files {
 		data, err := os.ReadFile(f)
 		if err != nil {
 			return err
 		}
 		for _, m := range sectionRE.FindAllSubmatch(data, -1) {
-			s.sections[string(m[1])] = true
+			name := string(m[1])
+			if previous := sectionFiles[name]; previous != "" {
+				return fmt.Errorf("gallery section %s is registered in both %s and %s", name, previous, f)
+			}
+			s.sections[name] = true
+			rel, err := filepath.Rel(s.root, f)
+			if err != nil {
+				return err
+			}
+			sectionFiles[name] = filepath.ToSlash(rel)
+			sectionCode[name] = data
 		}
 	}
 	for _, p := range s.order {
 		if name, ok := strings.CutPrefix(p.Src, "docs/kit/"); ok {
-			if name = strings.TrimSuffix(name, ".md"); s.sections[name] {
-				p.Section = name
+			name = strings.TrimSuffix(name, ".md")
+			if !s.sections[name] {
+				return fmt.Errorf("%s: no registered gallery example", p.Src)
 			}
+			p.Section = name
+			p.DemoFile = sectionFiles[name]
+			p.DemoURL = s.repo + "/blob/" + s.branch + "/" + p.DemoFile
+			var code bytes.Buffer
+			if err := renderCode(&code, "go", string(sectionCode[name])); err != nil {
+				return fmt.Errorf("%s: render example: %w", p.DemoFile, err)
+			}
+			p.DemoCode = template.HTML(code.String())
 		}
 	}
 	return nil
 }
+
+const scaffoldRedirect = `<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=getting-started.html"><title>快速开始 · Keel</title><link rel="canonical" href="getting-started.html"></head>
+<body><p>脚手架与打包已并入<a href="getting-started.html">快速开始</a>。</p><script>location.replace("getting-started.html" + location.search + location.hash);</script></body></html>`
 
 func (s *site) write(rel string, data []byte) error {
 	p := filepath.Join(s.out, filepath.FromSlash(rel))

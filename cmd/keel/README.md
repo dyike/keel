@@ -1,6 +1,6 @@
 # cmd/keel
 
-Keel 的脚手架：`keel new` 新建项目，`keel run` 运行，`keel build` 按平台打包（带图标、名称、版本），`keel doctor` 检查环境。用法见 [docs/cli.md](../../docs/cli.md)。
+Keel 的脚手架：`keel new` 新建项目，`keel run` 运行，`keel build` 按平台打包（带图标、名称、版本），`keel doctor` 检查环境。用法见 [快速开始](../../docs/getting-started.md)。
 
 ```sh
 go install github.com/dyike/keel/cmd/keel@latest

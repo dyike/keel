@@ -11,7 +11,7 @@
   // Copy buttons on code blocks.
   for (const b of document.querySelectorAll(".code .copy")) {
     b.addEventListener("click", async () => {
-      const code = b.parentElement.querySelector("pre").innerText;
+      const code = b.parentElement.querySelector("pre").textContent;
       try {
         await navigator.clipboard.writeText(code);
         b.textContent = "已复制";

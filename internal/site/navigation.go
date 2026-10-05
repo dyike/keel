@@ -147,6 +147,26 @@ type navView struct {
 	Open  bool
 }
 
+// Follow the sidebar's reading order, including nested component categories.
+// The home page is not part of the documentation sequence.
+func (s *site) linkReadingOrder() {
+	var previous *page
+	var visit func([]navGroup)
+	visit = func(groups []navGroup) {
+		for _, group := range groups {
+			for _, p := range group.Pages {
+				p.Previous, p.Next = previous, nil
+				if previous != nil {
+					previous.Next = p
+				}
+				previous = p
+			}
+			visit(group.Children)
+		}
+	}
+	visit(s.nav)
+}
+
 func navigationView(p *page, group navGroup) navView {
 	return navView{Page: p, Group: group, Open: group.Title == "开始使用" || group.contains(p)}
 }

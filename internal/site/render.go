@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"html/template"
+	"io"
 	"net/url"
 	"os"
 	"path"
@@ -223,21 +224,31 @@ func (codeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 			code.Write(seg.Value(src))
 		}
 		lang := string(block.Language(src))
-		lexer := lexers.Get(lang)
-		if lexer == nil {
-			lexer = lexers.Fallback
-		}
-		it, err := chroma.Coalesce(lexer).Tokenise(nil, code.String())
-		if err != nil {
+		if err := renderCode(w, lang, code.String()); err != nil {
 			return ast.WalkStop, err
 		}
-		w.WriteString(`<div class="code" data-lang="` + template.HTMLEscapeString(lang) + `"><button class="copy" type="button" aria-label="复制">复制</button>`)
-		if err := formatter.Format(w, styles.Get("github"), it); err != nil {
-			return ast.WalkStop, err
-		}
-		w.WriteString("</div>\n")
 		return ast.WalkSkipChildren, nil
 	})
+}
+
+// Markdown snippets and gallery source share highlighting and copy controls.
+func renderCode(w io.Writer, lang, code string) error {
+	lexer := lexers.Get(lang)
+	if lexer == nil {
+		lexer = lexers.Fallback
+	}
+	it, err := chroma.Coalesce(lexer).Tokenise(nil, code)
+	if err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, `<div class="code" data-lang="`+template.HTMLEscapeString(lang)+`"><button class="copy" type="button" aria-label="复制">复制</button>`); err != nil {
+		return err
+	}
+	if err := formatter.Format(w, styles.Get("github"), it); err != nil {
+		return err
+	}
+	_, err = io.WriteString(w, "</div>\n")
+	return err
 }
 
 var formatter = chromahtml.New(chromahtml.WithClasses(true), chromahtml.ClassPrefix("c-"))

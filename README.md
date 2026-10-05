@@ -13,7 +13,7 @@ keel run            # 运行
 keel build          # 打包当前平台（带图标的 .app / .exe / Linux 安装包）
 ```
 
-或者在已有项目里 `go get github.com/dyike/keel@latest`。看示例和组件库：
+应用开发从生成的 `app.go` 开始。查看仓库中的示例和组件库：
 
 ```sh
 go run ./examples/hello
@@ -27,7 +27,7 @@ go test -race ./...
 ## 文档
 
 - [文档导览](docs/README.md)：按开发任务选择文档。
-- [快速开始](docs/getting-started.md)：完整的第一个窗口示例。
+- [快速开始](docs/getting-started.md)：用脚手架新建、开发、运行和打包应用。
 - [组件参考](docs/kit.md)：按用途分类，查 API 和在线交互示例。
 - [Agent 端到端测试](docs/automation.md)：让 Agent 点击、输入、滚动和截图。
 - [架构](docs/architecture.md)：源码模块、依赖边界与线程规则。

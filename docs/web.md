@@ -4,18 +4,37 @@
 
 ## 构建
 
-用脚手架建的项目直接 `keel build -target js`，输出到 `dist/web/`，下面两点它已经处理了标签那一条。手动打包用 Gio 的 `gogio` 工具，它会生成 `index.html`、`wasm.js` 和 `main.wasm`：
+脚手架项目使用 `keel build -target js` 构建浏览器版本。它已处理 Go 1.26 的 `osusergo` 标签，并通过 Gio 的打包工具生成 `index.html`、`wasm.js` 和 `main.wasm`；应用继续使用脚手架的入口和 `app.go`。
 
-```sh
-go run gioui.org/cmd/gogio@v0.10.0 -target js -tags osusergo -o web ./examples/hello
-cp /path/to/NotoSansSC-Regular.ttf web/font.ttf
-python3 -m http.server --directory web
+浏览器不把系统字体交给 WebAssembly，中文字体需要由应用加载。在项目中新增 `font_js.go`（只在 js 平台编译）：
+
+```go
+//go:build js
+
+package main
+
+import (
+    "log"
+
+    "github.com/dyike/keel/ui/theme"
+)
+
+func init() {
+    if err := theme.FetchFonts("font.ttf"); err != nil {
+        log.Print(err)
+    }
+}
 ```
 
-两点必须做：
+在项目目录中构建、复制字体并启动静态服务器：
 
-- **`-tags osusergo`**：Go 1.26 的 `os/user` 在 js/wasm 下没有实现，Gio 的字体扫描引用了它。不加这个标签就编译不过。`internal/deps` 的 `TestUIBuildsForWebAssembly` 会检查这一点。
-- **提供中文字体**：浏览器不把系统字体交给 WebAssembly 程序，没有中文字体时中文显示成方框。用 `theme.LoadFonts(data)` 加载字体文件，族名最好是 `theme.Face` 里列出的，比如 Noto Sans SC。`theme.FetchFonts("font.ttf")` 在浏览器里下载字体文件并加载，`examples/hello/font_js.go` 就是这样做的。中文字体通常有十几 MB，建议用子集化后的字体。
+```sh
+keel build -target js
+cp /path/to/NotoSansSC-Regular.ttf dist/web/font.ttf
+python3 -m http.server --directory dist/web
+```
+
+族名最好是 `theme.Face` 列出的字体，例如 Noto Sans SC；中文字体通常有十几 MB，建议使用子集化后的字体。也可以用 `theme.LoadFonts(data)` 加载嵌入的字体文件。
 
 ## 和桌面版的差别
 

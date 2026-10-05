@@ -34,7 +34,7 @@ kit 只直接依赖 Keel 的 `core`、`theme`、`locale`、`el`、`base`；不�
 
 ## 文件模板与验收
 
-一个组件对应 `ui/kit/<name>.go`、`<name>_test.go`、`docs/kit/<name>.md`、`examples/components/<name>.go`。在 [组件参考](kit.md) 的对应分类登记；站点侧栏从这个索引生成。示例注册独立 `-section <name>`，展示常用状态、边界和浅深色。
+一个组件对应 `ui/kit/<name>.go`、`<name>_test.go`、`docs/kit/<name>.md`、`examples/components/<name>.go`。在 [组件参考](kit.md) 的对应分类登记；站点侧栏从这个索引生成。示例注册独立 `-section <name>`，展示常用状态、边界和浅深色。站点从注册文件自动读取展示代码；不要在组件文档中复制整份示例。
 
 组件文档包含用途、最小用法、公开 API、键盘操作（适用时）、语义、边界和验证入口；测试验证用户可观察行为，不复制实现算法。
 

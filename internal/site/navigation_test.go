@@ -106,3 +106,67 @@ func TestComponentIndexValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestPageNavigation(t *testing.T) {
+	s := &site{root: "../..", out: t.TempDir(), repo: "https://github.com/dyike/keel", branch: "main"}
+	if err := s.build(""); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ src, previous, next string }{
+		{"README.md", "", ""},
+		{"docs/README.md", "", "docs/getting-started.md"},
+		{"docs/getting-started.md", "docs/README.md", "docs/web.md"},
+		{"docs/kit.md", "docs/base.md", "docs/kit/label.md"},
+		{"docs/kit/label.md", "docs/kit.md", "docs/kit/icon.md"},
+		{"docs/kit/command.md", "docs/kit/stepper.md", "docs/kit/input.md"},
+		{"docs/kit/input.md", "docs/kit/command.md", "docs/kit/input_group.md"},
+		{"docs/kit/carousel.md", "docs/kit/settings.md", "docs/automation.md"},
+	} {
+		t.Run(tc.src, func(t *testing.T) {
+			p := s.pages[tc.src]
+			data, err := os.ReadFile(filepath.Join(s.out, p.Out))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, neighbor := range []struct {
+				page     *page
+				src, rel string
+			}{{p.Previous, tc.previous, "prev"}, {p.Next, tc.next, "next"}} {
+				if neighbor.src == "" {
+					if neighbor.page != nil || strings.Contains(string(data), `rel="`+neighbor.rel+`"`) {
+						t.Errorf("unexpected %s link", neighbor.rel)
+					}
+					continue
+				}
+				if neighbor.page == nil || neighbor.page.Src != neighbor.src {
+					t.Fatalf("%s does not point to %s", neighbor.rel, neighbor.src)
+				}
+				link := `href="` + relURL(p.Out, neighbor.page.Out) + `" rel="` + neighbor.rel + `"`
+				if !strings.Contains(string(data), link) {
+					t.Errorf("missing rendered %s", link)
+				}
+			}
+		})
+	}
+	// Every published document must be reachable exactly once, and links
+	// must work in both directions without looping back to the home page.
+	seen := map[string]bool{}
+	var previous *page
+	for p := s.pages["docs/README.md"]; p != nil; p = p.Next {
+		if seen[p.Src] {
+			t.Fatalf("reading order loops at %s", p.Src)
+		}
+		seen[p.Src] = true
+		if p.Previous != previous {
+			t.Fatalf("%s: previous link does not return to the prior page", p.Src)
+		}
+		previous = p
+	}
+	if seen["README.md"] || len(seen) != len(s.pages)-1 {
+		t.Fatalf("reading order covers %d documents, want %d and no home page", len(seen), len(s.pages)-1)
+	}
+	data, err := os.ReadFile(filepath.Join(s.out, previous.Out))
+	if err != nil || strings.Contains(string(data), `rel="next"`) {
+		t.Fatal("the last document should not render a next link")
+	}
+}

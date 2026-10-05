@@ -55,7 +55,23 @@
         <figcaption>在线示例：这是真实的 Keel 程序编译成 WebAssembly，可以直接操作。首次加载约 10 MB。<a href="{{$.Demo}}?section={{.}}" target="_blank">全屏打开</a></figcaption>
       </figure>
       {{end}}
+      {{with .Page.DemoCode}}
+      <details class="demo-source">
+        <summary>示例代码<span>Go · 可复制</span></summary>
+        <div class="demo-source-body">
+          <p>这是上方组件库展示案例的完整源码。<a href="{{$.Page.DemoURL}}">{{$.Page.DemoFile}}</a></p>
+          <p>在脚手架项目中复用组件构造和 Render 写法；示例的 <code>registerSection</code> 与共享辅助函数由<a href="{{$.Root}}examples/components/">组件库</a>提供。</p>
+          {{.}}
+        </div>
+      </details>
+      {{end}}
       {{.Page.HTML}}
+      {{if or .Page.Previous .Page.Next}}
+      <nav class="page-nav" aria-label="文档翻页">
+        {{with .Page.Previous}}<a class="previous" href="{{rel $.Page .Out}}" rel="prev"><span>← 上一页</span><strong>{{.Title}}</strong></a>{{end}}
+        {{with .Page.Next}}<a class="next" href="{{rel $.Page .Out}}" rel="next"><span>下一页 →</span><strong>{{.Title}}</strong></a>{{end}}
+      </nav>
+      {{end}}
       <footer class="edit"><a href="{{.Source}}">在 GitHub 上查看此页源文件</a>
         <span class="license">Keel 采用 <a href="{{.Repo}}/blob/main/LICENSE">AGPL-3.0</a> 与<a href="{{.Repo}}/blob/main/LICENSING.md">商业授权</a>双授权</span></footer>
     </article>

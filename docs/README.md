@@ -4,8 +4,7 @@
 
 ## 开始使用
 
-- [快速开始](getting-started.md)：安装环境、新建项目、写第一个窗口。
-- [脚手架与打包](cli.md)：项目配置、应用图标、各平台安装包。
+- [快速开始](getting-started.md)：用脚手架新建项目、修改界面、运行和打包。
 - [在浏览器里运行](web.md)：WebAssembly 构建与桌面版差异。
 - [迁移到当前 kit](migration-kit.md)：旧版本 API 的替换方式。
 

@@ -76,7 +76,7 @@ native:
 
 `cmd/keel-mcp` 不引用任何 Keel 包，也不引用 Gio：它只通过 socket 上的 JSON 协议驱动 `ui/window` 的自动化模式，见 [Agent 端到端测试](automation.md#原理)。
 
-`cmd/keel` 也不引用界面包：它只用 `internal/svgicon` 画占位图标，用 `golang.org/x/image` 和 `tc-hib/winres` 生成各平台图标与 Windows 资源，打包时调用 `go`、Gio 的 gogio 和 macOS 的 `codesign`，见 [脚手架与打包](cli.md)。
+`cmd/keel` 也不引用界面包：它只用 `internal/svgicon` 画占位图标，用 `golang.org/x/image` 和 `tc-hib/winres` 生成各平台图标与 Windows 资源，打包时调用 `go`、Gio 的 gogio 和 macOS 的 `codesign`，见 [快速开始 · 打包](getting-started.md#打包)。
 
 **体积大的依赖按需引入。** chroma（代码高亮）和 `net/http`（网络图片）各约 4 MB，不放在 kit、markdown、el、core、window 的依赖里：core 定义 `Highlighter` 和 `ImageFetcher` 两个接口，`ui/highlight` 和 `ui/netimage` 在 `init` 里注册实现，应用用到时引入。`internal/deps` 的 `TestHeavyDependenciesAreOptIn` 防止它们被重新拉进来。
 
