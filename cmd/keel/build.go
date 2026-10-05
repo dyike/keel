@@ -29,6 +29,7 @@ func (c *cli) build(args []string) error {
 	out := fs.String("o", "dist", "output directory")
 	sign := fs.String("sign", "", "darwin: codesign identity, e.g. \"Developer ID Application: Name (TEAMID)\"")
 	fs.BoolVar(&c.dryRun, "n", false, "print the commands instead of running them")
+	debug := fs.Bool("debug", false, "keep the symbol table and debug information (larger; for debuggers)")
 	fs.Usage = func() {
 		fmt.Fprintln(c.errw, "Usage: keel build [flags]")
 		fs.PrintDefaults()
@@ -50,6 +51,10 @@ func (c *cli) build(args []string) error {
 		return err
 	}
 	main := "./" + filepath.ToSlash(filepath.Clean(cfg.Main))
+	// Release builds drop the symbol table and DWARF (-s -w) and local
+	// paths (-trimpath): about a quarter smaller. Panics still name
+	// functions; only debuggers lose their information.
+	c.release = !*debug
 	switch *target {
 	case "darwin", "macos":
 		return c.buildDarwin(dir, cfg, icons, outDir, main, *arch, *sign)
@@ -60,7 +65,7 @@ func (c *cli) build(args []string) error {
 	case "js", "web":
 		// osusergo: os/user has no js/wasm implementation, and Gio's font
 		// scan imports it (see docs/web.md).
-		return c.command(dir, nil, "go", "run", gogio, "-target", "js", "-tags", "osusergo", "-o", filepath.Join(outDir, "web"), main)
+		return c.command(dir, c.trimEnv(), "go", "run", gogio, "-target", "js", "-tags", "osusergo", "-ldflags", c.ldflags(""), "-o", filepath.Join(outDir, "web"), main)
 	}
 	return fmt.Errorf("unknown target %q: use darwin, windows, linux or js", *target)
 }
@@ -90,8 +95,8 @@ func (c *cli) buildDarwin(dir string, cfg *Config, icons *iconSet, outDir, main,
 	if err := writePNG(iconPath, mac); err != nil {
 		return err
 	}
-	if err := c.command(dir, nil, "go", "run", gogio, "-target", "macos", "-arch", arch,
-		"-appid", cfg.AppID, "-version", cfg.fourPart(), "-icon", iconPath, "-o", app, main); err != nil {
+	if err := c.command(dir, c.trimEnv(), "go", "run", gogio, "-target", "macos", "-arch", arch,
+		"-appid", cfg.AppID, "-version", cfg.fourPart(), "-icon", iconPath, "-ldflags", c.ldflags(""), "-o", app, main); err != nil {
 		return err
 	}
 	if err := c.writeInfoPlist(app, cfg); err != nil {
@@ -154,7 +159,7 @@ func (c *cli) buildWindows(dir string, cfg *Config, icons *iconSet, outDir, main
 			}
 		}
 		err := c.command(dir, []string{"GOOS=windows", "GOARCH=" + arch, "CGO_ENABLED=0"},
-			"go", "build", "-ldflags", "-H=windowsgui", "-o", exe, main)
+			"go", "build", c.trimFlag(), "-ldflags", c.ldflags("-H=windowsgui"), "-o", exe, main)
 		os.Remove(syso)
 		if err != nil {
 			return err
@@ -217,7 +222,7 @@ func (c *cli) buildLinux(dir string, cfg *Config, icons *iconSet, outDir, main, 
 	if arch != "" {
 		env = []string{"GOARCH=" + arch}
 	}
-	if err := c.command(dir, env, "go", "build", "-ldflags", appIDFlag(cfg), "-o", filepath.Join(dist, cfg.Binary), main); err != nil {
+	if err := c.command(dir, env, "go", "build", c.trimFlag(), "-ldflags", c.ldflags(appIDFlag(cfg)), "-o", filepath.Join(dist, cfg.Binary), main); err != nil {
 		return err
 	}
 	if c.dryRun {
@@ -326,4 +331,29 @@ func (c *cli) writeInfoPlist(app string, cfg *Config) error {
 </plist>
 `, esc(cfg.Name), esc(exe[0].Name()), esc(cfg.AppID), cfg.Version, max(cfg.Build, 1))
 	return os.WriteFile(filepath.Join(app, "Contents", "Info.plist"), []byte(plist), 0o644)
+}
+
+// ldflags adds release stripping to extra linker flags.
+func (c *cli) ldflags(extra string) string {
+	if !c.release {
+		return extra
+	}
+	return strings.TrimSpace("-s -w " + extra)
+}
+
+// trimFlag is go build's -trimpath in release builds; -trimpath=false
+// otherwise, keeping the argument list the same shape.
+func (c *cli) trimFlag() string {
+	if c.release {
+		return "-trimpath"
+	}
+	return "-trimpath=false"
+}
+
+// trimEnv passes -trimpath to gogio's go build, which takes no such flag.
+func (c *cli) trimEnv() []string {
+	if c.release {
+		return []string{"GOFLAGS=-trimpath"}
+	}
+	return nil
 }

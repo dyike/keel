@@ -29,6 +29,7 @@ type cli struct {
 	out, errw io.Writer
 	dir       string // working directory; "" is the process's
 	dryRun    bool   // print external commands instead of running them
+	release   bool   // strip symbols and paths from builds
 }
 
 const usage = `keel creates, runs and packages Keel desktop apps.

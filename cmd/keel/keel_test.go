@@ -106,6 +106,15 @@ func TestNewAndBuildPlans(t *testing.T) {
 	if p := plan("-target", "linux"); !strings.Contains(p, "-X gioui.org/app.ID=dev.keel.notes") || !strings.Contains(p, "dev.keel.notes.desktop") {
 		t.Fatal("linux plan:\n" + p)
 	}
+	if p := plan("-target", "windows"); !strings.Contains(p, "go build -trimpath -ldflags -s -w -H=windowsgui") {
+		t.Fatal("release builds strip symbols and paths:\n" + p)
+	}
+	if p := plan("-target", "windows", "-debug"); strings.Contains(p, "-s -w") || !strings.Contains(p, "-ldflags -H=windowsgui") {
+		t.Fatal("-debug keeps symbols:\n" + p)
+	}
+	if p := plan("-target", "darwin"); !strings.Contains(p, "-ldflags -s -w -o") {
+		t.Fatal("darwin release flags:\n" + p)
+	}
 	if p := plan("-target", "js"); !strings.Contains(p, "-target js -tags osusergo") {
 		t.Fatal("js plan:\n" + p)
 	}
