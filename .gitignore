@@ -2,6 +2,7 @@
 *.test
 *.exe
 /TODO.md
+/TODO.zh-CN.md
 .DS_Store
 # binaries from `go build ./examples/...` or ./cmd/... in the repo root
 /components
