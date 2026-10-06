@@ -6,9 +6,9 @@ Line charts and bar charts for categorical data have only one vertical axis.
 
 ```go
 sales := kit.LineChart(months,
-    kit.Series{Name: "华东", Values: east},
-    kit.Series{Name: "华北", Values: north},
-).Title("月度销售额（万元）")
+    kit.Series{Name: "East China", Values: east},
+    kit.Series{Name: "North China", Values: north},
+).Title("Monthly sales (CNY 10,000)")
 
 mix := kit.BarChart([]string{"Q1", "Q2", "Q3", "Q4"}, online, stores).Stacked().Height(180)
 ```

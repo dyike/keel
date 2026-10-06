@@ -8,14 +8,14 @@ Two-column form: labels on the left and controls on the right, which are uniform
 name := kit.Input("")
 amount := kit.NumberInput("").Range(0, 1e6)
 f := kit.Form().
-    Field("客户", name, func() string { return kit.Required(name.Value(), "请填写客户") }).
-    Field("金额", amount, func() string {
+    Field("Customer", name, func() string { return kit.Required(name.Value(), "Enter a customer") }).
+    Field("Amount", amount, func() string {
         if amount.Value() <= 0 {
-            return "金额必须大于 0"
+            return "Amount must be greater than 0"
         }
         return ""
     })
-kit.Button("创建", func() {
+kit.Button("Create", func() {
     if f.Validate(cx) {
         create()
     }
@@ -58,14 +58,14 @@ When `Submitting()` is true, the field cannot be edited. Repeated `BeginSubmit` 
 
 ```go
 f := kit.Form().Columns(2).VerticalLabels(true).
-    FieldWithOptions("姓名", name, validateName, kit.FormFieldOptions{
-        Required: true, Description: "公开显示的姓名",
+    FieldWithOptions("Name", name, validateName, kit.FormFieldOptions{
+        Required: true, Description: "Name shown publicly",
     }).
-    FieldWithOptions("邮箱", email, validateEmail, kit.FormFieldOptions{
+    FieldWithOptions("Email", email, validateEmail, kit.FormFieldOptions{
         Required: true,
     }).
-    FieldWithOptions("介绍", bio, nil, kit.FormFieldOptions{ColSpan: 2}).
-    Footer(kit.Button("保存", save))
+    FieldWithOptions("Bio", bio, nil, kit.FormFieldOptions{ColSpan: 2}).
+    Footer(kit.Button("Save", save))
 ```
 
 `ColSpan` defaults to 1, limited to the current number of columns; `ColStart` counts from 1, and 0 indicates sequential arrangement. Specifies starting from the next row when the starting column is already occupied by the current row; shrinks to available columns when the starting column and span exceed the grid boundaries. Hidden fields do not occupy grid space. Actions continue to be arranged in the original way; Footer occupies the full width of the bottom and is aligned to the right, can be shared with Actions, and remains available in submissions.

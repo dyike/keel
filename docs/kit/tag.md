@@ -2,10 +2,10 @@
 
 English | [简体中文](tag.zh-CN.md)
 
-`kit.Tag("紧急").Tone(kit.ToneDanger)` Display dye capsule label. Tone supports ToneNeutral, ToneInfo, ToneSuccess, ToneWarning, ToneDanger, and the default is ToneNeutral; the background is mixed with the current theme Surface and grade color, and SetText updates the copy.
+`kit.Tag("Urgent").Tone(kit.ToneDanger)` Display dye capsule label. Tone supports ToneNeutral, ToneInfo, ToneSuccess, ToneWarning, ToneDanger, and the default is ToneNeutral; the background is mixed with the current theme Surface and grade color, and SetText updates the copy.
 
 ```go
-label := kit.Tag("已验证").Tone(kit.ToneSuccess).Outline(true).Size(20).Rounded(4)
+label := kit.Tag("Verified").Tone(kit.ToneSuccess).Outline(true).Size(20).Rounded(4)
 ```
 
 - `Outline(true)` uses a stroke and a transparent background; uses SelectedBackground to indicate status when selected.

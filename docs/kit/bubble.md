@@ -24,7 +24,7 @@ The content and reaction area of ordinary bubbles are limited to 75% of the pare
 
 ```go
 b := kit.Bubble(content).Variant(kit.BubbleOutline).
-    Reactions(kit.Button("赞同", like).Variant(kit.ButtonGhost).Size(24)).
+    Reactions(kit.Button("Like", like).Variant(kit.ButtonGhost).Size(24)).
     ReactionSide(kit.BubbleReactionTop)
 ```
 
@@ -35,7 +35,7 @@ Continuous bubbles are available in the [BubbleGroup](bubble_group.md) combinati
 As long as there is a direct button, the reaction area will remove the default padding and arrange it in rows, wrapping when the width is narrow. `PartStyle(BubblePartReactions, ...)` still executes after the default configuration and can explicitly restore padding or adjust spacing. The normal content of `Reactions(view)` is displayed before the direct button. The two can coexist and be cleared separately. Buttons, Popovers, etc. in the normal slot will not automatically change their rounded corners. The same direct button instance appears only once in the list, and reused instances retain focus during reflow.
 
 ```go
-like := kit.Button("赞同 · 2", onLike).Variant(kit.ButtonGhost).Size(24)
-copy := kit.Button("复制", onCopy).Variant(kit.ButtonGhost).Size(24)
+like := kit.Button("Like · 2", onLike).Variant(kit.ButtonGhost).Size(24)
+copy := kit.Button("Copy", onCopy).Variant(kit.ButtonGhost).Size(24)
 b.ReactionActions(like, copy)
 ```

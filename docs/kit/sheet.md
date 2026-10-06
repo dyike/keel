@@ -5,7 +5,7 @@ English | [简体中文](sheet.zh-CN.md)
 A modal panel attached to one side of the window, used for details, settings, and long forms.
 
 ```go
-details := kit.Sheet(el.Right, "订单详情").Body(view).Size(400)
+details := kit.Sheet(el.Right, "Order details").Body(view).Size(400)
 details.SetValue(true)
 ```
 

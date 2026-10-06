@@ -2,7 +2,7 @@
 
 English | [简体中文](spinner.zh-CN.md)
 
-`kit.Spinner().Size(20).Label("加载中")` shows indeterminate progress. When Label is empty, only graphics are drawn, and the default name is "Loading". Agent role progressbar, value is indeterminate. No keyboard operation.
+`kit.Spinner().Size(20).Label("Loading")` shows indeterminate progress. When Label is empty, only graphics are drawn, and the default name is "Loading". Agent role progressbar, value is indeterminate. No keyboard operation.
 
 The rotation phase comes from cx.Now, cx.Animating requests the next frame, no goroutine is started. Remain static after theme.SetReducedMotion(true). Fixed graphic size, text wraps according to parent container constraints.
 

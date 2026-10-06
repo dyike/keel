@@ -51,7 +51,7 @@ Construct and `SetRoots` make a deep copy of the node. `SetNodeLabel` can be use
 Load on demand:
 
 ```go
-tr := kit.Tree(&kit.TreeNode{ID: "folder", Label: "目录", Lazy: true})
+tr := kit.Tree(&kit.TreeNode{ID: "folder", Label: "Directory", Lazy: true})
 tr.OnLoad(func(id string, token uint64) {
     go func() {
         children, err := loadChildren(id) // Application provides data source

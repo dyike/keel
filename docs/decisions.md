@@ -126,7 +126,7 @@ The advantages of the memory window: strong certainty, no permissions required, 
 
 **Why it's diced like this**: AI output is only appended at the end. According to the top-level block cache, the cost of appending is only related to the size of the last block and has nothing to do with the length of the entire article. The cost is that cross-block reference links do not take effect, and the same list separated by blank lines will become two lists (the starting number of the ordered list will be retained). Both situations are rare in AI output.
 
-**Why complete unclosed syntax**: If not completed, `**加粗` will be displayed as an asterisk before closing. When closed, the entire paragraph will be suddenly rearranged, and it will keep flashing during streaming output. The completion only works on the last paragraph, and it will be re-analyzed according to the original text after the answer is completed, without affecting the final result.
+**Why complete unclosed syntax**: If not completed, `**bold` will be displayed as an asterisk before closing. When closed, the entire paragraph will be suddenly rearranged, and it will keep flashing during streaming output. The completion only works on the last paragraph, and it will be re-analyzed according to the original text after the answer is completed, without affecting the final result.
 
 **Three changes in performance** are all analyzed:
 

@@ -6,10 +6,10 @@ Like an IDE, dock tool panels to the left, right, and bottom of the center conte
 
 ```go
 d := kit.Dock(editor).
-    Panel(kit.DockPanel{ID: "files", Title: "文件", View: fileTree}, kit.DockLeft).
-    Panel(kit.DockPanel{ID: "term", Title: "终端", View: terminal}, kit.DockBottom).
+    Panel(kit.DockPanel{ID: "files", Title: "Files", View: fileTree}, kit.DockLeft).
+    Panel(kit.DockPanel{ID: "term", Title: "Terminal", View: terminal}, kit.DockBottom).
     OnLayoutChange(func(l kit.DockLayout) { save(l) })
-if !d.SetLayout(loaded) { /* 不支持的版本或非法布局，保留原布局 */ }
+if !d.SetLayout(loaded) { /* Unsupported version or invalid layout; keep the previous layout */ }
 ```
 
 - Multiple panels can be placed in each docking area and switched with tabs; the long tab bar can be scrolled horizontally; the docking area and the middle content can be dragged and resized.
@@ -68,7 +68,7 @@ Just save the position and continue with `Layout/SetLayout`. To rebuild the pane
 
 ```go
 factory := func(s kit.DockPanelState) (kit.DockPanel, error) {
-    input := kit.Input("搜索")
+    input := kit.Input("Search")
     var query string
     if len(s.State) > 0 {
         if err := json.Unmarshal(s.State, &query); err != nil {
@@ -80,7 +80,7 @@ factory := func(s kit.DockPanelState) (kit.DockPanel, error) {
         return json.Marshal(input.Value())
     }}, nil // Restore fill in the original ID, Kind and Title
 }
-if err := d.RegisterPanel("search", factory); err != nil { /* 处理错误 */ }
+if err := d.RegisterPanel("search", factory); err != nil { /* Handle the error */ }
 state, err := d.Snapshot()
 // json.Marshal(state) save; json.Unmarshal to kit.DockState after reading back.
 if err == nil { err = anotherDock.Restore(state) } // anotherDock also needs to be registered search
@@ -117,10 +117,10 @@ The Component Library example's "Save Workspace/Restore Workspace" can verify th
 
 ```go
 d.Panel(kit.DockPanel{
-    ID: "files", Title: "文件", View: files,
+    ID: "files", Title: "Files", View: files,
     Icon:    kit.IconFolder,                                     // Icons on labels
-    Toolbar: kit.Button("", refresh).Name("刷新").Icon(kit.IconRetry).Variant(kit.ButtonGhost).Size(24),
-    Menu:    func(m *kit.MenuView) { m.Item("全部折叠", "", collapseAll) },
+    Toolbar: kit.Button("", refresh).Name("Refresh").Icon(kit.IconRetry).Variant(kit.ButtonGhost).Size(24),
+    Menu:    func(m *kit.MenuView) { m.Item("Collapse all", "", collapseAll) },
     NoClose: true, // There is no "Close" in the menu
 }, kit.DockLeft)
 ```

@@ -5,8 +5,8 @@ English | [简体中文](message.zh-CN.md)
 A message in a conversation: avatar, content, action bar.
 
 ```go
-kit.Message("我", text).User()                  // User message: The bubble on the right does not display the avatar.
-kit.Message("AI 助手", answerDoc).Actions(copy) // Others: avatar + full width content + action bar
+kit.Message("Me", text).User()                  // User message: The bubble on the right does not display the avatar.
+kit.Message("AI assistant", answerDoc).Actions(copy) // Others: avatar + full width content + action bar
 ```
 
 - Non-user messages take up the full width, suitable for long Markdown answers. The avatar displays the author's initials.
@@ -21,8 +21,8 @@ Verify: `go run ./examples/components -section message`, add `-theme dark` to ch
 Both user and assistant messages support `Actions`, incoming slices will be copied, and empty slots will be ignored. Whether the action bar is displayed during streaming output is determined by the application. `SetDisabled(true)` disables actions, reactions, and retries within the message.
 
 ```go
-msg.Reactions(kit.MessageReaction{Name: "有帮助", Count: 2}).
-    OnReaction(func(index int, active bool) { /* 保存到服务端 */ })
+msg.Reactions(kit.MessageReaction{Name: "Helpful", Count: 2}).
+    OnReaction(func(index int, active bool) { /* Save to the server */ })
 ```
 
 The reaction uses a toggle button, clicks to update the current user's selected status and count, and then calls the callback. `Reactions` copies data; subsequent server results can be overwritten by calling it again. Reactions with no callback provided are read-only. Agent can read the `sending` / `failed` status of `article` and the selected status of the response button.
@@ -34,7 +34,7 @@ The reaction uses a toggle button, clicks to update the current user's selected 
 ```go
 msg.Avatar(kit.Avatar("Alice").Size(32)).
     Header(kit.Label("Alice · 10:24")).
-    Footer(kit.Button("回复", reply))
+    Footer(kit.Button("Reply", reply))
 ```
 
 When inserting or deleting avatars or headers and tails, the identity of the text remains stable, and the input content and focus remain unchanged. The head and tail of ordinary user bubbles and explicit bubbles use `theme.SpaceLg` horizontal indentation by default; the text of ordinary assistants remains unindented. Full message lines are available in the [MessageGroup](message_group.md) grouping.
@@ -43,7 +43,7 @@ When inserting or deleting avatars or headers and tails, the identity of the tex
 
 ```go
 surface := kit.Bubble(answer).Variant(kit.BubbleGhost)
-msg.Bubble(surface).Header(kit.Label("系统消息")).Footer(kit.Label("刚刚"))
+msg.Bubble(surface).Header(kit.Label("System message")).Footer(kit.Label("Just now"))
 msg.HeaderInset(true).FooterInset(false)
 msg.ResetContentInsets() // Restore automated rules
 ```

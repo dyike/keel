@@ -6,8 +6,8 @@ The application's navigation sidebar: groups, selected items, and icons can be c
 
 ```go
 nav := kit.Sidebar().
-    Section("工作台", kit.SidebarItem{ID: "inbox", Label: "收件箱", Icon: kit.IconInbox, Badge: 12}).
-    Section("", kit.SidebarItem{ID: "settings", Label: "设置", Icon: kit.IconSettings}).
+    Section("Workspace", kit.SidebarItem{ID: "inbox", Label: "Inbox", Icon: kit.IconInbox, Badge: 12}).
+    Section("", kit.SidebarItem{ID: "settings", Label: "Settings", Icon: kit.IconSettings}).
     OnChange(navigate)
 ```
 

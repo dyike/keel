@@ -6,7 +6,7 @@ Kbd displays shortcut key caps, does not register shortcut keys, and does not pa
 
 ```go
 el.Div().Row().Items(el.Center).TextSize(16).Child(
-    el.Text("命令面板"),
+    el.Text("Command palette"),
     kit.Kbd("mod+shift+p").Render(cx),
     kit.Kbd("enter").Plain().Render(cx),
 )
@@ -22,7 +22,7 @@ Shortcut keys can be bound to named actions, see [Elements and Views · Action a
 
 ```go
 kit.KbdFor("editor.save").Render(cx)                   // keycap
-kit.Menu().ActionItem("保存", "editor.save", save)    // The same key appears on the right side of the menu
+kit.Menu().ActionItem("Save", "editor.save", save)    // The same key appears on the right side of the menu
 ```
 
 The Agent role is text, and the name is the original shortcut passed in; the symbol corresponding to the platform is displayed on the screen, and no additional duplicate snapshot nodes are generated.

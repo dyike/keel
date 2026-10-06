@@ -5,8 +5,8 @@ English | [简体中文](combobox.zh-CN.md)
 Inputable and filterable drop-down box.
 
 ```go
-customer := kit.Combobox("客户", customers...).Placeholder("输入筛选")
-tags := kit.Combobox("标签", "紧急", "VIP").AllowCustom()
+customer := kit.Combobox("Customer", customers...).Placeholder("Type to filter")
+tags := kit.Combobox("Tags", "Urgent", "VIP").AllowCustom()
 ```
 
 - Open the list and filter when typing (not case sensitive, matches if included), click the option to select.

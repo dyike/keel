@@ -2,7 +2,7 @@
 
 English | [简体中文](alert.zh-CN.md)
 
-`kit.Alert("保存失败").Tone(kit.ToneDanger).Description("网络不可用").OnClose(fn)` Displays inline hints. The default is ToneInfo; Tone supports ToneNeutral, ToneInfo, ToneSuccess, ToneWarning, and ToneDanger. SetTone, SetTitle, SetDescription can be updated programmatically.
+`kit.Alert("Save failed").Tone(kit.ToneDanger).Description("Network unavailable").OnClose(fn)` Displays inline hints. The default is ToneInfo; Tone supports ToneNeutral, ToneInfo, ToneSuccess, ToneWarning, and ToneDanger. SetTone, SetTitle, SetDescription can be updated programmatically.
 
 The left level bar and icons are colored according to the theme, the title is bold, and the default description is 13sp Muted.
 
@@ -12,8 +12,8 @@ The left level bar and icons are colored according to the theme, the title is bo
 - `Banner(true)` uses a full-width, right-angled, borderless dyed banner, without displaying a separate title line; displays Content or Description, and uses the title as the message when there is no body text. The Close button and Agent name still use the title. Pass false to restore inline hints.
 
 ```go
-notice := kit.Alert("维护通知").Banner(true).
-    Description("今晚进行例行维护").Icon(kit.IconCalendar).
+notice := kit.Alert("Maintenance notice").Banner(true).
+    Description("Scheduled maintenance tonight").Icon(kit.IconCalendar).
     Size(kit.AlertSizeSmall)
 // Rich text is composed by the application: notice.Content(markdown.New("**NOTE**: Please save your work first"))
 ```

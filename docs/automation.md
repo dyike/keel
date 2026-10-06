@@ -114,7 +114,7 @@ Except for `launch`, `attach`, `logs` and `stop`, `window` (such as `w2`) can be
 | `select` | `kit.Select` | `value` is the currently selected item; `option` will appear after clicking it |
 | `option` | Expanded drop-down options | `selected` |
 | `tab` | `kit.Tabs`'s tags | `selected` |
-| `table` | `kit.Table` | `value` is the total number of rows, such as `36 行` |
+| `table` | `kit.Table` | `value` is the total number of rows, such as `36 rows` |
 | `columnheader` | Header, click to sort | |
 | `row` | The rows visible in the table are named with vertical lines connecting the columns | `selected` |
 | `slider` | `kit.Slider` | `value` is the current value; click the track or focus and press the direction keys to adjust |
@@ -170,9 +170,9 @@ Coordinates are only used when there is no better way. Screenshots and coordinat
 ```
 Agent ──MCP(stdio)──► keel-mcp ──JSON Line (unix socket)──► application process
                          │                                 │
-               launch：启动应用并设置             ui/window 自动化模式：
-               KEEL_AUTOMATION=<socket>          窗口不上屏，按请求渲染
-               attach：连接你启动的应用           一个连接断开后等下一个
+               launch: start the app and set             ui/window automation mode:
+               KEEL_AUTOMATION=<socket>          Window stays off-screen; render on request
+               attach: connect to an app you started           Wait for another connection after disconnect
 ```
 
 In the application process:

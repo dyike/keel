@@ -5,8 +5,8 @@ English | [简体中文](radio_group.zh-CN.md)
 Choose one of several options.
 
 ```go
-pay := kit.RadioGroup("付款方式", "转账", "支票", "现金").OnChange(func(s string) { … })
-size := kit.RadioGroup("尺寸", "S", "M", "L").Horizontal()
+pay := kit.RadioGroup("Payment method", "Bank transfer", "Check", "Cash").OnChange(func(s string) { … })
+size := kit.RadioGroup("Size", "S", "M", "L").Horizontal()
 ```
 
 - The keyboard behavior is consistent with the native radio group: Tab falls on the currently selected item when entering the group (it falls on the first available item when there is no selection or the selected item is disabled), the arrow keys move and select, and the head and tail cycle. By default, the entire group occupies only one Tab stop; an explicit ItemTab can override this.
@@ -24,11 +24,11 @@ Verify: `go run ./examples/components -section radio_group`, add `-theme dark` t
 Rich tag example:
 
 ```go
-plans := kit.RadioGroup("套餐", "基础", "专业").Size(28).TextSize(20)
-plans.ItemSize("基础", 18, 14)
-plans.Content("专业", el.ViewFunc(func(cx *el.Context) el.Element {
-    return el.Div().Child(el.Text("专业版").Bold(),
-        el.Text("支持团队协作").TextSize(theme.TextSm).TextColor(theme.Muted))
+plans := kit.RadioGroup("Plan", "Basic", "Pro").Size(28).TextSize(20)
+plans.ItemSize("Basic", 18, 14)
+plans.Content("Pro", el.ViewFunc(func(cx *el.Context) el.Element {
+    return el.Div().Child(el.Text("Pro plan").Bold(),
+        el.Text("Includes team collaboration").TextSize(theme.TextSm).TextColor(theme.Muted))
 }))
 ```
 

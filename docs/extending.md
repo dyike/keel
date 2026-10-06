@@ -157,9 +157,9 @@ For system APIs involving the main thread (most UI classes in AppKit), please no
 ## Check before submission
 
 ```sh
-gofmt -l .                          # 应无输出
+gofmt -l .                          # Expect no output
 go vet ./...
-CGO_ENABLED=0 GOOS=linux go vet ./native/... ./cmd/...   # 桩函数齐全
-go test -race ./...                 # 包括模块边界检查
-go run ./examples/hello -screenshot /tmp/after.png   # 改了样式时对比截图
+CGO_ENABLED=0 GOOS=linux go vet ./native/... ./cmd/...   # Verify platform stubs
+go test -race ./...                 # Includes module boundary checks
+go run ./examples/hello -screenshot /tmp/after.png   # Compare screenshots after style changes
 ```

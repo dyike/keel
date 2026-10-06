@@ -5,7 +5,7 @@ English | [简体中文](otp_input.zh-CN.md)
 Enter the fixed-digit verification code in separate boxes.
 
 ```go
-code := kit.OtpInput("验证码", 6).OnComplete(func(s string) { verify(s) })
+code := kit.OtpInput("Verification code", 6).OnComplete(func(s string) { verify(s) })
 ```
 
 - Only numbers are accepted. After inputting, it will automatically jump to the next box. Backspace to return to the previous box. Pasting the entire verification code will fill all the boxes at once.

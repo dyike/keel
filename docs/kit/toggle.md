@@ -5,7 +5,7 @@ English | [简体中文](toggle.zh-CN.md)
 Buttons that remain pressed, such as "Bold" in the toolbar.
 
 ```go
-bold := kit.Toggle("加粗", false).Icon(kit.IconStar).OnChange(func(on bool) { … })
+bold := kit.Toggle("Bold", false).Icon(kit.IconStar).OnChange(func(on bool) { … })
 ```
 
 - Click, Space, Enter to switch; `Value()` / `SetValue(bool)`; `SetDisabled`.

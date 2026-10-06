@@ -17,7 +17,7 @@ func init() {
 	registerSection("plot_primitives", "data", func() core.Widget {
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).W(el.Dp(640)).MaxW(el.Full).Gap(12).Child(
-				el.Text("绘图基础件：堆叠柱、趋势线与环图"),
+				el.Text(demoText("Drawing primitives: stacked bars, trend lines, and donut charts", "绘图基础件：堆叠柱、趋势线与环图")),
 				el.Widget(core.Func(func(gtx core.C) core.D {
 					size := gtx.Constraints.Max
 					dp := func(v float32) float32 { return float32(gtx.Dp(unit.Dp(v))) }
@@ -54,7 +54,7 @@ func init() {
 					plot.Line{Points: points, Stroke: theme.Chart[2], Width: dp(2), DotRadius: dp(4), Curve: plot.CurveSmooth}.Paint(c)
 					return core.D{Size: size}
 				})).H(el.Dp(240)),
-				el.Text("蓝色、橙色为独立正负堆叠，绿色为另一组趋势数据；零线以下表示负值。"),
+				el.Text(demoText("Blue and orange form separate positive and negative stacks; green is another trend series. Values below zero are negative.", "蓝色、橙色为独立正负堆叠，绿色为另一组趋势数据；零线以下表示负值。")),
 				el.Text("Mon：14 + 8；Tue：20 + 10；Wed：12 − 6；Thu：25 + 9"),
 				el.Widget(core.Func(func(gtx core.C) core.D {
 					size := gtx.Constraints.Max
@@ -66,7 +66,7 @@ func init() {
 					}
 					return core.D{Size: size}
 				})).H(el.Dp(140)),
-				el.Text("环图：40 / 35 / 25。低层绘图由应用提供数据描述与交互。"),
+				el.Text(demoText("Donut: 40 / 35 / 25. The application supplies data descriptions and interactions for low-level drawing.", "环图：40 / 35 / 25。低层绘图由应用提供数据描述与交互。")),
 			)
 		}))
 	})

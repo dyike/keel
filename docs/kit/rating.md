@@ -5,8 +5,8 @@ English | [简体中文](rating.zh-CN.md)
 Star rating.
 
 ```go
-score := kit.Rating("评分", 5).OnChange(func(n int) { … })
-avg := kit.Rating("平均", 5).ReadOnly()
+score := kit.Rating("Rating", 5).OnChange(func(n int) { … })
+avg := kit.Rating("Average", 5).ReadOnly()
 avg.SetScore(3.7)
 ```
 

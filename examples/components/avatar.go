@@ -26,8 +26,8 @@ func init() {
 			panic(err)
 		}
 		return el.Embed(&avatarGallery{
-			photo:  kit.Avatar("示例图片").Image(img),
-			source: kit.Avatar("异步图片").Source("data:image/png;base64," + base64.StdEncoding.EncodeToString(encoded.Bytes())),
+			photo:  kit.Avatar(demoText("Sample image", "示例图片")).Image(img),
+			source: kit.Avatar(demoText("Async image", "异步图片")).Source("data:image/png;base64," + base64.StdEncoding.EncodeToString(encoded.Bytes())),
 		})
 	})
 }
@@ -35,7 +35,7 @@ func init() {
 type avatarGallery struct{ photo, source *kit.AvatarView }
 
 func (v *avatarGallery) Render(cx *el.Context) el.Element {
-	return el.Div().Row().Gap(16).Items(el.Center).Child(kit.Avatar("张三").Status(kit.AvatarOnline).Size(32).Render(cx), kit.Avatar("Ada Lovelace").Status(kit.AvatarBusy).Render(cx), kit.Avatar("").Size(56).Render(cx), v.photo.Render(cx), v.source.Render(cx),
+	return el.Div().Row().Gap(16).Items(el.Center).Child(kit.Avatar(demoText("Alex Chen", "张三")).Status(kit.AvatarOnline).Size(32).Render(cx), kit.Avatar("Ada Lovelace").Status(kit.AvatarBusy).Render(cx), kit.Avatar("").Size(56).Render(cx), v.photo.Render(cx), v.source.Render(cx),
 		kit.Avatar("Keel Team").Size(48).Rounded(theme.RadiusLg).Colors(theme.Primary, theme.OnColor).Render(cx),
 		kit.Avatar("Bob").Size(48).Border(2, theme.Primary).Render(cx),
 		kit.Avatar("").Size(48).Placeholder(kit.IconSettings).Rounded(theme.RadiusMd).Render(cx))

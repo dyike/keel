@@ -5,10 +5,10 @@ English | [简体中文](input.zh-CN.md)
 Labeled text box, you can add suffixes, clear buttons and error prompts. `kit.TextArea` creates a multi-line version.
 
 ```go
-search := kit.Input("搜索").Placeholder("客户或单号").Clearable().Prefix(searchIcon)
-price := kit.Input("单价").Filter("0123456789.").Suffix(yuan)
-note := kit.TextArea("备注").Rows(4)
-message := kit.TextArea("消息").AutoGrow(2, 8)
+search := kit.Input("Search").Placeholder("Customer or order number").Clearable().Prefix(searchIcon)
+price := kit.Input("Unit price").Filter("0123456789.").Suffix(yuan)
+note := kit.TextArea("Notes").Rows(4)
+message := kit.TextArea("Message").AutoGrow(2, 8)
 ```
 
 - `Value()` / `SetValue`; `OnChange` is called after each edit, and `OnSubmit` is called when Enter is pressed in the single-line box.
@@ -29,10 +29,10 @@ After the user modifies a single line or multiple lines of input, the current er
 `Mask(pattern)` sets a template mask for single-line input: `#` is a required ASCII number, `9` is an optional number, `A` is a Unicode letter, `*` is a letter or number; the backslash escapes the next character, and the remaining characters are fixed text. Fixed text is displayed with filled slots, no placeholders are used to fill empty slots; empty input remains an empty string. A single backslash at the end is considered an illegal configuration and the old mask is retained.
 
 ```go
-phone := kit.Input("电话").Mask("(###)-###-####")
+phone := kit.Input("Phone").Mask("(###)-###-####")
 phone.SetValue("1234567890")
 // Value(): (123)-456-7890；UnmaskedValue(): 1234567890
-amount := kit.Input("金额").NumberMask(',', 2)
+amount := kit.Input("Amount").NumberMask(',', 2)
 amount.SetValue("1234567.89") // 1,234,567.89
 ```
 
@@ -63,15 +63,15 @@ Component library notes example has been adapted to `native/clipboard.Read`: mac
 ## Atomic reference
 
 ```go
-field := kit.Input("引用")
-draft, err := kit.NewInputContent("查看 docs/input.md", kit.InputTokenSpan{
-    Range: kit.InputRange{Start: len("查看 "), End: len("查看 docs/input.md")},
-    Token: kit.InputToken{ID: "input-doc", Text: "docs/input.md", Label: "输入组件文档"},
+field := kit.Input("Reference")
+draft, err := kit.NewInputContent("View docs/input.md", kit.InputTokenSpan{
+    Range: kit.InputRange{Start: len("View "), End: len("View docs/input.md")},
+    Token: kit.InputToken{ID: "input-doc", Text: "docs/input.md", Label: "Input component documentation"},
 })
 if err == nil {
     err = field.SetContent(draft)
 }
-field.OnTokenActivate(func(token kit.InputToken) { /* 应用打开 token.ID */ })
+field.OnTokenActivate(func(token kit.InputToken) { /* Open token.ID in the application */ })
 ```
 
 `Content()` returns a separate draft containing commit text and citation metadata; ranges use UTF-8 bytes, must fall on grapheme boundaries, and must not overlap. Text must be consistent with the text in the range, and ID cannot be empty; the same ID can appear multiple times. Text is displayed when Label is omitted. The display name and submission text can be different. `Value()`, selection copy, and Form value all use the submission text.

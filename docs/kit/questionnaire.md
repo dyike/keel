@@ -6,10 +6,10 @@ One page questionnaire.
 
 ```go
 q := kit.Questionnaire(
-    kit.Question{ID: "role", Title: "你的角色？", Kind: kit.QuestionSingle, Options: roles, Required: true},
-    kit.Question{ID: "tools", Title: "常用工具", Kind: kit.QuestionMultiple, Options: tools},
-    kit.Question{ID: "score", Title: "满意度", Kind: kit.QuestionRating, Scale: 5, Required: true},
-    kit.Question{ID: "note", Title: "建议", Kind: kit.QuestionLongText},
+    kit.Question{ID: "role", Title: "What is your role?", Kind: kit.QuestionSingle, Options: roles, Required: true},
+    kit.Question{ID: "tools", Title: "Tools you use", Kind: kit.QuestionMultiple, Options: tools},
+    kit.Question{ID: "score", Title: "Satisfaction", Kind: kit.QuestionRating, Scale: 5, Required: true},
+    kit.Question{ID: "note", Title: "Suggestions", Kind: kit.QuestionLongText},
 ).OnSubmit(func(a map[string]kit.Answer) { save(a) })
 ```
 

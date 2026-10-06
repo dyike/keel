@@ -5,9 +5,9 @@ English | [简体中文](attachment.zh-CN.md)
 Attachment card: file name, size, upload progress or errors, can be opened and removed.
 
 ```go
-a := kit.Attachment("报价单.pdf", size).OnRemove(remove).OnOpen(open)
+a := kit.Attachment("quote.pdf", size).OnRemove(remove).OnOpen(open)
 a.SetProgress(0.6)          // Uploading; negative number means completed
-a.SetError("超过 10 MB 上限")
+a.SetError("Exceeds the 10 MB limit")
 ```
 
 - Size formatted with `kit.FileSize` as B/KB/MB/GB. A progress bar and "Uploading 60%" are displayed during the upload. When an error occurs, the reason is displayed in a dangerous color.
@@ -30,7 +30,7 @@ Verify: `go run ./examples/components -section attachment`, add `-theme dark` to
 `SetItems` replaces the list, and `Items` returns a copy. The two isolate slice modifications and ignore nil entries; the attachment instance is still shared, maintaining its own upload status and callbacks. Do not render the same instance repeatedly in a group. `SetDisabled` prohibits operations within the group and does not modify the attachment's own disabling settings. Removal is completed by the application calling SetItems; the group is only responsible for arrangement and scrolling, and does not take over file selection or upload tasks.
 
 ```go
-files := kit.AttachmentGroup(report, photo).Name("附件").Gap(12)
+files := kit.AttachmentGroup(report, photo).Name("Attachments").Gap(12)
 photo.OnRemove(func() { files.SetItems(report) })
 ```
 
@@ -59,7 +59,7 @@ Partition styles are applied after state defaults, color/width can be overridden
 Overlay buttons have independent click and keyboard focus, do not trigger attachment OnOpen, respect attachment and ancestor disabling. Completed attachments can still be opened in empty spaces in display content or overlays; attachments will not be opened during upload, processing, and failure. State switching preserves the overlay identity, and the app can decide what to display by pressing Status in the ViewFunc.
 
 ```go
-a.MediaOverlay(kit.Button("播放", play).Size(24))
+a.MediaOverlay(kit.Button("Play", play).Size(24))
 a.MediaOverlay(nil) // clear overlay
 ```
 
@@ -70,8 +70,8 @@ The default title displays ShimmerText sweep during uploading and processing, an
 `Description(text)` replaces the default description text while retaining the color of the active description state; an empty string displays empty copy. `ClearDescription()` Restore automatic size/status text. Displays 0% when the override is Uploading but the attachment has no valid upload progress. PartStyle is still applied after state color matching. Custom Content replaces the entire default meta information. At this time, the title/description configuration is not displayed for the time being; it will be restored after clearing Content.
 
 ```go
-a.SetError("当前版本上传失败")
-a.Description("上一版本已上传").
+a.SetError("Current version failed to upload")
+a.Description("Previous version uploaded").
     PartStatus(kit.AttachmentPartDescription, kit.AttachmentStatusComplete)
 // The card is still in a failed state and the description is in normal color; retry operations are still available.
 a.ClearPartStatus(kit.AttachmentPartDescription).ClearDescription()
@@ -104,7 +104,7 @@ The URL preview uses a fixed thumbnail corresponding to the size file in landsca
 
 ```go
 photo.MediaSource("https://example.com/photo.png")
-if err := photo.MediaError(); err != nil { /* 显示错误详情 */ }
+if err := photo.MediaError(); err != nil { /* Display error details */ }
 photo.RetryMedia()
 ```
 

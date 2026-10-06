@@ -54,11 +54,12 @@ a:hover { text-decoration: underline; }
 .btn { display: inline-block; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border); color: var(--text); font-size: 15px; }
 .btn:hover { text-decoration: none; background: var(--bg-soft); }
 .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-.install { display: inline-block; margin-top: 28px; padding: 8px 16px; border-radius: 8px; background: var(--code-bg); font: 14px var(--mono); }
+.install { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; display: inline-block; margin-top: 28px; padding: 8px 16px; border-radius: 8px; background: var(--code-bg); font: 14px var(--mono); }
 
 /* Layout */
 .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr) 210px; max-width: 1400px; margin: 0 auto; }
 .layout.home { grid-template-columns: 250px minmax(0, 1fr) 0; }
+.layout.home .toc { display: none; }
 .side { position: sticky; top: var(--header); height: calc(100vh - var(--header)); overflow: auto; padding: 20px 12px 40px 20px; border-right: 1px solid var(--border); font-size: 14px; }
 .side summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); margin: 14px 0 4px; list-style: none; display: flex; align-items: center; justify-content: space-between; }
 .side summary::-webkit-details-marker { display: none; }
@@ -71,7 +72,7 @@ a:hover { text-decoration: underline; }
 .side li a:hover { background: var(--bg-soft); text-decoration: none; }
 .side li a[aria-current] { background: var(--highlight); color: var(--primary-text); font-weight: 600; }
 main { min-width: 0; padding: 32px 48px 80px; }
-article { max-width: 820px; }
+article { max-width: 820px; min-width: 0; overflow-wrap: anywhere; }
 .toc { position: sticky; top: var(--header); height: calc(100vh - var(--header)); overflow: auto; padding: 32px 16px; font-size: 13px; }
 .toc p { margin: 0 0 8px; font-weight: 600; color: var(--muted); }
 .toc ul { list-style: none; margin: 0; padding: 0; }
@@ -87,15 +88,15 @@ article h3 { font-size: 18px; margin: 30px 0 8px; }
 article p, article li { margin: 10px 0; }
 article ul, article ol { padding-left: 24px; }
 article code { font: .9em var(--mono); background: var(--code-bg); padding: .15em .35em; border-radius: 5px; }
-article table { display: block; overflow-x: auto; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+article table { display: block; width: 100%; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
 article th, article td { border: 1px solid var(--border); padding: 7px 12px; text-align: left; vertical-align: top; }
 article th { background: var(--bg-soft); }
 article blockquote { margin: 16px 0; padding: 4px 16px; border-left: 3px solid var(--border); color: var(--muted); }
 article img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
 article hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
 .code { position: relative; margin: 16px 0; }
-.code pre { margin: 0; padding: 14px 16px; overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); font: 13px/1.6 var(--mono); }
-.code pre code { background: none; padding: 0; }
+.code pre { margin: 0; padding: 14px 16px; white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); font: 13px/1.6 var(--mono); }
+.code pre code { background: none; padding: 0; white-space: inherit; }
 .code pre, .code .c-chroma { background: var(--code-bg) !important; }
 .copy { position: absolute; right: 8px; top: 8px; padding: 2px 8px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border);
   background: var(--bg); color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .15s; }
@@ -147,6 +148,10 @@ article hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
   main { padding: 24px 16px 64px; }
   .hero h1 { font-size: 32px; }
   .demo iframe { height: 420px; }
+  article table { display: table; table-layout: fixed; }
+  article th, article td { padding: 7px 6px; }
+  .demo-source > summary { grid-template-columns: 12px minmax(0, 1fr); }
+  .demo-source > summary span { grid-column: 2; }
 }
 @media (max-width: 560px) {
   .page-nav { grid-template-columns: minmax(0, 1fr); gap: 12px; }

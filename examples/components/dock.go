@@ -20,10 +20,10 @@ func init() {
 				return el.Div().Grow().P(16).Bg(theme.Surface).Child(el.Text(s).Mono().TextSize(13))
 			})
 		}
-		saved := "移动、关闭、拆分或调整面板后，这里显示保存的布局 JSON"
+		saved := demoText("Move, close, split, or resize panels to see the saved layout JSON here", "移动、关闭、拆分或调整面板后，这里显示保存的布局 JSON")
 		files := kit.Tree(&kit.TreeNode{ID: "ui", Label: "ui", Children: []*kit.TreeNode{{ID: "kit", Label: "kit"}, {ID: "el", Label: "el"}}}).Fill().Plain()
 		searchFactory := func(state kit.DockPanelState) (kit.DockPanel, error) {
-			input := kit.Input("").Placeholder("在文件中搜索")
+			input := kit.Input("").Placeholder(demoText("Search in file", "在文件中搜索"))
 			var query string
 			if len(state.State) > 0 {
 				if err := json.Unmarshal(state.State, &query); err != nil {
@@ -34,29 +34,31 @@ func init() {
 			return kit.DockPanel{ID: state.ID, Kind: "search", Title: state.Title, View: input,
 				SaveState: func() (json.RawMessage, error) { return json.Marshal(input.Value()) }}, nil
 		}
-		search, _ := searchFactory(kit.DockPanelState{ID: "search", Title: "搜索"})
+		search, _ := searchFactory(kit.DockPanelState{ID: "search", Title: demoText("Search", "搜索")})
 		var snapshot []byte
-		status := "先输入搜索词，再保存、修改和恢复"
+		status := demoText("Enter a search query, then save, change, and restore it", "先输入搜索词，再保存、修改和恢复")
 		var d *kit.DockView
 		// The center view shows while no document is open.
 		d = kit.Dock(el.ViewFunc(func(*el.Context) el.Element {
-			return el.Div().Grow().P(24).Gap(8).Bg(theme.Surface).Child(el.Text("没有打开的文档").Bold(),
-				el.Text("把面板拖到这里，或用面板菜单的“移到中间”打开为文档").TextSize(12).TextColor(theme.Muted))
+			return el.Div().Grow().P(24).Gap(8).Bg(theme.Surface).Child(el.Text(demoText("No open documents", "没有打开的文档")).Bold(),
+				el.Text(demoText("Drag a panel here, or choose “Move to center” in its menu to open it as a document", "把面板拖到这里，或用面板菜单的“移到中间”打开为文档")).TextSize(12).TextColor(theme.Muted))
 		})).
-			Panel(kit.DockPanel{ID: "files", Title: "文件", Icon: kit.IconFolder, View: files, NoClose: true,
-				Toolbar: kit.Button("", func() { status = "已刷新文件列表" }).Name("刷新文件").Icon(kit.IconRetry).Variant(kit.ButtonGhost).Size(24),
-				Menu:    func(m *kit.MenuView) { m.Item("全部折叠", "", func() { status = "已折叠全部目录" }) }}, kit.DockLeft).
+			Panel(kit.DockPanel{ID: "files", Title: demoText("Files", "文件"), Icon: kit.IconFolder, View: files, NoClose: true,
+				Toolbar: kit.Button("", func() { status = demoText("File list refreshed", "已刷新文件列表") }).Name(demoText("Refresh files", "刷新文件")).Icon(kit.IconRetry).Variant(kit.ButtonGhost).Size(24),
+				Menu: func(m *kit.MenuView) {
+					m.Item(demoText("Collapse all", "全部折叠"), "", func() { status = demoText("All directories collapsed", "已折叠全部目录") })
+				}}, kit.DockLeft).
 			Panel(search, kit.DockLeft).
 			Panel(kit.DockPanel{ID: "main.go", Title: "main.go", View: code("package main\n\nfunc main() {\n    run()\n}")}, kit.DockCenter).
 			Panel(kit.DockPanel{ID: "app.go", Title: "app.go", View: code("package main\n\nfunc run() {}")}, kit.DockCenter).
-			Panel(kit.DockPanel{ID: "outline", Title: "大纲", View: txt("func main()\nfunc run()")}, kit.DockRight).
-			Panel(kit.DockPanel{ID: "terminal", Title: "终端", NoPadding: true, View: txt("$ go test ./...\nok"),
+			Panel(kit.DockPanel{ID: "outline", Title: demoText("Outline", "大纲"), View: txt("func main()\nfunc run()")}, kit.DockRight).
+			Panel(kit.DockPanel{ID: "terminal", Title: demoText("Terminal", "终端"), NoPadding: true, View: txt("$ go test ./...\nok"),
 				Tab: func(selected bool) el.View {
 					return el.ViewFunc(func(*el.Context) el.Element {
-						return el.Div().Row().Items(el.Center).Gap(6).Child(el.Div().Size(el.Dp(6)).Rounded(3).Bg(theme.Success), el.Text("终端"))
+						return el.Div().Row().Items(el.Center).Gap(6).Child(el.Div().Size(el.Dp(6)).Rounded(3).Bg(theme.Success), el.Text(demoText("Terminal", "终端")))
 					})
 				}}, kit.DockBottom).
-			Panel(kit.DockPanel{ID: "layout", Title: "布局", View: el.ViewFunc(func(*el.Context) el.Element {
+			Panel(kit.DockPanel{ID: "layout", Title: demoText("Layout", "布局"), View: el.ViewFunc(func(*el.Context) el.Element {
 				return el.Div().P(12).Child(el.Text(saved).TextSize(12).TextColor(theme.Muted))
 			})}, kit.DockBottom).
 			OnLayoutChange(func(l kit.DockLayout) {
@@ -89,7 +91,7 @@ func init() {
 			Separator: func(e *el.DivEl) { e.Bg(theme.Primary) },
 		}
 		styled := false
-		save := kit.Button("保存工作区", func() {
+		save := kit.Button(demoText("Save workspace", "保存工作区"), func() {
 			state, err := d.Snapshot()
 			if err != nil {
 				status = err.Error()
@@ -101,11 +103,11 @@ func init() {
 				return
 			}
 			snapshot = data
-			status = "已保存布局和搜索词"
+			status = demoText("Layout and search query saved", "已保存布局和搜索词")
 		})
-		restore := kit.Button("恢复工作区", func() {
+		restore := kit.Button(demoText("Restore workspace", "恢复工作区"), func() {
 			if len(snapshot) == 0 {
-				status = "请先保存工作区"
+				status = demoText("Save the workspace first", "请先保存工作区")
 				return
 			}
 			var state kit.DockState
@@ -117,9 +119,9 @@ func init() {
 				status = err.Error()
 				return
 			}
-			status = "已恢复布局并重建搜索面板"
+			status = demoText("Layout restored and search panel rebuilt", "已恢复布局并重建搜索面板")
 		})
-		style := kit.Button("切换 Dock 外观", func() {
+		style := kit.Button(demoText("Toggle Dock appearance", "切换 Dock 外观"), func() {
 			styled = !styled
 			if styled {
 				d.Skin(customSkin)

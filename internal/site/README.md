@@ -21,13 +21,13 @@ The Markdown indexes own the navigation: H2 sections in `docs/README.md` define 
 
 Getting started covers scaffold creation, development, running, and packaging. The former `docs/cli.html` redirects there while preserving query parameters and section anchors. Component pages display collapsible, copyable source below the live example. The builder reads the file that registers the gallery section, so the displayed source stays current.
 
-Previous/Next links follow the sidebar order across guides, components, and source READMEs. The first document has only Next; the last has only Previous. The home page is excluded. Narrow screens stack the links vertically.
+Previous/Next links follow the sidebar order across guides, components, and source READMEs. The first document has only Next; the last has only Previous. The home page is excluded. Narrow screens stack the links vertically. Prose, code blocks, and table cells wrap to the available width; copying code retains its original line breaks.
 
 ## Languages
 
 English is the default. Canonical `.md` files contain English; `.zh-CN.md` counterparts contain reviewed Simplified Chinese. Every published page requires both files. Keep heading levels and order aligned so the language switch can preserve the current section. Translate prose and sample labels as appropriate; retain API names and executable commands.
 
-The English site uses `/`; Chinese uses `/zh-CN/`. Each language has its own navigation, reading sequence, search index, UI labels, and source links. The header switches to the same document and matching section. Existing Chinese heading anchors remain valid on default English URLs. Both languages share `/demo/`, with `lang=en` or `lang=zh-CN` selecting framework text; application-owned example data retains its original language.
+The English site uses `/`; Chinese uses `/zh-CN/`. Each language has its own navigation, reading sequence, search index, UI labels, and source links. The header switches to the same document and matching section. Existing Chinese heading anchors remain valid on default English URLs. Both languages share `/demo/`, with `lang=en` or `lang=zh-CN` selecting framework text; application-owned example labels, messages, and data use the same language. The shared `demoText(english, chinese)` helper selects gallery text; example source includes both translations.
 
 Repository language links connect the paired Markdown files and are omitted from rendered content in favor of the header switch. Chinese repository links point to Chinese files; English links use English heading anchors.
 

@@ -5,8 +5,8 @@ English | [简体中文](number_input.zh-CN.md)
 Numeric input box with − / + buttons.
 
 ```go
-qty := kit.NumberInput("数量").Range(1, 99).Step(1)
-price := kit.NumberInput("单价").Range(0, 1e6).Step(0.5).Decimals(2)
+qty := kit.NumberInput("Quantity").Range(1, 99).Step(1)
+price := kit.NumberInput("Unit price").Range(0, 1e6).Step(0.5).Decimals(2)
 ```
 
 - Intermediate states outside the range are allowed during the input process. For example, if you want to enter 15, the 1 typed first may be less than the lower limit; when you press Enter or leave the input box, it is limited to the range and formatted, and text that cannot be parsed, NaN, infinity, and overflow are restored to the original value.
@@ -31,7 +31,7 @@ price.StepBy(func(value float64, action kit.NumberStepAction) float64 {
     }
     return 0.5
 })
-price.Suffix(kit.Button("帮助", showHelp))
+price.Suffix(kit.Button("Help", showHelp))
 ```
 
 When the application needs to take over increases and decreases, set `OnStep(func(kit.NumberStepEvent))`. The event contains the valid draft `Value`, the direction `Action` and the step number `Count` (1 for normal buttons/arrow keys, 10 for PageUp/PageDown). This mode does not automatically submit drafts, does not call dynamic strategies, and does not trigger `OnChange`; the callback can be used to update the display with `SetValue`, or not update it temporarily. Invalid drafts use the most recently submitted value, and the text remains unchanged; normal carriage return/out-of-focus submission behavior remains unchanged.
@@ -47,7 +47,7 @@ Full-width digits `０–９`, symbols `＋/－`, and decimal points `．/。` a
 `ThousandsSeparator(',')` Adds thousandths digit to edit and commit display; also supports spaces, single quotes, non-breaking space U+00A0 and narrow non-breaking space U+202F, 0 is off, other characters are ignored. Decimal separators are fixed to points. Combined with `Decimals(2)`, Prefix, the amount can be displayed; the range endpoints are still fully displayed when more precision is required. Parsing and incrementing and decrementing will remove the configured grouping sign, and the Value will always be float64. Setting the delimiter restores the display of recently submitted values and discards uncommitted drafts.
 
 ```go
-price := kit.NumberInput("金额").Decimals(2).ThousandsSeparator(',')
+price := kit.NumberInput("Amount").Decimals(2).ThousandsSeparator(',')
 price.SetValue(12345.6) // Showing 12,345.60
 ```
 

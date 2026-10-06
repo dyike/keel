@@ -5,7 +5,7 @@ English | [简体中文](progress_circle.zh-CN.md)
 Circular progress display, supporting real progress, uncertain animation and central content.
 
 ```go
-p := kit.ProgressCircle("导入订单").Size(64)
+p := kit.ProgressCircle("Import orders").Size(64)
 p.SetValue(.42)
 p.Child(el.ViewFunc(func(*el.Context) el.Element {
     return el.Text(fmt.Sprintf("%.0f%%", p.Value()*100))

@@ -5,7 +5,7 @@ English | [简体中文](radio.zh-CN.md)
 The options are scattered in different cards and table rows. When RadioGroup is not used, use a single `kit.Radio(label)`:
 
 ```go
-express, pickup := kit.Radio("快递配送"), kit.Radio("门店自提")
+express, pickup := kit.Radio("Delivery"), kit.Radio("Store pickup")
 express.SetValue(true)
 express.OnChange(func(bool) { pickup.SetValue(false) })
 pickup.OnChange(func(bool) { express.SetValue(false) })

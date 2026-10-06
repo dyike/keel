@@ -5,7 +5,7 @@ English | [简体中文](table.zh-CN.md)
 Data tables: sort, select, adjust column widths, customize cells, build only visible rows.
 
 ```go
-t := kit.Table(kit.Col("单号").Width(120), kit.Col("客户").Flex(2), kit.Col("金额").Numeric()).
+t := kit.Table(kit.Col("Order number").Width(120), kit.Col("Customer").Flex(2), kit.Col("Amount").Numeric()).
     Height(360).OnActivate(open)
 t.SetRows(rows)
 ```
@@ -64,20 +64,20 @@ Performance: It takes less than a second to create, sort, and jump to the end of
 Use `StaticTable` for small amounts of data or custom layouts. It returns a `el.DivEl` that can be styled directly, without creating the selection, sorting, or virtual list state of the data table. Each component is constructed in Render; stateful Input, Button and other views are held by the application, and the Render results are put into cells.
 
 ```go
-kit.StaticTable().Name("订单").Child(
+kit.StaticTable().Name("Orders").Child(
     kit.TableHeader().Child(kit.TableRow().Child(
-        kit.TableHead().Child(el.Text("单号")),
-        kit.TableHead().Items(el.End).Child(el.Text("金额")),
+        kit.TableHead().Child(el.Text("Order number")),
+        kit.TableHead().Items(el.End).Child(el.Text("Amount")),
     )),
     kit.TableBody().Child(kit.TableRow().Child(
         kit.TableDataCell().Child(el.Text("SO-001")),
         kit.TableDataCell().Items(el.End).Child(el.Text("¥250.00")),
     )),
     kit.TableFooter().Child(kit.TableRow().Decorate(nil).Child(
-        kit.TableDataCell().Child(el.Text("合计")),
+        kit.TableDataCell().Child(el.Text("Total")),
         kit.TableDataCell().Items(el.End).Child(el.Text("¥250.00")),
     )),
-    kit.TableCaption().Child(el.Text("最近一笔订单")),
+    kit.TableCaption().Child(el.Text("Latest order")),
 )
 ```
 

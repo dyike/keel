@@ -14,5 +14,5 @@ func init() {
 type markerGallery struct{}
 
 func (markerGallery) Render(cx *el.Context) el.Element {
-	return el.Div().Gap(16).Child(el.Div().Row().Gap(8).Items(el.Center).Child(kit.Marker(kit.MarkerDot).Color(theme.Success).Render(cx), el.Text("在线")), el.Div().Row().Gap(8).Items(el.Center).Child(kit.Marker(kit.MarkerSquare).Color(theme.Warning).Render(cx), el.Text("待处理")), el.Div().Row().Gap(8).Items(el.Center).Child(kit.Marker(kit.MarkerDiamond).Size(12).Color(theme.Info).Render(cx), el.Text("里程碑")))
+	return el.Div().Gap(16).Child(el.Div().Row().Gap(8).Items(el.Center).Child(kit.Marker(kit.MarkerDot).Color(theme.Success).Render(cx), el.Text(demoText("Online", "在线"))), el.Div().Row().Gap(8).Items(el.Center).Child(kit.Marker(kit.MarkerSquare).Color(theme.Warning).Render(cx), el.Text(demoText("Pending", "待处理"))), el.Div().Row().Gap(8).Items(el.Center).Child(kit.Marker(kit.MarkerDiamond).Size(12).Color(theme.Info).Render(cx), el.Text(demoText("Milestone", "里程碑"))))
 }

@@ -6,9 +6,9 @@ A row of command buttons, buttons that cannot fit will be automatically moved in
 
 ```go
 bar := kit.Toolbar(
-    kit.ToolbarItem{Label: "新建", Icon: kit.IconPlus, Action: create},
+    kit.ToolbarItem{Label: "New", Icon: kit.IconPlus, Action: create},
     kit.ToolbarItem{Separator: true},
-    kit.ToolbarItem{Label: "导出", Action: export},
+    kit.ToolbarItem{Label: "Export", Action: export},
 )
 ```
 
@@ -27,7 +27,7 @@ When the width of the command area has not yet been measured in the first frame,
 
 ## Custom group anywhere
 
-`ToolbarItem{Label: "缩放", Content: zoomSelect, Width: 150}` Place an interactive view at this location, and multiple controls can be combined inside the view. `Content` takes precedence over Action/Icon, Separator still takes precedence; Label is used for group semantics and overflow menus. `Width` refers to the group width. The legal range is greater than 0 and no more than 4096dp. If it is not set or illegal, 160dp is used.
+`ToolbarItem{Label: "Zoom", Content: zoomSelect, Width: 150}` Place an interactive view at this location, and multiple controls can be combined inside the view. `Content` takes precedence over Action/Icon, Separator still takes precedence; Label is used for group semantics and overflow menus. `Width` refers to the group width. The legal range is greater than 0 and no more than 4096dp. If it is not set or illegal, 160dp is used.
 
 For groups that cannot be placed, use Label to enter "More". After clicking, Content will be displayed in the modal overlay below the toolbar. `OverflowContent` can be used to provide another layout; the overlay is limited to the window, scrolled when the content is too high, Esc or click outside to close. Closes the overlay when the group is resized, disabled, or replaced by SetItems. The state of the custom view is held by the application; switching between the toolbar and the overlay will change the element tree path, and the internal state of the frame such as input selection is not guaranteed to be retained.
 

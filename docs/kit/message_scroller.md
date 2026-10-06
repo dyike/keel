@@ -35,7 +35,7 @@ Agent: Container role log, currently visible messages are listed one by one. Ver
 The "Back to latest" button is enabled by default, `LatestButton(false)` hides it without changing the scrolling state; `LatestLabel` sets the text and accessible name, and the empty string restores the current language. `LatestRenderer` receives the default Button created every frame, can modify the variant, icon, size, Content and Appearance, and can also return another Button. The component copies the return value and retains the internal ID and jump action; nil configuration or return nil to restore default. Custom content is limited to display elements.
 
 ```go
-sc.LatestLabel("查看新消息").LatestRenderer(func(b *kit.ButtonView) *kit.ButtonView {
+sc.LatestLabel("View new messages").LatestRenderer(func(b *kit.ButtonView) *kit.ButtonView {
     return b.Variant(kit.ButtonPrimary).Outline(true).Size(32)
 }).LatestTransition(250 * time.Millisecond)
 ```

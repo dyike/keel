@@ -7,12 +7,12 @@ A menu of commands that pops up next to the triggering element.
 ```go
 export := kit.Menu().Item("PDF", "", exportPDF).Item("CSV", "", exportCSV)
 more := kit.Menu().
-    Item("复制", "mod+c", copy).
+    Item("Copy", "mod+c", copy).
     Separator().
-    Sub("导出", export).
-    Item("删除", "delete", remove)
-more.SetItemDisabled("复制", !hasSelection)
-more.Trigger(kit.Button("更多", more.Toggle).Variant(kit.ButtonGhost))
+    Sub("Export", export).
+    Item("Delete", "delete", remove)
+more.SetItemDisabled("Copy", !hasSelection)
+more.Trigger(kit.Button("More", more.Toggle).Variant(kit.ButtonGhost))
 ```
 
 - `Item(label, shortcut, action)`: `shortcut` uses the writing method of `core.ParseShortcut`, only uses `kit.Kbd` to display, **does not register** the shortcut key; pass an empty string when not needed.
@@ -65,7 +65,7 @@ These two methods of DropdownButton directly configure the incoming Menu; normal
 ```go
 core.Bind("save", "mod+s")
 core.BindIn("editor", "save", "mod+shift+s")
-menu := kit.Menu().ActionContext("document").ActionItem("保存", "save", save)
+menu := kit.Menu().ActionContext("document").ActionItem("Save", "save", save)
 // In Render:
 cx.ActionAt("document", "save", save)
 return el.Div().ID("document").KeyContext("editor").Child(input.Render(cx), menu.Render(cx))

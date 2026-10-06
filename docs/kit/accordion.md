@@ -5,7 +5,7 @@ English | [简体中文](accordion.zh-CN.md)
 Expandable sectioned panels. By default, only one section is expanded at the same time, and multiple sections can be expanded after `Multiple()`.
 
 ```go
-faq := kit.Accordion().Add("如何退款？", answer1).Add("多久到账？", answer2).Multiple()
+faq := kit.Accordion().Add("How do I request a refund?", answer1).Add("When will the payment arrive?", answer2).Multiple()
 ```
 
 - Titles can get focus: ↑ ↓ Home End Move between titles and skip disabled sections; press Enter or space to expand or collapse.

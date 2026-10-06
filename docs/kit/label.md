@@ -5,8 +5,8 @@ English | [简体中文](label.zh-CN.md)
 `kit.Label(text)` displays wrappable labels. `Secondary(text)` appends the secondary color copy after the same text stream and removes the empty string; `SetText` updates the main copy.
 
 ```go
-kit.Label("公司名称").Secondary("（可选）").Highlights("公司")
-kit.Label("账户余额").Masked(true)
+kit.Label("Company name").Secondary("(optional)").Highlights("Company")
+kit.Label("Account balance").Masked(true)
 kit.Label("Hello World").HighlightPrefix("Hello").Style(func(t *el.TextEl) {
     t.TextSize(20).Bold().LineHeight(1.5)
 })

@@ -5,7 +5,7 @@ English | [简体中文](switch.zh-CN.md)
 Switches that take effect immediately, such as "Receive notifications".
 
 ```go
-notify := kit.Switch("接收通知", true).OnChange(func(on bool) { save(on) })
+notify := kit.Switch("Receive notifications", true).OnChange(func(on bool) { save(on) })
 ```
 
 - Click, Space, Enter to switch; `Value()` / `SetValue(bool)`, `SetValue` does not trigger the callback; `SetDisabled`.

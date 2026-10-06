@@ -8,7 +8,7 @@ Left/Right accepts el.View, replaces the respective view group, and calls the su
 
 ```go
 status := el.ViewFunc(func(cx *el.Context) el.Element {
-    return el.Text("就绪").TextColor(theme.Muted)
+    return el.Text("Ready").TextColor(theme.Muted)
 })
 ```
 
@@ -18,9 +18,9 @@ When all the content cannot fit in the narrow window, use `Add` (left group) and
 
 ```go
 bar := kit.StatusBar().Left(ready).
-    Add(kit.StatusItem{Label: "main 分支", Action: switchBranch, Priority: 3}).
+    Add(kit.StatusItem{Label: "main branch", Action: switchBranch, Priority: 3}).
     AddRight(
-        kit.StatusItem{Label: "行 12，列 4", Action: gotoLine, Priority: 2},
+        kit.StatusItem{Label: "Line 12, column 4", Action: gotoLine, Priority: 2},
         kit.StatusItem{Label: "UTF-8", Action: pickEncoding},
     )
 ```

@@ -8,7 +8,7 @@ The `ui/window` module is responsible for: opening, closing, bringing to front, 
 
 ```go
 w := window.Open(window.Options{
-    Title:   "设置",
+    Title:   "Settings",
     Width:   420,          // dp, 0 means 640
     Height:  340,          // dp, 0 means 480
     Content: el.Root(page), // core.Widget, usually el.Root(view)
@@ -16,7 +16,7 @@ w := window.Open(window.Options{
         "mod+s": save,
         "esc":   func() { w.Close() },
     },
-    OnClose: func() { log.Print("设置窗口已关闭") },
+    OnClose: func() { log.Print("Settings window closed") },
 })
 window.Main()
 ```
@@ -74,7 +74,7 @@ openSettings := func() {
         settings.Raise()
         return
     }
-    settings = window.Open(window.Options{Title: "设置", Content: settingsPage()})
+    settings = window.Open(window.Options{Title: "Settings", Content: settingsPage()})
 }
 ```
 

@@ -67,9 +67,9 @@ After changing the theme, spacing, and fonts, take screenshots before and after 
 
 ```sh
 go run ./examples/hello -screenshot /tmp/before.png
-# 修改代码
+# Edit the code
 go run ./examples/hello -screenshot /tmp/after.png
-cmp /tmp/before.png /tmp/after.png && echo 完全一致
+cmp /tmp/before.png /tmp/after.png && echo Identical
 ```
 
 Pure refactoring should output "exactly consistent". Screenshots are rendered off-screen by the GPU, and the results are stable on the same machine; pixels may be different on different machines and different system fonts. Do not submit screenshots as cross-machine benchmark files.
@@ -104,7 +104,7 @@ The interfaceless test cannot cover these, so you need to change the relevant co
 
 ```sh
 go run ./examples/components -matrix /tmp/keel-component-matrix
-# 单个组件：窄窗口、1×、深色
+# One component: narrow viewport, 1x, dark theme
 go run ./examples/components -section button -width 320 -scale 1 -theme dark -screenshot /tmp/button.png
 ```
 

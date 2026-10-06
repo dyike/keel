@@ -6,9 +6,9 @@ Displays the opening, high, low and closing values in the order they are passed 
 
 ```go
 chart := kit.CandlestickChart(
-    kit.Candle{Label: "周一", Open: 10, High: 14, Low: 8, Close: 12},
-    kit.Candle{Label: "周二", Open: 12, High: 15, Low: 9, Close: 10},
-).Title("价格").Height(240)
+    kit.Candle{Label: "Monday", Open: 10, High: 14, Low: 8, Close: 12},
+    kit.Candle{Label: "Tuesday", Open: 12, High: 15, Low: 9, Close: 10},
+).Title("Price").Height(240)
 ```
 
 Use the success-colored hollow real body when rising, use the dangerous-colored solid real body when falling, and display horizontal lines when flat. Direction is also expressed by shape. The original OHLC value can be read by hovering, and the data table can be read by keyboard operation and Agent.

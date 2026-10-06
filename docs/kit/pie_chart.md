@@ -6,9 +6,9 @@ Pie charts and donut charts show proportions of the same set of data.
 
 ```go
 chart := kit.PieChart(
-    kit.PieSlice{Name: "线上", Value: 60},
-    kit.PieSlice{Name: "门店", Value: 40},
-).Title("收入来源").Donut(.6)
+    kit.PieSlice{Name: "Online", Value: 60},
+    kit.PieSlice{Name: "Store", Value: 40},
+).Title("Revenue sources").Donut(.6)
 ```
 
 `Height(dp)` sets the height of the drawing area; `Donut(fraction)` sets the central hole radius ratio, range 0–0.9, default 0. `Format(fn)` sets the numerical format, keeping the ratio to one decimal place. `SetData` Copies the data and restores the legend to visibility.

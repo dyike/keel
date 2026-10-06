@@ -7,8 +7,8 @@ Numerical x / y plots for interactive exploration of data.
 ```go
 p := kit.Plot(
     kit.PlotSeries{Name: "sin(x)", Points: wave},
-    kit.PlotSeries{Name: "实测", Points: samples},
-).Lines().Title("信号")
+    kit.PlotSeries{Name: "Measured", Points: samples},
+).Lines().Title("Signal")
 ```
 
 - Mouse: The scroll wheel zooms with the pointer position as the center; drag and pan; double-click or click "Reset" to restore the display of all data.

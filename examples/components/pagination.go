@@ -17,7 +17,7 @@ func init() {
 		wide.SetValue(50)
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			s, e := p.Bounds()
-			return el.Div().P(24).Gap(8).Items(el.Start).Child(p.Render(cx), el.Text(fmt.Sprintf("显示第 %d–%d 条", s+1, e)).TextColor(theme.Muted), el.Text("紧凑模式 · 24dp"), compact.Render(cx), el.Text("九个页码 · 36dp"), wide.Render(cx))
+			return el.Div().P(24).Gap(8).Items(el.Start).Child(p.Render(cx), el.Text(fmt.Sprintf(demoText("Showing items %d–%d", "显示第 %d–%d 条"), s+1, e)).TextColor(theme.Muted), el.Text(demoText("Compact mode · 24dp", "紧凑模式 · 24dp")), compact.Render(cx), el.Text(demoText("Nine page numbers · 36dp", "九个页码 · 36dp")), wide.Render(cx))
 		}))
 	})
 }

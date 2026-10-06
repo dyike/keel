@@ -26,9 +26,9 @@ Continuous clicks will retain the full 1.5 seconds of feedback after each copy, 
 copy := kit.CopyButton(func() string { return order.ID }).
     OnCopied(func(value string) { lastCopied = value })
 copy.Content(el.ViewFunc(func(cx *el.Context) el.Element {
-    label := "复制订单号"
+    label := "Copy order number"
     if copy.Copied() {
-        label = "订单号已复制"
+        label = "Order number copied"
     }
     return el.Text(label)
 }))

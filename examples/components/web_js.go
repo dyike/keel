@@ -28,7 +28,7 @@ func init() {
 		} else {
 			locale.Apply(locale.English())
 		}
-		for _, name := range []string{"section", "theme"} {
+		for _, name := range []string{"section", "theme", "lang"} {
 			if v := q.Get(name); v != "" {
 				os.Args = append(os.Args, "-"+name+"="+v)
 			}

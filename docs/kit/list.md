@@ -37,7 +37,7 @@ Searches are not renumbered: Value, select/activate callbacks, and Index in cust
 list.Searchable(true).RenderItem(func(cx *el.Context, row kit.ListItemContext) el.Element {
     return el.Div().Row().Grow().Child(
         el.Text(row.Item.Label).Grow(),
-        kit.Button("详情", func() { open(row.Item.ID) }).Size(24).Render(cx),
+        kit.Button("Details", func() { open(row.Item.ID) }).Size(24).Render(cx),
     )
 })
 ```
@@ -54,11 +54,11 @@ If failed, use `SetLoadError(message)` to stop the automatic request and display
 
 ```go
 files := kit.List().Searchable(true).
-    InitialContent(kit.Label("输入文件名开始搜索")).
-    EmptyContent(kit.Label("这个文件夹是空的")).
-    NoMatchesContent(kit.Label("没有找到匹配的文件")).
+    InitialContent(kit.Label("Enter a file name to search")).
+    EmptyContent(kit.Label("This folder is empty")).
+    NoMatchesContent(kit.Label("No matching files")).
     LoadingContent(kit.Skeleton()).
-    ErrorContent(func(msg string, retry func()) el.View { /* 自定义错误和重试 */ })
+    ErrorContent(func(msg string, retry func()) el.View { /* Provide custom error and retry UI */ })
 ```
 
 - `EmptyContent`: Displayed when the list has no data and no search terms.

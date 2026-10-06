@@ -5,8 +5,8 @@ English | [简体中文](image.zh-CN.md)
 Display a decoded image, or load an image asynchronously from a Source, scaling by width and maintaining aspect ratio.
 
 ```go
-logo := kit.Image(img, "公司标志").Width(160).Rounded(8)
-photo := kit.Image(nil, "头像") // Display the placeholder first; after loading, call photo.SetImage(img) in core.Update
+logo := kit.Image(img, "Company logo").Width(160).Rounded(8)
+photo := kit.Image(nil, "Avatar") // Display the placeholder first; after loading, call photo.SetImage(img) in core.Update
 ```
 
 - By default, it fills the width of the parent container, but does not exceed the pixel width of the image itself; `Width(dp)` sets the maximum width.
@@ -28,9 +28,9 @@ Verify: `go run ./examples/components -section image`, add `-theme dark` to chec
 
 ```go
 cache := kit.NewImageCache(32 << 20)
-photo := kit.Image(nil, "商品照片").Size(320, 180).
-    LoadingContent(kit.Spinner().Label("正在加载图片")).
-    Fallback(kit.Label("图片暂时不可用")).
+photo := kit.Image(nil, "Product photo").Size(320, 180).
+    LoadingContent(kit.Spinner().Label("Loading image")).
+    Fallback(kit.Label("Image unavailable")).
     Cache(cache).Source("https://example.com/photo.webp")
 ```
 

@@ -30,7 +30,7 @@ Non-loop automatic playback stops after the last item; after the program or user
 
 ```go
 car.Loop(false)
-previous := kit.Button("上一项", car.Previous)
+previous := kit.Button("Previous item", car.Previous)
 previous.SetDisabled(!car.CanPrevious()) // Update according to current status before rendering
 ```
 
@@ -41,7 +41,7 @@ Keep the returned control instances, rendering them every frame:
 ```go
 content := car.Content()
 previous := car.PreviousControl(nil)
-next := car.NextControl(kit.Button("下一项", nil).Variant(kit.ButtonSecondary).Size(40))
+next := car.NextControl(kit.Button("Next item", nil).Variant(kit.ButtonSecondary).Size(40))
 first := car.PaginationItem(0, nil)
 second := car.PaginationItem(1, nil)
 // Call content/previous/next/first/second.Render(cx) respectively in your own layout.

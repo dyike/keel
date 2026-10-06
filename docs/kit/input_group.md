@@ -5,10 +5,10 @@ English | [简体中文](input_group.zh-CN.md)
 Group text boxes, icons, units, or action buttons into the same border.
 
 ```go
-query := kit.Input("").Placeholder("客户或订单号").Clearable()
-search := kit.InputGroup("查询订单", query).
+query := kit.Input("").Placeholder("Customer or order number").Clearable()
+search := kit.InputGroup("Find orders", query).
     Prefix(kit.Icon(kit.IconSearch)).
-    Suffix(kit.Button("查询", func() { lookup(query.Value()) }))
+    Suffix(kit.Button("Search", func() { lookup(query.Value()) }))
 ```
 
 The Input instance is responsible for text, filtering, read-only and callbacks, and the Input Group is responsible for borders, labels and additional content before and after. The incoming Input is only rendered through this group and cannot be rendered elsewhere at the same time. Additional content width is determined by itself; leave enough space for long buttons and narrow containers.
@@ -36,11 +36,11 @@ The same position is arranged in the order of addition. The ID must be non-empty
 
 ```go
 message := kit.TextArea("").Rows(3)
-composer := kit.InputGroup("备注", message).
+composer := kit.InputGroup("Notes", message).
     Addon("heading", kit.InputGroupBlockStart,
-        el.ViewFunc(func(*el.Context) el.Element { return el.Text("填写订单备注") })).
+        el.ViewFunc(func(*el.Context) el.Element { return el.Text("Enter order notes") })).
     Addon("send", kit.InputGroupBlockEnd,
-        kit.Button("保存", func() { save(message.Value()) }).Size(28))
+        kit.Button("Save", func() { save(message.Value()) }).Size(28))
 ```
 
 Additional buttons directly use `kit.Button`, which can be configured with Variant, Size, Icon, Name, Loading and disabled state; compact buttons can be set to `.Variant(kit.ButtonGhost).Size(24)`. Icon button requires `Name`. Menus, Popovers and Tooltips can also be combined as additional Views, inheriting their respective interfaces.

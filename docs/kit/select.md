@@ -5,8 +5,8 @@ English | [简体中文](select.zh-CN.md)
 Choose an item from the list.
 
 ```go
-status := kit.Select("状态", "待付款", "已付款", "已发货").OnChange(func(s string) { … })
-city := kit.Select("城市", cities...).Searchable()
+status := kit.Select("Status", "Awaiting payment", "Paid", "Shipped").OnChange(func(s string) { … })
+city := kit.Select("City", cities...).Searchable()
 ```
 
 - Click, Enter, Space or ↓ to open the list. ↑ ↓ moves in the list (looping from beginning to end), Home / End jumps to the beginning and end, Enter selects, Esc closes; after closing, the focus returns to the drop-down box.
@@ -28,7 +28,7 @@ Search for matching tags or values. List virtualization only builds rows near th
 
 `RenderItem(func(*el.Context, SelectItemContext) el.Element)` Customizes visible row content; context includes Entries index, option copy, selection, and keyboard activity state. Return nil to use the default text, the outer layer is still responsible for option semantics, disabling, checking and selecting. Content should be presented as display elements, and interactions should be placed in independent controls. `RenderValue` receives a copy of the selected item and customizes the display when closed; the placeholder prompt remains the default and returns nil to restore the label. The value of Agent continues to use the stored value and does not follow the custom drawn text.
 
-`TitlePrefix("城市：")` Adds prefix only when selected, up to half field width and truncated. `Empty(view)` replaces no matching content, nil returns to default; empty content area can be scrolled. `Match(func(SelectOption,string) bool)` Replaces the search match on the original query received; nil restores the tag/value containment match. Recalling Match after the data the closure depends on changes will invalidate the cache.
+`TitlePrefix("City: ")` Adds prefix only when selected, up to half field width and truncated. `Empty(view)` replaces no matching content, nil returns to default; empty content area can be scrolled. `Match(func(SelectOption,string) bool)` Replaces the search match on the original query received; nil restores the tag/value containment match. Recalling Match after the data the closure depends on changes will invalidate the cache.
 
 `Clearable(true)` displays an independent clear button, clears selections, queries and errors and closes the menu. The focus returns to the field; the multi-select callback receives nil, and OnChange receives an empty string when the main value changes. Empty selections do not send callbacks repeatedly, the procedure SetValue/SetValues remains silent, and disabling inheritance blocks the button.
 

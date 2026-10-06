@@ -5,7 +5,7 @@ English | [简体中文](link.zh-CN.md)
 Clickable text links.
 
 ```go
-kit.Link("查看详情", openDetail)
+kit.Link("View details", openDetail)
 ```
 
 - Main color text, darkens on hover. It can be triggered with Tab focus, Enter or Space.

@@ -8,15 +8,15 @@ Modal dialog box. When opened, the page dims, does not respond to the pointer, a
 
 ```go
 dlg := kit.Dialog("")
-dlg.Confirm("保存修改", "离开前保存吗？", save)                  // Cancel/OK, focus on OK
-dlg.ConfirmDanger("删除订单", "删除后不能恢复。", "删除", remove)  // Focus on cancellation
-dlg.Alert("导出完成", "共 36 条记录。", nil)                      // Only sure
+dlg.Confirm("Save changes", "Save before leaving?", save)                  // Cancel/OK, focus on OK
+dlg.ConfirmDanger("Delete order", "This cannot be undone.", "Delete", remove)  // Focus on cancellation
+dlg.Alert("Export complete", "36 records in total.", nil)                      // Only sure
 ```
 
 **Custom content**:
 
 ```go
-edit := kit.Dialog("编辑客户").Body(form).Footer(cancelButton, saveButton).Width(480)
+edit := kit.Dialog("Edit customer").Body(form).Footer(cancelButton, saveButton).Width(480)
 edit.SetValue(true)
 ```
 
@@ -49,7 +49,7 @@ Close buttons, headers, body text, and footers use stable identities; switching 
 
 ```go
 dlg.BeforeConfirm(func() bool { return formIsValid() })
-dlg.Confirm("提交", "确认提交？", submit)
+dlg.Confirm("Submit", "Submit now?", submit)
 ```
 
 If SetValue, SetDisabled or another standard message is opened in the verification callback, the old confirmation operation will not continue to be closed or onOK will be executed. The verification will not automatically start the goroutine, nor will it automatically display the loading state.
@@ -63,6 +63,6 @@ The program calls SetValue(false) and SetDisabled(true) without cancellation ver
 `Icon(kit.IconWarning)` Display the icon before the title and keep it when reusing the same dialog box to display different messages. Colors follow the tone: `ConfirmDanger` defaults to dangerous colors, others default to reminder colors, `IconTone(kit.ToneSuccess)` etc. can be specified. `Icon(kit.IconNone)` Remove the icon. The icon is just for decoration and does not broadcast separately. The title already explains the meaning.
 
 ```go
-dlg.Icon(kit.IconWarning).ConfirmDanger("删除订单", "删除后不能恢复。", "删除", remove)
-dlg.Icon(kit.IconCheck).IconTone(kit.ToneSuccess).Alert("导出完成", "共 36 条记录。", nil)
+dlg.Icon(kit.IconWarning).ConfirmDanger("Delete order", "This cannot be undone.", "Delete", remove)
+dlg.Icon(kit.IconCheck).IconTone(kit.ToneSuccess).Alert("Export complete", "36 records in total.", nil)
 ```

@@ -6,7 +6,7 @@ Stack multiple avatars to form a member group, limit the number of visible peopl
 
 ```go
 team := kit.AvatarGroup(
-    kit.Avatar("张三").Status(kit.AvatarOnline),
+    kit.Avatar("Alex Chen").Status(kit.AvatarOnline),
     kit.Avatar("Ada Lovelace"),
     kit.Avatar("Bob"),
 ).Size(40).Limit(2)

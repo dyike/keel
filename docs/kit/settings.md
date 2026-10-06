@@ -8,16 +8,16 @@ The settings page provides page navigation, multiple groups of settings within t
 name := kit.Input("")
 s := kit.Settings().GroupVariant(kit.GroupBoxFill).
     Page(kit.SettingPage{
-        Title: "通用", Icon: kit.IconSettings, Resettable: true,
+        Title: "General", Icon: kit.IconSettings, Resettable: true,
         Groups: []kit.SettingGroup{
-            {Title: "账户", Items: []kit.SettingItem{
-                {Label: "显示名称", Description: "公开显示的名称",
+            {Title: "Account", Items: []kit.SettingItem{
+                {Label: "Display name", Description: "Public display name",
                  Keywords: []string{"name", "profile"}, Control: name,
                  Reset: func() { name.SetValue("") }},
             }},
-            {Title: "外观", Items: []kit.SettingItem{
-                {Label: "主题", Description: "立即生效，无需重启",
-                 DescriptionContent: markdown.New("**立即生效**，无需重启。"),
+            {Title: "Appearance", Items: []kit.SettingItem{
+                {Label: "Theme", Description: "Takes effect immediately; no restart needed",
+                 DescriptionContent: markdown.New("**Takes effect immediately**, without restarting."),
                  Control: themeSelect},
             }},
         },

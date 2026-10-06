@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unicode"
 
 	"golang.org/x/net/html"
 )
@@ -181,5 +182,32 @@ func TestDocumentationTranslationCoverage(t *testing.T) {
 	}
 	if count == 0 {
 		t.Fatal("no repository documentation found")
+	}
+}
+
+func TestEnglishComponentDocumentation(t *testing.T) {
+	paths, err := filepath.Glob("../../docs/kit/*.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range paths {
+		if strings.HasSuffix(path, ".zh-CN.md") {
+			continue
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(line, "English | ") {
+				continue
+			}
+			for _, r := range line {
+				if unicode.Is(unicode.Han, r) {
+					t.Errorf("%s:%d: untranslated component text: %s", path, i+1, line)
+					break
+				}
+			}
+		}
 	}
 }

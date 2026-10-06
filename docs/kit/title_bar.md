@@ -5,11 +5,11 @@ English | [简体中文](title_bar.zh-CN.md)
 The title bar of a borderless window is drawn by the application itself.
 
 ```go
-bar := kit.TitleBar("编辑器").
+bar := kit.TitleBar("Editor").
     Leading(toggleSidebar).
     Trailing(searchBox, shareButton)
 
-window.Open(window.Options{Title: "编辑器", Frameless: true, Content: el.Root(app)})
+window.Open(window.Options{Title: "Editor", Frameless: true, Content: el.Root(app)})
 // Put bar.Render(cx) at the top of the app's Render
 ```
 

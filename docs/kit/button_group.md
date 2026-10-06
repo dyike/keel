@@ -4,9 +4,9 @@ English | [简体中文](button_group.zh-CN.md)
 
 ```go
 kit.ButtonGroup(
-    kit.Button("上一页", prev).Outline(true),
-    kit.Button("下一页", next).Outline(true),
-).Name("翻页")
+    kit.Button("Previous page", prev).Outline(true),
+    kit.Button("Next page", next).Outline(true),
+).Name("Pagination")
 ```
 
 - Several buttons are connected into a control: only the outermost corners are rounded; the stroked buttons share the middle border, and a thin gap is left between the solid buttons.

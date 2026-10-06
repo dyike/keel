@@ -9,10 +9,10 @@ import (
 
 func init() {
 	registerSection("link", "controls", func() core.Widget {
-		msg := "点击链接，或 Tab 聚焦后按回车"
+		msg := demoText("Click the link, or focus with Tab and press Enter", "点击链接，或 Tab 聚焦后按回车")
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(8).Items(el.Start).Child(
-				kit.Link("查看订单详情 Details", func() { msg = "已打开详情" }).Render(cx),
+				kit.Link(demoText("View order details", "查看订单详情 Details"), func() { msg = demoText("Details opened", "已打开详情") }).Render(cx),
 				el.Text(msg).TextColor(theme.Muted))
 		}))
 	})

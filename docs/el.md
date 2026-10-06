@@ -9,7 +9,7 @@ type Counter struct{ n int }
 
 func (c *Counter) Render(cx *el.Context) el.Element {
     return el.Div().P(24).Gap(12).Items(el.Start).Child(
-        el.Text(fmt.Sprintf("点了 %d 次", c.n)).TextSize(20).Bold(),
+        el.Text(fmt.Sprintf("Clicked %d times", c.n)).TextSize(20).Bold(),
         el.Div().Px(16).Py(8).Rounded(6).Bg(theme.Primary).TextColor(theme.OnColor).
             CursorPointer().Hover(func(s *el.Style) { s.Bg(theme.PrimaryHover) }).
             OnClick(func() { c.n++ }).
@@ -17,7 +17,7 @@ func (c *Counter) Render(cx *el.Context) el.Element {
     )
 }
 
-window.Open(window.Options{Title: "计数", Content: el.Root(&Counter{})})
+window.Open(window.Options{Title: "Counter", Content: el.Root(&Counter{})})
 window.Main()
 ```
 
@@ -36,11 +36,11 @@ The ready-made components are at [ui/kit](kit.md), and they are all el views.
 ## What happens in a frame
 
 ```
-1. 分发事件   上一帧登记过的点击 → 调用对应元素的 OnClick
-2. 渲染       view.Render(cx) → 元素树（按当前状态，每帧新建）
-3. 布局       flexbox 引擎算出每个元素的位置和尺寸
-4. 绘制       背景、边框、文字；登记点击区域；生成语义信息
-5. 回收       这一帧没出现的元素，状态删掉
+1. Dispatch events   Clicks registered in the previous frame → call the element’s OnClick
+2. Render            view.Render(cx) → element tree (rebuilt each frame from current state)
+3. Layout            The flexbox engine calculates element positions and sizes
+4. Paint             Backgrounds, borders, text; register click areas; generate semantics
+5. Collect           Remove state for elements absent from this frame
 ```
 
 Render will be called every frame, so it should be kept cheap: only build trees based on status, no I/O, no large calculations. Put time-consuming things into goroutine, and use `core.Update` to change the status after completion. Threading rules are the same as other modules, see [Architecture · Threading Rules](architecture.md#threading).
@@ -57,7 +57,7 @@ Render will be called every frame, so it should be kept cheap: only build trees 
 Input box:
 
 ```go
-el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) { v.refresh() }).OnSubmit(v.search)
+el.Input().ID("q").Placeholder("Search").Bind(&v.query).OnChange(func(s string) { v.refresh() }).OnSubmit(v.search)
 ```
 
 Clicking on an empty space will cause the input box to lose focus.
@@ -169,7 +169,7 @@ The keys must be comparable, and the appearance of the element is determined onl
 el.Div().ID("save").Focusable(true).
     OnClick(save).
     FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
-    Child(el.Text("保存"))
+    Child(el.Text("Save"))
 ```
 
 `Focusable(true)` allows the element to accept click focus and participate in Tab / Shift+Tab navigation in drawing order, sharing the native focus order with `Input` and `TextArea`. Nodes that are hidden, removed, and completely rolled out of the drawing area do not participate in navigation. Elements with OnClick are focusable by default; Focusable(false) explicitly exits the tab order.
@@ -195,7 +195,7 @@ type noticeTimerKey struct { ID string }
 if visible {
     cx.After(noticeTimerKey{noticeID}, 3*time.Second, func() { visible = false })
 }
-return el.Div().Hidden(!visible).Child(el.Text("已保存"))
+return el.Div().Hidden(!visible).Child(el.Text("Saved"))
 ```
 
 Similar components use their own stable IDs to form keys. Do not declare `After` in the constructor of `cx.Cache`: the constructor will not be executed when the cache is hit, and timers that are not declared again will be cancelled. After should be placed on the Render path of each execution, and the element tree should be cached separately.
@@ -305,7 +305,7 @@ No need to write additional code:
 | `Div` with `OnClick` | `button`, the name is the text inside |
 | `Input` | `textbox`, the name is `Name` or placeholder text, the value is the current content |
 | `.Role("tab").Selected(true)` | `tab`, selected |
-| `.Role("progressbar").Name("导入").Value("40%")` | `progressbar`, worth 40% |
+| `.Role("progressbar").Name("Import").Value("40%")` | `progressbar`, worth 40% |
 
 Content outside the scroll container will not appear in the element list.
 

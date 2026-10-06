@@ -5,7 +5,7 @@ English | [简体中文](tooltip.zh-CN.md)
 Add a short reminder to any view.
 
 ```go
-copy := kit.WithTooltip(kit.Button("", doCopy).Icon(kit.IconCopy), "复制（⌘C）")
+copy := kit.WithTooltip(kit.Button("", doCopy).Icon(kit.IconCopy), "Copy (⌘C)")
 ```
 
 - When to display: Displayed after the pointer stays at `kit.TooltipDelay` (500ms); displayed immediately when the keyboard focus enters the wrapped view.

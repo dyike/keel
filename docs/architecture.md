@@ -147,8 +147,8 @@ There is a global frame lock in `ui/internal/loop`. Each window holds it when dr
 How to write background tasks:
 
 ```go
-kit.Button("刷新", func() {
-    v.status = "加载中…"
+kit.Button("Refresh", func() {
+    v.status = "Loading…"
     go func() {
         data, err := fetch()           // Time-consuming operations outside the lock
         core.Update(func() {             // The result returns to the interface
@@ -177,10 +177,10 @@ Here are the rules for those who maintain `ui/window` and write components: **Wh
 The reason is a three-way waiting loop. Take "The settings window is open, return to the main window and press ⌘+," as an example:
 
 ```
-主窗口 goroutine   持有帧锁，在快捷键回调里调 settings.Raise()
+Main window goroutine     Holds the frame lock; calls settings.Raise() in a shortcut callback
                    └─ Gio Perform Wait for the main thread to execute it
-主线程             正在给设置窗口派发事件（焦点变了），等设置窗口画完这一帧
-设置窗口 goroutine  要画帧，等帧锁  ← 被主窗口 goroutine 持有
+Main thread               Dispatches a focus event to the settings window; waits for its frame
+Settings window goroutine Wants to draw; waits for the frame lock ← held by the main window goroutine
 ```
 
 The three parties are waiting for each other and the interface is stuck. This bug has actually appeared. `Raise` and `Close` are now executed outside the lock using `go w.win.Perform(...)`. `win.Invalidate()` does not wait for the main thread and can be called within the lock.

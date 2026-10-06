@@ -6,6 +6,7 @@ import (
 
 	"gioui.org/layout"
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/locale"
 )
 
 type demoSection struct {
@@ -23,7 +24,7 @@ func sectionContent(name string) (core.Widget, bool) {
 	var content []core.Widget
 	for _, s := range demoSections {
 		if name == "all" || s.name == name || s.category == name {
-			content = append(content, s.build())
+			content = append(content, &translatedSection{build: s.build})
 		}
 	}
 	// Preserve FillsWindow for a standalone el.Root section.
@@ -55,4 +56,27 @@ func (c column) Layout(gtx core.C) core.D {
 		}))
 	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+}
+
+// Standalone examples also rebuild their application text when a control
+// changes the locale (for example, Settings' language selector).
+type translatedSection struct {
+	build    func() core.Widget
+	widget   core.Widget
+	revision uint64
+}
+
+func (s *translatedSection) current() core.Widget {
+	if s.widget == nil || s.revision != locale.Revision() {
+		s.widget = s.build()
+		s.revision = locale.Revision()
+	}
+	return s.widget
+}
+
+func (s *translatedSection) Layout(gtx core.C) core.D { return s.current().Layout(gtx) }
+
+func (s *translatedSection) FillsWindow() bool {
+	f, ok := s.current().(interface{ FillsWindow() bool })
+	return ok && f.FillsWindow()
 }

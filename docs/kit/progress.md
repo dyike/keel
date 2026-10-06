@@ -5,7 +5,7 @@ English | [简体中文](progress.zh-CN.md)
 Labeled progress bar.
 
 ```go
-p := kit.Progress("导入订单")
+p := kit.Progress("Import orders")
 p.SetValue(0.42)          // Show 42%
 p.SetIndeterminate(true)  // When the total amount is unknown, a progress block sliding back and forth is displayed.
 ```

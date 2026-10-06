@@ -6,7 +6,7 @@ Displays a non-modal panel next to the trigger element for things like filters, 
 
 ```go
 filters := kit.Popover(form).Width(280).Offset(12)
-filters.Trigger(kit.Button("筛选", filters.Toggle).Variant(kit.ButtonSecondary))
+filters.Trigger(kit.Button("Filters", filters.Toggle).Variant(kit.ButtonSecondary))
 ```
 
 - The triggering element is responsible for opening itself: pass `Toggle` to its click callback. Popover only wraps a layer of non-interactive anchor points outside the triggering element, and there are no additional tab stops. The keyboard behavior is completely determined by the triggering element.
@@ -41,7 +41,7 @@ filters.Appearance(false).PanelStyle(func(panel *el.DivEl) {
 ```go
 info := kit.Popover(details).RightClick(true)
 // Left-click and keyboard can also be opened as an alternative entrance for right-click operations.
-info.Trigger(kit.Button("详情", info.Toggle))
+info.Trigger(kit.Button("Details", info.Toggle))
 ```
 
 It is only hoped that when the right mouse button is turned on, different left-click callbacks can be provided for the trigger button; the keyboard replacement entrance is provided by the application. Other mouse buttons are configured using MouseButton.

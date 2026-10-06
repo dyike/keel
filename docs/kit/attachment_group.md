@@ -5,7 +5,7 @@ English | [简体中文](attachment_group.zh-CN.md)
 Arrange attachments horizontally and roll when out of container. Each item retains its own upload status and operation callbacks.
 
 ```go
-files := kit.AttachmentGroup(report, photo).Name("附件").Gap(12)
+files := kit.AttachmentGroup(report, photo).Name("Attachments").Gap(12)
 photo.OnRemove(func() { files.SetItems(report) })
 ```
 
@@ -20,7 +20,7 @@ Run `go run ./examples/components -section attachment_group` and remove the atta
 `ScrollState(cx)` Returns the horizontal offset, visual width, and content width in dp; zero before first drawing. The Previous/Next buttons in the example use the current offset to add or subtract the visual width. The interface reads the status of the current root, and the same group of instances should only be rendered in one location.
 
 ```go
-next := kit.Button("后一屏", func() {
+next := kit.Button("Next screen", func() {
     offset, width, _ := files.ScrollState(cx)
     files.ScrollTo(offset + width)
 })

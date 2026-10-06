@@ -2,13 +2,13 @@
 
 English | [简体中文](status_marker.zh-CN.md)
 
-`kit.StatusMarker("已同步")` is used for message status, timeline boundaries, and system prompts. By default, the width of the parent container is filled, the content is moved to the left, and the text uses the theme Muted. Existing `kit.Marker(shape)` continues drawing chart geometry markers.
+`kit.StatusMarker("Synced")` is used for message status, timeline boundaries, and system prompts. By default, the width of the parent container is filled, the content is moved to the left, and the text uses the theme Muted. Existing `kit.Marker(shape)` continues drawing chart geometry markers.
 
 ```go
-kit.StatusMarker("今天").Variant(kit.StatusMarkerSeparator)
-kit.StatusMarker("3 条未读").Variant(kit.StatusMarkerBorder).
-    Content(kit.Button("查看", openMessages))
-kit.StatusMarker("正在生成…").Loading(true).
+kit.StatusMarker("Today").Variant(kit.StatusMarkerSeparator)
+kit.StatusMarker("3 unread messages").Variant(kit.StatusMarkerBorder).
+    Content(kit.Button("View", openMessages))
+kit.StatusMarker("Generating…").Loading(true).
     LoadingStyle(kit.StatusMarkerLoadingStyleShimmer).ID("generation").Role("status")
 ```
 

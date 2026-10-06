@@ -5,8 +5,8 @@ English | [简体中文](button.zh-CN.md)
 el-based action button that supports mouse, keyboard, icon and loading state. Default Primary appearance, 32dp height, 6dp rounded corners; color reads current theme in Render.
 
 ```go
-save := kit.Button("保存", saveOrder).Icon(kit.IconPlus)
-deleteButton := kit.Button("删除", deleteOrder).Variant(kit.ButtonDanger)
+save := kit.Button("Save", saveOrder).Icon(kit.IconPlus)
+deleteButton := kit.Button("Delete", deleteOrder).Variant(kit.ButtonDanger)
 ```
 
 Variant Accepts ButtonVariant: ButtonPrimary (zero value), ButtonSecondary, ButtonGhost, ButtonDanger, ButtonLink, ButtonText, ButtonSuccess, ButtonWarning, ButtonInfo. Only Variant is used to configure the appearance, and shortcut entries such as Danger are not provided. Size(float32) specifies the height dp, 28 / 32 / 40 is recommended; non-positive numbers and non-finite numbers are ignored. Narrow containers are limited to a single row, respecting the available width.

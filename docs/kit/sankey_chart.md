@@ -6,11 +6,11 @@ Sankey diagram shows directed acyclic flow. Nodes are arranged stably in input o
 
 ```go
 chart := kit.SankeyChart(
-    []kit.SankeyNode{{Name:"营收"}, {Name:"成本"}, {Name:"利润"}},
+    []kit.SankeyNode{{Name:"Revenue"}, {Name:"Cost"}, {Name:"Profit"}},
     []kit.SankeyLink{{Source:0, Target:1, Value:55}, {Source:0, Target:2, Value:45}},
-).Title("收入分配").Height(320).NodePadding(20).NodeRadius(2)
-if err := chart.Error(); err != nil { /* 首次数据无效 */ }
-if err := chart.SetData(nodes, links); err != nil { /* 保留原图 */ }
+).Title("Revenue allocation").Height(320).NodePadding(20).NodeRadius(2)
+if err := chart.Error(); err != nil { /* Initial data is invalid */ }
+if err := chart.SetData(nodes, links); err != nil { /* Keep the previous chart */ }
 ```
 
 When construction fails, Error returns the reason and renders the error content. SetData checks index, self-loop, loop, negative number, NaN/Infinity and total overflow; if it fails, it returns an error and retains the old data. If it succeeds, it clears the construction error. The data and optional colors are copied, as is the color received by the callback. Zero-flow edges are retained in the data table and topology, but flow bands are not drawn.

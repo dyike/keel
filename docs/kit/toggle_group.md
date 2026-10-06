@@ -5,7 +5,7 @@ English | [简体中文](toggle_group.zh-CN.md)
 A row of switch buttons. Single selection by default, multiple selections available after `Multiple()`.
 
 ```go
-align := kit.ToggleGroup("左对齐", "居中", "右对齐")
+align := kit.ToggleGroup("Align left", "Center", "Align right")
 style := kit.ToggleGroup("B", "I", "U").Multiple().OnChange(func(on []string) { … })
 ```
 
@@ -29,7 +29,7 @@ Configure item by item using `Item(value, toggle)`:
 ```go
 g := kit.ToggleGroup("star", "inbox").Multiple().Variant(kit.ToggleOutline).
     Item("star", kit.Toggle("", false).Icon(kit.IconStar)).
-    Item("inbox", kit.Toggle("收件箱", false).Icon(kit.IconInbox))
+    Item("inbox", kit.Toggle("Inbox", false).Icon(kit.IconInbox))
 g.SetValue("star")
 ```
 

@@ -2,7 +2,7 @@
 
 English | [简体中文](avatar.zh-CN.md)
 
-`kit.Avatar("张三").Size(40).Status(kit.AvatarOnline)` displays a circular avatar. Size accepts float32 dp. The recommended small, medium and large sizes are 24, 40 and 56. Image accepts a decoded image.Image, nil restore name fallback. Use core.Update to update after background loading is completed.
+`kit.Avatar("Alex Chen").Size(40).Status(kit.AvatarOnline)` displays a circular avatar. Size accepts float32 dp. The recommended small, medium and large sizes are 24, 40 and 56. Image accepts a decoded image.Image, nil restore name fallback. Use core.Update to update after background loading is completed.
 
 In Chinese, the first character is taken, in English, the first letters of the first two words are taken, and a question mark is displayed for an empty name. The background is picked from the current theme based on the name hash. Status supports AvatarOnline, AvatarBusy, and AvatarOffline, and empty values are hidden; the status point is located inside the avatar and does not change the layout.
 

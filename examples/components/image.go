@@ -24,21 +24,21 @@ func init() {
 				img.SetNRGBA(x, y, colors[x/80])
 			}
 		}
-		msg := "点击图片预览；Esc 关闭"
-		photo := kit.Image(img, "红绿蓝色块").Rounded(8).Preview().OnClick(func() { msg = "已点击图片" })
-		loading := kit.Image(nil, "加载失败的图片").Width(240)
-		loading.SetError("网络中断")
+		msg := demoText("Click the image to preview; Esc closes it", "点击图片预览；Esc 关闭")
+		photo := kit.Image(img, demoText("Red, green, and blue blocks", "红绿蓝色块")).Rounded(8).Preview().OnClick(func() { msg = demoText("Image clicked", "已点击图片") })
+		loading := kit.Image(nil, demoText("Image that fails to load", "加载失败的图片")).Width(240)
+		loading.SetError(demoText("Connection lost", "网络中断"))
 		loading.OnRetry(func() { loading.SetImage(img) })
 		var encoded bytes.Buffer
 		_ = png.Encode(&encoded, img)
 		source := "data:image/png;base64," + base64.StdEncoding.EncodeToString(encoded.Bytes())
-		sourced := kit.Image(nil, "异步加载示例").Size(240, 72).LoadingContent(kit.Label("正在加载…")).Fallback(kit.Label("无法读取图片")).Source(source)
-		crop := kit.Image(img, "居中裁剪").Size(120, 100).Fit(kit.ImageCover).Rounded(16).Preview()
-		contain := kit.Image(img, "完整显示").Size(120, 100).Fit(kit.ImageContain).Rounded(16)
-		vector := kit.Image(nil, "SVG 矢量图").Size(120, 100).Source("data:image/svg+xml," + url.PathEscape(demoSVG))
-		animated := kit.Image(nil, "GIF 动图").Size(120, 100).Source("data:image/gif;base64," + base64.StdEncoding.EncodeToString(demoGIF()))
+		sourced := kit.Image(nil, demoText("Async loading example", "异步加载示例")).Size(240, 72).LoadingContent(kit.Label(demoText("Loading…", "正在加载…"))).Fallback(kit.Label(demoText("Cannot read image", "无法读取图片"))).Source(source)
+		crop := kit.Image(img, demoText("Center crop", "居中裁剪")).Size(120, 100).Fit(kit.ImageCover).Rounded(16).Preview()
+		contain := kit.Image(img, demoText("Show in full", "完整显示")).Size(120, 100).Fit(kit.ImageContain).Rounded(16)
+		vector := kit.Image(nil, demoText("SVG vector image", "SVG 矢量图")).Size(120, 100).Source("data:image/svg+xml," + url.PathEscape(demoSVG))
+		animated := kit.Image(nil, demoText("Animated GIF", "GIF 动图")).Size(120, 100).Source("data:image/gif;base64," + base64.StdEncoding.EncodeToString(demoGIF()))
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Items(el.Start).Child(photo.Render(cx), el.Text(msg).TextColor(theme.Muted), el.Div().Row().Gap(12).Child(crop.Render(cx), contain.Render(cx)), el.Div().Row().Gap(12).Child(vector.Render(cx), animated.Render(cx)), loading.Render(cx), sourced.Render(cx), kit.Button("重新加载源图片", sourced.Retry).Render(cx))
+			return el.Div().P(24).Gap(12).Items(el.Start).Child(photo.Render(cx), el.Text(msg).TextColor(theme.Muted), el.Div().Row().Gap(12).Child(crop.Render(cx), contain.Render(cx)), el.Div().Row().Gap(12).Child(vector.Render(cx), animated.Render(cx)), loading.Render(cx), sourced.Render(cx), kit.Button(demoText("Reload source image", "重新加载源图片"), sourced.Retry).Render(cx))
 		}))
 	})
 }

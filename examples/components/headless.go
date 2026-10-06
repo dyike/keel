@@ -37,7 +37,7 @@ type headlessGallery struct {
 
 func (v *headlessGallery) Render(cx *el.Context) el.Element {
 	return el.Div().Gap(20).W(el.Dp(560)).Child(
-		el.Text("外观用 el 自己画，键盘导航、首字母跳转、多选规则来自 ui/base，和 kit 的列表一致。").TextColor(theme.Muted),
+		el.Text(demoText("Drawn with el; keyboard navigation, type-ahead, and multiselect rules come from ui/base, matching kit lists.", "外观用 el 自己画，键盘导航、首字母跳转、多选规则来自 ui/base，和 kit 的列表一致。")).TextColor(theme.Muted),
 		v.swatches(),
 		v.fileList(cx),
 	)
@@ -46,7 +46,7 @@ func (v *headlessGallery) Render(cx *el.Context) el.Element {
 // swatches is a horizontal single-choice list: ← → move, letters jump.
 func (v *headlessGallery) swatches() el.Element {
 	v.nav.Count = len(v.colors)
-	box := el.Div().ID("swatches").Role("listbox").Name("颜色").Focusable(true).Row().Gap(8).P(8).Rounded(theme.RadiusLg).
+	box := el.Div().ID("swatches").Role("listbox").Name(demoText("Color", "颜色")).Focusable(true).Row().Gap(8).P(8).Rounded(theme.RadiusLg).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).Border(1, theme.Border).
 		OnKey(func(e el.KeyEvent) bool {
 			if t, ok := base.Text(e.Name, e.Modifiers&(key.ModCtrl|key.ModCommand|key.ModAlt) != 0); ok {
@@ -75,15 +75,15 @@ func (v *headlessGallery) swatches() el.Element {
 			OnClick(func() { v.at = i }))
 	}
 	return el.Div().Gap(8).Child(
-		el.Text("单选色板：点一下后用 ← → 或输入首字母（如 o 在 Orange 和 Olive 间循环）").TextSize(theme.TextSm),
+		el.Text(demoText("Single-select swatches: click, then use ← → or type an initial (for example, o cycles between Orange and Olive).", "单选色板：点一下后用 ← → 或输入首字母（如 o 在 Orange 和 Olive 间循环）")).TextSize(theme.TextSm),
 		box,
-		el.Text("选中："+v.colors[v.at]).TextSize(theme.TextSm).TextColor(theme.Muted),
+		el.Text(demoText("Selected: ", "选中：")+v.colors[v.at]).TextSize(theme.TextSm).TextColor(theme.Muted),
 	)
 }
 
 // fileList is a multi-select list with click, Cmd/Ctrl and Shift rules.
 func (v *headlessGallery) fileList(cx *el.Context) el.Element {
-	list := el.Div().ID("files").Role("listbox").Name("文件").Gap(2).P(4).Rounded(theme.RadiusLg).Border(1, theme.Border)
+	list := el.Div().ID("files").Role("listbox").Name(demoText("Files", "文件")).Gap(2).P(4).Rounded(theme.RadiusLg).Border(1, theme.Border)
 	for i, f := range v.files {
 		on := v.sel.Has(f)
 		row := el.Div().Role("option").Name(f).Selected(on).Row().Px(10).Py(6).Rounded(theme.RadiusMd).
@@ -97,9 +97,9 @@ func (v *headlessGallery) fileList(cx *el.Context) el.Element {
 		list.Child(row)
 	}
 	return el.Div().Gap(8).Child(
-		el.Text("多选：单击、Cmd/Ctrl 单击切换、Shift 单击选范围").TextSize(theme.TextSm),
+		el.Text(demoText("Multiselect: click to select, Cmd/Ctrl-click to toggle, Shift-click to select a range", "多选：单击、Cmd/Ctrl 单击切换、Shift 单击选范围")).TextSize(theme.TextSm),
 		list,
-		el.Text(fmt.Sprintf("已选 %d 个：%s", v.sel.Len(), strings.Join(v.sel.In(v.files), ", "))).TextSize(theme.TextSm).TextColor(theme.Muted),
+		el.Text(fmt.Sprintf(demoText("Selected %d: %s", "已选 %d 个：%s"), v.sel.Len(), strings.Join(v.sel.In(v.files), ", "))).TextSize(theme.TextSm).TextColor(theme.Muted),
 	)
 }
 

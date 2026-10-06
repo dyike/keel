@@ -5,7 +5,7 @@ English | [简体中文](bubble_group.zh-CN.md)
 Arrange continuous bubbles into vertical groups with default spacing of `theme.SpaceMd` (8dp). Grouping is determined by the application; the component does not infer the sender or change the appearance, left-right alignment, or reaction slots of individual bubbles.
 
 ```go
-group := kit.BubbleGroup(first, second).Name("客服消息").Gap(6)
+group := kit.BubbleGroup(first, second).Name("Support messages").Gap(6)
 group.SetItems(first, second, third)
 ```
 

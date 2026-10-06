@@ -6,11 +6,11 @@ Mix multiple bubbles, attachments, and normal views in the same message body. Bu
 
 ```go
 content := kit.MessageContent(
-    kit.Bubble(kit.Label("导出完成")),
-    kit.Attachment("订单.csv", 2048),
-    kit.Bubble(kit.Label("链接将在 24 小时后过期")).Variant(kit.BubbleGhost),
+    kit.Bubble(kit.Label("Export complete")),
+    kit.Attachment("orders.csv", 2048),
+    kit.Bubble(kit.Label("The link expires in 24 hours")).Variant(kit.BubbleGhost),
 )
-msg := kit.Message("助手", content).Header(kit.Label("刚刚"))
+msg := kit.Message("Assistant", content).Header(kit.Label("Just now"))
 ```
 
 `SetItems` copies the new sequence and ignores nil, empty parameters are cleared; `Items` returns a copy. Children should be reused and appear only once per instance; custom views need to provide stable IDs. Persistent bubbles are rendered using an internal stable copy. Dynamic rearrangement retains its input and focus. The style and alignment of the original bubble will not be modified. Changing the source bubble's variant updates the style and Ghost inheritance on the next frame.

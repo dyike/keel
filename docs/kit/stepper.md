@@ -5,7 +5,7 @@ English | [简体中文](stepper.zh-CN.md)
 Shows the progress of a multi-step process.
 
 ```go
-steps := kit.Stepper("填写订单", "确认付款", "发货").Navigable()
+steps := kit.Stepper("Order details", "Confirm payment", "Shipping").Navigable()
 steps.SetValue(1) // Go to the second step
 ```
 
@@ -26,9 +26,9 @@ Use `SetEntries` when you need an icon, a single item disabled, or a multi-line 
 ```go
 steps := kit.Stepper().Vertical().Size(32).Navigable()
 steps.SetEntries(
-    kit.StepperItem{Label: "订单", Icon: kit.IconReceipt},
-    kit.StepperItem{Label: "付款", Icon: kit.IconLock, Disabled: true},
-    kit.StepperItem{Label: "发货", Icon: kit.IconInbox},
+    kit.StepperItem{Label: "Orders", Icon: kit.IconReceipt},
+    kit.StepperItem{Label: "Payment", Icon: kit.IconLock, Disabled: true},
+    kit.StepperItem{Label: "Shipping", Icon: kit.IconInbox},
 )
 steps.SetValue(2)
 ```

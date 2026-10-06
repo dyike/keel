@@ -2,7 +2,7 @@
 
 English | [简体中文](description_list.zh-CN.md)
 
-`kit.DescriptionList().Item("订单号", "SO-1001").ItemView("状态", view).LabelWidth(96)` displays labels and values in rows, the default label column is 96dp, the value column takes up the remaining width and wraps, and the top is aligned. Narrow containers allow label columns to shrink.
+`kit.DescriptionList().Item("Order number", "SO-1001").ItemView("Status", view).LabelWidth(96)` displays labels and values in rows, the default label column is 96dp, the value column takes up the remaining width and wraps, and the top is aligned. Narrow containers allow label columns to shrink.
 
 Plain text entries expose a text to the Agent named "tag:value". ItemView accepts an el.View and calls its Render every frame, retaining the semantics and interactions of the subviews and making the labels individually readable. SetItems replaces all text items, and the parameter is a Description list.
 
@@ -12,8 +12,8 @@ The component itself has no keyboard operation. Verification: `go run ./examples
 
 ```go
 kit.DescriptionList().Columns(2).Vertical().Bordered(true).
-    Item("订单号", "SO-123").Item("客户", "张三").
-    Separator().Item("备注", "说明跨两列展示").Span(2)
+    Item("Order number", "SO-123").Item("Customer", "Alex Chen").
+    Separator().Item("Notes", "Description spans two columns").Span(2)
 ```
 
 `Vertical()` Places each entry's label above the value; column number and span still work. The default is horizontal layout, `LabelWidth` only takes effect in horizontal layout.

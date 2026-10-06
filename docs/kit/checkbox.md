@@ -5,7 +5,7 @@ English | [简体中文](checkbox.zh-CN.md)
 A labeled checkbox will toggle when clicked, Space, or Enter.
 
 ```go
-agree := kit.Checkbox("同意条款", false).OnChange(func(on bool) { … })
+agree := kit.Checkbox("Accept the terms", false).OnChange(func(on bool) { … })
 all.SetMixed(true) // "Select All" displays half selection when partially selected
 ```
 

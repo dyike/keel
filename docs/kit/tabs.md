@@ -5,7 +5,7 @@ English | [简体中文](tabs.zh-CN.md)
 Tabs with support for underline, capsule, stroke and segmented appearances.
 
 ```go
-tabs := kit.Tabs().Add("基本", basicForm).Add("通知", notifySettings).OnChange(onTab)
+tabs := kit.Tabs().Add("General", basicForm).Add("Notifications", notifySettings).OnChange(onTab)
 ```
 
 - `Variant(TabsUnderline/TabsPill/TabsOutline/TabsSegmented)` Select the appearance, retain the original underline style by default. Colors switch with the theme.

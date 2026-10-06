@@ -14,28 +14,31 @@ import (
 // foundations are the sections that demonstrate el itself, not a component.
 var foundations = map[string]bool{"theme": true, "layout": true, "scrollable": true, "focus": true, "headless": true, "time": true, "overlay": true}
 
-var categoryTitles = []struct{ id, title string }{
-	{"foundations", "基础能力"},
-	{"controls", "基础组件"},
-	{"inputs", "输入"},
-	{"overlays", "浮层"},
-	{"data", "数据"},
-	{"shell", "应用外壳"},
+func categoryTitles() []struct{ id, title string } {
+	return []struct{ id, title string }{
+		{"foundations", demoText("Core capabilities", "基础能力")},
+		{"controls", demoText("Basic components", "基础组件")},
+		{"inputs", demoText("Input", "输入")},
+		{"overlays", demoText("Overlay", "浮层")},
+		{"data", demoText("Data", "数据")},
+		{"shell", demoText("App shell", "应用外壳")},
+	}
 }
 
 // gallery is the components app: a searchable sidebar of every section and
 // the selected one beside it. Each section is built the first time it is
 // shown and kept, so switching away and back preserves its state.
 type gallery struct {
-	nav      *kit.SidebarView
-	search   *kit.InputView
-	built    map[string]core.Widget
-	sections map[string]demoSection
-	themes   *kit.SelectView
+	nav              *kit.SidebarView
+	search           *kit.InputView
+	built            map[string]core.Widget
+	sections         map[string]demoSection
+	themes           *kit.SelectView
+	languageRevision uint64
 }
 
 func newGallery() *gallery {
-	g := &gallery{built: map[string]core.Widget{}, sections: map[string]demoSection{}}
+	g := &gallery{languageRevision: locale.Revision(), built: map[string]core.Widget{}, sections: map[string]demoSection{}}
 	g.themes = kit.Select("", theme.Names()...).OnChange(func(name string) { theme.Use(name) })
 	g.themes.SetValue(theme.CurrentName())
 	byCategory := map[string][]kit.SidebarItem{}
@@ -47,12 +50,12 @@ func newGallery() *gallery {
 		}
 		byCategory[category] = append(byCategory[category], kit.SidebarItem{ID: s.name, Label: displayName(s.name)})
 	}
-	g.search = kit.Input("").Placeholder("搜索组件").OnChange(func(q string) { g.nav.Filter(q) }).
+	g.search = kit.Input("").Placeholder(demoText("Search components", "搜索组件")).OnChange(func(q string) { g.nav.Filter(q) }).
 		Prefix(el.ViewFunc(func(cx *el.Context) el.Element {
 			return kit.Icon(kit.IconSearch).Size(16).Color(theme.Muted).Render(cx)
 		}))
 	g.nav = kit.Sidebar().Width(232).Header(el.ViewFunc(g.header))
-	for _, c := range categoryTitles {
+	for _, c := range categoryTitles() {
 		items := byCategory[c.id]
 		sort.Slice(items, func(i, j int) bool { return items[i].Label < items[j].Label })
 		g.nav.Section(c.title, items...)
@@ -78,16 +81,24 @@ func (g *gallery) header(cx *el.Context) el.Element {
 	if g.nav.Collapsed() {
 		return el.Div().Gap(12).Items(el.Center).Child(
 			logo,
-			kit.Button("", func() { g.nav.SetCollapsed(false) }).Name("搜索组件").Icon(kit.IconSearch).Variant(kit.ButtonGhost).Size(32).Render(cx),
+			kit.Button("", func() { g.nav.SetCollapsed(false) }).Name(demoText("Search components", "搜索组件")).Icon(kit.IconSearch).Variant(kit.ButtonGhost).Size(32).Render(cx),
 		)
 	}
 	return el.Div().Gap(12).Items(el.Stretch).Child(
-		el.Div().Row().Gap(8).Items(el.Center).Px(4).Child(logo, el.Text("Keel 组件").Bold()),
+		el.Div().Row().Gap(8).Items(el.Center).Px(4).Child(logo, el.Text(demoText("Keel components", "Keel 组件")).Bold()),
 		g.search.Render(cx),
 	)
 }
 
 func (g *gallery) Render(cx *el.Context) el.Element {
+	if g.languageRevision != locale.Revision() {
+		selected, query := g.nav.Value(), g.search.Value()
+		next := newGallery()
+		next.nav.SetValue(selected)
+		next.search.SetValue(query)
+		next.nav.Filter(query)
+		*g = *next
+	}
 	name := g.nav.Value()
 	s, ok := g.sections[name]
 	if !ok {
@@ -102,7 +113,7 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	if foundations[name] {
 		category = "foundations"
 	}
-	for _, c := range categoryTitles {
+	for _, c := range categoryTitles() {
 		if c.id == category {
 			category = c.title
 		}

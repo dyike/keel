@@ -5,8 +5,8 @@ English | [简体中文](date_picker.zh-CN.md)
 When clicked, the date field of the calendar pops up.
 
 ```go
-due := kit.DatePicker("交货日期").Placeholder("选择日期")
-trip := kit.DatePicker("出差日期").Range().Months(2)
+due := kit.DatePicker("Delivery date").Placeholder("Choose a date")
+trip := kit.DatePicker("Business trip dates").Range().Months(2)
 ```
 
 - Click, Enter or ↓ to open the calendar. The focus falls on the selected date. If there is no selection, it falls on today; if the target date is disabled, the disabled date will be skipped. It will automatically close after selecting the date (or selecting both ends of the range); Esc or click outside to close without changing the selection.
@@ -28,7 +28,7 @@ The default respects Bounds and DisableDates, and the range cannot cross the dis
 
 ```go
 trip.Presets(kit.DatePickerPreset{
-    ID: "week", Label: "最近七天",
+    ID: "week", Label: "Last seven days",
     Start: today.AddDate(0, 0, -6), End: today,
 })
 ```
@@ -43,7 +43,7 @@ The time patterns `Value`, `SetValue` and `OnChange` contain hours, minutes and 
 
 The date and time are displayed by default; the custom Format is a complete layout and needs to include the time itself, such as `2006-01-02 15:04:05`. Range calendars still only edit dates, date boundary/disable rules do not limit moments. Date presets retain the current clock by default; setting `DatePickerPreset.IncludeTime: true` uses the hours, minutes and seconds of Start (truncated to component precision, midnight can also be specified explicitly), still checking date boundaries and disabling rules first. Pure date and range modes also store these moments, read via DateTimeValue. Combine two single date components when start and end times are required.
 
-Default example: `kit.DatePickerPreset{ID: "meeting", Label: "下午会议", Start: meetingTime, IncludeTime: true}`. After adding the IncludeTime field, the code that uses positional parameters to construct DatePickerPreset needs to be changed to a named field. The range calendar still only edits dates, and saves the start and end times independently.
+Default example: `kit.DatePickerPreset{ID: "meeting", Label: "Afternoon meeting", Start: meetingTime, IncludeTime: true}`. After adding the IncludeTime field, the code that uses positional parameters to construct DatePickerPreset needs to be changed to a named field. The range calendar still only edits dates, and saves the start and end times independently.
 
 
 `DateValue()` always returns the date part; `SetDateValue(start,end)` replaces the date and preserves the clock at both ends. `DateTimeValue()` / `SetDateTimeValue(start,end)` accesses the complete date and time, supports single date and range, does not automatically open time input, and does not trigger callbacks. Use Start for the empty End of the range, and sort the reverse range together with the time; retain nanoseconds when the time precision is not configured, and truncate both ends according to the precision after configuring the minute/second precision. Empty dates retain a zero value, clearing the retained clock.

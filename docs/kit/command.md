@@ -6,8 +6,8 @@ Command panel: a search box plus a list of commands, which are filtered step by 
 
 ```go
 palette := kit.Command(
-    kit.CommandItem{Title: "新建订单", Group: "订单", Shortcut: "mod+n", Action: newOrder},
-    kit.CommandItem{Title: "打开设置", Action: openSettings},
+    kit.CommandItem{Title: "New order", Group: "Orders", Shortcut: "mod+n", Action: newOrder},
+    kit.CommandItem{Title: "Open settings", Action: openSettings},
 )
 // In Render:
 cx.Shortcut("mod+k", palette.Toggle)
@@ -38,7 +38,7 @@ The group title is displayed before the continuous group command; the title cann
 
 ```go
 quick := kit.Command(items...).Searchable(false).Inline(true).
-    Footer(kit.Button("刷新", refresh))
+    Footer(kit.Button("Refresh", refresh))
 // Put in a normal layout; the application can use quick.Focus(cx) in the event to give focus to the panel.
 root.Child(quick.Render(cx))
 ```
@@ -75,8 +75,8 @@ Other configurations and status:
 ```go
 core.Bind("orders.new", "mod+n")
 commands := kit.Command(
-    kit.CommandItem{Title: "新建订单", ActionName: "orders.new", Icon: kit.IconPlus, Action: newOrder},
+    kit.CommandItem{Title: "New order", ActionName: "orders.new", Icon: kit.IconPlus, Action: newOrder},
     kit.CommandItem{Separator: true},
-    kit.CommandItem{Title: "当前模式", Checked: true},
-).AutoRowHeight(true).Placeholder("搜索操作").MaxHeight(280)
+    kit.CommandItem{Title: "Current mode", Checked: true},
+).AutoRowHeight(true).Placeholder("Search actions").MaxHeight(280)
 ```

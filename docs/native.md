@@ -106,7 +106,7 @@ It can also be triggered when other apps are in the foreground. The shortcut key
 
 ```go
 unregister, err := hotkey.Register("cmd+shift+k", func() {
-    core.Update(func() { status.SetText("触发了") })
+    core.Update(func() { status.SetText("Triggered") })
 })
 defer unregister()
 ```

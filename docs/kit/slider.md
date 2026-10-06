@@ -5,10 +5,10 @@ English | [简体中文](slider.zh-CN.md)
 Drag or use the keyboard to select a numeric or double-ended range.
 
 ```go
-volume := kit.Slider("音量", 0, 100).Step(5)
-price := kit.RangeSlider("价格区间", 0, 100).Step(5)
+volume := kit.Slider("Volume", 0, 100).Step(5)
+price := kit.RangeSlider("Price range", 0, 100).Step(5)
 price.SetValues(20, 80)
-level := kit.RangeSlider("竖向区间", 0, 100).Vertical(180)
+level := kit.RangeSlider("Vertical range", 0, 100).Vertical(180)
 ```
 
 - Drag the slider, or press and drag anywhere on the track.
@@ -26,7 +26,7 @@ Verify: `go run ./examples/components -section slider`, add `-theme dark` to che
 `Scale(kit.SliderLogarithmic)` uses logarithmic scale, single value/double-ended, horizontal/vertical can be used. Valid range requirement `0 < min < max`; if it is not met, it will be displayed on a linear scale, and then setting the valid range will restore the logarithmic scale. Default `SliderLinear`.
 
 ```go
-frequency := kit.Slider("频率 Hz", 20, 20000).
+frequency := kit.Slider("Frequency (Hz)", 20, 20000).
     Scale(kit.SliderLogarithmic).
     OnRelease(func(value float64) { applyFrequency(value) })
 ```

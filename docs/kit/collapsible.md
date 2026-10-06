@@ -5,7 +5,7 @@ English | [简体中文](collapsible.zh-CN.md)
 The expanded/collapsed state of a single section of content can be used as a whole, or the trigger and content can be placed separately in the layout.
 
 ```go
-section := kit.Collapsible("高级筛选", form)
+section := kit.Collapsible("Advanced filters", form)
 section.SetValue(true)
 // Default bordered panel: section.Render(cx)
 row.Child(section.Trigger().Render(cx))

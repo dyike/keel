@@ -3,13 +3,15 @@
 English | [简体中文](README.zh-CN.md)
 
 ```sh
-go run ./examples/components                    # 组件库应用：左侧导航和搜索，右侧是选中的组件
-go run ./examples/components -section select    # 只显示一个组件，名字与 docs/kit/<名字>.md 一致
-go run ./examples/components -section inputs    # 一类：controls、inputs、overlays、data、shell
-go run ./examples/components -theme dark        # 深色启动；应用右上角也能切换深浅色和中英文
+go run ./examples/components                    # Gallery: navigation and search on the left, selected component on the right
+go run ./examples/components -section select    # One component, matching docs/kit/<name>.md
+go run ./examples/components -section inputs    # One category: controls, inputs, overlays, data, shell
+go run ./examples/components -theme dark        # Start in dark mode; use the top-right controls to change theme and language
 ```
 
-The sidebar of the application is grouped by "basic capabilities, basic components, input, overlay, data, application shell", and the search box at the top filters component names. Each component is created when it is first opened, and the state is retained when it is removed and returned. The components of the entire window (Dock, Settings, etc. el.Root) occupy the content area on the right, and the built-in overlay is also limited to the content area.
+The sidebar groups sections into Core capabilities, Basic components, Inputs, Overlays, Data, and App shell. Search filters component names. Each section is created when first opened and retains its state when switching sections. Window-filling sections such as Dock and Settings occupy the right pane; their overlays stay within that pane.
+
+English is the default. Add `-lang zh-CN` for Chinese. Browser examples use `?lang=en` or `?lang=zh-CN`. `demoText(english, chinese)` selects labels, messages, and sample data; framework controls use `ui/locale`. Changing the gallery language rebuilds sections and preserves the selected section and search query.
 
 The "sample code" on the component documentation page directly reads the source code for registering the section and displays it below the online display; just modify the example and regenerate the site. When reused in scaffolding applications, the component construction and Render writing methods are retained, and the registered functions and shared auxiliary functions belong to the component library.
 

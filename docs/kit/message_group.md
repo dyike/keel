@@ -5,9 +5,9 @@ English | [简体中文](message_group.zh-CN.md)
 Arrange complete message lines into vertical groups, retaining the avatar, header, body, status, action, reaction, and trailer of each line. The default is to fill the available width with a spacing of `theme.SpaceMd` (8dp). Grouping is determined by the application, with no inference of sender and no automatic hiding of avatars or metadata for consecutive messages.
 
 ```go
-first := kit.Message("客服", answer).Header(kit.Label("客服 · 10:24"))
-second := kit.Message("客服", details).Footer(kit.Label("已送达"))
-group := kit.MessageGroup(first, second).Name("客服消息").Gap(6)
+first := kit.Message("Support", answer).Header(kit.Label("Support · 10:24"))
+second := kit.Message("Support", details).Footer(kit.Label("Delivered"))
+group := kit.MessageGroup(first, second).Name("Support messages").Gap(6)
 group.SetItems(second, first)
 ```
 

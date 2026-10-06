@@ -5,8 +5,8 @@ English | [简体中文](dropdown_button.zh-CN.md)
 Button with drop-down menu.
 
 ```go
-kit.DropdownButton("导出", formats)              // The entire button opens the menu
-kit.DropdownButton("保存", more).Split(save)     // "Save" executes save, and the arrow next to it opens the menu.
+kit.DropdownButton("Export", formats)              // The entire button opens the menu
+kit.DropdownButton("Save", more).Split(save)     // "Save" executes save, and the arrow next to it opens the menu.
 ```
 
 - The menu is a normal `kit.Menu`, and the keyboard, submenus, and disabled items all behave the same as Menu.
@@ -27,8 +27,8 @@ When the menu argument is nil an empty menu is used and the main Split action is
 `Loading(bool)` Overrides the loading state of the main button. In normal mode, the menu cannot be opened through the loading button; in split mode, the arrow can still open the menu. Menus that have been opened are not closed by Loading. `SetDisabled(true)` always disables both parts and closes the menu. Disabling the inner Button itself only affects the main action.
 
 ```go
-kit.DropdownButton("保存", more).
-    Button(kit.Button("保存", save).Icon(kit.IconDone).Loading(saving)).
+kit.DropdownButton("Save", more).
+    Button(kit.Button("Save", save).Icon(kit.IconDone).Loading(saving)).
     Size(40)
 ```
 

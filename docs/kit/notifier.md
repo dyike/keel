@@ -9,9 +9,9 @@ n := kit.Notifier()
 // In Render: as a direct child element of the outermost element of the root view
 root.Child(n.Render(cx))
 // Callback in progress:
-n.Notify(kit.Notice{Title: "保存成功", Body: "订单已更新", Tone: kit.ToneSuccess})
+n.Notify(kit.Notice{Title: "Saved successfully", Body: "Order updated", Tone: kit.ToneSuccess})
 // In the background goroutine:
-core.Update(func() { n.Notify(kit.Notice{Title: "同步完成"}) })
+core.Update(func() { n.Notify(kit.Notice{Title: "Sync complete"}) })
 ```
 
 - If you don’t want to mount it yourself, use the notification container that comes with the window: `kit.WindowNotifier(cx).Notify(kit.Notice{...})`. It is created and hung at the root of the window when it is called for the first time. Afterwards, the same instance is returned to the same window. You can set the position, system delivery, etc. as usual, which is equivalent to GPUI's `window.push_notification`.
@@ -34,7 +34,7 @@ Supports NoticeTopLeft, NoticeTopCenter, NoticeTopRight, NoticeLeftCenter, Notic
 
 ```go
 n.Placement(kit.NoticeBottomRight)
-n.Notify(kit.Notice{Title: "下载完成", Placement: kit.NoticeBottomLeft})
+n.Notify(kit.Notice{Title: "Download complete", Placement: kit.NoticeBottomLeft})
 ```
 
 The default location belongs to the Notifier instance and does not write to the global topic. The notification stacks of multiple positions are limited to the window range and do not automatically avoid other stacks; when multiple positions are enabled at the same time in a narrow window, they may overlap.
@@ -45,9 +45,9 @@ The default location belongs to the Notifier instance and does not write to the 
 ```go
 var id int
 id = n.Notify(kit.Notice{
-    Title: "连接中断", Timeout: -1,
-    Content: kit.Label("请检查网络后重试。"),
-    Action: kit.Button("重试", func() {
+    Title: "Connection lost", Timeout: -1,
+    Content: kit.Label("Check your connection and try again."),
+    Action: kit.Button("Retry", func() {
         retry()
         n.Dismiss(id)
     }).Variant(kit.ButtonPrimary),
@@ -67,8 +67,8 @@ Different positions belong to different overlays; the keyboard focus of the sub-
 `NotifyKey(key, Notice)` uses a business string to identify the notification, and its scope is limited to the current Notifier. Repeatedly sending the same non-empty key will replace it in place, return the original ID, retain the queue position and restart the timeout, and the old OnClose will not be triggered. Notice's body, action, callback, and position will be replaced with new values. An empty key is equivalent to a normal Notify and is added each time.
 
 ```go
-n.NotifyKey("download/report", kit.Notice{Title: "正在下载", Timeout: -1})
-n.NotifyKey("download/report", kit.Notice{Title: "下载完成", Tone: kit.ToneSuccess})
+n.NotifyKey("download/report", kit.Notice{Title: "Downloading", Timeout: -1})
+n.NotifyKey("download/report", kit.Notice{Title: "Download complete", Tone: kit.ToneSuccess})
 n.DismissKey("download/report")
 ```
 
@@ -84,7 +84,7 @@ n := kit.Notifier().SystemBackend(backend, func(r kit.NoticeSystemResult) {
     // Already within the UI frame lock, r.Err can be displayed; Removing distinguishes between delivery and recall.
 })
 n.NotifyKey("download", kit.Notice{
-    Title: "下载完成", Body: "report.pdf 已保存。",
+    Title: "Download complete", Body: "report.pdf has been saved.",
     Delivery: kit.NoticeInAppAndSystem,
 })
 ```

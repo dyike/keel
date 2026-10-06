@@ -5,7 +5,7 @@ English | [简体中文](badge.zh-CN.md)
 A number, dot or icon logo that can be displayed alone or hung on a subcomponent corner.
 
 ```go
-unread := kit.Badge(3).Child(kit.Button("通知", open))
+unread := kit.Badge(3).Child(kit.Button("Notifications", open))
 kit.Badge(1).Dot().Tone(kit.ToneSuccess).Child(avatar)
 ```
 

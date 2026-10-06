@@ -5,7 +5,7 @@ English | [简体中文](shimmer_text.zh-CN.md)
 Readable text is preserved, allowing the highlight to sweep across the glyphs; the background and white space between characters are unaffected.
 
 ```go
-loading := kit.ShimmerText("正在生成内容……").Duration(2*time.Second).Spread(.3)
+loading := kit.ShimmerText("Generating content…").Duration(2*time.Second).Spread(.3)
 loading.Reverse(true).Once(true)
 loading.Restart()
 ```

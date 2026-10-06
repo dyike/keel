@@ -5,9 +5,9 @@ English | [简体中文](time_field.zh-CN.md)
 Enter the time of day. Supports whole string input and independent editing of hours, minutes and seconds.
 
 ```go
-start := kit.TimeField("开始时间").Segmented()
+start := kit.TimeField("Start time").Segmented()
 start.SetValue(9*time.Hour + 30*time.Minute)
-precise := kit.TimeField("结束时间").Seconds().Hour12(false)
+precise := kit.TimeField("End time").Seconds().Hour12(false)
 precise.SetValue(17*time.Hour + 45*time.Minute + 30*time.Second)
 ```
 
