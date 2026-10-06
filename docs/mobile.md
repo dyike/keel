@@ -1,4 +1,4 @@
-# Mobile support
+# Mobile
 
 English | [简体中文](mobile.zh-CN.md)
 

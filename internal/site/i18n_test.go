@@ -51,9 +51,9 @@ func TestBilingualSite(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mobileLabel := "iOS and Android"
+		mobileLabel := "Mobile (iOS / Android)"
 		if local.lang == "zh-CN" {
-			mobileLabel = "iOS 和 Android"
+			mobileLabel = "Mobile（iOS / Android）"
 		}
 		if !strings.Contains(string(home), `href="./docs/mobile.html">`+mobileLabel+`</a>`) {
 			t.Errorf("%s: homepage hero must link to both mobile platforms", local.lang)
@@ -65,8 +65,19 @@ func TestBilingualSite(t *testing.T) {
 		for _, g := range local.nav {
 			titles = append(titles, g.Title)
 		}
-		if local.lang == "zh-CN" && !slices.Equal(titles, []string{"开始使用", "编写应用", "组件参考", "测试与调试", "参与开发", "源码导览"}) {
+		if local.lang == "zh-CN" && !slices.Equal(titles, []string{"开始使用", "Mobile", "编写应用", "组件参考", "测试与调试", "参与开发", "源码导览"}) {
 			t.Fatalf("Chinese navigation: %v", titles)
+		}
+		var mobilePages []string
+		for _, group := range local.nav {
+			if group.Title == "Mobile" {
+				for _, p := range group.Pages {
+					mobilePages = append(mobilePages, canonicalSource(p.Src))
+				}
+			}
+		}
+		if !slices.Equal(mobilePages, []string{"docs/mobile.md", "docs/ios.md", "docs/android.md"}) {
+			t.Errorf("%s: Mobile must contain overview, iOS and Android, got %v", local.lang, mobilePages)
 		}
 		seen := map[string]bool{}
 		for p := local.pages["docs/README.md"]; p != nil; p = p.Next {

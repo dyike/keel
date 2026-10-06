@@ -1,4 +1,4 @@
-# Mobile 支持
+# Mobile
 
 [English](mobile.md) | 简体中文
 

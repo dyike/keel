@@ -8,10 +8,13 @@ Start with Getting started to open your first window. Use Guides to build your a
 
 - [Getting started](getting-started.md): scaffold a project, edit its UI, run it, and package it.
 - [WebAssembly](web.md): build WebAssembly and understand the differences from desktop applications.
-- [Mobile support](mobile.md): iOS and Android support and system capability limits.
+- [Migration](migration-kit.md): replace APIs from older versions.
+
+## Mobile
+
+- [Overview](mobile.md): iOS and Android support and system capability limits.
 - [iOS](ios.md): builds, simulator runs, scene lifecycle adapter and device signing.
 - [Android](android.md): APK packaging, device installation and toolchain checks.
-- [Migration](migration-kit.md): replace APIs from older versions.
 
 ## Guides
 

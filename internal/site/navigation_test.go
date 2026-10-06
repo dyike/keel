@@ -21,7 +21,7 @@ func TestNavigationCategories(t *testing.T) {
 			catalog = group
 		}
 	}
-	if want := []string{"Getting started", "Guides", "Components", "Testing", "Contributing", "Packages"}; !slices.Equal(titles, want) {
+	if want := []string{"Getting started", "Mobile", "Guides", "Components", "Testing", "Contributing", "Packages"}; !slices.Equal(titles, want) {
 		t.Fatalf("top-level navigation = %v, want %v", titles, want)
 	}
 	if len(catalog.Children) != 8 {

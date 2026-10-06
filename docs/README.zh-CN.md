@@ -8,10 +8,13 @@
 
 - [快速开始](getting-started.zh-CN.md)：用脚手架新建项目、修改界面、运行和打包。
 - [在浏览器里运行](web.zh-CN.md)：WebAssembly 构建与桌面版差异。
-- [Mobile 支持](mobile.zh-CN.md)：iOS 与 Android 的支持范围和系统能力边界。
+- [迁移到当前 kit](migration-kit.zh-CN.md)：旧版本 API 的替换方式。
+
+## Mobile
+
+- [概览](mobile.zh-CN.md)：iOS 与 Android 的支持范围和系统能力边界。
 - [iOS](ios.zh-CN.md)：构建、模拟器运行、生命周期适配和真机签名。
 - [Android](android.zh-CN.md)：APK 打包、设备安装运行和工具链检查。
-- [迁移到当前 kit](migration-kit.zh-CN.md)：旧版本 API 的替换方式。
 
 ## 编写应用
 
