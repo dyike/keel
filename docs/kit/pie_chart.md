@@ -1,6 +1,8 @@
 # PieChart
 
-饼图和环形图显示同一组数据的占比。
+English | [简体中文](pie_chart.zh-CN.md)
+
+Pie charts and donut charts show proportions of the same set of data.
 
 ```go
 chart := kit.PieChart(
@@ -9,18 +11,18 @@ chart := kit.PieChart(
 ).Title("收入来源").Donut(.6)
 ```
 
-`Height(dp)` 设置绘图区高度；`Donut(fraction)` 设置中心孔半径比例，范围 0–0.9，默认 0。`Format(fn)` 设置数值格式，占比保留一位小数。`SetData` 复制数据并恢复图例可见状态。
+`Height(dp)` sets the height of the drawing area; `Donut(fraction)` sets the central hole radius ratio, range 0–0.9, default 0. `Format(fn)` sets the numerical format, keeping the ratio to one decimal place. `SetData` Copies the data and restores the legend to visibility.
 
-图例可点击或用空格/Enter 切换，对剩余可见数据重新计算比例。悬停扇区显示名称、原始值和占比；中心孔不命中。颜色按原始索引分配，隐藏不会改变其余项颜色。`SetDisabled` 禁用图例、表格切换和悬停。
+The legend can be clicked or toggled with Space/Enter to recalculate the scale for the remaining visible data. Hovered sectors show name, original value, and proportion; center hole misses. Colors are assigned by original index, hiding does not change the remaining item colors. `SetDisabled` disables legend, table switching and hover.
 
-仅有限正数参与扇区；0 没有扇区，负数、NaN、Inf 在表格中显示为 `—`。全空、全部隐藏或全部无效时显示空状态。比例先按最大值缩放，两个最大浮点数也不会使总量溢出。数据表保留所有项，隐藏项占比为 0。
+Only finite positive numbers participate in sectors; 0 has no sector, and negative numbers, NaN, and Inf are shown in the table as `—`. The empty state is displayed when all are empty, all are hidden, or all are invalid. The proportion is first scaled by the maximum value, and the two largest floating point numbers will not cause the total to overflow. The data table retains all items, and the proportion of hidden items is 0.
 
-Agent：外层 `figure`，名字是标题；图例是带选中状态的 `toggle`。切换到数据表可读取名称、值和占比。
+Agent: Outer `figure`, the name is the title; the legend is `toggle` with the selected state. Switch to the data table to read the name, value and proportion.
 
-验证：`go run ./examples/components -section pie_chart`，加 `-theme dark` 检查深色。测试覆盖扇区与中心孔命中、图例重算、禁用、数据复制、空数据、异常值和数据表。
+Verify: `go run ./examples/components -section pie_chart`, add `-theme dark` to check the dark theme. Testing covers sector and center hole hits, legend recalculation, disabling, data copying, null data, outliers, and data tables.
 
-`TooltipContent(func(cx, PieChartTooltip) el.Element)` 添加跟随鼠标的自定义浮层，原有底部读数与数据表保留。回调参数包含原始 Index/Slice、可见扇区归一化后的 Share（0–1）、格式化数值/比例和当前主题扇区色。参数为值快照；不要在渲染回调中修改数据。
+`TooltipContent(func(cx, PieChartTooltip) el.Element)` adds a custom overlay that follows the mouse, and the original bottom reading and data table are retained. The callback parameters include the original Index/Slice, the normalized Share (0–1) of the visible sector, the formatted value/scale and the current theme sector color. Parameters are value snapshots; do not modify data in render callbacks.
 
-传 nil 恢复仅底部读数，回调返回 nil 可按扇区隐藏浮层。提示只展示内容，不承载交互；离开饼图、进入圆环孔、隐藏扇区、更新数据或禁用后不再展示对应提示。浮层锚定鼠标位置并受窗口尺寸约束。组件库加入自定义提示。1×/2× 测试覆盖鼠标命中、浮层横向边界、显式禁用及图例切换后的占比；完整原生窗口交互仍待验收。
+Passing nil restores only the bottom reading, and the callback returns nil to hide the overlay by sector. The prompt only displays the content and does not carry interaction; the corresponding prompt will no longer be displayed after leaving the pie chart, entering the donut hole, hiding the sector, updating data, or disabling it. The overlay anchors the mouse position and is constrained by the window size. Add custom prompts to the component library. 1×/2× test covers the proportion after mouse hits, overlay horizontal boundaries, explicit disabling and legend switching; the complete native window interaction is still to be accepted.
 
-`HoverAnimation(false)` 关闭悬停过渡，默认开启。强调状态以 150ms 三次缓出变化，快速换目标从当前权重继续；减少动画时立即显示目标。饼图过渡选中边框，桑基图过渡不相关流带的透明度，折线/面积图过渡焦点线和点，柱/蜡烛图过渡类别背景，雷达图过渡焦点。命中和提示数据立即更新，不等待动画。更新数据清理旧过渡。共享动画测试覆盖中间帧权重、切换目标时的连续性、结束帧及减少动画；各图的原生动画观感仍待验收。
+`HoverAnimation(false)` turns off hover transition, enabled by default. The emphasis state changes with three 150ms slow-outs, and the rapid target change continues from the current weight; the target is displayed immediately when the animation is reduced. Pie chart transition selected border, Sankey chart transition irrelevant stream band transparency, line/area chart transition focus line and point, bar/candle chart transition category background, radar chart transition focus. Hit and cue data are updated immediately, no waiting for animations. Update data to clean up old transitions. The shared animation test covers intermediate frame weights, continuity when switching targets, end frames and reduced motion; the look and feel of the native animation of each picture is still to be accepted.

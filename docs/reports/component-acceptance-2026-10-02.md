@@ -1,28 +1,30 @@
-# 组件补全验收 · 2026-10-02
+# Component completion acceptance · 2026-10-02
 
-实现与自动化验收已完成原 A–E 清单；F 的视觉规范、截图矩阵、示例流程和迁移文档已补齐。以下原验收记录对应 `0bce878`；后续进展单列至 `bc54e85`，不将旧验证结果自动延伸到新增代码。完整原生场景验收 F3 仍未完成。
+English | [简体中文](component-acceptance-2026-10-02.zh-CN.md)
 
-当前 77 项组件对照见 [GPUI Kit 实现进度](gpui-progress-2026-10-02.md)。
+The original A–E checklist for implementation and automation acceptance has been completed; the visual specification, screenshot matrix, sample process and migration documentation for F have been completed. The following original acceptance records correspond to `0bce878`; subsequent progress is listed separately to `bc54e85`, and the old verification results are not automatically extended to the new code. The complete native scene acceptance F3 is still not completed.
 
-## 后续进展（截至 `bc54e85`）
+For a comparison of the current 77 components, see [GPUI Kit implementation progress](gpui-progress-2026-10-02.md).
 
-| 能力 | 实现 | 已有证据 / 验证边界 |
+## Follow-up progress (as of `bc54e85`)
+
+| Capability | Implementation | Existing evidence / Verification boundaries |
 | --- | --- | --- |
-| WebAssembly | `28a0e80` | 构建回归，浏览器 hello 中文、输入、复选框和按钮；未做全组件浏览器验收 |
-| 视觉基础 | `83c50ed` | 圆角/字号/阴影刻度、透明度与字体样式、kit 迁移；浅深色浮层阴影已检查 |
-| Dock 最大化 | `bf9f69d` | 菜单/双击进入、Esc 还原、布局保存与回归测试 |
-| 多主题基础 | `bf9f69d` | 注册与 JSON 解析测试、Nord/Paper 示例、实际切换 |
-| CodeEditor | `4f22179` | 行号、高亮、选择/撤销/输入法/自动缩进，以及诊断/补全/悬停接口 |
-| 编辑器补全修复 | `bc54e85` | 真机输入 gr 弹出、回车接受；回归验证 Agent 补全项、回车/点击接受和关闭 |
-| 20 万行交互 | `bc54e85` | 真机载入、滚动、末尾跳转、输入；示例修正为恰好 200000 行。未采集帧率或输入延迟 |
+| WebAssembly | `28a0e80` | Build regression, browser hello Chinese, input, checkbox and button; full component browser acceptance is not done |
+| Visual Basics | `83c50ed` | Rounded corners/font size/shadow scale, transparency and font style, kit migration; light and dark overlay shadows checked |
+| Dock maximization | `bf9f69d` | Menu/double-click to enter, Esc to restore, layout saving and regression testing |
+| Multi-theme basics | `bf9f69d` | Registration and JSON parsing test, Nord/Paper example, actual switching |
+| CodeEditor | `4f22179` | Line number, highlighting, selection/undo/input method/auto-indent, and diagnostic/completion/hover interface |
+| Editor completion repair | `bc54e85` | Real machine input gr pops up, press enter to accept; regression verification Agent completion item, press enter/click to accept and close |
+| 200,000 lines of interaction | `bc54e85` | Real machine loading, scrolling, end jump, input; example corrected to exactly 200,000 lines. No frame rate or input lag captured |
 
-本轮最终代码通过 `go test ./ui/window ./ui/kit`；此前工作过程中 `go test ./...` 通过。没有为此次补全修复重新执行全量 build/vet/race，因此下方旧检查结果只属于原验收批次。
+The final code of this round passed `go test ./ui/window ./ui/kit`; during the previous work, `go test ./...` passed. The full build/vet/race was not re-executed for this completion fix, so the old check results below only belong to the original acceptance batch.
 
-组件库后续已能打开真实窗口，旧 DisplayLink 失败记录不再代表全部原生窗口不可运行；标题栏、系统偏好和多窗口仍待专项复核。系统读屏 / VoiceOver 暂缓，未接入。
+The component library will be able to open real windows in the future, and the old DisplayLink failure record no longer means that all native windows are inoperable; the title bar, system preferences, and multi-windows are still subject to special review. System screen reading/VoiceOver is suspended and not connected.
 
-## 原批次自动化结果
+## Original batch automation results
 
-以下命令均通过：
+The following commands all pass:
 
 ```sh
 go build ./...
@@ -31,53 +33,53 @@ go test ./... -count=1
 go test -race ./... -count=1
 ```
 
-最后一次功能修改后重新运行了上述检查。`cmd/keel-mcp` 覆盖订单、聊天、设置和 Dock 进程级流程；订单新增了完全不点击的键盘提交测试。kit / window 的测试补充了真实指针拖放、禁用传播、焦点恢复、浮层边界、Agent 语义、主题像素以及 1× / 2× 几何。
+The above checks were re-run after the last feature modification. `cmd/keel-mcp` covers order, chat, settings and Dock process-level processes; a new keyboard submission test without clicking is added to the order. The tests for kit/window are supplemented with real pointer drag and drop, disabled propagation, focus restoration, overlay boundaries, Agent semantics, themed pixels, and 1× / 2× geometry.
 
-没有启用原生 Git pre-commit hook；验证通过上述命令完成。未推送远端。
+The native Git pre-commit hook is not enabled; verification is done with the above command. Not pushed to the remote end.
 
-## 视觉检查
+## Visual inspection
 
-79 个注册展示区，各生成浅 / 深色、320 / 680dp、1× / 2×，共 632 张首帧截图。重新构建示例状态后分别渲染，输出目录为 `/tmp/keel-component-matrix`，索引为其中的 `index.html`。文件不进版本库；可按 [测试文档](../testing.md#全组件截图矩阵) 重建。
+79 registered display areas, each generating light/dark, 320/680dp, 1×/2×, a total of 632 first frame screenshots. After rebuilding the sample state and rendering them separately, the output directory is `/tmp/keel-component-matrix` and the index is `index.html` therein. The file will not be entered into the repository; it can be rebuilt by pressing [Test document](../testing.md#full-component-screenshot-matrix).
 
-人工查看浅深色窄布局总览，并针对问题查看原图；混合文字、数字和按钮尺寸由示例与既有回归共同覆盖。本轮集中检查发现并修复：
+Manually review the light-dark narrow layout overview and review the original image for the question; mixed text, number, and button sizes are covered by examples and existing regressions. This round of centralized inspection found and fixed:
 
-| 对象 | 问题和结果 | 提交 |
+| Objects | Questions and Results | Submit |
 | --- | --- | --- |
-| OTP | 六位验证码被裁掉；各格与编辑区等宽收缩 | `4d8629e` |
-| Pagination | 末页按钮出界；自动换行，同时修正总数溢出 | `3301337` |
-| Calendar | 外框收缩，内部七列未收缩；七列共用可用宽度 | `c739e4d` |
-| Settings | 固定侧栏、控件列挤掉说明；窄布局改顶部分区、上下排列 | `ca1ea83` |
-| 展示容器 | 固定宽画布使窄窗口验收失效；限制最大宽度、操作换行 | `374e199` |
-| Stepper | 后续步骤不可达；增加横向滚动、禁用和导航回归 | `cfbbc06` |
-| Toolbar | 首帧命令覆盖右侧插槽；先收进更多，测量后展开 | `784d307` |
-| Dock | 首帧默认停靠尺寸挤掉中心；按根视口初始化并校正 | `57cf5f1` |
-| 订单示例 | Mod+N 后输入框没有焦点；下一帧交给客户字段 | `48e0723` |
-| TextArea | 用户修正后旧错误仍显示；与单行输入同步清除 | `0bce878` |
+| OTP | The six-digit verification code is cropped; each grid is shrunk to the same width as the editing area | `4d8629e` |
+| Pagination | The last page button is out of bounds; automatic line wrapping, and correction of total overflow | `3301337` |
+| Calendar | The outer frame shrinks, but the seven inner columns do not shrink; the seven columns share the available width | `c739e4d` |
+| Settings | Fixed sidebar, control column extrusion description; narrow layout changed to top partition, arranged up and down | `ca1ea83` |
+| Display container | Fixed wide canvas invalidates narrow window acceptance; limits maximum width, operation line wrapping | `374e199` |
+| Stepper | Subsequent steps are not reachable; add horizontal scrolling, disabling and navigation regression | `cfbbc06` |
+| Toolbar | The first frame command covers the right slot; retract more first, then expand after measuring | `784d307` |
+| Dock | The default docking size of the first frame squeezes out the center; initialize and correct according to the root viewport | `57cf5f1` |
+| Order example | The input box after Mod+N has no focus; the next frame is handed over to the customer field | `48e0723` |
+| TextArea | Old errors still appear after user correction; cleared simultaneously with single-line input | `0bce878` |
 
-截图只覆盖当前视口，不代表全部交互状态逐像素认证。浮层、滚动后内容和动画中断以对应行为测试补充。Dock 多面板、固定最小列宽的网格等仍需要应用选择合适的最小窗口尺寸；这不构成移动端适配承诺。字体像素随系统字体变化，不跨机器提交 PNG 金图。
+The screenshot only covers the current viewport and does not represent pixel-by-pixel verification of all interaction states. Overlay, content after scrolling and animation interruption are added to correspond to behavioral testing. Dock multi-panels, grids with fixed minimum column widths, etc. still require the application to select an appropriate minimum window size; this does not constitute a commitment to mobile adaptation. Font pixels change with the system font, and PNG golden images are not submitted across machines.
 
-## 性能
+## Performance
 
-Go 1.26.4，darwin/arm64，Apple M4；运行三次，表中为 ns/op 中位数。此处为本机基线，不是跨设备性能保证。
+Go 1.26.4, darwin/arm64, Apple M4; run three times, median ns/op in the table. This is a native baseline and is not a cross-device performance guarantee.
 
 ```sh
 go test ./ui/kit -run '^$' -bench 'BenchmarkVariableListFrame|BenchmarkChartDenseSamples' -benchmem -count=3
 ```
 
-| 基准 | 中位耗时 | 分配 |
+| Benchmark | Median time | Allocation |
 | --- | --- | --- |
-| 可变列表稳定帧，1 千行 | 27.53μs | 39,019 B，234 次 |
-| 可变列表稳定帧，10 万行 | 28.00μs | 39,018 B，234 次 |
-| 折线 10 万采样点分桶 | 124.27μs | 32,792 B，2 次 |
+| Variable List Stable Frame, 1k rows | 27.53μs | 39,019 B, 234 times |
+| Variable list stable frame, 100,000 rows | 28.00μs | 39,018 B, 234 times |
+| Polyline 100,000 sampling points bucketed | 124.27μs | 32,792 B, 2 times |
 
-列表基准测试稳定帧，不包含首次建索引、批量 SetKeys 或所有行的渲染；图表基准测试数据采样，不代表整帧 GPU 时间。
+List benchmark stable frame, does not include first indexing, batch SetKeys, or rendering of all rows; chart benchmark data sample, does not represent full frame GPU time.
 
-## 未完成的原生验收
+## Unfinished native acceptance
 
-原批次实际执行 `KEEL_DESKTOP=1 go test -run RealWindows ./ui/window` 和 `go run ./examples/frameless` 均失败。Gio 在创建 DisplayLink 的清理路径中触发 `runtime/cgo: misuse of an invalid Handle`，尚未进入标题栏交互。以原生桥接之前的 `2b1648e` 构建同一 frameless 示例，同样失败。
+The actual execution of `KEEL_DESKTOP=1 go test -run RealWindows ./ui/window` and `go run ./examples/frameless` in the original batch failed. Gio fires `runtime/cgo: misuse of an invalid Handle` in the cleanup path that created the DisplayLink, before entering the title bar interaction. Building the same frameless example with `2b1648e` before native bridging also fails.
 
-后续已能打开组件库并验证编辑器，但以下场景仍需重新验证：多窗口置前 / 关闭、标题栏拖动、系统双击偏好、窗口失焦外观，以及 macOS 减少动画的实时通知。离屏回归和原生代码编译已通过，但不能代替这些验证。全局快捷键、系统权限和中文输入法仍按 [手动验证表](../testing.md#需要手动验证的部分) 执行。
+Subsequently, the component library can be opened and the editor can be verified, but the following scenarios still need to be re-verified: multi-window bringing to front/closing, title bar dragging, system double-click preference, window out-of-focus appearance, and real-time notification of macOS reduced animation. Off-screen regression and native code compilation are passed, but do not replace these verifications. Global shortcut keys, system permissions and Chinese input method are still executed according to [Manual verification table](../testing.md#parts-that-require-manual-verification).
 
-## 范围
+## Scope
 
-迁移说明见 [迁移到当前 kit](../migration-kit.md)，视觉规则见 [组件视觉规范](../visual-guidelines.md)。基础代码编辑器已在后续实现，高级编辑功能仍未补齐。HTML 富文本、完整 TeX、局部主题覆盖、Kbd 动作绑定查询继续暂缓；跨窗口 Dock 未纳入本轮，完整平台读屏集成按当前决定暂缓。这里验收的是仓库中的实施清单，不是与 GPUI Kit 全部 API 一一对等的认证。
+For migration instructions, see [Migrate to current kit](../migration-kit.md), and for visual rules, see [Component Visual Specification](../visual-guidelines.md). The basic code editor has been implemented in the future, and the advanced editing functions have not yet been completed. HTML rich text, complete TeX, partial theme coverage, and Kbd action binding queries continue to be suspended; cross-window Dock is not included in this round, and full platform screen reading integration is suspended according to the current decision. What is accepted here is the implementation list in the repository, not a one-to-one certification with all GPUI Kit APIs.

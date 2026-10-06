@@ -1,6 +1,8 @@
 # TitleBar
 
-无边框窗口的标题栏，由应用自己绘制。
+English | [简体中文](title_bar.zh-CN.md)
+
+The title bar of a borderless window is drawn by the application itself.
 
 ```go
 bar := kit.TitleBar("编辑器").
@@ -8,24 +10,24 @@ bar := kit.TitleBar("编辑器").
     Trailing(searchBox, shareButton)
 
 window.Open(window.Options{Title: "编辑器", Frameless: true, Content: el.Root(app)})
-// app 的 Render 里把 bar.Render(cx) 放在最上面
+// Put bar.Render(cx) at the top of the app's Render
 ```
 
-- **拖动**：按住标题栏的空白处可以拖动窗口，标题文字所在的区域也算空白。拖动交给系统完成，所以窗口吸附、跨屏移动等行为和原生窗口一致。
-- **窗口按钮**：
-  - macOS：左侧三个圆形按钮，依次是关闭、最小化、缩放，颜色沿用系统惯例，指针移上去时显示符号。标题居中。
-  - Windows、Linux：右侧依次是最小化、最大化 / 还原、关闭，关闭按钮悬停时显示红色。标题靠左。
-  - 按钮通过 `core.CurrentWindow()` 调用所在窗口的 `Minimize`、`ToggleMaximize`、`Close`，最大化状态变化时自动切换成"还原"。
-- **应用自己的内容**：`Leading` 的内容放在窗口按钮后面，`Trailing` 的内容放在右侧。这些内容都在拖动区域之外，可以正常点击和输入。
-- 窗口不是 `Frameless` 时，系统标题栏还在，TitleBar 只绘制标题和应用内容，相当于一个页头，不显示窗口按钮，也不登记拖动区域。
-- 高度为 `kit.TitleBarHeight`（38dp）。
+- **Drag**: Press and hold the blank space of the title bar to drag the window, and the area where the title text is located is also considered blank. Dragging is done by the system, so behaviors such as window snapping and cross-screen movement are consistent with native windows.
+- **Window Button**:
+  - macOS: The three circular buttons on the left are Close, Minimize, and Zoom. The colors follow the system convention. The symbols are displayed when the pointer moves up. The title is centered.
+  - Windows, Linux: On the right side are minimize, maximize/restore, and close. The close button displays red when hovered. The title is to the left.
+  - The button calls `Minimize`, `ToggleMaximize`, and `Close` of the window where it is located through `core.CurrentWindow()`, and automatically switches to "Restore" when the maximized status changes.
+- **Apply your own content**: The content of `Leading` is placed behind the window button, and the content of `Trailing` is placed on the right. These contents are outside the drag area and can be clicked and entered normally.
+- When the window is not `Frameless`, the system title bar is still there. The TitleBar only draws the title and application content, which is equivalent to a page header. It does not display window buttons and does not register the drag area.
+- Height is `kit.TitleBarHeight` (38dp).
 
-Agent：标题栏的角色是 `banner`，名字是标题；窗口按钮名为"关闭""最小化""最大化"或"还原"，应用内容单独列出。
+Agent: The role of the title bar is `banner`, and the name is the title; the window buttons are named "Close", "Minimize", "Maximize" or "Restore", and the application content is listed separately.
 
-验证：`go run ./examples/frameless` 打开真正的无边框窗口，拖动标题栏、点击窗口按钮；`go run ./examples/components -section title_bar` 查看普通窗口里的页头样式。
+Verification: `go run ./examples/frameless` open a real borderless window, drag the title bar and click the window button; `go run ./examples/components -section title_bar` check the header style in the ordinary window.
 
-窗口失焦时标题使用次要文字颜色，macOS 窗口按钮变灰；重新激活后恢复。前后插槽切片会被复制，空插槽忽略。
+Title uses secondary text color when window is out of focus, macOS window buttons are grayed out; restored after reactivation. Slices for front and rear slots are copied, and empty slots are ignored.
 
-macOS 双击只作用于当前绘制的中间拖动区域，前后插槽和窗口按钮不包含在内。原生本地事件监视器在 Gio 启动第二次拖动前处理双击：系统设置为最小化时最小化，设置为无操作时不操作，其余情况切换缩放。标题栏隐藏、所属区域禁用或窗口销毁时移除登记。自动化窗口通过普通双击回调测试缩放；真实窗口的拖动仍交给 AppKit。
+macOS double-click only works on the currently drawn middle drag area, excluding front and rear slots and window buttons. The native local event monitor handles double-clicks before Gio initiates the second drag: minimize when the system is set to minimize, do nothing when set to do nothing, and toggle zoom otherwise. The registration is removed when the title bar is hidden, the area to which it belongs is disabled, or the window is destroyed. Automated windows test scaling via normal double-click callbacks; real window dragging is still left to AppKit.
 
-验证记录（2026-10-02）：离屏双击、拖动区域排除控件、禁用清理和失焦像素测试通过。当前环境运行原生示例时，Gio 在创建 DisplayLink 阶段崩溃；改动前版本同样失败。因此 AppKit 双击偏好与系统拖动仍需在可运行桌面窗口的环境复核。
+Verification record (2026-10-02): Off-screen double-click, drag area exclusion control, disabling cleaning and out-of-focus pixel tests passed. When running the native example in the current environment, Gio crashes during the DisplayLink creation phase; the pre-change version also fails. Therefore, AppKit double-click preference and system drag still need to be reviewed in an environment that can run desktop windows.

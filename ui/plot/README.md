@@ -1,7 +1,9 @@
-# plot
+# ui/plot
 
-公开的自定义图表基础件：连续/分类比例尺、正负堆叠、饼图布局，以及裁剪画布上的柱、线、面积、圆弧、点、参考线和坐标轴。
+English | [简体中文](README.zh-CN.md)
 
-直接依赖 `ui/core`（绘制上下文）、`ui/theme`（坐标轴字体），间接依赖 `ui/internal/loop`。不引用 kit、el、window 或 native；目前由应用和组件库示例使用，现有 kit 图表未迁移至本包。
+Exposed custom chart basics: continuous/categorical scales, positive and negative stacking, pie chart layout, and columns, lines, areas, arcs, points, guides, and axes on the clipped canvas.
 
-数值布局无可变全局状态，绘制使用当帧 Canvas。应用负责颜色、尺寸换算、交互、提示和可访问数据描述。完整说明见 [公共绘图基础件](../../docs/kit/plot_primitives.md)。
+Directly depends on `ui/core` (drawing context), `ui/theme` (axis font), and indirectly depends on `ui/internal/loop`. Does not reference kit, el, window, or native; currently used by the app and component library examples, existing kit diagrams are not migrated to this package.
+
+The numerical layout has no mutable global state, and the current frame Canvas is used for drawing. The application is responsible for colors, size conversions, interactions, prompts, and accessible data descriptions. See [Public Drawing Basics](../../docs/kit/plot_primitives.md) for complete instructions.

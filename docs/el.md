@@ -1,6 +1,8 @@
-# 元素与视图（ui/el）
+# Elements and views (ui/el)
 
-`ui/el` 是 GPUI 风格的写法：界面是一个视图（普通的 Go struct），每一帧调用它的 `Render`，返回一棵用链式样式搭起来的元素树。状态就是 struct 的字段，事件回调直接改字段，下一帧自动重画。
+English | [简体中文](el.zh-CN.md)
+
+`ui/el` is written in GPUI style: the interface is a view (ordinary Go struct), and its `Render` is called every frame, returning an element tree built in a chain style. The status is the field of the struct. The event callback directly changes the field and automatically redraws the next frame.
 
 ```go
 type Counter struct{ n int }
@@ -19,19 +21,19 @@ window.Open(window.Options{Title: "计数", Content: el.Root(&Counter{})})
 window.Main()
 ```
 
-和直接写 Gio 比：
+Compared with writing Gio directly:
 
 | | Gio | el |
 | --- | --- | --- |
-| 交互状态 | 每个组件自己声明 `widget.Clickable` 等字段 | 框架按元素位置（或 `ID`）自动保存，不用声明 |
-| 布局 | 层层嵌套 `layout.Flex{}.Layout(gtx, layout.Rigid(...))` | flexbox：内外边距、间距、伸缩、对齐、百分比尺寸、滚动、绝对定位 |
-| 样式 | 每次绘制手写 | 每个元素都能链式设置，悬停、按下有样式变体 |
-| 事件结果 | 处理顺序取决于布局顺序 | 先处理事件再渲染，同一帧就画出 |
-| Agent 语义 | 手动声明 | 自动：有 `OnClick` 的是按钮，文字是文本，`Input` 是输入框 |
+| Interactive state | Each component declares fields such as `widget.Clickable` by itself | The frame is automatically saved according to the element position (or `ID`) without declaration |
+| Layout | Nested layer by layer `layout.Flex{}.Layout(gtx, layout.Rigid(...))` | flexbox: inner and outer margins, spacing, scaling, alignment, percentage size, scrolling, absolute positioning |
+| Style | Draw handwriting every time | Each element can be set in a chain, and there will be style variations when hovering and pressing |
+| Event results | The processing order depends on the layout order | Process the event first and then render, and the same frame will be drawn |
+| Agent semantics | Manual declaration | Automatic: `OnClick` is a button, text is text, `Input` is an input box |
 
-现成组件在 [ui/kit](kit.md)，它们都是 el 视图。
+The ready-made components are at [ui/kit](kit.md), and they are all el views.
 
-## 一帧里发生了什么
+## What happens in a frame
 
 ```
 1. 分发事件   上一帧登记过的点击 → 调用对应元素的 OnClick
@@ -41,59 +43,59 @@ window.Main()
 5. 回收       这一帧没出现的元素，状态删掉
 ```
 
-Render 每帧都会调用，要保持便宜：只根据状态搭树，不做 I/O、不做大计算。耗时的事放 goroutine，完成后用 `core.Update` 改状态。线程规则和其他模块相同，见[架构 · 线程规则](architecture.md#线程规则)。
+Render will be called every frame, so it should be kept cheap: only build trees based on status, no I/O, no large calculations. Put time-consuming things into goroutine, and use `core.Update` to change the status after completion. Threading rules are the same as other modules, see [Architecture · Threading Rules](architecture.md#threading).
 
-## 元素
+## Element
 
-| 构造 | 说明 |
+| Construction | Description |
 | --- | --- |
-| `el.Div()` | 盒子，唯一能有子元素的元素。默认子元素从上到下排列 |
-| `el.Text(s)` | 文字，按可用宽度自动换行 |
-| `el.Input()` / `el.TextArea()` | 输入框，带默认边框样式，获得焦点时边框变蓝。单行框默认高 `theme.ControlHeight`，文字垂直居中，和 kit 的字段一致；点内边距也会聚焦 |
-| `el.Widget(w)` | 嵌入任意 `core.Widget`，比如用 `core.Func` 包起来的一段 Gio 布局 |
+| `el.Div()` | Box, the only element that can have child elements. Default child elements are arranged from top to bottom |
+| `el.Text(s)` | Text, wrap to available width |
+| `el.Input()` / `el.TextArea()` | Input box, with default border style, the border turns blue when it gets focus. The default height of the single-line box is `theme.ControlHeight`, and the text is vertically centered, consistent with the field of kit; the point padding will also be focused |
+| `el.Widget(w)` | Embed any `core.Widget`, such as a Gio layout wrapped with `core.Func` |
 
-输入框：
+Input box:
 
 ```go
 el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) { v.refresh() }).OnSubmit(v.search)
 ```
 
-点击空白处会让输入框失去焦点。
+Clicking on an empty space will cause the input box to lose focus.
 
-`Bind(&字符串)` 双向绑定：用户输入会写进变量，程序改了变量，下一帧输入框也跟着变。`Password()` 遮盖内容。`MaxLen(n)` 限制字符数，`Filter("0123456789")` 只接受这些字符（输入和粘贴都会过滤），`ReadOnly(true)` 允许选择复制但不能编辑。单行输入框设置 `OnKey` 后，↑ ↓ PageUp PageDown 先交给它处理，编辑器不再收到这几个键（单行框里它们本来只能把光标移到开头或结尾）；带 Shift 等修饰键的组合仍归编辑器，用来扩展选区。返回值不影响结果，这几个键总是被拿走。输入框位于 `Disabled(true)` 的子树里时不能编辑，`el.Widget` 嵌入的 Gio 代码也一样。
+`Bind(&text)` two-way binding: user input will be written into variables. If the program changes the variables, the input box of the next frame will also change. `Password()` obscures content. `MaxLen(n)` limits the number of characters, `Filter("0123456789")` only accepts these characters (both input and paste are filtered), and `ReadOnly(true)` allows selection for copying but not editing. After the single-line input box is set to `OnKey`, ↑ ↓ PageUp PageDown is first handed over to it for processing, and the editor no longer receives these keys (in the single-line box, they can only move the cursor to the beginning or end); combinations with modifier keys such as Shift are still owned by the editor and are used to expand the selection. The return value does not affect the result, these keys are always taken away. The input box cannot be edited when it is located in the subtree of `Disabled(true)`, and the same is true for the Gio code embedded in `el.Widget`.
 
-输入框外面再包一层框（带图标、按钮的搜索框）时，给外框设 `ID` 和 `FocusOnPress(输入框ID)`：点外框里没有子元素接住的地方会聚焦输入框，鼠标显示文字光标；外框不会因此变成按钮，也不进 Tab 顺序。
+When the input box is surrounded by another layer of boxes (a search box with icons and buttons), set `ID` and `FocusOnPress(inputID)` to the outer box: clicking on a place in the outer box where there are no sub-elements will focus the input box, and the mouse will display the text cursor; the outer box will not turn into a button, and the tab order will not be entered.
 
-## 样式方法
+## Style method
 
-所有元素共享同一套方法（`Styled[T]` 泛型实现，链式调用返回原来的类型）：
+All elements share the same set of methods (`Styled[T]` generic implementation, chain call returns the original type):
 
-| 分类 | 方法 |
+| Classification | Method |
 | --- | --- |
-| 方向与对齐 | `Row()`、`Col()`（默认）、`Wrap()` 自动换行、`Grid(columns)` 等宽列网格、`ColSpan(n)` 跨列、`Gap(dp)`、`Justify(Start/Center/End/SpaceBetween/SpaceAround)`、`Items(Start/Center/End/Stretch)`、`Center()` |
-| 伸缩 | `Grow()` 等于 CSS 的 `flex: 1`：初始尺寸按 0 算，分享剩余空间；其他元素空间不够时按比例收缩，`NoShrink()` 禁止收缩 |
-| 尺寸 | `W(l)`、`H(l)`、`Size(l)`、`MinW/MinH/MaxW/MaxH(l)`、`WFull()`、`HFull()`；长度用 `el.Dp(40)`、随字号缩放的 `el.Sp(40)`、`el.Frac(0.5)`、`el.Full` |
-| 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`、`Ml`、`Mr`（外边距），单位 dp |
-| 滚动与定位 | `ScrollX()` 横向滚动（需要约束宽度）、`ScrollY()` 纵向滚动（需要确定的高度），`StickToBottom()` 跟随到底，`ScrollToEndOn(v)` 在 v 变化时跳到底部；`Absolute()` + `Top/Right/Bottom/Left` 绝对定位，同时给左右会拉伸宽度 |
-| 外观 | `Bg(c)`、`Border(dp, c)`、`Rounded(dp)`（用 `theme.RadiusSm/Md/Lg/Xl/Full`），`RoundedCorners(左上, 右上, 右下, 左下)` 分别设置四个角，比如按钮组只圆外侧的角、`Shadow(theme.ElevationSm/Md/Lg)` 阴影画在元素外面、不改变尺寸，`Opacity(a)` 设置整个子树 0–1 透明度（0 完全不绘制，仍保留布局和交互），`CursorPointer()`、`Hidden(b)`、`IsHidden()`（读取本元素声明的隐藏值，不包含祖先） |
-| 文字（向下继承） | `TextColor(c)`、`TextSize(sp)`（用 `theme.TextXs` … `theme.TextHeading`）、`Bold()`、`Medium()`、`Mono()` 等宽字体（`theme.MonoFace`）、`LineHeight(倍数)`、`MaxLines(n)` |
-| 状态变体 | `Hover(func(*el.Style))`、`Active(func(*el.Style))`：悬停、按下时的颜色变化，背景在 120ms 内渐变过去；开启减少动画（`theme.SetReducedMotion`，自动化模式默认开启）时直接切换 |
-| 交互 | `OnClick(fn)`、`OnDoubleClick(fn)` |
-| 结构 | `ID(s)`、`Child(...)`、`Children(slice)`、`When(cond, func(*T))` |
-| Agent 语义 | `Role(s)`、`Name(s)`、`Value(s)`、`Selected(b)` |
+| Orientation and alignment | `Row()`, `Col()` (default), `Wrap()` wrap, `Grid(columns)` equal width column grid, `ColSpan(n)` span columns, `Gap(dp)`, `Justify(Start/Center/End/SpaceBetween/SpaceAround)`, `Items(Start/Center/End/Stretch)`, `Center()` |
+| Scaling | `Grow()` is equal to CSS's `flex: 1`: the initial size is calculated as 0 and the remaining space is shared; other elements shrink proportionally when there is not enough space, `NoShrink()` is prohibited from shrinking |
+| Size | `W(l)`, `H(l)`, `Size(l)`, `MinW/MinH/MaxW/MaxH(l)`, `WFull()`, `HFull()`; use `el.Dp(40)` for length, `el.Sp(40)`, `el.Frac(0.5)`, `el.Full` for font size scaling |
+| spacing | `P`, `Px`, `Py`, `Pt`, `Pb`, `Pl`, `Pr` (padding), `M`, `Mx`, `My`, `Mt`, `Mb`, `Ml`, `Mr` (margin), unit dp |
+| Scrolling and positioning | `ScrollX()` horizontal scrolling (needs to constrain the width), `ScrollY()` vertical scrolling (requiring a certain height), `StickToBottom()` follows to the bottom, `ScrollToEndOn(v)` jumps to the bottom when v changes; `Absolute()` + `Top/Right/Bottom/Left` absolute positioning, and the width will be stretched to the left and right at the same time |
+| Appearance | `Bg(c)`, `Border(dp, c)`, `Rounded(dp)` (use `theme.RadiusSm/Md/Lg/Xl/Full`), `RoundedCorners(topLeft, topRight, bottomRight, bottomLeft)` sets the four corners respectively, for example, the button group only rounds the outer corners, `Shadow(theme.ElevationSm/Md/Lg)` draws the shadow outside the element without changing the size, `Opacity(a)` sets the entire subtree 0–1 transparency (0 Not drawn at all, layout and interaction are still retained), `CursorPointer()`, `Hidden(b)`, `IsHidden()` (read the hidden value declared by this element, excluding ancestors) |
+| Text (downward inheritance) | `TextColor(c)`, `TextSize(sp)` (use `theme.TextXs` ... `theme.TextHeading`), `Bold()`, `Medium()`, `Mono()` monospaced font (`theme.MonoFace`), `LineHeight(multiplier)`, `MaxLines(n)` |
+| State variations | `Hover(func(*el.Style))`, `Active(func(*el.Style))`: color changes when hovering and pressing, the background gradually fades within 120ms; switch directly when the reduced motion is turned on (`theme.SetReducedMotion`, automation mode is turned on by default) |
+| Interaction | `OnClick(fn)`, `OnDoubleClick(fn)` |
+| Structure | `ID(s)`, `Child(...)`, `Children(slice)`, `When(cond, func(*T))` |
+| Agent Semantics | `Role(s)`, `Name(s)`, `Value(s)`, `Selected(b)` |
 
-布局规则按 flexbox 的直觉来，和 CSS 有几处不同：
+The layout rules follow the intuition of flexbox, which is different from CSS in several ways:
 
-- `Div` 默认纵向排列、子元素拉满宽度（像块级元素），`Row()` 改成横向。
-- 横向排列的子元素宽度取内容宽度；空间不够时一起按比例收缩，文字随之换行。
-- `ScrollY` 的视口是内边距盒，内边距跟着内容滚动。
-- 文字样式像 CSS 一样向子元素继承。
+- `Div` is arranged vertically by default, and the sub-elements fill the width (like block-level elements). `Row()` is changed to horizontal.
+- The width of horizontally arranged sub-elements takes the width of the content; when there is not enough space, they are shrunk proportionally and the text is wrapped accordingly.
+- The viewport of `ScrollY` is a padding box, and the padding scrolls with the content.
+- Text styles are inherited to child elements just like CSS.
 
-## 状态和 ID
+## Status and ID
 
-元素的内部状态（悬停、按下、滚动位置、输入框内容和光标）由框架保存，键是元素在树上的路径：每一层取它的 `ID`，没有就取它在兄弟中的序号。
+The internal state of the element (hover, pressed, scroll position, input box content and cursor) is saved by the framework, and the key is the path of the element in the tree: for each level, take its `ID`, if not, take its sequence number among siblings.
 
-**会增删、重排的列表项要给 `ID`**，否则状态会按位置错配（比如删掉第一行，第二行的输入框内容跑到第一行）：
+**List items that will be added, deleted, and rearranged must be given to `ID`**, otherwise the status will be mismatched according to position (for example, if the first line is deleted, the input box content of the second line will move to the first line):
 
 ```go
 el.Div().Children(el.Map(v.rows, func(i int, r Row) el.Element {
@@ -101,11 +103,11 @@ el.Div().Children(el.Map(v.rows, func(i int, r Row) el.Element {
 }))
 ```
 
-元素某一帧没有出现，它的状态就被删除。隐藏再显示的输入框会清空；要保留内容，用 `Bind` 把内容放在视图的字段里。
+If the element does not appear in a certain frame, its state is deleted. Input fields will be cleared when hidden and then shown; to retain the content, use `Bind` to place the content in the view's field.
 
-## 视图与组合
+## Views and combinations
 
-视图是任何实现了 `Render(*el.Context) el.Element` 的类型。拆分界面就是拆分 struct，在父视图的 Render 里调用子视图的 Render：
+A view is any type that implements `Render(*el.Context) el.Element`. Splitting the interface means splitting the struct, and calling the Render of the subview in the Render of the parent view:
 
 ```go
 type Page struct{ list *OrderList; form *OrderForm }
@@ -118,33 +120,33 @@ func (p *Page) Render(cx *el.Context) el.Element {
 }
 ```
 
-`el.ViewFunc(func(cx *el.Context) el.Element { … })` 将函数适配成 View，适合传给 kit 的内容插槽。插槽持有 View，每帧调用 Render；主题色在函数内读取，不要在构造视图时保存 Element。
+`el.ViewFunc(func(cx *el.Context) el.Element { … })` Adapts the function to a View, suitable for the content slot passed to the kit. The slot holds the View, and Render is called every frame; the theme color is read within the function, do not save the Element when constructing the view.
 
-`cx.Shortcut("mod+s", fn)` 在视图渲染期间绑定快捷键。
+`cx.Shortcut("mod+s", fn)` Binds a shortcut key during view rendering.
 
-### 动作与键位表
+### Action and key table
 
-要让用户改键，就不要在视图里写死按键，改成命名动作：
+If you want the user to change keys, don't hardcode the keys in the view, instead use named actions:
 
 ```go
-core.Bind("editor.save", "mod+s")      // 启动时设默认键，可以给多个
-core.LoadKeymap(userJSON)              // 叠加用户的 {"editor.save": ["ctrl+alt+s"]}
+core.Bind("editor.save", "mod+s")      // Set the default key at startup, which can be given to multiple
+core.LoadKeymap(userJSON)              // Overlay user's {"editor.save": ["ctrl+alt+s"]}
 
 func (v *editor) Render(cx *el.Context) el.Element {
-    cx.Action("editor.save", v.save)   // 绑定到这个动作的每个键都会触发
+    cx.Action("editor.save", v.save)   // Every key bound to this action will fire
     ...
 }
 ```
 
-- 键位表是全局的，`core.Bind` 替换一个动作的全部按键，不传按键就是解绑；按键写错时返回错误，什么都不改。
-- 改键后所有窗口重绘，下一帧起生效；`cx.Action` 每帧按当前键位表注册，不用重启。
-- `cx.Perform(targetID, action)` 在回调里直接执行一个动作，效果和焦点在 targetID 时按下它的快捷键一样：先找包住该元素的最内层 `cx.ActionAt`，再找 `cx.Action`；不需要绑定键。菜单的 `ActionItem` 和命令面板用它共用命令实现，返回值表示是否有处理器运行。
-- `core.Bindings(name)` 查一个动作的按键，`core.Keymap()` 返回全部，可以用来做快捷键设置页。
-- 显示按键用 `kit.KbdFor(name)` 和 `Menu.ActionItem`，它们跟着键位表变。
+- The key table is global. `core.Bind` replaces all the keys of an action. If the key is not transmitted, it will be unbound. If the key is written incorrectly, an error will be returned and nothing will be changed.
+- After the key is changed, all windows are redrawn and take effect from the next frame; `cx.Action` is registered according to the current key table every frame, without restarting.
+- `cx.Perform(targetID, action)` directly executes an action in the callback, and the effect is the same as pressing its shortcut key when the focus is on targetID: first find the innermost `cx.ActionAt` that wraps the element, and then find `cx.Action`; no binding keys are required. The menu's `ActionItem` and the command panel use this shared command to implement, and the return value indicates whether there is a processor running.
+- `core.Bindings(name)` looks up the keys for an action, `core.Keymap()` returns all, and can be used as a shortcut key setting page.
+- `kit.KbdFor(name)` and `Menu.ActionItem` are used to display the keys, which change according to the key table.
 
-### 缓存不变的部分
+### Cache unchanged parts
 
-长列表、聊天记录里大部分内容每帧都不变。`cx.Cache(key, build)` 在 key 不变时直接复用上一帧的元素和布局，`build` 不会被调用：
+Most of the content in long lists and chat history does not change every frame. `cx.Cache(key, build)` directly reuses the elements and layout of the previous frame when the key remains unchanged, and `build` will not be called:
 
 ```go
 for _, m := range v.msgs {
@@ -153,15 +155,15 @@ for _, m := range v.msgs {
 }
 ```
 
-key 必须能比较，而且元素的样子只由 key 决定：外观会变时 key 也要变（比如带上版本号）。某一帧没用到的缓存项会被删掉。`ui/markdown` 就是这样缓存写完的块的。
+The keys must be comparable, and the appearance of the element is determined only by the key: when the appearance changes, the key must also change (for example, with a version number). Cache entries that are not used in a certain frame will be deleted. This is how `ui/markdown` caches written blocks.
 
-主题切换时 `theme.Apply` 会使 `cx.Cache` 的元素在下次访问时重建。自建缓存需要包含 `theme.Revision()`；主题色应在 Render 或缓存构建函数内读取，固定颜色不会自动转换。
+`theme.Apply` causes the elements of `cx.Cache` to be rebuilt on the next visit when the theme switches. The self-built cache needs to contain `theme.Revision()`; the theme color should be read within the Render or cache construction function, and the fixed color will not be automatically converted.
 
-### 复制到剪贴板
+### Copy to clipboard
 
-`el.WriteClipboard(text)` 在回调里调用，当前帧写入系统剪贴板。
+`el.WriteClipboard(text)` is called in the callback and the current frame is written to the system clipboard.
 
-## 焦点、按键与禁用（E1 / E2）
+## Focus, Keys and Disable (E1 / E2)
 
 ```go
 el.Div().ID("save").Focusable(true).
@@ -170,23 +172,23 @@ el.Div().ID("save").Focusable(true).
     Child(el.Text("保存"))
 ```
 
-`Focusable(true)` 让元素接受点击焦点，并按绘制顺序参与 Tab / Shift+Tab 导航，与 `Input`、`TextArea` 共用原生焦点顺序。隐藏、移除和完全滚出绘制区域的节点不参与导航。带 OnClick 的元素默认可聚焦；Focusable(false) 显式退出 Tab 顺序。
+`Focusable(true)` allows the element to accept click focus and participate in Tab / Shift+Tab navigation in drawing order, sharing the native focus order with `Input` and `TextArea`. Nodes that are hidden, removed, and completely rolled out of the drawing area do not participate in navigation. Elements with OnClick are focusable by default; Focusable(false) explicitly exits the tab order.
 
-聚焦元素收到无修饰键的 Space / Enter 时，在匹配的按键释放事件中调用一次 `OnClick`；失去焦点后不保留待激活按键。`OnKey(func(el.KeyEvent) bool)` 接收按下和释放事件，从聚焦元素向有处理器的祖先冒泡。返回 `true` 会停止冒泡并取消默认激活。`KeyEvent` 是 el 自己的结构体，包含 string 类型的 Name、KeyPress/KeyRelease 状态和 key.Modifiers。Tab 保留原生导航行为；全局快捷键继续使用 `cx.Shortcut`。
+When the focused element receives Space / Enter without modifier keys, `OnClick` is called once in the matching key release event; keys to be activated are not retained after losing focus. `OnKey(func(el.KeyEvent) bool)` Receives press and release events, bubbling from the focused element to its handler ancestor. Returning `true` stops bubbling and deactivates the default. `KeyEvent` is el's own structure, including Name, KeyPress/KeyRelease status and key.Modifiers of string type. Tab retains native navigation behavior; global shortcut keys continue to use `cx.Shortcut`.
 
-`FocusStyle(func(*el.Style))` 是绘制样式，可改背景、边框色和文字色，不改变尺寸。普通元素通过 Tab、方向键、Space / Enter 或程序主动聚焦时，默认使用 2dp Primary 焦点边框。鼠标点击保留实际焦点和键盘操作能力，但不绘制焦点样式；点击回调中的同步 `cx.Focus` 也遵循此规则。输入框聚焦时始终沿用自身边框。文字色传递给未显式设置颜色的子元素，失焦后恢复。
+`FocusStyle(func(*el.Style))` is a drawing style that can change the background, border color and text color without changing the size. When an ordinary element is actively focused via Tab, arrow keys, Space/Enter, or program, the 2dp Primary focus border is used by default. Mouse clicks retain actual focus and keyboard capabilities, but do not draw focus styles; synchronized `cx.Focus` in click callbacks also follows this rule. The input box always uses its own frame when focused. The text color is passed to child elements whose color is not explicitly set, and is restored after defocusing.
 
-`cx.Focus("save")` 在本帧绘制后请求焦点，也支持带 ID 的 `Input` / `TextArea`。ID 应在当前 root 内唯一；重复时选择第一个已绘制的匹配目标。目标不存在、隐藏或完全在视口外时保留原焦点；`cx.Focus("")` 清除焦点。只能在 Render 或其事件回调里调用。
+`cx.Focus("save")` requests focus after drawing this frame, and also supports `Input` / `TextArea` with ID. The ID should be unique within the current root; when repeated, the first drawn matching target is selected. Retains original focus when the target does not exist, is hidden, or is completely outside the viewport; `cx.Focus("")` clears focus. Can only be called in Render or its event callback.
 
-当前 `OnKey` 冒泡源是可聚焦的普通元素；输入框编辑按键仍由 Gio editor 处理，不通过这条冒泡链。焦点陷阱留给浮层阶段。可运行 `go run ./examples/components -section focus` 验证接口。
+The current `OnKey` bubbling source is a focusable ordinary element; the input box editing button is still processed by the Gio editor and does not go through this bubbling chain. The focus trap is reserved for the overlay stage. Can run `go run ./examples/components -section focus` verification interface.
 
-`cx.Focused(id)` 读取当前焦点，查询支持普通元素和输入框。`Disabled(true)` 自上而下禁止子树的点击、悬停和按键，释放当前焦点，禁止程序聚焦，并将 Agent 语义标记为 disabled；解除禁用后可重新聚焦。`DisabledStyle(func(*el.Style))` 设置禁用外观，默认文字为 Muted。显式禁用与测量时没有输入源分开处理，连续测量不会清空交互状态。
+`cx.Focused(id)` reads the current focus, and the query supports ordinary elements and input boxes. `Disabled(true)` prohibits clicks, hovers and keystrokes on the subtree from top to bottom, releases the current focus, prohibits program focus, and marks the Agent semantics as disabled; it can be refocused after being lifted. `DisabledStyle(func(*el.Style))` sets the disabled appearance, and the default text is Muted. Explicit disabling is handled separately from measuring without an input source, and continuous measurements do not clear the interaction state.
 
-## 时间与减少动画（E3）
+## Time and Reduction Animation (E3)
 
-`cx.Now()` 返回本帧时间；动画只从它计算相位。`cx.Animating()` 请求下一帧，不创建 goroutine。`el.ReducedMotion()` 查询应用偏好；`theme.SetReducedMotion(true)` 在帧锁内切换。当前没有原生系统偏好桥接，默认 false。
+`cx.Now()` returns the current frame time; the animation only calculates phase from it. `cx.Animating()` requests the next frame without creating a goroutine. `el.ReducedMotion()` queries application preferences; `theme.SetReducedMotion(true)` switches within frame locks. There is currently no native system preference bridge, default is false.
 
-`cx.After(key, duration, callback)` 声明一次性定时器，key 必须可比较且在当前 root 内唯一。存活期间每次 Render 声明同一个 key；某帧没有声明即取消，与调用位置和声明顺序无关。duration 变化时重新计时。触发后持续声明不会重复执行，省略一帧再声明才会重新启动。回调在帧锁内、当前树绘制完成后通过 core.Call 执行，并通知所有窗口重绘。
+`cx.After(key, duration, callback)` declares a one-time timer, the key must be comparable and unique within the current root. During the survival period, the same key is declared for each Render; if a frame is not declared, it will be canceled, regardless of the calling position and the order of declaration. Restart when duration changes. After triggering, the continuous declaration will not be executed repeatedly, and it will be restarted only if one frame is omitted and then declared again. The callback is executed through core.Call within the frame lock after the current tree is drawn, and notifies all windows to redraw.
 
 ```go
 type noticeTimerKey struct { ID string }
@@ -196,35 +198,35 @@ if visible {
 return el.Div().Hidden(!visible).Child(el.Text("已保存"))
 ```
 
-同类组件用自身稳定 ID 组成 key。不要在 `cx.Cache` 的构建函数里声明 `After`：缓存命中时不会执行构建函数，未再次声明的定时器会被取消。应把 After 放在每次执行的 Render 路径上，再单独缓存元素树。
+Similar components use their own stable IDs to form keys. Do not declare `After` in the constructor of `cx.Cache`: the constructor will not be executed when the cache is hit, and timers that are not declared again will be cancelled. After should be placed on the Render path of each execution, and the element tree should be cached separately.
 
-## 滚动状态与锚定
+## Scroll state and anchoring
 
-`ScrollX()` 让子内容横向延展并裁剪到视口，可与 `ScrollY()` 组合。支持水平滚轮和触控板水平手势；横纵轴分别消费对应滚动量。`cx.ScrollStateX(id)` 返回偏移、视口宽度、内容宽度（dp）；`cx.ScrollIntoViewX(id, left, right)` 最小滚动以显示目标区间。横纵滚动条支持拖动滑块、点击轨道定位，并随浅深色主题切换。滚动容器添加 `Focusable(true)` 后可用 Tab 聚焦，再用方向键、PageUp/PageDown、Home/End 滚动；双轴容器的 Shift+PageUp/PageDown、Shift+Home/End 操作横轴。组件自身 `OnKey` 优先处理（如表格行选择）。示例：`go run ./examples/components -section scrollable`。
+`ScrollX()` causes child content to stretch horizontally and clip to the viewport. Can be combined with `ScrollY()`. Supports horizontal scroll wheel and touchpad horizontal gestures; the horizontal and vertical axes consume corresponding scroll amounts respectively. `cx.ScrollStateX(id)` returns the offset, viewport width, and content width (dp); `cx.ScrollIntoViewX(id, left, right)` minimum scrolls to display the target range. The horizontal and vertical scroll bars support dragging the slider, clicking on the track to position, and switching between light and dark themes. After adding `Focusable(true)` to the scrolling container, you can use Tab to focus, and then use the direction keys, PageUp/PageDown, and Home/End to scroll; Shift+PageUp/PageDown and Shift+Home/End of the dual-axis container operate the horizontal axis. The component itself `OnKey` is processed first (such as table row selection). Example: `go run ./examples/components -section scrollable`.
 
-`Scrollbars(el.ScrollbarAlways / el.ScrollbarHover / el.ScrollbarScrolling)` 设置单个滚动容器的显示策略，两轴共用；默认 Always，只有内容溢出才出现。Hover 在指针进入整个视口时显示；Scrolling 在偏移实际变化后显示，停止 900ms 后隐藏，鼠标拖动滚动条期间持续显示。程序定位、键盘滚动也会显示；停在边界且偏移不变不会重新计时。隐藏后不保留滚动条点击区域，内容仍能接收指针事件；滚轮和键盘滚动不受策略影响。`ScrollOffset` 的受控模式仍隐藏所有滚动条。Hover 和 Scrolling 模式下滚动条出现时 120ms 淡入、隐藏时 200ms 淡出（开启减少动画时直接显示或隐藏），淡出过程中不接收点击；Always 不渐变，从 Always 切到其他模式立即隐藏。
+`Scrollbars(el.ScrollbarAlways / el.ScrollbarHover / el.ScrollbarScrolling)` sets the display strategy of a single scroll container, shared by both axes; the default is Always, which only appears when the content overflows. Hover is displayed when the pointer enters the entire viewport; Scrolling is displayed after the actual offset changes, hidden after stopping for 900ms, and continues to be displayed while the mouse drags the scroll bar. Program positioning and keyboard scrolling will also be displayed; stopping at the boundary and keeping the offset will not restart the timer. After hiding, the scroll bar click area is not retained, and the content can still receive pointer events; the scroll wheel and keyboard scrolling are not affected by the policy. `ScrollOffset`'s controlled mode still hides all scroll bars. In Hover and Scrolling modes, the scroll bar fades in 120ms when it appears and fades out in 200ms when it is hidden (directly displayed or hidden when the reduced motion is turned on). It does not receive clicks during the fade-out process; Always does not fade, and it is hidden immediately when switching to other modes from Always.
 
-`el.ScrollbarSystem` 跟随系统设置：macOS 读"显示滚动条"（自动/滚动时 → Scrolling，始终 → Always，系统设置改变后实时更新），Windows 读"自动隐藏滚动条"（启动时读一次），其他平台按 Always。没有单独设置模式的容器使用 `el.SetScrollbarDefault(mode)` 设的默认值，原默认仍是 Always，想让整个应用跟随系统就调用 `el.SetScrollbarDefault(el.ScrollbarSystem)`。`el.SystemScrollbars()` 返回读到的系统偏好。已验证横纵双倍率交互、空闲隐藏后的点击穿透、拖出视口时继续拖动和显示策略切换的窗口像素。
+`el.ScrollbarSystem` Follow the system settings: macOS reads "Show scroll bars" (automatic/scrolling → Scrolling, always → Always, real-time updates after system settings are changed), Windows reads "Auto-hide scroll bars" (read once at startup), other platforms press Always. Containers that do not have a separate mode set use the default value set by `el.SetScrollbarDefault(mode)`. The original default is Always. If you want the entire application to follow the system, call `el.SetScrollbarDefault(el.ScrollbarSystem)`. `el.SystemScrollbars()` returns the system preferences read. Verified horizontal and vertical double ratio interaction, click penetration after idle hiding, continued dragging when dragging out of the viewport, and window pixels for display strategy switching.
 
-`cx.ScrollState(id)` 返回带 ID 的 `ScrollY` 元素上一帧的滚动偏移、可视高度、内容高度，单位 dp；第一次绘制之前三个值都是 0。虚拟列表用它决定构建哪些行。`cx.ScrollIntoView(id, top, bottom)` 以最小的滚动量让内容中 `[top, bottom]` 这一段可见，在下一次绘制时生效。
+`cx.ScrollState(id)` returns the scroll offset, visual height, and content height of the previous frame of the `ScrollY` element with ID, in dp; the three values are all 0 before the first drawing. This is used by the virtual list to decide which rows to build. `cx.ScrollIntoView(id, top, bottom)` makes the `[top, bottom]` section of the content visible with minimal scrolling, and will take effect the next time it is drawn.
 
-`KeepBottomOn(version)`：`version` 变化的那一帧，保持到底部的距离不变，在上方插入内容（比如加载更早的聊天记录）时画面不会跳动。在插入内容的同一个回调里递增 version，用法和 `ScrollToEndOn` 一样。
+In the frame where `KeepBottomOn(version)`: `version` changes, the distance to the bottom remains unchanged, and the screen will not jump when content is inserted above (such as loading earlier chat records). Increment version in the same callback where content is inserted, the usage is the same as `ScrollToEndOn`.
 
-`Flex(w)` 和 `Grow` 一样占用剩余空间，但按权重分配：`Flex(2)` 分到的是 `Flex(1)` 或 `Grow` 的两倍。
+`Flex(w)` takes up the same remaining space as `Grow`, but is allocated by weight: `Flex(2)` gets twice as much space as `Flex(1)` or `Grow`.
 
-## 拖动
+## Drag
 
 ```go
 el.Div().ID("track").W(el.Dp(240)).H(el.Dp(20)).OnDrag(func(e el.DragEvent) {
-    v.value = clamp(e.X / e.W) // 按下、移动、松开都会调用
+    v.value = clamp(e.X / e.W) // It will be called when pressing, moving and releasing
 })
 ```
 
-`DragEvent.Kind` 是 `DragStart`（按下）、`DragMove`（按住移动，指针移出元素也继续报告）、`DragEnd`（松开或取消）。`X`、`Y` 是相对元素左上角的 dp，`W`、`H` 是元素尺寸，所以 `X/W` 就是水平方向的比例。按下时会聚焦可聚焦的元素。禁用的元素收不到拖动。
+`DragEvent.Kind` is `DragStart` (pressed), `DragMove` (press and hold to move, the pointer continues to report when it moves out of the element), `DragEnd` (released or canceled). `X` and `Y` are the dp relative to the upper left corner of the element, `W` and `H` are the element dimensions, so `X/W` is the proportion in the horizontal direction. Focusable elements are focused when pressed. Disabled elements cannot be dragged.
 
-## 浮层（E4 / E5）
+## Overlay (E4/E5)
 
-在 Render 中调用 `cx.Overlay(key, layer)` 声明浮层。key 必须可比较，并在当前 root 内唯一。打开状态由视图保存，打开期间每次 Render 都声明；某帧省略就关闭。不要在 Cache 的构建函数里声明浮层。后声明的浮层在上层，Esc 只请求关闭最上层。
+Call `cx.Overlay(key, layer)` in Render to declare the overlay. The key must be comparable and unique within the current root. The open state is saved by the view, and Render is declared every time during the opening period; if a certain frame is omitted, it will be closed. Do not declare overlays in Cache's constructor. The overlay declared later is on the upper layer, and Esc only requests to close the uppermost layer.
 
 ```go
 if v.open {
@@ -237,33 +239,33 @@ if v.open {
 }
 ```
 
-`Anchored(anchorID, content)` 使用本帧锚点位置，锚点可在主树或先声明的浮层中。Placement 的方向为 Bottom / Top / Left / Right，对齐为 Start / Center / End，默认 Bottom / Start；Offset 默认 4dp。指定方向放不下、对侧放得下时翻转，再将位置平移到 root 内；超出部分按 root 裁剪。MatchAnchorWidth 让浮层与锚点等宽（下拉框与触发器同宽），内容按这个宽度换行或截断。锚点不存在或隐藏时不绘制，并调用一次 OnDismiss。
+`Anchored(anchorID, content)` uses the anchor point position of this frame. The anchor point can be in the main tree or the overlay declared first. The direction of Placement is Bottom / Top / Left / Right, the alignment is Start / Center / End, and the default is Bottom / Start; the default of Offset is 4dp. If it cannot be placed in the specified direction and can be placed on the opposite side, flip it over and then move the position to the root; the excess part will be cropped according to the root. MatchAnchorWidth makes the overlay have the same width as the anchor point (the drop-down box has the same width as the trigger), and the content is wrapped or truncated according to this width. When the anchor point does not exist or is hidden, it is not drawn and OnDismiss is called once.
 
-非模态浮层之外、且不在锚点上的按下事件会请求关闭，并继续传给下面的元素。`.Modal()` 使锚定浮层拦截外部点击；`el.Modal(content)` 创建默认居中的模态浮层，自带遮罩和焦点约束，遮罩在绘制时读取 `theme.Scrim`，随运行时主题切换更新；`.Scrim(false)` 只隐藏遮罩颜色，仍拦截输入。模态期间背景不响应悬停和点击，Agent 快照也不列出被遮挡的主树及下层浮层。
+Press events outside the non-modal overlay and not on the anchor point will request closing and continue to be passed to the following elements. `.Modal()` makes the anchor overlay intercept external clicks; `el.Modal(content)` creates a modal overlay that is centered by default, with its own mask and focus constraints. The mask is read during drawing `theme.Scrim` and updated with the runtime theme switching; `.Scrim(false)` only hides the mask color and still intercepts input. During the modal period, the background does not respond to hovers and clicks, and the Agent snapshot does not list the occluded main tree and lower overlays.
 
-`layer.Owner(id)` 把浮层生命周期绑定到本帧树中的启用元素。可用于模态组件：返回一个带 ID 的零尺寸 Absolute 元素作为所属标记，再给 Modal 设置 Owner；祖先禁用、隐藏或移除标记时会请求关闭。Owner 不改变定位，也不会把浮层自身的模态遮挡当成禁用。
+`layer.Owner(id)` Binds the overlay life cycle to the enabled element in this frame tree. Can be used for modal components: return a zero-size Absolute element with ID as the owning tag, and then set the Owner to Modal; when the ancestor disables, hides or removes the tag, it will request to close. The Owner does not change the positioning, nor does it treat the modal occlusion of the overlay itself as disabled.
 
-`.TrapFocus()` 将 Tab / Shift+Tab 限制在浮层内，出现时聚焦第一个可聚焦元素；同帧 `cx.Focus(id)` 可指定浮层内的目标。关闭后恢复先前焦点，原目标已经移除时清除焦点。未开启焦点约束的非模态浮层不移动焦点。OnDismiss 在帧锁内执行，只通知调用方更新打开状态，不会替调用方保存 open。
+`.TrapFocus()` limits Tab / Shift+Tab to the overlay, focusing on the first focusable element when it appears; `cx.Focus(id)` in the same frame can specify the target within the overlay. Restores the previous focus after closing, and clears focus when the original target has been removed. A non-modal overlay without focus constraints does not move the focus. OnDismiss is executed within the frame lock and only notifies the caller to update the open status and does not save open for the caller.
 
-`el.Modal(content).Placement(side, align)` 把模态内容贴在 root 的某条边上，而不是居中，用于侧边抽屉：`Placement(el.Right, el.Start)` 贴右边、顶端对齐。
+`el.Modal(content).Placement(side, align)` sticks the modal content to a certain edge of the root instead of centering it. Used for side drawers: `Placement(el.Right, el.Start)` sticks to the right and aligns the top.
 
-Esc 交给最上层**设置了 OnDismiss** 的浮层。没有 OnDismiss 的浮层（例如通知栈）不会吞掉 Esc，下面的对话框照常关闭。
+Esc is passed to the top layer** to set the overlay of OnDismiss**. Overlays without OnDismiss (such as notification stacks) will not swallow Esc, and the following dialog box will be closed as usual.
 
-`cx.FocusWithin(id)` 查询该元素或它的任一子孙是否在上一帧获得焦点，Tooltip 用它在键盘聚焦时显示提示。
+`cx.FocusWithin(id)` Query whether this element or any of its descendants received focus in the previous frame, used by Tooltip to display a prompt when the keyboard is focused.
 
-`cx.Hovered(id)` 查询最近处理的指针位置是否位于元素内，禁用或被模态层遮挡的元素返回 false。普通带 ID 的元素也可查询，不必添加点击回调。HoverCard 可组合锚点和卡片的 Hovered 结果。
+`cx.Hovered(id)` queries whether the most recently processed pointer position is within the element. Elements that are disabled or obscured by a modal layer return false. Ordinary elements with IDs can also be queried without adding a click callback. HoverCard combines the Hovered results of anchors and cards.
 
-### 挂到窗口根部
+### Hang to the root of the window
 
-`cx.Mount(key, view)` 把一个视图挂到当前 root 上：之后每帧先渲染根视图，再按挂载顺序渲染这些视图，返回的元素放进根元素，不参与它的排版（应返回浮层声明、Absolute 或隐藏元素）。同一个 key 再次挂载会替换原视图，`cx.Unmount(key)` 取下，`cx.Mounted(key)` / `cx.MountedView(key)` 查询。根元素是文字、输入框这类叶子时会自动包一层容器。kit 的 `Dialog.Show`、`Sheet.Show` 和 `kit.WindowNotifier` 就建立在它上面，对应 GPUI 根视图自带的对话框、抽屉和通知层。
+`cx.Mount(key, view)` Hang a view on the current root: after that, the root view is rendered first in each frame, and then these views are rendered in the mounting order. The returned elements are put into the root element and do not participate in its layout (overlay declaration, Absolute or hidden elements should be returned). Mounting the same key again will replace the original view. `cx.Unmount(key)` is removed and `cx.Mounted(key)` / `cx.MountedView(key)` is queried. When the root element is a leaf such as text or input box, it will automatically be wrapped with a container. Kit's `Dialog.Show`, `Sheet.Show` and `kit.WindowNotifier` are built on it, corresponding to the dialog box, drawer and notification layer that come with the GPUI root view.
 
-完整浮层能力要求 `el.Root`。`el.Embed` 使用嵌入时的最大约束，通过 `op.Defer` 延后绘制，属于尽力支持；其可用空间不一定等于窗口大小。浮层不跨窗口。无输入源的帧统一按只读帧处理，包括测量和父组件禁用。它们复用真实的 store/cache，保留输入内容和滚动位置；不分发事件、不触发关闭回调、不增减浮层生命周期、不推进定时器，也不清理状态或覆盖焦点恢复记录。
+Full float capability requirements `el.Root`. `el.Embed` uses the maximum constraint when embedding, and delays drawing through `op.Defer`, which is a best-effort support; its available space is not necessarily equal to the window size. Overlays do not span windows. Frames without input sources are uniformly processed as read-only frames, including measurement and parent component disabling. They reuse the real store/cache and retain the input content and scroll position; they do not distribute events, do not trigger close callbacks, do not increase or decrease the overlay life cycle, do not advance the timer, and do not clean up the state or overwrite the focus recovery record.
 
-验证：`go run ./examples/components -section overlay`，加 `-theme dark` 检查深色；切换浮层、打开模态、编辑输入框，并用 Tab / Shift+Tab / Esc 检查焦点。
+Verification: `go run ./examples/components -section overlay`, add `-theme dark` to check the dark color; switch the overlay, open the modal, edit the input box, and use Tab / Shift+Tab / Esc to check the focus.
 
-## 做成可复用的组件
+## Make reusable components
 
-组件就是返回 `el.Element` 的函数，参数是它需要的数据和回调：
+The component is the function that returns `el.Element`, and the parameters are the data and callback it needs:
 
 ```go
 func button(label string, onClick func()) el.Element {
@@ -274,132 +276,132 @@ func button(label string, onClick func()) el.Element {
 }
 ```
 
-需要自己的状态、而且状态要跨帧保存的组件，写成视图（struct + Render）。
+Components that need their own state and whose state needs to be saved across frames are written as views (struct + Render).
 
-## 局部主题
+## Local topic
 
-`cx.Themed(palette, view)` 用另一套调色板渲染一个视图：它渲染和绘制时都换用这套颜色，所以里面的 kit 组件和自己画的内容都跟着变，窗口其余部分仍用全局主题。适合浅色窗口里的深色侧栏、主题预览。返回的盒子会拉伸子元素，要铺满颜色就给它设背景。
+`cx.Themed(palette, view)` uses another set of palettes to render a view: it uses this set of colors when rendering and drawing, so the kit components inside and the content you draw change accordingly, and the rest of the window still uses the global theme. Suitable for dark sidebars and theme previews in light-colored windows. The returned box will stretch the child elements and set a background to cover it with color.
 
 ```go
 nord, _ := theme.Named("nord")
 cx.Themed(nord, sidebar).Bg(nord.Bg)
 ```
 
-用 `cx.Cache` 缓存的元素按全局主题版本失效，局部主题里的内容不要跨主题复用缓存。
+Elements cached with `cx.Cache` are invalid according to the global theme version, and the content in local themes should not be reused and cached across themes.
 
-## 放进窗口和嵌入 Gio
+## Put into window and embed Gio
 
-- **整个窗口用 el**：`window.Options{Content: el.Root(view)}`。`Root` 占满窗口，窗口不再加边距和外层滚动；页面要滚动时，给根 `Div` 加 `ScrollY()`。浮层（对话框、菜单）用 `cx.Overlay` 声明，不需要 `window.Options.Overlay`。
-- **在 el 里放 Gio 代码**：`el.Widget(w)` 嵌入任意 `core.Widget`，比如用 `core.Func` 包起来的一段 Gio 布局。
-- **把 el 放进 Gio 布局**：`el.Embed(view)` 得到一个按内容定尺寸的 `core.Widget`。
+- **Use el for the entire window**: `window.Options{Content: el.Root(view)}`. `Root` occupies the window, and the window no longer adds margins and outer scrolling; when the page needs to be scrolled, add `ScrollY()` to the root `Div`. Overlays (dialog boxes, menus) are declared with `cx.Overlay` and do not require `window.Options.Overlay`.
+- **Put Gio code in el**: `el.Widget(w)` embeds any `core.Widget`, such as a Gio layout wrapped in `core.Func`.
+- **Put el into Gio layout**: `el.Embed(view)` Get a `core.Widget` sized by content.
 
-## Agent 能看到什么
+## What can Agent see?
 
-不用额外写代码：
+No need to write additional code:
 
-| 元素 | Agent 看到的 |
+| Element | What the Agent sees |
 | --- | --- |
-| `Text` | `text`，名字就是文字 |
-| 带 `OnClick` 的 `Div` | `button`，名字是里面的文字 |
-| `Input` | `textbox`，名字是 `Name` 或占位文字，值是当前内容 |
-| `.Role("tab").Selected(true)` | `tab`，选中 |
-| `.Role("progressbar").Name("导入").Value("40%")` | `progressbar`，值 40% |
+| `Text` | `text`, the name is the word |
+| `Div` with `OnClick` | `button`, the name is the text inside |
+| `Input` | `textbox`, the name is `Name` or placeholder text, the value is the current content |
+| `.Role("tab").Selected(true)` | `tab`, selected |
+| `.Role("progressbar").Name("导入").Value("40%")` | `progressbar`, worth 40% |
 
-滚动容器外面的内容不会出现在元素列表里。
+Content outside the scroll container will not appear in the element list.
 
-## 已知限制
+## Known limitations
 
-- 布局是 flexbox 的子集：支持 wrap 和简单 grid；尚无 `align-self`、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
-- `ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行以上用 `kit.VirtualList` 或 `kit.Table`，只布局可见行。
-- 没有过渡动画的封装，需要自己用 `Now` / `Animating` 计算。
-- 浮层只在 `el.Root` 中完整支持，`el.Embed` 按嵌入约束尽力支持。
-- 浮层不支持跨窗口。
-
-
-在 `Decorate` 内可用 `cx.LayoutSize(element)` 读取同一棵树中元素的最终宽高（dp），包括被裁剪的行。布局前不可读取。虚拟列表可用 `cx.ScrollTo(id, offset)` 在下次绘制时设置纵向偏移，按新的内容尺寸裁剪，用于内容变化后保持锚点；首次绘制前和只读布局时不生效。
-
-`cx.AfterEnabled(id, key, delay, fn)` 把定时器绑定到指定元素：元素可见且未禁用时才运行；元素或祖先禁用、隐藏或被模态层遮挡后暂停，恢复时重新等待完整 delay。与 `After` 一样每帧声明，省略声明会取消。
-
-`cx.Enabled(id)` 查询最近声明的元素是否可接收输入，包含祖先禁用和模态层阻挡；找不到 ID 时返回 false。在 `Render` 中查询的是上一轮声明，与焦点查询的时机一致。
+- Layout is a subset of flexbox: supports wrap and simple grid; no `align-self`, min-content yet. Shrinkage is distributed proportionally to the content width.
+- The child elements in `ScrollY` are laid out every frame (those that are invisible are not drawn). For parts with unchanged content, use `cx.Cache` to skip reconstruction and rearrangement; for more than a few hundred lines, use `kit.VirtualList` or `kit.Table` to lay out only visible lines.
+- There is no package for transition animation, so you need to calculate it yourself using `Now` / `Animating`.
+- The overlay is only fully supported in `el.Root`, and `el.Embed` is supported as best as possible according to embedding constraints.
+- Overlays do not support cross-windows.
 
 
-`Wrap()` 从左到右排布，宽度不足时另起一行。`Gap` 同时作用于行和行内元素；`Grow/Flex` 在各自行内分配剩余宽度，`Justify` 对齐每行，`Items` 对齐同一行内的不同高度元素。无宽度约束时不会换行。
+Available within `Decorate` `cx.LayoutSize(element)` reads the final width and height (dp) of an element in the same tree, including clipped rows. Not readable before layout. The virtual list can use `cx.ScrollTo(id, offset)` to set the vertical offset the next time it is drawn, and crop it according to the new content size. It is used to maintain the anchor point after the content changes; it does not take effect before the first draw and in read-only layout.
 
-`Grid(columns)` 按行填充指定数量的列，`Gap` 设置行列间距。列默认等宽，但会先满足子元素的固定宽度及最小宽度；若所有最小宽度之和超过可用空间，保留最小宽度并溢出。每行按最高元素确定高度，自动高度的元素默认拉伸到行高。`ColSpan(n)` 让子元素跨列，限制在 1 到父网格列数，放不下时从新行开始；跨度最小宽度分配到覆盖的列。隐藏和绝对定位元素不占网格单元。不支持跨行或命名区域。`Row`、`Col`、`Wrap`、`Grid` 会切换布局模式。
+`cx.AfterEnabled(id, key, delay, fn)` Binds the timer to the specified element: it runs when the element is visible and not disabled; it pauses after the element or ancestor is disabled, hidden, or blocked by the modal layer, and waits for the full delay again when resuming. As with `After`, it is declared per frame, omitting the declaration will cancel it.
 
-验证：`go run ./examples/components -section layout`，调整窗口宽度检查换行和网格。
+`cx.Enabled(id)` Query whether the recently declared element can receive input, including ancestor disabling and modal layer blocking; returns false if the ID is not found. What is queried in `Render` is the previous round of statements, which is consistent with the timing of the focus query.
 
-`PinLeft(offset)` / `PinRight(offset)` 将元素绘制在最近 `ScrollX` 视口对应边缘的 offset dp 处，保留布局占位。固定元素最后绘制；普通兄弟元素裁剪到两侧固定元素之间，裁剪同时约束点击和语义区域。两侧宽度超过视口时左侧优先。没有横向滚动祖先时保持普通布局，用于表格冻结列等场景。
 
-`cx.ClickModifiers()` 仅在指针点击/双击回调中返回该事件的 Shift、Ctrl、Command 等修饰键；回调外为零。键盘事件直接使用 `KeyEvent.Modifiers`。
+`Wrap()` is arranged from left to right. If the width is insufficient, start a new line. `Gap` works on both rows and inline elements; `Grow/Flex` allocates remaining width within their respective rows, `Justify` aligns each row, and `Items` aligns elements of different heights within the same row. There will be no line wrapping when there is no width constraint.
 
-`OnContextMenu(fn)` 在次键按下时调用，不吞掉主键操作；回调可用 `ClickModifiers`。触屏上单指按住约 500ms、移动不超过 8dp 也会触发它，松手不再算一次点击；手指移动、第二根手指按下或被滚动等手势接管时取消。Input、TextArea、Table、Sidebar 的菜单因此都能长按打开。键盘入口通过 `OnKey` 声明，例如 Shift+F10。锚定浮层在锚点或其祖先禁用、隐藏后关闭，不把浮层自身对背景的输入阻挡视作禁用。
+`Grid(columns)` fills the specified number of columns row by row, and `Gap` sets the spacing between rows and columns. Columns are equal-width by default, but will first satisfy the fixed width and minimum width of child elements; if the sum of all minimum widths exceeds the available space, the minimum width will be retained and overflow. The height of each row is determined by the tallest element, and elements with automatic height are stretched to the row height by default. `ColSpan(n)` allows child elements to span columns, limited to 1 to the number of parent grid columns, and starts from a new row if it cannot fit; the minimum width of the span is allocated to the covered columns. Hidden and absolutely positioned elements occupy no grid cells. Spanning rows or named ranges is not supported. `Row`, `Col`, `Wrap`, `Grid` will switch the layout mode.
 
-拖动结束时 `DragEvent.Canceled` 区分取消与正常释放。需要在松手后提交变更的组件应在取消时丢弃暂存结果。
+Verify: `go run ./examples/components -section layout`, adjust window width to check wrapping and grid.
 
-`DragAccept(func(dx, dy float32) bool)` 与 OnDrag 配合，在初始移动达到 3dp 时决定是否接管。参数是指针相对按下位置的 dp 位移，不是滚动增量；函数应只判断、不修改状态。返回 false 时报告一次 Canceled 的 DragEnd，并让外层手势处理器有机会接管；返回 true 后，本次拖动不再重新判断方向。从可点击、可拖动、输入、滚动容器或嵌入 Widget 子树的可见区域按下时，优先留给子组件，不启动本层拖动。传 nil 恢复普通拖动。适合轮播在起始边界或跨轴拖动时让出手势；外层 ScrollX/ScrollY 的原生拖动滚动按 Gio 规则主要接收触摸，桌面鼠标仍使用滚轮或滚动条。
+`PinLeft(offset)` / `PinRight(offset)` draws the element at the offset dp of the corresponding edge of the nearest `ScrollX` viewport, retaining the layout placeholder. Fixed elements are drawn last; ordinary sibling elements are clipped between fixed elements on both sides, and the clipping constrains clicks and semantic areas at the same time. When the width of both sides exceeds the viewport, the left side takes precedence. Maintain the normal layout when there is no horizontal scrolling ancestor, used for scenarios such as frozen columns in tables.
 
-`cx.ViewportSize()` 在 Render 阶段返回根视口可用宽高（dp），用于限制命令面板等窗口内浮层的高度，避免键盘滚动目标位于窗口之外。
+`cx.ClickModifiers()` Returns the Shift, Ctrl, Command, etc. modifier keys for this event only in pointer click/double-click callbacks; zero outside callbacks. Keyboard events use `KeyEvent.Modifiers` directly.
 
-`cx.Countdown(id, key, duration, paused, fn)` 声明保留剩余时间的一次性倒计时。显式 paused、所属元素不可见/禁用/被模态遮挡时暂停，恢复后继续剩余时间；改 duration 重启，省略声明取消。与 `AfterEnabled` 恢复后重新等待完整延迟的语义不同，通知倒计时用 Countdown，悬停提示延迟继续用 AfterEnabled。
+`OnContextMenu(fn)` is called when the secondary key is pressed and does not swallow the primary key operation; the callback can be `ClickModifiers`. It will also be triggered by pressing a single finger on the touch screen for about 500ms and moving no more than 8dp. Letting go will no longer count as a click; it will be canceled when the finger moves, is pressed by a second finger, or is taken over by gestures such as scrolling. Therefore, the menus of Input, TextArea, Table, and Sidebar can all be opened by long pressing. Keyboard entries are declared with `OnKey`, for example Shift+F10. An anchored overlay is closed after the anchor point or its ancestor is disabled or hidden, and the input blocking of the background by the overlay itself is not considered disabled.
 
-`element.Reveal(fraction)` 按 0–1 比例揭示自然高度，保留子元素完整排版，同时裁剪绘制与输入区域；0 时不占高度且不能获得焦点。用于折叠动画，动画时间仍由组件根据 `cx.Now()` 驱动。NaN 按 0，越界值限制到 0–1。
+`DragEvent.Canceled` differentiates between cancellation and normal release when dragging ends. Components that need to commit changes after letting go should discard the staging results on cancellation.
 
-### 鼠标按下监听
+`DragAccept(func(dx, dy float32) bool)` works with OnDrag to decide whether to take over when the initial move reaches 3dp. The parameter is the dp displacement of the pointer relative to the pressed position, not the scroll increment; the function should only judge and not modify the state. When false is returned, a Canceled DragEnd is reported and the outer gesture processor has a chance to take over; after returning true, the direction of this drag will not be re-judged. When pressed from the visible area of a clickable, draggable, input, scrollable container or embedded Widget subtree, priority is given to the child component and dragging of this layer is not started. Pass nil to resume normal dragging. Suitable for carousels that give way to gestures when dragging at the starting boundary or across axes; native drag scrolling of outer ScrollX/ScrollY primarily receives touch by Gio rules, desktop mice still use a wheel or scroll bar.
 
-`OnMousePress(button, fn)` 观察左键、右键或中键按下，使用 `pointer.ButtonPrimary/Secondary/Tertiary`。监听覆盖交互子元素，但不阻止它们接收事件，也不增加 Tab 停靠点；禁用容器会禁用监听。0 清除监听，非法按键值忽略，多键同时按下不触发。它与 `OnContextMenu(fn)` 共用一个处理器，后者等同于选择右键，最后设置者生效。键盘操作继续使用 `OnKey` 或子组件回调。
+`cx.ViewportSize()` returns the available width and height (dp) of the root viewport in the Render stage, which is used to limit the height of overlays in windows such as the command panel to prevent the keyboard scroll target from being outside the window.
 
-锚定浮层可用 `el.Anchored(...).Arrow(true)` 绘制 6dp 指示箭头，跟随实际弹出方向；Offset 测量到箭头尖端。箭头取面板纯色背景，未设置时使用主题 Surface，渐变、边框和阴影不延伸到箭头。Modal 不显示箭头。
+`cx.Countdown(id, key, duration, paused, fn)` Statement retains a one-time countdown of remaining time. Explicitly paused, pause when the element to which it belongs is invisible/disabled/modally blocked, and resume for the remaining time; change duration to restart, and omit the cancellation statement. Different from the semantics of `AfterEnabled`, which waits for the complete delay again after recovery, the notification countdown uses Countdown, and the hover prompt delay continues using AfterEnabled.
 
-### 显式 Tab 顺序
+`element.Reveal(fraction)` reveals the natural height according to the ratio of 0–1, retains the complete layout of child elements, and crops the drawing and input areas; when 0, it does not occupy the height and cannot obtain focus. For collapse animations, animation timing is still driven by the component based on `cx.Now()`. NaN Press 0, limiting out-of-bounds values to 0–1.
 
-`TabStop(false)` 跳过顺序遍历，保留鼠标/程序聚焦；`TabIndex(n)` 按升序排列，相同值保持树顺序，负值跳过，默认 0。显式配置出现时，el root 处理 Tab/Shift+Tab，在当前模态或 TrapFocus 浮层内循环；否则使用 Gio 原生顺序。输入框也参与排序。禁用、隐藏和未绘制的节点跳过。
+### Mouse press monitoring
 
-范围限单个 el root，不跨独立 Embed 或原生 Gio 控件。直接调用 Router.MoveFocus 绕过此规则，应使用正常 Tab 事件；控件显式消费 Tab 时保留其操作行为。
+`OnMousePress(button, fn)` To observe left, right, or middle button presses, use `pointer.ButtonPrimary/Secondary/Tertiary`. Listeners override interactive child elements but do not prevent them from receiving events or adding tab stops; disabling the container disables the listener. 0 clears the monitoring, ignores illegal key values, and does not trigger when pressing multiple keys at the same time. It shares the same processor with `OnContextMenu(fn)`, which is equivalent to selecting the right button, and the last setter takes effect. Keyboard operations continue using `OnKey` or child component callbacks.
 
-`WrapFit()` 与 Wrap 一样支持换行；自动宽度时按每行内容收紧，适合按钮胶囊等需要贴合内容的容器。显式或拉伸宽度仍使用常规行对齐及 Grow 分配。调用 Wrap() 恢复填满可用行宽的默认行为。
+The anchor overlay can be used to draw a 6dp indicator arrow using `el.Anchored(...).Arrow(true)`, following the actual pop-up direction; Offset is measured to the tip of the arrow. Arrows take the panel's solid color background, use the theme Surface when not set, and gradients, borders, and shadows do not extend to the arrows. Modal does not display arrows.
 
-### 受控滚动与上一帧尺寸
+### Explicit tab order
 
-`ScrollX/ScrollY` 可配合 `ScrollOffset(x, y)` 使用绝对 dp 偏移；绘制时按内容边界限制，禁用时仍显示指定位置。指定偏移时停用默认滚动手势并隐藏滚动条，容器可自行使用 OnDrag；省略即可恢复普通滚动；非有限值忽略。应由应用状态持续提供目标位置。
+`TabStop(false)` skips sequential traversal and retains mouse/program focus; `TabIndex(n)` sorts in ascending order, the same value keeps the tree order, negative values skip, default 0. When explicit configuration occurs, el root handles Tab/Shift+Tab, looping within the current modal or TrapFocus float; otherwise the Gio native order is used. Input boxes also participate in sorting. Disabled, hidden and undrawn nodes are skipped.
 
-`cx.LastSize(id)` 在 Render 中读取同 root 上次绘制的元素尺寸（dp），首次或被裁掉时返回零；包含禁用帧的几何更新。`cx.LayoutSize(element)` 用于 Decorate 中读取当前布局尺寸。窗口尺寸变化后，依赖 LastSize 的布局通常需再绘制一帧收敛。
+Scope is limited to a single el root and does not span standalone Embed or native Gio controls. Calling Router.MoveFocus directly bypasses this rule and should use the normal Tab event; the control retains its operational behavior when explicitly consuming Tab.
 
-`cx.PixelScale()` 返回当前每 dp 的物理像素数，可在 Render 中用于与布局一致的像素舍入，未设置时为 1。
+`WrapFit()` supports line breaks like Wrap; when the automatic width is used, it is tightened according to the content of each line, which is suitable for containers such as button capsules that need to fit the content. Explicit or stretched widths still use regular row alignment and Grow allocation. Calling Wrap() restores the default behavior of filling the available line width.
 
-### 自定义滚动事件
+### Controlled scrolling and previous frame size
 
-`OnScroll(xRange, yRange, fn)` 接收 dp 单位的 ScrollEvent，范围使用 `el.ScrollRange{Min: ..., Max: ...}`。零范围不接收该轴，超出范围的位移由 Gio 路由给外层；子滚动区域优先。nil 移除回调，禁用/隐藏祖先阻止事件。范围按像素尺度换算，非有限端点按 0 处理，端点限制在 ±1,000,000dp。
+`ScrollX/ScrollY` can be used with `ScrollOffset(x, y)` to use absolute dp offset; when drawing, it is limited by the content boundary, and when disabled, the specified position will still be displayed. Disables the default scroll gesture and hides the scroll bar when specifying an offset. The container can use OnDrag by itself; omit it to restore normal scrolling; non-finite values are ignored. The target location should be provided continuously by the application state.
 
-此事件不暴露滚轮/触控板类型或手势结束相位。可用于受控 ScrollOffset 容器；处理时更新应用状态，再由下一帧应用偏移。
+`cx.LastSize(id)` Reads the dimensions (dp) of the last drawn element with root in Render, returning zero when first or clipped; contains geometry updates that disable frames. `cx.LayoutSize(element)` is used in Decorate to read the current layout size. After the window size changes, layouts that rely on LastSize usually need to draw another frame to converge.
 
-### 指定内容底边对齐
+`cx.PixelScale()` Returns the current number of physical pixels per dp, can be used in Render for layout-consistent pixel rounding, or 1 when not set.
 
-横向容器使用 `Items(el.ContentBottom)`，可把子项对齐到指定后代的底边。子项用 `.ContentBottom(target)` 指定当前渲染树中的正常流后代；不指定、目标被隐藏或不在子树中时，回退到子项自身底边。这是几何对齐，不是字体基线。
+### Custom scroll events
+
+`OnScroll(xRange, yRange, fn)` Receives a ScrollEvent in dp units, scoped using `el.ScrollRange{Min: ..., Max: ...}`. Zero range does not receive this axis, and displacements outside the range are routed by Gio to the outer layer; subscroll areas take precedence. nil Remove callback, disable/hide ancestor blocking events. The range is converted to pixel scale, non-finite endpoints are treated as 0, and the endpoints are limited to ±1,000,000dp.
+
+This event does not expose the wheel/trackpad type or gesture end phase. Can be used in controlled ScrollOffset containers; application state is updated during processing, and the offset is applied by the next frame.
+
+### Specify content bottom alignment
+
+Use `Items(el.ContentBottom)` for horizontal containers to align children to the bottom edge of the specified descendants. The child uses `.ContentBottom(target)` to specify the normal flow descendant in the current rendering tree; when it is not specified, the target is hidden or not in the subtree, it falls back to the bottom of the child itself. This is geometric alignment, not font baseline.
 
 ```go
 body := el.Div().Child(header, content, footer).ContentBottom(content)
 row := el.Div().Row().Items(el.ContentBottom).Child(avatar, body)
 ```
 
-布局使用当前帧尺寸计算对齐线以上和以下所需空间，支持 Row 和 Wrap 的每一行。目标不接受绝对定位节点；容器显式限高时仍遵守限高。此模式不用于纵向容器或 Grid。
+The layout uses the current frame dimensions to calculate the required space above and below the alignment line, supporting Row and Wrap for each row. The target does not accept absolutely positioned nodes; the height limit is still respected when the container has an explicit height limit. This mode is not used with vertical containers or Grids.
 
-`el.Input().SelectOnFocus(true)` 在获得焦点时选中全部内容。`CaptureKeys(names...)` 让单行输入的 OnKey 提前接收指定的无修饰键；这些键由回调完全负责，返回 false 也不会交还编辑器，带修饰键的快捷键不受影响。`cx.SelectInput(id, start, end)` 在下一次 Bind 同步后设置 rune 选区，不改变焦点或文字；端点由编辑器限制到有效范围，缺失或禁用输入忽略。上述接口用于 TimeField 的快速分段编辑，已验证中文 rune 选区、范围限制及带修饰键的编辑行为。
+`el.Input().SelectOnFocus(true)` Selects all content when focused. `CaptureKeys(names...)` allows the single-line input OnKey to receive the specified unmodified keys in advance; these keys are fully responsible for the callback, and will not be returned to the editor when false is returned. Shortcut keys with modified keys are not affected. `cx.SelectInput(id, start, end)` Sets rune selection after next Bind sync, without changing focus or text; endpoints are limited to valid range by editor, missing or disabled input ignored. The above interface is used for fast segmented editing of TimeField, and the editing behavior of Chinese rune selection, range restrictions and modifier keys has been verified.
 
-`el.Input().TransformEdit(func(before, after el.InputEdit) el.InputEdit)` 在编辑归一化时同时提供编辑前后的文本及 rune 选区，适合格式掩码判断删除方向。它与 Transform 互斥，后配置者生效；撤销重做保存归一化后的文本与选区，程序 Bind 更新仍清空历史。已通过掩码删除和撤销重做回归。
+`el.Input().TransformEdit(func(before, after el.InputEdit) el.InputEdit)` provides the text before and after editing and the rune selection at the same time during editing normalization, which is suitable for format masks to determine the deletion direction. It is mutually exclusive with Transform and takes effect after the configuration is completed; undo and redo to save the normalized text and selection, and the program Bind update will still clear the history. Regressions have been redone with masked deletes and undos.
 
-`cx.InputSelection(id)` 返回最近的编辑器文本和 rune 选区。`cx.InputAction(id, el.InputCopy / InputCut / InputPaste / InputSelectAll)` 将编辑命令排入该输入下一次绘制；缺失/禁用输入忽略，只读拒绝剪切/粘贴，密码输入拒绝命令复制/剪切。Paste 走异步系统文本剪贴板，继续由编辑器完成过滤和 Transform；命令本身不改变焦点，菜单调用方可用 cx.Focus 恢复输入焦点。已通过菜单剪切、焦点恢复和受限输入回归。
+`cx.InputSelection(id)` Returns the most recent editor text and rune selection. `cx.InputAction(id, el.InputCopy / InputCut / InputPaste / InputSelectAll)` Queue edit commands to the next draw of this input; missing/disabled input ignored, read-only rejects cut/paste, password input rejects command copy/cut. Paste accesses the asynchronous system text clipboard, and the editor continues to complete filtering and Transform; the command itself does not change the focus, and the menu caller can use cx.Focus to restore the input focus. Returned with menu clipping, focus restoration, and restricted input.
 
-`ContainerContentSize(element)` 可在 `Decorate` 中读取容器布局后的内容像素尺寸，数值在该容器自身的最小/最大尺寸限制及 `Reveal` 之前计算；文本、输入和 widget 叶子返回零。
+`ContainerContentSize(element)` reads the pixel dimensions of the container's content after layout in `Decorate`, calculated before the container's own min/max size limits and `Reveal`; text, input, and widget leaves return zero.
 
-`ElementBounds(root, target)` 在布局后返回目标相对根元素的边框位置，包含离屏元素，不叠加滚动偏移；隐藏或不属于该树的目标返回 false。可在 `Decorate` 中结合 `ScrollTo` 实现离屏定位。
+`ElementBounds(root, target)` returns the border position of the target relative to the root element after layout, including off-screen elements, without superimposing scroll offset; returns false for targets that are hidden or do not belong to the tree. `Decorate` can be combined with `ScrollTo` to achieve off-screen positioning.
 
-### 普通容器焦点循环
+### Ordinary container focus loop
 
-`el.Div().FocusTrap(true)` 在焦点进入该子树后，将 Tab / Shift+Tab 限制在其中；`FocusTrap(false)` 解除。嵌套时当前焦点最近的 trap 祖先生效，多个并列区域各自循环。顺序遵循 TabIndex/TabStop，跳过禁用、隐藏及未绘制节点；输入框参与循环。模态浮层优先，背景区域不会截获浮层 Tab。
+`el.Div().FocusTrap(true)` Confines Tab / Shift+Tab to this subtree after focus enters it; `FocusTrap(false)` releases it. When nested, the trap ancestor closest to the current focus takes effect, and multiple parallel areas cycle individually. The order follows TabIndex/TabStop, skipping disabled, hidden and undrawn nodes; the input box participates in the loop. The modal overlay takes priority, and the background area will not intercept the overlay Tab.
 
-它只约束顺序导航，鼠标点击和 `cx.Focus` 可以切换区域；挂载不会抢焦点，移除不会自动恢复。需要进入时聚焦或退出时返回时，应用调用 `cx.Focus(id)`；浮层继续使用 `Layer.TrapFocus` 的自动聚焦/恢复。范围限于同一 el root 内的元素，独立嵌入的 core.Widget 自行管理焦点。
+It only constrains sequential navigation. Mouse clicks and `cx.Focus` can switch areas; mounting will not grab focus, and removal will not automatically restore. When it is necessary to focus when entering or return when exiting, the application calls `cx.Focus(id)`; the overlay continues to use `Layer.TrapFocus`'s automatic focus/recovery. Scope is limited to elements within the same el root, and independently embedded core.Widgets manage focus themselves.
 
-组件库 `focus` 页提供开启、输入和退出演示。自动测试覆盖并列/嵌套区域、双向循环、输入框、TabIndex/TabStop、动态禁用/解除/移除、鼠标退出及模态浮层优先与返回；原生键盘验收仍待完成。
+The component library `focus` page provides opening, entering, and exiting demonstrations. Automatic testing covers parallel/nested areas, two-way loops, input boxes, TabIndex/TabStop, dynamic disabling/unlocking/removal, mouse exit, and modal overlay priority and return; native keyboard acceptance is still to be completed.
 
-`Translate(x, y)` 按 dp 移动元素及子树的绘制、点击区域和浮层锚点，不改变原来的布局占位或滚动内容长度。可用于轮播轨道复用同一项目；移位后的可见范围决定是否绘制，父容器裁剪仍生效。
+`Translate(x, y)` Press dp to move the drawing, click area and overlay anchor point of elements and subtrees without changing the original layout space or scrolling content length. It can be used for carousel tracks to reuse the same item; the visible range after shifting determines whether to draw, and the parent container cropping still takes effect.

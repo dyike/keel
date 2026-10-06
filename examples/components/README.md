@@ -1,4 +1,6 @@
-# 组件示例
+# Component gallery
+
+English | [简体中文](README.zh-CN.md)
 
 ```sh
 go run ./examples/components                    # 组件库应用：左侧导航和搜索，右侧是选中的组件
@@ -7,24 +9,24 @@ go run ./examples/components -section inputs    # 一类：controls、inputs、o
 go run ./examples/components -theme dark        # 深色启动；应用右上角也能切换深浅色和中英文
 ```
 
-应用的侧栏按"基础能力、基础组件、输入、浮层、数据、应用外壳"分组，顶部搜索框过滤组件名。每个组件第一次打开时创建，切走再回来状态保留。整窗口的组件（Dock、Settings 等 el.Root）占满右侧内容区，自带的浮层也限制在内容区里。
+The sidebar of the application is grouped by "basic capabilities, basic components, input, overlay, data, application shell", and the search box at the top filters component names. Each component is created when it is first opened, and the state is retained when it is removed and returned. The components of the entire window (Dock, Settings, etc. el.Root) occupy the content area on the right, and the built-in overlay is also limited to the content area.
 
-组件文档页的“示例代码”直接读取注册该 section 的源码，显示在在线展示下方；修改示例后重新生成站点即可。复用到脚手架应用时保留组件构造和 Render 写法，注册函数与共享辅助函数属于组件库。
+The "sample code" on the component documentation page directly reads the source code for registering the section and displays it below the online display; just modify the example and regenerate the site. When reused in scaffolding applications, the component construction and Render writing methods are retained, and the registered functions and shared auxiliary functions belong to the component library.
 
-每个 kit 组件对应一个 `<名字>.go`，用 `registerSection` 注册同名 section，展示常用状态、边界和浅深色；注册后自动出现在应用侧栏里。`ui/kit/conventions_test.go` 检查每个组件都有示例。
+Each kit component corresponds to a `<name>.go`. Use `registerSection` to register a section with the same name to display common states, borders, and light and dark colors; it will automatically appear in the application sidebar after registration. `ui/kit/conventions_test.go` Check out each component with examples.
 
-生成截图：
+Generate screenshot:
 
 ```sh
 go run ./examples/components -section chart -screenshot /tmp/keel-chart.png
 ```
 
-另有几个验证 el 基础能力的 section：`theme`（运行时切换浅深色）、`focus`（Tab / Shift+Tab、子树禁用）、`time`（定时关闭与取消）、`overlay`（非模态点击穿透、模态遮罩、Esc 关闭与焦点恢复）。
+There are also several sections that verify the basic capabilities of el: `theme` (switching between light and dark colors at runtime), `focus` (Tab / Shift+Tab, subtree disable), `time` (timed closing and cancellation), `overlay` (non-modal click penetration, modal mask, Esc closing and focus restoration).
 
-组件的交互测试在 `ui/kit/*_test.go`，Agent 快照测试在 `ui/window/kit_*_test.go`。
+The interaction test of the component is in `ui/kit/*_test.go`, and the agent snapshot test is in `ui/window/kit_*_test.go`.
 
-`-section scrollable` 验证 el 横向滚动、宽内容裁剪和程序定位。
+`-section scrollable` Validates el horizontal scrolling, wide content cropping, and programmatic positioning.
 
-`-section variable_list` 验证 10 万行自然高度列表：定位、插入历史、展开内容与窗口宽度变化。
+`-section variable_list` Validates 100,000 row natural height list: positioning, insertion history, expanded content and window width changes.
 
-`-section layout` 验证换行布局和简单网格，缩窄窗口可检查换行、行列间距和最小尺寸。
+`-section layout` Validates line wrapping layouts and simple grids, narrowing the window to check wrapping, row and column spacing, and minimum size.

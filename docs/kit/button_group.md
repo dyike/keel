@@ -1,5 +1,7 @@
 # ButtonGroup
 
+English | [简体中文](button_group.zh-CN.md)
+
 ```go
 kit.ButtonGroup(
     kit.Button("上一页", prev).Outline(true),
@@ -7,9 +9,9 @@ kit.ButtonGroup(
 ).Name("翻页")
 ```
 
-- 几个按钮连成一个控件：只圆最外侧的角；描边按钮共用中间的边框，实心按钮之间留一道细缝。
-- 每个按钮保留自己的点击、图标、加载和选中状态；`Buttons()` 取出按钮在之后修改。
-- `Vertical(true)` 竖向排列，圆上下两端；`SetDisabled(true)` 禁用组内全部按钮。
-- Agent 角色为 `group`，名字来自 `Name`。
+- Several buttons are connected into a control: only the outermost corners are rounded; the stroked buttons share the middle border, and a thin gap is left between the solid buttons.
+- Each button retains its own click, icon, loaded, and selected states; `Buttons()` removes the button for later modification.
+- `Vertical(true)` is arranged vertically, with the upper and lower ends of the circle; `SetDisabled(true)` disables all buttons in the group.
+- The Agent role is `group` and its name comes from `Name`.
 
-验证：`go run ./examples/components -section button_group`。
+Verification: `go run ./examples/components -section button_group`.

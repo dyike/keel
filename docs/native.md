@@ -1,37 +1,39 @@
-# 原生能力
+# Native APIs
 
-`native/` 下的各个包提供 Gio 没有的系统能力。它们不依赖界面模块，可以单独使用。
+English | [简体中文](native.zh-CN.md)
 
-| 包 | 能力 | 需要的权限 |
+Packages under `native/` provide system capabilities not found in Gio. They do not depend on interface modules and can be used independently.
+
+| Packages | Capabilities | Required Permissions |
 | --- | --- | --- |
-| `native/permission` | 检查、申请权限 | 无 |
-| `native/screen` | 列出显示器；截图 | 截图需要屏幕录制 |
-| `native/input` | 移动鼠标、点击、按键 | 读取鼠标位置以外的操作都需要辅助功能 |
-| `native/hotkey` | 全局快捷键 | 无 |
-| `native/clipboard` | 异步读取文本、编码图片、文件路径（macOS / Windows / Linux Wayland、X11） | 无 |
+| `native/permission` | Check, request permissions | None |
+| `native/screen` | List monitors; screenshots | Screenshots require screen recording |
+| `native/input` | Moving the mouse, clicking, and pressing keys | Operations other than reading the mouse position require accessibility functions |
+| `native/hotkey` | Global shortcut keys | None |
+| `native/clipboard` | Asynchronously read text, encoded images, file paths (macOS / Windows / Linux Wayland, X11) | None |
 
-支持三个平台，其他平台以及关闭 cgo 构建的 macOS 上，所有函数返回 `native.ErrUnsupported`，程序照常编译。
+Three platforms are supported. On other platforms and macOS built with cgo turned off, all functions return `native.ErrUnsupported` and the program compiles as usual.
 
-| 平台 | 实现 | 说明 |
+| Platform | Implementation | Description |
 | --- | --- | --- |
-| macOS 14+ | cgo 调用系统框架 | 需要用户授权，见下文 |
-| Windows 10+ | 直接调用 user32、gdi32，不需要 cgo | 不需要授权；坐标按主显示器的 DPI 换算成逻辑点 |
-| Linux | 纯 Go 实现 X11 协议，不需要 cgo | 需要 X11 会话；合成输入需要 X 服务器的 XTEST 扩展；逻辑点按 `Xft.dpi` 换算 |
+| macOS 14+ | cgo calls the system framework | User authorization is required, see below |
+| Windows 10+ | Directly call user32, gdi32, no cgo required | No authorization required; coordinates are converted into logical points according to the DPI of the main display |
+| Linux | Pure Go X11 protocol implementation; no cgo | Requires an X11 session and the X server’s XTEST extension for synthetic input; logical points are converted using `Xft.dpi` |
 
-Linux 的 Wayland 会话不允许普通程序截取整个屏幕或向其他程序注入输入。有 XWayland（`DISPLAY` 已设置）时可以调用，但只能看到、操作 X11 程序的窗口；没有 `DISPLAY` 时返回 `ErrUnsupported`。
+Wayland sessions for Linux do not allow normal programs to capture the entire screen or inject input into other programs. It can be called when there is XWayland (`DISPLAY` is set), but it can only see and operate the window of the X11 program; when there is no `DISPLAY`, it returns `ErrUnsupported`.
 
-## 错误
+## Errors
 
-所有错误都包装自 `native` 包里的哨兵值，用 `errors.Is` 判断：
+All errors are packaged from the sentinel value in the `native` package, and are judged using `errors.Is`:
 
-| 错误 | 含义 |
+| Error | Meaning |
 | --- | --- |
-| `ErrUnsupported` | 当前平台没有实现 |
-| `ErrPermissionDenied` | 缺少所需权限 |
-| `ErrInvalidArgument` | 参数不合法，比如未知按键名、显示器 ID 为 0 |
-| `ErrTimeout` | 系统调用超时（截图超过 10 秒） |
-| `ErrConflict` | 全局快捷键已被本进程或其他程序占用 |
-| `ErrFailed` | 其他系统错误，错误信息里带状态码 |
+| `ErrUnsupported` | Not implemented on the current platform |
+| `ErrPermissionDenied` | Missing required permissions |
+| `ErrInvalidArgument` | The parameter is illegal, such as unknown button name, display ID is 0 |
+| `ErrTimeout` | System call timeout (screenshot exceeds 10 seconds) |
+| `ErrConflict` | The global shortcut key has been occupied by this process or other programs |
+| `ErrFailed` | Other system errors, error messages with status codes |
 
 ```go
 if _, err := screen.Capture(id); errors.Is(err, native.ErrPermissionDenied) {
@@ -39,28 +41,28 @@ if _, err := screen.Capture(id); errors.Is(err, native.ErrPermissionDenied) {
 }
 ```
 
-## permission：权限
+## Permission: permission
 
 ```go
-ok, err := permission.Granted(permission.Accessibility) // 只查，不弹窗
-ok, err := permission.Request(permission.Accessibility) // 可能弹出系统授权框
+ok, err := permission.Granted(permission.Accessibility) // Only check, no pop-ups
+ok, err := permission.Request(permission.Accessibility) // A system authorization box may pop up
 ```
 
-| 常量 | 系统设置里的名字 | 谁需要 |
+| Constant | Name in system settings | Who needs it |
 | --- | --- | --- |
-| `Accessibility` | 辅助功能 | `input` 包 |
-| `ScreenRecording` | 屏幕录制（macOS 15 起叫"屏幕与系统录音"） | `screen.Capture` |
-| `InputMonitoring` | 输入监控 | 目前没有功能用到，预留 |
+| `Accessibility` | Accessibility | `input` Package |
+| `ScreenRecording` | Screen recording (called "Screen and System Recording" from macOS 15) | `screen.Capture` |
+| `InputMonitoring` | Input monitoring | Currently no function is used, reserved |
 
-Windows 和 Linux 没有这几种授权，`Granted` 和 `Request` 总是返回 `true`。
+Windows and Linux do not have these authorizations, and `Granted` and `Request` always return `true`.
 
-在 macOS 上使用时要注意三点：
+There are three points to note when using macOS:
 
-- **`Request` 不等用户回答。** 它弹框后立刻返回当时的授权状态，通常是 `false`。用户在系统设置里打开开关后，你需要再调 `Granted` 确认。
-- **`false` 不区分"拒绝过"和"还没问过"。** macOS 不提供这个信息。
-- **授权记在哪个程序名下。** 打包成 `.app` 运行时，授权记在这个 app 名下；在终端里 `go run`，macOS 通常把授权记在终端程序（终端、iTerm、VS Code）名下。屏幕录制权限授予后，一般要重启程序才生效。
+- **`Request` is not waiting for the user to answer.** It will return to the current authorization status immediately after popping up the box, usually `false`. After the user turns on the switch in the system settings, you need to adjust `Granted` again to confirm.
+- **`false` does not distinguish between "rejected" and "not asked yet".** macOS does not provide this information.
+- **Which program name is the authorization recorded under?** When packaged as `.app` and run, the authorization is recorded under the name of the app; in the terminal `go run`, macOS usually records the authorization under the name of the terminal program (terminal, iTerm, VS Code). After screen recording permission is granted, the program generally needs to be restarted to take effect.
 
-## screen：显示器与截图
+## Screen: monitor and screenshots
 
 ```go
 displays, err := screen.Displays()
@@ -69,38 +71,38 @@ for _, d := range displays {
 }
 ```
 
-`X`、`Y`、`Width`、`Height` 是逻辑点坐标，原点在主显示器左上角，副屏可能是负坐标。`input` 包用同一套坐标。
+`X`, `Y`, `Width`, `Height` are logical point coordinates. The origin is in the upper left corner of the main display. The secondary screen may be negative coordinates. `input` package uses the same set of coordinates.
 
 ```go
 png, err := screen.Capture(d.ID)
 ```
 
-- 返回 PNG 字节，尺寸为 `PixelWidth × PixelHeight`，不含鼠标指针。
-- macOS 上需要屏幕录制权限，自己不会弹框，没有权限直接返回 `ErrPermissionDenied`。
-- 最多阻塞 10 秒。**不要在回调里调用**，它会让所有窗口卡住。放进 goroutine，结果用 `core.Update` 送回界面。
-- macOS 上不能在主线程调用，否则返回 `ErrFailed`。`main` 函数在 `window.Main()` 之前运行在主线程上，也不能在那里调用。
+- Returns PNG bytes with dimensions `PixelWidth × PixelHeight`, excluding the mouse pointer.
+- Screen recording permission is required on macOS, and the pop-up box will not pop up. Without permission, it will directly return to `ErrPermissionDenied`.
+- Block for up to 10 seconds. **Don't call it in a callback**, it will freeze all windows. Put it into goroutine, and use `core.Update` to send the result back to the interface.
+- Cannot be called on the main thread on macOS, otherwise `ErrFailed` will be returned. The `main` function runs on the main thread before `window.Main()` and cannot be called there.
 
-## input：合成键鼠
+## Input: synthetic keyboard and mouse
 
 ```go
-x, y, err := input.MousePosition()   // 不需要权限
-input.MouseMove(100, 200)            // 以下都需要辅助功能权限
-input.Click(input.Left)              // 在当前鼠标位置点击；Left / Right / Middle
-input.Tap("enter")                   // 按下并松开
+x, y, err := input.MousePosition()   // No permission required
+input.MouseMove(100, 200)            // The following all require accessibility permissions
+input.Click(input.Left)              // Click at the current mouse position; Left / Right / Middle
+input.Tap("enter")                   // press and release
 input.KeyDown("cmd"); input.Tap("c"); input.KeyUp("cmd")   // ⌘C
 ```
 
-按键名按美式键盘的物理位置，与当前输入法和键盘布局无关（Linux 例外：X11 按当前布局查找能打出这个字符的键）：
+The key name is based on the physical location of the American keyboard and has nothing to do with the current input method and keyboard layout (Linux exception: X11 searches for the key that can type this character according to the current layout):
 
-- 字母、数字、符号：`a`–`z`、`0`–`9`、`-` `=` `[` `]` `\` `;` `'` `,` `.` `/` `` ` ``
-- 功能键：`enter` `tab` `space` `backspace` `delete` `escape` `home` `end` `pageup` `pagedown` `up` `down` `left` `right` `f1`–`f12`
-- 修饰键：`cmd` `shift` `alt` `ctrl`。Windows 和 Linux 上 `cmd` 是 Windows 键（Super）。
+- Letters, numbers, symbols: `a`–`z`, `0`–`9`, `-` `=` `[` `]` `\` `;` `'` `,` `.` `/` `` ` ``
+- Function keys: `enter` `tab` `space` `backspace` `delete` `escape` `home` `end` `pageup` `pagedown` `up` `down` `left` `right` `f1`–`f12`
+- Modifier keys: `cmd` `shift` `alt` `ctrl`. On Windows and Linux `cmd` is the Windows key (Super).
 
-`KeyDown` 和 `KeyUp` 必须成对调用，否则系统会认为这个键一直按着。
+`KeyDown` and `KeyUp` must be called in pairs, otherwise the system will think that this key is pressed all the time.
 
-## hotkey：全局快捷键
+## Hotkey: global shortcut key
 
-其他应用在前台时也能触发。窗口有焦点时才生效的快捷键用 [`window.Options.Shortcuts`](app.md#窗口快捷键)。
+It can also be triggered when other apps are in the foreground. The shortcut key that takes effect only when the window has focus is [`window.Options.Shortcuts`](app.md#shortcuts).
 
 ```go
 unregister, err := hotkey.Register("cmd+shift+k", func() {
@@ -109,32 +111,32 @@ unregister, err := hotkey.Register("cmd+shift+k", func() {
 defer unregister()
 ```
 
-- 写法是 `修饰键+按键`，至少要一个修饰键。修饰键：`cmd` `ctrl` `alt`（或 `option`）`shift`；按键名同 `input` 包。
-- 回调在独立的 goroutine 里执行，不持有界面锁，**改界面必须包进 `core.Update`**。
-- 回调还在执行时又按了几次，只会再触发一次，不会排队。
-- 组合键已被占用时返回 `ErrConflict`。
-- `unregister` 可以重复调用，只有第一次生效。
+- The writing method is `modifier+key`, which requires at least one modifier key. Modifier keys: `cmd` `ctrl` `alt` (or `option`) `shift`; the key name is the same as `input` package.
+- The callback is executed in an independent goroutine and does not hold the interface lock. **Changes to the interface must be included in `core.Update`**.
+- If you press it several times while the callback is still executing, it will only be triggered once and will not be queued.
+- Returns `ErrConflict` when the key combination is already occupied.
+- `unregister` can be called repeatedly, and it will only take effect the first time.
 
-`cmd` 在 Windows 和 Linux 上是 Windows 键（Super）。跨平台的快捷键通常写成 macOS 用 `cmd`、其他平台用 `ctrl`。
+`cmd` is the Windows key (Super) on Windows and Linux. Cross-platform shortcut keys are usually written as `cmd` for macOS and `ctrl` for other platforms.
 
-macOS 上需要 `window.Main()` 在运行：快捷键事件由主线程的事件循环派发。Windows 和 Linux 有自己的消息线程，不受这个限制。macOS 上不开窗口的纯后台程序暂时用不了，见[常见问题](troubleshooting.md#全局快捷键没反应)。
+Requires `window.Main()` to be running on macOS: shortcut key events are dispatched by the main thread's event loop. Windows and Linux have their own message threads and are not subject to this limitation. Pure background programs that do not open windows on macOS cannot be used temporarily. See [FAQ](troubleshooting.md#global-shortcut-keys-are-not-responding).
 
-## notification：系统通知
+## Notification: system notification
 
-`native/notification` 提供 Available、RequestPermission、Post 和 Remove，完成回调在独立 goroutine 执行。当前实现 macOS .app 的授权、按 ID 投递/替换和撤回，Linux 桌面 D-Bus 后端，以及 Windows 托盘气泡后端（同一时间显示一条，支持点击回调）；其他未支持平台明确返回不支持。kit.Notifier 通过应用适配器接入，macOS 已实现原生前台展示与 Message.OnClick，kit 可通过交互后端接收系统点击并请求 Window.Raise，Linux 已支持声明 actions 的服务的默认点击，系统点击带来的激活令牌可交给 `window.Window.Activate`（Wayland xdg-activation / X11 启动 ID），完整用法与验收步骤见 [模块文档](../native/notification/README.md)。
+`native/notification` provides Available, RequestPermission, Post and Remove, and the completion callback is executed in a separate goroutine. Currently, macOS .app authorization, delivery/replacement by ID, and withdrawal are implemented, Linux desktop D-Bus backend, and Windows tray bubble backend (display one at the same time, support click callback); other unsupported platforms explicitly return unsupported. kit.Notifier is accessed through the application adapter. macOS has implemented native foreground display and Message.OnClick. Kit can receive system clicks and request Window.Raise through the interactive backend. Linux has supported the default click of services declaring actions. The activation token brought by the system click can be handed over to `window.Window.Activate` (Wayland xdg-activation / X11 startup ID). For complete usage and acceptance steps, see [Module Document](../native/notification/README.md).
 
-## clipboard：富剪贴板快照
+## Clipboard: rich clipboard snapshot
 
-`clipboard.Read(func(data clipboard.Data, err error))` 异步读取；完成回调在后台 goroutine 执行，界面更新需转回 UI 帧。`Text` 为文本，`Images` 为 MIME 和编码字节，`Files` 为路径引用，不打开文件。
+`clipboard.Read(func(data clipboard.Data, err error))` reads asynchronously; the completion callback is executed in the background goroutine, and the interface update needs to be transferred back to the UI frame. `Text` is text, `Images` is MIME and encoded bytes, `Files` is a path reference and does not open the file.
 
-macOS 使用 AppKit，图片优先 PNG、其次 TIFF。Windows 使用 Win32，读取 Unicode 文本、PNG、CF_DIB 和 CF_HDROP；DIB 添加 BMP 文件头后以 `image/bmp` 返回，不解码像素。文件引用优先于资源管理器附带的图片预览。文本、路径 UTF-8 字节与编码图片合计最多 16MiB，文件最多 128 个；错误不返回部分结果。Windows 读取期间保持剪贴板打开，并在关闭前复制所有数据；剪贴板占用时最多尝试 8 次，间隔 15ms。
+macOS uses AppKit, and images are PNG first and TIFF second. Windows uses Win32, reads Unicode text, PNG, CF_DIB, and CF_HDROP; DIB adds a BMP file header and returns as `image/bmp`, without decoding pixels. File references take precedence over image previews included with Explorer. The total size of text, path UTF-8 bytes and encoded images can be up to 16MiB, and the number of files can be up to 128; errors do not return partial results. Windows keeps the clipboard open during reading and copies all data before closing; it tries up to 8 times with 15ms intervals while the clipboard is occupied.
 
-DIB 支持 40/108/124 字节头的 RGB、调色板和位域布局；压缩位图及带独立颜色配置文件的 V5 布局暂不支持。HTML/RTF 尚未作为独立格式返回。iOS 及无 cgo 的 macOS 返回 `ErrUnsupported`。
+DIB supports RGB, palette and bitfield layout of 40/108/124 byte header; compressed bitmap and V5 layout with independent color profile are not supported yet. HTML/RTF has not yet been returned as a standalone format. iOS and macOS without cgo return `ErrUnsupported`.
 
-组件库的 Input/Textarea 和 CodeEditor 示例已共用这个读取适配；失败时沿原有 Gio 文本通路粘贴。Windows 已通过格式解析、像素解码、错误/上限测试和交叉编译，系统剪贴板及真实窗口粘贴尚未在 Windows 真机验收。
+The component library's Input/Textarea and CodeEditor examples already share this read adaptation; on failure, it pastes along the original Gio text path. Windows has passed format parsing, pixel decoding, error/upper limit testing and cross-compilation. System clipboard and real window pasting have not yet been accepted on Windows real devices.
 
-Linux X11 使用独立连接读取 CLIPBOARD，支持 UTF-8/Latin-1 文本、PNG/JPEG/TIFF/BMP/WebP 编码图片、URI 列表及 GNOME 文件引用。只返回本机绝对路径，忽略远程文件主机和非文件 URL，不执行复制或剪切。遵守相同的 16MiB/128 文件限制；处理 INCR 分块传输，整个连接与读取限时 5 秒。读取前后检查所有者及其提供的 TIMESTAMP；不提供时间戳的旧应用若在同一所有者内部更改内容，无法保证跨格式原子快照。
+Linux X11 uses an independent connection to read CLIPBOARD, supporting UTF-8/Latin-1 text, PNG/JPEG/TIFF/BMP/WebP encoded images, URI lists, and GNOME file references. Only local absolute paths are returned, remote file hosts and non-file URLs are ignored, and no copying or cutting is performed. Respects the same 16MiB/128 file limit; handles INCR chunked transfers, with a 5 second limit on entire connections and reads. Check the owner and its provided TIMESTAMP before and after reading; legacy applications that do not provide timestamps cannot guarantee cross-format atomic snapshots if content is changed within the same owner.
 
-连接使用 DISPLAY 和 XAUTHORITY（默认 ~/.Xauthority），支持 MIT-MAGIC-COOKIE-1。
+Connection uses DISPLAY and XAUTHORITY (default ~/.Xauthority), supports MIT-MAGIC-COOKIE-1.
 
-Wayland 只把剪贴板交给有键盘焦点的客户端，所以不能另开连接：应用把聚焦窗口的连接交给它，`clipboard.UseWaylandDisplay(w.WaylandDisplay())`，之后 `Read` 在这个连接上开一个私有事件队列，绑定 seat 的数据设备，读取当前选区提供的类型（与 X11 相同的文本、URI 列表和图片格式及限制，5 秒期限），不干扰 Gio 自己的事件处理。没有传入连接、或合成器没有数据设备时退回 X11/XWayland。这一路径链接 libwayland-client，用 `-tags nowayland` 构建可去掉。C 代码只用核心协议、按操作码编组，已用真实头文件在 macOS 上做语法和 cgo 类型检查，尚未在 Wayland 桌面上运行。格式、分块协议替身、错误上限测试与交叉编译通过，Linux 桌面真实剪贴板和 XWayland 桥接仍待验收。
+Wayland only gives the clipboard to the client with keyboard focus, so it cannot open another connection: the application gives it the connection of the focused window, `clipboard.UseWaylandDisplay(w.WaylandDisplay())`, and then `Read` opens a private event queue on this connection, binds the data device of the seat, reads the type provided by the current selection (the same text, URI list and image format and restrictions as X11, 5-second period), without interfering with Gio's own event processing. Fallback to X11/XWayland when there is no incoming connection, or the compositor has no data device. This path links to libwayland-client and can be removed when building with `-tags nowayland`. The C code only uses the core protocol, is grouped by opcodes, has been syntax and cgo type checked on macOS with real header files, and has not yet been run on the Wayland desktop. Format, chunked protocol surrogate, error cap testing and cross-compilation passed, Linux desktop real clipboard and XWayland bridging are still pending acceptance.

@@ -1,24 +1,26 @@
 # Bubble
 
-聊天气泡。
+English | [简体中文](bubble.zh-CN.md)
+
+Chat bubble.
 
 ```go
-kit.Bubble(text).Mine()  // 自己发的：靠右、主色
-kit.Bubble(text)         // 别人发的：靠左、浅色底
+kit.Bubble(text).Mine()  // Posted by myself: Right, main color
+kit.Bubble(text)         // Posted by others: left, light-colored background
 ```
 
-- 宽度最多占父容器的 75%。内容是任意 View。
-- 只要气泡本身时用 Bubble；要带头像和操作栏的完整一条消息，用 Message。
+- The width is up to 75% of the parent container. The content is an arbitrary View.
+- If you want the bubble itself, use Bubble; if you want a complete message with an avatar and action bar, use Message.
 
-验证：`go run ./examples/components -section bubble`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section bubble`, add `-theme dark` to check the dark theme.
 
-`Variant` 将外观与对齐分开：BubbleFilled（主色）、BubbleSecondary（次级底色）、BubbleMuted（弱化文字）、BubbleTinted（主题染色）、BubbleOutline（描边）、BubbleGhost（无框整行）、BubbleDestructive（错误色）。默认 BubbleAuto 保留原用法：Mine 使用主色，其余使用次级底色。Alignment(el.Start/el.End) 可切换对齐，Mine 等同 End；显式 Variant 不受 Mine 影响，非法枚举值忽略。
+`Variant` Separate appearance and alignment: BubbleFilled (primary color), BubbleSecondary (secondary background color), BubbleMuted (weakened text), BubbleTinted (theme tint), BubbleOutline (stroke), BubbleGhost (frameless full line), BubbleDestructive (error color). The default BubbleAuto retains its original usage: Mine uses the primary color, and the rest use secondary background colors. Alignment(el.Start/el.End) can switch alignment, Mine is equivalent to End; explicit Variant is not affected by Mine, and illegal enumeration values are ignored.
 
-普通气泡的内容和反应区整体限制为父宽度的 75%，保留 Keel 原口径；Ghost 使用整行宽度并去掉默认背景、内边距、边框和圆角。普通内容内边距改用 SpaceLg/SpaceMd。Ghost 不添加裁剪区域，内容仍可使用自己的裁剪或阴影。
+The content and reaction area of ordinary bubbles are limited to 75% of the parent width, retaining Keel's original diameter; Ghost uses the entire line width and removes the default background, padding, border and rounded corners. Use SpaceLg/SpaceMd for normal content padding instead. Ghost does not add cropping areas, content can still use its own cropping or shadowing.
 
-`Reactions(view)` 接收独立 View，nil 清除此槽；`ReactionSide(BubbleReactionTop/Bottom)` 设置位置，默认底部；`ReactionAlignment(el.Start/el.End)` 设置反应区对齐，默认靠右。反应区使用 Surface、Border 和胶囊圆角，内容自行管理计数、选中和回调，可放按钮或弹层触发器。反应区采用紧邻内容边缘的流式布局。
+`Reactions(view)` receives an independent View, nil clears this slot; `ReactionSide(BubbleReactionTop/Bottom)` sets the position, defaults to the bottom; `ReactionAlignment(el.Start/el.End)` sets the alignment of the reaction area, defaults to the right. The reaction area uses Surface, Border and capsule rounded corners, and the content manages counting, selection and callback by itself, and buttons or pop-up triggers can be placed. The reaction area uses a flowing layout right next to the edge of the content.
 
-`PartStyle(BubblePartRoot/Content/Reactions, fn)` 在默认样式后分别调整整行、内容表面和反应表面；nil 恢复默认。回调接收每帧新建元素，不应保留引用。按钮与输入框的禁用、键盘和语义由子组件处理；通过 Root 的 Disabled 可禁用整组。切换外观、对齐和反应位置保留子控件身份。应在帧外创建并复用 Bubble 实例。
+`PartStyle(BubblePartRoot/Content/Reactions, fn)` adjusts the entire row, content surface, and reaction surface respectively after default styling; nil returns to default. The callback receives new elements each frame and should not retain references. Button and input box disabling, keyboard, and semantics are handled by subcomponents; the entire group can be disabled via Root's Disabled. Switching appearance, alignment and reactive position preserves child control identity. Bubble instances should be created and reused outside the frame.
 
 ```go
 b := kit.Bubble(content).Variant(kit.BubbleOutline).
@@ -26,11 +28,11 @@ b := kit.Bubble(content).Variant(kit.BubbleOutline).
     ReactionSide(kit.BubbleReactionTop)
 ```
 
-连续气泡可用 [BubbleGroup](bubble_group.md) 组合，支持间距、样式、更新和组级禁用。
+Continuous bubbles are available in the [BubbleGroup](bubble_group.md) combination, supporting spacing, styling, updating and group-level disabling.
 
-`ReactionActions(buttons ...*ButtonView)` 设置直接按钮列表，复制列表、忽略 nil，空参数清空。按钮仍由应用持有，后续 SetText/SetLoading/SetDisabled 会在下一帧生效；变体、大小、图标、自定义内容和回调保持原配置。气泡只在本次绘制中把这些按钮圆角设为 RadiusFull，不修改按钮实例，独立绘制时仍用 Button 的默认圆角。
+`ReactionActions(buttons ...*ButtonView)` sets the direct button list, copies the list, ignores nil, and clears empty parameters. The button is still held by the application, and subsequent SetText/SetLoading/SetDisabled will take effect in the next frame; the variant, size, icon, custom content, and callbacks maintain the original configuration. Bubble only sets the rounded corners of these buttons to RadiusFull in this drawing, without modifying the button instances. When drawing independently, the default rounded corners of Button are still used.
 
-只要有一个直接按钮，反应区就去掉默认内边距并按行排列，窄宽度时换行。`PartStyle(BubblePartReactions, ...)` 仍在默认配置之后执行，可显式恢复内边距或调整间距。`Reactions(view)` 的普通内容先于直接按钮显示，两者可共存，分别清空；普通槽中的按钮、Popover 等不会自动改圆角。同一个直接按钮实例在列表中只出现一次，复用实例可在重排时保留焦点。
+As long as there is a direct button, the reaction area will remove the default padding and arrange it in rows, wrapping when the width is narrow. `PartStyle(BubblePartReactions, ...)` still executes after the default configuration and can explicitly restore padding or adjust spacing. The normal content of `Reactions(view)` is displayed before the direct button. The two can coexist and be cleared separately. Buttons, Popovers, etc. in the normal slot will not automatically change their rounded corners. The same direct button instance appears only once in the list, and reused instances retain focus during reflow.
 
 ```go
 like := kit.Button("赞同 · 2", onLike).Variant(kit.ButtonGhost).Size(24)

@@ -1,6 +1,8 @@
 # RadarChart
 
-`RadarChart(labels, series...)` 返回 `ChartView`，共用 Title、Height、Format、SeriesStyle、TooltipContent、图例与数据表切换。至少三个维度才绘制雷达；有限非负值参与绘图，缺失、负值和非有限值形成缺口，不用零值补齐。
+English | [简体中文](radar_chart.zh-CN.md)
+
+`RadarChart(labels, series...)` returns `ChartView`, sharing Title, Height, Format, SeriesStyle, TooltipContent, legend and data table switching. The radar must be drawn in at least three dimensions; finite non-negative values participate in the drawing. Missing, negative and non-finite values form gaps and do not need to be filled with zero values.
 
 ```go
 chart := kit.RadarChart([]string{"速度", "质量", "成本"},
@@ -9,10 +11,10 @@ chart := kit.RadarChart([]string{"速度", "质量", "成本"},
 ).RadarMax(100).GridLevels(5).Title("方案比较")
 ```
 
-- RadarMax(0) 按可见系列自动取最大正值；固定最大值之外的点压到外环，提示和表格仍报告原数值。
-- GridLevels 为 1–20，默认 4；OuterRadius 为 dp，0 自动适配，显式半径也受可用区域约束。
-- SeriesStyle 配置各系列描边、填充、线宽和顶点圆点；悬停按最近辐条显示各可见系列数据。
-- RadarLabel 可返回自定义展示元素，标签槽宽 72dp；它仍使用原标签作为提示标题。标签排版和默认圆点运动不同于 GPUI，未实现悬停过渡动画。
-- SetData 深复制数据并恢复系列可见性；Data 返回副本。SetDisabled 禁用图例、悬停和表格按钮。
+- RadarMax(0) automatically takes the maximum positive value according to the visible series; points outside the fixed maximum value are pressed into the outer ring, and the prompts and tables still report the original value.
+- GridLevels is 1–20, default is 4; OuterRadius is dp, 0 automatically adapts, and the explicit radius is also constrained by the available area.
+- SeriesStyle configures the stroke, fill, line width, and vertex dots of each series; hover to display each visible series data by the nearest spoke.
+- RadarLabel returns a custom display element with a label slot width of 72dp; it still uses the original label as the prompt title. Label layout and default dot motion are different from GPUI, and hover transition animation is not implemented.
+- SetData deep copies the data and restores series visibility; Data returns the copy. SetDisabled disables legend, hover, and table buttons.
 
-示例：`go run ./examples/components -section radar_chart`。浅深色像素与 Agent 检查见测试，原生窗口视觉另行验收。
+Example: `go run ./examples/components -section radar_chart`. For light and dark pixels and Agent inspection, please refer to the test, and the native window vision shall be subject to separate acceptance.

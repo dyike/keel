@@ -1,13 +1,15 @@
 # ui/netimage
 
-网络图片，可选模块。引入后 Image、Avatar、Attachment 的 `Source`、Markdown 图片和图片磁盘缓存都能加载 `http://`、`https://` 地址。
+English | [简体中文](README.zh-CN.md)
+
+Network pictures, optional modules. After the introduction, the `Source`, Markdown images and image disk cache of Image, Avatar, Attachment can load the `http://` and `https://` addresses.
 
 ```go
 import _ "github.com/dyike/keel/ui/netimage"
 ```
 
-- **为什么单独成包**：它用 `net/http`，连带 TLS 等加密库约 4 MB，只显示本地图片的应用不必带上。不引入时本地路径、`file://` 和 data URL 照常工作，网络地址返回 `core.ErrNoImageFetcher`，错误信息里写明要引入的包。
-- **依赖**：`ui/core`（实现 `core.ImageFetcher` 并在 `init` 里 `core.SetImageFetcher`）和标准库 `net/http`。
-- `netimage.Client` 是使用的 HTTP 客户端，默认 `http.DefaultClient`，可以在第一次请求前换成带代理、超时或鉴权的客户端。
+- **Why it is packaged separately**: It uses `net/http`, and together with encryption libraries such as TLS, it is about 4 MB. Applications that only display local images do not need to bring it. When not imported, the local path, `file://` and data URL work as usual, the network address returns `core.ErrNoImageFetcher`, and the error message indicates the package to be imported.
+- **Dependencies**: `ui/core` (implements `core.ImageFetcher` and `core.SetImageFetcher` in `init`) and the standard library `net/http`.
+- `netimage.Client` is the HTTP client used. The default is `http.DefaultClient`. It can be changed to a client with proxy, timeout or authentication before the first request.
 
-要用别的网络栈，实现 `core.ImageFetcher` 并调用 `core.SetImageFetcher`。
+To use another network stack, implement `core.ImageFetcher` and call `core.SetImageFetcher`.

@@ -25,7 +25,7 @@ func (s *site) buildNav() error {
 		return fmt.Errorf("docs/README.md: no documentation sections")
 	}
 	if p := s.pages["docs/README.md"]; p != nil {
-		p.NavTitle = "文档导览"
+		p.NavTitle = translateUI(p, "文档导览", "Overview")
 		p.Group = groups[0].Title
 		groups[0].Pages = append([]*page{p}, groups[0].Pages...)
 	}
@@ -35,8 +35,8 @@ func (s *site) buildNav() error {
 	}
 	for i := range groups {
 		for _, p := range groups[i].Pages {
-			if p.Src == "docs/kit.md" {
-				p.NavTitle = "全部组件"
+			if canonicalSource(p.Src) == "docs/kit.md" {
+				p.NavTitle = translateUI(p, "全部组件", "Overview")
 				groups[i].Children = components
 			}
 		}
@@ -44,7 +44,7 @@ func (s *site) buildNav() error {
 
 	source := map[string][]*page{}
 	for _, p := range s.order {
-		if seen[p.Src] {
+		if seen[canonicalSource(p.Src)] {
 			continue
 		}
 		if strings.HasPrefix(p.Src, "docs/") {
@@ -62,7 +62,7 @@ func (s *site) buildNav() error {
 		case strings.HasPrefix(p.Src, "examples/"):
 			group = "示例"
 		}
-		p.Group = "源码导览 / " + group
+		p.Group = translateUI(p, "源码导览", "Packages") + " / " + localizedNavTitle(s.lang, group)
 		source[group] = append(source[group], p)
 	}
 	s.nav = groups
@@ -73,10 +73,10 @@ func (s *site) buildNav() error {
 			continue
 		}
 		sort.Slice(pages, func(i, j int) bool { return strings.ToLower(pages[i].Title) < strings.ToLower(pages[j].Title) })
-		children = append(children, navGroup{Title: title, Pages: pages})
+		children = append(children, navGroup{Title: localizedNavTitle(s.lang, title), Pages: pages})
 	}
 	if len(children) > 0 {
-		s.nav = append(s.nav, navGroup{Title: "源码导览", Children: children})
+		s.nav = append(s.nav, navGroup{Title: localizedNavTitle(s.lang, "源码导览"), Children: children})
 	}
 	return nil
 }
@@ -84,7 +84,7 @@ func (s *site) buildNav() error {
 // Only second-level headings with page links in their section become groups.
 // Parse the Markdown tree so code blocks and inline API examples are ignored.
 func (s *site) indexGroups(src, kind string, seen map[string]bool) ([]navGroup, error) {
-	data, err := os.ReadFile(filepath.Join(s.root, src))
+	data, err := os.ReadFile(filepath.Join(s.root, localizedSource(src, s.lang)))
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (s *site) indexGroups(src, kind string, seen map[string]bool) ([]navGroup, 
 			if err != nil || u.IsAbs() || u.Host != "" || u.Path == "" {
 				break
 			}
-			target := path.Clean(path.Join(path.Dir(src), u.Path))
+			target := canonicalSource(path.Clean(path.Join(path.Dir(src), u.Path)))
 			p := s.pages[target]
 			if p == nil || groupOf(target) != kind {
 				break
@@ -123,7 +123,7 @@ func (s *site) indexGroups(src, kind string, seen map[string]bool) ([]navGroup, 
 			seen[target] = true
 			p.Group = current.Title
 			if kind == "组件" {
-				p.Group = "组件 / " + current.Title
+				p.Group = translateUI(p, "组件", "Components") + " / " + current.Title
 			}
 			current.Pages = append(current.Pages, p)
 		}
@@ -168,7 +168,7 @@ func (s *site) linkReadingOrder() {
 }
 
 func navigationView(p *page, group navGroup) navView {
-	return navView{Page: p, Group: group, Open: group.Title == "开始使用" || group.contains(p)}
+	return navView{Page: p, Group: group, Open: (group.Title == "开始使用" || group.Title == "Getting started") || group.contains(p)}
 }
 
 func (g navGroup) contains(p *page) bool {

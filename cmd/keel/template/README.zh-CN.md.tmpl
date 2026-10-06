@@ -1,0 +1,15 @@
+# {{.Name}}
+
+[English](README.md) | 简体中文
+
+用 [Keel](https://keel.dyike.com) 写的桌面应用。
+
+```sh
+keel run              # 运行
+keel build            # 打包当前平台，输出到 dist/
+keel build -target windows
+keel doctor           # 检查打包环境
+```
+
+- 界面在 `app.go`，窗口在 `main.go`。
+- 应用名、ID、版本和图标在 `keel.json`。换图标就替换 `appicon.png`：1024×1024、满版、不带圆角，打包时按 macOS、Windows、Linux 各自的规范裁形状；`keel icon` 预览三个平台的效果。

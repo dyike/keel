@@ -1,15 +1,17 @@
 # native/permission
 
-检查、申请 macOS 隐私权限：辅助功能、屏幕录制、输入监控。
+English | [简体中文](README.zh-CN.md)
 
-- **依赖**：`native`（错误值）、`native/internal/sys`。
-- **单独使用**：可以，不需要窗口。
+Check and apply for macOS privacy permissions: accessibility, screen recording, input monitoring.
+
+- **Dependencies**: `native` (error value), `native/internal/sys`.
+- **Used alone**: Yes, no window required.
 
 ```go
 import "github.com/dyike/keel/native/permission"
 
-ok, err := permission.Granted(permission.ScreenRecording) // 只查
-ok, err = permission.Request(permission.Accessibility)    // 可能弹授权框
+ok, err := permission.Granted(permission.ScreenRecording) // Check only
+ok, err = permission.Request(permission.Accessibility)    // An authorization box may pop up
 ```
 
-详见 [原生能力 · permission](../../docs/native.md#permission权限)。
+See [Native capabilities · permission](../../docs/native.md#permission-permission) for details.

@@ -1,21 +1,23 @@
 # Collapsible
 
-单节内容的展开/收起状态，可整体使用，也可把触发器与内容分别放进布局。
+English | [简体中文](collapsible.zh-CN.md)
+
+The expanded/collapsed state of a single section of content can be used as a whole, or the trigger and content can be placed separately in the layout.
 
 ```go
 section := kit.Collapsible("高级筛选", form)
 section.SetValue(true)
-// 默认带边框的面板：section.Render(cx)
+// Default bordered panel: section.Render(cx)
 row.Child(section.Trigger().Render(cx))
 body.Child(section.Content().Render(cx))
 ```
 
-`Value` / `SetValue` 读取和设置状态，程序设置不回调；`OnChange` 在用户切换时调用。`SetDisabled` 同时禁用独立触发器和内容。每个实例的 Trigger / Content 各渲染一次，不要同时再调用整体 Render。
+`Value` / `SetValue` reads and sets the status, and the program settings do not call back; `OnChange` is called when the user switches. `SetDisabled` disables both independent triggers and content. The Trigger/Content of each instance is rendered once. Do not call the overall Render at the same time.
 
-`Heading(view)` 自定义标题的展示内容，构造时的 label 仍作为无障碍名称。标题内部放文字、图标等展示内容，避免嵌套另一个交互控件。
+`Heading(view)` Customize the display content of the title. The label during construction is still used as the accessibility name. Place text, icons and other display content inside the title to avoid nesting another interactive control.
 
-触发器支持 Tab、Enter / Space，角色为 disclosure，值为 expanded / collapsed。关闭正在编辑的内容时，焦点回到触发器，输入状态保留。收起中的内容不能操作。
+The trigger supports Tab, Enter / Space, the role is disclosure, and the value is expanded / collapsed. When the content being edited is closed, the focus returns to the trigger and the input state is retained. The content being folded cannot be operated.
 
-展开与收起使用 180ms 高度动画；重复切换从当前高度反转，正文维持自然布局，不挤压文字。减少动画时立即切换，初始展开状态也直接显示。
+Expand and collapse use 180ms height animation; repeated switching reverses from the current height, and the text maintains a natural layout without squeezing the text. Switch immediately when reduced motion, and the initial expanded state is also displayed directly.
 
-验证：`go run ./examples/components -section collapsible`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section collapsible`, add `-theme dark` to check the dark theme.

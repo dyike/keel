@@ -1,6 +1,8 @@
 # VirtualList
 
-大量等尺寸项目的滚动列表，只构建可视区附近的项目；支持纵向行和横向列。
+English | [简体中文](virtual_list.zh-CN.md)
+
+A scrolling list of a large number of equal-sized items, only constructing items near the visual area; vertical rows and horizontal columns are supported.
 
 ```go
 logs := kit.VirtualList(len(lines), 24, func(cx *el.Context, i int) el.Element {
@@ -8,27 +10,27 @@ logs := kit.VirtualList(len(lines), 24, func(cx *el.Context, i int) el.Element {
 }).Height(300)
 ```
 
-- `VirtualList` 每行高度相同（`rowHeight`，单位 dp）；自然高度内容使用下方的 `VariableList`。
-- 沿滚动轴在可视区前后各多构建一屏，滚动的那一帧也不会露出空白。
-- `Height(dp)` 设置可视高度（默认 320），`Fill()` 改为撑满父容器给的空间。
-- `SetCount(n)` 更新行数；`ScrollTo(cx, i)` 以最小滚动量让第 i 行可见。列表还没显示时（比如在另一个标签页），会在第一次显示时再滚动。`ScrollToAlign(cx, i, align)` 指定位置：`kit.ScrollStart` 顶部（横向时左侧）、`kit.ScrollCenter` 居中、`kit.ScrollEnd` 底部，`kit.ScrollNearest` 等同 ScrollTo；靠近首尾时按内容能滚到的范围截住。
-- 每行包着一个带稳定 ID 的元素，行在窗口里移动时状态不会丢。
+- `VirtualList` Each row has the same height (`rowHeight` in dp); natural height content uses `VariableList` below.
+- Build one more screen before and after the viewable area along the scroll axis, so that the scrolling frame will not reveal any blank space.
+- `Height(dp)` sets the visual height (default 320), and `Fill()` changes it to fill the space given by the parent container.
+- `SetCount(n)` updates the number of rows; `ScrollTo(cx, i)` makes row i visible with minimum scrolling. When the list is not displayed yet (for example, in another tab), it will be scrolled when it is displayed for the first time. `ScrollToAlign(cx, i, align)` specifies the position: `kit.ScrollStart` top (left side when horizontal), `kit.ScrollCenter` center, `kit.ScrollEnd` bottom, `kit.ScrollNearest` is equivalent to ScrollTo; when it is close to the beginning and end, it is intercepted according to the range that the content can be scrolled to.
+- Each row is wrapped in an element with a stable ID, and the state is not lost when the row is moved in the window.
 
-Agent：只列出可视区里的行。
+Agent: List only the rows in the visible area.
 
-验证：`go run ./examples/components -section virtual_list`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section virtual_list`, add `-theme dark` to check the dark theme.
 
-数据量减少时按新内容高度收回滚动范围；列表清空后再次填充可正常显示。
-
-
-自然高度内容使用 [VariableList](variable_list.md)，支持稳定 key、行高缓存和阅读位置保持。
-
-等高列表可设置 `ItemKey(func(i int) string)`，在插入、排序时按数据身份保留已构建行的元素状态。key 必须非空且唯一；默认使用索引，回调只在构建范围内调用。
+When the amount of data is reduced, the scroll range is restored according to the new content height; after the list is cleared and refilled, it can be displayed normally.
 
 
-`Horizontal(true)` 改为横向虚拟化，构造时 rowHeight 参数成为每项宽度；false 恢复纵向。`Width(dp)` 设置视口宽度，横向默认 320dp；`Height(dp)` 始终设置高度，横向时是交叉轴尺寸。`Fill()` 沿主轴填满父布局分配的空间，横向时放在 Row 布局内。主轴尺寸的显式设置取消 Fill，交叉轴尺寸设置保留 Fill。
+Natural height content uses [VariableList](variable_list.md), which supports stable keys, row height caching and reading position maintenance.
 
-切换方向保留当前首项附近的滚动位置和已构建项目身份，待处理的 ScrollTo 优先；`ScrollToEnd(cx)` 露出最后一项。所有定位接口跟随当前轴，读取精确横向滚动状态使用 `cx.ScrollStateX(list.ID())`，设置偏移使用 `cx.ScrollToX`。数据减少会收回超范围偏移。
+The equal-height list can be set to `ItemKey(func(i int) string)` to retain the element status of the constructed rows according to data identity during insertion and sorting. key must be non-null and unique; the index is used by default and the callback is only called within the build scope.
+
+
+`Horizontal(true)` is changed to horizontal virtualization, and the rowHeight parameter becomes the width of each item during construction; false returns to vertical. `Width(dp)` sets the viewport width, and the horizontal default is 320dp; `Height(dp)` always sets the height, and the horizontal axis is the cross-axis size. `Fill()` fills the space allocated by the parent layout along the main axis, and is placed in the Row layout when horizontally. Explicit setting of main axis size cancels Fill, setting of cross axis size retains Fill.
+
+Switching direction retains the scroll position and built item identity near the current first item, pending ScrollTo takes precedence; `ScrollToEnd(cx)` exposes the last item. All positioning interfaces follow the current axis, read the precise horizontal scroll status using `cx.ScrollStateX(list.ID())`, and set the offset using `cx.ScrollToX`. Data reduction reclaims out-of-range offsets.
 
 ```go
 cards := kit.VirtualList(len(items), 120, func(cx *el.Context, i int) el.Element {
@@ -36,4 +38,4 @@ cards := kit.VirtualList(len(items), 120, func(cx *el.Context, i int) el.Element
 }).Horizontal(true).Width(480).Height(80)
 ```
 
-这是单轴虚拟化，不同时虚拟化二维网格。项目内容需适合固定槽位尺寸；切换方向不会自动更改应用内容的布局。
+This is single-axis virtualization without virtualizing the 2D grid at the same time. Project content needs to fit into a fixed slot size; switching orientations does not automatically change the layout of the app content.

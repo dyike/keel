@@ -1,26 +1,28 @@
 # NumberInput
 
-带 − / + 按钮的数字输入框。
+English | [简体中文](number_input.zh-CN.md)
+
+Numeric input box with − / + buttons.
 
 ```go
 qty := kit.NumberInput("数量").Range(1, 99).Step(1)
 price := kit.NumberInput("单价").Range(0, 1e6).Step(0.5).Decimals(2)
 ```
 
-- 输入过程中允许超出范围的中间状态，比如想输入 15，先打出的 1 可能小于下限；按回车或离开输入框时，限制到范围内并规整格式，无法解析、NaN、无穷大和溢出的文字恢复为原值。
-- − / + 按钮按步长调整，到达边界时禁用。步长只用于增减，不把手输值吸附到步长倍数；草稿加一步只发出一次最终值回调。0.1 等十进制步长不会积累二进制加法误差。
-- ↑ ↓ 按步长加减，PageUp / PageDown 一次 10 步。
-- `Value()` / `SetValue`、`SetDisabled`、`SetError`；`Decimals(n)` 将实际值和显示值一起规整到 0–15 位小数，默认 `-1` 保留精度；非法位数不生效。范围端点优先：例如范围为 0.001–0.009，即使设两位小数，也显示精确边界，避免文字与值不符。
+- Intermediate states outside the range are allowed during the input process. For example, if you want to enter 15, the 1 typed first may be less than the lower limit; when you press Enter or leave the input box, it is limited to the range and formatted, and text that cannot be parsed, NaN, infinity, and overflow are restored to the original value.
+- − / + buttons are adjusted in steps and disabled when reaching the boundary. The step size is only used for increase and decrease, and the handle input value is not absorbed to the step size multiple; the draft adds one step and only issues a final value callback. Decimal steps such as 0.1 do not accumulate binary addition errors.
+- ↑ ↓ Add and subtract according to the step size, PageUp / PageDown 10 steps at a time.
+- `Value()` / `SetValue`, `SetDisabled`, `SetError`; `Decimals(n)` will round the actual value and the displayed value to 0-15 decimal places. The default `-1` will retain the precision; illegal digits will not take effect. Range endpoints take precedence: For example, if the range is 0.001–0.009, even if two decimal places are set, the exact boundary will be displayed to avoid inconsistency between the text and the value.
 
-`SetValue` 拒绝非有限值；包含 NaN 或只有无穷大一个端点值的 `Range` 不生效。程序赋值不触发回调。组件或祖先禁用会放弃未提交草稿，恢复已提交值；普通失焦仍提交。
+`SetValue` rejects non-finite values; `Range` containing NaN or having only one endpoint value of infinity has no effect. Programmatic assignment does not trigger callbacks. Disabling the component or ancestor will abandon the uncommitted draft and restore the committed value; ordinary defocusing will still be submitted.
 
-Agent：输入框角色 `textbox`，`value` 是显示的文字；两个按钮名为"减少 标签""增加 标签"。
+Agent: input box role `textbox`, `value` is the displayed text; the two buttons are named "Reduce Label" and "Increase Label".
 
-验证：`go run ./examples/components -section number_input`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section number_input`, add `-theme dark` to check the dark theme.
 
-`StepBy(func(value float64, action kit.NumberStepAction) float64)` 根据当前有效草稿及方向计算正步长，方向为 `NumberStepActionIncrement` 或 `NumberStepActionDecrement`。每次按钮／键盘动作调用一次，PageUp／PageDown 将该次步长乘十，不逐步重新求值。返回零、负值或非有限值会取消本次动作并保留草稿；回调不应修改同一个 NumberInput。`StepBy(nil)` 恢复最近一次固定步长，合法的 `Step` 调用会替换动态策略。渲染、程序赋值和单纯输入不调用策略。
+`StepBy(func(value float64, action kit.NumberStepAction) float64)` calculates the positive step size based on the current valid draft and direction. The direction is `NumberStepActionIncrement` or `NumberStepActionDecrement`. Called once per button/keyboard action, PageUp/PageDown multiplies the step size by ten and does not re-evaluate step by step. Returning zero, negative, or non-finite value will cancel this action and keep the draft; the callback should not modify the same NumberInput. `StepBy(nil)` restores the last fixed step size, and legal `Step` calls will replace the dynamic strategy. Rendering, procedural assignment and pure input do not call the strategy.
 
-`Prefix(view)` / `Suffix(view)` 在文字前后放置货币符号、单位或操作按钮，位于 − / + 按钮内侧；传 nil 移除。动态增删不会改变编辑器身份或内容，子控件继承整体禁用状态。插槽与步进按钮占用固定内容宽度，窄窗口应避免放置过宽的自定义内容。
+`Prefix(view)` / `Suffix(view)` Place currency symbols, units or action buttons before and after the text, inside the − / + buttons; pass nil to remove. Dynamic additions and deletions will not change the identity or content of the editor, and child controls inherit the overall disabled state. Slots and step buttons occupy a fixed content width, and narrow windows should avoid placing custom content that is too wide.
 
 ```go
 price.StepBy(func(value float64, action kit.NumberStepAction) float64 {
@@ -32,23 +34,23 @@ price.StepBy(func(value float64, action kit.NumberStepAction) float64 {
 price.Suffix(kit.Button("帮助", showHelp))
 ```
 
-应用需要接管增减时，设置 `OnStep(func(kit.NumberStepEvent))`。事件包含有效草稿 `Value`、方向 `Action` 和步数 `Count`（普通按钮／方向键为 1，PageUp／PageDown 为 10）。此模式不自动提交草稿、不调用动态策略、不触发 `OnChange`；回调可用 `SetValue` 更新显示，也可暂不更新。无效草稿使用最近已提交值，文字保持原样；普通回车／失焦提交行为不变。
+When the application needs to take over increases and decreases, set `OnStep(func(kit.NumberStepEvent))`. The event contains the valid draft `Value`, the direction `Action` and the step number `Count` (1 for normal buttons/arrow keys, 10 for PageUp/PageDown). This mode does not automatically submit drafts, does not call dynamic strategies, and does not trigger `OnChange`; the callback can be used to update the display with `SetValue`, or not update it temporarily. Invalid drafts use the most recently submitted value, and the text remains unchanged; normal carriage return/out-of-focus submission behavior remains unchanged.
 
-`OnStep(nil)` 恢复先前固定／动态策略；合法 `Step` 或任何 `StepBy` 调用退出事件模式。范围边界仍禁止向外步进，禁用状态不会派发事件。回调里的 `SetValue` 沿用程序赋值规则，因此不会额外产生 `OnChange`。
+`OnStep(nil)` restores the previous fixed/dynamic strategy; legal `Step` or any `StepBy` call exits event mode. Stepping outward is still prohibited at the range boundary, and events will not be dispatched in the disabled state. `SetValue` in the callback follows the programmatic assignment rules, so no additional `OnChange` will be generated.
 
-`Size(dp)` 同步调整最小高度、文字字号、步进按钮和间距，建议 28／36／48dp；`Size(0)` 恢复主题高度与继承字号，负值和非有限值忽略。显式尺寸按当前主题默认高度缩放，插槽自定义内容仍可指定自己的字号或撑高容器。
+`Size(dp)` synchronously adjusts the minimum height, text size, step button and spacing, 28/36/48dp is recommended; `Size(0)` restores the theme height and inherited font size, negative values and non-finite values are ignored. The explicit size is scaled according to the default height of the current theme, and slot custom content can still specify its own font size or heighten the container.
 
-`Appearance(false)` 去掉默认背景、边框、圆角和内边距，保留最小高度、标签／错误提示、按钮交互及输入焦点；`Appearance(true)` 恢复。无装饰模式也不显示原边框上的错误／聚焦配色，应用可在外层自行绘制。
+`Appearance(false)` removes the default background, border, rounded corners and padding, retaining the minimum height, label/error prompt, button interaction and input focus; `Appearance(true)` restores it. No-decoration mode also does not display the error/focus color on the original border, and the application can draw it on the outer layer by itself.
 
-全角数字 `０–９`、符号 `＋/－` 和小数点 `．/。` 在输入或粘贴后立即显示为半角，映射后的选区仍使用 rune 位置。错误位置的符号和重复小数点会被拒绝；空串、单独符号、`.5` 等中间草稿保留，范围与精度仍在回车、失焦、表单提交或增减时应用。纯粹输入不触发数值 OnChange。
+Full-width digits `０–９`, symbols `＋/－`, and decimal points `．/。` appear as half-width immediately after typing or pasting, and the mapped selection still uses the rune position. Symbols in wrong positions and repeated decimal points will be rejected; intermediate drafts such as empty strings, individual symbols, `.5`, etc. are retained, and the range and precision are still applied when entering, defocusing, form submission, or increasing or decreasing. Pure input does not trigger numeric OnChange.
 
-`ThousandsSeparator(',')` 在编辑和提交显示中加入千分位；也支持空格、单引号、不换行空格 U+00A0 和窄不换行空格 U+202F，0 关闭，其他字符忽略。小数分隔固定为点。与 `Decimals(2)`、Prefix 组合可显示金额；范围端点需要更多精度时仍完整显示。解析和增减会去掉配置的分组符号，Value 始终是 float64。设置分隔符会恢复最近已提交值的显示，放弃未提交草稿。
+`ThousandsSeparator(',')` Adds thousandths digit to edit and commit display; also supports spaces, single quotes, non-breaking space U+00A0 and narrow non-breaking space U+202F, 0 is off, other characters are ignored. Decimal separators are fixed to points. Combined with `Decimals(2)`, Prefix, the amount can be displayed; the range endpoints are still fully displayed when more precision is required. Parsing and incrementing and decrementing will remove the configured grouping sign, and the Value will always be float64. Setting the delimiter restores the display of recently submitted values and discards uncommitted drafts.
 
 ```go
 price := kit.NumberInput("金额").Decimals(2).ThousandsSeparator(',')
-price.SetValue(12345.6) // 显示 12,345.60
+price.SetValue(12345.6) // Showing 12,345.60
 ```
 
-规范化使用 `el.Input().Transform`：在写入 Bind / OnChange 前处理文字并映射选区。该模式按一次用户修改保存一次撤销状态，最多 100 次；程序赋值或提交后的格式变更重置这份历史。删除分组符号时它会按数字重新生成，光标映射到前一个数字后，可继续删除数字。未设置 Transform 的输入框继续沿用原编辑器历史。
+Normalize use of `el.Input().Transform`: process text and map selection before writing Bind / OnChange. This mode saves undo status once per user modification, up to 100 times; format changes after programmatic assignment or submission reset this history. When a group symbol is deleted it is regenerated numerically, and numbers can be continued to be deleted after the cursor is mapped to the previous number. Input boxes that do not have a Transform set continue to use the original editor history.
 
-自动测试覆盖即时全角转换、分组、中间替换、撤销/重做、畸形输入拒绝、不同分隔符、步进和范围端点精度；本批未做真机输入法组合与视觉验收。
+Automatic testing covers instant full-width conversion, grouping, intermediate replacement, undo/redo, malformed input rejection, different delimiters, stepping and range endpoint accuracy; real device input method combination and visual acceptance have not yet been completed.

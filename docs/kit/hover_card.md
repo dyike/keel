@@ -1,6 +1,8 @@
 # HoverCard
 
-指针停在某个视图上时，弹出一张预览卡片，比如人员信息、链接摘要。
+English | [简体中文](hover_card.zh-CN.md)
+
+When the pointer stops on a certain view, a preview card pops up, such as personnel information and link summary.
 
 ```go
 card := kit.HoverCard(nameView, profileView).Width(300).
@@ -8,15 +10,15 @@ card := kit.HoverCard(nameView, profileView).Width(300).
     Placement(el.Right, el.Start).Offset(8)
 ```
 
-- 默认指针停留 700ms 后打开，离开 300ms 后关闭；`OpenDelay` / `CloseDelay` 按实例配置，负数按零处理。修改正在等待的延时会从修改时重新计时。
-- 指针从目标移到卡片上时，卡片保持打开，因此卡片里可以放链接和按钮。
-- 按 Esc 或点击外部会立即关闭；指针和焦点离开后才重新允许打开，避免停在原处又自动弹出。
-- 可聚焦的目标获得焦点时立即打开；焦点在目标或卡片内部时保持打开，卡片不会主动移动焦点。纯文字目标不增加 Tab 停靠点，需要键盘入口时传入 Button 或其他可聚焦 View。
+- By default, the pointer opens after staying for 700ms and closes after leaving for 300ms; `OpenDelay` / `CloseDelay` are configured according to the instance, and negative numbers are treated as zero. The delay for which modifications are pending will be restarted from the time of modification.
+- When the pointer moves from the target to the card, the card remains open, so links and buttons can be placed inside the card.
+- Pressing Esc or clicking outside will close it immediately; it will be reopened only after the pointer and focus leave, to avoid stopping in place and popping up automatically.
+- A focusable target opens immediately when it gains focus; it remains open while the focus is inside the target or card, and the card will not actively move the focus. The plain text target does not add a Tab stop. When keyboard access is required, pass in a Button or other focusable View.
 
-Agent：卡片的角色是 `dialog`，里面的元素单独列出。
+Agent: The role of the card is `dialog`, and the elements inside are listed separately.
 
-验证：`go run ./examples/components -section hover_card`。
+Verification: `go run ./examples/components -section hover_card`.
 
-卡片宽高受窗口约束，长内容可滚动；非有限宽度被忽略。`SetDisabled(true)` 关闭并禁用目标区域。内容可以包含 Menu 等浮层，子菜单打开期间关闭延迟暂停，不会在操作中误收起父卡片。
+The card width and height are constrained by the window, and long content can be scrolled; non-finite widths are ignored. `SetDisabled(true)` Closes and disables the target area. The content can include overlays such as Menu, and the submenu is closed with a delayed pause during opening, so that the parent card will not be accidentally closed during the operation.
 
-`Placement(side, align)` 设置首选方向与对齐，`Offset(dp)` 设置锚点间距（默认 4dp，忽略非有限值）。窗口边缘仍自动避让；已打开时修改定位会在下一帧生效。延时只影响鼠标悬停，键盘聚焦仍立即打开。
+`Placement(side, align)` sets the preferred direction and alignment, `Offset(dp)` sets the anchor spacing (default 4dp, ignore non-finite values). The edges of the window are still automatically avoided; positioning modifications when it is open will take effect in the next frame. The delay only affects mouseover, keyboard focus is still turned on immediately.

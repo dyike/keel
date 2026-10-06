@@ -1,11 +1,13 @@
 # Spinner
 
-`kit.Spinner().Size(20).Label("加载中")` 显示不确定进度。Label 为空时只画图形，默认名称为“加载中”。Agent 角色 progressbar，value 为 indeterminate。没有键盘操作。
+English | [简体中文](spinner.zh-CN.md)
 
-旋转相位来自 cx.Now，cx.Animating 请求下一帧，不启动 goroutine。theme.SetReducedMotion(true) 后保持静态。固定图形尺寸，文本按父容器约束换行。
+`kit.Spinner().Size(20).Label("加载中")` shows indeterminate progress. When Label is empty, only graphics are drawn, and the default name is "Loading". Agent role progressbar, value is indeterminate. No keyboard operation.
 
-验证：`go run ./examples/components -section spinner -theme dark`，省略 theme 查看浅色；示例按钮切换减少动画。像素测试注入不同帧时间，检查旋转和静止。
+The rotation phase comes from cx.Now, cx.Animating requests the next frame, no goroutine is started. Remain static after theme.SetReducedMotion(true). Fixed graphic size, text wraps according to parent container constraints.
 
-`Icon(kit.IconSettings)` 将圆环替换为旋转图标，`Icon(kit.IconNone)` 恢复圆环；`VectorIcon` 接受自定义 Gio 图标，传 nil 恢复圆环。`Color(color.NRGBA{...})` 设置图形颜色，标签仍使用主题的 Muted 色。未设置颜色时随主题使用 PrimaryText。自定义图标与圆环默认每秒一周，减少动画时静止；尺寸与 Agent 语义保持一致。
+Verification: `go run ./examples/components -section spinner -theme dark`, omit theme to see the light theme; example button switching reduces animation. Pixel testing injects different frame times, checking rotation and stillness.
 
-`Period(2 * time.Second)` 设置旋转一周的时间，数值越大转得越慢；0 恢复默认一秒，负值忽略。周期变化立即按共享帧时钟重新计算相位，可能改变当前角度。减少动画优先于周期设置。按钮等加载控件仍使用默认周期。
+`Icon(kit.IconSettings)` replaces the ring with a rotating icon, `Icon(kit.IconNone)` restores the ring; `VectorIcon` accepts a custom Gio icon, and passes nil to restore the ring. `Color(color.NRGBA{...})` sets the graphic color, and the label still uses the theme's Muted color. PrimaryText is used with the theme when no color is set. Custom icons and rings default to one circle per second and remain stationary when animation is reduced; the size is consistent with Agent semantics.
+
+`Period(2 * time.Second)` sets the time for one rotation. The larger the value, the slower the rotation; 0 returns to the default one second, and negative values are ignored. Period changes immediately recalculate the phase according to the shared frame clock, possibly changing the current angle. Reduced motion takes precedence over period settings. Loading controls such as buttons still use the default cycle.

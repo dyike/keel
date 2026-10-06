@@ -52,16 +52,19 @@ func main() {
 
 type site struct {
 	root, out, repo, branch string
+	lang                    string
 	version                 string           // release tag, or ""
 	pages                   map[string]*page // by repository path of the .md file
 	order                   []*page
 	sections                map[string]bool // gallery sections, by name
 	nav                     []navGroup
 	warnings                []string
+	headingCache            map[string][]string
 	copies                  map[string]bool // local images to copy, by repository path
 }
 
 type page struct {
+	Lang     string
 	Src, Out string // repository paths: the .md file and the .html file
 	Title    string
 	NavTitle string // optional shorter label in the sidebar
@@ -106,6 +109,23 @@ func isUnpublished(rel string) bool {
 }
 
 func (s *site) build(demo string) error {
+	if s.lang != "" {
+		return s.buildLanguage(demo)
+	}
+	s.lang = "en"
+	if err := s.buildLanguage(demo); err != nil {
+		return err
+	}
+	chinese := &site{root: s.root, out: filepath.Join(s.out, "zh-CN"), repo: s.repo, branch: s.branch, version: s.version, lang: "zh-CN"}
+	if err := chinese.buildLanguage(""); err != nil {
+		return err
+	}
+	s.warnings = append(s.warnings, chinese.warnings...)
+	return nil
+}
+
+func (s *site) buildLanguage(demo string) error {
+	s.order, s.nav, s.warnings, s.headingCache = nil, nil, nil, nil
 	s.pages, s.sections, s.copies = map[string]*page{}, map[string]bool{}, map[string]bool{}
 	if err := s.collect(); err != nil {
 		return err
@@ -128,6 +148,7 @@ func (s *site) build(demo string) error {
 	tmpl, err := template.New("layout.html").Funcs(template.FuncMap{
 		"rel": func(from *page, to string) string { return relURL(from.Out, to) },
 		"nav": navigationView,
+		"tr":  translateUI,
 	}).ParseFS(assets, "assets/layout.html")
 	if err != nil {
 		return err
@@ -146,8 +167,8 @@ func (s *site) build(demo string) error {
 	}
 	for _, p := range s.order {
 		var b bytes.Buffer
-		if err := tmpl.Execute(&b, map[string]any{"Page": p, "Nav": s.nav, "Repo": s.repo, "Home": p.Out == "index.html", "Version": s.version, "Asset": asset,
-			"Root": relURL(p.Out, "."), "Demo": relURL(p.Out, "demo/index.html"), "Source": s.repo + "/blob/" + s.branch + "/" + p.Src}); err != nil {
+		if err := tmpl.Execute(&b, map[string]any{"Page": p, "Nav": s.nav, "Repo": s.repo, "Home": p.Out == "index.html", "Switch": s.switchURL(p), "SwitchAnchors": s.switchAnchors(p), "Lang": s.lang, "Version": s.version, "Asset": asset,
+			"Root": relURL(p.Out, "."), "Demo": s.demoURL(p), "Source": s.repo + "/blob/" + s.branch + "/" + p.Src}); err != nil {
 			return fmt.Errorf("%s: %w", p.Src, err)
 		}
 		if err := s.write(p.Out, b.Bytes()); err != nil {
@@ -176,7 +197,7 @@ func (s *site) build(demo string) error {
 	}
 	// Keep the former scaffold page reachable after merging it into the
 	// getting-started guide, without adding another navigation/search entry.
-	if err := s.write("docs/cli.html", []byte(scaffoldRedirect)); err != nil {
+	if err := s.write("docs/cli.html", []byte(localizedRedirect(s.lang))); err != nil {
 		return err
 	}
 	// GitHub Pages would otherwise run Jekyll and drop files it dislikes.
@@ -206,11 +227,22 @@ func (s *site) collect() error {
 		if !strings.HasSuffix(rel, ".md") {
 			return nil
 		}
-		if !strings.HasPrefix(rel, "docs/") && path.Base(rel) != "README.md" || isUnpublished(rel) {
+		canonical := canonicalSource(rel)
+		if !strings.HasPrefix(canonical, "docs/") && path.Base(canonical) != "README.md" || isUnpublished(rel) {
 			return nil
 		}
-		pg := &page{Src: rel, Out: outPath(rel), Group: groupOf(rel)}
-		s.pages[rel] = pg
+		if sourceLanguage(rel) != s.lang {
+			return nil
+		}
+		counterpart := localizedSource(canonical, otherLanguage(s.lang))
+		if _, err := os.Stat(filepath.Join(s.root, counterpart)); err != nil {
+			return fmt.Errorf("%s: missing translation %s", rel, counterpart)
+		}
+		if len(s.headingIDs(rel)) != len(s.headingIDs(counterpart)) {
+			return fmt.Errorf("%s: heading count must match %s", rel, counterpart)
+		}
+		pg := &page{Src: rel, Lang: s.lang, Out: outPath(canonical), Group: groupOf(canonical)}
+		s.pages[canonical] = pg
 		s.order = append(s.order, pg)
 		return nil
 	})
@@ -269,7 +301,7 @@ func (s *site) findSections() error {
 		}
 	}
 	for _, p := range s.order {
-		if name, ok := strings.CutPrefix(p.Src, "docs/kit/"); ok {
+		if name, ok := strings.CutPrefix(canonicalSource(p.Src), "docs/kit/"); ok {
 			name = strings.TrimSuffix(name, ".md")
 			if !s.sections[name] {
 				return fmt.Errorf("%s: no registered gallery example", p.Src)
@@ -278,7 +310,7 @@ func (s *site) findSections() error {
 			p.DemoFile = sectionFiles[name]
 			p.DemoURL = s.repo + "/blob/" + s.branch + "/" + p.DemoFile
 			var code bytes.Buffer
-			if err := renderCode(&code, "go", string(sectionCode[name])); err != nil {
+			if err := renderCode(&code, "go", string(sectionCode[name]), translateUI(p, "复制", "Copy")); err != nil {
 				return fmt.Errorf("%s: render example: %w", p.DemoFile, err)
 			}
 			p.DemoCode = template.HTML(code.String())

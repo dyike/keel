@@ -1,20 +1,22 @@
 # cmd/keel-mcp
 
-MCP server：让 Agent 对 Keel 应用做端到端测试。启动应用（或连接你用 `KEEL_AUTOMATION=1` 启动的应用），读出窗口里的元素，点击、输入、按键、滚动、截图。
+English | [简体中文](README.zh-CN.md)
+
+MCP server: Let Agent perform end-to-end testing of Keel applications. Launch the application (or connect the application you launched with `KEEL_AUTOMATION=1`), read the elements in the window, click, type, press keys, scroll, take screenshots.
 
 ```sh
 go install github.com/dyike/keel/cmd/keel-mcp@latest
 claude mcp add keel -- keel-mcp
 ```
 
-- **依赖**：MCP Go SDK。不引用任何 Keel 包，也不引用 Gio，只通过 `KEEL_AUTOMATION` socket 上的 JSON 协议和应用通信（协议见 `ui/window/automation_server.go`）。
-- **被测应用**：任何调用 `window.Main()` 的 Keel 程序，不需要改代码。
+- **Dependencies**: MCP Go SDK. It does not reference any Keel package or Gio, and only communicates with the application through the JSON protocol on the `KEEL_AUTOMATION` socket (see `ui/window/automation_server.go` for the protocol).
+- **Application under test**: Any Keel program that calls `window.Main()` does not need to change the code.
 
-| 文件 | 内容 |
+| File | Responsibility |
 | --- | --- |
-| `main.go` | 启动 MCP server |
-| `tools.go` | 工具定义、结果格式化 |
-| `process.go` | 启动、连接、停止被测应用，socket 请求，日志缓冲 |
-| `main_test.go` | 通过 MCP 客户端测试 launch 和 attach 两种方式 |
+| `main.go` | Start MCP server |
+| `tools.go` | Tool definition, result formatting |
+| `process.go` | Start, connect, stop the application under test, socket request, log buffering |
+| `main_test.go` | Test launch and attach methods through MCP client |
 
-用法、工具列表、原理和局限见 [Agent 端到端测试](../../docs/automation.md)。
+For usage, tool list, principles and limitations, see [Agent End-to-End Test](../../docs/automation.md).

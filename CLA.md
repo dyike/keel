@@ -1,23 +1,25 @@
-# 贡献者授权协议（CLA）
+# Contributor License Agreement (CLA)
 
-本协议适用于你（“贡献者”）向 Keel 项目（“项目”，维护者为 dyike，“维护者”）提交的代码、文档及其他材料（“贡献”）。提交贡献即表示你接受本协议。
+English | [简体中文](CLA.zh-CN.md)
 
-1. **授权。** 你授予维护者及其受让方一项永久、全球范围、免费、不可撤销、非独占的许可，可以复制、修改、发布、再授权、分发你的贡献及其衍生作品，**包括以 AGPL-3.0 以外的协议（例如商业授权）发布**。
+This agreement applies to code, documentation, and other materials (the “Contribution”) that you (the “Contributor”) submit to the Keel project (the “Project”, maintained by dyike, the “Maintainer”). Submitting a Contribution means you accept this agreement.
 
-2. **专利。** 若你的贡献涉及你拥有或可授权的专利，你授予维护者及项目的使用者一项永久、全球范围、免费、不可撤销的专利许可，以制造、使用、销售、分发你的贡献及其与项目的组合。
+1. **License grant.** You grant the Maintainer and its assigns a perpetual, worldwide, royalty-free, irrevocable, non-exclusive license to reproduce, modify, publish, sublicense, and distribute your Contribution and its derivative works, **including under licenses other than AGPL-3.0, such as a commercial license**.
 
-3. **你保留版权。** 本协议不转让你对贡献的版权，你仍可以任何方式使用自己的贡献。
+2. **Patents.** If your Contribution involves patents that you own or are authorized to license, you grant the Maintainer and Project users a perpetual, worldwide, royalty-free, irrevocable patent license to make, use, sell, and distribute your Contribution and its combination with the Project.
 
-4. **你的保证。** 你保证：贡献是你的原创，或你有权以本协议的条件提交；如果贡献属于你的雇主或包含他人的作品，你已获得授权，并在提交时说明了第三方作品及其协议。
+3. **You retain copyright.** This agreement does not transfer copyright in your Contribution. You may continue to use your Contribution in any way.
 
-5. **无担保。** 除第 4 条外，贡献按“现状”提供，不附带任何明示或默示的担保。
+4. **Your representations.** You represent that the Contribution is your original work or that you have the right to submit it under this agreement. If it belongs to your employer or includes someone else’s work, you have obtained authorization and identify the third-party work and its license when submitting.
 
-6. **开源承诺。** 维护者会继续以 AGPL-3.0 或其他 OSI 认可的开源协议公开项目，你的贡献始终可以按开源协议获得。
+5. **No warranty.** Except for Section 4, Contributions are provided “as is”, without any express or implied warranty.
 
-在第一个 Pull Request 的描述里写上下面这句话，即表示同意本协议：
+6. **Open-source commitment.** The Maintainer will continue to publish the Project under AGPL-3.0 or another OSI-approved open-source license. Your Contribution will remain available under an open-source license.
+
+Include this sentence in your first Pull Request description to accept the agreement:
 
 > I have read and agree to the Keel Contributor License Agreement (CLA.md).
 
 ---
 
-本协议为通用模板，正式商业化前建议请律师审阅。
+This agreement is a general template. A lawyer should review it before formal commercialization.

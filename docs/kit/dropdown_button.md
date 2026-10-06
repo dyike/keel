@@ -1,28 +1,30 @@
 # DropdownButton
 
-带下拉菜单的按钮。
+English | [简体中文](dropdown_button.zh-CN.md)
+
+Button with drop-down menu.
 
 ```go
-kit.DropdownButton("导出", formats)              // 整个按钮打开菜单
-kit.DropdownButton("保存", more).Split(save)     // "保存"执行 save，旁边的箭头打开菜单
+kit.DropdownButton("导出", formats)              // The entire button opens the menu
+kit.DropdownButton("保存", more).Split(save)     // "Save" executes save, and the arrow next to it opens the menu.
 ```
 
-- 菜单是普通的 `kit.Menu`，键盘、子菜单、禁用项的行为都和 Menu 一致。
-- `Variant(kit.ButtonSecondary)` 等设置按钮外观，分体样式下两个部分使用同一外观。
-- `SetDisabled(true)` 同时禁用按钮和箭头，并关闭已打开的菜单。
-- 需要 `el.Root`。
+- The menu is a normal `kit.Menu`, and the keyboard, submenus, and disabled items all behave the same as Menu.
+- `Variant(kit.ButtonSecondary)` etc. set the button appearance. In the split style, the two parts use the same appearance.
+- `SetDisabled(true)` Also disables buttons and arrows, and closes open menus.
+- `el.Root` REQUIRED.
 
-Agent：整体样式下，按钮名字就是标题；分体样式下，主操作按钮名为标题，箭头按钮名为"标题 更多选项"。
+Agent: In the overall style, the button name is the title; in the split style, the main operation button is named the title, and the arrow button is named "Title More Options".
 
-验证：`go run ./examples/components -section dropdown_button`。
+Verification: `go run ./examples/components -section dropdown_button`.
 
-菜单参数为 nil 时使用空菜单，Split 主操作仍可用。`SetDisabled(true)` 同时禁用主按钮和菜单所在区域；即使外部持有 Menu 并调用 SetValue(true)，禁用的锚点也不会显示弹层。祖先禁用也遵循相同规则。
+When the menu argument is nil an empty menu is used and the main Split action is still available. `SetDisabled(true)` simultaneously disables the main button and the area where the menu is located; even if the Menu is held externally and SetValue(true) is called, the disabled anchor point will not display the pop-up layer. Ancestor disabling follows the same rules.
 
-`Button(button)` 使用已有 Button 配置主操作，并启用分体模式；支持其文字、可访问名称、图标、富内容、配色、紧凑/描边、加载和点击回调。渲染复制配置，不修改原 Button；内部采用组件自己的稳定 ID，忽略传入 Button 的 ID。若同时设置 Split，以 Split 的动作优先。Button(nil) 恢复原普通/Split 用法。
+`Button(button)` uses an existing Button to configure the main action and enables split mode; supports its text, accessible name, icon, rich content, color matching, compact/stroke, loading and click callbacks. Rendering copies the configuration without modifying the original Button; internally uses the component's own stable ID and ignores the ID of the incoming Button. If Split is set at the same time, the action of Split takes priority. Button(nil) reverts to the original normal/Split usage.
 
-`Size(dp)` 设置两部分高度，0 恢复内层按钮或默认高度；负数和非有限值忽略。不显式设置 Variant/Size 时，两部分继承内层按钮的变体和高度；图标、内容、配色回调等仅属于主操作。
+`Size(dp)` sets the height of the two parts, 0 restores the inner button or default height; negative numbers and non-finite values are ignored. When Variant/Size is not explicitly set, the two parts inherit the variant and height of the inner button; the icon, content, color callback, etc. only belong to the main operation.
 
-`Loading(bool)` 覆盖主按钮的加载状态。普通模式下不能通过加载中的按钮打开菜单；分体模式下箭头仍可打开菜单。已经打开的菜单不因 Loading 关闭。`SetDisabled(true)` 则始终禁用两部分并关闭菜单。内层 Button 自身禁用仅影响主操作。
+`Loading(bool)` Overrides the loading state of the main button. In normal mode, the menu cannot be opened through the loading button; in split mode, the arrow can still open the menu. Menus that have been opened are not closed by Loading. `SetDisabled(true)` always disables both parts and closes the menu. Disabling the inner Button itself only affects the main action.
 
 ```go
 kit.DropdownButton("保存", more).
@@ -30,6 +32,6 @@ kit.DropdownButton("保存", more).
     Size(40)
 ```
 
-`Placement(side, align)` 设置顶层菜单方向（Top/Bottom/Left/Right）和对齐（Start/Center/End），默认 Bottom/Start；非法组合忽略。`Offset(dp)` 设置间距，默认 4dp，支持 0 和负值重叠，非有限值忽略。打开期间可更新，空间不足时沿用浮层翻转和窗口内限制。子菜单仍按 Right/Start、2dp 展开。
+`Placement(side, align)` Sets the top menu direction (Top/Bottom/Left/Right) and alignment (Start/Center/End), defaults to Bottom/Start; illegal combinations are ignored. `Offset(dp)` sets the spacing, the default is 4dp, supports 0 and negative value overlap, and non-finite values are ignored. It can be updated while it is open. When there is insufficient space, overlay flipping and in-window restrictions will be used. The submenu is still expanded by Right/Start, 2dp.
 
-DropdownButton 的这两个方法直接配置传入的 Menu；普通模式锚定整按钮，分体模式锚定箭头。共用同一 Menu 的调用方也会看到配置变化。
+These two methods of DropdownButton directly configure the incoming Menu; normal mode anchors the whole button, and split mode anchors the arrow. Callers that share the same Menu will also see configuration changes.

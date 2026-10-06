@@ -1,6 +1,8 @@
 # SankeyChart
 
-桑基图展示有向无环流量。节点按输入顺序稳定排列，边使用节点索引，节点吞吐量为入流、出流之和的较大值。流带在起点与终点颜色间渐变，悬停节点时淡化无关流带。
+English | [简体中文](sankey_chart.zh-CN.md)
+
+Sankey diagram shows directed acyclic flow. Nodes are arranged stably in input order, edges use node indexes, and node throughput is the larger of the sum of incoming and outgoing flows. The flow band gradients between the start and end colors, and irrelevant flow bands fade when the node is hovered.
 
 ```go
 chart := kit.SankeyChart(
@@ -11,24 +13,24 @@ if err := chart.Error(); err != nil { /* 首次数据无效 */ }
 if err := chart.SetData(nodes, links); err != nil { /* 保留原图 */ }
 ```
 
-构造失败时 Error 返回原因，并渲染错误内容。SetData 检查索引、自环、循环、负数、NaN/Infinity 及总量溢出；失败返回错误并保留旧数据，成功后清除构造错误。数据和可选颜色均复制，回调收到的颜色也为副本。零流量边保留在数据表及拓扑中，但不画流带。
+When construction fails, Error returns the reason and renders the error content. SetData checks index, self-loop, loop, negative number, NaN/Infinity and total overflow; if it fails, it returns an error and retains the old data. If it succeeds, it clears the construction error. The data and optional colors are copied, as is the color received by the callback. Zero-flow edges are retained in the data table and topology, but flow bands are not drawn.
 
-配置：
+Configuration:
 
-- NodeAlign：SankeyAlignJustify 默认把汇点放在最右列；Left 使用拓扑深度，Right 按到终点的最长距离，Center 将根节点靠近其下一层。
-- NodeWidth 默认 10dp，NodePadding 默认 16dp，NodeRadius 默认 0；窄/矮空间会压缩间隔以保持节点在图内。
-- ValueScale 默认为 SankeyValueScaleLinear；Sqrt 压缩节点高度差。两端流带宽度分别按原始流量占各节点吞吐量的比例分配，不改变提示数值。零吞吐节点最多保留 2dp 高度。
-- Iterations 为 0–64，默认 6；使用邻居加权位置松弛和稳定输入顺序消除节点重叠，不实现 d3 的全部重排序策略。
-- SankeyNode.Color 覆盖节点颜色；LinkOpacity 为 0–1，默认 0.3。MinLinkWidth 可设置正流量的最小视觉宽度，默认 0 保持比例；未设置时极小正流量可能小于一个像素。
-- Format 控制数值；Labels、TooltipContent 提供自定义展示元素，接收节点索引、名称和原始吞吐量。默认标签在节点旁至多 100dp，长文字截断。按实际排版边界检测冲突，优先保留悬停节点、再按吞吐量降序；放不下或与已保留标签相距不足 2dp 的标签省略。自定义标签也参与检测，文字不移动到其他节点旁。每个节点仍提供名称与吞吐量语义，悬停及数据表保留完整数据。
-- 图表角色为 figure，每个节点报告名称及吞吐量；数据表提供 Source、Target、Value。SetDisabled 禁用悬停和切换。没有节点拖动；支持悬停过渡。
+- NodeAlign: SankeyAlignJustify defaults to placing the sink point in the rightmost column; Left uses the topological depth, Right presses the longest distance to the end point, and Center places the root node close to its lower level.
+- NodeWidth defaults to 10dp, NodePadding defaults to 16dp, and NodeRadius defaults to 0; narrow/short spaces will compress the intervals to keep nodes within the graph.
+- ValueScale defaults to SankeyValueScaleLinear; Sqrt compresses node height differences. The width of the flow belts at both ends is allocated according to the proportion of the original traffic to the throughput of each node, and the prompt value does not change. Zero-throughput nodes retain a maximum height of 2dp.
+- Iterations is 0–64, default is 6; uses neighbor-weighted positional relaxation and stable input order to eliminate node overlap, and does not implement the full reordering strategy of d3.
+- SankeyNode.Color overrides node color; LinkOpacity is 0–1, default 0.3. MinLinkWidth can set the minimum visual width of positive flow. The default value is 0 to maintain the proportion; if not set, the minimum positive flow may be less than one pixel.
+- Format controls the value; Labels and TooltipContent provide custom display elements and receive node index, name and raw throughput. Default labels are at most 100dp next to nodes, with long text truncated. Conflicts are detected based on the actual layout boundaries, and hovering nodes are retained first, in descending order of throughput; labels that cannot fit or are less than 2dp away from reserved labels are omitted. Custom labels also participate in detection, and the text does not move next to other nodes. Each node still provides name and throughput semantics, and hover and data tables retain complete data.
+- The chart role is figure, and each node reports the name and throughput; the data table provides Source, Target, and Value. SetDisabled disables hover and toggle. No node dragging; support for hover transitions.
 
-示例：`go run ./examples/components -section sankey_chart`。真机视觉另行验收。
+Example: `go run ./examples/components -section sankey_chart`. Real machine vision will be subject to separate acceptance.
 
-`MinLinkWidth(dp)` 接受 0–64dp 的有限值，非法值忽略。启用后按每个节点入/出端口的宽度总和分配高度，再压缩比例尺度使各列放入图框；原始值、排序和提示不变。若整列无法容纳所有端口的最小宽度，则统一降低最小宽度。零值流带不绘制；有限空间下不保证仍达到请求的宽度或一个物理像素。Linear/Sqrt 均适用，小流量变粗会改变视觉比例，适合需要突出小分支的展示。
+`MinLinkWidth(dp)` accepts limited values from 0–64dp, illegal values are ignored. When enabled, the height is allocated according to the sum of the widths of each node's in/out ports, and then the proportional scale is compressed so that each column fits into the frame; the original value, sorting, and prompts remain unchanged. If the entire column cannot accommodate the minimum width of all ports, the minimum width is reduced uniformly. Zero-value streambands are not drawn; there is no guarantee that the requested width or one physical pixel will still be reached in limited space. It is suitable for both Linear/Sqrt. The thickening of small flows will change the visual proportion, which is suitable for displays that need to highlight small branches.
 
-示例启用 3dp 下限。测试覆盖 40 组随机 DAG、20/200dp 高度、Linear/Sqrt、跨五个数量级流量和 1000 个孤立节点，检查节点与端口边界及有限坐标。原生视觉仍待验收。
+Example enabling 3dp lower limit. Testing covers 40 sets of random DAGs, 20/200dp height, Linear/Sqrt, traffic across five orders of magnitude and 1000 isolated nodes, checking node and port boundaries and limited coordinates. Native vision is still pending acceptance.
 
-`HoverAnimation(false)` 关闭悬停过渡，默认开启。强调状态以 150ms 三次缓出变化，快速换目标从当前权重继续；减少动画时立即显示目标。饼图过渡选中边框，桑基图过渡不相关流带的透明度，折线/面积图过渡焦点线和点，柱/蜡烛图过渡类别背景，雷达图过渡焦点。命中和提示数据立即更新，不等待动画。更新数据清理旧过渡。共享动画测试覆盖中间帧权重、切换目标时的连续性、结束帧及减少动画；各图的原生动画观感仍待验收。
+`HoverAnimation(false)` turns off hover transition, enabled by default. The emphasis state changes with three 150ms slow-outs, and the rapid target change continues from the current weight; the target is displayed immediately when the animation is reduced. Pie chart transition selected border, Sankey chart transition irrelevant stream band transparency, line/area chart transition focus line and point, bar/candle chart transition category background, radar chart transition focus. Hit and cue data are updated immediately, no waiting for animations. Update data to clean up old transitions. The shared animation test covers intermediate frame weights, continuity when switching targets, end frames and reduced motion; the look and feel of the native animation of each picture is still to be accepted.
 
-密集标签测试覆盖 30 个节点、180/600dp 宽度、1×/2×、自定义 36dp 高标签和悬停优先；浅深色窗口渲染与 Agent 命中回归通过。原生窗口检查因当前 Mac 锁屏暂未执行。
+Dense label test covers 30 nodes, 180/600dp width, 1×/2×, custom 36dp high label and hover priority; light-dark window rendering with Agent hit regression passes. The native window check is not performed yet due to the current Mac lock screen.

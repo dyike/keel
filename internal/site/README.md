@@ -1,8 +1,10 @@
 # internal/site
 
-生成 Keel 的文档站：`docs/` 下的全部文档和各模块、示例的 README 转成静态 HTML，组件页嵌入在线组件库（`examples/components` 编译成的 WebAssembly）。由 `.github/workflows/site.yml` 在每次推送到 main 后构建并发布到 GitHub Pages。
+English | [简体中文](README.zh-CN.md)
 
-本地预览：
+Builds Keel’s documentation site. Guides under `docs/` and module/example READMEs become static HTML. Component pages embed the WebAssembly build of `examples/components`. `.github/workflows/site.yml` publishes the site to GitHub Pages on pushes to main and release tags.
+
+Local preview:
 
 ```sh
 go run gioui.org/cmd/gogio@v0.10.0 -target js -tags osusergo -o /tmp/demo ./examples/components
@@ -11,23 +13,32 @@ go run ./internal/site -out _site -demo /tmp/demo
 python3 -m http.server --directory _site
 ```
 
-不带 `-demo` 时只生成文档，组件页里的在线示例无法加载。`-version v0.0.5` 在页头显示版本号并链接到 GitHub 的版本说明；CI 取最近的 `v*` 标签，推送新标签时也会重新发布。
+Without `-demo`, the builder generates documentation but the live examples cannot load. `-version v0.1.1` displays a release link in the header. CI uses the latest `v*` tag.
 
-`docs/reports/` 下的进度报告不发布：它们是工作记录，不是文档。其他文档里指向它们的表格行或列表项，在站点上会一并去掉。
+Progress reports under `docs/reports/` stay in the repository. Links to them are removed from published tables and lists because they are working records.
 
-导航直接读取 Markdown 索引：`docs/README.md` 的二级标题决定指南分组与阅读顺序，`docs/kit.md` 的二级标题决定组件分类。源码和示例 README 归入“源码导览”。新增文档必须加入相应索引；遗漏组件或重复分类会使构建失败。侧栏默认展开“开始使用”和当前页面所在分类。
+The Markdown indexes own the navigation: H2 sections in `docs/README.md` define guide groups and reading order; H2 sections in `docs/kit.md` define component categories. Module and example READMEs appear under Packages. Missing index entries or duplicate component categories fail the build. The sidebar opens Getting started and the current page’s category.
 
-快速开始统一说明脚手架开发、运行与打包，旧的 `docs/cli.html` 保留跳转，不占用导航或搜索入口。每个组件页在在线展示下方提供可展开、可复制的完整示例代码，构建时直接读取注册该 section 的源码文件，避免维护第二份代码。
+Getting started covers scaffold creation, development, running, and packaging. The former `docs/cli.html` redirects there while preserving query parameters and section anchors. Component pages display collapsible, copyable source below the live example. The builder reads the file that registers the gallery section, so the displayed source stays current.
 
-正文底部的“上一页 / 下一页”沿用侧栏顺序，包含组件分类和源码导览。第一篇只显示下一页，最后一篇只显示上一页，站点首页不参与翻页。窄屏上两个入口上下排列。
+Previous/Next links follow the sidebar order across guides, components, and source READMEs. The first document has only Next; the last has only Previous. The home page is excluded. Narrow screens stack the links vertically.
 
-| 文件 | 内容 |
+## Languages
+
+English is the default. Canonical `.md` files contain English; `.zh-CN.md` counterparts contain reviewed Simplified Chinese. Every published page requires both files. Keep heading levels and order aligned so the language switch can preserve the current section. Translate prose and sample labels as appropriate; retain API names and executable commands.
+
+The English site uses `/`; Chinese uses `/zh-CN/`. Each language has its own navigation, reading sequence, search index, UI labels, and source links. The header switches to the same document and matching section. Existing Chinese heading anchors remain valid on default English URLs. Both languages share `/demo/`, with `lang=en` or `lang=zh-CN` selecting framework text; application-owned example data retains its original language.
+
+Repository language links connect the paired Markdown files and are omitted from rendered content in favor of the header switch. Chinese repository links point to Chinese files; English links use English heading anchors.
+
+| File | Responsibility |
 | --- | --- |
-| `main.go` | 收集页面、生成站点、搜索索引、相对链接 |
-| `navigation.go` | 从文档索引生成分组导航，检查遗漏和重复分类 |
-| `render.go` | Markdown 渲染：链接改写、与 GitHub 一致的中文锚点、chroma 代码高亮 |
-| `demo.go` | 发布组件库，带下载进度的加载页 |
-| `subset_font.py` | 中文字体子集：仓库里出现过的字加 GB2312 常用字 |
-| `assets/` | 页面模板、样式、搜索和复制按钮脚本 |
+| `main.go` | Collects pages, builds both languages, writes search indexes and assets |
+| `navigation.go` | Builds groups and reading order from indexes; checks category coverage |
+| `i18n.go` | Resolves language counterparts, localized UI, and section mappings |
+| `render.go` | Renders Markdown, rewrites links, and highlights code with Chroma |
+| `demo.go` | Publishes the gallery with localized download progress |
+| `subset_font.py` | Subsets Chinese fonts using repository characters plus GB2312 |
+| `assets/` | Templates, styles, search, copy, and language-switch scripts |
 
-`go test ./internal/site` 会生成整站，检查站内链接、锚点和分类覆盖，并验证当前分类的展开行为与翻页顺序。
+`go test ./internal/site` builds both languages and checks local links, anchors, translation coverage, category expansion, reading order, search isolation, and gallery source integrity.

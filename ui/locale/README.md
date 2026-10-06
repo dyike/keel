@@ -1,21 +1,23 @@
 # ui/locale
 
-Keel 框架自己显示或报告给 Agent 的文字：确定、取消、复制、关闭、请选择、"36 行"等。用法和 `theme` 一样，切换后所有窗口重绘，`cx.Cache` 自动失效。
+English | [简体中文](README.zh-CN.md)
+
+Text displayed by the Keel framework itself or reported to the Agent: OK, Cancel, Copy, Close, Please Select, "Line 36", etc. The usage is the same as `theme`. After switching, all windows are redrawn and `cx.Cache` automatically becomes invalid.
 
 ```go
-locale.Apply(locale.English())                      // 开窗前或回调中
-core.Update(func() { locale.Apply(locale.English()) }) // 后台 goroutine
+locale.Apply(locale.English())                      // Before opening the window or during callback
+core.Update(func() { locale.Apply(locale.English()) }) // background goroutine
 
-s := locale.Chinese() // 只改几处：从预设复制再改
+s := locale.Chinese() // Just change a few things: copy from the default and change it
 s.OK = "好的"
 locale.Apply(s)
 ```
 
-- 预设：`Chinese()`（默认）、`English()`。`Apply` 替换全部文字，所以自定义时要从预设开始改。
-- 计数用函数：`Rows(n)`，英文会区分 1 row 和 2 rows。
-- `Name(action, target)` 拼接无障碍名称，例如"关闭 保存成功"、"Close Saved"。
-- **只管框架文字。** 应用自己的文案由应用负责：可以按 `Current().Lang` 选择自己的文案表，在 Render 里读取，切换语言后会自动重绘；自建缓存的 key 要带上 `Revision()`。
-- 组件在 Render 或 Layout 时读取 `locale.Current()`，不能在构造时保存文字。
+- Default: `Chinese()` (default), `English()`. `Apply` replaces all text, so you need to start from the default when customizing.
+- Counting function: `Rows(n)`, English will distinguish between 1 row and 2 rows.
+- `Name(action, target)` Splice accessible names, such as "Close Saved Successfully", "Close Saved".
+- **Just framework text.** The application is responsible for its own copy: you can press `Current().Lang` to select your own copy table, read it in Render, and it will be automatically redrawn after switching languages; the key of the self-built cache must bring `Revision()`.
+- The component reads `locale.Current()` during Render or Layout and cannot save text during construction.
 
-- 依赖：`ui/internal/loop`（仅用于通知重绘）。
-- 被依赖：`el`（缓存失效）、`kit`、`widget`、`markdown`。
+- Dependencies: `ui/internal/loop` (only used to notify redraws).
+- Used by: `el` (cache invalidation), `kit`, `markdown`.

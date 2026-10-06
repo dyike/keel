@@ -1,43 +1,45 @@
 # ColorPicker
 
-颜色选择器。
+English | [简体中文](color_picker.zh-CN.md)
+
+Color picker.
 
 ```go
 picker := kit.ColorPicker().Alpha().Swatches(presets...).OnChange(func(c color.NRGBA) { … })
 picker.SetValue(theme.Primary)
 ```
 
-- 方块里拖动选择饱和度和亮度，色相条选择色相，`Alpha()` 后多一条不透明度条。方块和各个条都可以获得焦点，用方向键微调。
-- 十六进制输入框接受 `#RGB`、`#RRGGBB`、`#RRGGBBAA`，回车或失去焦点时生效，输入不合法时恢复原值。
-- `Swatches(...)` 在下方显示预设色块，根据可用宽度自动换行，并复制预设切片。
-- 颜色内部按 HSV 保存：把颜色拖成灰色或黑色后，色相不会丢失，再拖回来时还是原来的色相。
-- `Popup(true)` 使用内置触发按钮与锚定弹层；默认内联，也仍可自行组合 `kit.Popover`。
+- Drag in the box to select saturation and brightness, select hue in the hue bar, and add an opacity bar after `Alpha()`. Blocks and individual bars can be focused, and can be fine-tuned using the arrow keys.
+- The hexadecimal input box accepts `#RGB`, `#RRGGBB`, and `#RRGGBBAA`. It takes effect when entering or losing focus. It restores the original value when the input is illegal.
+- `Swatches(...)` displays a preset color block below, wraps according to the available width, and copies the preset slices.
+- Press HSV to save the color internally: After dragging the color to gray or black, the hue will not be lost, and it will still be the original hue when you drag it back.
+- `Popup(true)` uses built-in trigger buttons and anchored elastic layers; it is inline by default, but you can still combine `kit.Popover` by yourself.
 
-Agent：容器角色 `group`，名字是当前颜色的十六进制值；方块和各个条的角色是 `slider`（名字为"饱和度与亮度""色相""不透明度"）；输入框名为 HEX；预设色块是以十六进制值命名的按钮。
+Agent: container role `group`, the name is the hexadecimal value of the current color; the role of the square and each bar is `slider` (named "Saturation and Brightness", "Hue", "Opacity"); the input box is named HEX; the default color block is a button named with a hexadecimal value.
 
-验证：`go run ./examples/components -section color_picker`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section color_picker`, add `-theme dark` to check the dark theme.
 
-`SetDisabled(true)` 禁用色板、滑块、预设色和 HEX 输入，并取消尚未提交的 HEX 草稿。父容器禁用引起的失焦不会提交草稿。`SetValue` 在禁用期间仍可更新颜色且不调用 `OnChange`。
+`SetDisabled(true)` Disables swatches, sliders, presets, and HEX input, and cancels unsubmitted HEX drafts. Drafts will not be submitted if the parent container is out of focus. `SetValue` can still update colors while disabled and does not call `OnChange`.
 
-默认宽度 240dp，放入窄容器时缩到可用宽度。滑块指示环根据实际布局定位，黑白双描边确保在亮色和暗色区域都可辨认。色相和透明度条的命中高度为 24dp，焦点有独立边框。
+The default width is 240dp, which will shrink to the available width when placed in a narrow container. The slider indicator ring is positioned according to the actual layout, and the black and white double strokes ensure legibility in both light and dark areas. The hue and transparency bars have a hit height of 24dp, and the focus points have independent borders.
 
-方向键微调，Shift + 方向键加速十倍；色相/透明度条支持 Home/End 到端点、PageUp/PageDown 十步调整。色块的选中状态同时用勾形图标和 Agent `selected` 表达，图标按合成后的背景选择黑或白。重复点击当前色块不重复触发回调。拖动取消保留最后一次有效颜色，不用取消事件的坐标覆盖它。
+Arrow keys for fine-tuning, Shift + arrow keys accelerate ten times; the hue/transparency bar supports ten-step adjustments from Home/End to the endpoint and PageUp/PageDown. The selected state of the color block is expressed by the check icon and Agent `selected` at the same time. The icon is selected as black or white according to the synthesized background. Repeatedly clicking the current color block will not trigger the callback repeatedly. Dragging to cancel retains the last valid color without overwriting it with the coordinates of the cancel event.
 
-`Label(text)` 在选择器或触发器上方显示标签，并作为内置按钮的可访问名称。无标签时按钮使用当前 HEX。`Icon(name)` 替换触发器中的颜色块，`IconNone` 恢复颜色块；按钮始终显示当前 HEX。颜色修改继续使用原 OnChange。
+`Label(text)` Displays a label above a selector or trigger and serves as the accessible name of a built-in button. The button uses the current HEX when there is no label. `Icon(name)` replaces the color block in the trigger, `IconNone` restores the color block; the button always displays the current HEX. Color modification continues to use the original OnChange.
 
-`Size(ColorPickerSizeXSmall/Small/Medium/Large)` 同步调整弹层/内联面板宽度、色板高度、HEX 字段和触发按钮尺寸；面板宽度依次为 192/216/240/280dp，按钮高度为 24/28/32/40dp。默认 Medium 保留原内联布局，非法档位忽略。
+`Size(ColorPickerSizeXSmall/Small/Medium/Large)` simultaneously adjusts the elastic layer/inline panel width, color palette height, HEX field and trigger button size; the panel width is 192/216/240/280dp, and the button height is 24/28/32/40dp. By default, Medium retains the original inline layout, and illegal gears are ignored.
 
-`SetOpen(bool)` 程序设置弹层，`IsOpen()` 查询；仅 Popup 模式有效，不触发颜色回调。用户打开时焦点移到色板；Esc 或点击外部关闭，焦点回到触发按钮。关闭或禁用取消未提交的 HEX 草稿，已提交的颜色保留。切回内联也关闭弹层。键盘、禁用、草稿取消、尺寸切换和值保留通过 1×/2× 自动测试；真机弹层手感仍待验收。
+`SetOpen(bool)` program sets the pop-up layer, and `IsOpen()` queries it; it is only valid in Popup mode and does not trigger color callback. Focus moves to the swatch when the user opens it; Esc or clicks outside to close, and focus returns to the trigger button. Turn off or disable canceling uncommitted HEX drafts, committed colors are retained. Switching back to inline also turns off the elastic layer. Keyboard, disabling, draft cancellation, size switching and value retention have passed the 1×/2× automatic test; the feel of the real device elastic layer is still to be accepted.
 
-## 颜色格式
+## Color format
 
-`Format(kit.ColorRGB)` 选择显示和输入的格式：`ColorHex`（默认，`#2563EB`）、`ColorRGB`（R、G、B 三个 0–255 的输入框）、`ColorHSL`（H 0–360，S、L 百分比）。开启 `Alpha()` 时 RGB、HSL 多一个不透明度百分比输入框。面板里的 HEX / RGB / HSL 切换按钮让用户随时换格式，`CurrentFormat()` 读回当前格式。
+`Format(kit.ColorRGB)` Select the display and input format: `ColorHex` (default, `#2563EB`), `ColorRGB` (R, G, B three input boxes of 0–255), `ColorHSL` (H 0–360, S, L percentage). When `Alpha()` is turned on, there is an additional opacity percentage input box for RGB and HSL. The HEX / RGB / HSL switch button in the panel allows users to change formats at any time, and `CurrentFormat()` reads back the current format.
 
-- 输入框按回车或失去焦点时生效；不是合法数值时恢复原值，超出范围的数会截到边界。
-- 弹层触发器上的文字跟随格式，如 `rgb(37, 99, 235)`、`hsla(221, 83%, 53%, 0.8)`；`Text()` 返回同样的字符串。
-- `kit.FormatColor(c, format, alpha)` 可以单独用来格式化颜色。
-- 在 HSL 里输入的色相会保留，即使饱和度为 0 时颜色本身已经是灰色。
+- The input box takes effect when you press Enter or loses focus; it restores the original value when it is not a legal value, and numbers outside the range will be cut off at the boundary.
+- The text on the pop-up trigger follows the format, such as `rgb(37, 99, 235)`, `hsla(221, 83%, 53%, 0.8)`; `Text()` returns the same string.
+- `kit.FormatColor(c, format, alpha)` can be used alone to format colors.
+- The hue entered in HSL is preserved even if the color itself is already gray at 0 saturation.
 
-## 弹层位置
+## Elastic layer position
 
-`Placement(el.Top, el.End)` 指定弹层在触发器的哪一侧打开、怎样对齐，和 Popover 相同。只对 `Popup(true)` 的取色器有效。
+`Placement(el.Top, el.End)` specifies on which side of the trigger the elastic layer opens and how to align it, the same as Popover. Only valid for `Popup(true)`'s color picker.

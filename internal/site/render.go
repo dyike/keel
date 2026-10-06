@@ -40,6 +40,8 @@ func (s *site) render(p *page) error {
 	if err != nil {
 		return err
 	}
+	// Repository language links are replaced by the header switch on the site.
+	src = []byte(languageLineRE.ReplaceAllString(string(src), ""))
 	ctx := parser.NewContext(parser.WithIDs(&githubIDs{seen: map[string]int{}}))
 	doc := md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	var plain strings.Builder
@@ -50,6 +52,8 @@ func (s *site) render(p *page) error {
 			return ast.WalkContinue, nil
 		}
 		switch n := n.(type) {
+		case *ast.FencedCodeBlock:
+			n.SetAttributeString("copy-label", translateUI(p, "复制", "Copy"))
 		case *ast.Heading:
 			t := nodeText(n, src)
 			id, _ := n.AttributeString("id")
@@ -97,7 +101,7 @@ func (s *site) render(p *page) error {
 	if err := md.Renderer().Render(&b, src, doc); err != nil {
 		return err
 	}
-	p.HTML = template.HTML(b.String())
+	p.HTML = template.HTML(s.legacyAnchors(p, b.String()))
 	p.Text = strings.Join(strings.Fields(plain.String()), " ")
 	return nil
 }
@@ -149,10 +153,11 @@ func (s *site) link(p *page, dest string) string {
 	if err != nil || u.Scheme != "" || u.Host != "" || strings.HasPrefix(dest, "#") || dest == "" {
 		return dest
 	}
-	target := path.Clean(path.Join(path.Dir(p.Src), u.Path))
+	rawTarget := path.Clean(path.Join(path.Dir(p.Src), u.Path))
+	target := canonicalSource(rawTarget)
 	frag := ""
 	if u.Fragment != "" {
-		frag = "#" + u.Fragment
+		frag = "#" + s.translatedFragment(target, u.Fragment)
 	}
 	if t, ok := s.pages[target]; ok {
 		return relURL(p.Out, t.Out) + frag
@@ -160,6 +165,15 @@ func (s *site) link(p *page, dest string) string {
 	// A directory with a README is that README's page.
 	if t, ok := s.pages[path.Join(target, "README.md")]; ok {
 		return relURL(p.Out, t.Out) + frag
+	}
+	// Unpublished Markdown (for example licensing) still links to its
+	// actual repository file, including the selected language suffix.
+	target = rawTarget
+	if strings.HasSuffix(target, ".md") {
+		localized := localizedSource(target, s.lang)
+		if _, err := os.Stat(filepath.Join(s.root, filepath.FromSlash(localized))); err == nil {
+			target = localized
+		}
 	}
 	info, err := os.Stat(filepath.Join(s.root, filepath.FromSlash(target)))
 	if err != nil || strings.HasPrefix(target, "../") {
@@ -224,7 +238,9 @@ func (codeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 			code.Write(seg.Value(src))
 		}
 		lang := string(block.Language(src))
-		if err := renderCode(w, lang, code.String()); err != nil {
+		label, _ := n.AttributeString("copy-label")
+		copyLabel, _ := label.(string)
+		if err := renderCode(w, lang, code.String(), copyLabel); err != nil {
 			return ast.WalkStop, err
 		}
 		return ast.WalkSkipChildren, nil
@@ -232,7 +248,11 @@ func (codeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 }
 
 // Markdown snippets and gallery source share highlighting and copy controls.
-func renderCode(w io.Writer, lang, code string) error {
+func renderCode(w io.Writer, lang, code string, labels ...string) error {
+	label := "Copy"
+	if len(labels) > 0 && labels[0] != "" {
+		label = labels[0]
+	}
 	lexer := lexers.Get(lang)
 	if lexer == nil {
 		lexer = lexers.Fallback
@@ -241,7 +261,7 @@ func renderCode(w io.Writer, lang, code string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := io.WriteString(w, `<div class="code" data-lang="`+template.HTMLEscapeString(lang)+`"><button class="copy" type="button" aria-label="复制">复制</button>`); err != nil {
+	if _, err := io.WriteString(w, `<div class="code" data-lang="`+template.HTMLEscapeString(lang)+`"><button class="copy" type="button" aria-label="`+template.HTMLEscapeString(label)+`">`+template.HTMLEscapeString(label)+`</button>`); err != nil {
 		return err
 	}
 	if err := formatter.Format(w, styles.Get("github"), it); err != nil {

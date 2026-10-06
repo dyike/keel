@@ -1,6 +1,8 @@
 # Tree
 
-可展开、折叠的树，只构建可见的行。
+English | [简体中文](tree.zh-CN.md)
+
+Expandable, collapsed tree, only building visible rows.
 
 ```go
 tree := kit.Tree(&kit.TreeNode{ID: "ui", Label: "ui", Children: []*kit.TreeNode{
@@ -8,58 +10,58 @@ tree := kit.Tree(&kit.TreeNode{ID: "ui", Label: "ui", Children: []*kit.TreeNode{
 }}).Height(260).OnChange(open)
 ```
 
-- 键盘：
-  - ↑ ↓ 移动，Home / End 跳到首尾；
-  - → 展开当前节点，已展开时进入第一个子节点；
-  - ← 折叠当前节点，已折叠时回到父节点；
-  - 回车激活。
-- 点击箭头展开或折叠；双击节点时展开或折叠，并激活它。
-- 节点 ID 在整棵树内必须唯一。`Value()` 返回选中节点的 ID；`SetValue(id)` 会展开它的所有祖先，保证它可见，不触发回调。`Expanded`、`SetExpanded`、`SetRoots`、`SetDisabled`。`Plain()` 去掉边框和背景，用法同 List。
+- keyboard:
+  - ↑ ↓ Move, Home / End jump to the beginning and end;
+  - → Expand the current node and enter the first child node when expanded;
+  - ← Collapse the current node, and return to the parent node when collapsed;
+  - Press Enter to activate.
+- Clicking the arrows expands or collapses; double-clicking a node expands or collapses it and activates it.
+- Node IDs must be unique within the entire tree. `Value()` returns the ID of the selected node; `SetValue(id)` will expand all its ancestors to ensure that it is visible and does not trigger a callback. `Expanded`, `SetExpanded`, `SetRoots`, `SetDisabled`. `Plain()` removes the border and background, the usage is the same as List.
 
-Agent：容器角色 `tree`，每个节点是 `treeitem`，`value` 为 expanded / collapsed（没有子节点时为空），`selected` 表示选中。
+Agent: container role `tree`, each node is `treeitem`, `value` is expanded / collapsed (empty when there are no child nodes), `selected` means selected.
 
-验证：`go run ./examples/components -section tree`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section tree`, add `-theme dark` to check the dark theme.
 
-构造和 `SetRoots` 会深复制节点。更新单个标签可用 `SetNodeLabel`，更新子节点可用 `SetChildren`；修改原始节点不会改变组件。选中和展开状态按 ID 保留，移除节点后清理相应状态；`SetValue` 指定不存在的 ID 会清空选择。nil 节点忽略，空 ID、重复 ID 或循环引用会在改变旧树之前 panic。虚拟行使用节点 ID 保持身份，`SetValue` 会滚动到目标节点。
+Construct and `SetRoots` make a deep copy of the node. `SetNodeLabel` can be used to update a single label, and `SetChildren` can be used to update child nodes; modifying the original node will not change the component. The selected and expanded state is retained by ID, and the corresponding state is cleared after removing the node; `SetValue` specifying a non-existent ID will clear the selection. nil nodes are ignored, and empty IDs, duplicate IDs, or circular references will panic before changing the old tree. The dummy row uses the node ID to maintain identity, and `SetValue` scrolls to the target node.
 
-`TreeNode.Disabled` / `SetNodeDisabled(id, on)` 禁用单个节点的选择、展开、激活和拖动，键盘与范围选择跳过禁用项。禁用不递归传给后代：若父节点已展开，启用的子节点仍可操作；程序赋值和展开允许操作禁用项。
+`TreeNode.Disabled` / `SetNodeDisabled(id, on)` Disable selection, expansion, activation and dragging of individual nodes, keyboard and range selection skip disabled items. Disables are not passed recursively to descendants: if the parent node is expanded, enabled child nodes are still operable; procedural assignment and expansion allow operation of disabled items.
 
-`MultiSelect()` 启用 Ctrl/Cmd 增减节点、Shift 按当前展开顺序连选、Ctrl/Cmd+A 选择当前可见且启用的节点。`SelectedIDs()` 返回包含折叠后代的选区副本，按整棵树的顺序排列；`SetSelectedIDs` 展开所选节点的祖先，不触发 `OnSelectionChange`。移除的 ID 会清理，剩余选区在 `SetRoots` 后保留。
+`MultiSelect()` enables Ctrl/Cmd to add and subtract nodes, Shift to select consecutively in the current expansion order, and Ctrl/Cmd+A to select currently visible and enabled nodes. `SelectedIDs()` returns a copy of the selection containing the collapsed descendants, in the order of the entire tree; `SetSelectedIDs` expands the ancestors of the selected node, without triggering `OnSelectionChange`. Removed IDs are cleared and the remaining selections remain after `SetRoots`.
 
-`MoveNode(id, parent, index)` 将整棵子树插入指定父节点的子列表，空 parent 表示根层，index 为最终位置，等于目标原长度表示追加。未知 ID、越界位置、自身或后代目标返回错误，不修改树。移动后展开目标父节点，保留节点 ID、子树和选区。`Roots()` 返回深复制快照，可用于保存更新后的结构。
+`MoveNode(id, parent, index)` inserts the entire subtree into the child list of the specified parent node. The empty parent indicates the root level, and index is the final position. It is equal to the original length of the target to indicate appending. Unknown ID, out-of-bounds position, self or descendant target returns an error and does not modify the tree. Expand the target parent node after moving, retaining the node ID, subtree, and selection. `Roots()` returns a deep copy snapshot that can be used to save the updated structure.
 
-`Reorderable(func(id, parent string, index int))` 启用拖动排序，松手后才提交，取消拖动不提交；程序 `MoveNode` 不触发回调。
+`Reorderable(func(id, parent string, index int))` enables drag sorting and submits after releasing the button. It does not submit when dragging is cancelled. The program `MoveNode` does not trigger the callback.
 
-- 拖动时显示落点：行的上半部分插到它前面，下半部分插到后面，前后用一条主色线标出。
-- 有子节点（含懒加载）的行分三段：上四分之一插前面，下四分之一插后面，中间**移入**这个目录（追加到末尾），整行高亮。
-- 在折叠的目录中间停 0.6 秒，自动展开。
-- 拖到列表上下边缘 32dp 内会自动滚动，离边缘越近越快，指针不动也会继续滚，落点跟着变。
-- 不能移到自己或自己的子孙里，也不能放到禁用节点或禁用目录里；这些位置不显示落点，松手不提交。
-- 移入空目录（没有子节点的叶子）仍需用程序接口或应用提供的命令。
+- The drop point is shown when dragging: the top half of the row is inserted in front of it, the bottom half is inserted behind it, and the front and back are marked with a main color line.
+- Lines with child nodes (including lazy loading) are divided into three sections: the upper quarter is inserted in the front, the lower quarter is inserted in the back, the middle is moved into this directory (appended to the end), and the entire line is highlighted.
+- Pause in the middle of the collapsed directory for 0.6 seconds and automatically expand.
+- Dragging it within 32dp of the upper and lower edges of the list will automatically scroll. The closer you are to the edge, the faster it will be. If the pointer does not move, it will continue to scroll, and the landing point will change accordingly.
+- It cannot be moved to itself or its descendants, nor can it be placed in a disabled node or disabled directory; the drop point will not be displayed in these locations, and it will not be submitted if you let go.
+- Moving into an empty directory (a leaf with no child nodes) still requires the use of commands provided by the program interface or application.
 
 
-`RenderItem(func(TreeItemContext) el.View)` 自定义展开箭头之后的内容，可加入图标、状态和按钮。上下文包含节点 ID/Label、当前展开行 Index、Depth、Expanded/Selected/Disabled/HasChildren、Loading/Error，以及供 UI 事件调用的 Toggle/Retry。外层保留层级缩进、选择背景和语义；点击箭头只切换展开，子按钮不连带选择或激活行。nil 回调或 nil 内容恢复默认标签；复用有状态子 View，避免在渲染中调用上下文动作。Disabled 表示节点或整树禁用，外层容器禁用由事件系统执行。
+`RenderItem(func(TreeItemContext) el.View)` Customize the content after the expansion arrow and add icons, statuses and buttons. The context contains the node ID/Label, the current expanded row Index, Depth, Expanded/Selected/Disabled/HasChildren, Loading/Error, and Toggle/Retry for UI events to call. The outer layer retains the hierarchical indentation, selection background and semantics; clicking the arrow only switches to expansion, and the sub-button does not select or activate the row. nil callback or nil content restores the default label; reuses stateful sub-views to avoid calling contextual actions in rendering. Disabled means that the node or the entire tree is disabled, and the outer container is disabled by the event system.
 
-`RowHeight(dp)` 设置统一虚拟行高，最小 20dp，0 恢复 28dp；自定义内容需放入这个高度内。`Indent(dp)` 设置每层增量，默认 16dp，0 去掉层级缩进。高度和缩进忽略负数及非有限值。`ScrollTo(cx, id)` 展开祖先并露出目标，不改变选择，也不发送展开/选择通知，未知 ID 返回 false。
+`RowHeight(dp)` sets a unified virtual line height, minimum 20dp, 0 returns to 28dp; custom content needs to be placed within this height. `Indent(dp)` sets the increment of each layer, the default is 16dp, 0 removes the level indent. Height and indent ignore negative and non-finite values. `ScrollTo(cx, id)` Expands the ancestor and exposes the target, does not change the selection, and does not send expansion/selection notifications. Unknown ID returns false.
 
-`SetChildren(id, children...)` 原子替换一个节点的子列表；输入深复制，允许 nil，空 ID、与其他分支重复的 ID、循环引用和未知父节点返回错误，旧树保持不变。保留仍存在的选择与展开，清理被移除节点；与 SetRoots 不同，局部更新不会重新展开已折叠的选中分支。`Node(id)` 返回节点及其后代的深复制快照，未知 ID 返回 nil。`SetNodeLabel(id, label)` 返回是否找到节点。
+`SetChildren(id, children...)` Atomic replacement of a node's sublist; enters a deep copy, allowing nil, empty IDs, duplicate IDs from other branches, circular references, and unknown parent nodes to return an error, and the old tree remains unchanged. Preserve existing selections and expansions, clean up removed nodes; unlike SetRoots, local updates will not re-expand collapsed selected branches. `Node(id)` Returns a deep copy snapshot of the node and its descendants, or nil for unknown IDs. `SetNodeLabel(id, label)` returns whether the node is found.
 
-`OnExpand(func(id string, expanded bool))` 在用户通过箭头、方向键、双击或自定义 Toggle 改变展开状态后通知；程序 SetExpanded、选中时自动展开祖先和 ScrollTo 不通知。回调可替换数据；组件随后根据当前模型判断是否需要加载。
+`OnExpand(func(id string, expanded bool))` Notifies after the user changes the expansion state through arrows, arrow keys, double-click, or custom Toggle; the program SetExpanded, automatically expand ancestors when selected, and ScrollTo do not notify. The callback replaces the data; the component then determines whether it needs to be loaded based on the current model.
 
-按需加载：
+Load on demand:
 
 ```go
 tr := kit.Tree(&kit.TreeNode{ID: "folder", Label: "目录", Lazy: true})
 tr.OnLoad(func(id string, token uint64) {
     go func() {
-        children, err := loadChildren(id) // 应用提供数据来源
+        children, err := loadChildren(id) // Application provides data source
         core.Update(func() {
             if err != nil {
                 tr.SetChildError(id, token, err.Error())
                 return
             }
             accepted, applyErr := tr.SetChildResults(id, token, children...)
-            // accepted=false 且 applyErr=nil：请求已过期；applyErr 表示节点数据无效。
+            // accepted=false and applyErr=nil: the request has expired; applyErr means the node data is invalid.
             _ = accepted
             _ = applyErr
         })
@@ -67,8 +69,8 @@ tr.OnLoad(func(id string, token uint64) {
 })
 ```
 
-Lazy 节点没有子项时仍显示展开箭头。用户或 SetExpanded 打开它时触发 OnLoad，同一节点加载中不重复请求；可同步提交结果，也可通过 core.Update 回传。成功后取消 Lazy 标记，空结果成为叶节点；已有内容在重新加载期间保留。默认行显示加载动画、错误文本和重试按钮，自定义行通过上下文自行展示。
+Lazy nodes still display expand arrows when they have no children. OnLoad is triggered when the user or SetExpanded opens it, and there are no repeated requests during the loading of the same node; the results can be submitted synchronously or returned through core.Update. After success, the Lazy mark is cancelled, and the empty result becomes a leaf node; existing content is retained during reloading. The default row displays the loading animation, error text, and retry button, and the custom row displays itself through context.
 
-`ReloadNode(id)` 为已展开且可用的节点重试/刷新，返回是否启动请求。`NodeLoading` / `NodeError` 查询状态。折叠该节点、禁用节点/整树、SetRoots、替换 OnLoad 都使旧 token 失效；SetChildren 只使目标子树请求失效，不影响其他分支。重新展开 Lazy 节点可再次请求；替换 OnLoad 后需显式重新打开或 ReloadNode。SetChildResults 返回无效数据错误时保留加载状态，应用可修正数据重交或设置错误。每个 token 只接受一次成功/错误完成。
+`ReloadNode(id)` Retry/refresh for expanded and available nodes, returning whether to start the request. `NodeLoading` / `NodeError` query status. Collapse of the node, disabling the node/whole tree, SetRoots, and replacing OnLoad all invalidate the old token; SetChildren only invalidates the target subtree request and does not affect other branches. Re-expand the Lazy node to request again; after replacing OnLoad, you need to explicitly reopen or ReloadNode. SetChildResults retains the loading state when returning an invalid data error, and the application can correct data re-crossing or setting errors. Only one successful/error completion is accepted per token.
 
-局部更新目前仍需遍历并验证整棵树，以保证跨分支 ID 唯一；渲染器只调用视口附近的行。Tree 使用统一行高，滚动采用最小露出策略。拖动支持自动滚动和悬停展开。
+Local updates currently still require traversing and validating the entire tree to ensure unique IDs across branches; the renderer only calls rows near the viewport. Tree uses a uniform row height and scrolls using a minimum exposure strategy. Dragging supports automatic scrolling and hover expansion.

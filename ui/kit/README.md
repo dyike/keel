@@ -1,13 +1,15 @@
 # ui/kit
 
-现成组件层，基于 el 组织外观与交互，base 提供键盘导航、首字母跳转和多选行为。
+English | [简体中文](README.zh-CN.md)
 
-- 使用和分类索引：[组件参考](../../docs/kit.md)。
-- 实现要求：[组件开发规范](../../docs/component-development.md)。
-- 配套示例：[组件库](../../examples/components/README.md)。
+Ready-made component layer, based on el to organize appearance and interaction, base provides keyboard navigation, first letter jump and multi-selection behavior.
 
-直接依赖 `core`、`theme`、`locale`、`el`、`base`，不依赖 `window`。SVG 解析和栅格化使用 `oksvg`、`rasterx`，支持范围见 [Icon](../../docs/kit/icon.md) 和 [Image](../../docs/kit/image.md)。
+- Usage and classification index: [Components](../../docs/kit.md).
+- Implementation requirements: [Component development specification](../../docs/component-development.md).
+- Supporting example: [Component library](../../examples/components/README.md).
 
-一个组件对应一个 `<name>.go`，共享字段外框在 `field.go`，共享表面和浮层样式由 `surface()`、`floating()` 提供。`conventions_test.go` 检查配套文档、示例、Agent 测试和公开 API 约定。
+Directly dependent on `core`, `theme`, `locale`, `el`, `base`, not `window`. SVG parsing and rasterization use `oksvg`, `rasterx`. For the support range, see [Icon](../../docs/kit/icon.md) and [Image](../../docs/kit/image.md).
 
-原子输入引用经 `el.InputDocument` 接入 `ui/internal/inputcontent`；kit 不直接依赖这个内部包。
+One component corresponds to one `<name>.go`, the shared field frame is in `field.go`, and the shared surface and overlay styles are provided by `surface()` and `floating()`. `conventions_test.go` Check out supporting documentation, examples, Agent tests, and public API conventions.
+
+Atomic input references access `ui/internal/inputcontent` via `el.InputDocument`; the kit does not directly depend on this internal package.

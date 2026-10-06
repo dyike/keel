@@ -1,64 +1,66 @@
 # Dialog
 
-模态对话框。打开时页面变暗，不响应指针，焦点限制在对话框内；关闭后焦点回到打开之前的位置。
+English | [简体中文](dialog.zh-CN.md)
 
-**标准消息**：复用同一个实例。
+Modal dialog box. When opened, the page dims, does not respond to the pointer, and the focus is limited to the dialog box; after closed, the focus returns to the position before opening.
+
+**Standard message**: Reuse the same instance.
 
 ```go
 dlg := kit.Dialog("")
-dlg.Confirm("保存修改", "离开前保存吗？", save)                  // 取消 / 确定，焦点在确定上
-dlg.ConfirmDanger("删除订单", "删除后不能恢复。", "删除", remove)  // 焦点在取消上
-dlg.Alert("导出完成", "共 36 条记录。", nil)                      // 只有确定
+dlg.Confirm("保存修改", "离开前保存吗？", save)                  // Cancel/OK, focus on OK
+dlg.ConfirmDanger("删除订单", "删除后不能恢复。", "删除", remove)  // Focus on cancellation
+dlg.Alert("导出完成", "共 36 条记录。", nil)                      // Only sure
 ```
 
-**自定义内容**：
+**Custom content**:
 
 ```go
 edit := kit.Dialog("编辑客户").Body(form).Footer(cancelButton, saveButton).Width(480)
 edit.SetValue(true)
 ```
 
-- 两种挂法任选其一：在视图树里渲染 `dlg.Render(cx)`（原位置不显示任何内容，只声明浮层）；或者在回调里调用 `dlg.Show(cx)`，对话框直接挂到窗口根部，不用放进视图树，关闭后自动取下，和 GPUI 的 `window.open_dialog` 一样。同一个实例不要两种都用。需要 `el.Root`。
-- 关闭方式：Esc、点击遮罩、取消按钮。关闭时调用 `OnClose(fn)`；标准消息的"确定"不算关闭，只运行它自己的回调。
-- `ConfirmDanger` 和 `Persistent()` 的对话框点击遮罩不会关闭，防止误触；Esc 等同于"取消"。
-- 自定义对话框的按钮由调用方提供，按钮回调里自己调用 `SetValue(false)` 关闭对话框。
-- `Value()` / `SetValue(bool)` 读取或设置是否打开；`SetTitle` 修改标题；`Width(dp)` 设置宽度，默认 420，窄窗口中不超过窗口宽度。
+- Choose one of two hanging methods: render `dlg.Render(cx)` in the view tree (no content is displayed in the original position, only the overlay is declared); or call `dlg.Show(cx)` in the callback, and the dialog box is directly hung to the root of the window without being placed in the view tree. It will be automatically removed after closing, just like GPUI's `window.open_dialog`. Do not use both in the same instance. `el.Root` REQUIRED.
+- Close method: Esc, click mask, cancel button. `OnClose(fn)` is called on shutdown; the standard message "OK" does not count as a shutdown and just runs its own callback.
+- The dialog boxes of `ConfirmDanger` and `Persistent()` will not be closed when clicked on the mask to prevent accidental touches; Esc is equivalent to "cancel".
+- The button of the custom dialog box is provided by the caller, and the button callback calls `SetValue(false)` to close the dialog box.
+- `Value()` / `SetValue(bool)` reads or sets whether to open; `SetTitle` modifies the title; `Width(dp)` sets the width, the default is 420, and does not exceed the window width in a narrow window.
 
-Agent：普通对话框的角色是 `dialog`，`ConfirmDanger` 和 `Persistent()` 的角色是 `alertdialog`，名字是标题，里面的元素单独列出。对话框打开期间，快照里看不到下面的页面。
+Agent: The role of the ordinary dialog box is `dialog`, the role of `ConfirmDanger` and `Persistent()` is `alertdialog`, the name is the title, and the elements inside are listed separately. While the dialog box is open, the following pages are not visible in the snapshot.
 
-验证：`go run ./examples/components -section dialog`。
+Verification: `go run ./examples/components -section dialog`.
 
-对话框限制在窗口内，长正文单独滚动，窄窗口的页脚按钮改为纵向排列；极小窗口允许整个面板滚动。非有限宽度被忽略，Footer 保存视图列表的副本。
+The dialog box is limited to the window, the long text is scrolled separately, the footer buttons of the narrow window are changed to be arranged vertically; the extremely small window allows the entire panel to be scrolled. Non-limited widths are ignored and Footer saves a copy of the view list.
 
-`SetDisabled(true)` 直接关闭，且阻止 SetValue / 标准消息重新打开；不触发用户关闭回调。所在容器禁用、隐藏或不再提供所属元素时，已声明的模态层会请求关闭并调用一次 OnClose。关闭后不会因恢复启用而重新弹出。
+`SetDisabled(true)` is closed directly and prevents SetValue/standard messages from reopening; the user close callback is not triggered. When the containing element is disabled, hidden, or no longer available, the declared modal layer requests closure and calls OnClose once. After closing, it will not pop up again due to resumption.
 
-正文和页脚可以包含 Menu、Popover 或另一个 Dialog。父浮层先登记，子浮层位于上方；Esc 逐层关闭，每层恢复对应的先前焦点。示例“自定义”里的客户预设用于验证嵌套菜单。
+The body and footer can contain a Menu, Popover, or another Dialog. The parent overlay is registered first, and the child overlay is above; Esc closes each layer layer by layer, and each layer restores the corresponding previous focus. The custom preset in the example "Custom" is used to validate nested menus.
 
-关闭配置可独立设置，并在复用标准消息时保留：
+The shutdown configuration can be set independently and retained when reusing standard messages:
 
-- `Keyboard(false)` 禁止 Esc 关闭，仍消耗该键，避免误关下层对话框；默认开启。
-- `Overlay(false)` 隐藏遮罩颜色，仍阻挡背景操作并约束焦点；默认显示。
-- `OverlayClosable(bool)` 显式设置外部点击是否关闭，优先于 Persistent/ConfirmDanger 的默认值。
-- `CloseButton(true)` 显示标题栏关闭按钮，调用与取消/Esc 相同的关闭逻辑。默认隐藏，保留旧布局；按钮名称随语言切换。无标题也能显示。
+- `Keyboard(false)` disables Esc to close and still consumes this key to avoid accidentally closing the lower dialog box; it is enabled by default.
+- `Overlay(false)` Hides the mask color, still blocking background operations and constraining focus; shown by default.
+- `OverlayClosable(bool)` Explicitly sets whether external clicks are turned off, taking precedence over Persistent/ConfirmDanger's default value.
+- `CloseButton(true)` Displays the title bar close button, calling the same close logic as Cancel/Esc. Hidden by default, retaining the old layout; button names switch with the language. Can be displayed without title.
 
-关闭按钮、标题、正文和页脚使用稳定身份；切换显示配置不会重建正文输入状态。上述配置不限制程序调用 `SetValue(false)`，也不限制自定义 Footer 按钮。
+Close buttons, headers, body text, and footers use stable identities; switching display configurations does not rebuild the body input state. The above configuration does not restrict the program from calling `SetValue(false)`, nor does it restrict the custom Footer button.
 
-`BeforeConfirm(func() bool)` 在标准 Confirm / ConfirmDanger / Alert 的确定操作前运行。返回 false 保持打开、保留焦点且不执行原 onOK，适用于同步校验或等待后台任务；返回 true 后按原顺序先关闭再执行 onOK，不调用 OnClose。nil 清除校验，复用标准消息时保留配置。取消/Esc/遮罩/关闭按钮不受此校验影响；自定义 Footer 仍由应用控制。
+`BeforeConfirm(func() bool)` is run before the confirm operation of the standard Confirm / ConfirmDanger / Alert. Return false to keep it open, retain focus, and not execute the original onOK, which is suitable for synchronization verification or waiting for background tasks; after returning true, close first and then execute onOK in the original order, without calling OnClose. nil clears the check and retains the configuration when reusing standard messages. Cancel/Esc/Mask/Close buttons are not affected by this validation; custom footers are still controlled by the app.
 
 ```go
 dlg.BeforeConfirm(func() bool { return formIsValid() })
 dlg.Confirm("提交", "确认提交？", submit)
 ```
 
-校验回调中若调用 SetValue、SetDisabled 或打开另一条标准消息，旧确认操作不会继续关闭或执行 onOK。校验不会自动启动 goroutine，也不会自动显示加载状态。
+If SetValue, SetDisabled or another standard message is opened in the verification callback, the old confirmation operation will not continue to be closed or onOK will be executed. The verification will not automatically start the goroutine, nor will it automatically display the loading state.
 
-`BeforeCancel(func() bool)` 在 Esc、遮罩、取消按钮和标题关闭按钮执行前运行。false 保持模态与焦点，不调用 OnClose，用户可再次尝试；true 继续原关闭流程。nil 清除，标准消息复用时保留。回调内 SetValue/禁用/替换消息会中止旧取消操作。
+`BeforeCancel(func() bool)` runs before Esc, mask, cancel button and title close button execute. false maintains the modal and focus, does not call OnClose, and the user can try again; true continues the original closing process. nil is cleared and retained when standard messages are reused. SetValue/disable/replace messages within callbacks abort old cancellation operations.
 
-程序调用 SetValue(false)、SetDisabled(true) 不经过取消校验。所属元素隐藏、禁用或移除时的浮层清理也绕过校验，并沿用 OnClose 通知；校验不能让脱离视图树的对话框继续存在。底层 `el.Layer.BeforeDismiss` 提供相同的用户关闭校验入口。
+The program calls SetValue(false) and SetDisabled(true) without cancellation verification. The overlay cleaning when the belonging element is hidden, disabled or removed also bypasses the validation and uses the OnClose notification; the validation cannot allow the dialog box to continue to exist outside the view tree. The underlying `el.Layer.BeforeDismiss` provides the same user-closed verification entry.
 
-## 标题图标
+## Title icon
 
-`Icon(kit.IconWarning)` 在标题前显示图标，复用同一个对话框显示不同消息时保留。颜色随语气：`ConfirmDanger` 默认用危险色，其他默认用提示色，`IconTone(kit.ToneSuccess)` 等可以指定。`Icon(kit.IconNone)` 去掉图标。图标只是装饰，不单独播报，标题已经说明意思。
+`Icon(kit.IconWarning)` Display the icon before the title and keep it when reusing the same dialog box to display different messages. Colors follow the tone: `ConfirmDanger` defaults to dangerous colors, others default to reminder colors, `IconTone(kit.ToneSuccess)` etc. can be specified. `Icon(kit.IconNone)` Remove the icon. The icon is just for decoration and does not broadcast separately. The title already explains the meaning.
 
 ```go
 dlg.Icon(kit.IconWarning).ConfirmDanger("删除订单", "删除后不能恢复。", "删除", remove)

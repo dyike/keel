@@ -1,29 +1,31 @@
 # ui/el
 
-GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回一棵链式样式搭起来的元素树；flexbox 布局；元素状态（悬停、滚动、输入框内容）按元素路径或 ID 自动保存；Agent 语义自动生成。
+English | [简体中文](README.zh-CN.md)
 
-- **依赖**：`core`、`theme`、`locale`，以及内部的 `ui/internal/loop`、`ui/internal/editorstyle`、`ui/internal/inputcontent`。不依赖 `kit`、`window`。
-- **被谁依赖**：应用代码。`window` 通过 `FillsWindow` 接口认出 `el.Root`，不引用本包。
+GPUI-style elements and views: Views are ordinary structs, and each frame `Render` returns an element tree built with chained styles; flexbox layout; element status (hover, scroll, input box content) is automatically saved according to element path or ID; Agent semantics are automatically generated.
 
-| 文件 | 内容 |
+- **Dependencies**: `core`, `theme`, `locale`, and internally `ui/internal/loop`, `ui/internal/editorstyle`, `ui/internal/inputcontent`. Not dependent on `kit`, `window`.
+- **Used by**: Application code. `window` recognizes `el.Root` through the `FillsWindow` interface and does not reference this package.
+
+| File | Responsibility |
 | --- | --- |
-| `element.go` | `Element`、`Node`、`Styled[T]` 的全部链式方法，`Div`、`Text`、`Widget`、`Map`；`Decorate` 包裹绘制，`VisitWidgets` 读取布局后的部件坐标 |
-| `time.go` | 帧时间、声明式定时器、显式 key 与减少动画 |
-| `overlay.go` | 声明式浮层、锚定定位、模态输入隔离、焦点约束与悬停查询 |
-| `mount.go` | `cx.Mount`：把视图挂到窗口根部（kit 的 `Dialog.Show`、`Sheet.Show`、`WindowNotifier` 用它） |
-| `key_context.go` | `KeyContext`、`cx.ActionAt`、`cx.Perform`（菜单和命令面板按动作名执行） |
-| `scrollbar.go`、`scrollbar_mode.go` | 滚动条绘制、显示策略（含跟随系统）与淡入淡出 |
-| `focus.go` | 原生焦点顺序、程序焦点、按键冒泡与默认激活、`FocusVisible` |
+| `element.go` | All chain methods of `Element`, `Node`, `Styled[T]`, `Div`, `Text`, `Widget`, `Map`; `Decorate` package drawing, `VisitWidgets` reads the component coordinates after layout |
+| `time.go` | Frame times, declarative timers, explicit keys and reduced animations |
+| `overlay.go` | Declarative overlay, anchor positioning, modal input isolation, focus constraints and hover query |
+| `mount.go` | `cx.Mount`: Hang the view at the root of the window (`Dialog.Show`, `Sheet.Show`, `WindowNotifier` of the kit use it) |
+| `key_context.go` | `KeyContext`, `cx.ActionAt`, `cx.Perform` (menus and command panels are executed by action name) |
+| `scrollbar.go`, `scrollbar_mode.go` | Scroll bar drawing, display strategy (including following system) and fade in and out |
+| `focus.go` | Native focus order, program focus, key bubbling and default activation, `FocusVisible` |
 | `input.go` | `Input`、`TextArea` |
-| `style.go` | `Style`、长度（`Dp`、`Frac`、`Full`）、对齐常量 |
-| `layout.go`、`flow.go` | flexbox、换行与简单网格布局 |
-| `paint.go` | 绘制、点击区域、滚动、输入框、语义信息 |
-| `viewport.go` | 绘制坐标、可视区域与最近滚动容器的程序滚动 |
-| `state.go` | 元素状态存储与回收；触屏长按打开右键菜单 |
-| `root.go` | `View`、`ViewFunc`、`Context`、`Root`、`Embed`，每帧的执行顺序 |
+| `style.go` | `Style`, length (`Dp`, `Frac`, `Full`), alignment constants |
+| `layout.go`, `flow.go` | flexbox, line wrapping and simple grid layout |
+| `paint.go` | Drawing, click area, scrolling, input box, semantic information |
+| `viewport.go` | Procedural scrolling that draws coordinates, visible area, and nearest scroll container |
+| `state.go` | Element state storage and recycling; long press on the touch screen to open the right-click menu |
+| `root.go` | `View`, `ViewFunc`, `Context`, `Root`, `Embed`, the execution order of each frame |
 
-使用指南：[元素与视图](../../docs/el.md)。
+Usage Guide: [Elements and Views](../../docs/el.md).
 
-`input_paste.go` 在默认文本插入前处理 OnPaste；可接入 core.ClipboardReader，原生读取失败回退 Gio 纯文本通路。异步完成通过 core.Update，编辑内容或选区变化后丢弃旧结果。
+`input_paste.go` handles OnPaste before default text insertion; can be connected to core.ClipboardReader, and falls back to the Gio plain text path if native reading fails. Completed asynchronously via core.Update, old results are discarded after editing content or selection changes.
 
-原子输入引用由 `el.InputDocument` 接入 `ui/internal/inputcontent`，后者只保存文本、引用范围、选区和编辑事务，不依赖 Gio 或其他 Keel 模块。kit 和 markdown 仅经 el 间接依赖它。
+Atomic input references are connected to `ui/internal/inputcontent` by `el.InputDocument`, which only saves text, reference range, selection and editing transactions, and does not rely on Gio or other Keel modules. kit and markdown only depend on it indirectly via el.

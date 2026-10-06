@@ -1,31 +1,33 @@
 # Avatar
 
-`kit.Avatar("张三").Size(40).Status(kit.AvatarOnline)` 显示圆形头像，Size 接受 float32 dp，推荐小、中、大尺寸为 24、40、56。Image 接受已解码的 image.Image，nil 恢复姓名回退。后台加载完成后用 core.Update 更新。
+English | [简体中文](avatar.zh-CN.md)
 
-中文取第一个字，英文取前两个单词首字母，空姓名显示问号。背景根据姓名哈希从当前主题选取。Status 支持 AvatarOnline、AvatarBusy、AvatarOffline，空值隐藏；状态点位于头像内部，不改变布局。
+`kit.Avatar("张三").Size(40).Status(kit.AvatarOnline)` displays a circular avatar. Size accepts float32 dp. The recommended small, medium and large sizes are 24, 40 and 56. Image accepts a decoded image.Image, nil restore name fallback. Use core.Update to update after background loading is completed.
 
-Agent 角色 avatar，名字为人名，value 为状态，无状态为空。纯展示，不处理键盘。验证：`go run ./examples/components -section avatar -theme dark`，省略 theme 查看浅色。
+In Chinese, the first character is taken, in English, the first letters of the first two words are taken, and a question mark is displayed for an empty name. The background is picked from the current theme based on the name hash. Status supports AvatarOnline, AvatarBusy, and AvatarOffline, and empty values are hidden; the status point is located inside the avatar and does not change the layout.
 
-`Source(url)` 在后台加载头像，支持 data URL、本地路径、file URL，以及引入 `ui/netimage` 后的 HTTP(S)；PNG、JPEG、GIF 首帧、WebP 和 SVG。加载期间或失败时显示姓名回退，直径不变。默认请求超时 15 秒，编码数据上限 16 MiB，解码图片上限 3200 万像素。浏览器环境中的 HTTP 请求仍受 CORS 限制。
+Agent role avatar, the name is the person's name, the value is the state, and it is empty if there is no state. Pure display, no keyboard handling. Verification: `go run ./examples/components -section avatar -theme dark`, omit theme to see the light theme.
+
+`Source(url)` loads avatars in the background, supporting data URL, local path, file URL, and HTTP(S) after introducing `ui/netimage`; PNG, JPEG, GIF first frame, WebP and SVG. The name display falls back during loading or on failure, and the diameter remains unchanged. The default request timeout is 15 seconds, the encoded data limit is 16 MiB, and the decoded image limit is 32 million pixels. HTTP requests in a browser environment are still subject to CORS restrictions.
 
 ```go
 avatar := kit.Avatar("Ada Lovelace").Source("https://example.com/ada.png")
 ```
 
-同一实例重复设置相同来源不会重新请求。`Loading()` 查询加载状态，`ImageError()` 返回最近的加载错误，`Retry()` 重新请求当前来源。切换来源、调用 `Image` 或 `Source("")` 会取消旧请求，迟到结果不会覆盖新状态。`Source("")` 恢复姓名回退；加载完成通过 `core.Update` 在下一帧应用。头像卸载时可调用 `Source("")` 取消尚未结束的请求。
+If the same source is set repeatedly for the same instance, the request will not be re-requested. `Loading()` queries the loading state, `ImageError()` returns the latest loading error, and `Retry()` re-requests the current source. Switching sources, calling `Image` or `Source("")` will cancel the old request, and late results will not overwrite the new state. `Source("")` restores name fallback; loading completed is applied in the next frame via `core.Update`. When uninstalling the avatar, you can call `Source("")` to cancel the unfinished request.
 
-不做跨实例图片缓存；需要认证请求或统一缓存时，由应用通过 `Image` 提供像素。直接调用 `core.DecodeImage(ctx, source)` 可复用同一解码器，应在后台线程使用并自行提供超时。
+No cross-instance image caching is performed; when authentication requests or unified caching are required, the application provides pixels through `Image`. Calling `core.DecodeImage(ctx, source)` directly reuses the same decoder, which should be used in a background thread and provide its own timeout.
 
-头像组见 [AvatarGroup](avatar_group.md)。
+Avatar group see [AvatarGroup](avatar_group.md).
 
-## 外观
+## Appearance
 
-| 方法 | 作用 |
+| Method | Function |
 | --- | --- |
-| `Rounded(dp)` | 圆角，默认是圆形；团队、应用头像常用圆角方形，如 `Rounded(theme.RadiusLg)` |
-| `Colors(bg, fg)` | 首字母和占位图标的背景色、文字色；零值保持默认（按名字选底色，文字用 `theme.Text`） |
-| `Border(dp, c)` | 外圈，如叠放头像之间用 `theme.Surface` 色的环隔开；0 去掉 |
-| `Placeholder(icon)` | 没有图片也没有名字时显示的图标，默认 `IconUser`；`IconNone` 什么都不显示 |
-| `Style(fn)` | 每帧在默认样式之后调整头像外框，处理以上方法不覆盖的情况 |
+| `Rounded(dp)` | Rounded corners, the default is circle; rounded square corners are commonly used for team and application avatars, such as `Rounded(theme.RadiusLg)` |
+| `Colors(bg, fg)` | The background color and text color of the initial letter and placeholder icon; the zero value remains the default (select the background color by name, and use `theme.Text` for text) |
+| `Border(dp, c)` | Outer ring, such as stacked avatars separated by `theme.Surface` colored rings; 0 removed |
+| `Placeholder(icon)` | The icon displayed when there is no picture or name, the default is `IconUser`; `IconNone` displays nothing |
+| `Style(fn)` | Adjust the avatar frame after the default style in each frame to handle situations not covered by the above methods |
 
-没有名字时显示占位图标，不再显示问号。
+The placeholder icon is displayed when there is no name, and the question mark is no longer displayed.

@@ -1,36 +1,38 @@
 # MessageScroller
 
-按稳定消息 ID 虚拟化的对话滚动区，只构建可见消息及附近的预读区域。
+English | [简体中文](message_scroller.zh-CN.md)
+
+Conversation scrolling area virtualized by stable message ID, only visible messages and nearby pre-read areas are built.
 
 ```go
 sc := kit.MessageScroller(ids, 120, func(cx *el.Context, i int) el.Element {
     return renderMessage(cx, messages[i])
 }).OnReachTop(loadOlder)
-// 插入历史、新增、删除或重排消息后更新 ID 顺序：
+// Update ID order after inserting history, adding, deleting or rearranging messages:
 sc.SetKeys(ids)
-// 数据加载后定位未读消息；也可在第一次渲染前调用：
+// Locate unread messages after the data is loaded; it can also be called before the first rendering:
 found := sc.ScrollToMessage(unreadID)
-_ = found // ID 不存在时返回 false，保留原定位请求
-// 用户发送消息时明确跳到最新：
+_ = found // If the ID does not exist, return false and retain the original positioning request.
+// When the user sends a message, explicitly jump to the latest:
 sc.ScrollToEnd()
 ```
 
-IDs 按从旧到新排列，必须非空且唯一，重复值会在修改前 panic。构造和 SetKeys 都复制切片。第二个参数是未测量消息的估计高度（dp）；真实高度由内容决定，支持不同长度的回答和图片。
+IDs are arranged from oldest to newest and must be non-empty and unique. Duplicate values will panic before modification. Both construction and SetKeys copy slices. The second parameter is the estimated height (dp) of the unmeasured message; the true height is determined by the content, supporting answers and images of different lengths.
 
-- 位于底部时自动跟随新增消息和流式增高；上滚阅读后保留当前消息及其屏幕位置，显示“回到最新”。
-- SetKeys 插入历史时，按稳定 ID 保留阅读位置；可见区上方的消息增高，也会修正滚动位置。无需再调用 HistoryPrepended。
-- 可见消息的高度每帧检查；更改屏幕外内容后调用 `Invalidate(ids...)`，不传 ID 则清除全部高度缓存。
-- `ScrollToMessage(id)` 以最小滚动量显示消息；首次渲染前也可请求，超过视口高度的消息显示开头。消息跳转与 `ScrollToEnd` 以最后一次有效请求为准。未读标记由应用维护。
-- `IsScrolledUp(cx)` 查询最近绘制的视口下方是否还有内容；`IsFollowingTail(cx)` 查询实际自动跟随状态。首次绘制前分别为 false 和默认 true，待处理的消息跳转会暂停跟随。
-- `SetFollow(false)` 关闭自动跟随；构造后立即关闭会从头阅读，已显示时保留位置。显式 `ScrollToEnd` 仍可跳到末尾，但不修改这个开关。开启跟随时，手动滚回底部会恢复跟随。
-- `OnReachTop` 在到达顶部时加载一批历史，停在顶部不会重复调用。加载后至少离开顶部一个视口距离才重新允许触发，避免小批次插入与滚轮惯性形成重复请求。
-- `SetDisabled` 禁用滚动、消息内容和“回到最新”，也暂停顶部加载回调。组件撑满父容器给定的空间。
+- When it is at the bottom, it automatically follows new messages and the flow increases; after scrolling up to read, the current message and its screen position are retained, and "Back to Latest" is displayed.
+- SetKeys When inserting history, the reading position is retained according to the stable ID; the message above the visible area is increased and the scroll position is also corrected. No need to call HistoryPrepended anymore.
+- The height of the visible message is checked every frame; `Invalidate(ids...)` is called after changing the off-screen content. If the ID is not passed, all height caches are cleared.
+- `ScrollToMessage(id)` displays the message with minimum scrolling; it can also be requested before the first rendering, and the message that exceeds the viewport height is displayed at the beginning. Message jump and `ScrollToEnd` are based on the last valid request. The unread mark is maintained by the application.
+- `IsScrolledUp(cx)` queries whether there is content below the recently drawn viewport; `IsFollowingTail(cx)` queries the actual automatic following status. They are false before the first drawing and the default is true, and the pending message jump will be paused to follow.
+- `SetFollow(false)` turns off automatic following; closing it immediately after construction will read from the beginning and retain the position when it is displayed. Explicit `ScrollToEnd` still jumps to the end, but does not modify this switch. When following is enabled, manually scrolling back to the bottom will resume following.
+- `OnReachTop` loads a batch of history when it reaches the top, and will not be called repeatedly when it stops at the top. After loading, the trigger must be at least one viewport away from the top to avoid repeated requests caused by small batch insertion and scroll wheel inertia.
+- `SetDisabled` disables scrolling, message content and "back to latest", also suspends the top load callback. The component fills the space given by the parent container.
 
-消息中的 Markdown 仍由调用方保存为 Doc，选择范围和流式解析状态不会因虚拟化重建。单篇回答内拖选到视口边缘可继续滚动，释放后停止；不同消息的文本选择相互独立。
+The Markdown in the message is still saved as a Doc by the caller, and the selection range and streaming parsing state are not reconstructed by virtualization. Drag and select within a single answer to the edge of the viewport to continue scrolling and release it to stop; text selections for different messages are independent of each other.
 
-Agent：容器角色 log，当前可见的消息逐条列出。验证：`go run ./examples/components -section message_scroller`；完整流式与选择流程用 `go run ./examples/chat`。
+Agent: Container role log, currently visible messages are listed one by one. Verification: `go run ./examples/components -section message_scroller`; complete flow and selection process with `go run ./examples/chat`.
 
-“回到最新”按钮默认启用，`LatestButton(false)` 隐藏它而不改变滚动状态；`LatestLabel` 设置文字及可访问名称，空字符串恢复当前语言。`LatestRenderer` 接收每帧新建的默认 Button，可修改变体、图标、尺寸、Content 和 Appearance，也可返回另一 Button。组件复制返回值，保留内部 ID 和跳转动作；nil 配置或返回 nil 恢复默认。自定义内容限展示元素。
+The "Back to latest" button is enabled by default, `LatestButton(false)` hides it without changing the scrolling state; `LatestLabel` sets the text and accessible name, and the empty string restores the current language. `LatestRenderer` receives the default Button created every frame, can modify the variant, icon, size, Content and Appearance, and can also return another Button. The component copies the return value and retains the internal ID and jump action; nil configuration or return nil to restore default. Custom content is limited to display elements.
 
 ```go
 sc.LatestLabel("查看新消息").LatestRenderer(func(b *kit.ButtonView) *kit.ButtonView {
@@ -38,4 +40,4 @@ sc.LatestLabel("查看新消息").LatestRenderer(func(b *kit.ButtonView) *kit.Bu
 }).LatestTransition(250 * time.Millisecond)
 ```
 
-按钮默认使用 150ms 淡入淡出；`LatestTransition(0)` 立即切换，负时长忽略，减少动画优先。退出期间立即禁止交互，结束后移除。默认保留右下角文字按钮，与 GPUI 的圆形图标按钮外观不同。
+The button uses 150ms to fade in and out by default; `LatestTransition(0)` switches immediately, negative duration is ignored, and reduced motion takes priority. Interaction is immediately prohibited during exit and removed after completion. The text button in the lower right corner is retained by default, which is different from the round icon button appearance of GPUI.

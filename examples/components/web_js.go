@@ -8,6 +8,7 @@ import (
 	"os"
 	"syscall/js"
 
+	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 )
 
@@ -22,6 +23,11 @@ func init() {
 	}
 	q, err := url.ParseQuery(search)
 	if err == nil {
+		if q.Get("lang") == "zh-CN" {
+			locale.Apply(locale.Chinese())
+		} else {
+			locale.Apply(locale.English())
+		}
 		for _, name := range []string{"section", "theme"} {
 			if v := q.Get(name); v != "" {
 				os.Args = append(os.Args, "-"+name+"="+v)

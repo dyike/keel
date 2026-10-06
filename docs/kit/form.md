@@ -1,6 +1,8 @@
 # Form
 
-两列表单：左边是标签，右边是控件，提交时统一校验。
+English | [简体中文](form.zh-CN.md)
+
+Two-column form: labels on the left and controls on the right, which are uniformly verified when submitted.
 
 ```go
 name := kit.Input("")
@@ -20,39 +22,39 @@ kit.Button("创建", func() {
 })
 ```
 
-- 校验函数返回错误信息，合法时返回空字符串；可以传 nil 表示不校验这一项。
-- `Validate(cx)` 运行可见字段的全部校验、在各字段下显示错误、把焦点移到第一个不合法的字段，返回是否全部通过。必须在回调里调用。
-- 自带错误展示的控件按各自编辑规则清除错误；其他控件的错误由 Form 显示，保留到下次校验或异步结果更新。`Errors()` 返回各字段当前错误的副本。
-- 控件不需要再传标签：Form 会把行标签作为控件的无障碍名称。
-- 自带错误展示的控件实现了 `kit.Validatable`（`SetError`、`FocusID`），包括 Input、TextArea、Select、NumberInput、OtpInput、TimeField、Combobox、DatePicker。
-- `kit.Required(s, msg)` 在 s 为空或全是空白时返回 msg。`LabelWidth(dp)` 设置标签列宽，默认 72。
-- `Actions(views...)` 放在字段下方的按钮行，和控件列左对齐；提交中仍可点击，方便取消。
+- The verification function returns error information, and returns an empty string when legal; you can pass nil to indicate not to verify this item.
+- `Validate(cx)` runs all verifications of visible fields, displays errors under each field, moves the focus to the first illegal field, and returns whether all pass. Must be called in callback.
+- Controls with built-in error display clear errors according to their respective editing rules; errors in other controls are displayed by Form and retained until the next verification or asynchronous result update. `Errors()` returns a copy of the current error for each field.
+- The control does not need to pass a label: Form will use the row label as the accessibility name of the control.
+- Controls with built-in error display implement `kit.Validatable` (`SetError`, `FocusID`), including Input, TextArea, Select, NumberInput, OtpInput, TimeField, Combobox, and DatePicker.
+- `kit.Required(s, msg)` returns msg if s is empty or entirely blank. `LabelWidth(dp)` sets the label column width, default is 72.
+- `Actions(views...)` The row of buttons placed below the field is left aligned with the control column; it can still be clicked during submission for easy cancellation.
 
-Agent：容器角色 `form`，行标签是 `text`，控件以行标签为名字。
+Agent: container role `form`, the row label is `text`, and the control is named after the row label.
 
-验证：`go run ./examples/components -section form`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section form`, add `-theme dark` to check the dark theme.
 
-所有可见字段的非 nil 校验函数都会执行。Checkbox、Switch、Radio、Slider、Rating 等非文本字段的错误由 Form 放在控件下方；有 `FocusID` 时聚焦控件，否则聚焦错误字段容器。禁用字段不会成为焦点目标。NumberInput、TimeField 和 Combobox 的可用编辑草稿在校验前提交，避免校验读取旧值。Required 将 Unicode 空白（含全角空格）视为空值。
+All non-nil validation functions for visible fields are executed. Errors in non-text fields such as Checkbox, Switch, Radio, Slider, Rating, etc. are placed under the control by Form; when `FocusID` is present, the control is focused, otherwise the error field container is focused. Disabled fields will not become focus targets. Available edit drafts for NumberInput, TimeField and Combobox are submitted before validation to avoid validation reading old values. Required treats Unicode whitespace (including full-width spaces) as null.
 
-异步校验与提交共用一次请求：
+Asynchronous verification and submission share one request:
 
 ```go
 token := f.BeginSubmit(cx)
-if token == 0 { return } // 同步校验失败、禁用或已有请求
-payload := customer.Value() // 在 UI 回调里捕获，后台只使用快照
+if token == 0 { return } // Synchronization verification failed, disabled or already requested
+payload := customer.Value() // Captured in UI callback, only snapshots are used in the background
 go func() {
-    errors := validateAndSave(payload) // []string，按 Field 顺序；nil 表示成功
+    errors := validateAndSave(payload) // []string, in Field order; nil indicates success
     core.Update(func() { f.FinishSubmit(token, errors) })
 }()
 ```
 
-`Submitting()` 为 true 时字段不可编辑，重复 `BeginSubmit` 返回 0；外部提交按钮可用 `.Loading(f.Submitting())` 显示忙碌状态。`FinishSubmit` 恢复编辑、展示各字段错误，并在字段恢复可用后聚焦首个错误。错误切片可短于字段数，剩余字段按无错误处理；过长切片、过期或取消的 token 返回 false，不改变状态。
+When `Submitting()` is true, the field cannot be edited. Repeated `BeginSubmit` returns 0; the external submit button is available. `.Loading(f.Submitting())` displays busy status. `FinishSubmit` Resumes editing, displays individual field errors, and focuses on the first error after the field becomes available again. Error slices can be shorter than the number of fields, and the remaining fields will be processed as no errors; too long slices, expired or canceled tokens will return false and the status will not change.
 
-`CancelSubmit()` 使未完成结果失效并恢复编辑；它不会取消业务 goroutine 的网络请求，应用需要自行取消 I/O。`SetDisabled(true)`、祖先禁用或再次同步 `Validate` 也会使请求失效。程序在提交期间替换字段值、或移除表单时，应先调用 `CancelSubmit`。后台只能通过 `core.Update` 调用完成接口。
+`CancelSubmit()` invalidates the unfinished results and resumes editing; it does not cancel the network request of the business goroutine, and the application needs to cancel the I/O by itself. `SetDisabled(true)`, ancestor disabling, or resynchronizing `Validate` will also invalidate the request. When a program replaces a field value during submission, or removes a form, it should first call `CancelSubmit`. The background can only call the completion interface through `core.Update`.
 
-## 多列与字段配置
+## Multiple column and field configuration
 
-`Columns(n)` 将字段排成 n 个等宽网格列，至少一列；`VerticalLabels(true)` 把标签放到控件上方。两者独立，默认仍为单字段列、标签在左。响应式断点由应用决定，可在 Render 中按可用宽度调用 Columns。`Gap(dp)` 设置字段间距，`LabelTextSize(sp)` 设置标签字号（0 恢复继承）。控件大小由各控件自身配置。
+`Columns(n)` arranges the fields into n equal-width grid columns, at least one column; `VerticalLabels(true)` places the label above the control. The two are independent, and the default is still a single field column with the label on the left. Responsive breakpoints are determined by the application and can be called in Render based on the available width of Columns. `Gap(dp)` sets the field spacing, `LabelTextSize(sp)` sets the label font size (0 restores inheritance). The size of the control is configured by each control itself.
 
 ```go
 f := kit.Form().Columns(2).VerticalLabels(true).
@@ -66,10 +68,10 @@ f := kit.Form().Columns(2).VerticalLabels(true).
     Footer(kit.Button("保存", save))
 ```
 
-`ColSpan` 默认 1，限制在当前列数以内；`ColStart` 从 1 计数，0 表示顺序排列。指定起始列已被当前行占用时从下一行开始；起始列和跨度超过网格边界时收缩到可用列。隐藏字段不占网格位置。Actions 继续按原有方式排列；Footer 独占底部全宽并靠右对齐，可与 Actions 共用，提交中保持可用。
+`ColSpan` defaults to 1, limited to the current number of columns; `ColStart` counts from 1, and 0 indicates sequential arrangement. Specifies starting from the next row when the starting column is already occupied by the current row; shrinks to available columns when the starting column and span exceed the grid boundaries. Hidden fields do not occupy grid space. Actions continue to be arranged in the original way; Footer occupies the full width of the bottom and is aligned to the right, can be shared with Actions, and remains available in submissions.
 
-`Required` 只显示星号，不替代校验器。`Description` 显示控件下的辅助文字；`DescriptionContent` 可提供富内容或动态 View，优先于纯文本。`Hidden` 默认 false；隐藏字段不渲染、不提交草稿、不执行校验，也不会成为错误聚焦目标。其他字段的插入索引和输入状态不受影响。
+`Required` only displays asterisks and does not replace the validator. `Description` Displays auxiliary text under the control; `DescriptionContent` can provide a rich content or dynamic view, taking precedence over plain text. `Hidden` defaults to false; hidden fields will not be rendered, drafts will not be submitted, validation will not be performed, and they will not become error focus targets. The insertion index and input status of other fields are not affected.
 
-`SetFieldOptions(index, options)` 按添加顺序替换配置，非法索引返回 false。改变 Hidden 会取消正在进行的提交并清除此字段错误；其他展示配置变更不会取消提交。异步错误数组仍按完整字段顺序传入，隐藏字段对应的错误被忽略。不要直接修改提交快照中的业务数据。
+`SetFieldOptions(index, options)` replaces the configuration in the order of addition, and returns false for illegal indexes. Changing Hidden cancels an ongoing commit and clears this field error; other display configuration changes do not cancel commits. The asynchronous error array is still passed in in complete field order, and errors corresponding to hidden fields are ignored. Do not directly modify the business data in the submitted snapshot.
 
-新增测试覆盖 1×/2× 网格定位、跨列、起始列、隐藏、缩为单列、输入状态、必填提示/说明/页尾，以及隐藏字段校验和异步失效。示例展示响应式两列，本批未做真机视觉验收。
+Automatic testing covers 1×/2× grid positioning, cross-column, starting column, hiding, shrinking to a single column, input status, required prompts/instructions/footers, and hidden field verification and asynchronous invalidation. The example shows two responsive columns, and the visual acceptance of the real device has not yet been completed.

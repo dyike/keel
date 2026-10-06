@@ -1,20 +1,22 @@
 # cmd/keel
 
-Keel 的脚手架：`keel new` 新建项目，`keel run` 运行，`keel build` 按平台打包（带图标、名称、版本），`keel doctor` 检查环境。用法见 [快速开始](../../docs/getting-started.md)。
+English | [简体中文](README.zh-CN.md)
+
+Keel's scaffolding: `keel new` creates a new project, `keel run` runs it, `keel build` packages it by platform (with icon, name, version), and `keel doctor` checks the environment. For usage, see [Quick Start](../../docs/getting-started.md).
 
 ```sh
 go install github.com/dyike/keel/cmd/keel@latest
 ```
 
-- **依赖**：`internal/svgicon`（把占位原图的 SVG 画成 PNG）、`internal/appicon`（各平台图标形状，`ui/window` 运行时也用它）、`golang.org/x/image`（缩放、矢量光栅化）、`github.com/tc-hib/winres`（Windows 资源：图标、清单、版本信息）。不引用 Keel 的界面包；macOS 和浏览器打包调用 Gio 的 gogio（固定在 v0.10.0），macOS 签名调用系统的 `codesign`。
-- **测试**：`go test ./cmd/keel` 生成项目、检查各平台的打包命令（`-n`），并用本仓库的 Keel 编译生成的项目（`-short` 跳过）。
+- **Dependencies**: `internal/svgicon` (draw the SVG of the original image into PNG), `internal/appicon` (the icon shape of each platform, `ui/window` also uses it when running), `golang.org/x/image` (scaling, vector rasterization), `github.com/tc-hib/winres` (Windows resources: icons, manifests, version information). Keel's interface package is not referenced; macOS and browser packaging call Gio's gogio (fixed in v0.10.0), and macOS signature calls the system's `codesign`.
+- **Test**: `go test ./cmd/keel` generates the project, checks the packaging commands for each platform (`-n`), and compiles the generated project with Keel in this repository (`-short` skips).
 
-| 文件 | 内容 |
+| File | Responsibility |
 | --- | --- |
-| `main.go` | 子命令分发，运行外部命令 |
-| `config.go` | `keel.json` 读写与校验 |
-| `new.go` | 新建项目，模板在 `template/` |
+| `main.go` | Subcommand distribution, running external commands |
+| `config.go` | `keel.json` Reading, writing and verification |
+| `new.go` | New project, template in `template/` |
 | `run.go` | `keel run` |
-| `build.go` | 各平台打包、Windows 资源、Info.plist、Linux 桌面文件 |
-| `icons.go` | 按平台和尺寸生成图标、`keel icon`、.ico |
-| `doctor.go` | 环境检查 |
+| `build.go` | Packaging for each platform, Windows resources, Info.plist, Linux desktop files |
+| `icons.go` | Generate icons, `keel icon`, .ico by platform and size |
+| `doctor.go` | Environmental Check |

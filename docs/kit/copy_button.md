@@ -1,24 +1,26 @@
 # CopyButton
 
-把文字复制到剪贴板，并显示"已复制"作为反馈。
+English | [简体中文](copy_button.zh-CN.md)
+
+Copies text to the clipboard and displays "Copied" as feedback.
 
 ```go
 kit.CopyButton(func() string { return order.ID })
 ```
 
-- 文字在点击时才读取，所以函数总能拿到最新内容。
-- 复制后，按钮显示"已复制"和对勾图标，`kit.CopiedFeedback`（1.5 秒）后恢复为"复制"。
-- 按钮是 Ghost 样式，高 28dp，支持 Tab 聚焦和 Space / Enter 触发。
+- Text is only read when clicked, so the function always gets the latest content.
+- After copying, the button displays "Copied" and a check icon, and returns to "Copy" after `kit.CopiedFeedback` (1.5 seconds).
+- The button is Ghost style, 28dp high, supports Tab focus and Space/Enter triggering.
 
-Agent：角色是 `button`，名字在"复制"和"已复制"之间切换。
+Agent: The role is `button` and the name switches between "Copied" and "Copied".
 
-验证：`go run ./examples/components -section copy_button`。
+Verification: `go run ./examples/components -section copy_button`.
 
-连续点击会在每次复制后重新保留完整的 1.5 秒反馈，不沿用上次的截止时间。`SetDisabled(true)` 禁用复制并清除反馈；祖先禁用也会阻止读取文字和写剪贴板。传入 nil 取值函数时点击不会显示“已复制”。
+Continuous clicks will retain the full 1.5 seconds of feedback after each copy, regardless of the last cutoff time. `SetDisabled(true)` disables copying and clears feedback; ancestor disabling also prevents reading text and writing to the clipboard. When nil is passed to the value function, "Copied" will not be displayed when clicked.
 
-`OnCopied(func(string))` 在提交剪贴板写入请求后调用，参数是本次提交的原文，不会再次读取取值函数。系统剪贴板没有成功确认信号，因此此回调不代表操作系统已确认写入。禁用或取值函数为 nil 时不调用；传入 nil 可移除回调。
+`OnCopied(func(string))` is called after submitting the clipboard write request. The parameter is the original text submitted this time, and the value function will not be read again. The system clipboard did not successfully acknowledge the signal, so this callback does not represent the operating system acknowledging the write. Not called when the disabled or value function is nil; passing nil removes the callback.
 
-`Content(el.View)` 替换默认图标和文字，保留按钮的键盘操作及“复制”/“已复制”语义名称。内容应为文字、图标等展示元素，避免嵌套输入框或按钮。自定义内容最小高 28dp，可随内容增高；传入 nil 恢复默认按钮。
+`Content(el.View)` Replaces the default icon and text, preserving the button's keyboard action and "copy"/"copied" semantic name. Content should be text, icons and other display elements, and avoid nested input boxes or buttons. The minimum height of custom content is 28dp, which can be increased with the content; pass nil to restore the default button.
 
 ```go
 copy := kit.CopyButton(func() string { return order.ID }).
@@ -32,4 +34,4 @@ copy.Content(el.ViewFunc(func(cx *el.Context) el.Element {
 }))
 ```
 
-`Copied()` 提供当前反馈状态。自定义内容与默认按钮共用 1.5 秒计时；每次复制重新计时，`SetDisabled(true)` 清除反馈。
+`Copied()` provides the current feedback status. Custom content shares a 1.5-second timer with the default button; the timer is reset each time it is copied, and `SetDisabled(true)` clears feedback.

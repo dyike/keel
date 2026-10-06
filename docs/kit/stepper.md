@@ -1,25 +1,27 @@
 # Stepper
 
-显示多步流程的进度。
+English | [简体中文](stepper.zh-CN.md)
+
+Shows the progress of a multi-step process.
 
 ```go
 steps := kit.Stepper("填写订单", "确认付款", "发货").Navigable()
-steps.SetValue(1) // 到第二步
+steps.SetValue(1) // Go to the second step
 ```
 
-- 当前步之前的为已完成（显示对勾），当前步加粗，之后的为未开始。
-- `Navigable()` 允许点击已完成的步骤回到那一步，这时调用 `OnChange`。
-- `Value()` 返回当前步的序号，等于步骤数时表示全部完成；`SetValue` 不触发回调。
+- The steps before the current step are completed (showing check marks), the steps before the current step are bolded, and the steps after the step are not started.
+- `Navigable()` allows clicking on a completed step to return to that step, in which case `OnChange` is called.
+- `Value()` returns the sequence number of the current step. When it is equal to the number of steps, it means all steps are completed; `SetValue` does not trigger a callback.
 
-Agent：容器角色 `list`，每一步是 `step`，`value` 为 `done` / `current` / `upcoming`。
+Agent: container role `list`, each step is `step`, `value` is `done` / `current` / `upcoming`.
 
-验证：`go run ./examples/components -section stepper`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section stepper`, add `-theme dark` to check the dark theme.
 
-步骤多于可见宽度时提供横向滚动，保留步骤顺序和连接线。可导航的已完成步骤支持键盘聚焦；`SetDisabled` 禁止滚动和步骤修改。构造时复制标签切片。末项滚动后点击、禁用与 1× / 2× 有回归测试。
+Provides horizontal scrolling when there are more steps than visible width, preserving step order and connecting lines. Navigable completed steps support keyboard focus; `SetDisabled` disables scrolling and step modification. Label slices are copied during construction. There are regression tests for click after last item scrolling, disabling and 1× / 2×.
 
-`Vertical()` 改为竖向排列与竖向滚动，连接线沿标记圆心排列。`Size(dp)` 设置标记直径，常用 20、24（默认）、32dp；图标与连接线长度跟随缩放，文字使用主题字号档。零、负数、NaN、无穷值不改变当前尺寸。
+`Vertical()` changes to vertical arrangement and vertical scrolling, and the connecting lines are arranged along the center of the marked circle. `Size(dp)` sets the mark diameter, commonly used are 20, 24 (default), and 32dp; the length of the icon and connecting line scales accordingly, and the text uses the theme font size file. Zero, negative, NaN, and infinity values do not change the current size.
 
-需要图标、单项禁用或多行说明时使用 `SetEntries`：
+Use `SetEntries` when you need an icon, a single item disabled, or a multi-line description:
 
 ```go
 steps := kit.Stepper().Vertical().Size(32).Navigable()
@@ -31,14 +33,14 @@ steps.SetEntries(
 steps.SetValue(2)
 ```
 
-- `StepperItem.Icon` 替换数字/完成对勾；未提供图标时保留原有标记。
-- `StepperItem.Disabled` 或 `SetItemDisabled(index, on)` 禁止该步点击和键盘聚焦，不改变其完成状态，不阻止 `SetValue` 程序跳转。越界索引忽略。
-- `StepperItem.Content` 可提供多行说明等展示内容；`Label` 仍是 Agent 名称。内容不应嵌套按钮或输入框。
-- `SetEntries` 和 `Entries()` 都复制条目切片，内容 View 不深拷贝。替换条目时保留当前索引并按新长度收敛，不触发 `OnChange`。
-- 自定义条目遵守配置的导航范围；单项、整个组件与祖先禁用均阻止导航。
+- `StepperItem.Icon` Replaces the number/complete check mark; retains the original mark if no icon is provided.
+- `StepperItem.Disabled` or `SetItemDisabled(index, on)` prohibits the click and keyboard focus of this step, does not change its completion status, and does not prevent the `SetValue` program from jumping. Out-of-bounds indexes are ignored.
+- `StepperItem.Content` can provide display content such as multi-line description; `Label` is still the Agent name. Content should not nest buttons or input boxes.
+- `SetEntries` and `Entries()` both copy entry slices, and the content View does not make a deep copy. When replacing an entry, keep the current index and converge to the new length, without triggering `OnChange`.
+- Custom items respect the configured navigation scope; single item, entire component, and ancestor disabling all prevent navigation.
 
-`TextCenter(true)` 使横向步骤的文字/富内容位于标记下方并居中，连接线沿相邻标记圆心排列。各列平分可用宽度，最小宽度为标记直径的三倍，不足时横向滚动；自定义内容可以自行设定内部排版。竖向模式保留标记在内容左边，只设置文字居中。false 恢复原布局。`Horizontal()` 可从竖向切回横向。
+`TextCenter(true)` Centers the horizontal step's text/rich content below the marker, with connecting lines centered around adjacent marker circles. Each column equally divides the available width. The minimum width is three times the diameter of the mark. If it is insufficient, it scrolls horizontally; custom content can set the internal layout by itself. Portrait mode keeps the markup to the left of the content and only sets the text to be centered. false restores the original layout. `Horizontal()` switches from portrait to landscape orientation.
 
-`Navigation(kit.StepperNavigationNone / StepperNavigationCompleted / StepperNavigationAll)` 分别为只读、只可返回已完成步骤、可选择任意未禁用步骤。默认 None，`Navigable()` 等同于 Completed。All 包含尚未开始的步骤；点击当前步骤不触发 OnChange。配置变化及 SetValue 均不触发回调。
+`Navigation(kit.StepperNavigationNone / StepperNavigationCompleted / StepperNavigationAll)` is read-only, can only return completed steps, and can select any non-disabled steps. Default is None, `Navigable()` is equivalent to Completed. All Contains steps that have not yet been started; clicking the current step does not trigger OnChange. Neither configuration changes nor SetValue trigger callbacks.
 
-已验证三种导航策略、当前项重复点击、Tab 跳过禁用项、动态方向切换、双倍率等宽列及窄窗口滚动；浅深色窗口像素回归确认连接线随完成状态着色。
+Three navigation strategies have been verified, including repeated clicks on the current item, Tab skipping disabled items, dynamic direction switching, double-ratio equal-width columns and narrow window scrolling; the return of light and dark window pixels confirms that the connection line is colored with the completion status.

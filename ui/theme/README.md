@@ -1,19 +1,21 @@
 # ui/theme
 
-颜色、尺寸刻度、字体和系统动态效果偏好。用户用法与参数表见 [主题](../../docs/theme.md)。
+English | [简体中文](README.zh-CN.md)
 
-| 文件 | 职责 |
+Color, size scale, font and system dynamics preferences. For user usage and parameter list, see [Topic](../../docs/theme.md).
+
+| Documentation | Responsibilities |
 | --- | --- |
-| `theme.go`、`gofonts.go` | 默认文字样式、Gio Material 主题与兜底字体 |
-| `palette.go` | 调色板副本、Apply / Scope、版本号与语义色 |
-| `registry.go`、`themes/` | 内置主题、注册表、JSON 解析 |
-| `watch.go` | 主题目录轮询和当前主题热重载 |
-| `scale.go` | 间距、圆角、字号和阴影刻度 |
-| `fonts.go`、`fetch_*.go` | 字体加载与浏览器字体下载 |
-| `motion.go` | 系统减少动画与应用覆盖值、滚动条偏好 |
+| `theme.go`, `gofonts.go` | Default text style, Gio Material theme and pocket font |
+| `palette.go` | Palette copy, Apply / Scope, version number and semantic color |
+| `registry.go`, `themes/` | Built-in theme, registry, JSON parsing |
+| `watch.go` | Theme directory polling and hot reloading of the current theme |
+| `scale.go` | Spacing, corner rounded corners, font size and shading scale |
+| `fonts.go`, `fetch_*.go` | Font loading and browser font download |
+| `motion.go` | The system reduces animation and application overlay values, scroll bar preferences |
 
-依赖 Gio 和 `ui/internal/loop`。`Apply` 保留 Material 指针、字体和排版器，同步调色板、递增 `Revision()`，并请求所有窗口重绘；它不自行取得帧锁。`Scope` 临时切换颜色，不重绘、不递增版本号。
+Depends on Gio and `ui/internal/loop`. `Apply` retains the Material pointer, font, and typesetter, synchronizes the palette, increments `Revision()`, and requests a redraw of all windows; it does not acquire the frame lock itself. `Scope` temporarily switches the color without redrawing or incrementing the version number.
 
-`el`、`kit`、`window`、`markdown` 读取主题。颜色和版本号的读写遵守 [线程规则](../../docs/architecture.md#线程规则)，组件缓存使用 `cx.Cache` 或把主题版本纳入键。
+`el`, `kit`, `window`, `markdown` Read topics. Colors and version numbers are read and written according to [threading rule](../../docs/architecture.md#threading), component caching uses `cx.Cache` or the theme version is included in the key.
 
-验证入口：`go run ./examples/components -section theme -theme dark`。
+Verification entrance: `go run ./examples/components -section theme -theme dark`.

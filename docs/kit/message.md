@@ -1,33 +1,35 @@
 # Message
 
-对话中的一条消息：头像、内容、操作栏。
+English | [简体中文](message.zh-CN.md)
+
+A message in a conversation: avatar, content, action bar.
 
 ```go
-kit.Message("我", text).User()                  // 用户消息：靠右的气泡，不显示头像
-kit.Message("AI 助手", answerDoc).Actions(copy) // 其他人：头像 + 整宽内容 + 操作栏
+kit.Message("我", text).User()                  // User message: The bubble on the right does not display the avatar.
+kit.Message("AI 助手", answerDoc).Actions(copy) // Others: avatar + full width content + action bar
 ```
 
-- 非用户消息占满宽度，适合长篇 Markdown 回答。头像显示作者名字的首字母。
-- `Actions(views...)` 显示在内容下方，比如复制、重试按钮。流式输出还没结束时，通常先不加操作。
+- Non-user messages take up the full width, suitable for long Markdown answers. The avatar displays the author's initials.
+- `Actions(views...)` appears below content, such as copy and retry buttons. When the streaming output has not ended, no operation is usually performed.
 
-Agent：每条消息是 `article`，名字是作者，内容和操作按钮单独列出。
+Agent: Each message is `article`, the name is the author, the content and action buttons are listed separately.
 
-验证：`go run ./examples/components -section message`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section message`, add `-theme dark` to check the dark theme.
 
-`SetState(MessageSending, "")` 显示发送中；`SetState(MessageFailed, reason)` 显示失败原因。`OnRetry(fn)` 在失败时显示重试按钮，点击先转为发送中，再调用一次业务回调；业务完成后设置 `MessageReady`，再次失败则设置 `MessageFailed`。
+`SetState(MessageSending, "")` shows sending; `SetState(MessageFailed, reason)` shows failure reason. `OnRetry(fn)` displays the retry button when it fails. Click to change to sending first, and then call a business callback; after the business is completed, `MessageReady` is set, and if it fails again, `MessageFailed` is set.
 
-用户和助手消息都支持 `Actions`，传入切片会被复制，空槽位会被忽略。操作栏是否在流式输出期间显示由应用决定。`SetDisabled(true)` 禁止消息内的操作、反应和重试。
+Both user and assistant messages support `Actions`, incoming slices will be copied, and empty slots will be ignored. Whether the action bar is displayed during streaming output is determined by the application. `SetDisabled(true)` disables actions, reactions, and retries within the message.
 
 ```go
 msg.Reactions(kit.MessageReaction{Name: "有帮助", Count: 2}).
     OnReaction(func(index int, active bool) { /* 保存到服务端 */ })
 ```
 
-反应使用可切换按钮，点击更新当前用户的选中状态与计数，再调用回调。`Reactions` 复制数据；后续服务端结果可再次调用它覆盖。未提供回调的反应只读。Agent 可读取 `article` 的 `sending` / `failed` 状态，以及反应按钮的选中状态。
+The reaction uses a toggle button, clicks to update the current user's selected status and count, and then calls the callback. `Reactions` copies data; subsequent server results can be overwritten by calling it again. Reactions with no callback provided are read-only. Agent can read the `sending` / `failed` status of `article` and the selected status of the response button.
 
-`Avatar(view)` 替换头像，传 nil 隐藏；`DefaultAvatar()` 恢复默认：助手显示姓名首字母，用户消息不显示头像。用户消息显式配置头像时放在右侧。头像按正文容器底边对齐，头部在上方，状态、操作、反应及尾部继续排在正文列下方；定位使用当前帧布局，较高的头像会撑开上方空间。正文被隐藏或不存在时，以正文列底边作为回退。
+`Avatar(view)` replaces the avatar, pass nil to hide; `DefaultAvatar()` restores the default: the assistant displays the initials of the name, and user messages do not display the avatar. When the user message explicitly configures the avatar, it is placed on the right side. The avatar is aligned according to the bottom edge of the text container, with the head at the top, and status, operations, reactions, and tails continue to be arranged below the text column; positioning uses the current frame layout, and the taller avatar will expand the space above. When the text is hidden or does not exist, the bottom edge of the text column is used as the fallback.
 
-`Header(view)` 放在正文上方，`Footer(view)` 放在状态、操作和反应区之后；传 nil 清除。头尾支持任意 View 和可交互控件，默认继承小号、弱化文字样式，用户消息靠右。`Content(view)` 独立替换正文，nil 清空正文但保留其他分区。消息禁用状态覆盖所有插槽。
+`Header(view)` is placed above the text, and `Footer(view)` is placed after the status, operation and reaction areas; pass nil to clear. The head and tail support any View and interactive controls. The trumpet and weakened text styles are inherited by default, and user messages are placed on the right. `Content(view)` replaces the body independently, nil clears the body but retains other partitions. Message disabled state covers all slots.
 
 ```go
 msg.Avatar(kit.Avatar("Alice").Size(32)).
@@ -35,22 +37,22 @@ msg.Avatar(kit.Avatar("Alice").Size(32)).
     Footer(kit.Button("回复", reply))
 ```
 
-插入、删除头像或头尾时，正文的身份保持稳定，输入内容和焦点不变。普通用户气泡和显式 Bubble 的头尾默认使用 `theme.SpaceLg` 水平缩进；普通助手正文保持无缩进。完整消息行可用 [MessageGroup](message_group.md) 分组。
+When inserting or deleting avatars or headers and tails, the identity of the text remains stable, and the input content and focus remain unchanged. The head and tail of ordinary user bubbles and explicit bubbles use `theme.SpaceLg` horizontal indentation by default; the text of ordinary assistants remains unindented. Full message lines are available in the [MessageGroup](message_group.md) grouping.
 
-`Bubble(surface)` 安装显式气泡，避免 User 消息再包一层气泡。组件以副本渲染，气泡对齐跟随消息；修改原气泡的变体会在下一帧体现，不会反向修改原实例。传 nil 清空正文；`Content(view)` 恢复普通正文模式（User 自动包气泡）。
+`Bubble(surface)` installs explicit bubbles to prevent User messages from wrapping another layer of bubbles. The component is rendered as a copy, and the bubble alignment follows the message; the variant that modifies the original bubble will be reflected in the next frame, and the original instance will not be modified in reverse. Pass nil to clear the text; `Content(view)` restores the normal text mode (User automatically includes bubbles).
 
 ```go
 surface := kit.Bubble(answer).Variant(kit.BubbleGhost)
 msg.Bubble(surface).Header(kit.Label("系统消息")).Footer(kit.Label("刚刚"))
 msg.HeaderInset(true).FooterInset(false)
-msg.ResetContentInsets() // 恢复自动规则
+msg.ResetContentInsets() // Restore automated rules
 ```
 
-显式 Ghost 气泡自动取消头尾缩进；`HeaderInset`、`FooterInset` 分别覆盖继承规则。普通 Content 内部的自定义 View 不参与 Ghost 检测。该入口接受单个 Bubble；多个气泡与附件混排使用 [MessageContent](message_content.md)，直接气泡共同参与 Ghost 继承。
+Explicit Ghost bubbles automatically cancel head and tail indentation; `HeaderInset` and `FooterInset` override inheritance rules respectively. Custom Views inside ordinary Content do not participate in Ghost detection. This entrance accepts a single Bubble; multiple bubbles and attachments are mixed using [MessageContent](message_content.md), and the direct bubbles participate in Ghost inheritance.
 
-`Alignment(el.Start/el.End)` 独立控制左右位置，覆盖 User 的默认靠右布局；`ResetAlignment()` 恢复默认。头像、头尾、状态、操作和反应跟随位置，显式气泡也跟随。User 仍决定默认气泡色和是否显示默认头像，改对齐不会改变这些设置。其他 Align 值忽略。普通正文靠右时按自身宽度布局，撑满宽度的控件仍占满正文列。
+`Alignment(el.Start/el.End)` independently controls the left and right positions, overwriting the User's default right layout; `ResetAlignment()` restores the default. Avatars, heads, tails, states, actions, and reactions follow the position, as do explicit bubbles. The user still determines the default bubble color and whether to display the default avatar, and changing the alignment will not change these settings. Other Align values are ignored. When the normal text is positioned to the right, it is laid out according to its own width, and controls that fill the width still occupy the text column.
 
-`PartStyle(part, func(*el.DivEl))` 在每帧默认布局之后配置分区样式，nil 恢复默认，非法 part 忽略。可选分区：Root（外层）、Stack（正文列）、Avatar、Header、Content、Footer、Status、Actions、Reactions，对应常量均以 `MessagePart` 开头。头尾样式在自动缩进及显式覆盖后执行，可进一步调整内边距。
+`PartStyle(part, func(*el.DivEl))` configures the partition style after the default layout of each frame, nil returns to default, and illegal parts are ignored. Optional partitions: Root (outer layer), Stack (text column), Avatar, Header, Content, Footer, Status, Actions, Reactions, the corresponding constants all start with `MessagePart`. Header and footer styles are executed after automatic indentation and explicit overrides, allowing further adjustment of padding.
 
 ```go
 msg.PartStyle(kit.MessagePartRoot, func(e *el.DivEl) {
@@ -60,6 +62,6 @@ msg.PartStyle(kit.MessagePartRoot, func(e *el.DivEl) {
 })
 ```
 
-回调只修改当帧元素，不应保留它或追加子项。组件保留内部 ID、外层 article 的名称/状态及整体禁用；分区可额外禁用自身，不能绕过祖先禁用。Content 样式作用于正文容器，气泡表面仍由 Bubble 的样式接口控制。
+The callback only modifies the current frame element and should not retain it or append children. The component retains the internal ID, name/state of the outer article, and overall disablement; partitions can additionally disable themselves and cannot bypass ancestor disabling. The Content style acts on the body container, and the bubble surface is still controlled by Bubble's style interface.
 
-自定义 `MessagePartRoot` 的 Items 可覆盖默认底边对齐；`MessagePartStack` 的 ContentBottom 可选择另一后代作为对齐目标。改变这些布局规则由应用负责。默认头像仍为 28dp，助手自动显示头像、User 自动包主色气泡的约定保留，与上游默认无槽位不同。
+Custom Items for `MessagePartRoot` can override the default bottom alignment; ContentBottom for `MessagePartStack` can select another descendant as the alignment target. It is the application's responsibility to change these layout rules. The default avatar is still 28dp. The assistant automatically displays the avatar and the User automatically packs the main color bubble convention. This is different from the upstream default of no slot.

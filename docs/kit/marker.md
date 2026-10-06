@@ -1,9 +1,11 @@
 # Marker
 
-`kit.Marker(kit.MarkerDiamond).Color(theme.Info).Size(12)` 创建纯图形标记，支持 MarkerDot、MarkerSquare、MarkerDiamond。默认 8dp，颜色每次 Render 读取 theme.Text；显式 Color 保持固定。
+English | [简体中文](marker.zh-CN.md)
 
-Marker 不向 Agent 暴露语义，也没有键盘操作。用于图例、列表项、图表，需可读标签时由调用方在旁边放 Text。父容器约束会限制绘制尺寸。
+`kit.Marker(kit.MarkerDiamond).Color(theme.Info).Size(12)` creates pure graphic markers and supports MarkerDot, MarkerSquare, and MarkerDiamond. Default 8dp, color is read every time Render reads theme.Text; explicit Color remains fixed.
 
-验证：`go run ./examples/components -section marker -theme dark`，省略 theme 查看浅色。
+Markers do not expose semantics to Agents and have no keyboard operations. Used for legends, list items, and charts. When a readable label is required, the caller puts Text next to it. Parent container constraints limit the drawing size.
 
-消息状态、时间线边界、未读提示和加载行使用 [StatusMarker](status_marker.md)。
+Verification: `go run ./examples/components -section marker -theme dark`, omit theme to see the light theme.
+
+Message status, timeline boundaries, unread reminders, and loading lines use [StatusMarker](status_marker.md).

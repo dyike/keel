@@ -1,58 +1,60 @@
-# 迁移到当前 kit
+# Migration
 
-仓库已删除 `ui/widget` 和 `ui/layout`，不提供兼容别名。应用结构用 `ui/el`，通用组件用 `ui/kit`；窗口仍由 `ui/window` 管理。下面列出本轮组件补全影响调用方的地方。
+English | [简体中文](migration-kit.zh-CN.md)
 
-## 代码高亮和网络图片改为按需引入（v0.0.7）
+The repository has removed `ui/widget` and `ui/layout` and does not provide compatible aliases. Use `ui/el` for application structures and `ui/kit` for general components; windows are still managed by `ui/window`. The interface and behavior changes that affect callers during upgrades are listed below.
 
-为了减小程序体积，这两个功能不再默认链接，各约 4 MB：
+## Code highlighting and network images are introduced on demand (v0.0.7)
+
+In order to reduce the program size, these two functions are no longer linked by default, each about 4 MB:
 
 ```go
 import (
-    _ "github.com/dyike/keel/ui/highlight" // CodeEditor、TextView、Markdown 代码块的语法颜色
-    _ "github.com/dyike/keel/ui/netimage"  // Image、Avatar、Attachment、Markdown 图片的 http(s) 地址
+    _ "github.com/dyike/keel/ui/highlight" // Syntax color for CodeEditor, TextView, Markdown code blocks
+    _ "github.com/dyike/keel/ui/netimage"  // Image, Avatar, Attachment, Markdown image http(s) address
 )
 ```
 
-升级后如果代码变成纯文本，或网络图片报 `core.ErrNoImageFetcher`，在 main 包里加上对应的一行即可。本地文件和 data URL 的图片不受影响。
+After the upgrade, if the code becomes plain text, or the network picture reports `core.ErrNoImageFetcher`, just add the corresponding line to the main package. Local files and images from data URLs are not affected.
 
-## 页面与状态
+## Pages and status
 
-旧的 Column / Row / Card 改为 `el.Div()`，按需设置 Row、Gap、Padding、Bg 和 Border；kit 视图通过 `Render(cx)` 加入元素树，页面通过 `el.Root(view)` 交给窗口。旧组件到新组件的具体参数见 [组件索引](kit.md)。
+The old Column / Row / Card is changed to `el.Div()`, and Row, Gap, Padding, Bg and Border are set as needed; the kit view joins the element tree through `Render(cx)`, and the page is handed over to the window through `el.Root(view)`. For specific parameters from the old component to the new component, see [Component Index](kit.md).
 
-组件实例在页面生命周期内复用，尤其是输入框、浮层、Table、Tree、Dock 和虚拟列表。不要每次 Render 都重建有状态组件。`SetValue` 等程序赋值不触发用户回调；回调内直接修改，后台更新放进 `core.Update`。
+Component instances are reused during the page life cycle, especially input boxes, overlays, Tables, Trees, Docks and virtual lists. Don't rebuild stateful components every time you render. Programmatic assignments such as `SetValue` do not trigger user callbacks; modifications are made directly within the callback, and background updates are put into `core.Update`.
 
-集合型组件会复制自己拥有的数据切片或布局树。外部修改原切片不会刷新组件，应调用 SetItems、SetRows、SetKeys、SetData 或 SetLayout。View、图片与业务回调仍按引用持有；复制配置不意味着复制业务对象。
+Collection components will copy the data slices or layout trees they own. Externally modifying the original slice will not refresh the component and should call SetItems, SetRows, SetKeys, SetData or SetLayout. Views, pictures and business callbacks are still held by reference; copying the configuration does not mean copying the business objects.
 
-## 聊天列表
+## Chat list
 
-`MessageScroller` 现在逐行构建，需要稳定 key、估计行高和行构造函数：
+`MessageScroller` is now built row by row, requiring a stable key, estimated row height, and row constructor:
 
 ```go
 scroller := kit.MessageScroller(keys, 100, func(cx *el.Context, index int) el.Element {
     return messages[index].Render(cx)
 })
-// 新消息或历史消息到达后，先更新 messages，再提交完整且不重复的 key 列表。
+// After new messages or historical messages arrive, messages are updated first, and then a complete and unique key list is submitted.
 scroller.SetKeys(keys)
 ```
 
-删除旧的整篇列表构造回调和 `HistoryPrepended` 调用。头部插入与高度变化由稳定 key 保持阅读锚点；跟随到底部用 `SetFollow` / `ScrollToEnd`。不要用当前数组下标作为会插入或重排的消息 ID。完整示例在 `examples/chat`。
+Removed old full list construction callback and `HistoryPrepended` call. Head inset with height changes by stabilizing key to maintain reading anchor; follow to bottom with `SetFollow` / `ScrollToEnd`. Do not use the current array index as a message ID that will be inserted or reordered. Full example at `examples/chat`.
 
-## 表格、选择与表单
+## Tables, Selections, and Forms
 
-有重排、筛选或动态更新的列表与树应使用稳定标识。Table 列布局、选择和数据交互见 [Table](kit/table.md)，不依赖返回切片的别名修改内部状态。Select / Combobox 区分标签和值，并提供分组、禁用项、多选和异步结果接口。
+Lists and trees with reordering, filtering, or dynamic updates should use the stable flag. Table column layout, selection, and data interaction see [Table](kit/table.md), and do not rely on aliases returning slices to modify internal state. Select / Combobox distinguishes labels and values, and provides interfaces for grouping, disabled items, multi-selection and asynchronous results.
 
-异步表单与搜索通过对应请求 token 提交结果；不能让较早请求覆盖新请求。组件所属区域禁用也会阻止用户修改，应用不必为每个子控件重复注册禁用回调。调用方仍负责取消外部网络任务。
+Asynchronous forms and searches submit results via the corresponding request token; older requests cannot overwrite new requests. Disabling the area where the component belongs will also prevent users from modifying it, and the application does not have to register the disabling callback repeatedly for each sub-control. The caller remains responsible for canceling external network tasks.
 
-## Dock 持久化
+## Dock persistence
 
-`DockLayout` 当前版本为 2，增加 LeftTree / RightTree / BottomTree 嵌套树。旧的无版本布局和版本 1 可由 `SetLayout` 迁移；必须检查其 bool 返回值。非法或未知版本不会部分覆盖当前布局。保存 `Layout()` 返回的快照，不缓存内部树指针。窗口内拖放与跨窗口拖放是不同能力，本轮只支持前者。
+`DockLayout` The current version is 2, adding LeftTree / RightTree / BottomTree nested trees. Old versionless layouts and version 1 can be migrated by `SetLayout`; its bool return value must be checked. Illegal or unknown versions will not partially overwrite the current layout. Save the snapshot returned by `Layout()` without caching the internal tree pointer. Drag and drop within the window is handled by the Dock; detaching to a new window requires applying the setting `OnDetach` and is responsible for opening the window, and calling `reattach` when closing. See [Cross-window](kit/dock.md#cross-window).
 
-## 窗口与主题
+## Windows and themes
 
-自定义 `core.WindowControls` 实现需要补 `Focused()` 与 `TitleBarArea(...)`。前者表示原生窗口激活状态，后者接受窗口 dp 坐标；每帧清空再由标题栏登记，应用控件不应包含在拖动区域里。
+Custom `core.WindowControls` implementation needs to supplement `Focused()` and `TitleBarArea(...)`. The former represents the activation state of the native window, and the latter accepts the window dp coordinates; it is cleared every frame and then registered by the title bar. Application controls should not be included in the drag area.
 
-运行时主题用 `theme.Apply`，不要逐个修改全局颜色。减少动画用 `SetReducedMotion` 显式覆盖，或 `FollowSystemMotion` 恢复系统偏好；当前系统桥接支持 macOS。其他平台可由应用指定偏好。
+Use `theme.Apply` for runtime themes and do not modify global colors one by one. Reduced motion override explicitly with `SetReducedMotion`, or `FollowSystemMotion` to restore system preferences; current system bridge supports macOS. Other platforms can have preferences specified by the app.
 
-## 验证
+## Verify
 
-迁移后先运行 `go build ./...`、`go vet ./...`、`go test ./... -count=1`。页面涉及订单表单、聊天滚动或 Dock 状态时，保留对应行为测试；视觉修改按 [视觉规范](visual-guidelines.md) 和 [截图矩阵](testing.md#全组件截图矩阵) 复核。
+After migration, run `go build ./...`, `go vet ./...`, `go test ./... -count=1` first. When the page involves the order form, chat scrolling or Dock state, the corresponding behavior test is retained; visual modifications are reviewed according to [Visual Specification](visual-guidelines.md) and [Screenshot Matrix](testing.md#full-component-screenshot-matrix).

@@ -1,9 +1,11 @@
 # Skeleton
 
-`kit.Skeleton().W(el.Dp(240)).H(el.Dp(16))` 创建灰色加载占位，默认铺满宽度、高 16dp。Circle 绘制居中的圆形，常与相同宽高搭配。Shimmer 启用扫光，默认使用明暗脉冲。
+English | [简体中文](skeleton.zh-CN.md)
 
-动画基于 cx.Now 并通过 cx.Animating 请求帧；减少动画时保持静态。Skeleton 是装饰，不暴露 Agent 语义，不处理键盘。Shimmer 是选项，不是独立组件。
+`kit.Skeleton().W(el.Dp(240)).H(el.Dp(16))` creates a gray loading placeholder with a default width of 16dp and a height of 16dp. Circle draws a centered circle, often with the same width and height. Shimmer Enables sweeping, which uses light and dark pulses by default.
 
-验证：`go run ./examples/components -section skeleton -theme dark`，省略 theme 查看浅色。示例按钮切换减少动画；像素测试注入帧时间验证两种动画及静止状态。
+Animation is based on cx.Now and frames are requested via cx.Animating; remains static when reduced motion. Skeleton is a decoration, does not expose Agent semantics, and does not handle the keyboard. Shimmer is an option, not a standalone component.
 
-`Secondary(true)` 将整个占位图形（包括脉冲或扫光）透明度减半，`Secondary(false)` 恢复。`Rounded(dp)` 自定义矩形圆角，0 为直角，默认为 RadiusSm；负数、NaN、无穷值忽略，绘制时限制到短边的一半。Rounded 与 Circle 后调用者生效；Circle 在非正方形区域中仍绘制居中圆形。颜色每帧读取主题，减少动画时仍保留圆角与次级色阶。
+Verification: `go run ./examples/components -section skeleton -theme dark`, omit theme to see the light theme. Example button switching reduces animation; pixel test injects frame time to verify both animations and still state.
+
+`Secondary(true)` halve the transparency of the entire placeholder pattern (including pulse or sweep) and restore it with `Secondary(false)`. `Rounded(dp)` Customize the rounded corners of the rectangle, 0 is a right angle, and the default is RadiusSm; negative numbers, NaN, and infinite values are ignored, and the drawing is limited to half of the short side. Rounded and Circle take effect after the caller; Circle still draws a centered circle in a non-square area. Colors are read from the theme each frame, and rounded corners and secondary color levels are retained when animation is reduced.

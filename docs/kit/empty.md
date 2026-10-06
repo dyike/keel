@@ -1,8 +1,10 @@
 # Empty
 
-`kit.Empty("暂无订单").Description("新建订单开始").Icon(kit.IconInbox).Action(action)` 垂直居中显示图标、标题、说明与操作区。Action 接受 el.View，每帧调用其 Render。暂可用 el.ViewFunc 包装 el.Div().OnClick 组合按钮。
+English | [简体中文](empty.zh-CN.md)
 
-SetTitle、SetDescription 更新文案。Empty 不新增语义角色，标题和说明分别作为 text，操作元素保留自身语义与键盘行为。窄容器文字换行。验证：`go run ./examples/components -section empty`，加 `-theme dark` 检查深色。
+`kit.Empty("暂无订单").Description("新建订单开始").Icon(kit.IconInbox).Action(action)` displays the icon, title, description and operating area vertically centered. Action accepts an el.View and its Render is called every frame. The operation area usually uses `kit.Button`, and a custom view can also be passed in.
+
+SetTitle, SetDescription update copy. Empty does not add new semantic roles, the title and description are used as text respectively, and the operation elements retain their own semantics and keyboard behavior. Narrow container text wraps. Verify: `go run ./examples/components -section empty`, add `-theme dark` to check the dark theme.
 
 ```go
 kit.Empty("暂无订单").Action(el.ViewFunc(func(cx *el.Context) el.Element {
@@ -10,15 +12,15 @@ kit.Empty("暂无订单").Action(el.ViewFunc(func(cx *el.Context) el.Element {
 }))
 ```
 
-`Media(view)` 在标题上方放置头像、图片、头像组或任意自定义内容，保留内容自身的尺寸、语义和交互。后一次调用替换前一次内容；传 nil 恢复 `Icon` 配置，`Icon(kit.IconNone)` 隐藏默认图标。媒体、标题和说明变化不会重建 Action 的输入状态或焦点。媒体仍需适配父容器宽度；滚动由父容器提供。
+`Media(view)` Place an avatar, image, avatar group, or any custom content above the title, preserving the content's own size, semantics, and interactivity. The last call replaces the previous content; passing nil restores the `Icon` configuration, and `Icon(kit.IconNone)` hides the default icon. Media, title, and description changes do not re-establish the Action's input state or focus. The media still needs to fit the parent container width; scrolling is provided by the parent container.
 
 ```go
 kit.Empty("暂无成员").Media(kit.Avatar("Alex").Size(48)).Action(kit.Button("邀请", invite))
 ```
 
-`Heading(view)` 和 `DescriptionContent(view)` 替换标题、描述的字符串展示，传 nil 恢复字符串；此时 SetTitle / SetDescription 更新的是回退文案。`Footer(view)` 在 Action 下方添加独立辅助内容，传 nil 移除。富内容的语义由内容自身提供，不重复宣布被替换的字符串。
+`Heading(view)` and `DescriptionContent(view)` replace the string display of the title and description, and pass nil to restore the string; at this time, SetTitle / SetDescription updates the fallback copy. `Footer(view)` Add independent auxiliary content below Action, pass nil to remove. The semantics of rich content are provided by the content itself, without repeated declaration of replaced strings.
 
-`PartStyle(part, func(*el.DivEl))` 每帧在默认样式之后调整分区，支持 `EmptyPartRoot`、`EmptyPartHeader`、`EmptyPartMedia`、`EmptyPartTitle`、`EmptyPartDescription`、`EmptyPartContent`（Action）、`EmptyPartFooter`。可设置背景、边框、圆角、宽度、间距、对齐和继承字号/颜色；子内容显式样式优先。传 nil 恢复该分区默认样式，非法 part 忽略。回调不要保留元素引用；子分区 ID 由组件固定，以保留操作区状态。
+`PartStyle(part, func(*el.DivEl))` adjusts the partition after the default style every frame, supporting `EmptyPartRoot`, `EmptyPartHeader`, `EmptyPartMedia`, `EmptyPartTitle`, `EmptyPartDescription`, `EmptyPartContent` (Action), `EmptyPartFooter`. Background, border, rounded corners, width, spacing, alignment and inherited font size/color can be set; explicit styles of sub-content take precedence. Pass nil to restore the default style of the partition, and illegal parts are ignored. Callbacks do not retain element references; subpartition IDs are fixed by the component to preserve operation area state.
 
 ```go
 kit.Empty("没有结果").
@@ -29,8 +31,8 @@ kit.Empty("没有结果").
     })
 ```
 
-默认布局仍保留 Keel 的 Surface 背景和间距；Empty 不新增自动播报或焦点目标，内容的按钮与输入框保持自身行为。
+The default layout still retains Keel's Surface background and spacing; Empty does not add automatic announcements or focus targets, and the content buttons and input boxes maintain their own behaviors.
 
-## 预设样式
+## Default style
 
-`Variant(kit.EmptyOutline)` 显示虚线圆角边框、透明底，适合上传、拖放区域；`Variant(kit.EmptyMuted)` 用 `theme.Subtle` 浅底和圆角，适合放在卡片、面板里。默认 `EmptyPlain` 保持原来的 Surface 底色。之后仍可以用 `PartStyle(kit.EmptyPartRoot, ...)` 进一步调整。
+`Variant(kit.EmptyOutline)` displays a dotted rounded border and a transparent bottom, which is suitable for uploading and dragging areas; `Variant(kit.EmptyMuted)` uses `theme.Subtle` with a shallow bottom and rounded corners, which is suitable for placing in cards and panels. The default `EmptyPlain` maintains the original Surface background color. Further adjustments can still be made later using `PartStyle(kit.EmptyPartRoot, ...)`.

@@ -1,6 +1,8 @@
 # Dock
 
-像 IDE 一样，把工具面板停靠在中间内容的左、右、下三侧。
+English | [简体中文](dock.zh-CN.md)
+
+Like an IDE, dock tool panels to the left, right, and bottom of the center content.
 
 ```go
 d := kit.Dock(editor).
@@ -10,37 +12,37 @@ d := kit.Dock(editor).
 if !d.SetLayout(loaded) { /* 不支持的版本或非法布局，保留原布局 */ }
 ```
 
-- 每个停靠区可以放多个面板，用标签切换；长标签栏可横向滚动；停靠区和中间内容之间可以拖动调整大小。
-- 面板标题栏右侧的菜单可以把面板移到另一侧，或者关闭它；`SetVisible(id, true)` 会在原来的停靠区重新打开。
-- 最大化：菜单里的"最大化"或双击标签，让这个面板铺满整个 Dock，中间内容和其他面板暂时隐藏；再点"还原"、双击标签或按 Esc 恢复。`Zoom(id)` / `Zoom("")` / `Zoomed()` 在程序里控制，最大化状态保存在 `DockLayout.Zoomed`。移走或关闭最大化的面板会自动还原。
-- 面板会拿到停靠区的全部高度。Tree、Table、List 这类组件可以用 `Fill()` 撑满，并自带滚动；较长的普通内容要自己包一层 `ScrollY`。
-- `DockLayout` 记录每个停靠区里有哪些面板及其顺序、当前标签、各区尺寸、已关闭的面板。它可以直接编码成 JSON 保存。版本为 2，旧的无版本布局和版本 1 迁移为单标签组；不认识的版本、重复跨区 ID、NaN/无穷尺寸会被原子拒绝，`SetLayout` 返回 false 且保留原布局。`SetLayout` 会忽略不认识的面板 ID，布局里没提到的面板保持原位。
-- `SetDisabled` 禁用面板与布局操作。分隔条可用方向键按 10dp 调整，Home / End 到边界；取消拖动恢复原尺寸，普通点击分隔条不触发布局回调。
-- 用户移动、关闭、切换面板或拖动调整大小之后，调用 `OnLayoutChange`。
-- 窗口太窄时，左右两区会按比例缩小，给中间内容至少留出 120dp。
+- Multiple panels can be placed in each docking area and switched with tabs; the long tab bar can be scrolled horizontally; the docking area and the middle content can be dragged and resized.
+- The menu to the right of the panel title bar can move the panel to the other side, or close it; `SetVisible(id, true)` will reopen in the original docking area.
+- Maximize: Click "Maximize" in the menu or double-click the label to make this panel cover the entire Dock, with the middle content and other panels temporarily hidden; then click "Restore", double-click the label, or press Esc to restore. `Zoom(id)` / `Zoom("")` / `Zoomed()` are controlled in the program, and the maximized state is saved in `DockLayout.Zoomed`. Removing or closing a maximized panel automatically restores it.
+- The panel will take the full height of the docking area. Components such as Tree, Table, and List can be filled with `Fill()` and have their own scrolling; longer ordinary content needs to be wrapped with a layer of `ScrollY`.
+- `DockLayout` records which panels are in each docking area and their order, current label, size of each area, and closed panels. It can be directly encoded into JSON and saved. Version 2, the old versionless layout and version 1 are migrated to single label groups; unrecognized versions, duplicate span IDs, NaN/infinite sizes will be atomically rejected, `SetLayout` returns false and retains the original layout. `SetLayout` will ignore unknown panel IDs, and panels not mentioned in the layout will remain in place.
+- `SetDisabled` Disables panel and layout operations. The separator bar can be adjusted by pressing 10dp with the direction keys, and Home/End to the border; cancel dragging to restore the original size. Normally clicking the separator bar will not trigger the layout callback.
+- `OnLayoutChange` is called after the user moves, closes, switches panels, or drags to resize.
+- When the window is too narrow, the left and right areas will be reduced proportionally, leaving at least 120dp for the middle content.
 
-Agent：每个停靠区是以当前面板标题命名的 `region`，标签栏是 `tablist`，菜单按钮名为"更多 面板标题"，菜单项是"停靠到左侧""停靠到右侧""停靠到底部""关闭"。
+Agent: Each dock area is named `region` after the current panel title, the tab bar is `tablist`, the menu button is named "More Panel Title", and the menu items are "Dock to left", "Dock to right", "Dock to bottom" and "Close".
 
-验证：`go run ./examples/components -section dock`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section dock`, add `-theme dark` to check the dark theme.
 
-重复注册面板 ID 会更新标题和 View，保留所在区域；空 ID、非法区域不会加入。布局快照及恢复输入都做副本隔离，未知面板的 `Visible` 为 false。
+Repeatedly registering a panel ID will update the title and view and retain the area; empty IDs and illegal areas will not be added. Layout snapshots and restored inputs are copied and isolated, and `Visible` of unknown panels is false.
 
-嵌套分割：`d.Split("search", "files", kit.DockPlacementBottom)` 把搜索放到文件组下方；还支持 Left / Right / Top。标题菜单提供“向右拆分”和“向下拆分”，把当前标签从同组其他标签中拆出。分隔条可拖动，或用方向键每次调整 5%，Home / End 到 5% / 95%。取消拖动或禁用会恢复拖动前比例。`Move` 移到指定区域的首个标签组，并选中移入的标签；空组自动合并。关闭的组保留在布局中，重新打开时回到原位。
+Nested splitting: `d.Split("search", "files", kit.DockPlacementBottom)` puts the search below the file group; also supports Left / Right / Top. The title menu provides "Split Right" and "Split Down" to separate the current tab from other tabs in the same group. The divider bar can be dragged, or adjusted with the arrow keys 5% at a time, from Home / End to 5% / 95%. Canceling a drag or disabling restores the pre-drag proportions. `Move` Move to the first label group in the specified area and select the moved label; empty groups are automatically merged. A closed group remains in the layout and returns to its original position when reopened.
 
-`LeftTree` / `RightTree` / `BottomTree` 由 `DockNode` 表达嵌套：叶子用 Panels / Active，分割用 First / Second / Axis / Ratio。树存在时，其面板顺序优先于旧的平面列表；旧列表仍随布局更新。恢复会深拷贝树，拒绝循环、超过 32 层、重复面板、缺失分支或越界比例，未知面板会剔除并合并空分支。布局快照可以直接 JSON 往返。程序调用 `Split` / `Move` / `SetLayout` 不触发布局回调。
+`LeftTree` / `RightTree` / `BottomTree` Express nesting by `DockNode`: Panels / Active for leaves, First / Second / Axis / Ratio for splitting. While the tree exists, its panel order takes precedence over the old flat list; the old list still updates with the layout. Restoration deeply copies the tree, rejecting loops, over 32 levels, duplicate panels, missing branches, or out-of-bounds scale, and unknown panels culling and merging empty branches. Layout snapshots can be directly JSON round-tripped. Program calls `Split` / `Move` / `SetLayout` do not trigger layout callbacks.
 
-拖动标签时，标题栏显示插入位置；放到另一组的中间会合并，放到正文四边会拆分。编辑器的左、右、下边缘可恢复空停靠区；对应区域已有面板时合并到其中一组。半透明色块表示落点，松开才改布局并回调一次，焦点跟随移入的标签。Esc、指针取消、放到外部或禁用都撤销预览。布局内的坐标使用 dp，拖放命中按实际可见裁剪范围判断。
+When dragging a label, the title bar displays the insertion position; placing it in the middle of another group will merge it, and placing it on the four sides of the text will split it. Empty docking areas can be restored at the left, right, and bottom edges of the editor; if there are already panels in the corresponding area, they will be merged into one of the groups. The translucent color block represents the landing point. The layout is changed and called back once when released. The focus follows the moved label. Esc, Pointer Cancel, Drop Outside, or Disable all cancel the preview. The coordinates within the layout use dp, and drag and drop hits are judged according to the actual visible cropping range.
 
-## 中心区文档
+## Central Area Documentation
 
-`Panel(p, kit.DockCenter)` 把面板放进中心区，当作文档。中心区和侧边区一样由标签组组成：
+`Panel(p, kit.DockCenter)` Place the panel into the center area as a document. The center area, like the side areas, consists of label groups:
 
-- 文档可以拆分（`Split`、标题菜单、拖到组的边缘）、拖动合并、最大化，布局通过 `CenterTree`、`Center`、`CenterActive` 一起保存。
-- 有文档时，文档取代 `Dock(center)` 传入的中心视图；文档全部关闭或移走后，中心视图重新出现，适合放“没有打开的文档”这类空状态。
-- 侧边面板的菜单多了“移到中间”，中心文档的菜单可以停靠到左、右、下。用过 `DockCenter` 的 Dock，中心区为空时，把标签拖到中间就会打开为文档。
-- 中心区有文档时，只有紧贴边缘的 24dp 窄条用来恢复已经空掉的侧边区，其余位置的边缘用来拆分文档组。
+- Documents can be split (`Split`, title menu, drag to edge of group), dragged to merge, maximized, and layouts saved together via `CenterTree`, `Center`, `CenterActive`.
+- When there is a document, the document replaces the center view passed in by `Dock(center)`; after all the documents are closed or moved, the center view reappears, which is suitable for empty states such as "no open documents".
+- The side panel menu has an additional "move to the center" feature, and the center document menu can be docked to the left, right, or bottom. After using `DockCenter`'s Dock, when the center area is empty, drag the label to the middle and it will open as a document.
+- When there is a document in the center area, only the 24dp narrow strip close to the edge is used to restore the empty side area, and the remaining edges are used to split the document group.
 
-## 跨窗口
+## Cross window
 
 ```go
 d.OnDetach(func(p kit.DockPanel, reattach func()) {
@@ -48,21 +50,21 @@ d.OnDetach(func(p kit.DockPanel, reattach func()) {
 })
 ```
 
-- 设置 `OnDetach` 后，面板菜单多出“在新窗口打开”。把标签拖出 Dock 范围松开，也会分离出去。
-- 分离的面板从 Dock 里移走，`Visible` 为 false，`Detached()` 列出它们，并调用一次 `OnLayoutChange`。
-- 新窗口关闭时调用 `reattach`，面板回到原来的停靠区和标签组。要在界面回调里调用（`OnClose` 本来就是），其他 goroutine 用 `core.Update`。
-- kit 不自己开窗口，窗口大小、标题栏等由应用决定。
-- 恢复布局不会重新打开窗口：`SetLayout` 把分离的面板放回 Dock。
-- 不设置 `OnDetach` 时，拖出 Dock 和以前一样是取消。
+- After setting `OnDetach`, "Open in new window" appears in the panel menu. Drag the label out of the Dock and release it, and it will be detached.
+- Detached panels are removed from the Dock, `Visible` is false, `Detached()` lists them, and `OnLayoutChange` is called once.
+- `reattach` is called when the new window is closed, and the panel returns to its original docking area and tab group. To be called in the interface callback (`OnClose` originally), other goroutines use `core.Update`.
+- Kit does not open windows by itself. The window size, title bar, etc. are determined by the application.
+- Restoring the layout does not reopen the window: `SetLayout` Put the detached panel back into the Dock.
+- When `OnDetach` is not set, dragging out of the Dock cancels as before.
 
-容器应有明确的宽高，通常直接用 `el.Root(d)`。嵌入普通页面时给外层指定宽高；Dock 内部按可用空间分配区域。
+The container should have a clear width and height, usually `el.Root(d)` is used directly. When embedding a normal page, specify the width and height for the outer layer; allocate the area inside the Dock according to the available space.
 
-根视口中的首帧和每次缩放都先按当前视口分配停靠区，给中心保留 120dp；视口小于该值时，停靠区可缩到零，中心使用剩余空间。嵌入更小的容器时，首次绘制测得实际尺寸后会请求重绘并校正。此处“保留中心”不代表所有面板在手机宽度下都适合阅读。
+The first frame in the root viewport and each zoom will first allocate the docking area according to the current viewport, leaving 120dp for the center; when the viewport is smaller than this value, the docking area can be reduced to zero, and the center will use the remaining space. When embedding smaller containers, a redraw and correction will be requested after the actual size is measured on the first draw. "Preserve center" here does not mean that all panels are suitable for reading in mobile phone width.
 
 
-## 面板状态与工厂
+## Panel status and factory
 
-只保存位置继续用 `Layout/SetLayout`。要在新 Dock 中重建面板，使用 `Snapshot/Restore`，并按类型注册工厂：
+Just save the position and continue with `Layout/SetLayout`. To rebuild the panel in a new Dock, use `Snapshot/Restore` and register the factory by type:
 
 ```go
 factory := func(s kit.DockPanelState) (kit.DockPanel, error) {
@@ -76,23 +78,23 @@ factory := func(s kit.DockPanelState) (kit.DockPanel, error) {
     input.SetValue(query)
     return kit.DockPanel{View: input, SaveState: func() (json.RawMessage, error) {
         return json.Marshal(input.Value())
-    }}, nil // Restore 填入原来的 ID、Kind 和 Title
+    }}, nil // Restore fill in the original ID, Kind and Title
 }
 if err := d.RegisterPanel("search", factory); err != nil { /* 处理错误 */ }
 state, err := d.Snapshot()
-// json.Marshal(state) 保存；读回后 json.Unmarshal 到 kit.DockState。
-if err == nil { err = anotherDock.Restore(state) } // anotherDock 也须注册 search
+// json.Marshal(state) save; json.Unmarshal to kit.DockState after reading back.
+if err == nil { err = anotherDock.Restore(state) } // anotherDock also needs to be registered search
 ```
 
-首次添加面板时设置 `DockPanel.Kind: "search"` 和 `SaveState`；工厂接收实例 ID、类型、标题和 JSON 数据，可以恢复同类型的多个实例。返回值的非空 ID/Kind 必须与快照匹配，View 不得为 nil；标题为空时继承快照，否则采用工厂标题。应用负责数据版本迁移，工厂也应返回新的 `SaveState`，才能继续保存编辑后的值。
+`DockPanel.Kind: "search"` and `SaveState` are set when the panel is first added; the factory receives instance ID, type, title and JSON data and can restore multiple instances of the same type. The non-empty ID/Kind of the return value must match the snapshot, and the View must not be nil; the snapshot is inherited when the title is empty, otherwise the factory title is used. The application is responsible for data version migration, and the factory should also return the new `SaveState` to continue saving the edited value.
 
-`DockState` 版本为 1，内部 `DockLayout` 仍是版本 2。快照按 ID 排序，复制布局和 JSON，包括隐藏、分离的面板。注册表属于单个 Dock，空类型、nil 工厂和重复类型返回错误。没有 Kind 的既有静态面板可按 ID 原样复用，但不能携带 SaveState 或数据；要跨新实例恢复，所有面板都应有已注册的 Kind。
+`DockState` is version 1, internally `DockLayout` is still version 2. Snapshots are sorted by ID, copy layout and JSON, including hidden, detached panels. The registry belongs to a single Dock, empty types, nil factories, and duplicate types return errors. Existing static panels without a Kind can be reused as-is by ID, but without carrying SaveState or data; to be restored across new instances, all panels should have a registered Kind.
 
-恢复先检查整份清单、JSON 和布局，再调用工厂。未知类型、重复 ID、布局引用缺失的面板、清单中没有布局位置的面板、非法树或工厂错误都会返回错误，保留当前 Dock。恢复成功后，面板集合以快照为准，当前多出来的面板被移除；中心空视图、外观、禁用状态、注册表和回调保留。工厂应只构造视图，外部副作用和已创建资源由应用管理，Dock 无法替应用回滚。
+Restore checks the entire list, JSON, and layout before calling the factory. Unknown types, duplicate IDs, panels with missing layout references, panels with no layout location in the manifest, illegal trees, or factory errors will all return errors that preserve the current Dock. After the restoration is successful, the panel collection will be based on the snapshot, and the current extra panels will be removed; the central empty view, appearance, disabled state, registry, and callbacks will be retained. The factory should only construct views, external side effects and created resources are managed by the application, and the Dock cannot roll back for the application.
 
-这些操作在 UI 线程调用，不触发 `OnLayoutChange`。面板数据编辑不会触发布局回调，应用应在保存工作区或关闭窗口时显式调用 `Snapshot`。分离面板恢复到 Dock 内，不自动开关应用窗口；旧窗口关闭回调不会影响恢复后的新实例。
+These operations are called on the UI thread and do not trigger `OnLayoutChange`. Panel data editing does not trigger layout callbacks, apps should explicitly call `Snapshot` when saving the workspace or closing the window. When the split panel is restored to the Dock, the application window will not be automatically opened and closed; the old window closing callback will not affect the new instance after restoration.
 
-## 独立外观
+## Independent appearance
 
 ```go
 d.Skin(&kit.DockSkin{
@@ -105,34 +107,34 @@ d.Skin(&kit.DockSkin{
 })
 ```
 
-`Panel` 配置标签组外框，`Header/Body/Tab/Separator` 分别配置标题栏、正文、标签与内外分隔条。回调每帧应用在新元素上，可改颜色、边框、字号和面板留白；保留元素身份、子内容和事件处理，分隔条保持 4dp 几何。配置对象可以共享并在 UI 线程更新，`Skin(nil)` 恢复默认外观，不改布局或面板内容。皮肤不进入布局 JSON，也不修改全局主题。它只管样式；面板自己的标签、工具栏和菜单见下一节。
+`Panel` configures the outer frame of the label group, and `Header/Body/Tab/Separator` configures the title bar, body text, labels, and internal and external separators respectively. The callback is applied to a new element each frame, and the color, border, font size and panel blank can be changed; the element identity, sub-content and event handling are retained, and the separator bar maintains the 4dp geometry. Configuration objects can be shared and updated on the UI thread. `Skin(nil)` restores the default appearance without changing the layout or panel content. The skin does not enter the layout JSON, nor does it modify the global theme. It only cares about styling; the panel's own labels, toolbars, and menus are described in the next section.
 
-组件库示例的“保存工作区 / 恢复工作区”可以验证搜索词随布局恢复，“切换 Dock 外观”用于检查皮肤。原生窗口、浅深色视觉和多窗口生命周期仍需真机验收。
+The Component Library example's "Save Workspace/Restore Workspace" can verify that the search terms are restored with the layout, and "Toggle Dock Appearance" can be used to check the skin. Native windows, light-dark vision, and multi-window life cycles still require real-device validation.
 
-## 面板的标签、工具栏和菜单
+## Panel labels, toolbars and menus
 
-`DockPanel` 的可选字段让每个面板决定自己在 Dock 里的样子和行为：
+`DockPanel`'s optional fields let each panel determine how it looks and behaves in the Dock:
 
 ```go
 d.Panel(kit.DockPanel{
     ID: "files", Title: "文件", View: files,
-    Icon:    kit.IconFolder,                                     // 标签上的图标
+    Icon:    kit.IconFolder,                                     // Icons on labels
     Toolbar: kit.Button("", refresh).Name("刷新").Icon(kit.IconRetry).Variant(kit.ButtonGhost).Size(24),
     Menu:    func(m *kit.MenuView) { m.Item("全部折叠", "", collapseAll) },
-    NoClose: true, // 菜单里没有“关闭”
+    NoClose: true, // There is no "Close" in the menu
 }, kit.DockLeft)
 ```
 
-- `Icon` 显示在标题前；`Tab(selected)` 完全替换标签内容（例如带状态点），`Title` 仍是标签的无障碍名字。
-- `Toolbar` 在面板是当前标签时显示在标题栏右侧、菜单按钮之前。
-- `Menu` 往面板菜单里加项，排在 Dock 自带的移动、拆分、最大化、关闭之前。
-- `NoClose` 去掉“关闭”；`NoZoom` 去掉“最大化”，双击标签和 `Zoom(id)` 也不再最大化它。
-- `NoPadding` 去掉正文留白，适合终端、画布这类贴边绘制的面板。
+- `Icon` appears before the title; `Tab(selected)` completely replaces the label content (for example, with a status point), and `Title` remains the accessible name of the label.
+- `Toolbar` Displays to the right of the title bar, before the menu button, when the panel is the current tab.
+- `Menu` Add items to the panel menu, ranking before the Dock's own move, split, maximize, and close.
+- `NoClose` removes "close"; `NoZoom` removes "maximize", double-clicking the label and `Zoom(id)` no longer maximizes it.
+- `NoPadding` removes the white space in the text and is suitable for edge-drawing panels such as terminals and canvases.
 
-## 收起侧栏
+## Collapse sidebar
 
 ```go
 toolbar.Child(d.RegionButton(kit.DockLeft).Render(cx), d.RegionButton(kit.DockBottom).Render(cx))
 ```
 
-`RegionButton(side)` 返回一个切换按钮，侧栏展开时为选中状态，可放进标题栏或工具栏；按钮建一次后复用。`SetRegionOpen(side, open)` / `RegionOpen(side)` / `ToggleRegion(side)` 是对应的程序接口，`ToggleRegion` 会触发 OnLayoutChange。收起只是隐藏整块区域，面板的标签、拆分和尺寸都保留，再展开原样回来；收起状态存在布局的 `LeftClosed/RightClosed/BottomClosed` 里。中心区不能收起。收起最大化面板所在的侧栏会先退出最大化。
+`RegionButton(side)` returns a toggle button, which is selected when the sidebar is expanded and can be placed in the title bar or toolbar; the button is created once and then reused. `SetRegionOpen(side, open)` / `RegionOpen(side)` / `ToggleRegion(side)` are the corresponding program interfaces, and `ToggleRegion` will trigger OnLayoutChange. Collapse only hides the entire area, and the label, split and size of the panel are retained, and then expands it and returns it as it is; the collapsed state is stored in `LeftClosed/RightClosed/BottomClosed` of the layout. The center area cannot be retracted. Collapse of the sidebar where the maximized panel is located will exit maximization first.

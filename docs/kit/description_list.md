@@ -1,12 +1,14 @@
 # DescriptionList
 
-`kit.DescriptionList().Item("订单号", "SO-1001").ItemView("状态", view).LabelWidth(96)` 按行显示标签和值，默认标签列 96dp，值列占剩余宽度并换行，顶部对齐。窄容器允许标签列收缩。
+English | [简体中文](description_list.zh-CN.md)
 
-纯文本条目向 Agent 暴露一个 text，名字为“标签：值”。ItemView 接受 el.View，每帧调用其 Render，保留子视图的语义和交互，标签单独可读。SetItems 替换全部文本条目，参数为 Description 列表。
+`kit.DescriptionList().Item("订单号", "SO-1001").ItemView("状态", view).LabelWidth(96)` displays labels and values in rows, the default label column is 96dp, the value column takes up the remaining width and wraps, and the top is aligned. Narrow containers allow label columns to shrink.
 
-组件本身无键盘操作。验证：`go run ./examples/components -section description_list -theme dark`，省略 theme 查看浅色。
+Plain text entries expose a text to the Agent named "tag:value". ItemView accepts an el.View and calls its Render every frame, retaining the semantics and interactions of the subviews and making the labels individually readable. SetItems replaces all text items, and the parameter is a Description list.
 
-`Columns(n)` 设置每行条目列数，最少一列。`Span(n)` 设置最近追加条目的跨度，布局时限制在 1 到当前列数；剩余列放不下时换行，不回填前面行的空位。`Separator()` 插入满行分隔线，后续条目从新行开始。`SetItems` 会清除之前的富内容、跨度和分隔线。
+The component itself has no keyboard operation. Verification: `go run ./examples/components -section description_list -theme dark`, omit theme to see the light theme.
+
+`Columns(n)` sets the number of columns per row of entries, at least one column. `Span(n)` sets the span of the recently added entries, which is limited to 1 to the current number of columns during layout; it will wrap when the remaining columns cannot fit, and the vacancies in the previous row will not be backfilled. `Separator()` inserts a full line separator, with subsequent entries starting on a new line. `SetItems` will clear previous rich content, spans and dividers.
 
 ```go
 kit.DescriptionList().Columns(2).Vertical().Bordered(true).
@@ -14,8 +16,8 @@ kit.DescriptionList().Columns(2).Vertical().Bordered(true).
     Separator().Item("备注", "说明跨两列展示").Span(2)
 ```
 
-`Vertical()` 把每个条目的标签放在值上方；列数和跨度仍然有效。默认横排，`LabelWidth` 仅在横排时生效。
+`Vertical()` Places each entry's label above the value; column number and span still work. The default is horizontal layout, `LabelWidth` only takes effect in horizontal layout.
 
-`Bordered(true)` 为各条目增加内边距和主题边框，默认无边框。`Size(sp)` 调整文字大小和间距档，推荐 `theme.TextSm`、`theme.TextBody`、`theme.TextLg`；默认继承文字大小。尺寸忽略非正数和非有限值，标签宽度允许 0，但忽略负数和非有限值。
+`Bordered(true)` adds padding and theme borders to each entry, with no borders by default. `Size(sp)` adjusts the text size and spacing file. `theme.TextSm`, `theme.TextBody`, and `theme.TextLg` are recommended; the text size is inherited by default. Size ignores non-positive and non-finite values, label width is allowed 0, but negative and non-finite values are ignored.
 
-列数由调用方设置，不会根据窗口宽度自动切换；窄容器内文字换行。小屏可用 `Columns(1)`，富内容自己的固定最小宽度仍须适合容器。多列和跨列保留文本语义，富内容按钮保留键盘、点击和禁用继承。
+The number of columns is set by the caller and will not automatically switch according to the window width; text in a narrow container is wrapped. `Columns(1)` is available for small screens, rich content's own fixed minimum width must still fit within the container. Textual semantics are preserved across multiple columns and across columns, and rich content buttons preserve keyboard, click, and disabled inheritance.

@@ -1,0 +1,82 @@
+# Command
+
+[English](command.md) | 简体中文
+
+命令面板：一个搜索框加一列命令，输入时逐步筛选。
+
+```go
+palette := kit.Command(
+    kit.CommandItem{Title: "新建订单", Group: "订单", Shortcut: "mod+n", Action: newOrder},
+    kit.CommandItem{Title: "打开设置", Action: openSettings},
+)
+// Render 中：
+cx.Shortcut("mod+k", palette.Toggle)
+root.Child(palette.Render(cx))
+```
+
+- 匹配规则：前缀匹配排第一，其次是子串匹配，再次是"字符按顺序出现"的模糊匹配，例如"设置"能找到"打开设置"，"nwo"能找到"New window"。
+- ↑ ↓ 移动高亮，回车执行。Esc 先清除非空查询，再次按下关闭；点击外部直接关闭。默认模态面板执行时先关闭，再调用 Action。
+- 打开时焦点在搜索框里。面板是模态的，靠近窗口顶部显示。
+- `Shortcut` 是固定展示文字。设置 `ActionName` 后，默认行从 `core.Bind` 读取快捷键，并在面板持有焦点期间把该键绑定到条目的 Action；改绑会同步更新提示和处理器。面板外需要应用注册同一个 Action。
+- `Toggle`、`Value()` / `SetValue(bool)`、`SetItems`。需要 `el.Root`。
+
+Agent：面板是名为"命令面板"的 `dialog`，搜索框是 `textbox`，命令是 `option`，`selected` 表示当前高亮。
+
+验证：`go run ./examples/components -section command`，加 `-theme dark` 检查深色。
+
+连续同组命令前显示分组标题；标题不可选中。`CommandItem.Disabled` 禁止点击和执行，键盘导航跳过禁用项。构造和 `SetItems` 复制切片，应用修改原切片不会改变面板。结果用虚拟列表构建可见行，搜索结果在条目或查询不变时缓存；↑ ↓ 和 PageUp/PageDown 导航并滚动露出高亮，Home/End 保留搜索框的文字编辑行为。关闭后焦点回到触发控件，重新打开重置查询、高亮和滚动位置。`SetDisabled(true)` 关闭并禁止打开。
+
+`OnSearch(func(query string, token uint64))` 切换为异步搜索模式，打开、改词和重试都会生成新 token。工作线程取得结果后通过 `core.Update` 调用 `SetResults(token, items...)` 或 `SetSearchError(token, message)`；返回 false 表示结果已过期或面板已关闭。旧查询不会覆盖新查询，失败后可重试。异步结果按返回顺序展示，不再做本地模糊过滤，适用于语义搜索。加载或失败状态不能执行旧命令。示例 `-section command_async` 输入 error 模拟失败；静态 `-section command` 包含万条结果与禁用项。
+
+`Inline(true)` 将面板放入普通布局并打开；执行后保持显示，不阻挡外部控件，也不自动抢焦点。需要主动进入时调用 `palette.Focus(cx)`。`SetValue(false)` 或空查询时按 Esc 隐藏内联内容；`Inline(false)` 关闭当前内容并恢复默认模态模式，下一次打开才显示弹层。切换会使旧异步请求失效。
+
+`Searchable(false)` 隐藏搜索框、显示全部候选，并停止调用 OnSearch；键盘焦点移到面板框，方向键导航、Enter 执行。切换时清空查询、加载状态和错误，旧结果不再接收；恢复搜索且面板已打开时重新请求。默认搜索行为保留。
+
+`Header(view)`、`Footer(view)` 分别放在搜索框上方和结果下方，加载、失败和空结果时仍显示；nil 移除。每个区域最多占窗口高度的五分之一且不超过 80dp，超出独立滚动；结果区保守预留这部分高度。`Empty(view)` 替换无匹配内容，nil 恢复默认。交互控件应复用实例，以保留焦点和内部状态。
+
+`RenderItem(func(CommandItem, bool) el.View)` 自定义可见候选，第二个参数为当前高亮状态。它替换文字和快捷键展示，外层保留可访问名称、禁用及选中语义；nil 回调或 nil 内容使用默认行。点击展示内容执行命令，嵌套按钮独立处理操作。`RowHeight(dp)` 指定统一虚拟槽位高度，包含上下共 4dp 留白，分组标题共用此高度；0 恢复 36dp，正数最小为 5dp，负数及非有限值忽略。默认仍采用统一行高；复杂内容可开启 AutoRowHeight(true)，按实际内容测量。
+
+```go
+quick := kit.Command(items...).Searchable(false).Inline(true).
+    Footer(kit.Button("刷新", refresh))
+// 放入普通布局；应用可在事件中用 quick.Focus(cx) 将焦点交给面板。
+root.Child(quick.Render(cx))
+```
+
+与上游的实现约定不同：Keel 默认统一行高，自动测量模式先估算未访问行、再测量可见行；上游在失效时测量全部行。Keel 保留模糊排序而非纯子串过滤，事件使用扁平原始索引而非 IndexPath。内联模式可以放入应用自己的弹层，外层弹层的关闭由应用管理。
+
+
+`CommandItem.Keywords` 提供搜索别名；标题和每个关键词分别进行模糊匹配，按最佳得分排序。构造、SetItems 和异步 SetResults 都复制关键词切片；过滤不改变条目的原始索引，分组标题不占索引；显式分隔条目占据源数据位置，但不可选中。更新整个候选模型后，索引以最新 SetItems 的参数顺序为准。
+
+- `OnSelect(func(int))`：键盘移动、点击及过滤导致高亮改变时通知原始索引，没有可选项时为 −1。仅有选择变化才通知，不执行 Action。打开和模型更新产生的自动选择在渲染后发送；回调里可以更新组件。指针进入可用行也会改变高亮并通知，但不执行 Action；静止指针不会反复覆盖键盘选择。
+- `OnQuery(func(string))`：用户输入或 Esc 清词时通知，保留本地过滤；过滤造成的 OnSelect 在它之前发送。打开和重试不通知。OnSearch 仍负责远程请求，打开、改词、重试时触发，与 OnQuery 用途不同。
+- `OnConfirm(func(int))`：执行 Action 后通知原始索引，没有 Action 的条目也通知。回调和索引在执行前取快照，Action 重设候选、打开面板或替换回调，不会改写这次确认。
+- `OnCancel(func())`：用户关闭后通知；程序赋值、禁用不通知。可搜索且查询非空时，第一次 Esc 只清词；无搜索模式或空查询时 Esc 关闭并通知，外部点击直接关闭。
+
+点击条目时先通知选择变化；如果 OnSelect 在回调中替换候选、关闭面板或发起新查询，本次不继续执行旧条目。自定义行以原始索引保持过滤前后的身份；更换/重排整个模型时，应用仍需管理自己持有的子 View。上述事件均可传 nil 移除。
+
+
+`AutoRowHeight(true)` 启用变高虚拟化，RowHeight 成为最小槽位高度和初始估算。默认候选、分组标题、长文本或复杂自定义内容可混排。窗口宽度、缩放、主题以及 SetItems/RenderItem 更新会使测量失效；应用自行更改离屏内容时调用 `InvalidateRows()`。只构建视口附近的行，远距离跳转会在测量后修正定位。`AutoRowHeight(false)` 恢复统一行高，并重新露出当前高亮。
+
+`CommandItem{Separator: true}` 插入不可交互分隔项，其他字段忽略。过滤后去除首尾及连续分隔项，空分组标题同时消失。排序分别在分隔项之间进行，避免跨区混排。`Icon` 指定默认行前置图标，`Checked` 显示尾部勾选；有效快捷键提示优先于勾选。自定义行自行绘制这些内容。
+
+`ActionName` 通过 `core.Bind` 取得当前第一组绑定；存在名称时不回退到 Shortcut。未绑定时隐藏提示，可回退显示 Checked。快捷键只在面板可用且焦点在面板内时执行条目，同样遵守加载/禁用和确认回调；关闭或失焦不注册。应用外部若需要同一动作，使用相同 Action 函数注册。Keel 使用单 root 的注册顺序处理冲突，没有上游的 Command/应用两级动作解析。
+
+其他配置与状态：
+
+- `Placeholder(string)`：搜索占位文字，空值恢复本地化默认。
+- `MaxHeight(dp)`：结果视口最大高度，0 恢复 360dp；窗口空间和页头页尾可能进一步缩小它。
+- `Bordered(false)`：移除默认边框、圆角和阴影；`PanelStyle(func(*el.DivEl))` 可调整每帧新建面板的宽度、背景等样式。
+- `Query()` / `SetQuery(string)`：读取/设置查询；已打开且可搜索时按用户输入处理并通知，相同文本不重复通知。关闭或不可搜索时只保存；重新打开仍重置查询。
+- `SelectedIndex()`：当前高亮的原始条目索引，−1 表示没有；数据更新在下一次渲染中重新协调。
+- `MatchedCount()`：当前匹配项数量，含禁用项，不计标题/分隔项。
+- `SetLoading(bool)` / `IsLoading()`：应用管理加载状态；使用 OnSearch 时通常由 token 结果接口自动管理。
+
+```go
+core.Bind("orders.new", "mod+n")
+commands := kit.Command(
+    kit.CommandItem{Title: "新建订单", ActionName: "orders.new", Icon: kit.IconPlus, Action: newOrder},
+    kit.CommandItem{Separator: true},
+    kit.CommandItem{Title: "当前模式", Checked: true},
+).AutoRowHeight(true).Placeholder("搜索操作").MaxHeight(280)
+```

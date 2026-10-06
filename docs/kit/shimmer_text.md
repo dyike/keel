@@ -1,6 +1,8 @@
 # ShimmerText
 
-保留可读文字，让高光扫过字形；背景和字间空白不受影响。
+English | [简体中文](shimmer_text.zh-CN.md)
+
+Readable text is preserved, allowing the highlight to sweep across the glyphs; the background and white space between characters are unaffected.
 
 ```go
 loading := kit.ShimmerText("正在生成内容……").Duration(2*time.Second).Spread(.3)
@@ -8,15 +10,15 @@ loading.Reverse(true).Once(true)
 loading.Restart()
 ```
 
-默认从左向右循环，周期 2 秒，高光半宽为文字框宽度的 30%。`Duration` 接受正时长；`Spread` 接受 (0,1]，非法值忽略。`Reverse` 反向；`Once` 在一个周期后恢复普通文字并停止请求动画帧，`Restart` 重新开始。调整时长不重置起点，需要时显式 Restart。
+The default cycle is from left to right, with a cycle of 2 seconds, and the highlight half-width is 30% of the width of the text box. `Duration` accepts positive duration; `Spread` accepts (0,1], illegal values are ignored. `Reverse` reverses; `Once` restores normal text after one cycle and stops requesting animation frames, `Restart` starts again. Adjust the duration without resetting the starting point, and explicitly Restart when needed.
 
-`Enabled(false)` 显示普通文字，再启用从头开始；减少动画设置下同样显示普通文字。`SetText` 更新正文，`Size` 设置字号（0 继承），`MaxLines` 限制行数（0 不限）；字体、字重、行高和颜色默认从 el 容器继承。`Color` 覆盖文字底色，`Highlight` 覆盖高光颜色，默认高光使用主题 PrimaryText。
+`Enabled(false)` displays normal text, and then enables Start from Scratch; it also displays normal text under the reduced animation setting. `SetText` updates the text, `Size` sets the font size (0 is inherited), `MaxLines` limits the number of lines (0 is not limited); the font, font weight, line height and color are inherited from the el container by default. `Color` covers the text background color, `Highlight` covers the highlight color, and the default highlight uses the theme PrimaryText.
 
-彩色位图字形（例如部分 emoji）保留原色，不参与高光着色。组件保持文本语义与布局尺寸，不承担加载任务，也不提供文字选择。底层 `el.Text(...).Shimmer(phase, spread, color)` 只负责绘制，便于应用自定义时间控制。
+Colored bitmap glyphs (such as some emoji) retain their original colors and do not participate in highlight shading. The component maintains text semantics and layout size, does not undertake loading tasks, and does not provide text selection. The underlying `el.Text(...).Shimmer(phase, spread, color)` is only responsible for drawing, making it easy to apply custom time control.
 
-运行示例：`go run ./examples/components -section shimmer_text`。
+Run the example: `go run ./examples/components -section shimmer_text`.
 
-`ShimmerStyle` 是可复用的动画配置值，含 Duration、Spread、Reverse、Once；`Style(config)` 一次替换四项配置，正文、字号、颜色等保持不变。零值恢复默认值；非正 Duration、超出 (0,1] 或非有限 Spread 使用默认值。有效配置变化会从下一帧重新播放，重复应用相同配置不会重启动画。逐项 Duration/Spread 等原有方法仍保留原来的行为。
+`ShimmerStyle` is a reusable animation configuration value, including Duration, Spread, Reverse, and Once; `Style(config)` replaces four configurations at a time, and the text, font size, color, etc. remain unchanged. A value of zero reverts to default; non-positive Duration, beyond (0,1], or non-finite Spread use default. Valid configuration changes are replayed from the next frame, and repeated application of the same configuration does not restart the animation. Legacy methods such as itemized Duration/Spread still retain their original behavior.
 
 ```go
 motion := kit.ShimmerStyle{Duration: 3*time.Second, Spread: .45, Reverse: true, Once: false}

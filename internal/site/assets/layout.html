@@ -1,10 +1,13 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="{{.Lang}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{if .Home}}Keel · 纯 Go 桌面界面框架{{else}}{{.Page.Title}} · Keel{{end}}</title>
-<meta name="description" content="Keel：用纯 Go 写桌面界面，GPUI 风格的元素与组件库，基于 Gio。">
+<title>{{if .Home}}Keel · {{tr $.Page "纯 Go 桌面界面框架" "A desktop UI framework in pure Go"}}{{else}}{{.Page.Title}} · Keel{{end}}</title>
+<link rel="alternate" hreflang="en" href="{{if eq .Lang "en"}}{{rel .Page .Page.Out}}{{else}}{{.Switch}}{{end}}">
+<link rel="alternate" hreflang="zh-CN" href="{{if eq .Lang "zh-CN"}}{{rel .Page .Page.Out}}{{else}}{{.Switch}}{{end}}">
+<link rel="alternate" hreflang="x-default" href="{{if eq .Lang "en"}}{{rel .Page .Page.Out}}{{else}}{{.Switch}}{{end}}">
+<meta name="description" content="{{tr $.Page "Keel：用纯 Go 写桌面界面，GPUI 风格的元素与组件库，基于 Gio。" "Keel: desktop UIs in pure Go, with GPUI-style elements and components, built on Gio."}}">
 <link rel="icon" href="{{.Root}}favicon.svg" type="image/svg+xml">
 <link rel="icon" href="{{.Root}}favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="{{.Root}}apple-touch-icon.png">
@@ -12,31 +15,32 @@
 <link rel="stylesheet" href="{{.Root}}{{index .Asset "code.css"}}">
 <script defer src="{{.Root}}{{index .Asset "site.js"}}"></script>
 </head>
-<body data-root="{{.Root}}">
+<body data-root="{{.Root}}" data-lang="{{.Lang}}">
 <header class="top">
-  <button class="menu" type="button" aria-label="目录">☰</button>
+  <button class="menu" type="button" aria-label="{{tr $.Page "目录" "Menu"}}">☰</button>
   <a class="brand" href="{{.Root}}"><img class="logo" src="{{.Root}}favicon.svg" alt="" width="26" height="26">Keel</a>
-  {{with .Version}}<a class="version" href="{{$.Repo}}/releases/tag/{{.}}" title="版本说明">{{.}}</a>{{end}}
+  {{with .Version}}<a class="version" href="{{$.Repo}}/releases/tag/{{.}}" title="{{tr $.Page "版本说明" "Release notes"}}">{{.}}</a>{{end}}
   <nav class="links">
-    <a href="{{.Root}}docs/">文档</a>
-    <a href="{{.Root}}docs/kit.html">组件</a>
-    <a href="{{.Demo}}">在线组件库</a>
+    <a href="{{.Root}}docs/">{{tr $.Page "文档" "Docs"}}</a>
+    <a href="{{.Root}}docs/kit.html">{{tr $.Page "组件" "Components"}}</a>
+    <a href="{{.Demo}}?lang={{.Lang}}">{{tr $.Page "在线组件库" "Live gallery"}}</a>
   </nav>
   <div class="search">
-    <input type="search" placeholder="搜索文档" aria-label="搜索文档" autocomplete="off">
+    <input type="search" placeholder="{{tr $.Page "搜索文档" "Search docs"}}" aria-label="{{tr $.Page "搜索文档" "Search docs"}}" autocomplete="off">
     <kbd>/</kbd>
     <ul class="results" hidden></ul>
   </div>
+  <a class="language" href="{{.Switch}}" data-anchors="{{.SwitchAnchors}}" lang="{{if eq .Lang "en"}}zh-CN{{else}}en{{end}}" aria-label="{{tr .Page "Switch to English" "切换到简体中文"}}">{{tr .Page "English" "中文"}}</a>
   <a class="gh" href="{{.Repo}}" aria-label="GitHub"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.34.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg><span>GitHub</span></a>
 </header>
 {{if .Home}}
 <section class="hero">
   <img class="hero-logo" src="{{.Root}}favicon.svg" alt="Keel" width="88" height="88">
-  <h1>用纯 Go 写桌面界面</h1>
-  <p>GPUI 风格的视图与链式样式，80 多个组件，Markdown 与代码编辑器，Agent 自动化测试；macOS、Windows、Linux 与浏览器。</p>
+  <h1>{{tr $.Page "用纯 Go 写桌面界面" "Build desktop UIs in pure Go"}}</h1>
+  <p>{{tr $.Page "GPUI 风格的视图与链式样式，80 多个组件，Markdown 与代码编辑器，Agent 自动化测试；macOS、Windows、Linux 与浏览器。" "GPUI-style views and fluent styling, 80+ components, Markdown and code editors, and agent automation. For macOS, Windows, Linux, and the browser."}}</p>
   <div class="actions">
-    <a class="btn primary" href="{{.Root}}docs/getting-started.html">快速开始</a>
-    <a class="btn" href="{{.Demo}}">在线体验组件库</a>
+    <a class="btn primary" href="{{.Root}}docs/getting-started.html">{{tr $.Page "快速开始" "Getting started"}}</a>
+    <a class="btn" href="{{.Demo}}?lang={{.Lang}}">{{tr $.Page "在线体验组件库" "Explore the gallery"}}</a>
     <a class="btn" href="{{.Repo}}">GitHub</a>
   </div>
   <pre class="install"><code>go get github.com/dyike/keel{{with .Version}}@{{.}}{{end}}</code></pre>
@@ -51,34 +55,34 @@
       {{if not .Home}}<h1>{{.Page.Title}}</h1>{{end}}
       {{with .Page.Section}}
       <figure class="demo">
-        <iframe data-src="{{$.Demo}}?section={{.}}" title="{{$.Page.Title}} 在线示例" loading="lazy"></iframe>
-        <figcaption>在线示例：这是真实的 Keel 程序编译成 WebAssembly，可以直接操作。首次加载约 10 MB。<a href="{{$.Demo}}?section={{.}}" target="_blank">全屏打开</a></figcaption>
+        <iframe data-src="{{$.Demo}}?section={{.}}&amp;lang={{$.Lang}}" title="{{$.Page.Title}} {{tr $.Page "在线示例" "live example"}}" loading="lazy"></iframe>
+        <figcaption>{{tr $.Page "在线示例：这是真实的 Keel 程序编译成 WebAssembly，可以直接操作。首次加载约 10 MB。" "Live example: a real Keel application compiled to WebAssembly. Interact with it here. The initial download is about 10 MB."}}<a href="{{$.Demo}}?section={{.}}&amp;lang={{$.Lang}}" target="_blank">{{tr $.Page "全屏打开" "Open full screen"}}</a></figcaption>
       </figure>
       {{end}}
       {{with .Page.DemoCode}}
       <details class="demo-source">
-        <summary>示例代码<span>Go · 可复制</span></summary>
+        <summary>{{tr $.Page "示例代码" "Example source"}}<span>{{tr $.Page "Go · 可复制" "Go · Copyable"}}</span></summary>
         <div class="demo-source-body">
-          <p>这是上方组件库展示案例的完整源码。<a href="{{$.Page.DemoURL}}">{{$.Page.DemoFile}}</a></p>
-          <p>在脚手架项目中复用组件构造和 Render 写法；示例的 <code>registerSection</code> 与共享辅助函数由<a href="{{$.Root}}examples/components/">组件库</a>提供。</p>
+          <p>{{tr $.Page "这是上方组件库展示案例的完整源码。" "This is the complete source for the gallery example above."}}<a href="{{$.Page.DemoURL}}">{{$.Page.DemoFile}}</a></p>
+          <p>{{tr $.Page "在脚手架项目中复用组件构造和 Render 写法；示例的 " "Reuse the component construction and Render methods in a scaffolded project. The example’s "}}<code>registerSection</code>{{tr $.Page " 与共享辅助函数由" " and shared helpers are provided by the "}}<a href="{{$.Root}}examples/components/">{{tr $.Page "组件库" "component gallery"}}</a>{{tr $.Page "提供。" "."}}</p>
           {{.}}
         </div>
       </details>
       {{end}}
       {{.Page.HTML}}
       {{if or .Page.Previous .Page.Next}}
-      <nav class="page-nav" aria-label="文档翻页">
-        {{with .Page.Previous}}<a class="previous" href="{{rel $.Page .Out}}" rel="prev"><span>← 上一页</span><strong>{{.Title}}</strong></a>{{end}}
-        {{with .Page.Next}}<a class="next" href="{{rel $.Page .Out}}" rel="next"><span>下一页 →</span><strong>{{.Title}}</strong></a>{{end}}
+      <nav class="page-nav" aria-label="{{tr $.Page "文档翻页" "Page navigation"}}">
+        {{with .Page.Previous}}<a class="previous" href="{{rel $.Page .Out}}" rel="prev"><span>{{tr $.Page "← 上一页" "← Previous"}}</span><strong>{{.Title}}</strong></a>{{end}}
+        {{with .Page.Next}}<a class="next" href="{{rel $.Page .Out}}" rel="next"><span>{{tr $.Page "下一页 →" "Next →"}}</span><strong>{{.Title}}</strong></a>{{end}}
       </nav>
       {{end}}
-      <footer class="edit"><a href="{{.Source}}">在 GitHub 上查看此页源文件</a>
-        <span class="license">Keel 采用 <a href="{{.Repo}}/blob/main/LICENSE">AGPL-3.0</a> 与<a href="{{.Repo}}/blob/main/LICENSING.md">商业授权</a>双授权</span></footer>
+      <footer class="edit"><a href="{{.Source}}">{{tr $.Page "在 GitHub 上查看此页源文件" "View this page on GitHub"}}</a>
+        <span class="license">{{tr $.Page "Keel 采用 " "Keel is dual licensed under "}}<a href="{{.Repo}}/blob/main/LICENSE">AGPL-3.0</a>{{tr $.Page " 与" " and "}}<a href="{{.Repo}}/blob/main/{{if eq .Lang "zh-CN"}}LICENSING.zh-CN.md{{else}}LICENSING.md{{end}}">{{tr $.Page "商业授权" "a commercial license"}}</a>{{tr $.Page "双授权" ""}}</span></footer>
     </article>
   </main>
   {{if .Page.TOC}}
-  <nav class="toc" aria-label="本页目录">
-    <p>本页</p>
+  <nav class="toc" aria-label="{{tr $.Page "本页目录" "On this page"}}">
+    <p>{{tr $.Page "本页" "On this page"}}</p>
     <ul>{{range .Page.TOC}}<li class="l{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>{{end}}</ul>
   </nav>
   {{end}}

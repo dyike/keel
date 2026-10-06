@@ -1,9 +1,11 @@
 # native/input
 
-合成鼠标、键盘事件：移动、点击、按键。
+English | [简体中文](README.zh-CN.md)
 
-- **依赖**：`native`（错误值）、`native/internal/sys`。
-- **单独使用**：可以，不需要窗口。除读取鼠标位置外都需要辅助功能权限。
+Synthesize mouse and keyboard events: movement, click, and key press.
+
+- **Dependencies**: `native` (error value), `native/internal/sys`.
+- **Used alone**: Yes, no window required. Accessibility permissions are required except for reading the mouse position.
 
 ```go
 import "github.com/dyike/keel/native/input"
@@ -13,4 +15,4 @@ input.Click(input.Left)
 input.Tap("enter")
 ```
 
-详见 [原生能力 · input](../../docs/native.md#input合成键鼠)。
+For details, see [Native capabilities · input](../../docs/native.md#input-synthetic-keyboard-and-mouse).

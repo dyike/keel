@@ -1,6 +1,8 @@
 # Label
 
-`kit.Label(text)` 显示可换行标签。`Secondary(text)` 在同一文本流后追加次级色文案，空字符串移除；`SetText` 更新主文案。
+English | [简体中文](label.zh-CN.md)
+
+`kit.Label(text)` displays wrappable labels. `Secondary(text)` appends the secondary color copy after the same text stream and removes the empty string; `SetText` updates the main copy.
 
 ```go
 kit.Label("公司名称").Secondary("（可选）").Highlights("公司")
@@ -10,10 +12,10 @@ kit.Label("Hello World").HighlightPrefix("Hello").Style(func(t *el.TextEl) {
 })
 ```
 
-`Highlights` 区分大小写，标记全部不重叠的精确匹配；`HighlightPrefix` 只匹配开头，两者后调用生效，空字符串清除。`HighlightColor` 覆盖主题 PrimaryText。次级文案使用当前主题 Muted，不参与搜索。
+`Highlights` is case-sensitive and marks all non-overlapping exact matches; `HighlightPrefix` only matches the beginning, and the call after the two will take effect, and the empty string will be cleared. `HighlightColor` Overrides the theme PrimaryText. The secondary copywriter uses the current theme Muted and does not participate in the search.
 
-`Masked(true)` 把主文案每个 Unicode rune 替换成一个圆点，同时关闭主文案高亮；渲染和 Agent 语义均只包含圆点。次级文案仍可见。组合字符和 emoji 序列可能对应多个圆点，不按字形计数。
+`Masked(true)` replaces each Unicode rune of the main copy with a dot and turns off the main copy highlighting; both rendering and Agent semantics only contain dots. Secondary copy is still visible. Combining characters and emoji sequences may correspond to multiple dots and are not counted by glyphs.
 
-`Style` 接收每帧新建的 TextEl，可配置字体、字重、行高、对齐、宽度、MaxLines 和 FocusOnPress 字段聚焦关联。不要保留该元素引用，或通过自定义 Name 重新暴露遮罩原文。nil 恢复默认样式。
+`Style` receives a new TextEl for each frame, configurable font, weight, line height, alignment, width, MaxLines and FocusOnPress field focus associations. Do not retain a reference to the element or re-expose the masked text via a custom Name. nil restores the default style.
 
-底层 `el.Text(...).Ranges(...)` 用半开 rune 区间着色，不拆开整段排版。匹配涉及连字/组合字符时，整个字形簇着色；彩色位图字形保持原色，截断省略号使用基础颜色。重叠区间后者优先，Shimmer 优先于 Ranges。
+The underlying `el.Text(...).Ranges(...)` is colored with half-open rune intervals and does not split the entire section for typesetting. When matching involves ligatures/combining characters, the entire glyph cluster is colored; colored bitmap glyphs remain in their original color, and truncated ellipses use the base color. The latter takes precedence over overlapping intervals, and Shimmer takes precedence over Ranges.

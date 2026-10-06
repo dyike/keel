@@ -1,14 +1,16 @@
 # Link
 
-可点击的文字链接。
+English | [简体中文](link.zh-CN.md)
+
+Clickable text links.
 
 ```go
 kit.Link("查看详情", openDetail)
 ```
 
-- 主色文字，悬停时变深。可以用 Tab 聚焦，回车或空格触发。
-- `SetText`、`SetDisabled`；禁用时变为次要文字色，不响应操作。
+- Main color text, darkens on hover. It can be triggered with Tab focus, Enter or Space.
+- `SetText`, `SetDisabled`; when disabled, it becomes the secondary text color and does not respond to operations.
 
-Agent：角色 `link`。
+Agent: role `link`.
 
-验证：`go run ./examples/components -section link`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section link`, add `-theme dark` to check the dark theme.

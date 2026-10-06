@@ -1,47 +1,49 @@
-# 组件视觉规范
+# Visual guidelines
 
-这份规范用于新增组件和改动后的复核。颜色、字体来源见 [主题](theme.md)，组件接口与状态约定见 [组件开发规范](component-development.md)。组件有特殊尺寸时，在自己的文档里说明。
+English | [简体中文](visual-guidelines.zh-CN.md)
 
-## 字体与对齐
+This specification is used for review of new components and changes. For the source of colors and fonts, see [Theme](theme.md), and for component interfaces and status conventions, see [Component Development Specification](component-development.md). When a component has special dimensions, describe it in its own documentation.
 
-正文使用 `theme.BodySize`（15sp），辅助文字使用 `SmallSize`（13sp），页面标题使用 `HeadingSize`（22sp）。字体沿用 `theme.Face`，中文、拉丁文和数字混排使用同一排版器；图标使用 kit 的 Icon 集，不用文字字符代替通用操作图标。
+## Fonts and alignment
 
-文字、光标、选区、占位文字必须共享排版原点和行高。不要根据字符串是否包含中文，分别给控件添加偏移。字形的视觉修正在 theme / el / editorstyle 层统一处理；排查步骤和历史回归见 [文字与光标故障记录](troubleshooting.md)。多行输入按实际测得行高计算视口，空行同样占一行；超过视口后滚动。
+Use `theme.BodySize` (15sp) for main text, `SmallSize` (13sp) for auxiliary text, and `HeadingSize` (22sp) for page titles. The font continues to be `theme.Face`, and Chinese, Latin and numbers use the same typesetting device; the icons use kit's Icon set, and no text characters are used to replace universal operation icons.
 
-图标和单行文字按容器中心对齐。大小为 28 / 32 / 40dp 的按钮分别使用 12 / 14 / 16sp 文字、14 / 16 / 20dp 图标。数字角标需要单独检查 `4`、`99+` 和中文，不能以中文截图代替数字验收。
+Text, cursor, selection, and placeholder text must share the typesetting origin and line height. Do not add offsets to controls separately based on whether the string contains Chinese characters. The visual correction of glyphs is handled uniformly at the theme / el / editorstyle layer; for troubleshooting steps and historical regression, see [Text and Cursor Fault Record](troubleshooting.md). For multi-line input, the viewport is calculated based on the actual measured line height. Empty lines also occupy one line; scroll after exceeding the viewport.
 
-## 尺寸和留白
+Icons and single lines of text are aligned to the center of the container. Buttons with sizes 28 / 32 / 40dp use 12 / 14 / 16sp text and 14 / 16 / 20dp icons respectively. Digital corner marks need to be checked separately for `4`, `99+` and Chinese. Chinese screenshots cannot be used in place of digital acceptance.
 
-间距取 [主题刻度](theme.md#尺寸刻度) 里的常量（`theme.SpaceMd` 等），不写裸数字。
+## Sizing and spacing
 
-| 用途 | 约定 |
+The spacing takes the constants in [theme scale](theme.md#spacing-and-sizing) (`theme.SpaceMd`, etc.), and does not write bare numbers.
+
+| Purpose | Agreement |
 | --- | --- |
-| 操作按钮 | 紧凑 28dp、标准 32dp、大号 40dp；圆角 6dp |
-| 图标与标签 | 间隔 6–8dp，图标不挤压正文 |
-| 表单输入 | 标准单行字段高 `theme.ControlHeight`（36dp），圆角 6dp、水平内边距 10dp；多行字段按行高计算视口 |
-| 同组控件 | 通常间隔 8–12dp |
-| 内容区块 | 通常间隔 16–24dp；卡片或页面内边距 16–24dp |
-| 分隔与焦点 | 边框使用语义色，按 dp 缩放，不混用物理像素 |
+| Action Buttons | Compact 28dp, Standard 32dp, Large 40dp; Rounded 6dp |
+| Icons and labels | Spacing 6–8dp, icons do not squeeze the text |
+| Form input | Standard single-line field height `theme.ControlHeight` (36dp), rounded corners 6dp, horizontal padding 10dp; multi-line fields calculate viewport based on row height |
+| Controls in the same group | Usually spaced 8–12dp |
+| Content blocks | Typically spaced 16–24dp; card or page padding 16–24dp |
+| Separation and focus | Use semantic colors for borders, scale by dp, do not mix physical pixels |
 
-窄窗口优先换行、折叠或提供可操作的滚动区域。正文不能被遮挡；单行标签截断时仍保留完整的可访问名称。图表、表格等有最小可读尺寸的组件应明确自己的滚动或裁剪行为。
+Narrow windows prioritize wrapping, folding, or providing operable scrolling areas. The body text cannot be obscured; single-line labels are truncated while retaining the full accessible name. Components such as charts and tables that have a minimum readable size should specify their own scrolling or cropping behavior.
 
-## 颜色和状态
+## Colors and states
 
-颜色在每次 Render 从 theme 读取。`Text` 用于正文，`Muted` 用于说明；选中背景用 `Highlight`，其上文字用 `PrimaryText`。实心 Primary / Danger 按钮使用 `OnColor`。Success / Warning / Info 适合状态文字和图标，不能默认把白字放到这些背景上。
+The color is read from theme on each Render. `Text` is used for the main text, and `Muted` is used for description; `Highlight` is used to select the background, and `PrimaryText` is used for the text above it. Solid Primary / Danger buttons use `OnColor`. Success / Warning / Info are suitable for status text and icons. White text cannot be placed on these backgrounds by default.
 
-| 状态 | 可见效果与行为 |
+| Status | Visible effects and behaviors |
 | --- | --- |
-| 悬停 / 按下 | 使用当前主题的 hover / active 色；不能改变布局尺寸 |
-| 焦点 | Tab、方向键和程序主动聚焦显示焦点框；鼠标点击普通控件保留实际焦点但不显示焦点框；输入框聚焦始终有边框；Tab 顺序与视觉顺序一致 |
-| 选中 | 颜色配合勾选、边框或明确的语义状态；不能只依赖红绿差异 |
-| 禁用 | 外观减弱，阻止输入、拖动和回调；所属区域禁用同样生效 |
-| 只读 | 保留阅读、选择和复制；禁止修改值，与禁用区分 |
-| 忙碌 | 显示进度或 Spinner，保留原有宽度；阻止重复提交 |
-| 错误 | DangerText 配合错误文字，关联相应字段；恢复后及时清除 |
-| 减少动画 | 遵循 theme 的有效偏好，保留最终状态和必要的状态提示 |
+| Hover / press | Use the hover / active color of the current theme; cannot change layout size |
+| Focus | Tab, arrow keys and the program automatically focus to display the focus box; mouse clicks on ordinary controls retain the actual focus but do not display the focus box; the input box always has a border when focused; the Tab order is consistent with the visual order |
+| Check | Color matches check, border, or explicit semantic state; cannot rely solely on red and green differences |
+| Disabled | The appearance is weakened and input, dragging and callbacks are blocked; disabling the corresponding area also takes effect |
+| Read-only | Reserved for reading, selection and copying; prohibiting modification of values, distinguished from disabled |
+| Busy | Display progress or spinner, retain original width; prevent repeated submissions |
+| Error | DangerText matches the error text and associates the corresponding fields; clear it promptly after recovery |
+| Reduced motion | Follow the theme's valid preferences, retain the final state and necessary state prompts |
 
-## 验收记录
+## Validation records
 
-每个组件至少覆盖浅色 / 深色、1× / 2×、标准 / 窄容器。具有 Size 接口的组件再检查紧凑与标准尺寸；文字用中文、English、`0123456789` 混排。记录静态截图与交互测试分别验证了什么，不把“能生成图片”写成“视觉验收通过”。
+Each component covers at least light/dark, 1×/2×, standard/narrow containers. Components with Size interface are rechecked for compact and standard sizes; text is mixed in Chinese, English, and `0123456789`. Record what static screenshots and interactive tests have verified respectively, and do not write "can generate pictures" as "visual acceptance passed".
 
-新增截图问题先定位具体组件，补可重复回归，再独立提交。首帧和交互后都要检查；原生窗口行为与离屏渲染分别记录，不能互相替代。
+When adding screenshot issues, first locate the specific component, fix the problem and revert it back, and then submit it independently. Both the first frame and after interaction are checked; native window behavior and off-screen rendering are recorded separately and cannot replace each other.

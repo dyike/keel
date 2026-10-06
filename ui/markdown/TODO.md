@@ -1,13 +1,15 @@
 # ui/markdown TODO
 
-对照 GPUI TextView 的补齐清单：
+English | [简体中文](TODO.zh-CN.md)
 
-- [x] 代码块操作槽和按语言替换展示：已实现并通过自动验证。
-- [x] 通用块级与行内解析/渲染插件：已实现并通过自动验证。
-- [x] 整体 MaxLines / IsClamped 折叠预览：已实现并通过自动验证。
-- [x] 流式增量淡入：已实现并通过自动验证。
-- [x] 公开渲染文本区间、高亮与区间定位：已实现并通过自动验证。
+Compare the completion list for GPUI TextView:
 
-已有能力和限制见 [Markdown 文档](../../docs/markdown.md)，交互验收见 [Chat 示例](../../examples/chat/README.md)。
+- [x] Code block operation slots and display replacement by language: implemented and automatically verified.
+- [x] Universal block-level and inline parsing/rendering plugins: implemented and automatically verified.
+- [x] Overall MaxLines/IsClamped collapse preview: implemented and passed automatic validation.
+- [x] Streaming incremental fade-in: implemented and automatically verified.
+- [x] Publicly rendered text intervals, highlighting and interval positioning: implemented and passed automatic verification.
 
-- [ ] 原生窗口的完整视觉与交互验收。
+For existing capabilities and limitations, see [Markdown document](../../docs/markdown.md), and for interactive acceptance, see [Chat example](../../examples/chat/README.md).
+
+- [] Complete visual and interactive acceptance of native windows.

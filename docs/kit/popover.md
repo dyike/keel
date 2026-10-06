@@ -1,30 +1,32 @@
 # Popover
 
-在触发元素旁边显示一块非模态面板，用于筛选条件、简短表单这类内容。
+English | [简体中文](popover.zh-CN.md)
+
+Displays a non-modal panel next to the trigger element for things like filters, short forms, etc.
 
 ```go
 filters := kit.Popover(form).Width(280).Offset(12)
 filters.Trigger(kit.Button("筛选", filters.Toggle).Variant(kit.ButtonSecondary))
 ```
 
-- 触发元素自己负责打开：把 `Toggle` 传给它的点击回调。Popover 只在触发元素外面包一层不可交互的锚点，不会多出 Tab 停靠点，键盘行为完全由触发元素决定。
-- 以下操作会关闭面板：再次点击触发元素、在面板和触发元素之外按下鼠标、按 Esc。面板外的那次点击会继续传给下面的元素。
-- 面板不会移动焦点。如果内容里有输入框，用户需要自己点进去或用 Tab 进入。
-- `Value()` 返回是否打开；`SetValue(bool)` 用程序打开或关闭，不触发回调；`OnChange(fn)` 只在用户操作时调用。
-- `Placement(side, align)` 设置面板相对触发元素的位置，默认 `el.Bottom, el.Start`；放不下时自动翻到对侧。
-- 需要 `el.Root`（见 [el · 浮层](../el.md#浮层e4--e5)）。
+- The triggering element is responsible for opening itself: pass `Toggle` to its click callback. Popover only wraps a layer of non-interactive anchor points outside the triggering element, and there are no additional tab stops. The keyboard behavior is completely determined by the triggering element.
+- The following actions close the panel: clicking the triggering element again, pressing the mouse outside the panel and triggering element, or pressing Esc. That click outside the panel will continue to be passed to the following elements.
+- The panel does not move focus. If there is an input box in the content, the user needs to click in it or use Tab to enter it.
+- `Value()` returns whether it is open; `SetValue(bool)` is opened or closed by program and does not trigger a callback; `OnChange(fn)` is only called when the user operates.
+- `Placement(side, align)` sets the position of the panel relative to the trigger element. The default is `el.Bottom, el.Start`; it will automatically flip to the opposite side if it cannot be placed.
+- Requires `el.Root` (see [el · overlay](../el.md#overlay-e4e5)).
 
-Agent：面板的角色是 `dialog`，里面的元素单独列出；页面其余部分仍然可见。
+Agent: The role of the panel is `dialog`, and the elements inside are listed separately; the rest of the page remains visible.
 
-验证：`go run ./examples/components -section popover`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section popover`, add `-theme dark` to check the dark theme.
 
-面板宽高受窗口约束，长内容可滚动。`Width(0)` 恢复按内容宽度；负数和非有限宽度会被忽略。`SetDisabled(true)` 关闭面板并禁用触发区域，程序打开和 Toggle 也不会绕过禁用。父容器禁用或锚点消失时，浮层会关闭。
+The width and height of the panel are constrained by the window, and long content can be scrolled. `Width(0)` Restores content-width; negative numbers and non-finite widths are ignored. `SetDisabled(true)` Closes the panel and disables the trigger area. Program opening and toggle will not bypass the disabling. The overlay will close when the parent container is disabled or the anchor disappears.
 
-内容中可以继续放 Menu、Select 等浮层组件。父面板先登记，内部浮层显示在上方；Esc 从最里面逐层关闭。示例的“选择预设”可验证这条路径。
+You can continue to place floating-layer components such as Menu and Select in the content. The parent panel is registered first, and the internal overlays are displayed at the top; Esc closes each layer from the innermost layer. The sample "Select Preset" verifies this path.
 
-`Offset(dp)` 设置触发元素与面板的间距，默认 4dp；0 表示贴合，负数允许重叠，NaN/无穷值忽略。打开时修改会在下一帧重新定位，不触发 OnChange。靠近窗口边缘仍会翻转或限制位置，实际间距可能受可用空间约束。
+`Offset(dp)` sets the spacing between the trigger element and the panel, the default is 4dp; 0 means fit, negative numbers allow overlap, and NaN/infinity values are ignored. Modifications when opened will be repositioned on the next frame and OnChange will not be triggered. Still flipping or constraining position near window edge, actual spacing may be limited by available space.
 
-`Appearance(false)` 移除默认背景、边框、圆角、阴影和内边距；默认开启。定位、滚动和关闭行为保留。
+`Appearance(false)` Removes default background, borders, rounded corners, shadow, and padding; on by default. Positioning, scrolling, and closing behaviors are retained.
 
 ```go
 filters.Appearance(false).PanelStyle(func(panel *el.DivEl) {
@@ -32,26 +34,26 @@ filters.Appearance(false).PanelStyle(func(panel *el.DivEl) {
 })
 ```
 
-`PanelStyle` 每帧在默认外观和 Width 之后调用，nil 移除自定义样式；不要保留元素引用。面板 ID、dialog 角色、窗口尺寸上限和滚动由组件最后设置。打开期间修改外观保留内容状态和焦点；回调中读取主题颜色可随主题切换更新。
+`PanelStyle` Called every frame after default appearance and Width, nil Remove custom styles; do not keep element references. The panel ID, dialog role, window size limit and scrolling are set last by the component. Modifying the appearance during opening retains content status and focus; the theme color read in the callback can be updated as the theme switches.
 
-`RightClick(true)` 让触发区域的右键按下直接调用 Toggle，再次右键关闭；false 恢复默认行为。左键和键盘仍执行触发元素自己的回调，不额外增加 Tab 停靠点。触发元素不要再注册调用 Toggle 的右键回调，以免执行两次。禁用自身或父容器时右键也不会打开面板。
+`RightClick(true)` allows right-clicking in the trigger area to directly call Toggle, and right-clicking again to close it; false restores the default behavior. The left click and keyboard still execute the trigger element's own callback, without adding additional tab stops. The triggering element should no longer register the right-click callback for calling Toggle to avoid executing it twice. Right-clicking when disabling itself or its parent container will not open the panel.
 
 ```go
 info := kit.Popover(details).RightClick(true)
-// 左键和键盘也能打开，作为右键操作的替代入口。
+// Left-click and keyboard can also be opened as an alternative entrance for right-click operations.
 info.Trigger(kit.Button("详情", info.Toggle))
 ```
 
-只希望鼠标右键打开时，可为触发按钮提供不同的左键回调；键盘替代入口由应用提供。其他鼠标按键使用 MouseButton 配置。
+It is only hoped that when the right mouse button is turned on, different left-click callbacks can be provided for the trigger button; the keyboard replacement entrance is provided by the application. Other mouse buttons are configured using MouseButton.
 
-`MouseButton(pointer.ButtonPrimary/Secondary/Tertiary)` 选择左键、右键或中键按下时自动切换面板。默认 0，由触发元素自己打开；`MouseButton(0)` 恢复该模式。非法值忽略，同时按下多个按键不触发。`RightClick(true/false)` 分别等同于选择右键/恢复手动模式，最后一次设置生效。
+`MouseButton(pointer.ButtonPrimary/Secondary/Tertiary)` Select to automatically switch panels when the left, right or middle button is pressed. The default is 0, which is opened by the trigger element itself; `MouseButton(0)` restores this mode. Illegal values are ignored, and pressing multiple keys at the same time does not trigger. `RightClick(true/false)` is equivalent to selecting right-click/return to manual mode respectively, and the last setting takes effect.
 
 ```go
 info.MouseButton(pointer.ButtonTertiary) // gioui.org/io/pointer
 ```
 
-监听不会吞掉触发元素自身的事件。选择左键自动打开时，不要再将 Toggle 绑定到按钮左键回调，否则会在按下和释放时各切换一次。自动监听不增加 Tab 停靠点，键盘替代入口仍由触发元素提供。
+Listeners will not swallow events that trigger the element itself. When selecting the left button to open automatically, do not bind Toggle to the button left button callback, otherwise it will switch once when pressed and released. Automatic listening does not add tab stops, and the keyboard replacement entrance is still provided by the trigger element.
 
-`Arrow(true)` 显示指向触发器的箭头，默认关闭。箭头深 6dp，面板相应增加 6dp 间距，Offset 测量到尖端。方向跟随实际定位翻转，沿面板边缘按 Start/Center/End 对齐并避开圆角；窄面板会缩小箭头。窗口边缘可能裁剪箭头。箭头独立于内容滚动，点击箭头不会关闭面板。
+`Arrow(true)` Shows an arrow pointing to the trigger, off by default. Arrows are 6dp deep, panels have a corresponding 6dp spacing, and Offset is measured to the tip. The direction flips to follow the actual positioning, aligning with Start/Center/End along the edges of the panel and avoiding rounded corners; narrow panels shrink arrows. Arrows may be clipped at the edge of the window. The arrows scroll independently of the content, and clicking on the arrows does not close the panel.
 
-箭头使用 PanelStyle 设置的纯色背景，未设置时取当前主题 Surface；不单独绘制阴影或边框，也不采样渐变背景。Appearance(false) 不会自动关闭箭头，可独立调用 Arrow(false)。
+The arrow uses the solid color background set by PanelStyle, which takes the current theme Surface when not set; no shadows or borders are drawn separately, and gradient backgrounds are not sampled. Appearance(false) does not automatically turn off the arrow. Arrow(false) can be called independently.

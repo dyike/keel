@@ -74,6 +74,7 @@ func (c *cli) newProject(args []string) error {
 	for out, tmpl := range map[string]string{
 		"main.go": "main.go.tmpl", "app.go": "app.go.tmpl",
 		".gitignore": "gitignore.tmpl", "README.md": "README.md.tmpl",
+		"README.zh-CN.md": "README.zh-CN.md.tmpl",
 	} {
 		if err := writeTemplate(filepath.Join(dir, out), tmpl, data); err != nil {
 			return err

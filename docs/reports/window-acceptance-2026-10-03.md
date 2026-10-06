@@ -1,9 +1,11 @@
-# 窗口验收 · 2026-10-03
+# Window acceptance · 2026-10-03
 
-原生窗口生命周期和初始位置用桌面测试验证：
+English | [简体中文](window-acceptance-2026-10-03.zh-CN.md)
+
+Native window life cycle and initial position are verified with desktop testing:
 
 ```sh
 KEEL_DESKTOP=1 go test ./ui/window -run TestRealWindows -count=1 -v
 ```
 
-2026-10-03 在 macOS 实际运行通过：多窗口置前/关闭、立即关闭后重开，以及普通/无边框窗口按屏幕可用区域居中。位置测试还移动窗口并请求后续帧，确认不会被重新居中。此结果未覆盖多显示器切换、Windows/Linux 的窗口管理器及系统偏好通知。
+2026-10-03 Actual operation on macOS passed: bringing multiple windows to front/closing, immediately closing and then reopening, and normal/borderless windows centered according to the available area of the screen. The position test also moves the window and requests subsequent frames to confirm it won't be re-centered. This result does not cover multi-monitor switching, Windows/Linux window managers, and system preference notifications.

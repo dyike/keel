@@ -1,6 +1,8 @@
 # Settings
 
-设置页提供页面导航、页面内多组设置、搜索和整页重置。窗口窄于 600dp 时，导航移到顶部，控件排到说明下方。
+English | [简体中文](settings.zh-CN.md)
+
+The settings page provides page navigation, multiple groups of settings within the page, search, and full page reset. When the window is narrower than 600dp, navigation is moved to the top and controls are arranged below the description.
 
 ```go
 name := kit.Input("")
@@ -22,24 +24,24 @@ s := kit.Settings().GroupVariant(kit.GroupBoxFill).
     })
 ```
 
-`Section(title, icon, items...)` 仍适用于只有一组的页面，可与 `Page` 混用。页面标题须唯一；`Value` / `SetValue` 读取和切换页面，首次添加的页面默认打开。`TitleSuffix` 接收页面标题后的视图。
+`Section(title, icon, items...)` still works for pages with only one set, and can be mixed with `Page`. The page title must be unique; `Value` / `SetValue` reads and switches pages, and the page added for the first time is opened by default. `TitleSuffix` The view after receiving the page title.
 
-`SettingGroup.Footer` 位于组的表面之外，跟随组一起滚动、过滤；它不是搜索内容，也不成为导航项。`GroupVariant` 设置统一外观，组的 `Variant` 指针可覆盖它，支持 GroupBox 的 Surface、Normal、Fill、Outline。未命中任何行的组不显示。
+`SettingGroup.Footer` is outside the group's surface and scrolls and filters with the group; it is not search content and does not become a navigation item. `GroupVariant` sets a unified appearance. The `Variant` pointer of the group can overwrite it. It supports Surface, Normal, Fill and Outline of GroupBox. Groups that do not hit any rows are not displayed.
 
-搜索不区分大小写，匹配 `Label`、`Description` 和独立的 `Keywords`。关键词不会显示。当前页面仍有匹配时保持选择，否则切到第一个匹配页；导航只显示匹配页。零结果保留选择但显示空状态，清空搜索保留当前选择。`Query` / `SetQuery` 可从应用操作搜索。
+The search is case-insensitive and matches `Label`, `Description`, and `Keywords` alone. Keywords will not be displayed. If there is still a match on the current page, keep it selected, otherwise it will switch to the first matching page; the navigation only displays the matching page. Zero results retain the selection but display an empty state, and a clear search retains the current selection. `Query` / `SetQuery` can be searched from the app actions.
 
-`DescriptionContent` 可接现有 `markdown.New(...)` 或任意 `el.View`，替代纯文本说明的显示；搜索内容仍由 `Description` 提供。富文本视图应在构建设置项时创建，以保留解析和交互状态。`Content` 替换整个行体，完全自定义的行也可用关键词搜索。`Vertical` 强制上下排列，`Disabled` 禁用整行，包括自定义内容内的交互。标准控件列宽 240dp；行标签会补给没有名称的控件。`RowSpacing` 调整行的上下留白，0 恢复主题默认；控件尺寸由传入的控件配置。
+`DescriptionContent` can be connected to the existing `markdown.New(...)` or any `el.View`, replacing the display of plain text description; the search content is still provided by `Description`. Rich text views should be created when building settings to preserve parsing and interaction state. `Content` replaces the entire line body, and fully customized lines can also be searched by keywords. `Vertical` forces top-bottom arrangement, `Disabled` disables interaction within the entire row, including custom content. Standard control column width is 240dp; row labels are supplied for controls without names. `RowSpacing` adjusts the upper and lower margins of the row, 0 restores the theme default; the control size is configured by the incoming control.
 
-页面声明 `Resettable: true` 后显示本地化重置按钮。点击会调用该页所有未禁用行的 `Reset`，包括搜索隐藏的行；没有回调的行跳过。`ResetPage(title)` 提供程序入口，未开启重置的页面不执行。默认值、应用状态和持久化由回调维护，不通过反射修改控件；例如还原主题时，需要同时更新开关和 `theme.Apply`。
+Display the localization reset button after the page declares `Resettable: true`. Clicking will call `Reset` for all non-disabled rows on the page, including searching for hidden rows; rows without a callback are skipped. `ResetPage(title)` provides program entry. Pages that are not reset will not be executed. Default values, application state and persistence are maintained by callbacks and controls are not modified through reflection; for example, when restoring a theme, switches and `theme.Apply` need to be updated at the same time.
 
-添加页面时会复制组、行、关键词和 Variant 值；视图和回调仍由应用共享。各行身份不随搜索结果的位置变化，控件状态在切页和搜索后保留。
+Groups, rows, keywords, and Variant values are copied when adding pages; views and callbacks are still shared by the app. The identity of each row does not change with the position of the search results, and the control state is retained after page cutting and searching.
 
-通常直接用 `el.Root(settings)` 填满窗口。运行 `go run ./examples/components -section settings` 查看多组、关键词、Markdown 和重置示例；加 `-theme dark` 检查深色。自动测试覆盖原有 1×/2× 窄布局、键盘和状态保持，以及分组过滤、页尾、数据副本、整页重置、自定义行与禁用；本批未做真机视觉验收。
+Usually the window is filled directly with `el.Root(settings)`. Run `go run ./examples/components -section settings` to see multi-group, keyword, Markdown, and reset examples; add `-theme dark` to check dark colors. The automatic test covers the original 1×/2× narrow layout, keyboard and status retention, as well as group filtering, page footer, data copy, full page reset, custom rows and disabling; this batch does not undergo real device visual acceptance.
 
-## 尺寸与分组导航
+## Size and group navigation
 
-`Size(SettingsSizeXSmall/Small/Medium/Large)` 统一调整行标签/说明字号、内边距、横向间距和控件列宽，默认 Medium 保持原布局。`RowSpacing` 的非零值覆盖尺寸预设的行内边距；自定义 Content 和控件自身尺寸仍由应用配置。
+`Size(SettingsSizeXSmall/Small/Medium/Large)` uniformly adjusts row label/caption font size, padding, horizontal spacing, and control column width. The default Medium maintains the original layout. A non-zero value for `RowSpacing` overrides the size's default inline margins; custom Content and the control's own size are still configured by the application.
 
-`GroupNavigation(true)` 将有标题且命中搜索的分组加入导航；窄窗口显示当前页的分组按钮。`ShowGroup(page, groupTitle)` 切换页面并定位分组，可独立于导航开关使用。缺失、重名或被搜索过滤的组返回 false，不清空查询。目标位置由布局计算，支持离屏分组。`Value()` 始终返回页面标题，`SetValue` 取消待处理的分组定位。
+`GroupNavigation(true)` Add the group with title and hit search to the navigation; the narrow window displays the group button of the current page. `ShowGroup(page, groupTitle)` switches pages and locates groups, and can be used independently of the navigation switch. If the group is missing, has the same name, or is searched and filtered, false will be returned and the query will not be cleared. The target position is calculated by the layout, and off-screen grouping is supported. `Value()` always returns the page title, `SetValue` cancels pending group targeting.
 
-自动测试覆盖双倍率宽窄窗口、离屏定位、分组点击、搜索过滤、重名拒绝与尺寸切换保留控件值；组件库默认展示 Small 和分组导航。原生视觉未验收。
+Automatic testing covers double-ratio wide and narrow windows, off-screen positioning, group clicks, search filtering, duplicate name rejection and size switching to retain control values; the component library displays Small and group navigation by default. Native vision is not accepted.

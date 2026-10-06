@@ -1,6 +1,8 @@
 # MessageGroup
 
-将完整消息行排成纵向组，保留各行的头像、头部、正文、状态、操作、反应和尾部。默认占满可用宽度，间距为 `theme.SpaceMd`（8dp）。分组由应用决定，不推断发送人，也不自动隐藏连续消息的头像或元数据。
+English | [简体中文](message_group.zh-CN.md)
+
+Arrange complete message lines into vertical groups, retaining the avatar, header, body, status, action, reaction, and trailer of each line. The default is to fill the available width with a spacing of `theme.SpaceMd` (8dp). Grouping is determined by the application, with no inference of sender and no automatic hiding of avatars or metadata for consecutive messages.
 
 ```go
 first := kit.Message("客服", answer).Header(kit.Label("客服 · 10:24"))
@@ -9,10 +11,10 @@ group := kit.MessageGroup(first, second).Name("客服消息").Gap(6)
 group.SetItems(second, first)
 ```
 
-`SetItems` 复制切片并忽略 nil，空参数清空；`Items` 返回副本。应复用 Message 实例，每个实例在组内只出现一次。插入、删除其他项或重排时，保留消息的输入与焦点继续保留。自定义 View 也可加入，但需自行提供稳定 ID。
+`SetItems` copies the slice and ignores nil, empty parameters are cleared; `Items` returns a copy. Message instances should be reused, each appearing only once within the group. The input and focus of the retained message are retained when other items are inserted, deleted, or reordered. Custom Views can also be added, but you need to provide a stable ID yourself.
 
-`Gap` 接受非负有限 dp，非法值忽略。`Style(func(*el.DivEl))` 在默认布局后调整背景、边框、间距等；nil 恢复默认，回调仅用于当帧元素。组件保留内部 ID、group 角色、名称及禁用状态。`SetDisabled` 禁用全部子项，不修改子组件自身状态。
+`Gap` accepts non-negative finite dp, illegal values are ignored. `Style(func(*el.DivEl))` adjusts the background, border, spacing, etc. after the default layout; nil restores the default, and the callback is only used for the current frame element. Components retain internal IDs, group roles, names, and disabled states. `SetDisabled` disables all sub-items and does not modify the status of the sub-component itself.
 
-与 BubbleGroup 的区别是组合对象：BubbleGroup 用于气泡表面，MessageGroup 用于含头像、元数据、操作的完整消息行。两者都不改变子项的对齐方式。
+The difference from BubbleGroup is the combination object: BubbleGroup is used for the bubble surface, and MessageGroup is used for the complete message line including avatar, metadata, and operations. Neither changes the alignment of the child.
 
-运行：`go run ./examples/components -section message_group`，加 `-theme dark` 检查深色。
+Run: `go run ./examples/components -section message_group`, add `-theme dark` to check the dark theme.

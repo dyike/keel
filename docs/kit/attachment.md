@@ -1,104 +1,106 @@
 # Attachment
 
-附件卡片：文件名、大小、上传进度或错误，可以打开、移除。
+English | [简体中文](attachment.zh-CN.md)
+
+Attachment card: file name, size, upload progress or errors, can be opened and removed.
 
 ```go
 a := kit.Attachment("报价单.pdf", size).OnRemove(remove).OnOpen(open)
-a.SetProgress(0.6)          // 上传中；负数表示已完成
+a.SetProgress(0.6)          // Uploading; negative number means completed
 a.SetError("超过 10 MB 上限")
 ```
 
-- 大小用 `kit.FileSize` 格式化为 B / KB / MB / GB。上传中显示进度条和"上传中 60%"，出错时用危险色显示原因。
-- "上传中"文字来自 locale。
+- Size formatted with `kit.FileSize` as B/KB/MB/GB. A progress bar and "Uploading 60%" are displayed during the upload. When an error occurs, the reason is displayed in a dangerous color.
+- The "Uploading" text comes from locale.
 
-Agent：角色 `attachment`，名字是文件名；`value` 为空、"上传中 60%"或 `error`；移除按钮名为"移除 文件名"。
+Agent: Role `attachment`, the name is the file name; `value` is empty, "Uploading 60%" or `error`; the remove button is named "Remove file name".
 
-验证：`go run ./examples/components -section attachment`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section attachment`, add `-theme dark` to check the dark theme.
 
-`OnCancel(fn)` 在上传中显示取消按钮；点击先标记已取消，再通知业务停止上传。`OnRetry(fn)` 在错误或取消后显示重试，点击先清除错误并将进度重置为 0，再调用业务回调。回调负责启动/停止真实传输；后台任务通过 `core.Update` 更新组件，并丢弃已取消任务的迟到结果。
+`OnCancel(fn)` displays a cancel button during the upload; click to mark canceled first and then notify the business to stop uploading. `OnRetry(fn)` displays retry after error or cancellation. Click to clear the error and reset the progress to 0 before calling the business callback. The callback is responsible for starting/stopping the real transfer; the background task updates the component via `core.Update` and discards late results from canceled tasks.
 
-`SetProgress` 清除此前错误和取消状态。进度大于 1 截为 1，NaN/Inf 忽略，负数标记完成。负文件大小显示为 0 B。只有完成且无错误的附件可以打开，取消和移除不会触发打开回调。`SetDisabled(true)` 禁止卡片内全部操作。取消、重试按钮的可访问名称包含文件名；取消状态的 Agent 值为 `canceled`。
+`SetProgress` Clears previous error and cancellation status. Progress greater than 1 is truncated to 1, NaN/Inf is ignored, and negative numbers mark completion. Negative file sizes appear as 0B. Only completed and error-free attachments can be opened, cancellation and removal will not trigger the open callback. `SetDisabled(true)` prohibits all operations on the card. The accessible names of the Cancel and Retry buttons include the file name; the Agent value for the Cancel state is `canceled`.
 
-`Media(view)` 用展示型 View 替换默认文件图标；nil 恢复图标。可传入 `kit.Image(pixels, alt).Size(width, height).Fit(kit.ImageCover)` 显示图片，也可用 MediaSource 由组件加载图片。横向媒体使用内容自身尺寸，最大宽度受卡片约束；横向预览宜用小缩略图，给文件名和操作留出空间。竖排默认使用方形预览，见下文。
+`Media(view)` Replaces the default file icon with a presentational View; nil restores the icon. You can pass in `kit.Image(pixels, alt).Size(width, height).Fit(kit.ImageCover)` to display the image, or you can use MediaSource to load the image from the component. Horizontal media uses the content's own size, and the maximum width is limited by the card; horizontal previews should use small thumbnails to leave space for file names and operations. Vertical layout uses square preview by default, see below.
 
-`Vertical(true)` 将媒体放在文字上方、操作叠加在卡片右上角，`Vertical(false)` 恢复默认横排。打开期间切换布局保持打开区域的键盘身份；上传/失败时预览不会触发 OnOpen，取消、重试、移除保持独立。Media 用于展示，打开交互交给附件 OnOpen，避免在预览内嵌套按钮或另一个可点击图片。此接口自动添加媒体状态遮罩；上传/处理中标题显示文字扫光，尺寸档见下文。
+`Vertical(true)` places the media above the text and overlays the operation in the upper right corner of the card. `Vertical(false)` restores the default horizontal layout. Switching layouts during opening maintains the keyboard identity of the open area; preview does not trigger OnOpen when uploading/fails, and cancellation, retry, and removal remain independent. Media is used for presentation, leaving the opening interaction to the attachment OnOpen, avoiding nesting buttons or another clickable image within the preview. This interface automatically adds a media status mask; the title during uploading/processing displays text sweep, and the size file is shown below.
 
-`AttachmentGroup(items ...el.View)` 将附件排列为可横向滚动的一行，不压缩卡片宽度。`Gap(dp)` 设置非负间距，默认 SpaceSm；`Name` 设置组的可访问名称。组宽度填满父容器，各项顶对齐。
+`AttachmentGroup(items ...el.View)` Arrange attachments into a horizontally scrollable row without compressing the card width. `Gap(dp)` sets the non-negative spacing, defaults to SpaceSm; `Name` sets the accessible name of the group. The group width fills the parent container, and the items are top aligned.
 
-`SetItems` 替换列表，`Items` 返回副本，两者隔离切片修改并忽略 nil 条目；附件实例仍共享，保持自身上传状态和回调。同一实例不要在组中重复渲染。`SetDisabled` 禁止组内操作，不修改附件自身禁用设置。移除由应用调用 SetItems 完成；组只负责排列与滚动，不接管文件选择或上传任务。
+`SetItems` replaces the list, and `Items` returns a copy. The two isolate slice modifications and ignore nil entries; the attachment instance is still shared, maintaining its own upload status and callbacks. Do not render the same instance repeatedly in a group. `SetDisabled` prohibits operations within the group and does not modify the attachment's own disabling settings. Removal is completed by the application calling SetItems; the group is only responsible for arrangement and scrolling, and does not take over file selection or upload tasks.
 
 ```go
 files := kit.AttachmentGroup(report, photo).Name("附件").Gap(12)
 photo.OnRemove(func() { files.SetItems(report) })
 ```
 
-`SetStatus(AttachmentStatus...)` 设置显式生命周期，`Status()` 读取当前有效状态。默认 Complete；可用 Pending、Uploading、Processing、Failed、Complete，以及 Keel 保留的 Canceled。状态值提供 IsPending/IsUploading/IsProcessing/IsFailed/IsComplete/IsInProgress 查询，IsInProgress 包含上传和处理。
+`SetStatus(AttachmentStatus...)` sets the explicit life cycle, and `Status()` reads the current effective state. The default is Complete; available are Pending, Uploading, Processing, Failed, Complete, and Keel reserved Canceled. The status value provides the IsPending/IsUploading/IsProcessing/IsFailed/IsComplete/IsInProgress query, IsInProgress includes uploading and processing.
 
-Pending 显示“待上传”，Processing 显示“处理中”；上传和处理中默认媒体图标替换为转圈，可取消。Failed 无错误说明时显示“上传失败”，可重试；仅 Complete 可打开。文字随 locale 切换，Agent 新增 pending/processing 值，旧有上传、error、canceled 和空值保持兼容。
+Pending displays "to be uploaded" and Processing displays "processing"; during uploading and processing, the default media icon is replaced with a spinning circle, which can be canceled. Failed If there is no error description, "Upload failed" is displayed and you can try again; only Complete can be opened. The text switches with the locale, the Agent adds pending/processing values, and the old upload, error, canceled and null values remain compatible.
 
-显式 SetStatus 清除错误和取消状态；进入 Uploading 保留有效进度或从 0 开始，其他状态清除进度。SetProgress 非负值进入 Uploading（包括 1），负值进入 Complete；完成传输后还需处理时显式设 Processing。SetError 临时覆盖当前状态，清空错误恢复此前状态；显式 Failed 需 SetStatus 或重试退出。取消状态继续优先于错误显示。所有程序状态更新不调用操作回调，重试先进入 0% 上传再通知应用。
+Explicit SetStatus clears error and cancellation status; entering Uploading retains valid progress or starts from 0, other status clears progress. SetProgress Non-negative values enter Uploading (including 1), negative values enter Complete; explicitly set Processing when processing is required after completing the transmission. SetError temporarily overwrites the current status and clears the error to restore the previous status; explicit Failed requires SetStatus or retry to exit. The canceled status continues to take precedence over error display. All program status updates do not call operation callbacks. When retrying, enter 0% upload before notifying the application.
 
-`Content(view)` 替换默认文件名、状态描述和进度条；nil 恢复默认。启用 OnOpen 时这里应使用展示内容，交互控件放进 `Actions(views...)`。自定义元信息自行读取 Status 并显示所需状态，卡片本身的 Agent 名称和生命周期值保持不变。
+`Content(view)` replaces the default file name, status description and progress bar; nil restores defaults. When OnOpen is enabled, the display content should be used here, and the interactive control should be placed in `Actions(views...)`. The custom meta-information reads Status by itself and displays the desired status, and the Agent name and lifecycle value of the card itself remain unchanged.
 
-`Actions` 复制传入切片，忽略 nil，在内置取消/重试之前添加控件。内置移除按钮独立放在卡片右上角。空参数清除自定义控件；清除 OnCancel/OnRetry/OnRemove 回调可去掉对应内置按钮。自定义操作不触发 OnOpen，遵守卡片和祖先禁用状态。
+`Actions` Copies the incoming slice, ignores nil, and adds control before built-in cancel/retry. The built-in remove button is placed independently in the upper right corner of the card. Empty parameters clear custom controls; clearing OnCancel/OnRetry/OnRemove callbacks can remove the corresponding built-in buttons. Custom actions do not trigger OnOpen and respect card and ancestor disabled states.
 
-`PartStyle(part, func(*el.DivEl))` 调整 Root、Media、Content、Title、Description、Actions 六个分区，常量统一以 AttachmentPart 开头。可设置背景、边框、圆角、间距、字号和颜色，也可用 Hidden 隐藏可选区域。样式在默认值之后应用，nil 恢复默认；元素每帧重建，不应保存引用或在样式回调里添加子内容。Root 的 ID、角色、名称、生命周期值及窗口最大宽度由组件保持。Title/Description 只作用于默认元信息，Content 自定义时由应用控制内部样式。
+`PartStyle(part, func(*el.DivEl))` adjusts the six partitions of Root, Media, Content, Title, Description, and Actions, and the constants all start with AttachmentPart. You can set the background, border, rounded corners, spacing, font size and color, and you can also use Hidden to hide the optional area. The style is applied after the default value, nil restores the default; the element is rebuilt every frame and should not save references or add child content in the style callback. The Root's ID, role, name, lifetime value, and window maximum width are maintained by the component. Title/Description only works on the default meta information, and the application controls the internal style when the Content is customized.
 
-`Size(AttachmentSize...)` 选择 XSmall、Small、Medium、Large 四档，默认 Medium。卡片宽度分别为 176/200/232/272dp，默认媒体边长 28/32/38/44dp，标题字号 11/12/13/14sp；最小高度为 40/48/56/64dp，内容较多时继续增高。内边距、间距和内置操作按钮随档位调整。
+`Size(AttachmentSize...)` Select four levels: XSmall, Small, Medium and Large, the default is Medium. The card width is 176/200/232/272dp respectively, the default media side length is 28/32/38/44dp, the title font size is 11/12/13/14sp; the minimum height is 40/48/56/64dp, and will continue to increase when there is more content. Padding, spacing, and built-in action buttons adjust with gears.
 
-默认 Medium 宽度从原来的 280dp 调整为 232dp。`PartStyle` 在尺寸默认值后应用，可覆盖宽度和媒体尺寸；自定义 Media/Content/Actions 中显式设置的尺寸保持不变。竖排默认方形预览和右上角操作；自定义比例见 MediaAspectRatio。
+The default Medium width has been adjusted from the original 280dp to 232dp. `PartStyle` is applied after size defaults, overriding width and media sizes; sizes explicitly set in custom Media/Content/Actions remain unchanged. Vertical default square preview and upper right corner operation; see MediaAspectRatio for custom ratio.
 
-默认状态外观：Pending 使用虚线边框，Failed 使用 DangerText 边框；完成后恢复普通边框。未提供自定义 Media 时，失败显示危险色背景和图标：有 OnRetry 用错误图标，无 OnRetry 用禁止图标。自定义媒体上传时覆盖暗色遮罩和白色进度环，处理中显示不确定进度环；失败时遮罩加深，有 OnRetry 显示圆形重试按钮，否则显示禁止图标。完成、待上传和取消状态恢复原预览。遮罩不改变媒体尺寸，裁剪跟随 Media 分区圆角。媒体重试与操作区重试共用状态校验，先进入 0% 上传再通知应用，遵守卡片及祖先禁用；仅完成状态可打开。
+Default state appearance: Pending uses a dashed border, Failed uses a DangerText border; returns to normal borders when completed. When no custom Media is provided, a dangerous color background and icon are displayed on failure: an error icon is used for OnRetry, and a prohibition icon is used for OnRetry without. When custom media is uploaded, it is covered with a dark mask and a white progress ring, and an indeterminate progress ring is displayed during processing; when it fails, the mask is deepened, and OnRetry displays a circular retry button, otherwise a forbidden icon is displayed. The completed, pending upload and canceled statuses restore the original preview. Masking does not change the media size, and cropping follows the Media partition rounding. Media retry and operation area retry share status verification. Enter 0% upload first and then notify the application. Cards and ancestors are disabled; only the completion status can be opened.
 
-分区样式在状态默认值之后应用，可通过 Root 的 `Border` 覆盖颜色/宽度，`BorderDashed(false)` 恢复实线；Media 可覆盖背景。底层 el 的 BorderDashed 同样适用于其他元素和状态样式，保持原有边框宽度与圆角，虚线为 4dp 实段和 3dp 间隔。
+Partition styles are applied after state defaults, color/width can be overridden via Root's `Border`, `BorderDashed(false)` restores solid lines; Media can override background. The underlying el's BorderDashed also applies to other elements and state styles, maintaining the original border width and rounded corners, and the dashed line is 4dp solid segment and 3dp spacing.
 
-`MediaOverlay(view)` 在媒体区域居中叠加自定义 View，绘制于预览和内置生命周期遮罩上方，不参与媒体尺寸计算；nil 移除。可放播放按钮、徽标或自定义进度，内容应适配媒体大小，超出部分按媒体边界和圆角裁剪。无自定义 Media 时同样可叠加在默认图标上。
+`MediaOverlay(view)` overlays the custom View in the center of the media area, draws it above the preview and built-in life cycle mask, and does not participate in media size calculation; nil removes it. You can place a play button, logo or custom progress. The content should fit the media size, and the excess parts should be cropped according to the media boundaries and rounded corners. If there is no custom Media, it can also be superimposed on the default icon.
 
-叠加层按钮有独立点击和键盘焦点，不触发附件 OnOpen，遵守附件和祖先禁用。展示内容或叠加层的空白处仍可打开已完成附件；上传、处理和失败期间不会打开附件。状态切换保留叠加层身份，应用可在 ViewFunc 中按 Status 自行决定显示内容。
+Overlay buttons have independent click and keyboard focus, do not trigger attachment OnOpen, respect attachment and ancestor disabling. Completed attachments can still be opened in empty spaces in display content or overlays; attachments will not be opened during upload, processing, and failure. State switching preserves the overlay identity, and the app can decide what to display by pressing Status in the ViewFunc.
 
 ```go
 a.MediaOverlay(kit.Button("播放", play).Size(24))
-a.MediaOverlay(nil) // 清除叠加层
+a.MediaOverlay(nil) // clear overlay
 ```
 
-默认标题在上传和处理中显示 ShimmerText 扫光，其他状态或减少动画时恢复普通文字；保留 Title 分区继承的字号、字重和行高。自定义 Content 替换默认标题，需要时可组合 kit.ShimmerText。
+The default title displays ShimmerText sweep during uploading and processing, and returns to normal text in other states or when reduced motion; retains the font size, font weight, and line height inherited by the Title partition. Custom Content replaces the default title and can be combined with kit.ShimmerText if needed.
 
-`PartStatus(part, status)` 为默认 Title 或 Description 设置独立展示状态；`ClearPartStatus(part)` 恢复继承附件当前有效状态。非法状态、其他分区忽略。Title 的上传/处理状态控制扫光；Description 的状态控制自动文案及失败配色。覆盖在父状态更新后继续保留，不修改附件本身的状态、媒体、进度条、打开/取消/重试逻辑或 Agent 生命周期值。
+`PartStatus(part, status)` sets the independent display status for the default Title or Description; `ClearPartStatus(part)` restores the current valid status of inherited attachments. Illegal status and other partitions are ignored. The upload/processing status of Title controls scanning; the status of Description controls automatic text and failed color matching. The override persists after the parent state is updated, without modifying the attachment's own state, media, progress bar, open/cancel/retry logic, or Agent lifecycle values.
 
-`Description(text)` 替换默认描述文字，同时保留有效描述状态的颜色；空字符串显示空文案。`ClearDescription()` 恢复自动大小/状态文案。覆盖为 Uploading 但附件没有有效上传进度时显示 0%。PartStyle 仍在状态配色之后应用。自定义 Content 替换整个默认元信息，此时标题/描述配置暂不显示；清除 Content 后恢复。
+`Description(text)` replaces the default description text while retaining the color of the active description state; an empty string displays empty copy. `ClearDescription()` Restore automatic size/status text. Displays 0% when the override is Uploading but the attachment has no valid upload progress. PartStyle is still applied after state color matching. Custom Content replaces the entire default meta information. At this time, the title/description configuration is not displayed for the time being; it will be restored after clearing Content.
 
 ```go
 a.SetError("当前版本上传失败")
 a.Description("上一版本已上传").
     PartStatus(kit.AttachmentPartDescription, kit.AttachmentStatusComplete)
-// 卡片仍处于失败状态，描述采用普通颜色；重试操作仍可用。
+// The card is still in a failed state and the description is in normal color; retry operations are still available.
 a.ClearPartStatus(kit.AttachmentPartDescription).ClearDescription()
 ```
 
-`MediaAspectRatio(width/height)` 配置竖排预览比例，默认 1；例如 2 为宽度两倍于高度。0 恢复媒体自然尺寸，负值与非有限值忽略。竖排预览填满卡片内宽，已加载的 kit.Image 默认居中裁剪覆盖预览，不修改原 Image 实例；其他自定义 View 保持自身尺寸并居中。PartStyle(Media) 的显式高度优先于比例，也可用 AspectRatio 覆盖比例。
+`MediaAspectRatio(width/height)` configures the vertical preview ratio, the default is 1; for example, 2 means the width is twice the height. 0 restores the media to its natural size, negative and non-finite values are ignored. The vertical preview fills the inner width of the card. The loaded kit.Image is cropped in the center and covers the preview by default, without modifying the original Image instance; other custom Views maintain their own size and are centered. The explicit height of PartStyle(Media) takes precedence over the scale, which can also be overridden with AspectRatio.
 
-竖排操作区叠加在卡片右上角，默认偏移随尺寸档内边距变化；自定义 Root 内边距后，可用 PartStyle(Actions) 调整 Top/Right。操作背景取 Surface，按钮遵守禁用且不触发打开，横竖切换保留按钮焦点。操作区按内容宽度收缩，过多操作可能遮挡预览，应用应限制数量或用 PartStyle(Actions) 配置换行。
+The vertical operation area is superimposed on the upper right corner of the card, and the default offset changes with the padding of the size file; after customizing the Root padding, you can use PartStyle(Actions) to adjust Top/Right. The operation background is Surface, the buttons are disabled and do not trigger opening, and the button focus is retained when switching between horizontal and vertical directions. The operation area shrinks according to the content width. Too many operations may block the preview. The application should limit the number or use PartStyle(Actions) to configure line wrapping.
 
-布局变化：原竖排自然预览及底部操作改为上述默认值。需要保留自然预览时设置 MediaAspectRatio(0)。独立示例：`go run ./examples/components -section attachment_vertical`。
+Layout changes: The original vertical natural preview and bottom operations are changed to the above default values. Set MediaAspectRatio(0) when you need to preserve the natural preview. Standalone example: `go run ./examples/components -section attachment_vertical`.
 
-底层 el 的 `AspectRatio(ratio)` 在宽度已解析、高度自动时按宽高比推导高度；显式高度和最大/最小高度限制优先，0 清除比例。它不为两个轴均自动的内容推导尺寸。
+`AspectRatio(ratio)` of the underlying el derives height by aspect ratio when width is parsed and height is automatic; explicit height and max/min height constraints take precedence, 0 clears the scale. It does not automatically derive dimensions for content in both axes.
 
-`ShowMedia`、`ShowContent`、`ShowActions` 独立控制媒体、元信息和操作区，默认均显示。隐藏后不占布局、不出现在 Agent 元素中，也不可聚焦/操作；再次显示使用原来的内容、样式、回调和状态配置。附件的文件名与生命周期语义始终保留。ShowActions 控制操作区内的自定义和内置按钮，媒体遮罩的重试按钮及 MediaOverlay 仍由 ShowMedia 控制。
+`ShowMedia`, `ShowContent`, `ShowActions` independently control the media, meta information and operation area, all displayed by default. After hiding, it does not occupy the layout, does not appear in the Agent element, and cannot be focused/operated; it will be displayed again using the original content, style, callback and status configuration. The filename and lifecycle semantics of attachments are always preserved. ShowActions controls custom and built-in buttons in the action area. The media mask's retry button and MediaOverlay are still controlled by ShowMedia.
 
-竖排且显示媒体、隐藏元信息时，卡片成为纯图片 tile：去掉内边距与最小高度，预览铺满边框内侧，默认内圆角比卡片小 1dp。默认仍为方形，MediaAspectRatio 可改比例。自定义 Root 的边框/圆角后，可用 PartStyle(Media) 同步内圆角。只有操作区时采用普通流布局，避免操作悬在空预览上；三个区域全部隐藏时保留卡片外壳及语义。
+When arranged vertically with media displayed and meta information hidden, the card becomes a pure image tile: the padding and minimum height are removed, the preview fills the inside of the border, and the default inner rounded corner is 1dp smaller than the card. The default is still square, MediaAspectRatio can change the ratio. After customizing the border/rounded corners of Root, you can use PartStyle(Media) to synchronize the inner rounded corners. When there is only an operation area, a normal flow layout is used to avoid operations hanging on an empty preview; when all three areas are hidden, the card shell and semantics are retained.
 
 ```go
-photo.Vertical(true).ShowContent(false) // 纯图片卡片
-file.ShowMedia(false)                  // 只有元信息和操作
-file.ShowMedia(false).ShowContent(false) // 只有操作区
-photo.ShowContent(true)                // 恢复元信息
+photo.Vertical(true).ShowContent(false) // Pure picture card
+file.ShowMedia(false)                  // Only meta information and operations
+file.ShowMedia(false).ShowContent(false) // Only operating area
+photo.ShowContent(true)                // Restore meta information
 ```
 
-`MediaSource(source)` 从 data URL、本地路径或 HTTP(S)（需引入 `ui/netimage`）后台加载预览，支持 PNG、JPEG、WebP、GIF（显示第一帧）和 SVG，大小限制与 core.DecodeImage 相同。重复设置同一来源不重新请求；`RetryMedia()` 显式重载，`MediaSource("")` 恢复默认图标。`Media(view)` 会取消来源加载并使用给定 View。切换来源会取消旧请求，版本校验阻止迟到结果覆盖新预览；单次请求有 15 秒期限，不跨实例缓存。移除卡片时应用可调用 MediaSource("") 取消尚未完成的请求。
+`MediaSource(source)` loads previews in the background from data URL, local path or HTTP(S) (requires introduction of `ui/netimage`), supports PNG, JPEG, WebP, GIF (shows the first frame) and SVG, the size limit is the same as core.DecodeImage. Repeatedly setting the same source will not request again; `RetryMedia()` is explicitly overloaded, and `MediaSource("")` restores the default icon. `Media(view)` cancels source loading and uses the given View. Switching sources cancels old requests, and version verification prevents late results from overwriting new previews; a single request has a 15-second deadline and is not cached across instances. When removing a card, the app can call MediaSource("") to cancel the pending request.
 
-`MediaLoading()`、`MediaError()` 查询加载结果。预览加载不改变附件上传状态，也不调用 OnRetry；加载失败时媒体中的重试按钮只重载图片。附件本身处于上传、处理中或失败时，优先显示生命周期遮罩和上传操作；应用仍可显式调用 RetryMedia 重载图片。禁用卡片或祖先会禁用图片重试按钮。
+`MediaLoading()`, `MediaError()` query the loading results. Preview loading does not change the attachment upload status, nor does it call OnRetry; when loading fails, the retry button in the media only reloads the image. When the attachment itself is being uploaded, processed, or failed, the life cycle mask and upload operation will be displayed first; the application can still explicitly call RetryMedia to reload the image. Disabling a card or ancestor disables the image retry button.
 
-URL 预览在横排（或自然尺寸模式）使用尺寸档对应的固定缩略图，竖排按 MediaAspectRatio 填满并居中裁剪；加载、失败、成功不改变预览尺寸。加载中报告 image/loading，成功报告 image/loaded，失败媒体组报告 image-error。解码和真实传输在后台，状态更新经 core.Update 回到 UI；应用从后台调用这些配置方法时也应使用 core.Update。
+The URL preview uses a fixed thumbnail corresponding to the size file in landscape orientation (or natural size mode), and the vertical format is filled according to MediaAspectRatio and cropped in the center; loading, failure, and success do not change the preview size. Loading reports image/loading, success reports image/loaded, and failed media groups report image-error. Decoding and actual transmission are in the background, and status updates are returned to the UI via core.Update; applications should also use core.Update when calling these configuration methods from the background.
 
 ```go
 photo.MediaSource("https://example.com/photo.png")
@@ -106,10 +108,10 @@ if err := photo.MediaError(); err != nil { /* 显示错误详情 */ }
 photo.RetryMedia()
 ```
 
-`TitleShimmer(ShimmerStyle)` 独立配置默认标题的扫光周期、宽度、反向和单次播放，可与 ShimmerText.Style 共享同一配置值。传 ShimmerStyle{} 恢复默认，非法周期/宽度使用默认值。配置变化重启标题动画，每帧重复设置同一配置不会重启；隐藏标题、完成上传或减少动画时显示静态文字。PartStatus(Title) 继续决定标题的有效状态，自定义 Content 自行组合 ShimmerText。
+`TitleShimmer(ShimmerStyle)` independently configures the sweep period, width, reverse and single playback of the default title, and can share the same configuration value with ShimmerText.Style. Pass ShimmerStyle{} to restore the default, and use the default value for illegal periods/widths. The title animation is restarted when the configuration changes. Setting the same configuration repeatedly in each frame will not restart; static text is displayed when the title is hidden, the upload is completed, or the animation is reduced. PartStatus(Title) continues to determine the valid status of the title, and custom Content combines ShimmerText by itself.
 
 ```go
 a.TitleShimmer(kit.ShimmerStyle{Duration: 3*time.Second, Spread: .45, Reverse: true})
 ```
 
-`RemoveOnHover(on)` 控制内置移除按钮的显示：桌面默认开启，鼠标进入附件或键盘焦点进入其内部时显示；离开且失去焦点后隐藏。隐藏只改变绘制透明度，保留布局、语义和 Tab 停靠点，不影响取消、重试及自定义操作。Android/iOS 默认常显，触屏网页或混合输入应用可显式调用 `RemoveOnHover(false)` 常显。`ShowActions(false)` 仍会移除整个操作区的布局和交互。内置移除按钮使用 Surface 背景、细边框和圆形轮廓，中心落在卡片右上角，顶部/右侧各预留半个按钮的外伸空间；透明隐藏时仍保留这部分空间。按钮直径随尺寸档为 20/22/24/28dp，卡片宽度仍指表面宽度，整体占位额外增加半个按钮宽度，窄窗口优先缩小表面。取消/重试和自定义操作继续位于 Actions，PartStyle(Actions) 不再影响移除角标；ShowActions(false) 同时隐藏操作区和角标。PartStyle(Root) 仍配置卡片表面，Hidden 会连同角标隐藏，表面配色/圆角不改变角标自身外观。
+`RemoveOnHover(on)` controls the display of the built-in remove button: it is enabled by default on the desktop, displayed when the mouse enters an attachment or the keyboard focus enters it; it is hidden after leaving and losing focus. Hide only changes the drawing transparency, retains the layout, semantics, and tab stops, and does not affect cancellation, retry, and customization operations. Android/iOS always displays by default. Touch screen web pages or mixed input applications can explicitly call `RemoveOnHover(false)` to always display. `ShowActions(false)` still removes the layout and interaction of the entire action area. The built-in remove button uses the Surface background, a thin border, and a rounded outline, centered in the upper right corner of the card, leaving half the button's overhang space on the top and right sides; this space is still retained when hidden transparently. The button diameter varies with the size range to 20/22/24/28dp. The card width still refers to the surface width. The overall footprint is increased by an additional half button width. Narrow windows give priority to reducing the surface. Cancel/retry and custom operations continue to be located in Actions, PartStyle(Actions) no longer affects the removal of the badge; ShowActions(false) hides the action area and the badge at the same time. PartStyle(Root) still configures the card surface, Hidden will be hidden together with the corner marker, and surface color matching/rounding will not change the appearance of the corner marker itself.

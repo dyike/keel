@@ -1,23 +1,25 @@
 # Alert
 
-`kit.Alert("保存失败").Tone(kit.ToneDanger).Description("网络不可用").OnClose(fn)` 显示行内提示。默认 ToneInfo；Tone 支持 ToneNeutral、ToneInfo、ToneSuccess、ToneWarning、ToneDanger。SetTone、SetTitle、SetDescription 可程序更新。
+English | [简体中文](alert.zh-CN.md)
 
-左侧等级条和图标随主题取色，标题加粗，默认描述为 13sp Muted。
+`kit.Alert("保存失败").Tone(kit.ToneDanger).Description("网络不可用").OnClose(fn)` Displays inline hints. The default is ToneInfo; Tone supports ToneNeutral, ToneInfo, ToneSuccess, ToneWarning, and ToneDanger. SetTone, SetTitle, SetDescription can be updated programmatically.
 
-- `Size(AlertSizeXSmall/AlertSizeSmall/AlertSizeMedium/AlertSizeLarge)` 设置四档字号、图标与内边距，默认 Medium 保留原布局；非法值忽略。
-- `Icon(IconName)` 替换等级图标，`IconNone` 隐藏图标及其间距。
-- `Content(el.View)` 替换描述，可传 Markdown 文档、富文本或操作按钮；传 nil 恢复 Description。正文控件保留自己的键盘与点击行为，并继承 Alert 的禁用状态。
-- `Banner(true)` 使用满宽、直角、无边框的染色横幅，不显示单独标题行；显示 Content 或 Description，没有正文时以标题作消息。关闭按钮和 Agent 名称仍使用标题。传 false 恢复行内提示。
+The left level bar and icons are colored according to the theme, the title is bold, and the default description is 13sp Muted.
+
+- `Size(AlertSizeXSmall/AlertSizeSmall/AlertSizeMedium/AlertSizeLarge)` sets four levels of font size, icon and padding. The default is Medium to retain the original layout; illegal values are ignored.
+- `Icon(IconName)` replaces the level icon, `IconNone` hides the icon and its spacing.
+- `Content(el.View)` replaces the description, and can pass Markdown document, rich text or action button; pass nil to restore Description. The text control retains its own keyboard and click behavior, and inherits Alert's disabled state.
+- `Banner(true)` uses a full-width, right-angled, borderless dyed banner, without displaying a separate title line; displays Content or Description, and uses the title as the message when there is no body text. The Close button and Agent name still use the title. Pass false to restore inline hints.
 
 ```go
 notice := kit.Alert("维护通知").Banner(true).
     Description("今晚进行例行维护").Icon(kit.IconCalendar).
     Size(kit.AlertSizeSmall)
-// 富文本由应用组合：notice.Content(markdown.New("**注意**：请先保存工作"))
+// Rich text is composed by the application: notice.Content(markdown.New("**NOTE**: Please save your work first"))
 ```
 
-只有设置 OnClose 才显示关闭按钮；点击或 Tab 聚焦后 Space/Enter 关闭，先隐藏再回调。Visible 查询状态，SetVisible 恢复或隐藏时不调用回调。
+The close button is displayed only when OnClose is set; Space/Enter is closed after click or Tab focus, and is hidden first and then called back. Visible queries the status, SetVisible does not call the callback when restoring or hiding.
 
-Agent 容器角色 alert，名字为标题，value 为等级。描述和关闭按钮单独可读。窄容器文字换行。运行 `go run ./examples/components -section alert -theme dark`；省略 theme 查看浅色。
+Agent container role alert, the name is the title, and the value is the level. The description and close button are individually readable. Narrow container text wraps. Run `go run ./examples/components -section alert -theme dark`; omit theme to see the light themes.
 
-SetDisabled(true) 禁止关闭并向按钮传递 disabled 语义；恢复启用后可以重新聚焦和关闭，不会因测量或主题切换丢失显隐状态。
+SetDisabled(true) disables closing and passes disabled semantics to the button; it can be refocused and closed after being restored, and the visible and hidden state will not be lost due to measurement or theme switching.

@@ -1,8 +1,10 @@
 # ui/internal/imageload
 
-`ui/markdown` 的图片：调用 `core.DecodeImage` 解析来源（文件路径、`file://`、`data:`、`http(s)://`），在后台 goroutine 加载解码，限制文件大小和像素数，加载中和失败时画占位。
+English | [简体中文](README.zh-CN.md)
 
-- **依赖**：`ui/core`、`ui/theme`、`ui/locale`、`ui/internal/loop`。
-- **被谁依赖**：`ui/markdown`（公开为 `markdown.ImageLoader` 和 `markdown.DecodeImage`）。
+Image loading for `ui/markdown`: `core.DecodeImage` resolves file paths, `file://`, `data:`, and `http(s)://` sources. A background goroutine loads and decodes the image with byte and pixel limits; the view draws placeholders while loading or after failure.
 
-`Load` 返回 `*Asset`，加载完成后通过 `core.Update` 写回并重绘；`Revision` 变化表示状态变了。`View` 画图片，Agent 看到的角色是 `image`，值是 loading / loaded / error。kit 的 `Image` 直接接收 `image.Image`，不经过这里。
+- **Dependencies:** `ui/core`, `ui/theme`, `ui/locale`, and `ui/internal/loop`.
+- **Used by:** `ui/markdown`, exposed as `markdown.ImageLoader` and `markdown.DecodeImage`.
+
+`Load` returns an `*Asset`. On completion, `core.Update` applies the result and requests a redraw; a change in `Revision` indicates a state change. `View` draws the image. Agents see role `image` and value loading / loaded / error. The kit `Image` also accepts an `image.Image` directly without using this package.

@@ -1,6 +1,8 @@
 # Table
 
-数据表格：排序、选择、调整列宽、自定义单元格，只构建可见的行。
+English | [简体中文](table.zh-CN.md)
+
+Data tables: sort, select, adjust column widths, customize cells, build only visible rows.
 
 ```go
 t := kit.Table(kit.Col("单号").Width(120), kit.Col("客户").Flex(2), kit.Col("金额").Numeric()).
@@ -8,58 +10,58 @@ t := kit.Table(kit.Col("单号").Width(120), kit.Col("客户").Flex(2), kit.Col(
 t.SetRows(rows)
 ```
 
-- 列：
-  - `Col(title)` 默认等分宽度；`Flex(w)` 按比例分配，`Width(dp)` 固定宽度；
-  - `Numeric()` 右对齐并按数字排序；`NoSort()` 禁止按这一列排序；
-  - `Cell(fn)` 用自定义元素渲染单元格（比如标签、按钮），Agent 看到的仍是行的文字。
-- 点击表头排序，再点一次反向；`SortBy(col, desc)` 用程序排序，`col` 为 -1 时恢复原始顺序。
-- 拖动表头右边缘调整列宽，调整后该列变为固定宽度。横向拖动表头主体可换序，指向目标列前半部插到其前，后半部插到其后；插入位置显示主题色细线，松手应用，移出表头区域或取消手势则放弃。拖动不会触发排序。停在非冻结表头区域左右边缘 32dp 内会持续横向滚动，越靠边速度越快（最高 360dp/s）；冻结列区域不触发滚动。松手或取消后停止，滚动期间会更新插入位置。
-- 点击或用 ↑ ↓ Home End PageUp PageDown 选择，双击或回车激活。
-- **回调、`Value`、`SetValue` 中的行号都是 `SetRows` 数据里的位置，不受排序影响。**
-- `SetValue(i)` 会把选中行滚动到可见位置，表格不在屏幕上时会在显示后再滚动。
-- `SetLoading(true)` 在行上显示加载动画，适合异步取数：数据到达后用 `core.Update` 调用 `SetRows` 和 `SetLoading(false)`。`Empty(text)` 设置无数据时的文字，默认用 locale 的"暂无数据"。
-- 超出视口宽度时，用触控板或水平滚轮横向滚动；表头和数据同步移动，纵向仍按可见行构建。固定宽列保留设置的宽度，弹性列按比例填满剩余空间，每列至少 40dp；窗口不足时滚动。
-- 调整列宽或窗口尺寸后会重新计算滚动范围。冻结列通过 `FrozenColumns` 配置。
+- List:
+  - `Col(title)` defaults to equal width; `Flex(w)` distributes proportionally, `Width(dp)` has fixed width;
+  - `Numeric()` right-justifies and sorts numerically; `NoSort()` disables sorting by this column;
+  - `Cell(fn)` uses custom elements to render cells (such as labels, buttons), and the Agent still sees the row text.
+- Click the header to sort, and click again to reverse; `SortBy(col, desc)` is used to sort, and when `col` is -1, the original order is restored.
+- Drag the right edge of the table header to adjust the column width. After adjustment, the column becomes a fixed width. Drag the main body of the header horizontally to change the order. Point to the front half of the target column and insert it in front of it, and insert the second half behind it. The insertion position displays a theme-colored thin line. Release the application, move out of the header area or cancel the gesture to give up. Dragging does not trigger sorting. Stopping within 32dp of the left and right edges of the non-frozen header area will continue to scroll horizontally, and the closer to the edge, the faster the speed (up to 360dp/s); the frozen column area does not trigger scrolling. Stops when you release or cancel, and the insertion position is updated during scrolling.
+- Click or use ↑ ↓ Home End PageUp PageDown to select, double-click or press Enter to activate.
+- **The row numbers in callbacks, `Value`, and `SetValue` are the positions in the `SetRows` data and are not affected by sorting.**
+- `SetValue(i)` will scroll the selected row to a visible position. When the table is not on the screen, it will scroll again after being displayed.
+- `SetLoading(true)` displays a loading animation on the line and is suitable for asynchronous data retrieval: use `core.Update` to call `SetRows` and `SetLoading(false)` after the data arrives. `Empty(text)` sets the text when there is no data. By default, the locale's "no data" is used.
+- When the width of the viewport is exceeded, use the trackpad or horizontal scroll wheel to scroll horizontally; the table header and data move synchronously, and the vertical direction is still constructed according to visible rows. Fixed-width columns retain the set width, and flexible columns fill the remaining space proportionally, with at least 40dp per column; scroll when the window is insufficient.
+- The scroll range is recalculated after resizing the column width or window size. Freeze columns are configured via `FrozenColumns`.
 
-Agent：角色 `table`，`value` 是行数（如"36 行"）；表头是 `columnheader`；每行是 `row`，名字是各列用" | "连接，`selected` 表示选中。
+Agent: role `table`, `value` is the number of rows (such as "36 rows"); the header is `columnheader`; each row is `row`, and the name is the column connected with "|", `selected` means selected.
 
-验证：`go run ./examples/components -section table`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section table`, add `-theme dark` to check the dark theme.
 
-表格构造时复制列配置，`SetRows` 复制二维数据，`Rows` / `Row` 返回副本。复用同一份列配置创建多个表格，拖动列宽不会互相影响。后续用 `SetRows` 更新数据，用 `SetColumnWidth(index, dp)` 修改某一张表的列宽；修改原始切片或构造时的 `ColumnSpec` 不会影响已创建的表格。
+Copy column configuration when constructing the table, `SetRows` copies two-dimensional data, `Rows` / `Row` returns a copy. Reuse the same column configuration to create multiple tables, and dragging column widths will not affect each other. Subsequently use `SetRows` to update data, and use `SetColumnWidth(index, dp)` to modify the column width of a certain table; modifying `ColumnSpec` during original slicing or construction will not affect the created table.
 
-排序时虚拟行使用原始数据索引作为元素 key，自定义单元格中仍在构建范围内的输入/焦点状态随数据行移动。替换整个数据集后仍按新数据索引解释身份；跨数据集的业务状态应保存在应用模型中。
+When sorting, the virtual row uses the original data index as the element key, and the input/focus state in the custom cell that is still within the construction range moves with the data row. Identities are still interpreted according to the new data index after replacing the entire dataset; business state across datasets should be preserved in the application model.
 
-`FrozenColumns(left, right)` 固定开头 left 列与末尾 right 列，中间列横向滚动；表头、数据单元格、拖动列宽和点击区域保持一致。计数会限制在列数内，左侧优先，重复调用可调整或取消冻结。冻结列需固定宽度，原本的弹性列会转为 120dp，随后可用 `SetColumnWidth` 或拖动修改。窄视口装不下两侧时左侧优先，右侧被裁剪；中间列没有可用宽度时不绘制、不响应点击。纵向仍使用同一份虚拟列表，不复制数据行。
+`FrozenColumns(left, right)` fixes the starting left column and the last right column, and the middle column scrolls horizontally; the table header, data cell, drag column width and click area remain consistent. The count will be limited to the number of columns, with left priority, and repeated calls can adjust or cancel the freeze. The frozen column needs to have a fixed width, and the original flexible column will be converted to 120dp, which can be modified later with `SetColumnWidth` or dragging. When the narrow viewport cannot fit on both sides, the left side is given priority and the right side is cropped; when the middle column has no available width, it does not draw or respond to clicks. Vertical still uses the same virtual list and does not copy data rows.
 
-列管理使用源列索引（构造 `Table` 时的位置），移动或隐藏后不会改变这个索引：
+Column management uses the source column index (the position when `Table` is constructed), and moving or hiding does not change this index:
 
-- `MoveColumn(column, position)` 将源列移动到显示顺序中的 position，位置计入隐藏列；越界忽略。
-- `OnColumnMove(func(column, from, to int))` 在用户拖动成功后回调；column 是源列索引，from/to 是含隐藏列的显示位置。程序 MoveColumn/SetLayoutState 不触发。
-- `SetColumnVisible(column, visible)` 显示或隐藏源列，保留其位置和宽度。允许隐藏全部列，隐藏排序列不会取消排序。
-- `LayoutState()` 返回独立的 `TableLayout` 快照，包含列顺序、宽度、弹性比例、隐藏状态和两侧冻结列数，可用 `encoding/json` 存到应用配置。
-- `SetLayoutState(state)` 先检查列数、唯一索引、有限宽度和比例，再整体恢复；无效配置返回错误，保留原布局。布局仅适用于相同源列结构，应用应随业务数据结构管理配置版本。
+- `MoveColumn(column, position)` Moves the source column to position in the display order, and the position is included in the hidden column; out-of-bounds ignore.
+- `OnColumnMove(func(column, from, to int))` is called back after the user drags successfully; column is the source column index, and from/to is the display position of hidden columns. The procedure MoveColumn/SetLayoutState does not fire.
+- `SetColumnVisible(column, visible)` Shows or hides the source column, preserving its position and width. Allows all columns to be hidden. Hiding sort columns will not cancel sorting.
+- `LayoutState()` returns an independent `TableLayout` snapshot, including column order, width, elastic scale, hidden state and number of frozen columns on both sides, which can be saved to the application configuration with `encoding/json`.
+- `SetLayoutState(state)` first checks the number of columns, unique index, limited width and proportion, and then restores it as a whole; invalid configuration returns an error and retains the original layout. Layouts only apply to the same source column structure, and applications should manage configuration versions along with the business data structure.
 
-冻结数量作用于当前可见顺序的两端；隐藏列后两侧不重叠，左侧优先。移动列、隐藏其他列时，仍在构建的自定义单元格保持元素身份；隐藏单元格本身会卸载，持久草稿仍需由应用模型保存。列操作不改变源数据、排序或行选择，也不触发行选择回调。示例提供移动、隐藏、保存和恢复按钮。
+The frozen quantity acts on both ends of the currently visible order; the two sides do not overlap after the column is hidden, and the left side takes precedence. When moving columns and hiding other columns, custom cells that are still being built retain element identity; the hidden cells themselves are unloaded and persistent drafts still need to be saved by the app model. Column operations do not change the source data, sorting, or row selection, nor do they trigger row selection callbacks. The sample provides move, hide, save, and restore buttons.
 
-`MultiSelect()` 启用行多选：普通点击替换选区，Ctrl/Cmd 点击增减单行，Shift 点击或 Shift+方向键按当前排序扩展/缩小范围，Ctrl/Cmd+Shift 点击合并范围。`SelectedRows()` 返回按当前显示顺序排列的源行索引副本，`Value()` 表示活动行（可以已被取消选中）。`SetValue` 替换为单行选区，`SetSelectedRows` 替换多行选区，程序操作均不触发回调；`OnSelectionChange` 接收独立副本。数据缩短时移除越界选区，排序不改变选中的源行。
+`MultiSelect()` Enable row multi-selection: normal click to replace the selection, Ctrl/Cmd click to increase or decrease a single row, Shift click or Shift+arrow key to expand/reduce the range according to the current sorting, Ctrl/Cmd+Shift click to merge the range. `SelectedRows()` returns a copy of the source row index in the current display order, `Value()` represents the active row (which may have been deselected). `SetValue` replaces a single-line selection, `SetSelectedRows` replaces a multi-line selection, and no program operation triggers a callback; `OnSelectionChange` receives an independent copy. When data is shortened, out-of-bounds selections are removed, and sorting does not change the selected source rows.
 
-表格聚焦时 Ctrl/Cmd+A 全选多选表格的行，Ctrl/Cmd+C 复制选区。`SelectionText()` 返回相同的 TSV 内容：仅包含当前可见列，列和行都按显示顺序输出，单元格内的制表符、换行和双引号按 CSV 引号规则转义。输入框自行处理其文本选择和复制。
+When the table is focused, Ctrl/Cmd+A selects all rows of the multi-select table, and Ctrl/Cmd+C copies the selection. `SelectionText()` returns the same TSV content: only the currently visible columns are included, columns and rows are output in display order, and tabs, newlines, and double quotes within cells are escaped according to CSV quoting rules. The input box handles its text selection and copying on its own.
 
-`CellSelect()` 切换到单元格模式并清空选区，`MultiSelect()` 可切回行模式。普通点击选单格，Ctrl/Cmd 点击增减单格，Shift 点击或方向键扩展矩形范围；方向键移动、Home/End 跳到行首/尾，Ctrl/Cmd+Home/End 跳到整表首/尾，PageUp/PageDown 移动八行，并滚动露出目标单元格。冻结列保持固定。
+`CellSelect()` switches to cell mode and clears the selection, `MultiSelect()` switches back to row mode. Normally click to select a single cell, Ctrl/Cmd to click to increase or decrease a single cell, Shift to click or the arrow keys to expand the rectangular range; arrow keys to move, Home/End to jump to the beginning/end of the line, Ctrl/Cmd+Home/End to jump to the beginning/end of the entire table, PageUp/PageDown to move eight lines and scroll to reveal the target cell. Frozen columns remain fixed.
 
-此模式点击表头选整列，Shift 点击选连续多列，Ctrl/Cmd 点击增减整列，双击表头排序。`TableCell{Row, Column}` 使用源数据索引，`SelectedCells()` 返回按显示顺序排列的副本，`SetSelectedCells` 程序赋值不触发 `OnCellSelectionChange`。`SetSelectedRows` 选中指定行的全部可见单元格；`SetValue` 选中该行首个可见单元格。隐藏列保留选区，复制时只输出参与选区的可见列；稀疏选区的未选交叉单元格输出空值。修改源数据长度后清理越界选区。
+In this mode, click the table header to select the entire column, Shift-click to select multiple consecutive columns, Ctrl/Cmd click to increase or decrease the entire column, and double-click the table header to sort. `TableCell{Row, Column}` uses the source data index, `SelectedCells()` returns a copy in display order, and `SetSelectedCells` programmatic assignment does not trigger `OnCellSelectionChange`. `SetSelectedRows` selects all visible cells in the specified row; `SetValue` selects the first visible cell in the row. Hidden columns retain the selection, and only the visible columns participating in the selection will be output when copying; unselected intersecting cells in the sparse selection will output null values. Clean out-of-bounds selections after modifying the source data length.
 
-`SetFilter(func(row []string) bool)` 在排序前过滤源数据，传入的行是副本；`nil` 清除筛选。筛选条件变化后需重新调用此方法。`Len()` 是源行数，`VisibleLen()` 是筛选后行数；源数据索引和选区保留，筛选掉的行不参与复制或全选。
+`SetFilter(func(row []string) bool)` filters source data before sorting, incoming rows are copies; `nil` clears filtering. This method needs to be called again after the filtering conditions change. `Len()` is the number of source rows, `VisibleLen()` is the number of rows after filtering; the source data index and selection are retained, and the filtered rows will not participate in copying or selecting all.
 
-分页加载使用 `OnLoadMore(fn)` 和 `SetHasMore(true)`：距离底部两行以内自动请求，组件在回调前设为 loading，同一份数据最多自动请求一次。异步结果通过 `core.Update` 交付：`SetRows` 更新全部已加载数据，`SetLoading(false)` 结束请求，末页再 `SetHasMore(false)`。失败调用 `SetLoadError(message)`，停止自动重试，用户点击重试后重新调用 `OnLoadMore`。禁用或隐藏时不自动加载。筛选后内容不足一屏也会继续分页，应用必须正确标记末页。示例 `go run ./examples/components -section table_data` 模拟首次加载失败、重试和三页数据；状态提示始终位于视口内。
+Use `OnLoadMore(fn)` and `SetHasMore(true)` for paging loading: automatic request within two lines from the bottom, the component is set to loading before callback, and the same data can be automatically requested at most once. Asynchronous results are delivered via `core.Update`: `SetRows` updates all loaded data, `SetLoading(false)` ends the request, and then `SetHasMore(false)` for the last page. If the call to `SetLoadError(message)` fails, automatic retry will be stopped. The user will click Retry and call `OnLoadMore` again. Does not load automatically when disabled or hidden. After filtering, the content will continue to be paginated if it is less than one screen, and the application must mark the last page correctly. Example `go run ./examples/components -section table_data` simulates a first load failure, retries, and three pages of data; the status tip is always in the viewport.
 
-`RowMenu(func(row int) *MenuView)` / `CellMenu(func(row, column int) *MenuView)` 在右键请求时构造菜单，参数始终是源数据索引。单元格菜单优先，返回 nil 则使用行菜单；菜单贴着目标单元格弹出。右键已选中的行/格会保留现有多选，未选中的目标先成为选区。Shift+F10 为活动行/格打开菜单；Esc、外部点击或执行命令关闭，键盘打开后恢复原焦点。目标被筛掉、隐藏或禁用时关闭菜单。菜单复用 `Menu` 的子菜单与键盘导航。
+`RowMenu(func(row int) *MenuView)` / `CellMenu(func(row, column int) *MenuView)` Constructs the menu on right-click request, the parameter is always the source data index. The cell menu takes precedence. If nil is returned, the row menu is used; the menu pops up against the target cell. Right-clicking the selected row/cell will retain the existing multi-selection, and the unselected targets will become the selection first. Shift+F10 opens the menu for the active row/cell; Esc, external click or command execution closes, and the original focus is restored after the keyboard is opened. Close menu when target is filtered, hidden or disabled. Menu reuse `Menu`'s submenus and keyboard navigation.
 
-性能：30 万行的表格在测试里建表、排序、跳到末尾不到一秒，滚动每帧约 1 毫秒（`TestTableThreeHundredThousandRows`、`BenchmarkTableFrame300k`）。
+Performance: It takes less than a second to create, sort, and jump to the end of a table with 300,000 rows in the test, and scrolling takes about 1 millisecond per frame (`TestTableThreeHundredThousandRows`, `BenchmarkTableFrame300k`).
 
-## 静态组合表格
+## Static combination table
 
-少量数据或自定义布局可使用 `StaticTable`。它返回可直接设置样式的 `el.DivEl`，不创建数据表的选择、排序或虚拟列表状态。各部件在 Render 中构建；有状态的 Input、Button 等视图由应用持有，再把 Render 结果放入单元格。
+Use `StaticTable` for small amounts of data or custom layouts. It returns a `el.DivEl` that can be styled directly, without creating the selection, sorting, or virtual list state of the data table. Each component is constructed in Render; stateful Input, Button and other views are held by the application, and the Render results are put into cells.
 
 ```go
 kit.StaticTable().Name("订单").Child(
@@ -79,32 +81,32 @@ kit.StaticTable().Name("订单").Child(
 )
 ```
 
-Header、Body、Footer 均可放任意数量的 Row；每个 Row 可放任意数量的单元格，也可插入完全自定义元素。Header/Footer 使用弱背景，Row 默认绘制底部分隔线，Footer 默认绘制顶线；`Decorate(nil)` 移除对应默认分隔线。根容器默认带边框、圆角和表面背景，可通过 Border/Rounded/Bg 覆盖。Caption 接受文字或富内容，默认在容器内显示，位置由 Child 顺序决定。
+Header, Body, and Footer can all contain any number of Rows; each Row can contain any number of cells, and fully customized elements can also be inserted. Header/Footer uses a weak background, Row draws the bottom divider by default, and Footer draws the top line by default; `Decorate(nil)` removes the corresponding default divider. The root container has borders, rounded corners, and surface background by default, which can be overridden via Border/Rounded/Bg. Caption accepts text or rich content and is displayed within the container by default. The position is determined by the Child order.
 
-单元格默认平分行宽；`Flex(0).W(el.Dp(120)).NoShrink()` 固定列宽，`Flex(2)` 调整弹性比例。各行独立布局，表头、数据和汇总行应使用一致的列配置。单个单元格即可占满一整行；不做跨行合并或自动测量全表列宽。`Items(el.Center)` / `Items(el.End)` 设置内容水平对齐，P/Px/Py 调整留白；文字粗细等可在传入的 Text 上设置。需要长内容滚动时，在外层组合 ScrollX/ScrollY。
+By default, the cell divides the row width equally; `Flex(0).W(el.Dp(120)).NoShrink()` fixes the column width, and `Flex(2)` adjusts the flexible ratio. Each row is laid out independently, and header, data, and summary rows should use a consistent column configuration. A single cell can fill an entire row; there is no cross-row merging or automatic measurement of the entire table column width. `Items(el.Center)` / `Items(el.End)` sets the horizontal alignment of the content, and P/Px/Py adjusts the white space; the text thickness, etc. can be set on the incoming Text. When long content scrolling is required, combine ScrollX/ScrollY in the outer layer.
 
-语义角色包括 table、rowgroup、row、columnheader、cell 和 caption。静态行没有默认选择、激活或键盘导航，子控件独立接收事件；需要整行操作时可显式配置 OnClick/Focusable/OnKey。原有 `TableCell` 是数据表选区坐标类型，因此静态单元格入口命名为 `TableDataCell`。
+Semantic roles include table, rowgroup, row, columnheader, cell, and caption. Static rows have no default selection, activation or keyboard navigation, and child controls receive events independently; OnClick/Focusable/OnKey can be explicitly configured when the entire row is required. The original `TableCell` is the data table selection coordinate type, so the static cell entry is named `TableDataCell`.
 
-运行 `go run ./examples/components -section table_static` 查看交互、通栏备注及汇总示例。1×/2× 自动测试覆盖部分固定列的三段对齐、页尾/说明位置、子按钮事件和输入状态；本批未做真机视觉验收。
+Run `go run ./examples/components -section table_static` to see examples of interactions, banner comments, and summaries. 1×/2× Automatic testing covers the three-segment alignment of some fixed columns, page footer/description position, sub-button events and input status; real device visual acceptance has not yet been completed.
 
-## 整列选择、列限制和密度
+## Whole column selection, column limits and density
 
-`ColumnSelect()` 进入独立的整列模式，清除原行/单元格选区。点击表头或数据单元格选择所属列，Ctrl/Cmd 点击增减，Shift 点击扩展连续列范围；左右键跳到相邻可选列，Home/End 跳到首尾，Shift 扩展，Ctrl/Cmd+A 选择全部可见且可选的列。双击表头继续排序。整列选择不触发行选择或行激活回调。
+`ColumnSelect()` Enter independent column mode and clear the original row/cell selection. Click the table header or data cell to select the column, Ctrl/Cmd click to increase or decrease, and Shift click to expand the range of consecutive columns; the left and right keys jump to adjacent optional columns, Home/End jumps to the beginning and end, Shift expands, and Ctrl/Cmd+A selects all visible and optional columns. Double-click the header to continue sorting. Whole column selection does not trigger row selection or row activation callbacks.
 
-`SelectedColumns()` 返回显示顺序的源列索引副本，包含隐藏的已选列；`SetSelectedColumns([]int)` 静默赋值，`OnColumnSelectionChange` 接收用户变更。选区按列保存，SetRows 的新增行自然属于已选列，空表也可选择列。过滤不丢选区；复制只输出可见已选列和过滤后的行。`SelectedCells()` 可展开为当前过滤结果中的单元格快照，调用时成本随行数增长。`SetValue` / `SetSelectedRows` / `SetSelectedCells` 在整列模式下不改变选区，使用列接口设置。CellSelect/MultiSelect 可退出该模式。
+`SelectedColumns()` returns a copy of the source column index in display order, including hidden selected columns; `SetSelectedColumns([]int)` assigns silently, and `OnColumnSelectionChange` accepts user changes. The selection is saved in columns. The new rows added by SetRows naturally belong to the selected columns. Columns can also be selected in an empty table. Filtering does not lose selections; copying only outputs visible selected columns and filtered rows. `SelectedCells()` can be expanded to a snapshot of cells in the current filtered results, and the cost when called increases with the number of rows. `SetValue` / `SetSelectedRows` / `SetSelectedCells` Do not change the selection in column mode, use column interface settings. CellSelect/MultiSelect exits this mode.
 
-列配置支持：
+Column configuration supports:
 
-- `Selectable(false)`：禁止该列参与单元格/整列选择，范围选择、键盘、全选和程序选区赋值均跳过；不影响整行选择或列排序。
-- `Resizable(false)`：移除用户拖动列宽的手柄。应用仍可用 SetColumnWidth 或布局恢复设置宽度。
-- `Movable(false)`：MoveColumn 不移动该列，也不允许其他列跨过它改变其位置。显式 SetLayoutState 仍可恢复应用指定的完整布局。表头拖动遵守同样的锁定规则。
+- `Selectable(false)`: This column is prohibited from participating in cell/whole column selection. Range selection, keyboard, all selection and program selection assignment are skipped; whole row selection or column sorting is not affected.
+- `Resizable(false)`: Removes the handle for user dragging column width. Apps can still set the width using SetColumnWidth or layout restoration.
+- `Movable(false)`: MoveColumn does not move the column, nor does it allow other columns to change their position across it. Explicit SetLayoutState still restores the full layout specified by the app. Header dragging follows the same locking rules.
 
-列配置在构造表格时复制。示例中单号列锁定宽度拖动和移动，表头和按钮均可移动其他列。
+Column configuration is copied when constructing the table. In the example, the width of the single number column is locked by dragging and moving, and the header and buttons can move other columns.
 
-`Stripe(true)` 按过滤/排序后的可见行序交替填充弱背景；选区高亮优先。`RowHeight(dp)` 同步设置实际行高和虚拟列表尺寸，范围 24–256dp，含 1dp 分隔线，0 恢复 40dp。设置行高不改变单元格控件字号；自定义内容需适配行高。已有活动行会重新露出。
+`Stripe(true)` alternately fills weak background in visible row order after filtering/sorting; selection highlighting takes priority. `RowHeight(dp)` Sets the actual row height and virtual list size simultaneously, ranging from 24–256dp, including 1dp separators, 0 returns to 40dp. Setting the row height does not change the cell control font size; customized content needs to adapt to the row height. Existing active guilds will be resurfaced.
 
-本批自动测试覆盖整列选择、范围跳过限制列、空表、数据追加、过滤/隐藏列复制、模式切换、禁用键盘、移动锁及 1×/2× 行高变化；真机拖动和视觉尚未验收。
+The automatic test covers entire column selection, range skipping restricted columns, empty tables, data appending, filtering/hiding column copying, mode switching, disabling the keyboard, mobile lock and 1×/2× row height changes; real device dragging and visual acceptance have not yet been accepted.
 
-表头拖动按实际绘制位置命中，支持已横向滚动的区域及左右冻结列；拖到非冻结表头区域的左右边缘时自动横向滚动，把屏外的列带进来（见上文）。隐藏列保留源索引并计入回调位置。禁用、隐藏列或程序恢复布局会取消正在进行的换序。1×/2× 事件测试覆盖换序、锁定、隐藏、冻结、滚动、取消和排序/列宽操作隔离，真机手感仍待验收。
+Dragging the header hits the actual drawing position, supporting horizontally scrolled areas and frozen left and right columns; dragging to the left and right edges of the non-frozen header area automatically scrolls horizontally, bringing in columns outside the screen (see above). Hidden columns retain the source index and count towards the callback position. Disabling, hiding columns, or program-restoring layout cancels ongoing reordering. 1×/2× event testing covers reordering, locking, hiding, freezing, scrolling, canceling and sorting/column width operation isolation, and the real phone feel is still to be accepted.
 
-整列选择不会把内嵌输入框的焦点强制移到表格。输入框可继续编辑，方向键由输入框处理；点击普通表头后，方向键仍用于列导航。自动测试覆盖单元格/整列两种模式、1×/2×、同帧与分帧点击，以及移动列后的文本保留。
+Selecting the entire column will not force the focus of the inline input box to the table. The input box can continue to be edited, and the direction keys are handled by the input box; after clicking on the ordinary table header, the direction keys are still used for column navigation. Automatic testing covers both cell/column modes, 1×/2×, same-frame and split-frame clicks, and text retention after moving columns.

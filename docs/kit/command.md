@@ -1,74 +1,76 @@
 # Command
 
-命令面板：一个搜索框加一列命令，输入时逐步筛选。
+English | [简体中文](command.zh-CN.md)
+
+Command panel: a search box plus a list of commands, which are filtered step by step as you type.
 
 ```go
 palette := kit.Command(
     kit.CommandItem{Title: "新建订单", Group: "订单", Shortcut: "mod+n", Action: newOrder},
     kit.CommandItem{Title: "打开设置", Action: openSettings},
 )
-// Render 中：
+// In Render:
 cx.Shortcut("mod+k", palette.Toggle)
 root.Child(palette.Render(cx))
 ```
 
-- 匹配规则：前缀匹配排第一，其次是子串匹配，再次是"字符按顺序出现"的模糊匹配，例如"设置"能找到"打开设置"，"nwo"能找到"New window"。
-- ↑ ↓ 移动高亮，回车执行。Esc 先清除非空查询，再次按下关闭；点击外部直接关闭。默认模态面板执行时先关闭，再调用 Action。
-- 打开时焦点在搜索框里。面板是模态的，靠近窗口顶部显示。
-- `Shortcut` 是固定展示文字。设置 `ActionName` 后，默认行从 `core.Bind` 读取快捷键，并在面板持有焦点期间把该键绑定到条目的 Action；改绑会同步更新提示和处理器。面板外需要应用注册同一个 Action。
-- `Toggle`、`Value()` / `SetValue(bool)`、`SetItems`。需要 `el.Root`。
+- Matching rules: Prefix matching ranks first, followed by substring matching, and then fuzzy matching of "characters appearing in order". For example, "Settings" can find "Open Settings", and "nwo" can find "New window".
+- ↑ ↓ Move the highlight and press Enter to execute. Esc first clears the non-empty query, then press it again to close; click outside to close it directly. By default, the modal panel is closed first and then the Action is called.
+- When opened, focus is on the search box. The panel is modal and appears near the top of the window.
+- `Shortcut` is the fixed display text. After setting `ActionName`, the default line reads the shortcut key from `core.Bind` and binds the key to the entry's Action while the panel holds focus; changing the binding will update the prompt and handler synchronously. The application needs to register the same Action outside the panel.
+- `Toggle`, `Value()` / `SetValue(bool)`, `SetItems`. `el.Root` REQUIRED.
 
-Agent：面板是名为"命令面板"的 `dialog`，搜索框是 `textbox`，命令是 `option`，`selected` 表示当前高亮。
+Agent: The panel is `dialog` named "Command Panel", the search box is `textbox`, the command is `option`, and `selected` indicates the current highlight.
 
-验证：`go run ./examples/components -section command`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section command`, add `-theme dark` to check the dark theme.
 
-连续同组命令前显示分组标题；标题不可选中。`CommandItem.Disabled` 禁止点击和执行，键盘导航跳过禁用项。构造和 `SetItems` 复制切片，应用修改原切片不会改变面板。结果用虚拟列表构建可见行，搜索结果在条目或查询不变时缓存；↑ ↓ 和 PageUp/PageDown 导航并滚动露出高亮，Home/End 保留搜索框的文字编辑行为。关闭后焦点回到触发控件，重新打开重置查询、高亮和滚动位置。`SetDisabled(true)` 关闭并禁止打开。
+The group title is displayed before the continuous group command; the title cannot be selected. `CommandItem.Disabled` disables clicks and execution, and keyboard navigation skips disabled items. Construct and `SetItems` copy the slice, applying modifications to the original slice will not change the panel. Results build visible rows with a virtual list, search results are cached when items or queries don't change; ↑ ↓ and PageUp/PageDown navigate and scroll to reveal highlights, and Home/End retains the text editing behavior of the search box. After closing, the focus returns to the trigger control, and reopening resets the query, highlight and scroll position. `SetDisabled(true)` Closes and prevents opening.
 
-`OnSearch(func(query string, token uint64))` 切换为异步搜索模式，打开、改词和重试都会生成新 token。工作线程取得结果后通过 `core.Update` 调用 `SetResults(token, items...)` 或 `SetSearchError(token, message)`；返回 false 表示结果已过期或面板已关闭。旧查询不会覆盖新查询，失败后可重试。异步结果按返回顺序展示，不再做本地模糊过滤，适用于语义搜索。加载或失败状态不能执行旧命令。示例 `-section command_async` 输入 error 模拟失败；静态 `-section command` 包含万条结果与禁用项。
+`OnSearch(func(query string, token uint64))` switches to asynchronous search mode. Opening, changing words and retrying will generate new tokens. After the worker thread obtains the result, it calls `SetResults(token, items...)` or `SetSearchError(token, message)` through `core.Update`; returning false indicates that the result has expired or the panel has been closed. The old query will not overwrite the new query, and you can try again after failure. Asynchronous results are displayed in the order returned, no local fuzzy filtering is performed, and are suitable for semantic search. Old commands cannot be executed in loading or failed state. Example `-section command_async` input error simulation failed; static `-section command` contains thousands of results and disabled items.
 
-`Inline(true)` 将面板放入普通布局并打开；执行后保持显示，不阻挡外部控件，也不自动抢焦点。需要主动进入时调用 `palette.Focus(cx)`。`SetValue(false)` 或空查询时按 Esc 隐藏内联内容；`Inline(false)` 关闭当前内容并恢复默认模态模式，下一次打开才显示弹层。切换会使旧异步请求失效。
+`Inline(true)` puts the panel into a normal layout and opens it; it remains displayed after execution, does not block external controls, and does not automatically grab focus. `palette.Focus(cx)` is called when active entry is required. `SetValue(false)` or press Esc during empty query to hide the inline content; `Inline(false)` closes the current content and restores the default modal mode, and the pop-up layer will not be displayed until the next time it is opened. Switching will invalidate old asynchronous requests.
 
-`Searchable(false)` 隐藏搜索框、显示全部候选，并停止调用 OnSearch；键盘焦点移到面板框，方向键导航、Enter 执行。切换时清空查询、加载状态和错误，旧结果不再接收；恢复搜索且面板已打开时重新请求。默认搜索行为保留。
+`Searchable(false)` hides the search box, displays all candidates, and stops calling OnSearch; the keyboard focus moves to the panel box, the arrow keys navigate, and Enter executes. Clear queries, loading state, and errors when switching, and old results will no longer be received; re-request when search is resumed and the panel is open. The default search behavior is retained.
 
-`Header(view)`、`Footer(view)` 分别放在搜索框上方和结果下方，加载、失败和空结果时仍显示；nil 移除。每个区域最多占窗口高度的五分之一且不超过 80dp，超出独立滚动；结果区保守预留这部分高度。`Empty(view)` 替换无匹配内容，nil 恢复默认。交互控件应复用实例，以保留焦点和内部状态。
+`Header(view)` and `Footer(view)` are placed above the search box and below the results respectively. They are still displayed when loading, failure and empty results; nil is removed. Each area occupies at most one-fifth of the window height and does not exceed 80dp, beyond independent scrolling; this part of the height is conservatively reserved for the result area. `Empty(view)` replaces no matching content, nil returns to default. Interactive controls should reuse instances to preserve focus and internal state.
 
-`RenderItem(func(CommandItem, bool) el.View)` 自定义可见候选，第二个参数为当前高亮状态。它替换文字和快捷键展示，外层保留可访问名称、禁用及选中语义；nil 回调或 nil 内容使用默认行。点击展示内容执行命令，嵌套按钮独立处理操作。`RowHeight(dp)` 指定统一虚拟槽位高度，包含上下共 4dp 留白，分组标题共用此高度；0 恢复 36dp，正数最小为 5dp，负数及非有限值忽略。默认仍采用统一行高；复杂内容可开启 AutoRowHeight(true)，按实际内容测量。
+`RenderItem(func(CommandItem, bool) el.View)` Customize the visible candidates. The second parameter is the current highlighting status. It replaces text and shortcut key display, and the outer layer retains accessible names, disabled and selected semantics; nil callbacks or nil content use the default line. Click the displayed content to execute the command, and the nested button handles the operation independently. `RowHeight(dp)` specifies the unified virtual slot height, including a total of 4dp of white space at the top and bottom. The group titles share this height; 0 returns to 36dp, the minimum positive number is 5dp, and negative and non-finite values are ignored. The default is still to use uniform row height; for complex content, AutoRowHeight(true) can be turned on and measured according to the actual content.
 
 ```go
 quick := kit.Command(items...).Searchable(false).Inline(true).
     Footer(kit.Button("刷新", refresh))
-// 放入普通布局；应用可在事件中用 quick.Focus(cx) 将焦点交给面板。
+// Put in a normal layout; the application can use quick.Focus(cx) in the event to give focus to the panel.
 root.Child(quick.Render(cx))
 ```
 
-与上游的实现约定不同：Keel 默认统一行高，自动测量模式先估算未访问行、再测量可见行；上游在失效时测量全部行。Keel 保留模糊排序而非纯子串过滤，事件使用扁平原始索引而非 IndexPath。内联模式可以放入应用自己的弹层，外层弹层的关闭由应用管理。
+Different from the upstream implementation agreement: Keel defaults to uniform row height, and the automatic measurement mode first estimates unvisited rows and then measures visible rows; the upstream measures all rows when it fails. Keel preserves fuzzy ordering rather than pure substring filtering, and events use flattened raw indexing rather than IndexPath. Inline mode can put the application's own elastic layer, and the closing of the outer elastic layer is managed by the application.
 
 
-`CommandItem.Keywords` 提供搜索别名；标题和每个关键词分别进行模糊匹配，按最佳得分排序。构造、SetItems 和异步 SetResults 都复制关键词切片；过滤不改变条目的原始索引，分组标题不占索引；显式分隔条目占据源数据位置，但不可选中。更新整个候选模型后，索引以最新 SetItems 的参数顺序为准。
+`CommandItem.Keywords` provides search aliases; the title and each keyword are fuzzy matched separately, sorted by the best score. Constructs, SetItems, and asynchronous SetResults all copy keyword slices; filtering does not change the original index of the item, and group headers do not occupy the index; explicitly delimited items occupy the source data position, but cannot be selected. After updating the entire candidate model, the index is based on the parameter order of the latest SetItems.
 
-- `OnSelect(func(int))`：键盘移动、点击及过滤导致高亮改变时通知原始索引，没有可选项时为 −1。仅有选择变化才通知，不执行 Action。打开和模型更新产生的自动选择在渲染后发送；回调里可以更新组件。指针进入可用行也会改变高亮并通知，但不执行 Action；静止指针不会反复覆盖键盘选择。
-- `OnQuery(func(string))`：用户输入或 Esc 清词时通知，保留本地过滤；过滤造成的 OnSelect 在它之前发送。打开和重试不通知。OnSearch 仍负责远程请求，打开、改词、重试时触发，与 OnQuery 用途不同。
-- `OnConfirm(func(int))`：执行 Action 后通知原始索引，没有 Action 的条目也通知。回调和索引在执行前取快照，Action 重设候选、打开面板或替换回调，不会改写这次确认。
-- `OnCancel(func())`：用户关闭后通知；程序赋值、禁用不通知。可搜索且查询非空时，第一次 Esc 只清词；无搜索模式或空查询时 Esc 关闭并通知，外部点击直接关闭。
+- `OnSelect(func(int))`: Notifies the original index when the highlight changes due to keyboard movement, clicks and filtering, −1 when there is no option. Notification will only occur if selection changes, no action will be executed. Automatic selections resulting from opening and model updates are sent after rendering; components can be updated in callbacks. The pointer entering an available row will also change the highlight and notify, but no action will be performed; a stationary pointer will not repeatedly overwrite the keyboard selection.
+- `OnQuery(func(string))`: Notified when user input or Esc clears words, retains local filtering; filtering caused by OnSelect is sent before it. Open and retry without notification. OnSearch is still responsible for remote requests, triggering when opening, changing words, and retrying, and its purpose is different from OnQuery.
+- `OnConfirm(func(int))`: Notify the original index after executing the Action, and also notify the entries without Action. Callbacks and indexes take snapshots before execution. Action reset candidates, open panels, or replace callbacks will not overwrite this confirmation.
+- `OnCancel(func())`: Notified after the user closes it; no notification will be given when the program assigns a value or disables it. When searchable and the query is not empty, Esc will only clear the word for the first time; when there is no search mode or empty query, Esc will close and notify, and external clicks will close it directly.
 
-点击条目时先通知选择变化；如果 OnSelect 在回调中替换候选、关闭面板或发起新查询，本次不继续执行旧条目。自定义行以原始索引保持过滤前后的身份；更换/重排整个模型时，应用仍需管理自己持有的子 View。上述事件均可传 nil 移除。
+When an entry is clicked, the selection change is notified first; if OnSelect replaces the candidate, closes the panel, or initiates a new query in the callback, the old entry will not continue to be executed this time. Custom rows maintain their identity before and after filtering with the original index; when replacing/rearranging the entire model, the application still needs to manage the child views it holds. All the above events can be removed by passing nil.
 
 
-`AutoRowHeight(true)` 启用变高虚拟化，RowHeight 成为最小槽位高度和初始估算。默认候选、分组标题、长文本或复杂自定义内容可混排。窗口宽度、缩放、主题以及 SetItems/RenderItem 更新会使测量失效；应用自行更改离屏内容时调用 `InvalidateRows()`。只构建视口附近的行，远距离跳转会在测量后修正定位。`AutoRowHeight(false)` 恢复统一行高，并重新露出当前高亮。
+`AutoRowHeight(true)` Enables variable height virtualization, RowHeight becomes the minimum slot height and initial estimate. Default candidates, group titles, long text or complex custom content can be mixed. Window width, scaling, themes, and SetItems/RenderItem updates invalidate measurements; `InvalidateRows()` is called when the app changes off-screen content on its own. Only rows near the viewport are built, distant jumps correct positioning after measurement. `AutoRowHeight(false)` restores uniform row height and re-exposes the current highlight.
 
-`CommandItem{Separator: true}` 插入不可交互分隔项，其他字段忽略。过滤后去除首尾及连续分隔项，空分组标题同时消失。排序分别在分隔项之间进行，避免跨区混排。`Icon` 指定默认行前置图标，`Checked` 显示尾部勾选；有效快捷键提示优先于勾选。自定义行自行绘制这些内容。
+`CommandItem{Separator: true}` Inserts a non-interactive delimiter and ignores other fields. After filtering, the first and last and consecutive separated items are removed, and the empty group titles disappear at the same time. Sorting is performed between separated items to avoid cross-section mixing. `Icon` specifies the default row front icon, `Checked` displays the trailing check; valid shortcut key tips take precedence over the check. Custom rows draw these themselves.
 
-`ActionName` 通过 `core.Bind` 取得当前第一组绑定；存在名称时不回退到 Shortcut。未绑定时隐藏提示，可回退显示 Checked。快捷键只在面板可用且焦点在面板内时执行条目，同样遵守加载/禁用和确认回调；关闭或失焦不注册。应用外部若需要同一动作，使用相同 Action 函数注册。Keel 使用单 root 的注册顺序处理冲突，没有上游的 Command/应用两级动作解析。
+`ActionName` Gets the current first set of bindings via `core.Bind`; does not fall back to Shortcut when name exists. Hide the prompt when not bound, and can fall back to displaying Checked. Shortcut keys only execute entries when the panel is available and focused within the panel, also respecting load/disable and confirm callbacks; closing or out-of-focus are not registered. If the same action is required outside the application, use the same Action function to register. Keel uses a single root registration sequence to handle conflicts, without upstream Command/application two-level action resolution.
 
-其他配置与状态：
+Other configurations and status:
 
-- `Placeholder(string)`：搜索占位文字，空值恢复本地化默认。
-- `MaxHeight(dp)`：结果视口最大高度，0 恢复 360dp；窗口空间和页头页尾可能进一步缩小它。
-- `Bordered(false)`：移除默认边框、圆角和阴影；`PanelStyle(func(*el.DivEl))` 可调整每帧新建面板的宽度、背景等样式。
-- `Query()` / `SetQuery(string)`：读取/设置查询；已打开且可搜索时按用户输入处理并通知，相同文本不重复通知。关闭或不可搜索时只保存；重新打开仍重置查询。
-- `SelectedIndex()`：当前高亮的原始条目索引，−1 表示没有；数据更新在下一次渲染中重新协调。
-- `MatchedCount()`：当前匹配项数量，含禁用项，不计标题/分隔项。
-- `SetLoading(bool)` / `IsLoading()`：应用管理加载状态；使用 OnSearch 时通常由 token 结果接口自动管理。
+- `Placeholder(string)`: Search placeholder text, empty value restores localization default.
+- `MaxHeight(dp)`: Result viewport maximum height, 0 restores 360dp; window space and headers and footers may shrink it further.
+- `Bordered(false)`: Remove the default borders, rounded corners and shadows; `PanelStyle(func(*el.DivEl))` can adjust the width, background and other styles of the new panel in each frame.
+- `Query()` / `SetQuery(string)`: read/set query; process and notify according to user input when it is opened and searchable, and the same text will not be notified repeatedly. Only saves when closed or not searchable; re-opening still resets the query.
+- `SelectedIndex()`: Index of the currently highlighted original entry, −1 means none; data updates are reconciled on the next render.
+- `MatchedCount()`: The current number of matches, including disabled items, excluding headers/separators.
+- `SetLoading(bool)` / `IsLoading()`: The application manages the loading state; usually automatically managed by the token result interface when using OnSearch.
 
 ```go
 core.Bind("orders.new", "mod+n")

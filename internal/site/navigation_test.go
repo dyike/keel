@@ -17,31 +17,31 @@ func TestNavigationCategories(t *testing.T) {
 	var catalog navGroup
 	for _, group := range s.nav {
 		titles = append(titles, group.Title)
-		if group.Title == "组件参考" {
+		if group.Title == "Components" {
 			catalog = group
 		}
 	}
-	if want := []string{"开始使用", "编写应用", "组件参考", "测试与调试", "参与开发", "源码导览"}; !slices.Equal(titles, want) {
+	if want := []string{"Getting started", "Guides", "Components", "Testing", "Contributing", "Packages"}; !slices.Equal(titles, want) {
 		t.Fatalf("top-level navigation = %v, want %v", titles, want)
 	}
 	if len(catalog.Children) != 8 {
 		t.Fatalf("component categories = %d, want 8", len(catalog.Children))
 	}
 	for src, category := range map[string]string{
-		"docs/kit/input.md":   "输入与选择",
-		"docs/kit/table.md":   "列表与表格",
-		"docs/kit/chart.md":   "图表与绘图",
-		"docs/kit/dock.md":    "应用布局",
-		"docs/kit/message.md": "聊天与内容",
-		"docs/kit/dialog.md":  "浮层与反馈",
-		"docs/kit/avatar.md":  "基础展示",
-		"docs/kit/button.md":  "操作与导航",
+		"docs/kit/input.md":   "Inputs",
+		"docs/kit/table.md":   "Lists and tables",
+		"docs/kit/chart.md":   "Charts",
+		"docs/kit/dock.md":    "Layout",
+		"docs/kit/message.md": "Chat",
+		"docs/kit/dialog.md":  "Overlays",
+		"docs/kit/avatar.md":  "Basics",
+		"docs/kit/button.md":  "Actions",
 	} {
 		p := s.pages[src]
 		if p == nil {
 			t.Fatalf("%s: missing component page", src)
 		}
-		if p.Group != "组件 / "+category {
+		if p.Group != "Components / "+category {
 			t.Errorf("%s: wrong search category", src)
 		}
 		if !navigationView(p, catalog).Open {
@@ -78,8 +78,8 @@ func TestComponentIndexValidation(t *testing.T) {
 	for _, tc := range []struct {
 		name, index, want string
 	}{
-		{"uncategorized", "# 组件参考\n", "docs/kit/button.md: add this page"},
-		{"duplicate", "# 组件参考\n## 操作\n[Button](kit/button.md)\n## 展示\n[Button](kit/button.md)\n", "listed in more than one place"},
+		{"uncategorized", "# Components\n", "docs/kit/button.md: add this page"},
+		{"duplicate", "# Components\n## 操作\n[Button](kit/button.md)\n## 展示\n[Button](kit/button.md)\n", "listed in more than one place"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			root := t.TempDir()
@@ -87,7 +87,7 @@ func TestComponentIndexValidation(t *testing.T) {
 				t.Fatal(err)
 			}
 			for name, data := range map[string]string{
-				"README.md": "# 文档\n## 开始使用\n[组件参考](kit.md)\n",
+				"README.md": "# 文档\n## Getting started\n[Components](kit.md)\n",
 				"kit.md":    tc.index,
 			} {
 				if err := os.WriteFile(filepath.Join(root, "docs", name), []byte(data), 0o644); err != nil {

@@ -1,15 +1,17 @@
 # native/screen
 
-列出显示器，截取整屏 PNG。
+English | [简体中文](README.zh-CN.md)
 
-- **依赖**：`native`（错误值）、`native/internal/sys`。
-- **单独使用**：可以，不需要窗口。截图需要屏幕录制权限，自己不弹框，可以配合 `native/permission` 申请。
+List monitors, capture full screen PNG.
+
+- **Dependencies**: `native` (error value), `native/internal/sys`.
+- **Used alone**: Yes, no window required. Taking screenshots requires screen recording permission. If you don’t want to pop up the screen yourself, you can apply with `native/permission`.
 
 ```go
 import "github.com/dyike/keel/native/screen"
 
 displays, err := screen.Displays()
-png, err := screen.Capture(displays[0].ID) // 最多阻塞 10 秒，不能在主线程调用
+png, err := screen.Capture(displays[0].ID) // Blocks for up to 10 seconds and cannot be called from the main thread
 ```
 
-详见 [原生能力 · screen](../../docs/native.md#screen显示器与截图)。
+For details, see [Native capabilities · screen](../../docs/native.md#screen-monitor-and-screenshots).

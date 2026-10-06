@@ -1,28 +1,30 @@
 # Image
 
-显示已解码图片，或通过 Source 异步加载图片，按宽度缩放并保持宽高比。
+English | [简体中文](image.zh-CN.md)
+
+Display a decoded image, or load an image asynchronously from a Source, scaling by width and maintaining aspect ratio.
 
 ```go
 logo := kit.Image(img, "公司标志").Width(160).Rounded(8)
-photo := kit.Image(nil, "头像") // 先显示占位；加载完后在 core.Update 中调用 photo.SetImage(img)
+photo := kit.Image(nil, "头像") // Display the placeholder first; after loading, call photo.SetImage(img) in core.Update
 ```
 
-- 默认撑满父容器的宽度，但不超过图片自身的像素宽度；`Width(dp)` 设置最大宽度。
-- 没有图片时显示带替代文字的占位块。可用 Source 加载，也可在别处解码后调用 SetImage。
-- `OnClick` 让图片可以点击和聚焦，`SetDisabled` 禁用点击。
+- By default, it fills the width of the parent container, but does not exceed the pixel width of the image itself; `Width(dp)` sets the maximum width.
+- Displays a placeholder block with alt text when there is no image. It can be loaded with Source, or SetImage can be called after decoding elsewhere.
+- `OnClick` makes the image clickable and focusable, `SetDisabled` disables clicks.
 
-Agent：角色 `image`，名字是替代文字，`value` 为 `loaded` 或 `loading`。
+Agent: role `image`, name is alt text, `value` is `loaded` or `loading`.
 
-验证：`go run ./examples/components -section image`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section image`, add `-theme dark` to check the dark theme.
 
-`Size(width, height)` 指定视框，`Fit(ImageContain)` 完整显示并居中，`ImageCover` 居中裁剪，`ImageFill` 拉伸填满。宽度仍受父容器约束；高度为 0 时随实际宽度保持比例。尺寸与圆角忽略负数及 NaN/Inf，宽度 0 恢复自动宽度。圆角裁剪同时作用于像素和命中区域。
+`Size(width, height)` specifies the view frame, `Fit(ImageContain)` displays it completely and is centered, `ImageCover` is centered and cropped, and `ImageFill` is stretched and filled. The width is still constrained by the parent container; a height of 0 remains proportional to the actual width. Sizes and rounded corners ignore negative numbers and NaN/Inf, and a width of 0 returns to automatic width. Corner clipping works on both pixels and hit areas.
 
-`Preview()` 让已加载图片通过点击或键盘打开模态预览；Esc、关闭按钮和背景可关闭，焦点返回原图。移除图片或禁用所属区域会关闭预览。`OnClick` 可与预览共用。
+`Preview()` allows the loaded image to open a modal preview by clicking or keyboard; Esc, close button and background can be closed, and the focus returns to the original image. Removing an image or disabling the associated area will turn off the preview. `OnClick` can be shared with previews.
 
-`SetError(reason)` 清除旧图并显示错误；`OnRetry(fn)` 添加重试按钮，点击先清除错误并回到加载状态，再调用回调。加载成功调用 `SetImage`。手动后台加载使用 `core.Update` 提交结果；也可使用下方内置 Source/Cache。每次 `SetImage` 替换绘制缓存，nil/空图和错误状态立即释放旧缓存引用。传入后不要修改图片像素；需要变化时重新调用 `SetImage`。Agent 的图片状态增加 `error`，重试按钮名称包含替代文字。
+`SetError(reason)` clears the old image and displays the error; `OnRetry(fn)` adds a retry button. Click to clear the error and return to the loading state before calling the callback. Call `SetImage` on successful loading. Manual background loading uses `core.Update` to submit results; you can also use the built-in Source/Cache below. Every time `SetImage` replaces the draw cache, the old cache reference is released immediately with nil/empty drawing and error status. Do not modify the image pixels after passing them in; call `SetImage` again when changes are needed. The Agent's image status is increased by `error` and the retry button name contains alt text.
 
 
-## 加载、缓存和状态内容
+## Loading, caching and state content
 
 ```go
 cache := kit.NewImageCache(32 << 20)
@@ -32,24 +34,24 @@ photo := kit.Image(nil, "商品照片").Size(320, 180).
     Cache(cache).Source("https://example.com/photo.webp")
 ```
 
-Source 支持本地路径/file URL、data URL，以及 HTTP(S) 地址——网络地址要在应用里引入 `_ "github.com/dyike/keel/ui/netimage"`（约 4 MB，不引入时返回 `core.ErrNoImageFetcher`）；格式为 PNG、JPEG、WebP、GIF（含动图）和 SVG，大小限制与 core.DecodeImage 相同。请求在后台执行，默认 15 秒超时；结果通过 UI 队列提交。重复同一地址不重载；Source("") 取消并清空。SetImage/SetError 也会取消并移除当前 Source，旧结果不能覆盖它们。组件卸载不会自动取消，应用可在不再使用时调用 Source("")。
+Source supports local path/file URL, data URL, and HTTP(S) address - the network address must be introduced in the application `_ "github.com/dyike/keel/ui/netimage"` (about 4 MB, if not introduced, `core.ErrNoImageFetcher` will be returned); the formats are PNG, JPEG, WebP, GIF (including animations) and SVG, and the size limit is the same as core.DecodeImage. Requests are executed in the background with a default timeout of 15 seconds; results are submitted through the UI queue. Repeating the same address does not overload; Source("") cancels and clears. SetImage/SetError also cancels and removes the current Source, old results cannot overwrite them. Component uninstallation is not automatically canceled and the app can call Source("") when it is no longer in use.
 
-Loading 返回请求状态，ImageError 返回加载错误。LoadingContent/Fallback 接受自定义 View，nil 恢复默认替代文字/错误；固定 Size 可预留加载区域，自定义内容应适配该区域。自定义失败内容后仍保留内置重试按钮。Source 模式下 Retry 清除当前源缓存并重新加载；没有 Source 时使用原 OnRetry 回调。自身或父级禁用阻止按钮，程序 Source/SetImage 仍可更新。
+Loading returns the request status and ImageError returns the loading error. LoadingContent/Fallback accepts custom View, nil restores the default alternative text/error; fixed Size can reserve the loading area, and the custom content should fit in this area. Retain built-in retry button after customizing failure content. In Source mode, Retry clears the current source cache and reloads it; when there is no Source, the original OnRetry callback is used. Disabling the blocking button on itself or its parent, the program Source/SetImage can still be updated.
 
-默认共享 64MiB 估算容量的 ImageCache；Cache(nil) 禁用缓存，自定义缓存可限定作用域。缓存按源字符串区分、LRU 淘汰，源字符串计入预算，每像素按 8 字节保守计费（动图按帧数累计）；超过预算的图仍可显示但不保留。并发同源请求合并，取消一个等待者不影响其他人；所有等待者取消后中断请求。失败不缓存。Delete(source)/Clear 清除结果并阻止旧请求重新填入，现有等待者仍收到自己的结果。
+The default shared ImageCache of 64MiB estimated capacity; Cache(nil) disables caching, and custom caches can be scoped. The cache is distinguished by source string, LRU is eliminated, the source string is included in the budget, and each pixel is conservatively billed at 8 bytes (animated images are accumulated based on the number of frames); images that exceed the budget can still be displayed but will not be retained. Concurrent requests from the same source are merged, and canceling one waiter does not affect others; the request is interrupted after all waiters are cancelled. Failure is not cached. Delete(source)/Clear clears the results and prevents old requests from being refilled, existing waiters still receive their results.
 
-源地址内容变化时调用 Retry/Delete。缓存图片按只读共享，不应修改像素。网络请求受浏览器 CORS、系统网络和文件权限约束。
+Retry/Delete is called when the content of the source address changes. Cached images are shared as read-only and pixels should not be modified. Network requests are subject to browser CORS, system network, and file permissions.
 
-## SVG 与 GIF 动图
+## SVG and GIF animations
 
-- **SVG**：按布局尺寸实时绘制矢量，任何缩放都清晰；自然尺寸取 viewBox，三种 Fit 都适用。识别依据是内容（`<svg` / `<?xml`），与扩展名无关。不支持脚本、外部引用和 CSS 动画。
-- **GIF 动图**：按每帧延迟循环播放，按处置方式合成帧，效果与浏览器一致；延迟为 0 或 1 的帧按 100ms 播放。开启减少动态效果（`theme.ReducedMotion`）或禁用时停在第一帧。所有帧解码后超过 96MB 时只显示第一帧。
+- **SVG**: Draw vectors in real time according to the layout size, and it will be clear at any zoom; the natural size is the viewBox, and all three types of Fit are applicable. The identification is based on the content (`<svg` / `<?xml`) and has nothing to do with the extension. Scripts, external references, and CSS animations are not supported.
+- **GIF animation**: Loop playback is delayed for each frame, and the frames are synthesized according to the processing method. The effect is consistent with the browser; frames with a delay of 0 or 1 are played at 100ms. Turn on reduce motion (`theme.ReducedMotion`) or stop at first frame when disabled. Only the first frame is displayed when all frames exceed 96MB after decoding.
 
-## 磁盘缓存
+## Disk cache
 
 ```go
 dir, _ := os.UserCacheDir()
 cache := kit.NewImageCache(32 << 20).Disk(filepath.Join(dir, "myapp", "images"), 256<<20, 24*time.Hour)
 ```
 
-`Disk(目录, 上限字节, 有效期)`（同样需要 `ui/netimage`）把 HTTP(S) 图片的原始字节存到磁盘，重启后不必重新下载。有效期内直接使用本地副本；过期后带 `If-None-Match` / `If-Modified-Since` 重新验证，服务器返回 304 就继续用本地副本并刷新有效期。网络失败或服务器 5xx 时使用过期副本。总大小超过上限时按最近使用时间淘汰。`Cache-Control: no-store` 的响应不落盘；本地文件和 data URL 不复制。本地副本解码失败会被删除。目录为空或上限 ≤ 0 关闭磁盘缓存。内存层仍按原规则工作，磁盘层只在内存未命中时读取。
+`Disk(directory, maxBytes, lifetime)` (also requires `ui/netimage`) saves the raw bytes of the HTTP(S) image to disk, without having to download it again after restarting. Use the local copy directly during the validity period; after expiration, use `If-None-Match` / `If-Modified-Since` to re-verify. If the server returns 304, continue to use the local copy and refresh the validity period. Use expired copy in case of network failure or server 5xx. When the total size exceeds the upper limit, it will be eliminated based on the latest usage time. The response of `Cache-Control: no-store` is not written to disk; local files and data URLs are not copied. The local copy will be deleted if it fails to decode. Directory is empty or upper limit ≤ 0 Turn off disk caching. The memory layer still works according to the original rules, and the disk layer only reads when the memory misses.

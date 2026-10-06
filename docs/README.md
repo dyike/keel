@@ -1,38 +1,40 @@
-# Keel 文档
+# Overview
 
-第一次使用，从“快速开始”运行第一个窗口。开发应用时查“编写应用”和“组件参考”；修改框架时再看“参与开发”。
+English | [简体中文](README.zh-CN.md)
 
-## 开始使用
+Start with Getting started to open your first window. Use Guides to build your application and Components to find UI controls. For framework changes, see Contributing.
 
-- [快速开始](getting-started.md)：用脚手架新建项目、修改界面、运行和打包。
-- [在浏览器里运行](web.md)：WebAssembly 构建与桌面版差异。
-- [迁移到当前 kit](migration-kit.md)：旧版本 API 的替换方式。
+## Getting started
 
-## 编写应用
+- [Getting started](getting-started.md): scaffold a project, edit its UI, run it, and package it.
+- [WebAssembly](web.md): build WebAssembly and understand the differences from desktop applications.
+- [Migration](migration-kit.md): replace APIs from older versions.
 
-- [元素与视图](el.md)：布局、状态、事件、焦点、滚动和浮层。
-- [窗口与应用](app.md)：多窗口、生命周期、快捷键与离屏截图。
-- [主题](theme.md)：配色、字体、尺寸、局部主题与动态效果。
-- [Markdown](markdown.md)：流式输出、代码块、缓存和定制。
-- [原生能力](native.md)：权限、截图、键鼠、全局快捷键、通知和剪贴板。
-- [无样式基础层](base.md)：复用键盘导航与多选行为，自定义控件外观。
+## Guides
 
-## 组件参考
+- [Elements and views](el.md): layout, state, events, focus, scrolling, and overlays.
+- [Windows](app.md): multiple windows, lifecycle, shortcuts, and offscreen screenshots.
+- [Theme](theme.md): colors, fonts, dimensions, local themes, and motion.
+- [Markdown](markdown.md): streaming, code blocks, caching, and customization.
+- [Native APIs](native.md): permissions, screenshots, keyboard and mouse input, global hotkeys, notifications, and the clipboard.
+- [Primitives](base.md): reuse keyboard navigation and selection behavior with your own appearance.
 
-- [组件分类与公共约定](kit.md)：按用途查组件，查看 API 和交互示例。
+## Components
 
-## 测试与调试
+- [Overview](kit.md): find components by purpose, with APIs and interactive examples.
 
-- [Agent 端到端测试](automation.md)：通过 MCP 启动应用、操作组件与截图。
-- [常见问题](troubleshooting.md)：环境、文字排版、刷新、窗口和权限问题。
-- [测试](testing.md)：交互回归、截图矩阵和真实窗口测试。
+## Testing
 
-## 参与开发
+- [Automation](automation.md): launch applications, operate components, and take screenshots through MCP.
+- [Troubleshooting](troubleshooting.md): environment, text layout, redraw, window, and permission issues.
+- [Testing](testing.md): interaction regressions, screenshot matrices, and real-window tests.
 
-- [架构](architecture.md)：模块职责、依赖边界与线程规则。
-- [扩展指南](extending.md)：新增组件、原生能力和示例的步骤。
-- [组件开发规范](component-development.md)：API、状态、文件组织与验收要求。
-- [组件视觉规范](visual-guidelines.md)：字号、尺寸、留白、颜色和交互状态。
-- [设计决策](decisions.md)：全局取舍与历史方案。
+## Contributing
 
-各模块目录下的 README 记录源码职责和实现文件；提交贡献前阅读仓库的 [贡献说明](../CONTRIBUTING.md)。
+- [Architecture](architecture.md): module responsibilities, dependency boundaries, and threading rules.
+- [Extending Keel](extending.md): add components, native capabilities, and examples.
+- [Component guidelines](component-development.md): APIs, state, file organization, and acceptance criteria.
+- [Visual guidelines](visual-guidelines.md): typography, dimensions, spacing, colors, and interaction states.
+- [Design decisions](decisions.md): framework trade-offs and historical approaches.
+
+Module READMEs describe source responsibilities and implementation files. Read the repository’s [contribution guide](../CONTRIBUTING.md) before contributing.

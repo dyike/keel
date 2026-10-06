@@ -1,28 +1,30 @@
 # ToggleGroup
 
-一排开关按钮。默认单选，`Multiple()` 后可多选。
+English | [简体中文](toggle_group.zh-CN.md)
+
+A row of switch buttons. Single selection by default, multiple selections available after `Multiple()`.
 
 ```go
 align := kit.ToggleGroup("左对齐", "居中", "右对齐")
 style := kit.ToggleGroup("B", "I", "U").Multiple().OnChange(func(on []string) { … })
 ```
 
-- 单选模式下，再点一次已按下的选项会取消选择。
-- `Value()` 按选项顺序返回已按下的选项（返回副本），`SetValue(values...)` 不触发回调；单选模式只保留第一个。`SetDisabled`。
+- In radio selection mode, clicking the pressed option again will cancel the selection.
+- `Value()` returns the pressed option in option order (returns a copy), `SetValue(values...)` does not trigger a callback; radio mode only retains the first one. `SetDisabled`.
 
-Agent：容器角色 `group`，每个按钮是 `toggle`。
+Agent: container role `group`, each button is `toggle`.
 
-验证：`go run ./examples/components -section toggle_group`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section toggle_group`, add `-theme dark` to check the dark theme.
 
-`Variant(kit.ToggleGhost)` 设置未选中时透明无边框外观；`ToggleOutline` 设置透明背景加边框。`ToggleDefault` 保留原 Surface 背景和边框。选中均显示 Highlight 底色；Ghost 仅在聚焦时出现焦点边框。
+`Variant(kit.ToggleGhost)` sets the transparent borderless appearance when not selected; `ToggleOutline` sets the transparent background with borders. `ToggleDefault` retains the original Surface background and borders. The Highlight background color is displayed when selected; the focus border appears only when the Ghost is focused.
 
-`Size(...)` 接受 `ToggleSizeXSmall`、`ToggleSizeSmall`、`ToggleSizeMedium`、`ToggleSizeLarge`， 同步调整高度、字号、图标和水平留白，高度分别为 24/28/32/40dp，默认 Medium。运行中切换样式保留焦点与选中状态，不触发 OnChange。非法枚举值忽略。
+`Size(...)` accepts `ToggleSizeXSmall`, `ToggleSizeSmall`, `ToggleSizeMedium`, `ToggleSizeLarge`, and adjusts the height, font size, icon and horizontal blank synchronously. The heights are 24/28/32/40dp respectively, and the default is Medium. Switching styles during operation retains the focus and selection status and does not trigger OnChange. Illegal enumeration values are ignored.
 
-`Segmented(true)` 连接相邻按钮，默认间距为 0，首尾外侧保留圆角，中间接缝使用单个描边；Ghost 保留无描边外观和每项焦点轮廓。单项组保留四个圆角，空组不绘制按钮。
+`Segmented(true)` connects adjacent buttons, with the default spacing of 0, rounded corners at the beginning and end, and a single stroke at the middle seam; Ghost retains the strokeless appearance and focus outline of each item. The single-item group retains four rounded corners, and the empty group does not draw buttons.
 
-`Gap(dp)` 设置有限非负间距；分段组设正值后各项恢复四角圆角。`ResetGap()` 恢复分段组 0、普通组 SpaceXs 的默认间距。`Segmented(false)` 恢复普通组；显式 Gap 不因模式切换而丢失。切换模式/间距不会改变选中值或焦点，不触发回调。默认仍为单选，可调用 Multiple 开启多选。
+`Gap(dp)` sets a limited non-negative spacing; after the segmented group is set to a positive value, each item restores the four-corner rounding. `ResetGap()` Restores the default spacing for segmented group 0, normal group SpaceXs. `Segmented(false)` Restores normal groups; explicit gaps are not lost due to mode switching. Switching mode/spacing does not change the selected value or focus, and does not trigger callbacks. The default is still single selection, you can call Multiple to enable multiple selection.
 
-逐项配置使用 `Item(value, toggle)`：
+Configure item by item using `Item(value, toggle)`:
 
 ```go
 g := kit.ToggleGroup("star", "inbox").Multiple().Variant(kit.ToggleOutline).
@@ -31,6 +33,6 @@ g := kit.ToggleGroup("star", "inbox").Multiple().Variant(kit.ToggleOutline).
 g.SetValue("star")
 ```
 
-value 仍是构造时的选项值，与显示文案分离。纯图标项的 Agent 名称回退到 value。Item 保存配置快照，源 Toggle 后续修改需再次调用 Item 才生效；源 Toggle 的 Value 和 OnChange 不参与组状态。组回调仍返回选项值，按原选项顺序排列。
+value is still the option value during construction, separated from the display text. Agent names for icon-only items fall back to value. Item saves the configuration snapshot, and subsequent modifications to the source Toggle need to call the Item again to take effect; the Value and OnChange of the source Toggle do not participate in the group state. The group callback still returns the option values, arranged in the order of the original options.
 
-显式逐项 Size/Variant 覆盖组配置，包括显式 Medium/Default；未配置则继承组值。逐项禁用与组禁用叠加，不清除已有选中值，也不阻止程序 SetValue。`Item(value, nil)` 清除覆盖，未知 value 忽略。替换配置保留该项身份与焦点。连接分段组建议统一高度，混合尺寸仍按各项高度绘制，不自动拉齐。
+Explicit itemized Size/Variant overrides group configuration, including explicit Medium/Default; unconfigured inherits group value. Item-by-item disabling and group disabling are superimposed, and existing selected values are not cleared and the program SetValue is not blocked. `Item(value, nil)` clears overwrites, unknown values are ignored. The replacement configuration retains the item's identity and focus. It is recommended that the connected segment groups have a unified height. Mixed sizes are still drawn according to each height and will not be automatically aligned.

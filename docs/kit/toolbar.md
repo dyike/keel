@@ -1,6 +1,8 @@
 # Toolbar
 
-一排命令按钮，放不下的按钮会自动移进"更多"菜单。
+English | [简体中文](toolbar.zh-CN.md)
+
+A row of command buttons, buttons that cannot fit will be automatically moved into the "More" menu.
 
 ```go
 bar := kit.Toolbar(
@@ -10,23 +12,23 @@ bar := kit.Toolbar(
 )
 ```
 
-- 每一项可以是按钮或分隔线。设置 `Icon` 时显示图标，同时设置 `IconOnly` 则只显示图标，名字作为提示；禁用的按钮不响应。
-- 溢出判断用的是父容器给的宽度，所以要把工具栏放在有宽度约束的位置，比如整行，或者一个设置了宽度的容器里。父容器按内容定宽时，所有按钮都会显示。
-- 命令区域只占一个 Tab 停靠点，← → 在可用按钮和“更多”之间移动，首尾循环，Home / End 跳到首尾，回车或空格执行。“更多”菜单关闭后返回触发按钮；左右附加操作保留各自的 Tab 停靠点。
-- `Leading(el.View)` / `Trailing(el.View)` 固定左右区域，中间命令根据剩余宽度溢出。`Size(dp)` 设置统一高度，默认 32，最小 24。
-- `SetDisabled` 禁用整个工具栏和附加操作；`SetItemDisabled(index, bool)` 禁用单项。图标按钮可通过悬停或键盘焦点看到提示。
-- `SetItems` 替换按钮并关闭旧菜单；传入切片会复制，`Items()` 也返回副本。同名命令的禁用状态独立。
+- Each item can be a button or a divider. When `Icon` is set, the icon is displayed, and when `IconOnly` is set, only the icon is displayed with the name as a prompt; disabled buttons do not respond.
+- Overflow judgment uses the width given by the parent container, so the toolbar must be placed in a position with width constraints, such as the entire row, or a container with a set width. When the parent container is width-limited by content, all buttons will be displayed.
+- The command area only occupies one Tab stop, ← → moves between available buttons and "More", loops from beginning to end, Home / End jumps to beginning and end, press Enter or space to execute. Return to trigger buttons after the More menu is closed; left and right append actions retain their respective tab stops.
+- `Leading(el.View)` / `Trailing(el.View)` fix the left and right areas, and the middle command overflows according to the remaining width. `Size(dp)` sets the uniform height, default is 32, minimum is 24.
+- `SetDisabled` disables the entire toolbar and additional actions; `SetItemDisabled(index, bool)` disables individual items. Icon buttons are visible via hover or keyboard focus.
+- `SetItems` replaces the button and closes the old menu; passing in a slice makes a copy, and `Items()` also returns a copy. The disabled state of the command with the same name is independent.
 
-Agent：容器角色 `toolbar`，按钮单独列出；"更多"按钮打开的是普通的 `menu`。
+Agent: container role `toolbar`, the button is listed separately; the "More" button opens the ordinary `menu`.
 
-验证：`go run ./examples/components -section toolbar`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section toolbar`, add `-theme dark` to check the dark theme.
 
-首帧尚未测出命令区宽度时，操作先放进“更多”，测量后自动展开能容纳的按钮。命令区裁剪自己的绘制和命中，避免首次显示或窗口缩放时覆盖右侧插槽；首帧菜单操作有回归测试。
+When the width of the command area has not yet been measured in the first frame, the operation is to enter "More" first, and after the measurement, the buttons that can be accommodated are automatically expanded. The command area crops its own drawing and hits to avoid covering the right slot when it is first displayed or when the window is zoomed; there is a regression test for the first frame menu operation.
 
-## 任意位置的自定义组
+## Custom group anywhere
 
-`ToolbarItem{Label: "缩放", Content: zoomSelect, Width: 150}` 在该位置放入交互式视图，视图内部可以组合多个控件。`Content` 优先于 Action/Icon，Separator 仍优先；Label 用于组语义和溢出菜单。`Width` 指组宽度，合法范围为大于 0 且不超过 4096dp，未设置或非法时使用 160dp。
+`ToolbarItem{Label: "缩放", Content: zoomSelect, Width: 150}` Place an interactive view at this location, and multiple controls can be combined inside the view. `Content` takes precedence over Action/Icon, Separator still takes precedence; Label is used for group semantics and overflow menus. `Width` refers to the group width. The legal range is greater than 0 and no more than 4096dp. If it is not set or illegal, 160dp is used.
 
-放不下的组以 Label 进入“更多”，点击后在工具栏下方的模态浮层展示 Content。可用 `OverflowContent` 提供另一种布局；浮层限制在窗口内，内容过高时滚动，Esc 或点击外部关闭。组重新放得下、被禁用或 SetItems 替换时关闭浮层。自定义视图的状态由应用持有；在工具栏与浮层间切换会改变元素树路径，输入选区等框架内部状态不保证保留。
+For groups that cannot be placed, use Label to enter "More". After clicking, Content will be displayed in the modal overlay below the toolbar. `OverflowContent` can be used to provide another layout; the overlay is limited to the window, scrolled when the content is too high, Esc or click outside to close. Closes the overlay when the group is resized, disabled, or replaced by SetItems. The state of the custom view is held by the application; switching between the toolbar and the overlay will change the element tree path, and the internal state of the frame such as input selection is not guaranteed to be retained.
 
-自定义组的子控件保留各自的 Tab 停靠点和方向键行为，工具栏的左右/Home/End 导航仍只管理命令按钮。整组与整个工具栏的禁用会传递给子控件。示例在搜索与复制之间加入缩放选择器；自动测试覆盖双倍率溢出、嵌套 Select、Esc、禁用、宽度变化与替换清理；原生视觉未验收。
+The custom group's child controls retain their respective tab stops and arrow key behaviors, and the toolbar's left and right/Home/End navigation still only manages command buttons. Disabling entire groups and entire toolbars is passed to child controls. The example adds a zoom selector between search and copy; automatic testing covers double overflow, nested Select, Esc, disabling, width change and replacement cleanup; the native vision is not accepted.

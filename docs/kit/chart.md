@@ -1,6 +1,8 @@
 # Chart
 
-分类数据的折线图和柱状图，只有一条纵轴。
+English | [简体中文](chart.zh-CN.md)
+
+Line charts and bar charts for categorical data have only one vertical axis.
 
 ```go
 sales := kit.LineChart(months,
@@ -11,68 +13,68 @@ sales := kit.LineChart(months,
 mix := kit.BarChart([]string{"Q1", "Q2", "Q3", "Q4"}, online, stores).Stacked().Height(180)
 ```
 
-- 系列颜色依次取 `theme.Chart` 的 8 个分类色，第 i 个系列始终是第 i 个颜色，增减系列时其他系列的颜色不变。这套颜色在浅色和深色背景上都用色觉缺陷校验工具验证过。
-- 有两个及以上系列时显示图例；只有一个系列时，标题已经说明画的是什么，不显示图例。
-- 悬停时，柱状图会高亮所在的那一组，折线图显示十字线和数据点；同时弹出提示框，列出该位置所有系列的值。
-- "查看数据表"按钮把同样的数据切换成 Table 显示。有几个分类色对背景的对比度低于 3:1，表格视图是给它们的补救，也方便读屏和 Agent 读取数据。
-- 柱子最宽 24dp，顶端 4dp 圆角，从同一条基线长出；相邻柱子之间留 2dp 间隙。堆叠时各段之间也留 2dp 间隙，只有最外侧一段是圆角。线宽 2dp。网格线是 1px 的浅色实线。
-- 纵轴刻度取整（1、2、5 × 10ⁿ），数字带千分位。横轴标签放不下时会自动隔几个显示，保证不重叠。
-- `Format(fn)` 统一设置轴刻度、提示框和表格中数值的写法；`SetData` 替换数据。
-- 不支持双纵轴：两种量纲不同的数据请画成两张图。
+- The series colors take the 8 classified colors of `theme.Chart` in sequence. The i-th series is always the i-th color. When adding or subtracting series, the colors of other series remain unchanged. This set of colors has been verified using the Color Vision Deficiency Calibration Tool on both light and dark backgrounds.
+- When there are two or more series, the legend is displayed; when there is only one series, the title already explains what is drawn, and the legend is not displayed.
+- When hovering, the histogram will highlight the group it is in, and the line chart will display cross lines and data points; at the same time, a prompt box will pop up to list the values of all series at that position.
+- The "View Data Table" button switches the same data to a Table display. The contrast ratio of several classification colors to the background is less than 3:1. The table view is a remedy for them, and it is also convenient for screen reading and data reading by the Agent.
+- Pillars are 24dp wide at most, 4dp rounded at the top, and grow from the same baseline; leave a 2dp gap between adjacent pillars. There is also a 2dp gap between each segment when stacking, and only the outermost segment has rounded corners. Line width 2dp. Gridlines are 1px light solid lines.
+- The vertical axis scale is rounded (1, 2, 5 × 10ⁿ), and the numbers include thousandths. When the horizontal axis labels cannot be placed, they will be automatically displayed at intervals to ensure no overlap.
+- `Format(fn)` uniformly sets the axis scale, prompt box and writing method of values in the table; `SetData` replaces the data.
+- Dual vertical axes are not supported: please draw two graphs for data with two different dimensions.
 
-Agent：角色 `figure`，名字是标题（没有标题时是各系列名），`value` 为"项数x系列数"；切换到表格后，各行以 `row` 列出。
+Agent: role `figure`, the name is the title (if there is no title, it is the name of each series), `value` is "number of items x number of series"; after switching to the table, each row is listed with `row`.
 
-验证：`go run ./examples/components -section chart`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section chart`, add `-theme dark` to check the dark theme.
 
-图例是可聚焦的开关，点击或按空格/Enter 隐藏与恢复系列；隐藏后重新计算纵轴，颜色仍按原系列位置。`SetDisabled(true)` 禁用图例、视图切换和悬停。
+The legend is a focusable switch. Click or press Space/Enter to hide and restore the series; after hiding, the vertical axis is recalculated and the colors remain in the original series position. `SetDisabled(true)` disables legend, view switching and hover.
 
-构造和 `SetData` 都复制分类、系列及数值切片。再次 `SetData` 会恢复全部系列并重建数据表列名。缺少的值、NaN、Inf 显示为 `—`，不参与坐标范围，也不会连接缺口；真实的 0 仍正常绘制。正负堆叠分别累计，极端数据避免浮点溢出。
+Both constructor and `SetData` copy categories, series, and numeric slices. `SetData` again will restore all series and rebuild the data table column names. Missing values, NaN, Inf are displayed as `—`, do not participate in the coordinate range, and do not connect gaps; true 0s are still drawn normally. Positive and negative stacks are accumulated separately, and extreme data avoids floating point overflow.
 
-密集折线按像素分桶，保留各桶的首尾、最大和最小值。10 万点仍保留尖峰，连续区间的绘图点数约为视宽的四倍；分类标签只生成当前宽度能容纳的数量。数据表和悬停保留原始数据。
+Dense polylines are divided into buckets by pixels, retaining the first and last, maximum and minimum values of each bucket. 100,000 points still retain spikes, and the number of drawing points in the continuous interval is approximately four times the viewing width; the classification label only generates the number that can be accommodated by the current width. Data tables and hovers retain original data.
 
-`AreaChart(labels, series...)` 在折线与零基线之间填半透明颜色，支持负值、缺口、图例、悬停和数据表；多系列面积重叠显示。`Stacked()` 只适用于柱状图。
+`AreaChart(labels, series...)` Fills the space between the polyline and the zero baseline with a translucent color, supports negative values, gaps, legends, hovers and data tables; multiple series areas are displayed overlappingly. `Stacked()` only works with bar charts.
 
-## 轴、线型与提示配置
+## Axis, linetype and prompt configuration
 
-`YDomain(lo,hi)` 固定精确轴域，要求有限且 lo < hi；AutoDomain 恢复自动范围。YTickCount(2–50) 在两端之间均匀布点，0 恢复自动美化刻度；XTickCount(1–100) 在首末类别间分配标签，0 按宽度自动抽稀。GridColumns 添加内部竖线，GridDashed 控制网格虚线。ReferenceLines 接收数值、颜色、可选文字，超出轴域的参考线隐藏。柱/面积图在固定轴域下仍以零为基线，绘图裁剪到图框。
+`YDomain(lo,hi)` Fixed exact axis domain, limited requirements and lo < hi; AutoDomain restores automatic range. YTickCount(2–50) distributes points evenly between both ends, 0 restores automatic beautification scale; XTickCount(1–100) allocates labels between the first and last categories, 0 automatically thins out according to width. GridColumns adds internal vertical lines, and GridDashed controls grid dashed lines. ReferenceLines accepts values, colors, and optional text. Reference lines beyond the axis range are hidden. Column/area charts still have zero as the baseline under fixed axes, and the plot is clipped to the frame.
 
-Curve 支持 ChartCurveLinear（默认）、ChartCurveStepAfter 和 ChartCurveSmooth。Smooth 使用逐段单调 smoothstep 采样，不跨越缺失值，也不超出相邻端点的纵向范围；不等同于 GPUI 的默认插值。SeriesStyle(index, style) 可独立设描边、填充、线宽与数据顶点，颜色指针会复制；零线宽使用 2dp。改变数据不清除样式索引。
+Curve supports ChartCurveLinear (default), ChartCurveStepAfter, and ChartCurveSmooth. Smooth uses piecewise monotonic smoothstep sampling that does not span missing values or extend beyond the longitudinal extent of adjacent endpoints; not equivalent to the GPUI's default interpolation. SeriesStyle(index, style) can set stroke, fill, line width and data vertices independently, and the color pointer will be copied; zero line width uses 2dp. Changing data does not clear the style index.
 
-TooltipContent 接收当前类别索引、标签和可见系列的数值/默认文字/颜色，可返回展示元素；nil 恢复默认。Format 仍控制默认轴/提示/数据表。CandlestickChart 同样提供轴、网格、参考线与提示配置，提示系列依次为开、高、低、收。
+TooltipContent receives the value/default text/color of the current category index, label and visible series, and can return the display element; nil returns to default. Format still controls the default axis/prompt/data table. CandlestickChart also provides axis, grid, reference line and prompt configuration. The prompt series are open, high, low and close in order.
 
-另见 [RadarChart](radar_chart.md) 和 [SankeyChart](sankey_chart.md)。新增配置的自动验证范围见下文。新增接口不代表视觉或 API 完全一致。
+See also [RadarChart](radar_chart.md) and [SankeyChart](sankey_chart.md). See below for the newly configured automatic verification scope. The new interface does not mean that the visual or API is completely consistent.
 
-## 轴标签布局
+## Axis label layout
 
-`Gutter(ChartGutter{Left, Right, Top, Bottom})` 以 dp 指定笛卡尔绘图区四边的预留尺寸，`AutoGutter()` 恢复默认 Left=52、Bottom=18、其余为零。Height 仍表示绘图区高度；外部标题、控件及分区间距另计。四个值均须在 0–4096 范围内且有限，否则整组配置不变。Bottom 为零隐藏类别标签，自定义的较小 Bottom 会裁剪标签区。
+`Gutter(ChartGutter{Left, Right, Top, Bottom})` uses dp to specify the reserved dimensions on the four sides of the Cartesian drawing area. `AutoGutter()` restores the default Left=52, Bottom=18, and the rest are zero. Height still represents the height of the drawing area; external titles, controls, and partition spacing are additional. All four values must be within the range of 0–4096 and limited, otherwise the entire configuration will remain unchanged. A Bottom of zero hides category labels, and a custom smaller Bottom will crop the label area.
 
-`YLabelsInside(true)` 将纵轴标签置于绘图区左侧，未显式 Gutter 时自动去掉外侧左标签列；显式 Gutter 保持调用方给定值。标签可能覆盖数据，参考线文字和提示在标签上方绘制。横轴标签跟随实际绘图区宽度与左右边距对齐。以上接口也用于 CandlestickChart，不影响 RadarChart/PieChart。
+`YLabelsInside(true)` places the vertical axis label on the left side of the drawing area. When Gutter is not explicitly used, the outer left label column is automatically removed; when Gutter is explicitly used, the value given by the caller is maintained. Labels may cover the data, with guide text and tips drawn above the labels. The horizontal axis labels are aligned with the actual plot area width and left and right margins. The above interface is also used for CandlestickChart and does not affect RadarChart/PieChart.
 
-组件库订单图演示轴内标签及四边预留。1×/2× 布局测试覆盖预留尺寸、非法配置原子拒绝、隐藏底部标签和恢复默认布局；原生窄窗口的轴文本仍需视觉验收。
+The component library order diagram demonstrates in-axis labels and four-side reservations. 1×/2× layout test covers reserved size, illegal configuration atom rejection, hiding bottom labels and restoring default layout; axis text of native narrow window still requires visual acceptance.
 
-`FutureSlots(n)` 在已有类别后预留 n 个空位置（0–100000，默认 0），适用于折线、面积、柱图及 CandlestickChart。数据、横轴标签、悬停带与提示使用同一类别宽度；鼠标进入空位不显示提示。空位不产生数据表行、不参与纵轴域，也不会自动生成日期。设回 0 恢复铺满绘图区；改变配置清除旧悬停。雷达图不使用此配置。示例预留两期。测试覆盖四向柱图与蜡烛的真实数据命中、空位不命中、恢复默认以及纵轴域不变；密集蜡烛的原生视觉仍待验收。
+`FutureSlots(n)` reserves n empty positions (0–100000, default 0) after existing categories, suitable for line, area, column and CandlestickChart. Data, horizontal axis labels, hover bands and prompts use the same category width; no prompt will be displayed when the mouse enters an empty space. Empty positions do not generate data table rows, do not participate in vertical axis fields, and do not automatically generate dates. Setting it back to 0 restores filling the drawing area; changing the configuration clears the old hover. Radar charts do not use this configuration. Samples are reserved for two periods. The test covers the real data hits of four-way bar charts and candles, misses in gaps, restoration to default, and unchanged vertical axis domain; the native visual of dense candles still needs to be accepted.
 
-`BarFill(func(ChartBarDatum) ChartBarFill)` 逐柱或逐堆叠段配置填充。参数含原始 Series/Index、系列名、类别标签、数值、堆叠标志和默认系列色；返回 Color 或非 nil 的 Gradient。`ChartBarGradient{Start, End, Direction}` 沿当前柱段矩形向 Top/Bottom/Left/Right 渐变，默认及非法方向使用 Bottom，保留透明度与圆角。传 nil 恢复系列色。此接口只影响柱体，不改变图例、提示或数据。回调可能在测量和绘制时执行，必须无副作用。
+`BarFill(func(ChartBarDatum) ChartBarFill)` Configure padding on a per-column or per-stack segment basis. Parameters include original Series/Index, series name, category label, value, stacking flag, and default series color; returns Color or non-nil Gradient. `ChartBarGradient{Start, End, Direction}` Gradient to Top/Bottom/Left/Right along the current column segment rectangle. The default and illegal directions use Bottom, retaining transparency and rounded corners. Pass nil to restore the series color. This interface only affects the column and does not change the legend, tips, or data. Callbacks may be executed during measurement and plotting and must have no side effects.
 
-订单图示例加入逐柱渐变。1×/2× GPU 像素测试覆盖四种柱体方向与四种渐变方向的组合，另验证堆叠回调保留正负原值。渐变方向使用屏幕方向；柱体基线方向通过 BarAlignment 配置。
+The order chart example adds bar-by-bar gradient. The 1×/2× GPU pixel test covers four combinations of cylinder directions and four gradient directions, and also verifies that the stack callback retains the original positive and negative values. The gradient direction uses the screen direction; the cylinder baseline direction is configured through BarAlignment.
 
-`HoverAnimation(false)` 关闭悬停过渡，默认开启。强调状态以 150ms 三次缓出变化，快速换目标从当前权重继续；减少动画时立即显示目标。饼图过渡选中边框，桑基图过渡不相关流带的透明度，折线/面积图过渡焦点线和点，柱/蜡烛图过渡类别背景，雷达图过渡焦点。命中和提示数据立即更新，不等待动画。更新数据清理旧过渡。共享动画测试覆盖中间帧权重、切换目标时的连续性、结束帧及减少动画；各图的原生动画观感仍待验收。
+`HoverAnimation(false)` turns off hover transition, enabled by default. The emphasis state changes with three 150ms slow-outs, and the rapid target change continues from the current weight; the target is displayed immediately when the animation is reduced. Pie chart transition selected border, Sankey chart transition irrelevant stream band transparency, line/area chart transition focus line and point, bar/candle chart transition category background, radar chart transition focus. Hit and cue data are updated immediately, no waiting for animations. Update data to clean up old transitions. The shared animation test covers intermediate frame weights, continuity when switching targets, end frames and reduced motion; the look and feel of the native animation of each picture is still to be accepted.
 
-## 柱体方向
+## Cylinder direction
 
-`BarAlignment(BarAlignmentBottom/Top/Left/Right)` 指定柱体基线所在侧：默认 Bottom 向上，Top 向下，Left 向右，Right 向左。保留正负值的零基线、分组/堆叠、缺失数据、FutureSlots、圆角和逐柱填充。文字保持正向，横向时类别沿上到下排列，数值轴沿左右方向；悬停命中在相同坐标变换下处理。切换方向清除旧悬停。非柱图忽略该配置。
+`BarAlignment(BarAlignmentBottom/Top/Left/Right)` specifies the side of the cylinder baseline: by default Bottom is upward, Top is downward, Left is to the right, and Right is to the left. Preserve zero baseline for positive and negative values, grouping/stacking, missing data, FutureSlots, rounded corners, and column-by-column padding. The text remains in the forward direction, the categories are arranged from top to bottom in the horizontal direction, and the value axis is in the left and right directions; hover hits are processed under the same coordinate transformation. Switching orientation clears old hovers. Non-column charts ignore this configuration.
 
-横向的默认预留为 Left=80、Bottom=24，显式 Gutter 优先。YLabelsInside 将数值刻度移进绘图区，类别标签仍在左侧。参考线、提示与数值刻度使用对应方向的坐标，渐变的 Top/Bottom/Left/Right 保持屏幕方向。
+The default reservations for landscape orientation are Left=80, Bottom=24, with explicit Gutter taking precedence. YLabelsInside moves the numeric scale into the plot area, with the category labels still on the left. The reference lines, tips and numerical scales use the coordinates of the corresponding directions, and the gradient Top/Bottom/Left/Right maintains the screen orientation.
 
-季度收入示例采用左基线横向堆叠图。四向命中与渐变像素已通过自动测试；参考线和文字的完整原生布局仍待验收。固定总点位与多停靠点渐变见下文。
+The quarterly revenue example uses a horizontally stacked chart with a left baseline. Four-way hit and gradient pixels have passed automatic testing; full native layout of guides and text is still pending. See below for fixed total point position and multi-stop gradient.
 
-## 固定点位与数值渐变
+## Fixed point position and numerical gradient
 
-`PointCount(n)` 固定分类轴至少容纳 n 个位置（0–100000），追加数据时已有类别位置保持不变；实际数据超过 n 后扩展轴，0 恢复自动。它与 FutureSlots 相互替换，适用于折线、面积、柱图和蜡烛图。XTickCount 在固定总位置上选择刻度，仅展示已有类别的文字，未来空位不伪造标签、数值或提示。与 [GPUI 的 point_count](https://gpui-kit.com/component/chart/#pinned-axis-and-unfinished-series) 用途相同，Keel 继续使用分类带中心坐标。
+`PointCount(n)` The fixed category axis accommodates at least n positions (0–100000). When appending data, the existing category positions remain unchanged; after the actual data exceeds n, the axis is expanded and 0 returns to automatic. It is interchangeable with FutureSlots and works with line, area, column and candle charts. XTickCount selects ticks at a fixed total position, displays only text from existing categories, and does not forge labels, values, or tips for future empty spaces. For the same purpose as [GPUI's point_count](https://gpui-kit.com/component/chart/#pinned-axis-and-unfinished-series), Keel continues to use the classification band center coordinates.
 
-`BarGradient(func(ChartBarDatum, ChartBarRange) []ChartColorStop)` 提供沿柱体基线到顶端的多停靠点渐变。`ChartBarRange` 含显示轴域 Min/Max 和当前段累计值 Base/Tip；`ChartToBar(value)` 将数值映射到当前段，Base 为 0、Tip 为 1，允许越界。正负柱及四种方向均按真实生长方向绘制。堆叠回调的 datum.Value 保留原值。
+`BarGradient(func(ChartBarDatum, ChartBarRange) []ChartColorStop)` Provides a multi-stop gradient along the cylinder's baseline to its tip. `ChartBarRange` includes display axis Min/Max and current segment cumulative value Base/Tip; `ChartToBar(value)` maps the value to the current segment, Base is 0, Tip is 1, and out-of-bounds are allowed. The positive and negative columns and the four directions are drawn according to the true growth direction. The datum.Value of stacked callbacks retains its original value.
 
-每个停靠点含 Position 和 Color；实现复制并排序输入，重复位置采用最后一个颜色。区间外的点在边界按线性光、预乘 alpha 插值；空数组或非有限位置整组回退系列色。相邻色段按物理像素边界切分，不保留亚像素宽的色段。BarGradient 与 BarFill 相互替换，传 nil 恢复系列色；回调应无副作用。
+Each stop contains Position and Color; to copy and sort the input, the repeated position adopts the last color. Points outside the interval are interpolated according to linear light and premultiplied alpha at the boundary; an empty array or a non-finite position set of fallback series colors. Adjacent color segments are divided according to physical pixel boundaries, and sub-pixel wide color segments are not retained. BarGradient and BarFill replace each other. Pass nil to restore the series color; the callback should have no side effects.
 
 ```go
 chart.BarGradient(func(d kit.ChartBarDatum, r kit.ChartBarRange) []kit.ChartColorStop {
@@ -84,4 +86,4 @@ chart.BarGradient(func(d kit.ChartBarDatum, r kit.ChartBarRange) []kit.ChartColo
 })
 ```
 
-自动验证覆盖追加时固定刻度、两种点位配置切换、超额数据、区间外插值、输入副本、非法停靠点、极值映射、正负堆叠端点；GPU 像素测试覆盖双倍率、四向正负柱、半透明整图映射在不同柱高上的颜色一致性。原生窗口仍待验收。
+Automatic verification covers fixed scale when appending, switching between two point configurations, excess data, interval extrapolation, input copies, illegal stops, extreme value mapping, positive and negative stacking endpoints; GPU pixel test covers the color consistency of double rate, four-way positive and negative columns, and translucent whole image mapping on different column heights. Native windows are still pending acceptance.

@@ -1,239 +1,241 @@
-# 设计决策
+# Design decisions
 
-记录影响全局的取舍：当时的选项、选了什么、代价是什么。推翻某条决策时，不要删掉它，在后面追加新的一条并注明取代关系。
+English | [简体中文](decisions.zh-CN.md)
 
-## 选 Gio
+Document the trade-offs that impact the big picture: the options at the time, what was chosen, and what the cost was. When overturning a decision, do not delete it. Add a new one at the end and indicate the replacement relationship.
 
-**决定**：界面用 Gio 绘制，替换最初的 go-gui 实现。
+## Choose Gio
 
-**目标**：应用代码只写 Go，不写 HTML、CSS、JS，也不引入 WebView。
+**Decision**: The interface is drawn with Gio, replacing the original go-gui implementation.
 
-| 候选 | 为什么没选 |
+**Goal**: The application code is only written in Go, without writing HTML, CSS, JS, or introducing WebView.
+
+| Candidate | Why not selected |
 | --- | --- |
-| Wails、WebView 类方案 | 和目标直接冲突：界面仍然是 HTML/CSS/JS |
-| go-gui（原实现） | 能用，但为了多窗口、生命周期、显示隐藏、快捷键，Keel 自己维护了约 940 行窗口管理和平台启动代码（不含测试），其中一部分是在绕开上游的行为（比如异步创建窗口没有失败回调）。换成 Gio 后，对应代码是 `ui/` 里窗口相关的 235 行 |
-| giu（Dear ImGui） | 依赖 C++ 的 ImGui，外观是工具、调试面板风格，做普通应用要大量改样式 |
-| Fyne | 成熟，组件齐全。但它自带完整的应用生命周期、主题系统和组件体系，Keel 在上面只能再包一层薄壳，模块化后每一层都会和 Fyne 的对应概念重复 |
+| Wails, WebView class solutions | Direct conflict with the goal: the interface is still HTML/CSS/JS |
+| go-gui (original implementation) | It works, but for multi-window, life cycle, show-hide, and shortcut keys, Keel maintains about 940 lines of window management and platform startup code (excluding tests), part of which is to bypass upstream behavior (such as asynchronous window creation without failure callback). After switching to Gio, the corresponding code is the 235 lines related to the window in `ui/` |
+| giu (Dear ImGui) | ImGui relies on C++. Its appearance is tool and debugging panel style. For ordinary applications, a lot of style changes are required |
+| Fyne | Mature, complete components. But it comes with a complete application life cycle, theme system and component system. Keel can only cover it with a thin shell. After modularization, each layer will repeat the corresponding concept of Fyne |
 
-Gio 的好处：界面完全由 Go 绘制，组件只是普通 Go 结构体，即时模式很容易包成一层简单的有状态 API；自带离屏渲染（`window.Screenshot` 用它）和可编程的输入路由（`ui/internal/uitest` 用它）。
+The benefits of Gio: The interface is completely drawn by Go, and the components are just ordinary Go structures. The immediate mode is easily wrapped into a simple stateful API; it comes with off-screen rendering (`window.Screenshot` uses it) and programmable input routing (`ui/internal/uitest` uses it).
 
-**代价**，都是选 Gio 时明确接受的：
+The **price** is explicitly accepted when choosing Gio:
 
-- 没有原生控件外观，所有组件的样子由 Keel 自己画。
-- 窗口不能隐藏再显示，只能关闭再重新打开。
-- 中文依赖系统字体回退，要固定字体优先级（`theme.Face`），还要微调文字垂直位置：el 按字体实测的字形位置把文字移到行框中间，并保证下伸部分（g、y）不出行框，见 `ui/el/paint.go` 的 `textShift`。
-- 组件要自己写。做这个决定时只有文字、按钮、链接、输入框、复选框；现在 `ui/kit` 已有 80 多个组件，覆盖 GPUI Kit 的全部组件目录，见 [kit 组件](kit.md)。
+- There is no native control appearance, and the appearance of all components is drawn by Keel himself.
+- The window cannot be hidden and then shown, it can only be closed and reopened.
+- Chinese relies on system font fallback. It is necessary to fix the font priority (`theme.Face`) and fine-tune the vertical position of the text: el moves the text to the middle of the line box according to the measured glyph position of the font, and ensure that the descending parts (g, y) do not fit in the line box. See `textShift` of `ui/el/paint.go`.
+- You have to write the components yourself. When making this decision, there are only text, buttons, links, input boxes, and check boxes; now `ui/kit` has more than 80 components, covering the entire component directory of GPUI Kit, see [kit component](kit.md).
 
-## 有状态组件包在即时模式外面
+## Stateful components wrap outside immediate mode
 
-**决定**：Gio 是即时模式，每帧重新描述界面。Keel 提供 `widget.Button(...)` 这样返回指针的有状态组件，用户拼一次组件树，之后只改状态。
+**Decision**: Gio is in real-time mode and re-describes the interface every frame. Keel provides `widget.Button(...)`, a stateful component that returns a pointer. The user builds the component tree once, and then only changes the state.
 
-**理由**：直接写 Gio 需要自己管理 `widget.Clickable` 等状态对象、每帧调用布局函数，每个页面的样板代码都很多。有状态组件让业务代码接近"声明界面 + 写回调"。
+**Reason**: To write Gio directly, you need to manage state objects such as `widget.Clickable` yourself and call layout functions for each frame. There is a lot of boilerplate code for each page. Stateful components bring business code close to "declaration interface + writing callbacks".
 
-**代价**：动态结构（列表增删行、按条件显示）需要组件自己支持；想要完全灵活的布局时，用 `core.Func` 退回 Gio 写法。（后来由 `ui/el` 解决：视图每帧重建元素树，动态结构就是普通的 Go 条件和循环，见下文“新增 ui/el”。）
+**Price**: Dynamic structure (adding and deleting rows in the list, displaying based on conditions) needs to be supported by the component itself; when you want a completely flexible layout, use `core.Func` to return to Gio writing. (Later solved by `ui/el`: the view rebuilds the element tree every frame, and the dynamic structure is ordinary Go conditions and loops, see "New ui/el" below.)
 
-## 一把全局帧锁
+## A global frame lock
 
-**决定**：所有窗口的渲染和所有回调都在 `ui/internal/loop` 的一把锁下串行执行，组件本身不加锁。其他 goroutine 用 `core.Update` 排队修改。
+**Decision**: The rendering of all windows and all callbacks are executed serially under a lock on `ui/internal/loop`, and the component itself is not locked. Other goroutines use `core.Update` to queue modifications.
 
-| 候选 | 为什么没选 |
+| Candidate | Why not selected |
 | --- | --- |
-| 每个组件自带锁 | 组件在 `Layout` 过程中读自己的状态，回调又会改别的组件，锁顺序很难保证，容易死锁；每个新组件的作者都要处理并发 |
-| 每个窗口一把锁 | 回调经常跨窗口改组件（主窗口按钮改设置窗口的文字），还是要全局协调 |
-| 所有操作都走 `core.Update` | 回调里改组件也要包一层，写起来啰嗦 |
+| Each component has its own lock | The component reads its own status during the `Layout` process, and the callback will change other components. The lock sequence is difficult to guarantee and deadlock is easy; the author of each new component must handle concurrency |
+| A lock for each window | Callbacks often change components across windows (the main window button changes the text of the setting window), but global coordination is still required |
+| All operations go through `core.Update` | Changing components in the callback also requires a layer of wrapping, which is tedious to write |
 
-**代价**：
+**cost**:
 
-- 窗口串行渲染；一个慢回调会让所有窗口一起卡住。
-- 持有锁时不能等主线程，否则会和其他窗口形成循环等待。这个问题真实出现过（多窗口下 ⌘+, 卡死），`Raise`、`Close` 因此改成了异步。见[架构 · 不能在锁内等待主线程](architecture.md#不能在锁内等待主线程)。
-- 文本排版器（`text.Shaper`）不是并发安全的，全局锁顺带保证了多个窗口共用一个排版器是安全的。这不算代价，但去掉这把锁时要记得处理它。
+- Windows are rendered serially; a slow callback will freeze all windows together.
+- You cannot wait for the main thread while holding the lock, otherwise it will form a waiting loop with other windows. This problem actually occurred (⌘+ under multiple windows, stuck), so `Raise` and `Close` were changed to asynchronous. See [Architecture · Cannot wait for main thread](architecture.md#avoid-waiting-for-the-main-thread-while-holding-the-lock) within lock.
+- The text formatter (`text.Shaper`) is not concurrency-safe, and the global lock incidentally ensures that multiple windows sharing a formatter are safe. It's not a price, but remember to deal with it when removing the lock.
 
-## 原生能力与界面分离，cgo 集中在一处
+## Native capabilities are separated from the interface, and cgo is concentrated in one place
 
-**决定**：`native/` 不依赖任何界面模块；所有 Objective-C 和 cgo 代码放在 `native/internal/sys`，公开包只做参数校验。
+**Decision**: `native/` does not depend on any interface module; all Objective-C and cgo code are placed in `native/internal/sys`, and the public package only performs parameter verification.
 
-**理由**：不需要窗口的工具（后台截图、全局快捷键）可以只用 `native`。cgo 代码集中在一个包里，平台桩函数也集中在 `sys_other.go`，漏写一个函数会直接编译失败，不会运行时才出错。
+**Reason**: Tools that do not require a window (background screenshots, global shortcut keys) can only use `native`. The cgo code is concentrated in one package, and the platform stub functions are also concentrated in `sys_other.go`. If a function is omitted, the compilation will fail directly and no error will occur during runtime.
 
-**代价**：新增一个原生能力要改 4 个文件（`.m`、`.h`、`sys_darwin.go`、`sys_other.go`），外加一个公开包。
+**Cost**: To add a native capability, you need to change 4 files (`.m`, `.h`, `sys_darwin.go`, `sys_other.go`), plus a public package.
 
-## 按职责分层划分模块
+## Divide modules hierarchically according to responsibilities
 
-**决定**：界面拆成 `ui/core`、`theme`、`layout`、`widget`、`window` 五个模块，依赖只往下走；系统能力拆成 `native/permission`、`screen`、`input`、`hotkey` 四个互不引用的模块。每个模块一个目录、一个 README，边界由 `internal/deps` 的测试强制。
+**Decision**: The interface is split into five modules: `ui/core`, `theme`, `layout`, `widget`, and `window`. The dependencies only go down; the system capabilities are split into four modules: `native/permission`, `screen`, `input`, and `hotkey`, which do not reference each other. One directory, one README per module, with boundaries enforced by tests for `internal/deps`.
 
-这个结构是试了三次才定下来的，经过都记在这里，免得以后再绕一遍：
+This structure was finalized after three attempts. The process is recorded here to avoid having to go through it again in the future:
 
-| 版本 | 结构 | 问题 |
+| Version | Structure | Problem |
 | --- | --- | --- |
-| 第一版 | 顶层平铺 `ui`、`theme`、`widget`、`box`、`app` | 名字看不出关系（`box` 是什么？），和 `native` 并列在顶层，看起来像五个互不相干的东西；担心以后顶层越来越多 |
-| 第二版 | 界面全部合并成一个 `ui` 包，按文件划分 | 一个目录里 15 个文件，窗口、组件、主题、锁混在一起，看不出哪些是地基、哪些是上层，难理解 |
-| 第三版（现在） | `ui/` 下分五个子模块，和 `native/` 对称 | 业务代码要引入 2–3 个包 |
+| First edition | Top tiles `ui`, `theme`, `widget`, `box`, `app` | The names do not show any relationship (what is `box`?), and are juxtaposed on the top layer with `native`. They look like five unrelated things; I am worried that there will be more and more top layers in the future |
+| Second version | All interfaces are merged into one `ui` package, divided by files | 15 files in one directory, windows, components, themes, and locks are mixed together. It is difficult to understand which ones are the foundation and which are the upper layers |
+| Third edition (current) | `ui/` is divided into five sub-modules, symmetrical with `native/` | The business code needs to introduce 2–3 packages |
 
-第三版选择的理由：
+Reasons for choosing the third edition:
 
-- **顶层只有 `ui` 和 `native` 两组**，一眼看出"界面"和"系统能力"两块。
-- **每个子模块职责单一，名字直接说明职责**：`core`、`theme`、`layout`、`widget`、`window`。
-- **分层让依赖可读**：先看 `core` 和 `theme` 就懂地基，`window` 不认识任何具体组件。理解一个模块只需要看它和它下面的模块。
-- **增长方式固定**：新组件是 `widget/` 下的新文件，新容器是 `layout/` 下的新文件，不会冒出新目录。
+- **There are only two groups of `ui` and `native` on the top level**. You can see the "interface" and "system capabilities" at a glance.
+- **Each sub-module has a single responsibility, and the name directly describes the responsibility**: `core`, `theme`, `layout`, `widget`, `window`.
+- **Layering makes dependencies readable**: Look at `core` and `theme` first to understand the foundation, `window` does not recognize any specific components. To understand a module, you only need to look at it and the modules below it.
+- **Growth method fixed**: New components are new files under `widget/`, new containers are new files under `layout/`, and new directories will not pop up.
 
-**代价**：业务代码引入 `layout`、`widget`、`window` 三个包，比第二版多两行 import。`layout` 和 Gio 的 `gioui.org/layout` 同名，同一个文件里都要用时得起别名。
+**Cost**: The business code introduces three packages `layout`, `widget`, and `window`, which are two more lines of import than the second version. `layout` and Gio's `gioui.org/layout` have the same name, and they must be aliased when used in the same file.
 
-## Agent 测试在内存里渲染，不驱动真实窗口
+## Agent tests are rendered in memory and do not drive the real window
 
-**决定**：`KEEL_AUTOMATION` 模式下，`ui/window` 给每个窗口配一个影子窗口：同一套组件、独立的 Gio 输入路由，Agent 的操作只送进影子窗口；`cmd/keel-mcp` 通过 socket 驱动它。可见模式下真实窗口照常显示，两边共享组件状态，用户能看着 Agent 操作；`KEEL_HEADLESS=1` 时只有影子窗口。
+**Decision**: In `KEEL_AUTOMATION` mode, `ui/window` assigns a shadow window to each window: the same set of components, independent Gio input routing, Agent operations are only sent to the shadow window; `cmd/keel-mcp` drives it through sockets. In visible mode, the real window is displayed as usual, the component state is shared on both sides, and the user can watch the Agent operate; in `KEEL_HEADLESS=1`, there is only a shadow window.
 
-| 候选 | 为什么没选 |
+| Candidate | Why not selected |
 | --- | --- |
-| 用 `native/input` 移动真实鼠标、发真实按键，再截屏识别 | 需要辅助功能和屏幕录制权限；会抢走用户的鼠标键盘；窗口被遮挡或换了显示器就失败；"页面有什么"只能靠识图，拿不到元素的名字和状态 |
-| 通过 macOS 辅助功能 API 读取窗口内容 | Gio 在 macOS 上不向辅助功能 API 暴露控件，读不到 |
-| 在真实窗口里注入事件 | Gio 的 `app.Window` 不开放注入输入事件的接口 |
+| Use `native/input` to move the real mouse, send real keys, and then take screenshots for recognition | Requires accessibility and screen recording permissions; will take away the user's mouse and keyboard; it will fail if the window is blocked or the monitor is changed; "What is on the page" can only rely on image recognition, and the name and status of the elements cannot be obtained |
+| Read window contents through macOS Accessibility API | Gio does not expose controls to Accessibility API on macOS and cannot be read |
+| Injecting events into the real window | Gio's `app.Window` does not open the interface for injecting input events |
 
-内存窗口的好处：确定性强，不需要任何权限，不打扰用户，一次完整流程约 1.5 秒；元素信息来自 Gio 的语义树，名字、状态、位置都是精确值。
+The advantages of the memory window: strong certainty, no permissions required, no interruption to the user, and a complete process in about 1.5 seconds; element information comes from Gio’s semantic tree, and the name, status, and position are all precise values.
 
-**代价**：测不到系统窗口层面的问题，比如窗口位置、系统菜单、输入法，以及真实窗口之间与主线程相关的死锁。后者由 `KEEL_DESKTOP=1` 的真实窗口测试补上。组件必须自己声明语义信息，否则 Agent 看不见。
+**Cost**: Unable to detect system window-level issues, such as window position, system menu, input method, and main thread-related deadlocks between real windows. The latter is complemented by `KEEL_DESKTOP=1`'s real window testing. Components must declare semantic information themselves, otherwise Agent cannot see it.
 
-**为什么是影子窗口，而不是把真实窗口的输入转发给 Keel 自己的路由器**：后者要接管真实窗口的全部输入，包括中文输入法的候选和组字、剪贴板、光标形状、系统 Tab 焦点，等于重写 Gio 的输入层，最容易出问题的恰好是中文输入。影子窗口让用户这一侧的代码路径一行不改，代价是焦点在两边分开记录。
+**Why is it a shadow window instead of forwarding the input of the real window to Keel's own router**: The latter needs to take over all the input of the real window, including the candidates and group words of the Chinese input method, the clipboard, the cursor shape, and the system Tab focus, which is equivalent to rewriting the input layer of Gio. The most prone to problems happens to be the Chinese input. The shadow window allows the user's side of the code path to remain unchanged at the expense of separate recording of focus on both sides.
 
-**另一个选择**：让应用自己当 MCP server。没选，因为测试经常要重启应用、换一个应用测，launcher 放在独立进程里才能做到；而且应用的标准输出不能被 MCP 协议占用。
+**Another option**: Let the application act as the MCP server. No choice, because testing often requires restarting the application and changing the application to test. This can only be done by placing the launcher in an independent process; and the standard output of the application cannot be occupied by the MCP protocol.
 
-## 在 Gio 上做 Go 版 GPUI（ui/el）
+## Make Go version of GPUI (ui/el) on Gio
 
-**决定**：新增 `ui/el`，按 GPUI 的思路在 Gio 之上加一层：链式样式 builder（`Styled[T]`）、flexbox 布局引擎、按元素路径自动管理的元素状态。Gio 继续负责窗口、GPU 渲染、输入法、剪贴板。旧的 `ui/layout` + `ui/widget` 保留，逐个迁移。
+**Decision**: Add `ui/el`, adding a layer on top of Gio based on GPUI ideas: chained style builder (`Styled[T]`), flexbox layout engine, and element status automatically managed according to element paths. Gio continues to be responsible for windows, GPU rendering, input methods, and clipboard. The old `ui/layout` + `ui/widget` are retained and migrated one by one.
 
-**为什么**：写完表格、下拉框这批组件后，Gio 的成本很清楚了：每个交互组件都要自己声明状态变量（`widget.Clickable` 等），键盘焦点要注册过滤、登记处理者、执行焦点命令三步，布局要层层嵌套 `layout.Flex{}.Layout(gtx, layout.Rigid(...))`，Agent 语义要逐个手写；漏一步就出现"第一帧点不到""节点消失"这类问题。这些都应该由框架统一处理。
+**Why**: After writing a batch of components such as tables and drop-down boxes, the cost of Gio is very clear: each interactive component must declare its own state variables (`widget.Clickable`, etc.), keyboard focus requires three steps of registering filtering, registering a handler, and executing focus commands. The layout must be nested `layout.Flex{}.Layout(gtx, layout.Rigid(...))` layer by layer, and the Agent semantics must be handwritten one by one; if one step is missed, problems such as "the first frame cannot be clicked" and "the node disappears" will appear. These should all be handled uniformly by the framework.
 
-| 候选 | 为什么没选 |
+| Candidate | Why not selected |
 | --- | --- |
-| 继续在 Gio 上写组件 | 上面那些成本每个新组件都要再付一次 |
-| 自己从头实现 GPUI（窗口、GPU、文字排版、输入法） | 工作量最大的恰恰是这些平台层，Gio 已经做好了 |
-| 照搬 GPUI 的 Entity/Context/cx.listener | 这套机制很大程度是为了 Rust 的借用检查。Go 有闭包和 GC，视图做成普通 struct、回调直接捕获指针就够了；只保留 Go 里仍然需要的部分（`cx.Shortcut`，后台更新用 `core.Update`） |
+| Continue to write components on Gio | The above costs must be paid again for each new component |
+| Implement GPUI (window, GPU, text typesetting, input method) from scratch | The biggest workload is exactly these platform layers, Gio has already done it |
+| Copies GPUI's Entity/Context/cx.listener | This mechanism is largely for Rust's borrow checking. Go has closures and GC. It is enough to make the view a normal struct and callback to capture the pointer directly; only keep the parts that are still needed in Go (`cx.Shortcut`, use `core.Update` for background updates) |
 
-**做法上的取舍**：
+**Practice trade-offs**:
 
-- 先分发事件、再渲染：点击的效果在同一帧就画出来，不像旧组件要等下一帧。
-- 元素状态的键是"树上的路径"，每层取 `ID`，没有就取序号。静态结构不用写 ID；会变的列表要写。
-- 可交互、有语义或需要状态的元素才推入 Gio 的裁剪区域，其他 `Div` 不推，子元素可以溢出它。
-- 语义自动推断，`Role`/`Name`/`Value`/`Selected` 只用来补充或覆盖。
+- Distribute events first and then render: the click effect is drawn in the same frame, unlike old components that have to wait for the next frame.
+- The key of the element state is "path on the tree", which takes `ID` for each level. If not, it takes the sequence number. There is no need to write an ID for a static structure; it is required for a changing list.
+- Only elements that are interactive, have semantics or require state are pushed into Gio's clipping area. Other `Div` are not pushed, and child elements can overflow it.
+- Semantics are automatically inferred, `Role`/`Name`/`Value`/`Selected` are only used to supplement or cover.
 
-**代价**：布局是 flexbox 的子集（没有 wrap、grid、横向滚动、min-content），没有虚拟列表和动画；这些按需要补。过渡期两套写法并存，新人要知道先看 `el`。
+**Price**: The layout is a subset of flexbox (no wrap, grid, horizontal scrolling, min-content), no virtual lists and animations; these are supplemented as needed. During the transition period, two sets of writing methods coexist. Newcomers should know to read `el` first.
 
-**迁移顺序**：订单示例已经用 `el` 写了页面结构，表格、下拉框、单选、开关、对话框暂时用 `el.Widget` 嵌入。之后按使用频率迁移：按钮和表单控件 → 下拉框、标签页 → 表格（需要虚拟列表）→ 对话框（需要 el 的浮层）。每迁一个，`examples/orders` 的端到端测试都必须保持通过。
+**Migration order**: The page structure of the order example has been written with `el`, and tables, drop-down boxes, radio selections, switches, and dialog boxes are temporarily embedded with `el.Widget`. Then migrate according to frequency of use: buttons and form controls → drop-down boxes, tabs → tables (requires virtual lists) → dialog boxes (requires el overlay). With each migration, `examples/orders`'s end-to-end tests must continue to pass.
 
-## Markdown 流式渲染
+## Markdown streaming rendering
 
-**决定**：`ui/markdown` 用 goldmark 解析、chroma 高亮、Gio 扩展包的 richtext 画行内混排。源文本按"代码块外的空行"切块，每块缓存解析结果；流式输出时只重新解析最后一块，并临时补全它未闭合的行内语法。写完的块通过 `el.Context.Cache` 复用元素和布局。
+**Decision**: `ui/markdown` uses goldmark parsing, chroma highlighting, and the richtext of the Gio extension package to shuffle in-line drawings. The source text is cut into pieces according to "blank lines outside the code block", and the parsing results are cached for each piece; during streaming output, only the last piece is re-parsed, and its unclosed inline syntax is temporarily completed. The written block reuses elements and layout via `el.Context.Cache`.
 
-**为什么这样切块**：AI 输出只在末尾追加。按顶层块缓存，追加的成本只和最后一块的大小有关，和整篇长度无关。代价是跨块的引用式链接不生效、空行分开的同一个列表会变成两个列表（有序列表的起始编号会保留）。AI 输出里这两种情况都少见。
+**Why it's diced like this**: AI output is only appended at the end. According to the top-level block cache, the cost of appending is only related to the size of the last block and has nothing to do with the length of the entire article. The cost is that cross-block reference links do not take effect, and the same list separated by blank lines will become two lists (the starting number of the ordered list will be retained). Both situations are rare in AI output.
 
-**为什么补全未闭合语法**：不补的话，`**加粗` 在闭合之前显示成星号，闭合时整段突然重排，流式输出时会一直闪。补全只作用于最后一段，而且回答结束后按原文重新解析，不会影响最终结果。
+**Why complete unclosed syntax**: If not completed, `**加粗` will be displayed as an asterisk before closing. When closed, the entire paragraph will be suddenly rearranged, and it will keep flashing during streaming output. The completion only works on the last paragraph, and it will be re-analyzed according to the original text after the answer is completed, without affecting the final result.
 
-**性能上的三处改动**，都是剖析出来的：
+**Three changes in performance** are all analyzed:
 
-1. richtext 排版很贵，而 el 每帧会测量同一个块好几次。富文本块缓存最近 8 次测量的结果（按约束区分）。
-2. el 的布局引擎原来对被拉伸、会伸展的子元素各排两次（先量自然尺寸再排最终尺寸）。改成容器宽度已知时直接按拉伸后的宽度排，`Grow` 改成 `flex: 1` 的语义（初始尺寸按 0 算），每个子元素每帧只排一次。这也让 `cx.Cache` 的布局复用能稳定命中。
-3. 滚动容器外的元素跳过绘制。
+1. Richtext typesetting is expensive, and el will measure the same block several times per frame. The rich text block caches the results of the last 8 measurements (differentiated by constraints).
+2. el's layout engine originally arranged the stretched and stretched child elements twice (first measure the natural size and then arrange the final size). When the width of the container is known, it is directly arranged according to the stretched width. `Grow` is changed to the semantics of `flex: 1` (the initial size is calculated as 0). Each sub-element is arranged only once per frame. This also allows `cx.Cache`'s layout reuse to achieve stable hits.
+3. Elements outside the scroll container skip drawing.
 
-结果：流式输出时每帧从 5.0ms 降到 0.5ms（11KB 的文档）。
+Result: Dropped from 5.0ms to 0.5ms per frame when streaming output (11KB document).
 
-| 候选 | 为什么没选 |
+| Candidate | Why not selected |
 | --- | --- |
-| 每次追加都整篇解析、整篇排版 | 成本和文档长度成正比，长回答会越来越卡 |
-| 用 WebView 渲染 Markdown | 违背项目目标 |
-| 自己写 Markdown 解析器 | goldmark 是 CommonMark 标准实现，GFM 扩展完整，没必要 |
+| Each append is analyzed and formatted in its entirety | The cost is directly proportional to the length of the document, and long answers will become increasingly stuck |
+| Rendering Markdown with WebView | Against project goals |
+| Write your own Markdown parser | goldmark is CommonMark standard implementation, GFM extension is complete, no need |
 
-## 程序调用 SetXxx 不触发回调
+## The program calls SetXxx without triggering the callback
 
-**决定**：`Field.SetValue`、`Check.SetValue` 不触发 `OnChange`，只有用户操作触发。
+**Decision**: `Field.SetValue`, `Check.SetValue` do not trigger `OnChange`, only user actions trigger.
 
-**理由**：常见写法"A 变化时更新 B，B 变化时更新 A"，如果程序调用也触发回调，会无限循环。Gio 的 `Editor.SetText` 本身会产生变化事件，`Field` 通过记录上次通知过的内容把它过滤掉了。
+**Reason**: The common way of writing is "update B when A changes, update A when B changes". If the program call also triggers a callback, it will loop endlessly. Gio's `Editor.SetText` itself generates change events, and `Field` filters it out by recording the last notified content.
 
-## 最后一个窗口关闭即退出
+## Exit when the last window is closed
 
-**决定**：最后一个窗口销毁后调用 `os.Exit(0)`。
+**Decision**: Call `os.Exit(0)` after the last window is destroyed.
 
-**理由**：Gio 的 `window.Main()` 不会返回，而没有窗口的桌面程序在用户看来就是退出了。
+**Reason**: Gio's `window.Main()` will not return, and a desktop program without a window will appear to the user to have exited.
 
-**代价**：`main` 里 `window.Main()` 之后的代码和 `defer` 不会执行，清理工作要放进 `OnClose`。以后做托盘常驻时，需要改成可配置的退出策略。
+**Price**: The code after `window.Main()` in `main` and `defer` will not be executed, and the cleanup work must be put into `OnClose`. When the tray is resident in the future, it needs to be changed to a configurable exit strategy.
 
-## 不做的事
+## Things not to do
 
-- **不做 HTML/CSS 渲染，也不内嵌 WebView。** 这是项目存在的理由。
-- **不模仿各平台原生控件外观。** 所有平台一套外观，维护成本最低。
-- ~~暂不实现 Windows、Linux 的 `native` 能力。~~ 已实现：接口一开始就按平台无关的方式设计，后来补上了 `sys_windows.go`、`sys_linux.go` 等文件，各能力的平台情况见[原生能力](native.md)。
+- **Does not do HTML/CSS rendering and does not embed WebView.** This is the raison d’être of the project.
+- **Does not imitate the appearance of native controls on each platform.** All platforms have one look and feel, with minimal maintenance costs.
+- ~~The `native` capability of Windows and Linux is not implemented yet. ~~ Implemented: The interface was designed in a platform-independent manner from the beginning. Later, `sys_windows.go`, `sys_linux.go` and other files were added. For the platform status of each capability, see [Native capability](native.md).
 
 
-## 新组件基于 el，ui/widget 冻结
+## New component based on el, ui/widget frozen
 
-**决定**：从 2026-10-01 起，`ui/widget` 只修 bug，不再增加组件或能力。新组件放在 `ui/kit`，基于 `ui/el` 实现。kit 直接依赖 `core`、`theme`、`el`，不依赖 `widget`、`layout`、`window`。这条决策取代前文“新组件放在 widget”和旧迁移顺序。
+**Decision**: Starting from 2026-10-01, `ui/widget` will only fix bugs and no longer add components or capabilities. The new component is placed in `ui/kit` and is implemented based on `ui/el`. kit directly depends on `core`, `theme`, `el`, but does not depend on `widget`, `layout`, `window`. This decision replaces the previous "new components in widgets" and the old migration order.
 
-**为什么**：焦点、键盘、禁用、定时与浮层需要由 el 统一提供。在 widget 中继续实现新组件，会在迁移时重复实现这些机制。
+**Why**: Focus, keyboard, disable, timing and overlays need to be provided by el. Continuing to implement new components in the widget will re-implement these mechanisms during migrations.
 
-**代价**：基础设施未完成前，相应的交互组件不能交付。过渡期两套组件并存，旧代码继续工作，新代码使用 kit。M0 只建立规则、模块边界和全局主题，组件从 M1 开始。
+**Cost**: The corresponding interactive components cannot be delivered before the infrastructure is completed. During the transition period, the two sets of components coexist, the old code continues to work, and the new code uses the kit. M0 only establishes rules, module boundaries and global topics, and components start from M1.
 
-| 阶段 | 工作与完成标准 |
+| Stages | Work and Completion Standards |
 | --- | --- |
-| M0 | 组件规范、依赖登记、成功/警告/提示语义色、运行时浅深色切换；完成后 review |
-| M1 | Alert、Empty、Avatar、Tag 等展示组件；补焦点与按键、禁用、定时，再做 Spinner、Skeleton。焦点与按键接口完成后先 review，确认后继续依赖它们的组件 |
-| M2 | Popover、Tooltip、Menu、DropdownButton、Dialog、Sheet、Notification；订单示例的对话框改用 kit |
-| M3 | 迁移旧表单控件，再做 NumberInput、Combobox、Calendar、DatePicker、表单校验；订单示例的“新建订单”表单全部使用 kit |
-| M4 | 虚拟列表、Tree、kit 表格、Command，提取聊天消息组件；示例不再引用 ui/widget |
-| M5 | 应用外壳 |
-| M6 | 可视化；迁移完成后删除 ui/widget，并清理所有剩余依赖 |
+| M0 | Component specification, dependency registration, success/warning/prompt semantic color, light and dark switching during runtime; review after completion |
+| M1 | Alert, Empty, Avatar, Tag and other display components; add focus and buttons, disable, and time, and then create Spinner and Skeleton. After the focus and button interfaces are completed, review them first, and then continue to rely on their components after confirmation |
+| M2 | Popover, Tooltip, Menu, DropdownButton, Dialog, Sheet, Notification; the dialog box of the order example is changed to kit |
+| M3 | Migrate the old form controls, and then do NumberInput, Combobox, Calendar, DatePicker, and form verification; the "New Order" form of the order example all uses kit |
+| M4 | Virtual list, Tree, kit table, Command, extract chat message components; the example no longer references ui/widget |
+| M5 | Application Shell |
+| M6 | Visualization; delete ui/widget after migration is completed, and clean up all remaining dependencies |
 
-每个组件单独实现、验证、提交。提交前执行 `go build ./... && go vet ./ui/... && go test ./... -count=1`；不使用测试结果缓存，避免端到端测试启动的示例源码变化未被缓存检测到。具体要求见[组件开发规范](component-development.md)。
+Each component is implemented, verified, and submitted individually. Execute `go build ./... && go vet ./ui/... && go test ./... -count=1` before submission; do not use the test result cache to prevent the sample source code changes started by the end-to-end test from not being detected by the cache. For specific requirements, see [Component Development Specification](component-development.md).
 
-暂不做代码编辑器、HTML 富文本、完整 TeX、局部主题覆盖、Kbd 动作绑定查询。这些能力需要各自的模型与接口，等有实际需求时单独决策。
+The code editor, HTML rich text, complete TeX, partial topic coverage, and Kbd action binding query are not currently available. These capabilities require their own models and interfaces, which can be decided separately when there are actual needs.
 
-## 删除 ui/widget 和 ui/layout
+## Delete ui/widget and ui/layout
 
-**决定**：M6 完成后删除 `ui/widget` 和 `ui/layout`，Keel 只保留一套组件 `ui/kit`。这条决策取代前文"有状态组件 + 容器"和"旧的 ui/layout + ui/widget 保留"。
+**Decision**: Remove `ui/widget` and `ui/layout` after M6 is completed, leaving Keel with only one set of components, `ui/kit`. This decision replaces the previous "stateful components + containers" and "old ui/layout + ui/widget retention".
 
-**为什么**：kit 已覆盖旧组件的全部功能，示例和测试都已迁移。两套组件并存，焦点、禁用、浮层、语义要维护两份，文档也要讲两种写法。
+**Why**: The kit has covered all functionality of the old component, and examples and tests have been migrated. Two sets of components coexist, and two copies of focus, disable, overlay, and semantics must be maintained, and the document must also be written in two ways.
 
-**怎么做**：Markdown 用到的图片加载、解码限制和占位移到 `ui/internal/imageload`，Markdown 公开 `ImageLoader` 和 `DecodeImage`。`window.Options.Content` 和 `Overlay` 仍接受任意 `core.Widget`，自己写的 Gio 代码照常可用。
+**How to do it**: The image loading, decoding restrictions and occupancy used by Markdown are moved to `ui/internal/imageload`, and Markdown exposes `ImageLoader` and `DecodeImage`. `window.Options.Content` and `Overlay` still accept any `core.Widget`, and your own Gio code can still be used.
 
-**代价**：没有兼容层。使用旧组件的代码按 [kit 组件](kit.md) 改写：`widget.Xxx` 一般对应 `kit.Xxx`，`layout.Column` / `Row` / `Card` 改用 `el.Div`。
+**Price**: No compatibility layer. Code using the old component is rewritten as [kit component](kit.md): `widget.Xxx` generally corresponds to `kit.Xxx`, `layout.Column` / `Row` / `Card` uses `el.Div` instead.
 
-## 框架文字集中到 ui/locale
+## Frame text is concentrated in ui/locale
 
-**决定**：Keel 自己显示或报告给 Agent 的文字（确定、取消、复制、关闭、请选择、"36 行"等）全部放进 `ui/locale`。默认中文，提供英文预设，`locale.Apply` 在运行时切换，所有窗口重绘，`cx.Cache` 自动失效，做法与 `theme` 一致。
+**Decision**: All text displayed by Keel or reported to Agent (OK, Cancel, Copy, Close, Please Select, "Line 36", etc.) are put into `ui/locale`. The default is Chinese, and English preset is provided. `locale.Apply` is switched at runtime, all windows are redrawn, and `cx.Cache` automatically expires. The method is consistent with `theme`.
 
-**为什么**：kit、当时的 widget 和 markdown 里一共写死了二十多处中文。应用切换到英文界面时，这些框架文字没法跟着换。组件越多，以后改的成本越高，所以趁 kit 还在早期集中处理。
+**Why**: A total of more than 20 Chinese characters were written in the kit, widgets and markdown at that time. When the application switches to the English interface, these framework text cannot be changed accordingly. The more components there are, the higher the cost of modification later, so focus on processing while the kit is still in its early stages.
 
-**范围**：只管框架文字。应用自己的文案由应用负责，Keel 不做翻译系统；`Current().Lang` 告诉应用当前是什么语言，切换后界面会重新渲染。
+**Scope**: Only framework text. The application is responsible for its own text, and Keel does not operate a translation system; `Current().Lang` tells the application what language it is currently in, and the interface will be re-rendered after switching.
 
-**约束**：`internal/deps` 的测试禁止在框架代码里写中文字符串字面量，测量 CJK 行高用的字形探针"国""国Ag"除外。
+**Restraint**: The test of `internal/deps` prohibits writing Chinese string literals in the framework code, except for the glyph probe "国" and "国Ag" used to measure CJK line height.
 
-**代价**：无障碍名称统一用"动作 + 空格 + 对象"拼接，"清空搜索"变成了"清空 搜索"；Markdown 图片的替代文字从"［图片：x］"变成"[图片 x]"。
+**Price**: Accessibility names are unified with "action + space + object", "clear search" becomes "clear search"; the alternative text of Markdown images changes from "[image: x]" to "[image x]".
 
-## 自定义标题栏暂不实现
+## Custom title bar is not implemented yet
 
-**决定**：M5 不做 TitleBar（自定义窗口标题栏）。
+**Decision**: M5 does not do TitleBar (custom window title bar).
 
-**为什么**：自定义标题栏需要无边框窗口，标题栏区域还要能拖动窗口、双击最大化，macOS 上的红绿灯按钮也要保留在正确位置。这些都要 `native` 和 `ui/window` 配合实现（macOS 全尺寸内容视图、拖动区域登记），只靠 kit 画一个"看起来像标题栏"的组件，窗口是拖不动的。在没有具体需求之前，这部分原生工作投入大、收益不确定。
+**Why**: Customizing the title bar requires a borderless window, the title bar area must be able to drag the window and double-click to maximize it, and the traffic light button on macOS must also remain in the correct position. All of these must be implemented in conjunction with `native` and `ui/window` (macOS full-size content view, drag area registration). The window cannot be dragged by just relying on kit to draw a component that "looks like a title bar". Before there is a specific demand, this part of the original work requires high investment and uncertain returns.
 
-**代价**：应用只能使用系统标题栏。需要时另起一项：先在 `native` 增加无边框窗口和拖动区域，再在 kit 提供 TitleBar。
+**Price**: Apps can only use the system title bar. If necessary, create another one: first add a borderless window and drag area to `native`, and then provide a TitleBar in the kit.
 
-## 自定义标题栏：用 Gio 的无边框窗口实现
+## Custom title bar: implemented using Gio’s borderless window
 
-**取代**：上一条《自定义标题栏暂不实现》。
+**Replaces**: The previous article "Customized title bar is not implemented yet".
 
-**决定**：`window.Options.Frameless` 打开 Gio 的无边框模式（`app.Decorated(false)`），`kit.TitleBar` 自己画标题栏和窗口按钮。拖动用 Gio 的 `system.ActionInputOp(system.ActionMove)` 登记区域，窗口按钮通过 `ui/core` 的 `WindowControls` 接口调用所在窗口。
+**Decision**: `window.Options.Frameless` Turn on Gio's borderless mode (`app.Decorated(false)`), `kit.TitleBar` draw the title bar and window buttons yourself. Drag to register the area with Gio's `system.ActionInputOp(system.ActionMove)`, and the window button calls the window through the `WindowControls` interface of `ui/core`.
 
-**为什么改判**：上一条判断需要在 `native` 里新写无边框窗口和拖动区域。实际查看 Gio v0.10.3 后发现，这两样它都已经提供：macOS 上无边框模式会让内容延伸到标题栏、标题栏变透明；按下登记过 ActionMove 的区域时，由系统完成窗口拖动。所以不需要新增原生代码。
+**Why the judgment was changed**: The previous judgment requires a new borderless window and drag area to be written in `native`. After actually checking Gio v0.10.3, I found that it already provides both: the borderless mode on macOS will extend the content to the title bar and make the title bar transparent; when pressing the area where ActionMove is registered, the system will complete the window dragging. So there is no need to add native code.
 
-**取舍**：
+**trade-off**:
 
-- Gio 在无边框模式下会隐藏 macOS 的红绿灯按钮，所以按钮由 kit 自己画，颜色沿用系统惯例。
-- kit 不能引用 `ui/window`，因此在 `ui/core` 放一个最小接口（Frameless、Minimize、ToggleMaximize、Maximized、Close）。窗口在布局期间登记自己为"当前窗口"，组件在 Render 时拿到它，供回调使用。全部渲染都在同一把帧锁下串行进行，所以这样做是安全的。
-- Gio 判断一个位置是不是拖动区域时，只看那里有没有登记拖动，不管上面有没有按钮。所以拖动区域只能放在按钮旁边，不能包住按钮。TitleBar 的布局按这个约束设计：窗口按钮、应用内容和拖动区域并列排开。
+- Gio will hide the traffic light button of macOS in borderless mode, so the button is drawn by kit itself, and the color follows the system convention.
+- kit cannot reference `ui/window`, so put a minimal interface (Frameless, Minimize, ToggleMaximize, Maximized, Close) in `ui/core`. The window registers itself as the "current window" during layout, and the component gets it during Render for callback use. All renderings are done serially under the same frame lock, so this is safe.
+- When Gio determines whether a location is a dragging area, it only looks at whether dragging is registered there, regardless of whether there are buttons on it. Therefore, the dragging area can only be placed next to the button, not around the button. The layout of the TitleBar is designed according to this constraint: window buttons, application content, and drag areas are arranged side by side.
 
-**代价**：macOS 上双击标题栏不会缩放窗口，因为按下事件直接交给系统拖动，应用收不到双击；窗口失去焦点时，按钮也不会变灰。
+**Cost**: Double-clicking the title bar on macOS will not zoom the window, because the press event is directly handed over to the system for dragging, and the application cannot receive the double-click; when the window loses focus, the button will not turn gray.
 
 
-## 自定义标题栏：跟随窗口焦点并接入 macOS 双击
+## Custom title bar: follow window focus and access macOS double-click
 
-**决定**：`core.WindowControls` 增加窗口焦点查询与标题拖动区域登记。`window` 从 Gio ConfigEvent 更新激活状态；TitleBar 每次绘制只登记不含按钮、插槽的中间区域，禁用与未绘制帧清空。
+**Decision**: `core.WindowControls` Add window focus query and title drag area registration. `window` updates the activation status from Gio ConfigEvent; each time TitleBar is drawn, it only registers the middle area without buttons and slots, and disables and clears undrawn frames.
 
-**原因**：Gio 的 macOS ActionMove 在按下时直接调用 AppKit 原生拖动，普通组件双击回调收不到第二次完整点击。`window` 使用当前 NSView 的本地事件监视器，只在已登记区域内截获双击，按系统的无操作/最小化/缩放偏好处理。头部控件继续接收普通输入。
+**Reason**: Gio's macOS ActionMove directly calls AppKit native drag when pressed, and ordinary component double-click callbacks cannot receive the second complete click. `window` Use the current NSView's local event monitor to intercept double clicks only within the registered area, handling them according to the system's no-op/minimize/zoom preferences. The header control continues to receive normal input.
 
-**线程与生命周期**：传递 NSView 句柄时先 retain，异步提交到主线程后 release；原生登记表在视图更换或窗口关闭时移除。原生回调只向 Go 更新队列提交动作，不在主线程等待帧锁。UI 不引用 `native`，`kit` 不引用 `window`。
+**Threads and life cycle**: retain first when passing the NSView handle, asynchronously submit it to the main thread and then release it; the native registration table is removed when the view is changed or the window is closed. The native callback only submits actions to the Go update queue and does not wait for the frame lock on the main thread. UI does not reference `native`, `kit` does not reference `window`.

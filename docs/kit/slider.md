@@ -1,6 +1,8 @@
 # Slider
 
-拖动或用键盘选择数值或双端范围。
+English | [简体中文](slider.zh-CN.md)
+
+Drag or use the keyboard to select a numeric or double-ended range.
 
 ```go
 volume := kit.Slider("音量", 0, 100).Step(5)
@@ -9,19 +11,19 @@ price.SetValues(20, 80)
 level := kit.RangeSlider("竖向区间", 0, 100).Vertical(180)
 ```
 
-- 拖动滑块，或在轨道上任意位置按下后拖动。
-- 键盘：← ↓ 减一步，→ ↑ 加一步，PageUp / PageDown 移动 10 步，Home / End 跳到两端。
-- `Step(s)` 让数值对齐到 `min + k·s`；为 0 时连续取值，键盘每次移动范围的 1%。
-- `RangeSlider` 初始选中整个范围。`Values()` / `SetValues(low, high)` 读取或设置两端；程序设置会排序、对齐和钳制，不触发 `OnRangeChange`。用户拖动时选择距离最近的一端，碰到另一端就停止，不交换端点身份。
-- 双端各自支持 Tab 焦点和按键；Home / End 受另一端约束。上下限重叠时，在重叠处按下选择上限，可向右或向上重新拉开；下限也可用 Tab 独立操作。
-- `Vertical(height)` 设置竖向轨道高度（dp），底部为最小值、顶部为最大值；↑ 增加、↓ 减少。
-- `Value()` / `SetValue`（自动对齐和限制在范围内）、`SetRange`、`SetDisabled`。
+- Drag the slider, or press and drag anywhere on the track.
+- Keyboard: ← ↓ decreases one step, → ↑ increases one step, PageUp / PageDown moves 10 steps, Home / End jumps to both ends.
+- `Step(s)` aligns the value to `min + k·s`; when it is 0, the value is taken continuously, and the keyboard moves 1% of the range each time.
+- `RangeSlider` initially selects the entire range. `Values()` / `SetValues(low, high)` reads or sets both ends; the program settings will sort, align and clamp, and will not trigger `OnRangeChange`. When the user drags, he selects the closest end and stops when he touches the other end without exchanging endpoint identities.
+- Each end supports Tab focus and keystrokes; Home / End are bound by the other end. When the upper and lower limits overlap, press on the overlap to select the upper limit, and you can pull it back to the right or upward; the lower limit can also be operated independently with Tab.
+- `Vertical(height)` sets the vertical track height (dp), the bottom is the minimum value, the top is the maximum value; ↑ increases, ↓ decreases.
+- `Value()` / `SetValue` (auto-aligned and limited to range), `SetRange`, `SetDisabled`.
 
-Agent：单端角色为 `slider`；双端分别是本地化“下限 / 上限 + 标签”命名的 `slider`，`value` 是该端数值。`FocusID()` 在双端模式中指向下限。
+Agent: The single-ended role is `slider`; the double-ended role is `slider` named after the localized "lower limit/upper limit + label", and `value` is the value of the end. `FocusID()` points to the lower limit in double-ended mode.
 
-验证：`go run ./examples/components -section slider`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section slider`, add `-theme dark` to check the dark theme.
 
-`Scale(kit.SliderLogarithmic)` 使用对数刻度，单值/双端、横向/竖向均可使用。有效范围要求 `0 < min < max`；不满足时按线性刻度显示，之后设置有效范围会恢复对数刻度。默认 `SliderLinear`。
+`Scale(kit.SliderLogarithmic)` uses logarithmic scale, single value/double-ended, horizontal/vertical can be used. Valid range requirement `0 < min < max`; if it is not met, it will be displayed on a linear scale, and then setting the valid range will restore the logarithmic scale. Default `SliderLinear`.
 
 ```go
 frequency := kit.Slider("频率 Hz", 20, 20000).
@@ -29,13 +31,13 @@ frequency := kit.Slider("频率 Hz", 20, 20000).
     OnRelease(func(value float64) { applyFrequency(value) })
 ```
 
-例如 1–1000 的对数范围，轨道正中间约为 31.62，四分之一处约为 5.62。未设置正步长时，方向键移动轨道的 1%，PageUp/Down 移动 10%；显式 `Step(s)` 仍按原始数值增减和对齐。双端拖动按轨道上的距离选择最近端点。
+For example, on a logarithmic range of 1–1000, the exact middle of the orbit is about 31.62 and one-quarter of the way around is about 5.62. When the positive step is not set, the direction keys move 1% of the track, and PageUp/Down moves 10%; the explicit `Step(s)` still increases, decreases, and aligns according to the original value. Double-ended dragging selects the closest endpoint by distance on the track.
 
-`OnRelease(func(float64))` 接收单值操作结束时的值；`OnRangeRelease(func(low, high float64))` 接收双端范围。鼠标/触摸释放触发一次；导航按键重复按下只改变值，释放最后操作的导航键时触发一次。没有数值变化的有效点击也会触发。`OnChange` / `OnRangeChange` 仍在值变化时连续触发。
+`OnRelease(func(float64))` receives the value at the end of a single-value operation; `OnRangeRelease(func(low, high float64))` receives a double-ended range. Triggered once when the mouse/touch is released; only the value is changed when the navigation key is pressed repeatedly, and once when the last navigation key is released. Valid clicks without numerical changes will also trigger. `OnChange` / `OnRangeChange` still fire continuously on value changes.
 
-程序赋值、拖动取消、失焦后的按键释放及禁用操作不触发结束回调；取消不撤销已经产生的值变化。可用 OnChange 更新预览，用 OnRelease 提交开销较大的操作。传 nil 可移除对应回调。
+Programmatic assignment, drag cancellation, key release after defocusing, and disabling operations do not trigger the end callback; cancellation does not undo the value changes that have occurred. You can use OnChange to update the preview and OnRelease to submit expensive operations. Pass nil to remove the corresponding callback.
 
-`Appearance(func(*kit.SliderAppearance))` 配置当前实例的轨道与滑块外观；每次渲染先读取当前主题默认值，再运行回调，传 nil 恢复默认。双端共用外观，配置不会改变值或触发值回调。
+`Appearance(func(*kit.SliderAppearance))` configures the track and slider appearance of the current instance; each rendering first reads the current theme default value, then runs the callback, and returns nil to restore the default. Double-ended appearance, the configuration will not change the value or trigger the value callback.
 
 ```go
 price.Appearance(func(a *kit.SliderAppearance) {
@@ -45,6 +47,6 @@ price.Appearance(func(a *kit.SliderAppearance) {
 })
 ```
 
-颜色包括 `TrackColor`、`FillColor`、`ThumbColor`、`ThumbBorderColor`；尺寸为 dp。默认轨道 4、滑块 16、边框 2；轨道/滑块尺寸必须为有限正数，无效值回退默认，最大 1024dp。边框与圆角允许 0，无效值回退默认；边框和滑块圆角最大为滑块尺寸的一半；轨道圆角最大 1024dp。横向最小宽度、竖向最小高度为滑块尺寸，指针数值映射使用滑块中心之间的距离。自身禁用时填充和滑块边框改为主题 Muted，键盘焦点仍显示主题焦点色。
+Colors include `TrackColor`, `FillColor`, `ThumbColor`, `ThumbBorderColor`; sizes are dp. The default track is 4, the slider is 16, and the border is 2; the track/slider size must be a finite positive number, and invalid values fall back to the default, with a maximum of 1024dp. The border and rounded corners are allowed to be 0, and invalid values will fall back to the default; the border and slider rounded corners can be up to half the size of the slider; the track rounded corners can be up to 1024dp. The horizontal minimum width and vertical minimum height are the slider size, and pointer value mapping uses the distance between the slider centers. When disabled itself, the padding and slider borders change to theme Muted, and keyboard focus still shows the theme focus color.
 
-已验证横纵方向、双端范围、双倍率布局、默认恢复、禁用与键盘操作，并覆盖自定义颜色的窗口像素回归。
+Verified landscape orientation, double-ended range, double ratio layout, default restoration, disabling and keyboard operation, and overriding window pixel regression with custom colors.

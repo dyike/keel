@@ -1,20 +1,22 @@
-# 扩展指南
+# Extending Keel
 
-新增东西之前，先判断它属于哪个现有模块。绝大多数情况是给现有模块加一个文件；新建模块的标准见[架构 · 什么时候新建模块](architecture.md#什么时候新建模块)。
+English | [简体中文](extending.zh-CN.md)
 
-| 你要加的东西 | 放在哪里 | 例子 |
+Before adding something, determine which existing module it belongs to. In most cases, a file is added to an existing module; for the standards for creating new modules, see [Architecture · When to create a new module](architecture.md#when-to-create-a-new-module).
+
+| What you want to add | Where to put | Examples |
 | --- | --- | --- |
-| 应用里的界面、业务组件 | 不进库：用 `ui/el` 写成函数或视图，见[元素与视图](el.md#做成可复用的组件) | 订单卡片、工具栏 |
-| 通用的元素能力 | `ui/el` | 新的样式方法、布局特性、元素类型 |
-| 通用组件 | `ui/kit/` 新文件 | `select.go`、`chart.go`、`dock.go` |
-| 颜色、字号等可调参数 | `ui/theme/theme.go` | 被两个以上组件用到的数值 |
-| 与窗口本身有关 | `ui/window/` | 窗口位置、置顶 |
-| 系统能力，不开窗口也有用 | `native/` 下新模块 | `native/clipboard`、`native/notify`、`native/tray` |
-| 只有一个页面用到的界面片段 | 不进库，业务代码里写成返回 `el.Element` 的函数 | 用到第二次再考虑挪进来 |
+| Interfaces and business components in applications | Not included in the library: Use `ui/el` to write functions or views, see [Elements and Views](el.md#make-reusable-components) | Order cards, toolbars |
+| Generic element capabilities | `ui/el` | New styling methods, layout properties, element types |
+| Common components | `ui/kit/` New files | `select.go`, `chart.go`, `dock.go` |
+| Adjustable parameters such as color, font size, etc. | `ui/theme/theme.go` | Value used by more than two components |
+| Related to the window itself | `ui/window/` | Window position, pinned |
+| System capabilities, useful even without opening a window | New module under `native/` | `native/clipboard`, `native/notify`, `native/tray` |
+| There is only one interface fragment used on the page | Not included in the library, the business code is written as a function that returns `el.Element` | Consider moving it in after using it for the second time |
 
-## 新增组件
+## Add new components
 
-通用组件放在 `ui/kit`，一个组件一个文件，用 `ui/el` 写成视图。完整规范和验收清单在 [组件开发规范](component-development.md)，这里只走一遍骨架。以一个计数器为例（kit 已有 `NumberInput`，这里只为说明结构）：
+Common components are placed in `ui/kit`, one component is a file, and views are written in `ui/el`. The complete specification and acceptance list are in [Component Development Specification](component-development.md), here we only go through the skeleton. Take a counter as an example (the kit already has `NumberInput`, this is just to illustrate the structure):
 
 ```go
 // CounterView shows a number between − and + buttons.
@@ -27,7 +29,7 @@ type CounterView struct {
 func Counter(value int) *CounterView { return &CounterView{value: value} }
 
 func (v *CounterView) Value() int         { return v.value }
-func (v *CounterView) SetValue(n int)     { v.value = n } // 程序赋值不触发回调
+func (v *CounterView) SetValue(n int)     { v.value = n } // Program assignment does not trigger callback
 func (v *CounterView) SetDisabled(d bool) { v.disabled = d }
 func (v *CounterView) OnChange(fn func(int)) *CounterView {
     v.onChange = fn
@@ -37,7 +39,7 @@ func (v *CounterView) OnChange(fn func(int)) *CounterView {
 func (v *CounterView) set(n int) {
     v.value = n
     if v.onChange != nil {
-        v.onChange(n) // 只有用户操作触发
+        v.onChange(n) // Only triggered by user actions
     }
 }
 
@@ -48,31 +50,31 @@ func (v *CounterView) Render(cx *el.Context) el.Element {
     plus.SetDisabled(v.disabled)
     return el.Div().Row().Gap(8).Items(el.Center).Child(
         minus.Render(cx),
-        el.Text(strconv.Itoa(v.value)).TextColor(theme.Text), // 颜色在 Render 时读取
+        el.Text(strconv.Itoa(v.value)).TextColor(theme.Text), // Color is read at Render time
         plus.Render(cx),
     )
 }
 ```
 
-要点：
+Key points:
 
-1. **构造函数 `Xxx(...)` 返回 `*XxxView`。** 业务状态存在结构体里；悬停、按下、焦点这类交互状态由 el 按元素位置保存，不用声明。
-2. **有值的组件提供 `Value`、`SetValue`、`OnChange`、`SetDisabled`。** 程序赋值不触发回调。
-3. **颜色和框架文字在 Render 时从 `theme`、`locale` 读取**，不在构造时保存，也不写死中文。
-4. **el 缺的能力先加到 el**（焦点、定时、浮层、拖动），不在组件里直接写 Gio 输入路由。
+1. **Constructor `Xxx(...)` returns `*XxxView`. ** Business status is stored in the structure; interaction status such as hover, press, and focus are saved by el according to the element position without declaration.
+2. **Value components are provided `Value`, `SetValue`, `OnChange`, `SetDisabled`.** Programmatic assignment does not trigger callbacks.
+3. **The color and framework text are read from `theme` and `locale` during Render**, and are not saved during construction, nor hard-coded Chinese.
+4. **The capabilities that el lacks are added to el** first (focus, timing, overlay, dragging), and the Gio input routing is not written directly in the component.
 
-然后补齐配套文件，`ui/kit/conventions_test.go` 会检查缺了哪个：
+Then complete the supporting files, `ui/kit/conventions_test.go` will check which one is missing:
 
-- `ui/kit/counter_test.go`：用 `page(v)`、`click(t, h, "名字")` 等辅助函数（在 `kit_test.go`）走真实输入路由；
-- `ui/window/kit_*_test.go`：Agent 快照里角色、名字、值、状态正确；需要单独列出子元素的容器角色加入 `containerRoles`，并补进 [Agent 端到端测试](automation.md#元素)的表；
-- `docs/kit/counter.md`，并在 [组件参考](kit.md) 的对应分类登记；
-- `examples/components/counter.go`，注册 `-section counter`。
+- `ui/kit/counter_test.go`: Use `page(v)`, `click(t, h, "name")` and other auxiliary functions (in `kit_test.go`) to take the real input route;
+- `ui/window/kit_*_test.go`: The role, name, value, and status in the Agent snapshot are correct; the container role that needs to list the sub-elements separately is added to `containerRoles`, and the table of [Agent end-to-end test](automation.md#element) is added;
+- `docs/kit/counter.md`, and registered in the corresponding category of [component reference](kit.md);
+- `examples/components/counter.go`, sign up for `-section counter`.
 
-## 新增原生能力
+## Add native capabilities
 
-以"读取剪贴板文本"为例走一遍。这个例子在写文档时编译并测试通过，没有合入仓库。
+Take "Read Clipboard Text" as an example and walk through it. This example was compiled and tested when writing the document, and it was not merged into the repository.
 
-**第一步：写 C 函数。** 追加到 `native/internal/sys/sys_darwin.m`：
+**Step one: Write a C function.**Append to `native/internal/sys/sys_darwin.m`:
 
 ```objc
 int keel_clipboard_text(char **out){
@@ -84,15 +86,15 @@ int keel_clipboard_text(char **out){
 }
 ```
 
-返回值约定：`0` 成功，`1` 无权限，`2` 不支持，`3` 参数错，`4` 线程不对，`5` 超时，`6` 冲突，其他值是失败。`sys_darwin.go` 里的 `status()` 把它们转成 `native.Err*`。需要新的错误类别时，两边一起加。
+Return value convention: `0` is successful, `1` has no permission, `2` is not supported, `3` parameters are wrong, `4` has wrong thread, `5` times out, `6` conflicts, other values are failures. `status()` in `sys_darwin.go` to convert them to `native.Err*`. When a new error category is needed, add both sides together.
 
-在 `sys_darwin.h` 里声明：
+Declare in `sys_darwin.h`:
 
 ```c
 int keel_clipboard_text(char **out);
 ```
 
-**第二步：包成 Go 函数。** `sys_darwin.go`：
+**Step 2: Package it into a Go function.** `sys_darwin.go`:
 
 ```go
 func ClipboardText() (string, error) {
@@ -108,15 +110,15 @@ func ClipboardText() (string, error) {
 }
 ```
 
-C 分配的内存由 Go 侧 `C.free` 释放。不要把 Go 指针交给 C 长期保存。
+Memory allocated by C is freed by Go side `C.free`. Don't give Go pointers to C for long-term storage.
 
-**第三步：其他平台。** `sys_windows.go`（Win32）和 `sys_linux.go`（X11）也要有同名函数，暂时做不了就先返回 `native.ErrUnsupported`。`sys_other.go` 覆盖其余平台：
+**Step 3: Other platforms.** `sys_windows.go` (Win32) and `sys_linux.go` (X11) must also have functions with the same name. If it cannot be done temporarily, it will return to `native.ErrUnsupported` first. `sys_other.go` covers the rest of the platforms:
 
 ```go
 func ClipboardText() (string, error) { return "", native.ErrUnsupported }
 ```
 
-漏了哪个文件，那个平台就编译不过。逐个检查：
+If any file is missing, the platform will not be able to compile it. Check one by one:
 
 ```sh
 GOOS=windows go vet ./native/...
@@ -124,7 +126,7 @@ CGO_ENABLED=0 GOOS=linux go vet ./native/...
 CGO_ENABLED=0 GOOS=freebsd go vet ./native/...
 ```
 
-**第四步：公开包。** 新建 `native/clipboard/clipboard.go`，参数校验放在这一层，`sys` 层只做翻译：
+**Step 4: Make the package public.** Create a new `native/clipboard/clipboard.go`. Parameter verification is placed in this layer. The `sys` layer only does translation:
 
 ```go
 // Package clipboard reads the system clipboard.
@@ -136,23 +138,23 @@ import "github.com/dyike/keel/native/internal/sys"
 func Text() (string, error) { return sys.ClipboardText() }
 ```
 
-**第五步：登记模块边界。** 在 `internal/deps/deps_test.go` 的 `allowed` 表里加一行：
+**Step 5: Register module boundaries.** Add a row to the `allowed` table of `internal/deps/deps_test.go`:
 
 ```go
 "native/clipboard": {"native", "native/internal/sys"},
 ```
 
-不登记，`TestEveryModuleIsListed` 会失败。这一步强制你想清楚：新模块依赖谁，是否真的独立。
+Without registration, `TestEveryModuleIsListed` will fail. This step forces you to think clearly: who the new module depends on, and whether it is really independent.
 
-**第六步：写文档。** 在 `native/clipboard/README.md` 写清楚它做什么、依赖什么、怎么单独使用（照抄其他模块的 README 格式）；在 [native/README.md](../native/README.md) 的表格和 [原生能力](native.md) 里各加一节，写清需要什么权限、会不会阻塞、在哪个线程能调用。
+**Step 6: Write the document.** Write clearly in `native/clipboard/README.md` what it does, what it depends on, and how to use it alone (copy the README format of other modules); add a section each in the table of [native/README.md](../native/README.md) and [native capability](native.md) to clearly indicate what permissions are required, whether it will block, and which thread it can be called from.
 
-涉及主线程的系统 API（AppKit 的大部分 UI 类）要注意：Gio 的事件循环占着主线程，C 代码里用 `dispatch_sync(dispatch_get_main_queue(), ...)` 切过去（参考现有的 `onMain`）。但如果调用方本身就在主线程上，`dispatch_sync` 会死锁，所以先判断 `[NSThread isMainThread]`。
+For system APIs involving the main thread (most UI classes in AppKit), please note: Gio's event loop occupies the main thread, and `dispatch_sync(dispatch_get_main_queue(), ...)` is used to cut through it in C code (refer to the existing `onMain`). But if the caller itself is on the main thread, `dispatch_sync` will deadlock, so `[NSThread isMainThread]` is judged first.
 
-## 新增示例
+## New example
 
-`examples/<名字>/main.go`，一个示例演示一件事。要能出截图的，参考 `examples/hello` 支持 `-screenshot` 参数。
+`examples/<name>/main.go`, an example demonstrates one thing. To be able to produce screenshots, please refer to `examples/hello` to support the `-screenshot` parameter.
 
-## 提交前检查
+## Check before submission
 
 ```sh
 gofmt -l .                          # 应无输出

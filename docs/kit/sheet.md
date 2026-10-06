@@ -1,34 +1,36 @@
 # Sheet
 
-贴着窗口某条边的模态面板，用于详情、设置、较长的表单。
+English | [简体中文](sheet.zh-CN.md)
+
+A modal panel attached to one side of the window, used for details, settings, and long forms.
 
 ```go
 details := kit.Sheet(el.Right, "订单详情").Body(view).Size(400)
 details.SetValue(true)
 ```
 
-- 方向：`el.Right`、`el.Left`、`el.Top`、`el.Bottom`。
-- 尺寸：`Size(dp)` 对左右方向是宽度，对上下方向是高度，默认 360；不会超过窗口。
-- 打开时用 `kit.SheetSlide`（200ms）从边缘滑入。开启减少动画时直接出现在最终位置，自动化模式下默认就是这样。
-- 关闭方式和 Dialog 相同：Esc、点击遮罩、标题栏的关闭按钮，关闭时调用 `OnClose(fn)`。
-- 内容区可以滚动。焦点限制在面板内，关闭后焦点回到原来的位置。
-- `Value()` / `SetValue(bool)` 读取或设置是否打开，`SetTitle` 修改标题。也可以在回调里调用 `sheet.Show(cx)`，抽屉直接挂到窗口根部，不必放进视图树，关闭后自动取下；同一个实例不要同时 Render。需要 `el.Root`。
+- Directions: `el.Right`, `el.Left`, `el.Top`, `el.Bottom`.
+- Size: `Size(dp)` is the width in the left and right directions and the height in the up and down directions. The default is 360; it will not exceed the window.
+- Open by sliding in from the edge with `kit.SheetSlide` (200ms). Appears directly at the final position when reduced motion is turned on, which is the default in automation mode.
+- The closing method is the same as Dialog: Esc, click on the mask, close button on the title bar, and call `OnClose(fn)` when closing.
+- The content area can be scrolled. The focus is limited to the panel and returns to its original position after closing.
+- `Value()` / `SetValue(bool)` reads or sets whether to open, `SetTitle` modifies the title. You can also call `sheet.Show(cx)` in the callback. The drawer is hung directly to the root of the window without being placed in the view tree. It will be automatically removed after closing; the same instance should not be rendered at the same time. `el.Root` REQUIRED.
 
-Agent：角色是 `dialog`，名字是标题；关闭按钮的名字是"关闭"。
+Agent: The role is `dialog`, the name is the title; the name of the close button is "Close".
 
-验证：`go run ./examples/components -section sheet`。
+Verification: `go run ./examples/components -section sheet`.
 
-Sheet 的正文可以包含 Menu、Popover 等浮层；父层先登记，Esc 从最内层关闭，最后才关闭 Sheet。`SetDisabled(true)` 关闭并阻止重新打开，祖先禁用或隐藏也会关闭模态层，恢复启用不会自动重开。用户关闭回调至多执行一次。
+The body of Sheet can contain overlays such as Menu and Popover; the parent layer is registered first, Esc closes from the innermost layer, and finally the Sheet is closed. `SetDisabled(true)` closes and prevents reopening. Disabling or hiding ancestors will also close the modal layer. Restoring enablement will not automatically reopen. The user close callback is executed at most once.
 
-滑入距离使用受窗口约束后的实际宽高。尺寸为 NaN 或无穷时忽略；关闭后立即重新打开会重新开始动画，不要求中间先渲染一次关闭状态。示例“订单操作”可验证嵌套菜单。
+The sliding distance uses the actual width and height constrained by the window. Ignored when the size is NaN or infinite; reopening immediately after closing will restart the animation, and does not require the closed state to be rendered once in the middle. The example "Order Action" validates the nested menu.
 
-`Footer(views...)` 设置独立页脚，复制传入切片，支持多个操作按钮与换行；正文继续独立滚动，页脚不随正文滚动。无正文时页脚靠面板底部，空参数清除页脚，nil 子项忽略。页脚适合少量操作，需为标题和页脚留出足够面板高度。
+`Footer(views...)` sets an independent footer, copies incoming slices, supports multiple operation buttons and line breaks; the text continues to scroll independently, and the footer does not scroll with the text. When there is no text, the footer will be at the bottom of the panel, empty parameters will clear the footer, and nil sub-items will be ignored. The footer is suitable for small operations and requires sufficient panel height for the title and footer.
 
-`Keyboard(bool)`、`Overlay(bool)`、`OverlayClosable(bool)`、`CloseButton(bool)` 分别控制 Esc、遮罩颜色、外部点击关闭和标题关闭按钮，默认均开启。隐藏遮罩仍保持模态阻挡和焦点约束；关闭按钮不受 Keyboard/OverlayClosable 限制。配置可在打开期间更新，程序 SetValue(false) 始终可用。
+`Keyboard(bool)`, `Overlay(bool)`, `OverlayClosable(bool)`, and `CloseButton(bool)` respectively control the Esc, mask color, external click close and title close buttons. They are all turned on by default. Hidden masks still maintain modal blocking and focus constraints; close buttons are not subject to Keyboard/OverlayClosable constraints. The configuration can be updated during opening, the procedure SetValue(false) is always available.
 
-`MarginTop(dp)` 给面板顶部预留空间，例如 `MarginTop(32)` 避开标题栏。四个方向均在剩余窗口区域内布局；顶部面板从预留区下沿滑入，底部面板仍贴底，左右面板缩短高度。绘制和点击区域同步裁剪，动画不会覆盖预留区。默认 0，负数和非有限值忽略；超出窗口高度时面板完全裁剪，仍可按 Esc 关闭。遮罩和模态阻挡继续覆盖整个窗口，点击顶部预留区按 OverlayClosable 处理。
+`MarginTop(dp)` reserves space at the top of the panel, e.g. `MarginTop(32)` avoids the title bar. All four directions are laid out within the remaining window area; the top panel slides in from the lower edge of the reserved area, the bottom panel remains attached to the bottom, and the left and right panels shorten their height. The drawing and clicking areas are cropped simultaneously, and the animation will not cover the reserved area. Default is 0, negative numbers and non-finite values are ignored; when the window height is exceeded, the panel is completely cropped and can still be closed by pressing Esc. Masks and modal blocking continue to cover the entire window, and click on the top reserved area to handle it as OverlayClosable.
 
-`PanelStyle(func(*el.DivEl))` 在默认外观之后配置面板配色、文字颜色、边框、圆角、阴影、内边距和内容间距；`PanelStyle(nil)` 恢复默认。回调每帧接收新元素，不应保存引用。面板身份和 Size/窗口约束在回调后设置，正文与操作继续通过 Body/Footer 提供。显式设置颜色的子组件保持自身颜色，未设置的文字继承面板颜色。
+`PanelStyle(func(*el.DivEl))` Configure panel color, text color, border, rounded corners, shadow, padding and content spacing after default appearance; `PanelStyle(nil)` restore default. The callback receives new elements every frame and should not save references. The panel identity and Size/window constraints are set after the callback, and the body and actions continue to be provided through the Body/Footer. Subcomponents with explicitly set colors retain their own colors, and unset text inherits the panel color.
 
 ```go
 details.PanelStyle(func(panel *el.DivEl) {
@@ -36,6 +38,6 @@ details.PanelStyle(func(panel *el.DivEl) {
 })
 ```
 
-`Resizable(bool)` 控制内侧边缘的 6dp 调整把手，默认开启。左右面板拖动宽度，上下面板拖动高度；把手支持 Tab 聚焦，方向键沿对应轴移动 16dp，Home/End 调到最小/最大尺寸。用户调整范围为 80dp 到可用窗口尺寸；窗口不足 80dp 时以实际空间为限，垂直方向扣除 MarginTop。
+`Resizable(bool)` Controls the 6dp adjustment knob on the inside edge, on by default. Drag the width of the left and right panels, drag the height of the upper and lower panels; the handle supports Tab focus, the arrow keys move 16dp along the corresponding axis, and Home/End is adjusted to the minimum/maximum size. The user adjustment range is from 80dp to the available window size; when the window is less than 80dp, it is limited to the actual space, and MarginTop is deducted vertically.
 
-`PanelSize()` 返回请求尺寸；`OnResize(func(float32))` 通知用户调整结果，程序调用 Size 不触发。调整从屏幕上的实际尺寸开始；取消指针拖动恢复起始尺寸（仍受当前窗口约束）。关闭、禁用调整或程序设置尺寸会结束当前拖动。应用可在回调中保存尺寸；重新打开仍保留尺寸。默认新增把手会增加一个键盘停靠点，可用 Resizable(false) 恢复固定尺寸行为。
+`PanelSize()` returns the requested size; `OnResize(func(float32))` notifies the user of the adjustment result, and the program call Size is not triggered. Adjustments start from the actual size on the screen; canceling pointer dragging returns to the starting size (still constrained by the current window). Turning off, disabling resizing, or resizing the program ends the current drag. Apps can save dimensions in callbacks; dimensions are retained when reopened. By default, adding a new handle will add a keyboard dock. Resizable(false) can be used to restore the fixed size behavior.

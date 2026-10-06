@@ -2,36 +2,38 @@
 
 # Keel
 
-用纯 Go 写桌面界面，不需要 HTML、CSS、JavaScript 或 WebView。界面由 [Gio](https://gioui.org) 绘制；Gio 没有的原生能力（权限、截图、合成输入、全局快捷键、系统通知、富剪贴板）在 `native/` 下。支持 macOS、Windows、Linux，也能编译成 WebAssembly 在浏览器里运行。
+English | [简体中文](README.zh-CN.md)
 
-新建一个应用：
+Build desktop UIs in pure Go, without HTML, CSS, JavaScript, or a WebView. [Gio](https://gioui.org) draws the interface; `native/` provides permissions, screenshots, synthetic input, global hotkeys, system notifications, and a rich clipboard. Keel runs on macOS, Windows, and Linux, and compiles to WebAssembly for the browser.
+
+Create an application:
 
 ```sh
 go install github.com/dyike/keel/cmd/keel@latest
 keel new my-app && cd my-app
-keel run            # 运行
-keel build          # 打包当前平台（带图标的 .app / .exe / Linux 安装包）
+keel run            # Run
+keel build          # Package for the current platform (.app / .exe / Linux package with icons)
 ```
 
-应用开发从生成的 `app.go` 开始。查看仓库中的示例和组件库：
+Start developing in the generated `app.go`. To explore the repository examples and component gallery:
 
 ```sh
 go run ./examples/hello
-go run ./examples/components   # 组件库：侧栏选择、搜索
+go run ./examples/components   # Component gallery: sidebar navigation and search
 go run ./examples/chat -sample=all
 go test -race ./...
 ```
 
-需要 Go 1.26+；macOS 上需要 Xcode Command Line Tools，Linux 上需要 Wayland/X11 的开发包（`keel doctor` 会检查）。在线文档和组件库：https://keel.dyike.com
+Requires Go 1.26+. On macOS, install Xcode Command Line Tools. On Linux, install the Wayland/X11 development packages; `keel doctor` checks the environment. Browse the [documentation and live gallery](https://keel.dyike.com).
 
-## 文档
+## Documentation
 
-- [文档导览](docs/README.md)：按开发任务选择文档。
-- [快速开始](docs/getting-started.md)：用脚手架新建、开发、运行和打包应用。
-- [组件参考](docs/kit.md)：按用途分类，查 API 和在线交互示例。
-- [Agent 端到端测试](docs/automation.md)：让 Agent 点击、输入、滚动和截图。
-- [架构](docs/architecture.md)：源码模块、依赖边界与线程规则。
+- [Overview](docs/README.md): find guides for your development task.
+- [Getting started](docs/getting-started.md): create, develop, run, and package an application with the scaffold.
+- [Components](docs/kit.md): browse components by purpose, with APIs and interactive examples.
+- [Automation](docs/automation.md): let an agent click, type, scroll, and take screenshots.
+- [Architecture](docs/architecture.md): modules, dependency boundaries, and threading rules.
 
-## 授权
+## Licensing
 
-Keel 采用 [AGPL-3.0](LICENSE) 与商业授权双授权。开源项目和个人自用按 AGPL 免费使用；在闭源软件里使用 Keel 需要购买商业授权。详见 [LICENSING.md](LICENSING.md)，参与贡献见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+Keel is dual licensed under [AGPL-3.0](LICENSE) and a commercial license. Open-source projects and personal use are free under the AGPL. Using Keel in closed-source software requires a commercial license. See [LICENSING.md](LICENSING.md) and the [contribution guide](CONTRIBUTING.md).

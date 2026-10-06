@@ -1,6 +1,8 @@
 # AvatarGroup
 
-把多个头像叠放成成员组，限制可见人数后用 `+N` 显示隐藏人数。
+English | [简体中文](avatar_group.zh-CN.md)
+
+Stack multiple avatars to form a member group, limit the number of visible people and then use `+N` to display the hidden number of people.
 
 ```go
 team := kit.AvatarGroup(
@@ -10,12 +12,12 @@ team := kit.AvatarGroup(
 ).Size(40).Limit(2)
 ```
 
-`Size(dp)` 统一组内直径，默认 40dp，限制在 16–256dp；不修改成员头像自身尺寸。头像重叠四分之一，以主题表面色描边区分。窄窗口提供横向滚动。
+`Size(dp)` Unifies the diameter within the group, defaults to 40dp, limited to 16–256dp; does not modify the size of member avatars themselves. The avatars overlap by a quarter and are distinguished by the theme surface color strokes. Narrow windows provide horizontal scrolling.
 
-`Limit(n)` 限制实际显示的头像数量，溢出标记另外占一格。默认负数表示不限，0 只显示总隐藏人数。`Ellipsis(true)` 把可见的 `+N` 换成省略号，Agent 仍可读取隐藏人数。
+`Limit(n)` limits the number of avatars actually displayed, and the overflow mark occupies an additional space. By default, a negative number means no limit, and 0 only displays the total number of hidden people. `Ellipsis(true)` Replace the visible `+N` with an ellipsis, and the Agent can still read the hidden number of people.
 
-`SetAvatars` 复制成员切片并过滤 nil；`Avatars()` 返回切片副本，头像实例仍然共享，可以继续更新姓名、图片和状态。空组不占高度。
+`SetAvatars` copies the member slice and filters out nil; `Avatars()` returns a copy of the slice. The avatar instance is still shared and you can continue to update the name, picture and status. Empty groups do not occupy height.
 
-Agent：外层为 `group`，可见成员为 `avatar`，保留原姓名和状态；溢出头像名称为本地化的“更多 N”，value 为隐藏人数。组为展示内容，不占用键盘焦点。
+Agent: The outer layer is `group`, the visible member is `avatar`, and the original name and status are retained; the overflow avatar name is the localized "More N", and the value is the hidden number of people. The group is for display content and does not occupy keyboard focus.
 
-验证：`go run ./examples/components -section avatar_group`，加 `-theme dark` 查看深色。
+Verify: `go run ./examples/components -section avatar_group`, add `-theme dark` to see dark colors.

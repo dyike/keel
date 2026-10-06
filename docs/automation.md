@@ -1,28 +1,30 @@
-# Agent 端到端测试
+# Automation
 
-`cmd/keel-mcp` 是一个 MCP server。接上之后，Agent 可以启动 Keel 应用，读出窗口里有什么，点击、输入、按键、滚动、截图，像人一样把应用走一遍。
+English | [简体中文](automation.zh-CN.md)
 
-两种模式：
+`cmd/keel-mcp` is an MCP server. After being connected, the Agent can start the Keel application, read out what is in the window, click, enter, press keys, scroll, take screenshots, and walk through the application like a human.
 
-- **可见模式**：窗口正常显示在屏幕上。你能看着 Agent 操作，也可以自己上手操作，再交给 Agent 接着做。
-- **无界面模式**：窗口不上屏，只在内存里渲染。适合批量跑测试，不打扰你。
+Two modes:
 
-两种模式都不动真实的鼠标键盘，也不需要辅助功能等系统权限。一次完整的"输入 → 点击 → 开新窗口 → 保存 → 关闭"流程约 1.5 秒（不含编译）。
+- **Visible Mode**: The window is displayed on the screen normally. You can watch the Agent operate it, or you can do it yourself and then let the Agent do it.
+- **Interfaceless mode**: The window does not appear on the screen and is only rendered in memory. Suitable for running tests in batches without disturbing you.
 
-## 接入
+Both modes do not use a real mouse and keyboard, nor do they require system permissions such as accessibility functions. A complete "input → click → open new window → save → close" process takes about 1.5 seconds (excluding compilation).
+
+## Access
 
 ```sh
 go install github.com/dyike/keel/cmd/keel-mcp@latest
 claude mcp add keel -- keel-mcp
 ```
 
-修改 keel-mcp 本身时，在仓库里用 `go install ./cmd/keel-mcp` 装本地版本。
+When modifying keel-mcp itself, use `go install ./cmd/keel-mcp` to install the local version in the repository.
 
-`claude mcp add` 会写入 Claude Code 的配置。其他支持 MCP 的客户端，把 `keel-mcp` 配成 stdio 类型的 server 即可。`keel-mcp` 不需要参数；要测哪个应用，在 `launch` 工具里指定。
+`claude mcp add` will write Claude Code's configuration. For other clients that support MCP, just configure `keel-mcp` as a stdio type server. `keel-mcp` does not require parameters; which application to test is specified in the `launch` tool.
 
-## 一次测试长什么样
+## What does a test look like?
 
-Agent 调用 `launch`，参数 `{"command": "go run ./examples/multiwindow"}`，得到：
+Agent calls `launch` with parameter `{"command": "go run ./examples/multiwindow"}` and gets:
 
 ```
 Window w1 "Keel 主窗口" 640×420
@@ -35,7 +37,7 @@ e6 text "主窗口和设置窗口拥有各自的状态。" @42,217 546×24
 e7 text "⌘ + , 打开设置。" @42,253 546×21
 ```
 
-每行是一个元素：引用（`e3`）、角色、名字、状态、位置（`@x,y 宽×高`，单位 dp）。然后：
+Each line is an element: reference (`e3`), role, name, status, position (`@x,y width×height`, unit dp). Then:
 
 ```
 type       {"ref": "e3", "text": "小明"}
@@ -45,159 +47,159 @@ click      {"window": "w2", "text": "保存"}
 screenshot {"window": "w2"}           → PNG
 ```
 
-每个操作都返回操作后的元素列表，Agent 不用再单独调 `snapshot` 确认结果。操作打开了新窗口时，列表末尾会标出 `(new)`。
+Each operation returns the element list after the operation, and the Agent does not need to call `snapshot` separately to confirm the result. When an action opens a new window, `(new)` is marked at the end of the list.
 
-## 操作你自己启动的应用
+## Operate applications you launch yourself
 
-应用正常显示在屏幕上，你先手动操作到某个状态，再让 Agent 接着做，你看着它操作：
+The application is displayed on the screen normally. You first manually operate it to a certain state, and then let the Agent continue to do it. You watch it operate:
 
 ```sh
 KEEL_AUTOMATION=1 go run ./examples/multiwindow
 ```
 
-应用启动后打印连接地址，比如 `keel automation: listening on /var/folders/…/T/keel/multiwindow-4821.sock`。然后让 Agent 调用 `attach`（不带参数）：
+After the application starts, print the connection address, such as `keel automation: listening on /var/folders/…/T/keel/multiwindow-4821.sock`. Then have the Agent call `attach` (without parameters):
 
-- 只有一个应用在跑时，直接连上，返回它当前的窗口和元素；
-- 有多个时，列出所有地址，让 Agent 选一个传 `socket` 参数；
-- 找不到时，确认应用是用 `KEEL_AUTOMATION=1` 启动的，而且没有退出。
+- When only one application is running, it connects directly and returns its current window and elements;
+- If there are multiple addresses, list all addresses and let the Agent select one and pass the `socket` parameter;
+- When not found, confirm that the application was started with `KEEL_AUTOMATION=1` and did not exit.
 
-和 `launch` 的区别：
+Differences from `launch`:
 
 | | `launch` | `attach` |
 | --- | --- | --- |
-| 谁启动应用 | `keel-mcp` | 你 |
-| `stop` | 结束应用 | 只断开连接，应用继续运行 |
-| 再次连接 | 重新启动，状态清空 | 再 `attach` 一次，状态保留 |
-| `logs` | 能看到输出 | 看不到，输出在你启动它的终端里 |
+| Who starts the app | `keel-mcp` | You |
+| `stop` | End the application | Just disconnect, the application continues to run |
+| Connect again | Restart, the status is cleared | `attach` again, the status is retained |
+| `logs` | Can see the output | Can't, the output is in the terminal you started it from |
 
-一个应用同一时间只接受一个连接。另一个 Agent 会话已经连着时，`attach` 会在 3 秒后报"另一个客户端已连接"，不会一直卡住。
+An application can only accept one connection at a time. When another Agent session is already connected, `attach` will report "Another client is connected" after 3 seconds and will not stay stuck.
 
-Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文字、点击后的结果、新打开的窗口。你在窗口里的操作，Agent 下一次读取时也能看到。
+Each operation of the Agent will be immediately reflected in the window on the screen: the entered text, the result of the click, and the newly opened window. Your operations in the window can also be seen when the Agent reads it next time.
 
-不想显示窗口时，加 `KEEL_HEADLESS=1`。
+If you do not want to display the window, add `KEEL_HEADLESS=1`.
 
-`KEEL_AUTOMATION` 也可以直接写 socket 路径（`KEEL_AUTOMATION=/tmp/my.sock`），这时 `attach` 要传同样的 `socket`。
+`KEEL_AUTOMATION` can also directly write the socket path (`KEEL_AUTOMATION=/tmp/my.sock`). In this case, `attach` will pass the same `socket`.
 
-## 工具
+## Tool
 
-| 工具 | 参数 | 作用 |
+| Tools | Parameters | Function |
 | --- | --- | --- |
-| `launch` | `command`，`dir?`，`timeout_seconds?`，`visible?` | 用 shell 启动应用，等它就绪，返回第一个窗口。默认不显示窗口；`visible: true` 显示在屏幕上。会先停掉之前启动的应用。编译时间算在超时里，默认 120 秒 |
-| `attach` | `socket?` | 连接你用 `KEEL_AUTOMATION=1` 启动的应用，保留它当前的状态 |
-| `snapshot` | `window?` | 窗口里的元素 |
-| `click` | `ref` 或 `text` 或 `x`+`y` | 左键点击元素中心或指定坐标 |
-| `type` | `text`，`ref?`，`clear?` | 在光标处输入。给 `ref` 先点击聚焦；`clear` 先全选，用新文字替换 |
-| `press_key` | `key` | 按一个组合键：`enter` `esc` `tab` `shift+tab` `space` `backspace` `up` `mod+a` `ctrl+shift+s`。窗口快捷键会触发，Tab 会移动焦点 |
-| `scroll` | `dy`，`ref?` 或 `x`+`y` | 滚轮滚动，正数向下，单位 dp。默认在窗口中心 |
-| `wait_for` | `text`，`timeout_ms?` | 等到某个元素的名字或值包含 `text`。用于后台 goroutine 更新界面的场景，默认 5 秒 |
-| `screenshot` | `window?` | 窗口截图，1 像素 = 1 dp |
-| `windows` | | 列出打开的窗口 |
-| `close_window` | `window?` | 像点关闭按钮一样关窗口。关掉最后一个，应用退出 |
-| `logs` | `lines?` | 应用最近的标准输出和错误输出：panic、日志、编译错误。只对 `launch` 启动的应用有效 |
-| `stop` | | `launch` 的应用：结束它；`attach` 的应用：只断开 |
+| `launch` | `command`, `dir?`, `timeout_seconds?`, `visible?` | Start the application with a shell, wait for it to be ready, and return to the first window. The window is not displayed by default; `visible: true` is displayed on the screen. The previously launched application will be stopped first. Compilation time is included in the timeout, default is 120 seconds |
+| `attach` | `socket?` | Connect an app you launched with `KEEL_AUTOMATION=1`, preserving its current state |
+| `snapshot` | `window?` | Elements in the window |
+| `click` | `ref` or `text` or `x`+`y` | Left-click the center of the element or specify the coordinates |
+| `type` | `text`, `ref?`, `clear?` | Enter at the cursor. Give `ref` click to focus first; `clear` first select all and replace with new text |
+| `press_key` | `key` | Press a key combination: `enter` `esc` `tab` `shift+tab` `space` `backspace` `up` `mod+a` `ctrl+shift+s`. Window shortcut keys will trigger and Tab will move focus |
+| `scroll` | `dy`, `ref?` or `x`+`y` | Scroll wheel, positive number downward, unit dp. Defaults to window center |
+| `wait_for` | `text`, `timeout_ms?` | Wait until an element's name or value contains `text`. Used for background goroutine update interface scenarios, default 5 seconds |
+| `screenshot` | `window?` | Window screenshot, 1 pixel = 1 dp |
+| `windows` | | List open windows |
+| `close_window` | `window?` | Close the window like clicking the close button. Close the last one and the application exits |
+| `logs` | `lines?` | Applies the latest standard output and error output: panic, log, compile error. Only valid for applications launched by `launch` |
+| `stop` | | Application of `launch`: End it; Application of `attach`: Disconnect only |
 
-除 `launch`、`attach`、`logs`、`stop` 外都可以带 `window`（如 `w2`），省略时作用于当前窗口：最近一次被操作的窗口；还没操作过时，是最近打开的窗口。
+Except for `launch`, `attach`, `logs` and `stop`, `window` (such as `w2`) can be used. When omitted, it will act on the current window: the window that was last operated; if it has not been operated yet, it is the most recently opened window.
 
-### 元素
+### Element
 
-| 角色 | 来自 | 额外信息 |
+| role | from | additional information |
 | --- | --- | --- |
 | `text` | `el.Text`、`kit.Kbd` | |
-| `button` | `kit.Button`、带 `OnClick` 的 `el.Div` | `disabled`；kit 加载时 `value: loading`；选中的按钮（`Selected(true)`）有 `selected: true`，未选中时不列出 |
+| `button` | `kit.Button`, `el.Div` with `OnClick` | `disabled`; `value: loading` when the kit is loaded; the selected button (`Selected(true)`) has `selected: true`, and is not listed when it is not selected |
 | `link` | `kit.Link` | |
-| `textbox` | `kit.Input`、`kit.TextArea`、`el.Input` | `value`；密码框的值是等长的 `•` |
-| `checkbox` | `kit.Checkbox` | `checked` / `unchecked`；半选时 `value` 为 mixed |
-| `radio` | `kit.RadioGroup` 的每个选项 | `checked` / `unchecked` |
+| `textbox` | `kit.Input`, `kit.TextArea`, `el.Input` | `value`; the values of the password boxes are equal length `•` |
+| `checkbox` | `kit.Checkbox` | `checked` / `unchecked`; when half selected, `value` is mixed |
+| `radio` | Every option for `kit.RadioGroup` | `checked` / `unchecked` |
 | `switch` | `kit.Switch` | `checked` / `unchecked` |
-| `select` | `kit.Select` | `value` 是当前选中项；点击后出现 `option` |
-| `option` | 展开的下拉选项 | `selected` |
-| `tab` | `kit.Tabs` 的标签 | `selected` |
-| `table` | `kit.Table` | `value` 是总行数，如 `36 行` |
-| `columnheader` | 表头，点击排序 | |
-| `row` | 表格中可见的行，名字是各列用竖线连起来 | `selected` |
-| `slider` | `kit.Slider` | `value` 是当前数值；点击轨道或聚焦后按方向键调整 |
-| `accordion` | `kit.Accordion` | 标题和展开内容单独列出 |
-| `tag` | kit 标签容器 | value 为 neutral/info/success/warning/danger，selected 为选择状态；选择和移除按钮分别列出 |
-| `group` | kit 组件分组 | 名字为分组标题，保留子组件语义 |
-| `status` | kit 状态栏 | 左右内容作为子元素分别列出 |
-| `alert` | kit 行内提示容器 | 名字是标题，value 为 neutral/info/success/warning/danger；正文和关闭按钮单独列出 |
-| `badge` | 数字、圆点、图标角标（不可点击） | 名字为原始计数，`value` 为显示值、`dot` 或 `icon` |
-| `toggle` | 状态按钮 | `selected` 表示选中，支持 `disabled` |
-| `disclosure` | 折叠面板标题 | `value` 是 expanded / collapsed，支持 `disabled` |
-| `avatar` | kit 头像 | 名字为人名，value 为 online/busy/offline，无状态为空 |
-| `image` | `kit.Image`、Markdown 图片 | `value` 是 loading / loaded / error，名字是替代文字 |
-| `footnotes` | Markdown 脚注 | 引用和返回链接单独列出 |
-| `progressbar` | `kit.Progress` | `value` 是百分比或 indeterminate |
-| `dialog` | 打开的 `kit.Dialog`、`kit.Sheet`、`kit.Popover`、`kit.HoverCard` 的面板 | 它里面的文字和按钮单独列出 |
-| `alertdialog` | `kit.Dialog` 的 `ConfirmDanger` 和 `Persistent()` | 点遮罩不关闭，Esc 等于取消；里面的元素单独列出 |
-| `radiogroup` | `kit.RadioGroup` | 每个选项是 `radio`，单独列出 |
-| `listbox` | 打开的 `kit.Select` / `kit.Combobox` 列表 | 选项是 `option`，单独列出 |
-| `combobox` | `kit.Combobox` | `value` 为当前选择；里面的文本框和展开按钮单独列出 |
-| `grid` / `gridcell` | `kit.Calendar` | 每天是 `gridcell`，名字是日期，`selected` 表示已选或在范围内 |
-| `list` / `step` | `kit.Stepper` | 每一步 `value` 为 done / current / upcoming |
-| `form` | `kit.Form` | 行标签和控件单独列出，控件以行标签为名字 |
-| `tree` / `treeitem` | `kit.Tree` | 节点 `value` 为 expanded / collapsed，`selected` 表示选中 |
-| `tablist` / `tabpanel` | `kit.Tabs` | 标签是 `tab`；面板以标签标题为名 |
-| `navigation` | `kit.Pagination` | `value` 为"当前页/总页数" |
-| `log` / `article` | `kit.MessageScroller` / `kit.Message` | 消息以作者为名，内容单独列出 |
-| `attachment` | `kit.Attachment` | 名字是文件名，`value` 为上传进度或 error |
-| `separator` | `kit.Resizable`、`kit.Dock` 的分隔条 | `value` 为第一个面板的尺寸（Resizable） |
-| `region` | `kit.Dock` 的停靠区 | 名字是当前面板标题；标签、菜单按钮和内容单独列出 |
-| `toolbar` | `kit.Toolbar` | 按钮单独列出 |
-| `banner` | `kit.TitleBar` | 名字是标题；窗口按钮和应用内容单独列出 |
-| `figure` | `kit.LineChart`、`kit.BarChart`、`kit.Plot` | 名字是标题，图表的 `value` 为"项数x系列数"；切换到数据表后各行以 `row` 列出 |
-| `tooltip` | `kit.WithTooltip` 的提示 | 名字是提示文字，富内容和动作键位作为子元素列出 |
-| `menu` | 打开的 `kit.Menu` | 菜单项单独列出 |
-| `menuitem` | 菜单项 | 有子菜单时 `value` 为 submenu；支持 `disabled` |
-| `link` | Markdown 段落里的链接 | `value` 是网址 |
-| `search` | `kit.CodeEditor` 的查找面板 | 输入框和按钮单独列出 |
-| `code` | Markdown 代码块 | 名字是语言；里面的代码文字和"复制"按钮单独列出 |
+| `select` | `kit.Select` | `value` is the currently selected item; `option` will appear after clicking it |
+| `option` | Expanded drop-down options | `selected` |
+| `tab` | `kit.Tabs`'s tags | `selected` |
+| `table` | `kit.Table` | `value` is the total number of rows, such as `36 行` |
+| `columnheader` | Header, click to sort | |
+| `row` | The rows visible in the table are named with vertical lines connecting the columns | `selected` |
+| `slider` | `kit.Slider` | `value` is the current value; click the track or focus and press the direction keys to adjust |
+| `accordion` | `kit.Accordion` | Title and expanded content listed separately |
+| `tag` | kit tag container | value is neutral/info/success/warning/danger, selected is the selected state; the select and remove buttons are listed separately |
+| `group` | kit component grouping | The name is the group title, retaining the semantics of sub-components |
+| `status` | kit status bar | The left and right content are listed separately as sub-elements |
+| `alert` | kit inline prompt container | The name is the title, the value is neutral/info/success/warning/danger; the text and close button are listed separately |
+| `badge` | Numbers, dots, icons (not clickable) | The name is the original count, `value` is the displayed value, `dot` or `icon` |
+| `toggle` | Status button | `selected` means selected, supports `disabled` |
+| `disclosure` | Collapse panel title | `value` is expanded / collapsed, supports `disabled` |
+| `avatar` | kit avatar | The name is the person's name, the value is online/busy/offline, and the status is empty |
+| `image` | `kit.Image`, Markdown image | `value` is loading / loaded / error, the name is the alternative text |
+| `footnotes` | Markdown footnotes | Quotes and backlinks listed separately |
+| `progressbar` | `kit.Progress` | `value` is a percentage or indeterminate |
+| `dialog` | The open panel of `kit.Dialog`, `kit.Sheet`, `kit.Popover`, `kit.HoverCard` | The text and buttons in it are listed separately |
+| `alertdialog` | `ConfirmDanger` and `Persistent()` of `kit.Dialog` | The point mask is not closed, Esc equals to cancel; the elements inside are listed separately |
+| `radiogroup` | `kit.RadioGroup` | Each option is `radio`, listed separately |
+| `listbox` | Open list of `kit.Select` / `kit.Combobox` | Option is `option`, listed separately |
+| `combobox` | `kit.Combobox` | `value` is the current selection; the text box and expand button inside are listed separately |
+| `grid` / `gridcell` | `kit.Calendar` | Every day is `gridcell`, the name is the date, `selected` means selected or within the range |
+| `list` / `step` | `kit.Stepper` | Each step of `value` is done / current / upcoming |
+| `form` | `kit.Form` | Row labels and controls are listed separately, and controls are named after the row label |
+| `tree` / `treeitem` | `kit.Tree` | The node `value` is expanded / collapsed, `selected` means selected |
+| `tablist` / `tabpanel` | `kit.Tabs` | The label is `tab`; the panel is named after the label title |
+| `navigation` | `kit.Pagination` | `value` is "current page/total number of pages" |
+| `log` / `article` | `kit.MessageScroller` / `kit.Message` | The message is named after the author and the content is listed separately |
+| `attachment` | `kit.Attachment` | The name is the file name, `value` is the upload progress or error |
+| `separator` | Separator bars of `kit.Resizable`, `kit.Dock` | `value` is the size of the first panel (Resizable) |
+| Dock area for `region` | `kit.Dock` | Name is the current panel title; labels, menu buttons, and content are listed separately |
+| `toolbar` | `kit.Toolbar` | Buttons listed separately |
+| `banner` | `kit.TitleBar` | The name is the title; window buttons and application content are listed separately |
+| `figure` | `kit.LineChart`, `kit.BarChart`, `kit.Plot` | The name is the title, and the `value` of the chart is "number of items x number of series"; after switching to the data table, each row is listed with `row` |
+| `tooltip` | Tip for `kit.WithTooltip` | The name is the tip text, the rich content and the action keys are listed as child elements |
+| `menu` | Open `kit.Menu` | Menu items listed separately |
+| `menuitem` | Menu item | When there is a submenu, `value` is submenu; supported `disabled` |
+| `link` | Link in Markdown paragraph | `value` is the URL |
+| `search` | Find panel for `kit.CodeEditor` | Input boxes and buttons listed separately |
+| `code` | Markdown code block | The name is the language; the code text and "Copy" button inside are listed separately |
 
-组件通过 `core.Role` 或 el 的 `Role` 声明的其他角色会原样列出，不需要在自动化代码里登记，只需补进上表。默认情况下，一个元素会吸收它内部的文字；如果子元素需要单独列出（对话框、菜单这类容器），把角色加入 `ui/window/automation.go` 的 `containerRoles`。
+Other roles declared by the component through `core.Role` or el's `Role` will be listed as they are, and do not need to be registered in the automation code. You only need to supplement the above table. By default, an element will absorb the text inside it; if the child elements need to be listed separately (containers such as dialog boxes and menus), add the role of `ui/window/automation.go` to `containerRoles`.
 
-自动化模式下（设置了 `KEEL_AUTOMATION`），应用启动时默认开启"减少动画"：Sheet 这类滑入的浮层直接出现在最终位置，Agent 读到的坐标就是点击的坐标。应用可以自己用 `theme.SetReducedMotion(false)` 改回。
+In automation mode (`KEEL_AUTOMATION` is set), "reduced motion" is turned on by default when the application starts: overlays such as Sheet that slide in directly appear at the final position, and the coordinates read by the Agent are the clicked coordinates. The application can change it back by itself using `theme.SetReducedMotion(false)`.
 
-元素列表只包含看得见的部分：滚出视野的表格行、页面内容不会列出，部分可见的元素按可见部分报告位置。要看更多行，先 `scroll`。
+The element list contains only the visible part: table rows and page content that scroll out of view are not listed, and partially visible elements report their positions as visible parts. To see more lines, first `scroll`.
 
-`ref` 只在下一次操作之前有效，因为每次操作都会重新编号。按文字定位（`text`）更稳：完全匹配优先于部分匹配，控件优先于普通文字；同分时取后画的那个，所以对话框、下拉框里的按钮优先于被它们盖住的同名元素。
+`ref` is only valid until the next operation because it is renumbered for each operation. Positioning by text (`text`) is more stable: complete matching takes precedence over partial matching, and controls take precedence over ordinary text; at the same time, the one drawn later is taken first, so buttons in dialog boxes and drop-down boxes take precedence over elements of the same name covered by them.
 
-坐标只在没有更好的办法时使用。截图和坐标用同一套单位：截图上的一个像素就是一个 dp。
+Coordinates are only used when there is no better way. Screenshots and coordinates use the same set of units: one pixel on the screenshot is one dp.
 
-## 原理
+## Principle
 
 ```
-Agent ──MCP(stdio)──► keel-mcp ──JSON 行(unix socket)──► 应用进程
+Agent ──MCP(stdio)──► keel-mcp ──JSON Line (unix socket)──► application process
                          │                                 │
                launch：启动应用并设置             ui/window 自动化模式：
                KEEL_AUTOMATION=<socket>          窗口不上屏，按请求渲染
                attach：连接你启动的应用           一个连接断开后等下一个
 ```
 
-应用进程里：
+In the application process:
 
-- `ui/window` 启动时读到 `KEEL_AUTOMATION` 环境变量，就给每个窗口配一个**影子窗口**：同一套组件、同样的尺寸，但有自己的 Gio 输入路由。Agent 的操作都送到影子窗口。
-- 可见模式下，真实窗口照常显示，你的鼠标键盘走真实窗口原来的路径，完全不受影响。两边共享同一批组件对象，所以 Agent 通过影子窗口点了按钮，回调执行、状态改变，真实窗口立刻重绘；你在真实窗口里输入的内容，影子窗口下一次渲染时也能看到。影子窗口的尺寸跟随真实窗口，你拖动窗口改变大小，Agent 读到的坐标也跟着变。
-- 无界面模式（`KEEL_HEADLESS=1`）下没有真实窗口，`window.Main` 不进入系统事件循环，只在 socket 上处理请求。
-- 组件、回调、窗口快捷键、`core.Update`、帧锁，走的都是和真实窗口完全相同的代码。
-- "页面有什么"来自 Gio 每帧生成的语义树：每个组件声明自己的角色、名字、状态，路由器算出它在窗口里的绝对位置。el 元素在绘制时声明这些信息，自己写的 Gio 代码用 `core.Semantic` 声明。
-- 点击、输入、滚动被转换成 Gio 的指针和键盘事件，送进这个窗口的路由器，然后渲染到画面稳定为止：回调改了状态要再画一帧才能看到，最多画 10 帧。
+- `ui/window` reads the `KEEL_AUTOMATION` environment variable when starting, and assigns a **shadow window** to each window: the same set of components, the same size, but has its own Gio input route. Agent operations are sent to the shadow window.
+- In visible mode, the real window is displayed as usual, and your mouse and keyboard follow the original path of the real window without being affected at all. Both sides share the same batch of component objects, so the Agent clicks the button through the shadow window, the callback is executed, the state changes, and the real window is immediately redrawn; the content you enter in the real window can also be seen the next time the shadow window is rendered. The size of the shadow window follows the real window. If you drag the window to change the size, the coordinates read by the Agent will also change.
+- There is no real window in interfaceless mode (`KEEL_HEADLESS=1`). `window.Main` does not enter the system event loop and only processes requests on the socket.
+- Components, callbacks, window shortcut keys, `core.Update`, and frame locks all use the same code as the real window.
+- "What's in the page" comes from the semantic tree that Gio generates every frame: each component declares its role, name, and state, and the router calculates its absolute position in the window. The el element declares this information when drawing, and the Gio code written by yourself is declared with `core.Semantic`.
+- Clicks, inputs, and scrolling are converted into Gio pointer and keyboard events, sent to the router of this window, and then rendered until the picture is stable: if the callback changes the state, you have to draw another frame to see it, and a maximum of 10 frames can be drawn.
 
-应用侧协议写在 `ui/window/automation_server.go` 的文件注释里。`keel-mcp` 不引用任何 Keel 包，只说这个协议；想用别的语言写测试客户端，照着协议发 JSON 即可。
+The application side protocol is written in the file comments of `ui/window/automation_server.go`. `keel-mcp` does not reference any Keel package, only this protocol. If you want to write a test client in other languages, just send JSON according to the protocol.
 
-## 局限
+## Limitations
 
-- **焦点各管各的。** Agent 点进一个输入框后，焦点在影子窗口里，屏幕上的输入框不显示光标和蓝色边框，但输入的文字会显示出来。反过来，你在屏幕上点进输入框，Agent 调 `type` 时不带 `ref` 会报"没有焦点"，要带上 `ref`。
-- **你和 Agent 同时操作时，按先后顺序执行**，不会冲突。但你按住鼠标拖动的过程中 Agent 插进来点击，拖动状态可能会乱。
-- **关闭窗口会等它真正关掉再返回。** 可见模式下 `close_window` 关的是屏幕上的真实窗口，窗口销毁后才回复，所以返回的窗口列表就是屏幕上的样子。
-- **Agent 操作的不是真实窗口本身。** 系统窗口层面的问题测不到：窗口位置和尺寸、系统菜单、输入法候选框，以及真实窗口之间与主线程相关的死锁。后者用 `KEEL_DESKTOP=1` 的真实窗口测试覆盖，见[测试](testing.md#真实窗口测试)。
-- **`native/*` 不在范围内。** 权限、截屏、全局快捷键调的是系统 API，自动化模式不会模拟它们。
-- **时间只在请求时前进。** 应用只在收到请求时渲染。后台 goroutine 的 `core.Update` 在下一次请求时生效；要等它，用 `wait_for`。
-- **不支持悬停、拖拽、右键、双击。** 现有组件用不到，需要时在 `ui/window/automation.go` 里加。
-- **不报告焦点位置。** `type` 不带 `ref` 时输入到当前有焦点的输入框；没有焦点会报错。
-- **自己用 `core.Func` 写的布局对 Agent 不可见**，除非用 `core.Semantic` 声明。用 el 写就不需要，见[扩展指南](extending.md#新增组件)。
+- **The focus is on its own.** After the Agent clicks into an input box, the focus is in the shadow window. The input box on the screen does not display the cursor and blue border, but the entered text will be displayed. On the other hand, if you click on the input box on the screen and the Agent calls `type` without `ref`, it will report "no focus". You must bring `ref`.
+- **When you and the Agent operate at the same time, they will be executed in order** without conflict. But when you hold down the mouse and drag, the Agent inserts and clicks, and the dragging state may be messed up.
+- **Closing the window will wait until it is actually closed before returning.** In visible mode, `close_window` turns off the real window on the screen. It will be restored after the window is destroyed, so the window list returned is what it looks like on the screen.
+- **Agent does not operate on the real window itself.** Issues at the system window level cannot be detected: window position and size, system menu, input method candidate box, and main thread-related deadlocks between real windows. The latter is covered with a real window test of `KEEL_DESKTOP=1`, see [Testing](testing.md#real-window-test).
+- **`native/*` is not in range. ** Permissions, screenshots, and global shortcut keys adjust the system API, and the automation mode will not simulate them.
+- **Time only advances when requested.** App only renders when requested. The background goroutine's `core.Update` takes effect on the next request; to wait for it, use `wait_for`.
+- **Hover, drag, right-click, and double-click are not supported.** Existing components are not used and will be added to `ui/window/automation.go` if needed.
+- **Does not report focus position.** `type` without `ref` is entered into the input box that currently has focus; an error will be reported if there is no focus.
+- **Layouts written with `core.Func` are not visible to Agent** unless declared with `core.Semantic`. It is not necessary to write in el, see [Extension Guide](extending.md#add-new-components).
 
-## 在 Go 测试里用
+## Used in Go tests
 
-`cmd/keel-mcp/main_test.go` 用 MCP 官方 SDK 的客户端启动 `keel-mcp`，把 multiwindow 示例完整走一遍（`TestEndToEnd`），并测试 `attach` 的连接、断开、重连和占用提示（`TestAttach`），也是写这类测试的样板。`ui/window/automation_test.go` 在进程内直接测试自动化模式（滚动、Tab 焦点、回调里关窗口）。两者都随 `go test ./...` 运行，不弹窗口。
+`cmd/keel-mcp/main_test.go` Use the client of MCP official SDK to start `keel-mcp`, walk through the multiwindow example completely (`TestEndToEnd`), and test the connection, disconnection, reconnection and occupation prompts of `attach` (`TestAttach`), which is also a template for writing such tests. `ui/window/automation_test.go` Test automation modes (scrolling, tab focus, callback closing window) directly in the process. Both run with `go test ./...` without pop-up windows.
 
-浮层内容按声明顺序列在主内容之后。有模态浮层时，快照省略主内容及其下方的浮层；关闭后恢复。底层通过内部 `el-inert` 语义标记跳过整个子树，该标记不会作为组件角色输出。
+The floating content is listed after the main content in the order of declaration. When there is a modal overlay, the snapshot omits the main content and the overlay below it; it will be restored after closing. The bottom layer skips the entire subtree via the internal `el-inert` semantic tag, which is not output as a component role.

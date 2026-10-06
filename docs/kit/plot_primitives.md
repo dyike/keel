@@ -1,6 +1,8 @@
-# 公共绘图基础件
+# Common drawing basic parts
 
-`github.com/dyike/keel/ui/plot` 提供自定义图表的比例尺、数据布局和即时绘制。`kit.Plot` 继续提供带缩放、平移和拾取的成品图；本包由应用掌握布局、主题颜色、输入处理与数据描述。
+English | [简体中文](plot_primitives.zh-CN.md)
+
+`github.com/dyike/keel/ui/plot` provides custom chart scales, data layout and instant plotting. `kit.Plot` continues to provide finished images with zoom, pan, and picking; this package leaves the application in charge of layout, theme colors, input handling, and data description.
 
 ```go
 x := plot.NewBand([]string{"A", "B"}, [2]float64{0, 300}).Padding(.1, .1)
@@ -16,21 +18,21 @@ if ok && valid {
 }
 ```
 
-Canvas 使用本地像素坐标，每次绘制平移到 Bounds.Min，并裁剪到 Bounds。应在 Layout 内创建，不跨帧保存。尺寸需要由调用方按 gtx.Metric 换算；Axis.TextSize 使用 sp。源几何坐标非有限或绝对值超过一千万像素时跳过绘制，避免交给底层图形引擎。
+The Canvas uses local pixel coordinates, translates to Bounds.Min for each draw, and clips to Bounds. Should be created within Layout and not saved across frames. Sizes need to be converted by the caller by gtx.Metric; Axis.TextSize uses sp. When the source geometric coordinates are non-finite or the absolute value exceeds 10 million pixels, the drawing is skipped to avoid handing it over to the underlying graphics engine.
 
-## 比例尺与数据布局
+## Scale and data layout
 
-- ScaleLinear：支持反向域/值域、Map、Invert、Clamp；常量域映射到中点。Ticks 返回含端点的均匀刻度，数量限制为 2–1000，不做 nice 刻度取整。非法输入或不能表示的外推结果返回 false。
-- NewBand：分类域去重并复制，Map 返回条带低坐标，Bandwidth 返回宽度。Padding 配置内外间距，Align 配置剩余空间分配；修改方法返回新比例尺。反向值域倒置分类顺序，宽度仍为正。
-- NewPoint：分类点位置，默认两端对齐，单项居中；Padding 留两端空间。
-- NewOrdinal：分类映射到循环使用的离散值域；复制输入切片，缺失分类/空值域返回 false，不自动扩域。值域元素中的引用由调用方管理。
-- Stack：输入按系列组织的二维值，输出保留系列/样本索引及 Low/High/Valid。正负值分别从零累计，NaN/缺失样本保留无效槽；无穷或累计溢出整次返回错误。
-- Pie：输出保留原始索引、值及起止弧度；允许正反方向最多一圈，零值省略，负数/非有限值报错。按最大值归一化避免大值求和溢出；间隙角限制在每项可用角度内。零角宽条目可保留索引但不绘制。
+- ScaleLinear: Supports reverse domain/value domain, Map, Invert, Clamp; constant domain is mapped to the midpoint. Ticks returns uniform ticks including endpoints, the number is limited to 2–1000, and no nice scale rounding is performed. Returns false for illegal input or unrepresentable extrapolation results.
+- NewBand: Classification fields are deduplicated and copied, Map returns the low coordinate of the strip, and Bandwidth returns the width. Padding configures the internal and external spacing, and Align configures the remaining space allocation; the modification method returns the new scale. Inverse ranges invert the sorting order, but the width remains positive.
+- NewPoint: Classification point position, the default is to align both ends, and single item is centered; Padding leaves space at both ends.
+- NewOrdinal: Categories are mapped to discrete value fields used in cycles; copy the input slice, return false for missing categories/null value fields, and do not automatically expand the field. References in range elements are managed by the caller.
+- Stack: Inputs 2D values organized by series, output retains series/sample index and Low/High/Valid. Positive and negative values are accumulated from zero respectively, NaN/missing samples retain invalid slots; infinite or cumulative overflow returns an error.
+- Pie: The output retains the original index, value and starting and ending radians; it allows up to one revolution in the forward and reverse directions, zero values are omitted, and an error is reported for negative/non-finite values. Normalize by the maximum value to avoid overflow of large summation; the gap angle is limited to the available angles for each item. Zero-corner-width entries preserve the index but do not draw.
 
-## 绘制
+## Draw
 
-Bar 支持任意方向矩形和圆角；Line 支持直线、阶梯、逐段 smoothstep 曲线及数据点；Area 填充等长上下边界之间的区域，可描上边线。缺失或非法点打断线/面积，不连接缺口。Arc 绘制扇形/环形，使用有限分段近似圆弧；Dot 和 CrossLine 提供点及十字参考线。
+Bar supports rectangles and rounded corners in any direction; Line supports straight lines, steps, smoothstep curves and data points; Area fills the area between the upper and lower boundaries of equal length, and can draw upper edges. Missing or illegal points break lines/areas and do not connect gaps. Arc draws sectors/rings, using finite segments to approximate arcs; Dot and CrossLine provide point and cross guides.
 
-Axis 支持上下左右四方向、自定义刻度标签、线宽、颜色和字号；At 为轴位置，From/To 为基线两端。标签同样受 Canvas 裁剪，调用方需预留边距。低层图形及轴标签不会自动生成 Agent 数据节点，应在周围提供可读标题、数据表或文本；提示框可用 `kit.Tooltip` 或应用浮层组合。此包不自动处理悬停动画，也不等同于上游全部样式配置。
+Axis supports four directions, up, down, left and right, customized scale labels, line width, color and font size; At is the axis position, and From/To are the ends of the baseline. Labels are also cropped by Canvas, and the caller needs to reserve margins. Low-level graphs and axis labels will not automatically generate Agent data nodes and should be surrounded by readable titles, data tables or text; the prompt box can be used with `kit.Tooltip` or a overlay combination. This package does not automatically handle hover animations, nor is it equivalent to upstream full style configuration.
 
-示例将堆叠柱、趋势线、参考线、轴与环图组合：`go run ./examples/components -section plot_primitives`。
+Example combining stacked bars, trend lines, reference lines, axes and donut charts: `go run ./examples/components -section plot_primitives`.

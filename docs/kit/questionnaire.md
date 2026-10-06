@@ -1,6 +1,8 @@
 # Questionnaire
 
-一页一题的问卷。
+English | [简体中文](questionnaire.zh-CN.md)
+
+One page questionnaire.
 
 ```go
 q := kit.Questionnaire(
@@ -11,58 +13,58 @@ q := kit.Questionnaire(
 ).OnSubmit(func(a map[string]kit.Answer) { save(a) })
 ```
 
-- 题型：`QuestionSingle`（单选）、`QuestionMultiple`（多选）、`QuestionText`（单行文本）、`QuestionLongText`（多行文本）、`QuestionRating`（星级评分，默认 5 星）。
-- 顶部是进度条，显示"第 3 / 10 题"。点"下一题"时，必填题没有作答会显示错误，不能翻页；作答后错误自动消失。
-- 最后一页的"提交"会校验全部启用题；未作答、未主动跳过或有校验错误时跳到首个错误题，通过后调用 `OnSubmit`。
-- 答案用 `Answer` 表示，按题目类型填写 `Text`、`Choices`（按选项顺序）、`Rating`，可另带 `Freeform` 或 `Skipped`；`Answer.Empty()` 判断是否作答。
-- `Value()` 返回目前所有的答案；`SetValue` 回填答案，比如恢复草稿；`Page()` / `SetPage(i)` 读取或切换当前页。
-- "上一题""下一题""提交"、进度文字、必填提示都来自 locale。
+- Question types: `QuestionSingle` (single choice), `QuestionMultiple` (multiple choices), `QuestionText` (single line of text), `QuestionLongText` (multiple lines of text), `QuestionRating` (star rating, default 5 stars).
+- At the top is a progress bar that displays "Question 3 / 10". When clicking "Next Question", if the required questions are not answered, an error will be displayed and the page cannot be turned; the error will disappear automatically after being answered.
+- "Submit" on the last page will verify all enabled questions; if there is no answer, no active skipping, or a verification error, it will jump to the first wrong question, and call `OnSubmit` after passing it.
+- The answer is represented by `Answer`. According to the question type, fill in `Text`, `Choices` (in order of options), `Rating`. You can also add `Freeform` or `Skipped`; `Answer.Empty()` determines whether to answer.
+- `Value()` returns all current answers; `SetValue` backfills answers, such as restoring a draft; `Page()` / `SetPage(i)` reads or switches the current page.
+- "Previous question", "next question", "submit", progress text, and required prompts all come from the locale.
 
-Agent：容器角色 `form`，名字是进度文字；当前题目是以题目标题命名的 `group`，控件以题目标题为名字。
+Agent: container role `form`, the name is the progress text; the current topic is `group` named after the topic title, and the control is named after the topic title.
 
-验证：`go run ./examples/components -section questionnaire`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section questionnaire`, add `-theme dark` to check the dark theme.
 
-`SetDisabled(true)` 禁用当前答案控件、前后翻页和提交，不触发校验或 `OnSubmit`；程序仍可调用 `SetPage`、`SetValue`。重新启用后保留当前页及答案。
+`SetDisabled(true)` disables the current answer control, page forward and backward, and submission, and does not trigger verification or `OnSubmit`; the program can still call `SetPage` and `SetValue`. The current page and answers will be retained after re-enabling.
 
-构造时复制题目及选项，之后修改原始切片不会改变问卷。题目 ID 必须非空且唯一；不支持的题型会在构造时 panic。`Value` 与 `OnSubmit` 提供独立的答案快照，修改返回 map 或多选答案切片不会影响内部状态。
+The questions and options are copied during construction, and modifying the original slices later will not change the questionnaire. Question ID must be non-empty and unique; unsupported question types will panic during construction. `Value` and `OnSubmit` provide independent answer snapshots, and modifying the returned map or multi-select answer slice will not affect the internal state.
 
-## 条件题、跳过与完成状态
+## Conditional questions, skip and completion status
 
-`Question.Disabled` 设置初始禁用条件，`SetQuestionDisabled(id, on)` 动态更新，未知 ID 返回 false。禁用题退出导航、进度、校验和提交，但保留草稿，`Value` 仍可读到。禁用当前题时先找后面的可用题，再找前面的题；全部禁用时 Page 为 -1，组件隐藏。应用可在 `OnAnswerChange(func(id string, answer kit.Answer))` 中根据前题答案更新条件。
+`Question.Disabled` sets the initial disabling condition, `SetQuestionDisabled(id, on)` is dynamically updated, and unknown ID returns false. Disable the question to exit navigation, progress, verification and submission, but keep the draft, which can still be read by `Value`. When the current question is disabled, first find the available questions at the back, and then the previous questions; when all are disabled, the Page is -1 and the component is hidden. The application can update the conditions in `OnAnswerChange(func(id string, answer kit.Answer))` based on the answers to the previous questions.
 
-可选题现在需要作答或显式跳过，不能把“还没答”隐式当作完成。`Skip()` / “跳过”按钮清空当前可选题答案，保存 `Answer.Skipped=true` 并前进；最后一题跳过后尝试提交。必填题不能跳过。回到跳过的题重新作答会清除跳过状态。`SetValue` 支持恢复可选题的 Skipped 状态。
+Optional questions now need to be answered or explicitly skipped, and "not answered yet" cannot be implicitly regarded as completed. `Skip()` / "Skip" button clears the answers to the current optional questions, saves `Answer.Skipped=true` and moves forward; skip the last question and try to submit. Required questions cannot be skipped. Returning to a skipped question and answering it again will clear the skipped status. `SetValue` supports restoring the Skipped status of optional questions.
 
-`Progress()` 返回当前启用题集合的快照：Current 从 1 开始，Total、Answered、Skipped、Unanswered 分别是总题数及三种作答状态的数量，Completed 表示已经完成一次有效提交。`OnComplete` 只在进入完成状态时执行，首次有效提交中先于 OnSubmit；每次有效提交仍调用 OnSubmit。修改答案、条件或外部错误会使完成状态失效。提交快照只包含启用题；Value 仍包含所有题。
+`Progress()` returns a snapshot of the currently enabled question set: Current starts from 1, Total, Answered, Skipped, and Unanswered are the total number of questions and the number of three answering states respectively. Completed means that a valid submission has been completed. `OnComplete` is only executed when entering the completion state and precedes OnSubmit in the first valid submission; OnSubmit is still called for each valid submission. Modifying answers, conditions, or external errors invalidates the completion status. The commit snapshot contains only enabled questions; Value still contains all questions.
 
-## 自由输入和校验
+## Free input and verification
 
-单选、多选题可设置 `FreeformLabel`，显示有名称的自由输入框。`Answer.Freeform` 保存有效自由文本；空白文本不算作答。单选题在选项和自由输入之间切换，选择固定选项时保留自由输入草稿，但不将其作为有效答案提交；重新输入时自由输入生效。多选题允许 Choices 与 Freeform 同时作答。
+`FreeformLabel` can be set for single-choice and multiple-choice questions to display a free input box with a name. `Answer.Freeform` Saves valid free text; blank text does not count as an answer. Single-choice questions switch between options and free input. When the fixed option is selected, the free input draft is retained but is not submitted as a valid answer; the free input takes effect when re-entered. Multiple choice questions allow Choices and Freeform to be answered simultaneously.
 
-`Question.Validate func(Answer, map[string]Answer) string` 做同步自定义校验，收到当前题答案和启用题的独立答案快照，返回空串表示通过。下一题校验当前题，提交校验所有启用题并定位第一道错误题；必填/未作答检查在自定义校验之前，主动跳过不运行自定义校验。回调应只检查快照，不修改问卷。
+`Question.Validate func(Answer, map[string]Answer) string` performs synchronous custom verification, receives the current question answer and the independent answer snapshot of the enabled question, and returns an empty string to indicate passing. The next question verifies the current question, submits all enabled questions for verification and locates the first wrong question; the required/unanswered check is automatically skipped and does not run the custom verification before the custom verification. The callback should only check the snapshot and not modify the questionnaire.
 
-`SetExternalError(id, message)` 保存服务器或应用错误，空串清除；`ExternalError(id)` 查询。外部错误优先显示并阻止通过，输入和 Reset 都不会自动清除。应用负责在接受新答案后清除它，不自动发起网络校验。
+`SetExternalError(id, message)` saves server or application errors and clears empty strings; `ExternalError(id)` queries. External errors are displayed first and blocked from passing, and neither input nor Reset are automatically cleared. The application is responsible for clearing a new answer after accepting it and not automatically initiating network verification.
 
-`Question.DefaultAnswer` 定义构造时的默认答案，Choices 会复制。`Reset()` 恢复这份默认答案、清除内部错误和完成状态，回到第一道启用题；保留外部错误与当前禁用条件。后续 SetValue 只改变当前答案，不移动 Reset 基线。
+`Question.DefaultAnswer` Defines the default answer on construction, Choices will be copied. `Reset()` Restores this default answer, clears internal errors and completion status, and returns to the first enabled question; retains external errors and current disabling conditions. Subsequent SetValue only changes the current answer and does not move the Reset baseline.
 
-## 选项快捷键
+## Options shortcut keys
 
-`Shortcuts(kit.QuestionnaireShortcutsLetters)` 开启 A–Z，`QuestionnaireShortcutsNumbers` 开启 1–9，默认 Off。快捷键按当前题未禁用选项的顺序映射，单选选中，多选切换；只在问卷获得焦点且焦点不在文本输入中时处理，不处理带修饰键的按键。按住按键不重复切换，释放后可再次触发。默认键盘导航支持左右键前后翻题、上下键在多选控件/自由输入之间移动焦点、Enter 确认已作答或已跳过的当前题，以及 Cmd/Ctrl+Enter 从文本输入确认。文本输入保留普通方向键和 Enter；单选组、评分控件保留自身方向键行为；操作按钮保留 Enter 激活。空答案不会因 Enter 隐式提交。`KeyboardNavigation(false)` 关闭这些导航绑定，独立于选项快捷键配置。选项文字应由应用提示对应快捷键。
+`Shortcuts(kit.QuestionnaireShortcutsLetters)` turns on A–Z, `QuestionnaireShortcutsNumbers` turns on 1–9, default is Off. The shortcut keys are mapped in the order of the current question's undisabled options, single-select selection, and multi-selection switching; they are only processed when the questionnaire gets focus and the focus is not in text input, and keys with modifier keys are not processed. Pressing and holding the button will not switch repeatedly, and it can be triggered again after releasing it. Default keyboard navigation supports left and right keys to move forward and backward through questions, up and down keys to move focus between multi-select controls/free input, Enter to confirm the current question that has been answered or skipped, and Cmd/Ctrl+Enter to confirm from text input. Text input retains the normal direction keys and Enter; the radio group and rating controls retain their own direction key behaviors; the operation buttons retain Enter activation. Empty answers are not implicitly committed by Enter. `KeyboardNavigation(false)` turns off these navigation bindings, independent of the option shortcut key configuration. Option text should be prompted by the application to correspond to the shortcut key.
 
-自动测试覆盖条件导航、禁用题排除、跳过、重新提交、完成事件、外部错误/Reset、自定义校验、自由输入保留及选项快捷键；本批未做真机视觉/输入法验收。
+Automatic test coverage condition navigation, disabled question exclusion, skip, resubmit, completion event, external error/Reset, custom verification, free input retention and option shortcut keys; real device vision/input method acceptance has not yet been completed.
 
 
-`SetChoiceDisabled(questionID, option, on)` 动态禁用固定选项，未知题/选项返回 false。禁用项保留内部选择草稿，但退出有效答案、校验快照和快捷键编号；重新启用恢复有效答案，条件变化会清除完成状态。全题必填规则仍生效：若禁用了全部选项且没有可用自由输入，应用应同时禁用该题以避免无法作答。程序 SetValue 可以恢复禁用项的草稿，但 Value/提交只包含可用项。
+`SetChoiceDisabled(questionID, option, on)` Dynamically disables fixed options and returns false for unknown questions/options. Disabled items retain internal selection drafts, but exit valid answers, verification snapshots, and shortcut key numbers; re-enabling restores valid answers, and condition changes clear the completion status. The all-question-required rule still applies: if all options are disabled and no free input is available, the application should also disable the question to avoid being unable to answer it. The program SetValue can restore a draft of disabled items, but Value/Submit contains only available items.
 
-新增自动测试覆盖默认答案所有权/Reset、禁用项有效答案与快捷键重编号、文本 Cmd/Ctrl+Enter、普通箭头保护、多选焦点移动和关闭导航；未做真机输入法及视觉验收。
+The new automatic test covers default answer ownership/Reset, disabled item valid answers and shortcut key renumbering, text Cmd/Ctrl+Enter, ordinary arrow protection, multi-select focus movement and closed navigation; real device input method and visual acceptance are not done.
 
-## 自定义组合布局
+## Custom combination layout
 
-`Layout(func(cx, state, parts) el.Element)` 可重新排列当前题目的组成部分。`QuestionnaireParts` 提供 Progress、Title、Description、Answer、Freeform、Error、Previous、Skip、Forward；不适用的部分为 nil。返回 nil 或 `Layout(nil)` 恢复默认排列。
+`Layout(func(cx, state, parts) el.Element)` rearranges the components of the current question. `QuestionnaireParts` Provides Progress, Title, Description, Answer, Freeform, Error, Previous, Skip, Forward; nil if not applicable. Return nil or `Layout(nil)` to restore the default arrangement.
 
-这些元素使用同一份答案控件与原有校验/跳过/提交命令。外层 form 始终保留禁用继承、键盘导航和焦点管理。每个元素只能放入本帧树中一次，不能跨帧保存；通常应保留 Answer 和导航按钮。省略部件只隐藏对应界面，不会关闭快捷键命令。自定义布局改变控件的树路径时，输入焦点和选区可能重置。
+These elements use the same answer control as the original check/skip/submit commands. The outer form always remains disabled with inheritance, keyboard navigation, and focus management disabled. Each element can only be placed into this frame's tree once and cannot be saved across frames; Answer and navigation buttons should generally be retained. Omitting a component only hides the corresponding interface and does not close the shortcut key command. When a custom layout changes the tree path of a control, the input focus and selection may be reset.
 
-`QuestionnaireContext` 提供当前 Question、Answer、Progress、从零开始的 Page、错误文字及问卷自身 Disabled；题目选项、默认答案与当前答案的切片均为副本。不要在布局回调中修改问卷状态，修改应放在事件回调中。组件库提供默认布局与自定义卡片的切换。自动测试覆盖组合后的必填校验、输入、禁用提交、上下文副本及默认布局恢复；原生输入法未验收。
+`QuestionnaireContext` provides the current Question, Answer, Progress, Page starting from scratch, error text and the questionnaire itself Disabled; question options, default answers and slices of the current answer are all copies. Do not modify the questionnaire status in the layout callback. Modifications should be placed in the event callback. The component library provides switching between default layout and custom cards. The automatic test covers required verification, input, disabled submission, context copy and default layout restoration after combination; the native input method is not accepted.
 
-## 统一尺寸
+## Uniform size
 
-`Size(QuestionnaireSizeXSmall/Small/Medium/Large)` 调整标题、说明、错误字号、选项标记和文字、评分星形、输入框、部件间距与导航按钮。默认 Medium 沿用原布局；大小切换保留答案和控件实例。自定义 Layout 可从 `QuestionnaireContext.Size` 读取档位，提供的内置部件已应用尺寸，应用新增的容器与控件自行配置。组件库提供循环切换按钮；自动测试覆盖双倍率五种题型、四档导航按钮、答案保留、省略部件及恢复输入。原生视觉未验收。
+`Size(QuestionnaireSizeXSmall/Small/Medium/Large)` Adjust titles, descriptions, error font sizes, option tags and text, rating stars, input boxes, widget spacing, and navigation buttons. By default, Medium retains the original layout; size switching retains answers and control instances. The custom Layout can read the gear position from `QuestionnaireContext.Size`, the built-in components provided have applied dimensions, and can be configured by adding new containers and controls. The component library provides cycle switching buttons; the automatic test covers five question types with double rates, four-level navigation buttons, answer retention, omitted parts and recovery input. Native vision is not accepted.

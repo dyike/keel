@@ -61,7 +61,7 @@ func TestNewAndBuildPlans(t *testing.T) {
 		t.Fatal(out.String())
 	}
 	dir := filepath.Join(root, "my-notes")
-	for _, f := range []string{"main.go", "app.go", "go.mod", "keel.json", "appicon.png", ".gitignore", "README.md"} {
+	for _, f := range []string{"main.go", "app.go", "go.mod", "keel.json", "appicon.png", ".gitignore", "README.md", "README.zh-CN.md"} {
 		if _, err := os.Stat(filepath.Join(dir, f)); err != nil {
 			t.Fatal("missing", f)
 		}

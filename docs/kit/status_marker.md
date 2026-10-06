@@ -1,6 +1,8 @@
 # StatusMarker
 
-`kit.StatusMarker("已同步")` 用于消息状态、时间线边界和系统提示。默认铺满父容器宽度，内容靠左，文字使用主题 Muted。现有 `kit.Marker(shape)` 继续绘制图表几何标记。
+English | [简体中文](status_marker.zh-CN.md)
+
+`kit.StatusMarker("已同步")` is used for message status, timeline boundaries, and system prompts. By default, the width of the parent container is filled, the content is moved to the left, and the text uses the theme Muted. Existing `kit.Marker(shape)` continues drawing chart geometry markers.
 
 ```go
 kit.StatusMarker("今天").Variant(kit.StatusMarkerSeparator)
@@ -10,14 +12,14 @@ kit.StatusMarker("正在生成…").Loading(true).
     LoadingStyle(kit.StatusMarkerLoadingStyleShimmer).ID("generation").Role("status")
 ```
 
-Variant 支持 Plain、Separator、Border；分隔线默认居中，Alignment(el.Start/Center/End) 显式覆盖，ResetAlignment 恢复默认。Separator 靠左时只留右侧线，靠右时只留左侧线；Border 在整行底部画线。
+Variant supports Plain, Separator, and Border; the separator is centered by default, Alignment(el.Start/Center/End) explicitly overrides it, and ResetAlignment restores the default. Separator only leaves the right line when moving to the left, and only the left line when moving to the right; Border draws lines at the bottom of the entire row.
 
-Icon 接收任意 View，默认 16dp 槽；Content 在文字后添加富内容，SetText("") 可只用富内容。Children 替换直接添加到行尾的子项，输入切片会复制。按钮等子控件保留自己的点击、焦点和禁用继承，状态行自身不成为可点击控件，也不维护未读计数或通知生命周期。
+Icon accepts any View, with a default 16dp slot; Content adds rich content after the text, and SetText("") can only use rich content. Children replaces children added directly to the end of the line, and the input slice is copied. Child controls such as buttons retain their own click, focus, and disable inheritance, and the status line itself does not become a clickable control, nor does it maintain an unread count or notification lifecycle.
 
-Loading 默认添加 spinner；已有 Icon 时保留图标。Shimmer 模式对文字扫光，纯富内容按两秒周期做透明度变化；图标和线保持静止。ShimmerStyle 回调配置持久的 ShimmerText（Duration、Spread、Highlight、Reverse、Once 等），文字与 Enabled 由状态行管理。切换 Loading/LoadingStyle 重启文字扫光；减少动画时静态显示。富内容透明度固定在 0.7–1，文字扫光配置不改变它。
+Loading adds a spinner by default; retains the icon if it already exists. Shimmer mode sweeps text, and pure rich content changes transparency in a two-second cycle; icons and lines remain static. The ShimmerStyle callback configures the persistent ShimmerText (Duration, Spread, Highlight, Reverse, Once, etc.), and the text and Enabled are managed by the status line. Switch Loading/LoadingStyle to restart text sweeping; reduce static display when animation is reduced. Rich content transparency is fixed at 0.7–1, text sweep configuration does not change it.
 
-PartStyle 分别配置 Root、Row、Icon、Content、Separator；回调每帧收到新元素，ID 在样式之后恢复，避免丢失子控件状态。Separator 样式也作用于 Border 底线。默认不添加状态角色，需要时用 ID/Role；Agent 可以读取文字，系统读屏仍受 Keel/Gio 平台支持限制。
+PartStyle configures Root, Row, Icon, Content, and Separator respectively; the callback receives a new element every frame, and the ID is restored after the style to avoid losing the child control state. The Separator style also works on the Border bottom line. By default, status roles are not added, and ID/Role is used when needed; Agent can read text, and system screen reading is still limited by Keel/Gio platform support.
 
-布局使用 Keel 的行布局和主题刻度，不复制上游尺寸。Alignment 同时设置内容组位置和文字行内对齐；子元素可以用 TextAlign 独立覆盖。
+The layout uses Keel's row layout and theme scales and does not copy upstream dimensions. Alignment simultaneously sets the content group position and text alignment; child elements can be independently overridden with TextAlign.
 
-验证：`go run ./examples/components -section status_marker`。
+Verification: `go run ./examples/components -section status_marker`.

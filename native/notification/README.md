@@ -1,6 +1,8 @@
-# notification
+# native/notification
 
-独立的系统通知接口，当前实现 macOS 14+、cgo、带 bundle identifier 的 `.app`，Linux 桌面 D-Bus 通知服务，以及 Windows 托盘气泡通知。WebAssembly、iOS/Android 和 macOS 无 cgo 构建返回 `native.ErrUnsupported`；macOS 普通 `go run` 同样不支持。Linux 不要求 X11，Wayland 下也通过会话总线通信。
+English | [简体中文](README.zh-CN.md)
+
+Independent system notification interface, currently implements macOS 14+, cgo, `.app` with bundle identifier, Linux desktop D-Bus notification service, and Windows tray bubble notification. WebAssembly, iOS/Android, and macOS cgo-less builds return `native.ErrUnsupported`; macOS plain `go run` is also not supported. Linux does not require X11, and Wayland also communicates through the session bus.
 
 ```go
 notification.RequestPermission(func(err error) {
@@ -8,23 +10,23 @@ notification.RequestPermission(func(err error) {
     notification.Post(notification.Message{
         ID: "download/report", Title: "下载完成", Body: "report.pdf 已保存。",
     }, func(err error) {
-        // err == nil 表示系统接受请求，不代表横幅已显示。
+        // err == nil means that the system accepted the request, but does not mean that the banner has been displayed.
     })
 })
-// 在 Post 完成后按同一 ID 撤回：
+// Recall by the same ID after Post completes:
 notification.Remove("download/report", func(err error) {})
 ```
 
-- `Available()` 只检查平台实现和应用包身份，不检查授权、签名信任或系统展示策略。
-- `RequestPermission` 申请 alert 权限；`Post` 不自动弹权限提示，未授权返回 `ErrPermissionDenied`。macOS 的 NSError 保留 domain、code 和本地化说明；`UNErrorDomain` 的 NotificationsNotAllowed 映射为 `ErrPermissionDenied`，其他系统错误包装 `ErrFailed`，用 `errors.Is` 判断分类，不要比较完整错误字符串。
-- ID 在整个应用内共享，非空且不能包含 NUL；正文或标题至少一个非空，所有字符串必须是合法 UTF-8。相同 ID 重新投递由系统替换已有请求。
-- 完成回调在独立 goroutine 执行，可传 nil。UI 修改应放进 `core.Update`；不要等待异步完成时阻塞主线程。
-- 同一 ID 的操作应等待前一次完成后再执行，避免异步投递和撤回交错。Remove 同时撤回待投递与已送达项；系统没有撤回完成确认，回调成功仅表示已发出撤回调用。
-- macOS 必须运行应用事件循环；权限对话框、专注模式、系统设置和签名信任影响实际显示。macOS 已注册通知中心 delegate，为本模块通知请求前台 Banner/List；系统设置仍可禁止展示。把窗口置前用 `window.Window.Activate(token)`（Linux 系统点击带来的激活令牌可以直接交给它，见 kit/notifier.md）；跨启动的回调恢复未实现。
-- Windows 使用托盘气泡（`Shell_NotifyIcon`），Windows 10/11 将它显示为系统通知横幅，不需要 AppUserModelID、打包或开始菜单快捷方式，也不需要 cgo；`RequestPermission` 不弹授权，直接成功。同一时间只显示一条：投递新 ID 会替换当前通知，旧通知的点击回调随之失效；撤回已被替换的 ID 不做任何事。通知显示期间托盘里有应用图标（取可执行文件的第一个图标资源，没有则用系统默认图标），通知超时、被关闭、被点击或撤回后图标移除，操作中心里的这一条也随之消失。点击通知或托盘图标运行 `OnClick`；没有激活令牌。标题超过 63 个 UTF-16 单元、正文超过 255 个时截断并加省略号。专注助手/勿扰模式下系统可能不显示。
-- kit.Notifier 通过 NoticeSystemBackend 接入；`examples/notification` 提供适配器，处理仅系统/应用内加系统、同 ID 更新和撤回。macOS 示例通过 NoticeSystemInteractiveBackend 接入 kit 点击、关闭和 Window.Raise；Linux 示例也使用交互后端，要求通知服务声明 actions。
+- `Available()` only checks platform implementation and application package identity, not authorization, signature trust, or system presentation policy.
+- `RequestPermission` applies for alert permission; `Post` does not automatically pop up the permission prompt, and returns `ErrPermissionDenied` without authorization. NSError of macOS retains domain, code and localization description; NotificationsNotAllowed of `UNErrorDomain` is mapped to `ErrPermissionDenied`, other system errors wrap `ErrFailed`, use `errors.Is` to determine the classification, do not compare the complete error string.
+- IDs are shared across the entire application, are non-empty and cannot contain NUL; at least one of the body or title is non-empty, and all strings must be legal UTF-8. Re-delivery with the same ID replaces existing requests by the system.
+- The completion callback is executed in a separate goroutine and nil can be passed. UI modifications should be put into `core.Update`; do not block the main thread while waiting for asynchronous completion.
+- Operations with the same ID should wait for the previous one to complete before executing to avoid asynchronous delivery and recall interleaving. Remove simultaneously withdraws pending delivery and delivered items; the system does not confirm the withdrawal completion, and a successful callback only means that a withdrawal call has been issued.
+- macOS must run the app event loop; permissions dialogs, focus mode, system settings, and signature trusts affect actual display. macOS has registered the notification center delegate to request the front-end Banner/List for notifications of this module; system settings can still prohibit display. Use `window.Window.Activate(token)` to bring the window to the front (the activation token brought by the Linux system click can be handed to it directly, see kit/notifier.md); cross-boot callback recovery is not implemented.
+- Windows uses the tray bubble (`Shell_NotifyIcon`), and Windows 10/11 displays it as a system notification banner. It does not require AppUserModelID, packaging or start menu shortcuts, nor cgo; `RequestPermission` does not pop up authorization and succeeds directly. Only one message is displayed at the same time: delivering a new ID will replace the current notification, and the click callback of the old notification will become invalid; withdrawing the replaced ID will not do anything. When the notification is displayed, there is an application icon in the tray (take the first icon resource of the executable file, if not, use the system default icon), the icon will be removed after the notification times out, is closed, clicked or withdrawn, and this item in the action center will also disappear. Clicking the notification or tray icon runs `OnClick`; there is no activation token. Truncate and add ellipsis when the title exceeds 63 UTF-16 units and the body exceeds 255. The system may not display the focus assistant/do not disturb mode.
+- kit.Notifier is accessed through NoticeSystemBackend; `examples/notification` provides an adapter to handle system/application-only system addition, same-ID update and withdrawal. The macOS example accesses kit click, close, and Window.Raise through NoticeSystemInteractiveBackend; the Linux example also uses the interactive backend, requiring the notification service to declare actions.
 
-可手动运行 `examples/notification`。先构建应用包，再打开它：
+`examples/notification` can be run manually. Build the application package first, then open it:
 
 ```sh
 mkdir -p /tmp/KeelNotification.app/Contents/MacOS
@@ -43,43 +45,43 @@ codesign --force --deep --sign - /tmp/KeelNotification.app
 open /tmp/KeelNotification.app
 ```
 
-此临时应用包用于开发验证；正式分发需要正常签名和可信安装位置。点击“申请通知权限”，允许后投递，切到其他应用观察通知中心；再次投递验证替换，再点“撤回任务通知”验证消失。Notifier 串行化系统请求，并显示真实错误；“应用内和系统通知”模式可验证应用内超时不撤回系统通知。`-check` 只打印平台/包身份检查结果，不申请权限、不发送通知。
+This temporary app package is for development validation; official distribution requires a healthy signature and a trusted installation location. Click "Apply for Notification Permission", allow it to be delivered, and switch to other applications to observe the notification center; submit it again to verify the replacement, and then click "Withdraw Task Notification" to verify that it disappears. Notifier serializes system requests and displays real errors; "In-app and system notification" mode verifies in-app timeouts do not withdraw system notifications. `-check` only prints the platform/package identity check results, does not apply for permissions, and does not send notifications.
 
-示例保留最近 12 条事件，按发生顺序显示，窗口内容可滚动。点击两者模式的系统通知时，可检查“请求窗口置前 → 应用内通知已关闭 → 已打开对应任务”的顺序；若应用内通知已超时，则不重复产生关闭记录。后续撤回结果不会覆盖这些记录。仅系统模式没有应用内关闭回调；请求置前记录只证明发出了调用，仍需观察窗口是否真的出现在前台。
+The example retains the last 12 events, displayed in order of occurrence, and the window content is scrollable. When clicking on the system notification in both modes, you can check the sequence of "request window brought to front → in-app notification closed → corresponding task opened"; if the in-app notification has timed out, the closing record will not be generated repeatedly. Subsequent withdrawal results will not overwrite these records. System-only mode does not have an in-app close callback; requesting prefix logging only proves that the call was made, and you still need to observe whether the window actually appears in the foreground.
 
-自动测试覆盖参数校验和未打包进程的拒绝路径，不弹出系统权限窗口。系统授权、真实通知展示/替换/撤回仍需上述手动验收。
+The automatic test covers the parameter verification and the denied path of the unpackaged process, and does not pop up the system permission window. System authorization and real notification display/replacement/withdrawal still require the above manual acceptance.
 
-接口依据：[Apple UNUserNotificationCenter](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter)。
-
-
-Linux 使用运行中的 `org.freedesktop.Notifications` 服务，`Available()` 会检查会话总线和服务能力，可能等待总线回应；`RequestPermission` 异步执行同样检查，不弹权限对话框。无服务返回 ErrUnsupported，协议调用失败返回 ErrFailed。Notify 使用系统默认超时、无图标/动作、应用名 Keel；正文根据 body-markup 能力转义，保留纯文本含义。
-
-业务 ID 映射到服务返回的数值 ID，重复 Post 使用 replaces_id，Remove 调用 CloseNotification。收到 NotificationClosed 后删除映射；服务 owner 变化时清空旧映射，避免将旧 ID 发送给重启后的服务。映射仅保留在当前进程，不能跨进程启动撤回旧通知。Linux 已实现 ActionInvoked 默认动作回调；kit 示例连接窗口 Raise，已把 ActivationToken 传给 OnActivate；窗口后端消费令牌和实际置前仍待接入及桌面验收。真实桌面展示仍需运行示例验收。协议测试使用可控总线替身，不代表 Linux 桌面验收完成。
-
-协议依据：[Freedesktop Desktop Notifications](https://specifications.freedesktop.org/notification/latest/protocol.html)。
+Interface basis: [Apple UNUserNotificationCenter](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter).
 
 
-macOS 可设置 `Message.OnClick`。收到系统默认打开动作后，回调在独立 goroutine 执行一次；UI 修改需 `core.Update`。示例“原生点击回调”可手动验证。Windows 的托盘通知和声明了 actions 的 Linux 服务也支持 OnClick；不支持 actions 的 Linux 服务及其他平台返回 ErrUnsupported，不会静默丢弃回调。普通通知仍按各平台能力投递。
+Linux uses the running `org.freedesktop.Notifications` service. `Available()` will check the session bus and service capabilities, and may wait for a bus response; `RequestPermission` performs the same check asynchronously without popping up the permission dialog box. If there is no service, ErrUnsupported will be returned. If the protocol call fails, ErrFailed will be returned. Notify uses the system's default timeout, no icon/action, and application name Keel; the text is escaped according to the body-markup capability and the plain text meaning is retained.
 
-首次 Post 在主队列安装本模块 delegate；已有其他 delegate 时返回 ErrConflict，不覆盖它。之后应用也不应另行替换 delegate。只有带本模块标记的通知会请求前台展示或触发回调，其他通知不处理。这里只接收当前进程投递后的响应，未实现冷启动/跨启动恢复。
+The business ID is mapped to the numeric ID returned by the service. Repeated Post uses replaces_id, and Remove calls CloseNotification. Delete the mapping after receiving NotificationClosed; clear the old mapping when the service owner changes to avoid sending the old ID to the restarted service. Mappings are only retained within the current process and old notifications cannot be initiated across processes. Linux has implemented the ActionInvoked default action callback; the kit sample connection window Raise has passed the ActivationToken to OnActivate; the window back-end consumption token and actual placement are still pending access and desktop acceptance. Real desktop demonstration still requires running the sample for acceptance. Protocol testing uses controllable bus surrogates and does not represent completion of Linux desktop acceptance.
 
-同 ID 替换使用新回调；替换失败恢复旧回调，迟到的旧请求结果不会覆盖更新的注册。回调在点击、成功 Remove 或无回调替换后释放。仅在通知中心手动忽略/关闭横幅可能不会产生默认打开动作，应用应适时 Remove，释放仍保留的回调。回调已经开始执行后，Remove 不能取消其执行。
-
-验证范围：编译、未打包进程拒绝路径、注册表替换/回退/并发消费和 race 测试；尚未完成真实通知横幅和系统点击验收。
+Agreement based on: [Freedesktop Desktop Notifications](https://specifications.freedesktop.org/notification/latest/protocol.html).
 
 
-Linux 默认动作使用 `default` 标识，监听 ActionInvoked 并消费对应业务 ID 的回调一次；仅接受当前服务 owner 的信号。NotificationClosed、成功 Remove、无回调替换和服务重启都会释放注册。信号使用顺序处理器，保留打开后关闭的处理顺序；回调在连接锁外的独立 goroutine 执行，可以继续投递或撤回。失败替换不丢失原有回调。ActivationToken 作为可选激活数据传给 OnActivate，详见下文；收到令牌不代表已成功置前。
+`Message.OnClick` can be set on macOS. After receiving the system default open action, the callback is executed once in an independent goroutine; UI modification requires `core.Update`. The example "native click callback" can be manually verified. Windows tray notifications and Linux services that declare actions also support OnClick; Linux services and other platforms that do not support actions return ErrUnsupported and will not silently discard callbacks. Ordinary notifications are still delivered according to the capabilities of each platform.
 
-2026-10-03 开发验收：临时签名 .app 的示例窗口和事件记录显示正常；权限请求返回 `native: operation failed: status 7`。因此本次未验证成功授权、系统横幅、替换／撤回或点击置前；后续保留系统错误详情后，复现为 `UNErrorDomain (1): Notifications are not allowed for this application`，已修正为权限错误分类。该信息不能单独区分系统设置、应用身份或签名问题，成功授权仍待验收。
+The first Post installs this module's delegate in the main queue; when there is another delegate, it returns ErrConflict and does not overwrite it. The app should not replace the delegate later. Only notifications marked with this module will request foreground display or trigger a callback, and other notifications will not be processed. Here only the response after delivery by the current process is received, and cold start/cross-start recovery is not implemented.
 
-错误分类依据：[Apple notificationsNotAllowed](https://developer.apple.com/documentation/usernotifications/unerror/code/notificationsnotallowed)。
+Use the new callback for the same ID replacement; the old callback will be restored if the replacement fails, and the late result of the old request will not overwrite the updated registration. Callback released after click, successful Remove, or replacement without callback. Manually ignoring/closing the banner in the notification center may not result in the default opening action. The app should remove the banner in a timely manner and release the remaining callbacks. Remove cannot cancel the execution of a callback after it has started execution.
 
-## 激活令牌
+Verification scope: compilation, unpackaged process rejection path, registry replacement/rollback/concurrent consumption and race testing; real notification banner and system click acceptance have not yet been completed.
 
-`Message.OnActivate(func(Activation))` 接收默认打开动作及可选的 `Activation.Token`；若同时设置 OnClick，则在同一个回调 goroutine 上先调用 OnActivate，再调用 OnClick。没有令牌的平台/通知服务传空字符串，仍正常响应点击。
 
-Linux 按通知 ID 暂存 ActivationToken 信号，ActionInvoked 到达时取出并单次消费。仅接受当前服务 owner、指定对象路径及正确类型/长度的信号；关闭、撤回、成功替换和服务 owner 更新会释放令牌。失败替换/撤回保留原通知状态。未知动作会消费其前置令牌，但不会调用默认打开回调。
+The Linux default action uses the `default` identifier, listens for ActionInvoked and consumes the callback corresponding to the business ID once; it only accepts signals from the current service owner. NotificationClosed, successful Remove, replacement without callback, and service restart all release the registration. The signal uses a sequential processor to retain the processing order after opening and closing; the callback is executed in an independent goroutine outside the connection lock and can continue to be delivered or withdrawn. Failed replacement does not lose the original callback. ActivationToken is passed to OnActivate as optional activation data, as detailed below; receiving the token does not mean that it has been successfully prepended.
 
-[freedesktop 通知协议](https://specifications.freedesktop.org/notification/latest-single/#signals) 规定令牌可在 ActionInvoked 前发送，也允许不发送；它可能是 X11 startup ID 或 Wayland xdg-activation token。应用应按窗口后端使用这个不透明值。该接口不改变进程环境变量，也不自行激活窗口；当前 Keel Window.Raise 尚不接收令牌。
+2026-10-03 Development acceptance: The sample window and event record of the temporary signature .app display normally; the permission request returns `native: operation failed: status 7`. Therefore, the successful authorization, system banner, replacement/withdrawal or click forwarding were not verified this time; after retaining the system error details, it reappeared as `UNErrorDomain (1): Notifications are not allowed for this application`, which has been corrected to a permission error classification. This information cannot alone distinguish system settings, application identity or signature issues, and successful authorization is still pending acceptance.
 
-协议替身测试覆盖隔离、可选令牌、信号验证、单次消费和生命周期；这些测试不代表已通过 Linux 通知桌面与 Wayland 置前验收。
+Error classified by: [Apple notificationsNotAllowed](https://developer.apple.com/documentation/usernotifications/unerror/code/notificationsnotallowed).
+
+## Activation token
+
+`Message.OnActivate(func(Activation))` receives the default open action and optional `Activation.Token`; if OnClick is set at the same time, OnActivate will be called first on the same callback goroutine, and then OnClick will be called. Platforms/notification services without tokens pass empty strings and still respond to clicks normally.
+
+Linux temporarily stores the ActivationToken signal according to the notification ID, and takes it out and consumes it once when ActionInvoked arrives. Only signals of the current service owner, specified object path, and correct type/length are accepted; tokens are released by shutdown, recall, successful replacement, and service owner updates. Failed replacement/withdraw retains the original notification status. The unknown action consumes its prepended token but does not call the default open callback.
+
+[freedesktop notification protocol](https://specifications.freedesktop.org/notification/latest-single/#signals) specifies that the token may or may not be sent before ActionInvoked; it may be an X11 startup ID or a Wayland xdg-activation token. Applications should use this opacity value on a per-window backend. This interface does not change process environment variables, nor does it activate the window itself; currently Keel Window.Raise does not accept tokens yet.
+
+Protocol alias testing covers isolation, optional tokens, signal validation, single consumption, and lifecycle; these tests do not represent pre-acceptance with Linux Notification Desktop and Wayland.

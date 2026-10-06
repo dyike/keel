@@ -42,11 +42,11 @@ func (s *site) copyDemo(dir string) error {
 // server's Content-Length is the compressed one), and hides the overlay
 // once the program has drawn its canvas.
 const demoPage = `<!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, user-scalable=no">
-<title>Keel 组件库</title>
+<title>Keel component gallery</title>
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <style>
   html, body { margin: 0; padding: 0; height: 100%%; overflow: hidden; }
@@ -59,6 +59,15 @@ const demoPage = `<!doctype html>
 </style>
 <script>
 (() => {
+  const chinese = new URLSearchParams(location.search).get("lang") === "zh-CN";
+  document.documentElement.lang = chinese ? "zh-CN" : "en";
+  document.title = chinese ? "Keel 组件库" : "Keel component gallery";
+  addEventListener("DOMContentLoaded", () => {
+    if (chinese) {
+      document.getElementById("loading-title").textContent = "正在加载 Keel 组件库";
+      document.getElementById("note").textContent = "首次加载约 10 MB，之后由浏览器缓存";
+    }
+  });
   const total = %s;
   const plain = window.fetch.bind(window);
   window.fetch = async (url, init) => {
@@ -73,7 +82,7 @@ const demoPage = `<!doctype html>
       async pull(c) {
         const { done, value } = await reader.read();
         if (done) {
-          note() && (note().textContent = "正在启动…");
+          note() && (note().textContent = chinese ? "正在启动…" : "Starting…");
           c.close();
           return;
         }
@@ -97,7 +106,7 @@ const demoPage = `<!doctype html>
 <script src="wasm.js"></script>
 </head>
 <body>
-<div id="loading"><div>正在加载 Keel 组件库</div><div id="bar"><div id="fill"></div></div><div id="note">首次加载约 10 MB，之后由浏览器缓存</div></div>
+<div id="loading"><div id="loading-title">Loading the Keel component gallery</div><div id="bar"><div id="fill"></div></div><div id="note">About 10 MB on first load; cached by your browser afterwards</div></div>
 </body>
 </html>
 `

@@ -1,12 +1,14 @@
-# 在浏览器里运行
+# WebAssembly
 
-`ui/*` 可以编译成 WebAssembly，同一份代码在浏览器里运行。`native/*` 调用的是系统 API，Web 上没有。
+English | [简体中文](web.zh-CN.md)
 
-## 构建
+`ui/*` compiles to WebAssembly, so the same UI code can run in a browser. `native/*` calls operating-system APIs and is unavailable on the Web.
 
-脚手架项目使用 `keel build -target js` 构建浏览器版本。它已处理 Go 1.26 的 `osusergo` 标签，并通过 Gio 的打包工具生成 `index.html`、`wasm.js` 和 `main.wasm`；应用继续使用脚手架的入口和 `app.go`。
+## Build
 
-浏览器不把系统字体交给 WebAssembly，中文字体需要由应用加载。在项目中新增 `font_js.go`（只在 js 平台编译）：
+In a scaffolded project, run `keel build -target js`. The CLI supplies Go 1.26’s `osusergo` build tag and uses Gio’s packager to generate `index.html`, `wasm.js`, and `main.wasm`. Keep the scaffold’s entry point and `app.go`.
+
+Browsers do not expose system fonts to WebAssembly. To display Chinese text, load a font in your application. Add `font_js.go`, which is compiled only for the js target:
 
 ```go
 //go:build js
@@ -26,7 +28,7 @@ func init() {
 }
 ```
 
-在项目目录中构建、复制字体并启动静态服务器：
+Build, copy the font, and start a static server from your project directory:
 
 ```sh
 keel build -target js
@@ -34,18 +36,18 @@ cp /path/to/NotoSansSC-Regular.ttf dist/web/font.ttf
 python3 -m http.server --directory dist/web
 ```
 
-族名最好是 `theme.Face` 列出的字体，例如 Noto Sans SC；中文字体通常有十几 MB，建议使用子集化后的字体。也可以用 `theme.LoadFonts(data)` 加载嵌入的字体文件。
+Prefer a font family listed in `theme.Face`, such as Noto Sans SC. Chinese fonts commonly exceed 10 MB; use a subset where possible. For embedded font files, use `theme.LoadFonts(data)`.
 
-## 和桌面版的差别
+## Differences from desktop applications
 
-- 没有 `native/*`：权限、截屏、全局快捷键、合成输入、系统通知、富剪贴板都不可用。
-- 只有一个窗口，`window.Open` 多次打开时都画在同一个页面里。
-- 自动化模式（`KEEL_AUTOMATION`）和 keel-mcp 只在桌面版可用。
+- `native/*` is unavailable: no native permissions, screenshots, global hotkeys, synthetic input, system notifications, or rich clipboard.
+- There is one browser window; multiple `window.Open` calls draw on the same page.
+- Automation mode (`KEEL_AUTOMATION`) and keel-mcp work only on desktop.
 
-## 文档站
+## Documentation site
 
-Keel 的文档站就是这样发布的：`examples/components` 编译成 WebAssembly，嵌进每个组件的文档页，和 [GPUI Kit](https://gpui-kit.com) 的做法一样。组件库解压后约 43 MB，GitHub Pages 用 gzip 传输，约 10 MB，之后由浏览器缓存。
+Keel’s site compiles `examples/components` to WebAssembly and embeds it on component pages, as [GPUI Kit](https://gpui-kit.com) does. The gallery is about 43 MB uncompressed and roughly 10 MB over GitHub Pages’ gzip transfer, then cached by the browser.
 
-在浏览器里，组件库从网址读参数：`demo/?section=dock` 只显示 Dock，`&theme=dark` 用深色主题。中文字体是子集化的 Noto Sans SC，约 1.9 MB。
+The browser gallery reads URL parameters: `demo/?section=dock` shows only Dock, and `&theme=dark` selects the dark theme. `&lang=en` or `&lang=zh-CN` selects framework text. The Chinese font is a Noto Sans SC subset of about 1.9 MB.
 
-生成器和本地预览方法见 [internal/site](../internal/site/README.md)，发布流程是 `.github/workflows/site.yml`。
+See [internal/site](../internal/site/README.md) for the generator and local preview. `.github/workflows/site.yml` defines deployment.

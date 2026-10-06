@@ -1,33 +1,35 @@
 # ui/markdown
 
-把 Markdown 渲染成 `ui/el` 元素，针对 AI 聊天的流式输出优化：普通文档只重新解析正在写的块；含脚注、引用定义或宏时共享整篇解析上下文，临时补全未闭合的语法，写完的块复用元素和布局。
+English | [简体中文](README.zh-CN.md)
 
-- **依赖**：`el`、`core`、`theme`、`locale`，以及内部的 `ui/internal/imageload`（图片）和经 el 间接依赖的 `ui/internal/editorstyle`；第三方：goldmark（解析）、golang.org/x/net/html（HTML）、chroma（代码高亮）、Gio text.Shaper（字形排版）。
-- **被谁依赖**：应用代码。
+Render Markdown into `ui/el` elements, optimized for streaming output of AI chat: ordinary documents only re-parse the block being written; when containing footnotes, reference definitions or macros, the entire parsing context is shared, unclosed syntax is temporarily completed, and completed blocks reuse elements and layout.
 
-| 文件 | 内容 |
+- **Dependencies**: `el`, `core`, `theme`, `locale`, as well as internal `ui/internal/imageload` (picture) and `ui/internal/editorstyle` which is indirectly dependent on el; third party: goldmark (parsing), golang.org/x/net/html (HTML), chroma (code highlighting), Gio text.Shaper (font typesetting).
+- **Used by**: Application code.
+
+| File | Responsibility |
 | --- | --- |
-| `markdown.go` | `Doc`：切块、增量解析、流式补全 |
-| `plugins.go` | 文档级 Goldmark 扩展、块视图与行内原子控件工厂 |
-| `parse.go` | goldmark 语法树 → 中间结构（段落、代码块、列表、表格…） |
-| `render.go` | 中间结构 → el 元素；富文本、代码高亮、块缓存 |
-| `code_extensions.go` | 代码块操作槽及按语言替换展示，保留源文档 |
-| `code.go` | 代码卡片、语言与操作图标、悬停提示、换行切换和横向滚动 |
-| `math_parse.go` | 数学分隔符与常用 TeX 子集解析、源码回退 |
-| `math_more.go` | 扩展 TeX：更多符号与函数、数学字母表、重音、二项式、括号、颜色、方框、更多环境 |
-| `html.go` | 行内 HTML 标签样式、HTML 块转 Markdown 块 |
-| `math_macros.go`、`math_structures.go` | 文档宏、嵌套矩阵与配对分隔符 |
-| `math_delimiters.go` | 自动伸缩分隔符绘制 |
-| `references.go` | 文档级解析、脚注跳转与返回 |
-| `images.go` | 异步图片资源共享与布局缓存失效 |
-| `math_layout.go` | 公式盒子排版、分式根号、上下标和矩阵 |
-| `text.go` | 富文本排版、字形坐标、装饰、链接和选区绘制 |
-| `stream_fade.go` | 增量文字及样式淡入、独立片段计时与减少动画 |
-| `preview.go` | 整篇行高预算、完整行裁剪及截断状态 |
-| `ranges.go` | 渲染文本快照、UTF-8 区间高亮、变更迁移和最小纵向定位 |
-| `selection.go` | 文档坐标、跨块选区、边缘自动滚动、整篇选中和纯文本复制 |
-| `selection_units.go` | Unicode 选词、三击选段、公式与代码行边界 |
+| `markdown.go` | `Doc`: slicing, incremental parsing, streaming completion |
+| `plugins.go` | Document-level Goldmark extension, block view and inline atomic control factory |
+| `parse.go` | goldmark syntax tree → intermediate structures (paragraphs, code blocks, lists, tables...) |
+| `render.go` | Intermediate structure → el element; rich text, code highlighting, block caching |
+| `code_extensions.go` | Code block operation slot and replacement display by language, retain the source document |
+| `code.go` | Code cards, language and action icons, hover prompts, line breaks and horizontal scrolling |
+| `math_parse.go` | Math delimiters and common TeX subset analysis, source code rollback |
+| `math_more.go` | Extended TeX: more symbols and functions, mathematical alphabet, accents, binomials, brackets, colors, boxes, more environments |
+| `html.go` | Inline HTML tag style, HTML block conversion to Markdown block |
+| `math_macros.go`, `math_structures.go` | Document macros, nested matrices and pair delimiters |
+| `math_delimiters.go` | Automatic scaling separator drawing |
+| `references.go` | Document-level parsing, footnote jump and return |
+| `images.go` | Asynchronous image resource sharing and layout cache invalidation |
+| `math_layout.go` | Formula box layout, fractional radicals, superscripts and subscripts and matrices |
+| `text.go` | Rich text layout, glyph coordinates, decorations, links and selection drawing |
+| `stream_fade.go` | Incremental text and style fade-in, independent clip timing and reduced motion |
+| `preview.go` | Full line height budget, full line cropping and truncation status |
+| `ranges.go` | Rendered text snapshots, UTF-8 range highlighting, change migration and minimal vertical positioning |
+| `selection.go` | Document coordinates, cross-block selection, automatic edge scrolling, entire selection and plain text copy |
+| `selection_units.go` | Unicode word selection, three-click selection, formulas and code line boundaries |
 
-使用和设计：[Markdown](../../docs/markdown.md)。
+Usage and Design: [Markdown](../../docs/markdown.md).
 
-原子输入引用由 `el.InputDocument` 接入 `ui/internal/inputcontent`，后者只保存文本、引用范围、选区和编辑事务，不依赖 Gio 或其他 Keel 模块。kit 和 markdown 仅经 el 间接依赖它。
+Atomic input references are connected to `ui/internal/inputcontent` by `el.InputDocument`, which only saves text, reference range, selection and editing transactions, and does not rely on Gio or other Keel modules. kit and markdown only depend on it indirectly via el.

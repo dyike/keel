@@ -1,19 +1,21 @@
 # Badge
 
-数字、圆点或图标徽标，可单独显示或挂在子组件角上。
+English | [简体中文](badge.zh-CN.md)
+
+A number, dot or icon logo that can be displayed alone or hung on a subcomponent corner.
 
 ```go
 unread := kit.Badge(3).Child(kit.Button("通知", open))
 kit.Badge(1).Dot().Tone(kit.ToneSuccess).Child(avatar)
 ```
 
-- 数字和圆点模式下，计数小于等于 0 时隐藏。超过 `Max`（默认 99）时显示"99+"。
-- 挂在子组件上时，角标画在角上，不改变子组件的尺寸和位置，计数变化也不会让布局跳动。
-- `Icon(IconName)` 切换为图标模式，与计数无关，即使 count 为 0 也显示。`Icon(IconNone)` 恢复数字模式；Dot 切换为圆点并清除图标。图标模式位于右下角，带 Surface 色边框；数字和圆点位于右上角。
-- `Size(dp)` 设置数字/图标高度，默认 18，接受 12–128；推荐 12/18/24。圆点按 8/18 比例缩放，数字超长时宽度随文字增长。非法值忽略。
-- `Color(color.NRGBA)` 指定底色，前景自动按底色选择黑白。`Tone` 设置主题语义颜色（默认 ToneDanger），同时清除 Color 覆盖。固定自定义色不自动随主题变化。
-- `Name(string)` 设置可访问名称，适合图标状态，例如“已验证”；空字符串恢复原始计数名称。`Value()` / `SetValue` 操作计数，不改变图标模式。
+- In number and dot modes, hide when the count is less than or equal to 0. Displays "99+" when exceeding `Max` (default 99).
+- When hanging on a sub-component, the corner mark is drawn on the corner without changing the size and position of the sub-component, and the count changes will not cause the layout to jump.
+- `Icon(IconName)` switches to icon mode regardless of count and is displayed even if count is 0. `Icon(IconNone)` Restores numeric mode; Dot switches to dot and clears icon. Icon mode is in the lower right corner with a Surface-colored border; numbers and dots are in the upper right corner.
+- `Size(dp)` Set number/icon height, default 18, accepts 12–128; recommended 12/18/24. The dots are scaled 8/18, and the width grows with the text when the numbers are too long. Illegal values are ignored.
+- `Color(color.NRGBA)` specifies the background color, and the foreground automatically selects black and white according to the background color. `Tone` Sets the theme semantic color (default ToneDanger) while clearing the Color override. Fixed custom colors not automatically changing with the theme.
+- `Name(string)` Sets the accessible name, appropriate for the icon state, such as "verified"; an empty string restores the original count name. `Value()` / `SetValue` operation count, does not change icon mode.
 
-Agent：角色 `badge`，默认名字是原始计数，可用 Name 覆盖；`value` 是显示数字（"99+"）、`dot` 或 `icon`。
+Agent: role `badge`, the default name is the original count, which can be overridden by Name; `value` is the displayed number ("99+"), `dot` or `icon`.
 
-验证：`go run ./examples/components -section badge`，加 `-theme dark` 检查深色。
+Verify: `go run ./examples/components -section badge`, add `-theme dark` to check the dark theme.

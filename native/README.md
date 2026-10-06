@@ -1,24 +1,26 @@
 # native
 
-系统能力模块集合。每个子目录是一个独立模块，可以只用其中一个，也可以完全不用 `ui` 界面。
+English | [简体中文](README.zh-CN.md)
 
-| 模块 | 能力 | 依赖 |
+A collection of system capability modules. Each subdirectory is an independent module, you can use only one of them, or you can not use the `ui` interface at all.
+
+| Modules | Capabilities | Dependencies |
 | --- | --- | --- |
-| [permission](permission/) | 检查、申请系统权限 | `native`、`native/internal/sys` |
-| [screen](screen/) | 显示器列表、截图 | 同上 |
-| [input](input/) | 合成鼠标、键盘事件 | 同上 |
-| [hotkey](hotkey/) | 全局快捷键 | 同上 |
-| [clipboard](clipboard/) | 异步读取剪贴板文本、编码图片和文件引用（macOS / Windows / Linux Wayland、X11） | 同上 |
-| [notification](notification/) | 系统通知权限、投递与撤回（macOS .app / Linux D-Bus） | 同上 |
+| [permission](permission/README.md) | Check and apply for system permissions | `native`, `native/internal/sys` |
+| [screen](screen/README.md) | Monitor list, screenshots | Same as above |
+| [input](input/README.md) | Synthesize mouse and keyboard events | Same as above |
+| [hotkey](hotkey/README.md) | Global shortcut keys | Same as above |
+| [clipboard](clipboard/README.md) | Asynchronously read clipboard text, encoded images, and file references (macOS / Windows / Linux Wayland, X11) | Same as above |
+| [notification](notification/README.md) | System notification permissions, delivery and withdrawal (macOS .app / Linux D-Bus) | Same as above |
 
-模块之间互不引用，也不引用 `ui` 和 Gio，这一点由 `internal/deps` 里的测试保证。
+Modules do not reference each other, nor do they reference `ui` and Gio. This is guaranteed by the tests in `internal/deps`.
 
-两个共享部分不是独立模块：
+The two shared parts are not independent modules:
 
-- `native`（本目录的 `native.go`）：所有模块共用的错误值 `native.Err*`。
-- `native/internal/sys`：平台绑定，macOS 的 cgo 与 Objective-C、Windows 的 Win32 调用、Linux 的 X11 协议和 D-Bus 都在这里。外部不能引用。
-- `native/internal/wlclip`：Linux Wayland 剪贴板的 cgo 绑定，只有 clipboard 引用，所以别的模块不会链接 libwayland。
+- `native` (`native.go` for this directory): Error value `native.Err*` common to all modules.
+- `native/internal/sys`: Platform bindings, macOS's cgo and Objective-C, Windows' Win32 calls, Linux's X11 protocol and D-Bus are all here. Cannot be referenced externally.
+- `native/internal/wlclip`: The cgo binding of the Linux Wayland clipboard is only referenced by clipboard, so other modules will not link to libwayland.
 
-支持 macOS 14+、Windows 和 Linux，其他平台返回 `native.ErrUnsupported`。Linux 上截图和合成输入走 X11（Wayland 会话里通过 XWayland），通知走 D-Bus，剪贴板 Wayland 和 X11 都支持。各能力在各平台的细节见[原生能力](../docs/native.md)。
+Supports macOS 14+, Windows, and Linux, other platforms return `native.ErrUnsupported`. On Linux, screenshots and composite input go through X11 (via XWayland in Wayland sessions), notifications go through D-Bus, and the clipboard is supported by both Wayland and X11. For details on each ability on each platform, see [Native ability](../docs/native.md).
 
-文档：[原生能力](../docs/native.md) · [新增原生能力](../docs/extending.md#新增原生能力)
+Document: [Native ability](../docs/native.md) · [New native ability](../docs/extending.md#add-native-capabilities)

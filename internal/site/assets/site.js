@@ -1,6 +1,19 @@
 // Search, copy buttons, demo frames and the mobile menu. No dependencies.
 (() => {
   const root = document.body.dataset.root || "./";
+  const chinese = document.body.dataset.lang === "zh-CN";
+  const labels = chinese ? {copy:"复制",copied:"已复制",failed:"复制失败",empty:"没有找到"} : {copy:"Copy",copied:"Copied",failed:"Copy failed",empty:"No results"};
+  const language = document.querySelector(".language");
+  const updateLanguageLink = () => {
+    if (!language) return;
+    const target = new URL(language.getAttribute("href").split("#")[0], location.href);
+    const id = decodeURIComponent(location.hash.slice(1));
+    const anchors = JSON.parse(language.dataset.anchors || "{}");
+    if (id && anchors[id]) target.hash = anchors[id];
+    language.href = target.href;
+  };
+  updateLanguageLink();
+  addEventListener("hashchange", updateLanguageLink);
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
 
   // Demo frames load the gallery in the reader's color scheme.
@@ -14,11 +27,11 @@
       const code = b.parentElement.querySelector("pre").textContent;
       try {
         await navigator.clipboard.writeText(code);
-        b.textContent = "已复制";
+        b.textContent = labels.copied;
       } catch {
-        b.textContent = "复制失败";
+        b.textContent = labels.failed;
       }
-      setTimeout(() => (b.textContent = "复制"), 1500);
+      setTimeout(() => (b.textContent = labels.copy), 1500);
     });
   }
 
@@ -77,7 +90,7 @@
     active = -1;
     list.innerHTML = hits.slice(0, 12).map(({ p, h }) =>
       `<li><a href="${root + p.u + (h ? "#" + encodeURIComponent(h[1]) : "")}">${escape(p.t)}<span class="group">${escape(p.g || "")}</span><small>${escape(h ? h[0] : snippet(p.x, q))}</small></a></li>`
-    ).join("") || '<li><a>没有找到</a></li>';
+    ).join("") || `<li><a>${labels.empty}</a></li>`;
     list.hidden = false;
   };
   input?.addEventListener("input", search);
