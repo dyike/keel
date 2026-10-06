@@ -14,6 +14,7 @@ Window: open, close, bring to front (including activation token), window shortcu
 | `screenshot.go` | `Screenshot` Off-screen rendering to PNG |
 | `decorations*.go` | Linux compositor is drawn by Keel when not drawing title bar |
 | `titlebar_darwin.*` | Title bar drag area of macOS borderless window |
+| `scene_ios.*` | Experimental iOS scene lifecycle adapter, selected by `KeelSceneDelegate` in Info.plist; see [iOS simulator](../../docs/ios.md) |
 | `activation_*` | `Activate(token)`: Wayland uses xdg-activation, X11 writes the startup ID and then requests activation |
 | `motion_*` | System preferences: reduce dynamic effects (macOS), scrollbar auto-hide (macOS, Windows), write in `theme` |
 | `scroll_darwin.m`, `scroll_wayland*` | The device and gesture stages of scrolling (trackpad hand lift, scroll wheel) are not provided by Gio and are left to `core.ReportScrollGesture` |

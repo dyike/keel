@@ -4,7 +4,7 @@
 
 [English](README.md) | 简体中文
 
-用纯 Go 写桌面界面，不需要 HTML、CSS、JavaScript 或 WebView。界面由 [Gio](https://gioui.org) 绘制；Gio 没有的原生能力（权限、截图、合成输入、全局快捷键、系统通知、富剪贴板）在 `native/` 下。支持 macOS、Windows、Linux，也能编译成 WebAssembly 在浏览器里运行。
+用纯 Go 写桌面界面，不需要 HTML、CSS、JavaScript 或 WebView。界面由 [Gio](https://gioui.org) 绘制；Gio 没有的原生能力（权限、截图、合成输入、全局快捷键、系统通知、富剪贴板）在 `native/` 下。支持 macOS、Windows、Linux，也能编译成 WebAssembly 在浏览器里运行，并提供 [iOS（实验性）支持](docs/ios.zh-CN.md)。
 
 新建一个应用：
 
@@ -30,6 +30,7 @@ go test -race ./...
 
 - [文档导览](docs/README.zh-CN.md)：按开发任务选择文档。
 - [快速开始](docs/getting-started.zh-CN.md)：用脚手架新建、开发、运行和打包应用。
+- [iOS（实验性）](docs/ios.zh-CN.md)：实验性脚手架构建、运行与当前支持范围。
 - [组件参考](docs/kit.zh-CN.md)：按用途分类，查 API 和在线交互示例。
 - [Agent 端到端测试](docs/automation.zh-CN.md)：让 Agent 点击、输入、滚动和截图。
 - [架构](docs/architecture.zh-CN.md)：源码模块、依赖边界与线程规则。

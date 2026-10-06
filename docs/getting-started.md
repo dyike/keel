@@ -101,7 +101,8 @@ Create stateful components once in `newApp` and retain them in view fields. `Ren
   "build": 1,
   "binary": "my-notes",
   "icon": "appicon.png",
-  "main": "."
+  "main": ".",
+  "ios": {"minimum_version": "18.0"}
 }
 ```
 
@@ -114,12 +115,15 @@ Create stateful components once in `newApp` and retain them in view fields. `Ren
 
 `keel run` invokes `go run` and passes `appid` to Gio for the Linux window’s app_id. The generated `main.go` embeds `appicon.png` and calls `window.SetIcon`, so the Dock and taskbar show your icon during development. Wayland has separate requirements; see [Application icons](app.md#app-icons). Use `keel run -- --flag` to pass arguments to your application.
 
+Use `keel run -target ios` to build, install and launch on an iOS simulator; `-simulator <UDID>` selects the device. Check the environment with `keel doctor -target ios`. See [iOS (experimental)](ios.md).
+
 ## Package
 
 ```sh
 keel build                    # Current platform
 keel build -target windows    # Build a Windows package on any platform
 keel build -target js         # WebAssembly
+keel build -target ios        # macOS + full Xcode; simulator .app
 keel build -n                 # Print commands without executing them
 ```
 
@@ -130,6 +134,7 @@ Output goes to `dist/`; change it with `-o`. Builds strip symbols, debug informa
 | `darwin` | `dist/My Notes.app` | Generates `icon.icns` inside the bundle | macOS with cgo and `iconutil` |
 | `windows` | `dist/my-notes.exe` and `my-notes.ico` | Embeds 14 icon sizes in the executable | Any platform; no cgo required |
 | `linux` | `dist/linux/`: executable, `<appid>.desktop`, icons, and `install.sh` | Uses the hicolor icon theme | Linux with Wayland/X11 development headers |
+| `ios` | `dist/ios/my-notes.app`; `-device` produces a signed `.ipa` | iPhone/iPad assets | macOS with full Xcode |
 | `js` | `dist/web/` | — | Any platform |
 
 **macOS:** `-arch arm64,amd64` creates a universal bundle; the default uses the host architecture. The CLI rewrites Info.plist with the application type, name, version, and minimum macOS version (14), then signs the entire bundle. Without a signing identity, it uses an ad hoc signature for local use. For distribution, sign with `-sign "Developer ID Application: Your Name (TEAMID)"`, then notarize with `xcrun notarytool`.
@@ -150,7 +155,9 @@ Output goes to `dist/`; change it with `-o`. Builds strip symbols, debug informa
 
 Each size is rendered directly from the source image rather than downscaled from a larger output, keeping small 16 and 24 icons clear.
 
-Preview before packaging: `keel icon` writes all three platforms’ icons to `dist/icons/`: `macos.png`, `windows.ico`, `windows/<size>.png`, and `linux/<size>.png`.
+Preview before packaging: `keel icon` writes all platforms’ icons to `dist/icons/`: `ios.png`, `macos.png`, `windows.ico`, `windows/<size>.png`, and `linux/<size>.png`.
+
+iOS uses full-bleed artwork with system rounding and transparency flattened over white; `icon_mask` does not affect iOS. Use `icons.ios` for separate artwork.
 
 Configure exceptions in `keel.json`:
 

@@ -1,9 +1,11 @@
-// Command keel creates, runs and packages Keel desktop apps.
+// Command keel creates, runs and packages Keel apps for desktop, web and iOS.
 //
 //	keel new myapp         create a project
 //	keel run               run it
 //	keel build             package it for this platform, into dist/
 //	keel build -target windows
+//	keel build -target ios
+//	keel run -target ios
 //	keel icon              write each platform's icons, to check them
 //	keel doctor            check the toolchain for each target
 //
@@ -32,14 +34,14 @@ type cli struct {
 	release   bool   // strip symbols and paths from builds
 }
 
-const usage = `keel creates, runs and packages Keel desktop apps.
+const usage = `keel creates, runs and packages Keel apps for desktop, web and iOS.
 
 Usage:
   keel new <dir> [flags]     create a project in dir
-  keel run [-- args]         run the project in this directory
+  keel run [flags] [-- args] run the project (use -target ios for a simulator)
   keel build [flags]         package the project into dist/
   keel icon [-o dir]         write each platform's icons, to check them
-  keel doctor                check the toolchain for each target
+  keel doctor [flags]        check the toolchain (use -target ios for Xcode)
   keel version               print the version
 
 Run "keel <command> -h" for a command's flags.

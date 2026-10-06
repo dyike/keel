@@ -8,6 +8,7 @@
 
 - [快速开始](getting-started.zh-CN.md)：用脚手架新建项目、修改界面、运行和打包。
 - [在浏览器里运行](web.zh-CN.md)：WebAssembly 构建与桌面版差异。
+- [iOS（实验性）](ios.zh-CN.md)：实验性脚手架构建、运行、生命周期适配与待验证范围。
 - [迁移到当前 kit](migration-kit.zh-CN.md)：旧版本 API 的替换方式。
 
 ## 编写应用

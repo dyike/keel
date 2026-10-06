@@ -37,7 +37,7 @@ func TestIconCommandAndOverrides(t *testing.T) {
 		t.Fatal(out.String())
 	}
 	icons := filepath.Join(dir, "dist", "icons")
-	for _, f := range []string{"macos.png", "windows.ico", "windows/16.png", "windows/256.png", "linux/48.png", "linux/512.png"} {
+	for _, f := range []string{"macos.png", "windows.ico", "windows/16.png", "windows/256.png", "linux/48.png", "linux/512.png", "ios.png"} {
 		if _, err := os.Stat(filepath.Join(icons, f)); err != nil {
 			t.Fatal("missing", f)
 		}
@@ -62,6 +62,15 @@ func TestIconCommandAndOverrides(t *testing.T) {
 	img, _ := set.icon("darwin", 1024)
 	if alphaAt(img, 2, 2) != 255 {
 		t.Fatal("override not used as is")
+	}
+	cfg.Icons = map[string]string{"ios": "mac-final.png"}
+	img, err = set.icon("ios", 1024)
+	if err != nil || alphaAt(img, 0, 0) != 255 {
+		t.Fatal("iOS override must be full bleed:", err)
+	}
+	transparent := image.NewNRGBA(image.Rect(0, 0, 16, 16))
+	if got := color.NRGBAModel.Convert(opaqueIOSIcon(transparent).At(0, 0)); got != (color.NRGBA{255, 255, 255, 255}) {
+		t.Fatal("iOS transparency was not flattened over white:", got)
 	}
 	cfg.Icons = map[string]string{"beos": "x.png"}
 	if cfg.validate() == nil {

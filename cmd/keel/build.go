@@ -24,10 +24,12 @@ const gogio = "gioui.org/cmd/gogio@v0.10.0"
 func (c *cli) build(args []string) error {
 	fs := flag.NewFlagSet("build", flag.ContinueOnError)
 	fs.SetOutput(c.errw)
-	target := fs.String("target", runtime.GOOS, "darwin, windows, linux or js")
+	target := fs.String("target", runtime.GOOS, "darwin, windows, linux, js or ios (simulator by default)")
 	arch := fs.String("arch", "", "architectures, comma-separated (default: this machine's; amd64 for windows)")
 	out := fs.String("o", "dist", "output directory")
-	sign := fs.String("sign", "", "darwin: codesign identity, e.g. \"Developer ID Application: Name (TEAMID)\"")
+	sign := fs.String("sign", "", "codesign identity: Developer ID Application for macOS, Apple Development/Distribution for iOS devices")
+	device := fs.Bool("device", false, "ios: build a signed device .ipa instead of a simulator .app")
+	provision := fs.String("provision", "", "ios -device: path to the matching .mobileprovision file")
 	fs.BoolVar(&c.dryRun, "n", false, "print the commands instead of running them")
 	debug := fs.Bool("debug", false, "keep the symbol table and debug information (larger; for debuggers)")
 	fs.Usage = func() {
@@ -36,6 +38,9 @@ func (c *cli) build(args []string) error {
 	}
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	if (*device || *provision != "") && *target != "ios" {
+		return errors.New("-device and -provision require -target ios")
 	}
 	dir := c.wd()
 	cfg, err := loadConfig(dir)
@@ -56,6 +61,8 @@ func (c *cli) build(args []string) error {
 	// functions; only debuggers lose their information.
 	c.release = !*debug
 	switch *target {
+	case "ios":
+		return c.buildIOS(dir, cfg, icons, outDir, main, *arch, *sign, *provision, *device)
 	case "darwin", "macos":
 		return c.buildDarwin(dir, cfg, icons, outDir, main, *arch, *sign)
 	case "windows":
@@ -67,7 +74,7 @@ func (c *cli) build(args []string) error {
 		// scan imports it (see docs/web.md).
 		return c.command(dir, c.trimEnv(), "go", "run", gogio, "-target", "js", "-tags", "osusergo", "-ldflags", c.ldflags(""), "-o", filepath.Join(outDir, "web"), main)
 	}
-	return fmt.Errorf("unknown target %q: use darwin, windows, linux or js", *target)
+	return fmt.Errorf("unknown target %q: use darwin, windows, linux, js or ios", *target)
 }
 
 func (c *cli) buildDarwin(dir string, cfg *Config, icons *iconSet, outDir, main, arch, sign string) error {

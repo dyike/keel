@@ -36,15 +36,29 @@ type Config struct {
 	// transparency and only fitting it into the plate's area.
 	IconMask string `json:"icon_mask,omitempty"`
 	// Icons replaces the generated icon of a platform ("darwin", "windows",
-	// "linux") with a finished square PNG, used as it is.
+	// "linux", "ios") with a finished square PNG; iOS flattens transparency.
 	Icons map[string]string `json:"icons,omitempty"`
 	// Main is the main package, relative to keel.json.
 	Main string `json:"main"`
+	// IOS configures the mobile build; omitted projects target iOS 18.0.
+	IOS *IOSConfig `json:"ios,omitempty"`
+}
+
+type IOSConfig struct {
+	MinimumVersion string `json:"minimum_version,omitempty"`
+}
+
+func (c *Config) iosMinimumVersion() string {
+	if c.IOS != nil && c.IOS.MinimumVersion != "" {
+		return c.IOS.MinimumVersion
+	}
+	return "18.0"
 }
 
 var (
-	appIDPattern   = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9-]*(\.[A-Za-z][A-Za-z0-9-]*)+$`)
-	versionPattern = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+	appIDPattern      = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9-]*(\.[A-Za-z][A-Za-z0-9-]*)+$`)
+	versionPattern    = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+	iosVersionPattern = regexp.MustCompile(`^\d+\.\d+(\.\d+)?$`)
 )
 
 func (c *Config) validate() error {
@@ -58,7 +72,7 @@ func (c *Config) validate() error {
 	if !versionPattern.MatchString(c.Version) {
 		errs = append(errs, fmt.Errorf("version %q is not major.minor.patch", c.Version))
 	}
-	if c.Binary == "" || strings.ContainsAny(c.Binary, `/\ `) {
+	if c.Binary == "" || c.Binary == "." || c.Binary == ".." || strings.ContainsAny(c.Binary, `/\ `) {
 		errs = append(errs, fmt.Errorf("binary %q is not a plain file name", c.Binary))
 	}
 	if c.Build < 0 {
@@ -68,9 +82,15 @@ func (c *Config) validate() error {
 		errs = append(errs, fmt.Errorf("icon_mask %q is not \"platform\" or \"none\"", c.IconMask))
 	}
 	for platform := range c.Icons {
-		if platform != "darwin" && platform != "windows" && platform != "linux" {
-			errs = append(errs, fmt.Errorf("icons: unknown platform %q (darwin, windows, linux)", platform))
+		if platform != "darwin" && platform != "windows" && platform != "linux" && platform != "ios" {
+			errs = append(errs, fmt.Errorf("icons: unknown platform %q (darwin, windows, linux, ios)", platform))
 		}
+	}
+	minimum := c.iosMinimumVersion()
+	if !iosVersionPattern.MatchString(minimum) {
+		errs = append(errs, fmt.Errorf("ios.minimum_version %q: use a version such as 18.0", minimum))
+	} else if major, _ := strconv.Atoi(strings.Split(minimum, ".")[0]); major < 13 {
+		errs = append(errs, errors.New("ios.minimum_version must be at least 13.0 for UIScene"))
 	}
 	return errors.Join(errs...)
 }

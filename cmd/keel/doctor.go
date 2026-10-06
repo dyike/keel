@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 	"os/exec"
 	"runtime"
@@ -10,6 +12,15 @@ import (
 
 // doctor reports what each target needs on this machine.
 func (c *cli) doctor(args []string) error {
+	flags := flag.NewFlagSet("doctor", flag.ContinueOnError)
+	flags.SetOutput(c.errw)
+	target := flags.String("target", runtime.GOOS, "target to check; ios checks full Xcode, both SDKs and simulator runtimes")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if *target != runtime.GOOS && *target != "ios" {
+		return fmt.Errorf("cannot check target %q on this machine", *target)
+	}
 	ok := true
 	check := func(name string, pass bool, detail string) {
 		mark := "ok  "
@@ -25,6 +36,43 @@ func (c *cli) doctor(args []string) error {
 	goVersion, err := exec.Command("go", "env", "GOVERSION").Output()
 	v := strings.TrimSpace(string(goVersion))
 	check("Go 1.26 or newer", err == nil && goAtLeast(v, 1, 26), v)
+	if *target == "ios" {
+		check("macOS host", runtime.GOOS == "darwin", "iOS builds require full Xcode on a Mac")
+		if runtime.GOOS == "darwin" {
+			for _, sdk := range []string{"iphonesimulator", "iphoneos"} {
+				location, err := toolOutput(c.wd(), "xcrun", "--sdk", sdk, "--show-sdk-path")
+				check(sdk+" SDK", err == nil, hint(err, "install full Xcode and select it with xcode-select")+location)
+			}
+			data, err := toolOutput(c.wd(), "xcrun", "simctl", "list", "runtimes", "--json")
+			var inventory struct {
+				Runtimes []struct {
+					Identifier  string
+					IsAvailable bool
+				}
+			}
+			if err == nil {
+				err = json.Unmarshal([]byte(data), &inventory)
+			}
+			available := false
+			for _, item := range inventory.Runtimes {
+				available = available || item.IsAvailable && strings.Contains(item.Identifier, ".iOS-")
+			}
+			detail := ""
+			if err != nil || !available {
+				detail = "install runtimes in Xcode Settings > Components"
+			}
+			check("iOS simulator runtime", err == nil && available, detail)
+			developer, err := toolOutput(c.wd(), "xcode-select", "-p")
+			if err == nil {
+				_, err = iosSimulatorApp(developer)
+			}
+			check("simulator viewer", err == nil, hint(err, "install full Xcode and select it with xcode-select"))
+		}
+		if !ok {
+			return fmt.Errorf("fix the items above")
+		}
+		return nil
+	}
 	switch runtime.GOOS {
 	case "darwin":
 		_, err := exec.Command("xcode-select", "-p").Output()
@@ -44,6 +92,7 @@ func (c *cli) doctor(args []string) error {
 	switch runtime.GOOS {
 	case "darwin":
 		fmt.Fprintln(c.out, "  darwin       here")
+		fmt.Fprintln(c.out, "  ios          full Xcode required; check with keel doctor -target ios")
 	case "linux":
 		fmt.Fprintln(c.out, "  linux        here")
 	}

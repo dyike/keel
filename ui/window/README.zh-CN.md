@@ -14,6 +14,7 @@
 | `screenshot.go` | `Screenshot` 离屏渲染成 PNG |
 | `decorations*.go` | Linux 合成器不画标题栏时由 Keel 绘制 |
 | `titlebar_darwin.*` | macOS 无边框窗口的标题栏拖动区域 |
+| `scene_ios.*` | 实验性 iOS 单场景生命周期适配，需在 Info.plist 配置 `KeelSceneDelegate`，见 [iOS 验证](../../docs/ios.zh-CN.md) |
 | `activation_*` | `Activate(token)`：Wayland 走 xdg-activation，X11 写启动 ID 后请求激活 |
 | `motion_*` | 系统偏好：减少动态效果（macOS）、滚动条自动隐藏（macOS、Windows），写进 `theme` |
 | `scroll_darwin.m`、`scroll_wayland*` | 滚动的设备和手势阶段（触控板抬手、滚轮），Gio 不提供，交给 `core.ReportScrollGesture` |

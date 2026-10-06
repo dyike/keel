@@ -54,6 +54,7 @@ func (c *cli) newProject(args []string) error {
 	cfg := &Config{
 		Name: *name, AppID: *appID, Version: "0.1.0", Build: 1,
 		Binary: binary, Icon: "appicon.png", Main: ".",
+		IOS: &IOSConfig{MinimumVersion: "18.0"},
 	}
 	if cfg.Name == "" {
 		cfg.Name = displayName(base)

@@ -7,7 +7,7 @@
 <link rel="alternate" hreflang="en" href="{{if eq .Lang "en"}}{{rel .Page .Page.Out}}{{else}}{{.Switch}}{{end}}">
 <link rel="alternate" hreflang="zh-CN" href="{{if eq .Lang "zh-CN"}}{{rel .Page .Page.Out}}{{else}}{{.Switch}}{{end}}">
 <link rel="alternate" hreflang="x-default" href="{{if eq .Lang "en"}}{{rel .Page .Page.Out}}{{else}}{{.Switch}}{{end}}">
-<meta name="description" content="{{tr $.Page "Keel：用纯 Go 写桌面界面，GPUI 风格的元素与组件库，基于 Gio。" "Keel: desktop UIs in pure Go, with GPUI-style elements and components, built on Gio."}}">
+<meta name="description" content="{{tr $.Page "Keel：用纯 Go 写桌面、浏览器和实验性 iOS 界面，GPUI 风格的元素与组件库，基于 Gio。" "Keel: UIs in pure Go for desktop, browsers and experimental iOS, with GPUI-style elements and components, built on Gio."}}">
 <link rel="icon" href="{{.Root}}favicon.svg" type="image/svg+xml">
 <link rel="icon" href="{{.Root}}favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="{{.Root}}apple-touch-icon.png">
@@ -37,7 +37,7 @@
 <section class="hero">
   <img class="hero-logo" src="{{.Root}}favicon.svg" alt="Keel" width="88" height="88">
   <h1>{{tr $.Page "用纯 Go 写桌面界面" "Build desktop UIs in pure Go"}}</h1>
-  <p>{{tr $.Page "GPUI 风格的视图与链式样式，80 多个组件，Markdown 与代码编辑器，Agent 自动化测试；macOS、Windows、Linux 与浏览器。" "GPUI-style views and fluent styling, 80+ components, Markdown and code editors, and agent automation. For macOS, Windows, Linux, and the browser."}}</p>
+  <p>{{tr $.Page "GPUI 风格的视图与链式样式，80 多个组件，Markdown 与代码编辑器，Agent 自动化测试；支持 macOS、Windows、Linux、浏览器，以及 " "GPUI-style views and fluent styling, 80+ components, Markdown and code editors, and agent automation. For macOS, Windows, Linux, the browser, and "}}<a href="{{.Root}}docs/ios.html">{{tr $.Page "iOS（实验性）" "iOS (experimental)"}}</a>{{tr $.Page "。" "."}}</p>
   <div class="actions">
     <a class="btn primary" href="{{.Root}}docs/getting-started.html">{{tr $.Page "快速开始" "Getting started"}}</a>
     <a class="btn" href="{{.Demo}}?lang={{.Lang}}">{{tr $.Page "在线体验组件库" "Explore the gallery"}}</a>

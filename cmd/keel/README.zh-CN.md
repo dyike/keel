@@ -20,3 +20,5 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `build.go` | 各平台打包、Windows 资源、Info.plist、Linux 桌面文件 |
 | `icons.go` | 按平台和尺寸生成图标、`keel icon`、.ico |
 | `doctor.go` | 环境检查 |
+
+iOS 构建直接调用 Go 和 Xcode 的 SDK、`actool`、签名工具；运行调用 `simctl`，不依赖 Python。`ios.go` 负责打包、Metal 兼容、图标和签名，`ios_run.go` 负责模拟器选择、安装和启动。完整打包验证：`KEEL_IOS=1 go test ./cmd/keel -run TestNewIOSProjectBuilds -count=1`。用法见 [iOS](../../docs/ios.zh-CN.md)。

@@ -20,3 +20,5 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `build.go` | Packaging for each platform, Windows resources, Info.plist, Linux desktop files |
 | `icons.go` | Generate icons, `keel icon`, .ico by platform and size |
 | `doctor.go` | Environmental Check |
+
+iOS builds invoke Go and Xcode SDKs, `actool` and signing tools directly; the runner uses `simctl`, without Python. `ios.go` handles packaging, Metal compatibility, icons and signing; `ios_run.go` selects, installs and launches simulators. Full packaging check: `KEEL_IOS=1 go test ./cmd/keel -run TestNewIOSProjectBuilds -count=1`. See [iOS](../../docs/ios.md).

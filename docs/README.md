@@ -8,6 +8,7 @@ Start with Getting started to open your first window. Use Guides to build your a
 
 - [Getting started](getting-started.md): scaffold a project, edit its UI, run it, and package it.
 - [WebAssembly](web.md): build WebAssembly and understand the differences from desktop applications.
+- [iOS (experimental)](ios.md): scaffold build/run, scene lifecycle adapter, and remaining validation.
 - [Migration](migration-kit.md): replace APIs from older versions.
 
 ## Guides
