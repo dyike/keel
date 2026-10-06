@@ -281,7 +281,7 @@ func TestSettingsExample(t *testing.T) {
 		t.Skip("builds and runs the example app")
 	}
 	call, _ := startServer(t, nil)
-	got := call("launch", map[string]any{"command": "go run ./examples/components -section settings -width 320", "dir": repoRoot()})
+	got := call("launch", map[string]any{"command": "go run ./examples/components -lang zh-CN -section settings -width 320", "dir": repoRoot()})
 	expect(t, got, `button "通用"`, `button "通知"`, `select "语言 Language"`, `switch "深色模式" unchecked`)
 	expect(t, call("click", map[string]any{"text": "深色模式"}), `switch "深色模式" checked`)
 	got = call("type", map[string]any{"ref": refOf(got, `textbox "搜索设置"`), "text": "邮件"})
@@ -302,7 +302,7 @@ func TestDockExample(t *testing.T) {
 		t.Skip("builds and runs the example app")
 	}
 	call, _ := startServer(t, nil)
-	got := call("launch", map[string]any{"command": "go run ./examples/components -section dock -width 1000", "dir": repoRoot()})
+	got := call("launch", map[string]any{"command": "go run ./examples/components -lang zh-CN -section dock -width 1000", "dir": repoRoot()})
 	expect(t, got, `tab "文件"`, `tab "搜索"`, `tab "大纲"`, `tab "终端"`, `tab "main.go" selected`, `tab "app.go" selected`)
 	got = call("click", map[string]any{"text": "更多 搜索"})
 	expect(t, got, `menuitem "停靠到右侧"`)
