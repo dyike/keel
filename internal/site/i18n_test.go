@@ -47,6 +47,20 @@ func TestBilingualSite(t *testing.T) {
 				t.Fatal("search entries must be relative to their own language root")
 			}
 		}
+		home, err := os.ReadFile(filepath.Join(local.out, "index.html"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		mobileLabel := "iOS and Android"
+		if local.lang == "zh-CN" {
+			mobileLabel = "iOS 和 Android"
+		}
+		if !strings.Contains(string(home), `href="./docs/mobile.html">`+mobileLabel+`</a>`) {
+			t.Errorf("%s: homepage hero must link to both mobile platforms", local.lang)
+		}
+		if strings.Contains(string(home), "experimental iOS") || strings.Contains(string(home), "iOS (experimental)") || strings.Contains(string(home), "实验性 iOS") || strings.Contains(string(home), "iOS（实验性）") {
+			t.Errorf("%s: outdated mobile support description", local.lang)
+		}
 		var titles []string
 		for _, g := range local.nav {
 			titles = append(titles, g.Title)
