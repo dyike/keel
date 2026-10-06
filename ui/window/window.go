@@ -18,6 +18,16 @@ import (
 	"github.com/dyike/keel/ui/internal/loop"
 )
 
+// TrafficLightLayout positions macOS's standard window buttons in dp.
+// Buttons retain their system size, rendering and native behavior.
+// Height is the custom titlebar height; buttons are centered vertically in it.
+// Left is the first button's left inset. OffsetY moves the center down (or up
+// when negative). Spacing is the distance between button centers; zero keeps
+// AppKit's spacing. A nil layout in Options keeps AppKit's default placement.
+type TrafficLightLayout struct {
+	Height, Left, OffsetY, Spacing float32
+}
+
 // Options configures a window. Width and Height are in dp; zero uses 640×480.
 type Options struct {
 	Title         string
@@ -34,6 +44,11 @@ type Options struct {
 	// Frameless hides the system title bar so the content can draw its own,
 	// e.g. a kit.TitleBar; the content then starts at the window's top edge.
 	Frameless bool
+	// NativeTrafficLights keeps AppKit's standard window buttons visible over
+	// frameless content on macOS. Reserve the top-left titlebar area in Content.
+	// Other platforms ignore this option.
+	NativeTrafficLights bool
+	TrafficLightLayout  *TrafficLightLayout
 }
 
 type Window struct {
@@ -44,6 +59,7 @@ type Window struct {
 	root                      root
 	closed                    bool // guarded by the frame lock
 	focused                   bool
+	nativeTrafficLightsDirty  bool
 	nativeView, lastTitleView uintptr
 	x11Window                 uint32               // the X11 window ID on Linux X11, for Activate
 	waylandDisplay            atomic.Pointer[byte] // the window's wl_display on Linux Wayland
@@ -75,6 +91,10 @@ func Open(o Options) *Window {
 }
 
 func newWindow(o Options) *Window {
+	if o.TrafficLightLayout != nil {
+		layout := *o.TrafficLightLayout
+		o.TrafficLightLayout = &layout
+	}
 	if o.Width == 0 {
 		o.Width = 640
 	}
@@ -82,6 +102,18 @@ func newWindow(o Options) *Window {
 		o.Height = 480
 	}
 	return &Window{opts: o, focused: true, shortcuts: mustParseShortcuts(o.Shortcuts), shown: make(chan struct{})}
+}
+
+// SetTrafficLightLayout updates native button placement without recreating
+// the window. It is safe from callbacks or background goroutines; the change
+// is applied on the next frame. NativeTrafficLights must be enabled in Options.
+func (w *Window) SetTrafficLightLayout(layout TrafficLightLayout) {
+	core.Update(func() {
+		if !w.closed {
+			w.opts.TrafficLightLayout = &layout
+			w.nativeTrafficLightsDirty = true
+		}
+	})
 }
 
 // Main runs the platform event loop. The process exits after the last window
@@ -201,6 +233,7 @@ func (w *Window) run() {
 			return
 		case gioapp.ConfigEvent:
 			loop.Lock()
+			w.nativeTrafficLightsDirty = true
 			w.setFocused(e.Config.Focused)
 			if m := e.Config.Mode == gioapp.Maximized; m != w.maximized {
 				w.maximized = m

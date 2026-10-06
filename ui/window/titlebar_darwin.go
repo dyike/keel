@@ -4,6 +4,7 @@ package window
 
 /*
 #include <stdint.h>
+void keel_native_traffic_lights(uintptr_t view, int custom, double height, double left, double offsetY, double spacing);
 void keel_titlebar_area(uintptr_t view, double x, double y, double width, double height);
 */
 import "C"
@@ -22,6 +23,7 @@ func platformWindowEvent(w *Window, event any) {
 		defer loop.Unlock()
 		clearPlatformWindow(w)
 		w.nativeView = e.View
+		w.nativeTrafficLightsDirty = true
 		if e.View != 0 {
 			nativeWindows.Store(e.View, w)
 		}
@@ -35,6 +37,16 @@ func clearPlatformWindow(w *Window) {
 	}
 }
 func syncTitleBar(w *Window) {
+	if w.nativeView != 0 && w.opts.Frameless && w.opts.NativeTrafficLights && w.nativeTrafficLightsDirty {
+		w.nativeTrafficLightsDirty = false
+		var custom C.int
+		var layout TrafficLightLayout
+		if w.opts.TrafficLightLayout != nil {
+			custom = 1
+			layout = *w.opts.TrafficLightLayout
+		}
+		C.keel_native_traffic_lights(C.uintptr_t(w.nativeView), custom, C.double(layout.Height), C.double(layout.Left), C.double(layout.OffsetY), C.double(layout.Spacing))
+	}
 	if w.nativeView == 0 || w.nativeView == w.lastTitleView && w.titleArea == w.lastTitleArea {
 		return
 	}

@@ -35,3 +35,21 @@ window.Main() // Exit the process after the last window is closed
 Before changing the code here, read [Architecture · Cannot wait for the main thread](../../docs/architecture.md#avoid-waiting-for-the-main-thread-while-holding-the-lock) in the lock. See [Window and Application](../../docs/app.md) for details.
 
 `Main` for macOS subscribes to NSWorkspace's accessibility display preferences and scrollbar styles, reading "Reduce Dynamic Effects" and "Show Scrollbars" on startup, and updating `theme.ReducedMotion` and `theme.SystemScrollbarsAutoHide` when they change. The AppKit callback is handed to the background consumer through a bounded queue, and then the topic is updated in `core.Update` to avoid the main thread waiting for the frame lock. "Auto-hide scroll bars" is read once when Windows starts. Windowless and off-screen automation modes do not install native observers, Linux currently uses application settings.
+
+## macOS native traffic light layout
+
+Frameless windows can retain AppKit's standard buttons and center them within a custom titlebar. Layout uses dp; native button size, appearance and behavior remain owned by AppKit. A nil `TrafficLightLayout` keeps system placement. A positive `Height` enables custom placement, `Left` sets the first button's left inset, and `OffsetY` shifts its center down (positive) or up (negative). Zero `Spacing` preserves the system spacing.
+
+```go
+w := window.Open(window.Options{
+    Frameless: true,
+    NativeTrafficLights: true,
+    TrafficLightLayout: &window.TrafficLightLayout{
+        Height: 44, Left: 15, Spacing: 23,
+    },
+    Content: page,
+})
+w.SetTrafficLightLayout(window.TrafficLightLayout{Height: 64, Left: 20})
+```
+
+Reserve the top-left button area in your content. Keel reapplies placement after resizing, fullscreen transitions and AppKit layout passes. The option is macOS-only; runtime updates are safe from callbacks and background goroutines.

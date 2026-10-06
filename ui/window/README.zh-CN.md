@@ -35,3 +35,22 @@ window.Main() // 最后一个窗口关闭后退出进程
 改这里的代码前先读 [架构 · 不能在锁内等待主线程](../../docs/architecture.zh-CN.md#不能在锁内等待主线程)。详见 [窗口与应用](../../docs/app.zh-CN.md)。
 
 macOS 的 `Main` 会订阅 NSWorkspace 的辅助功能显示偏好和滚动条样式，启动时读取“减少动态效果”和“显示滚动条”，变化时更新 `theme.ReducedMotion` 和 `theme.SystemScrollbarsAutoHide`。AppKit 回调通过有界队列交给后台消费者，再在 `core.Update` 中更新主题，避免主线程等待帧锁。Windows 启动时读一次“自动隐藏滚动条”。无窗口和离屏自动化模式不安装原生观察者，Linux 目前使用应用设置。
+
+## macOS 原生交通灯布局
+
+无边框窗口可以保留系统按钮，并按项目的标题栏高度居中。尺寸单位为 dp，按钮保留 AppKit 的外观、大小和行为。`TrafficLightLayout` 为 nil 时使用系统默认位置；`Height` 为正值时启用自定义位置。`OffsetY` 正值向下，负值向上；`Spacing` 为 0 时保留系统按钮间距。
+
+```go
+w := window.Open(window.Options{
+    Frameless: true,
+    NativeTrafficLights: true,
+    TrafficLightLayout: &window.TrafficLightLayout{
+        Height: 44, Left: 15, Spacing: 23,
+    },
+    Content: page,
+})
+// 标题栏样式变化时，无须重新创建窗口。
+w.SetTrafficLightLayout(window.TrafficLightLayout{Height: 64, Left: 20})
+```
+
+应用需为按钮预留左上区域。调整窗口大小、切换全屏及系统重新布局后，Keel 会恢复配置的位置。此选项仅在 macOS 生效；运行时设置可以在 UI 回调或后台 goroutine 中调用。
