@@ -37,7 +37,7 @@ func TestIconCommandAndOverrides(t *testing.T) {
 		t.Fatal(out.String())
 	}
 	icons := filepath.Join(dir, "dist", "icons")
-	for _, f := range []string{"macos.png", "windows.ico", "windows/16.png", "windows/256.png", "linux/48.png", "linux/512.png", "ios.png"} {
+	for _, f := range []string{"macos.png", "windows.ico", "windows/16.png", "windows/256.png", "linux/48.png", "linux/512.png", "ios.png", "android.png"} {
 		if _, err := os.Stat(filepath.Join(icons, f)); err != nil {
 			t.Fatal("missing", f)
 		}

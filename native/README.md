@@ -24,3 +24,5 @@ The two shared parts are not independent modules:
 Supports macOS 14+, Windows, and Linux, other platforms return `native.ErrUnsupported`. On Linux, screenshots and composite input go through X11 (via XWayland in Wayland sessions), notifications go through D-Bus, and the clipboard is supported by both Wayland and X11. For details on each ability on each platform, see [Native ability](../docs/native.md).
 
 Document: [Native ability](../docs/native.md) · [New native ability](../docs/extending.md#add-native-capabilities)
+
+Mobile iOS and Android backends for `native/*` are not implemented; operations return `native.ErrUnsupported`. See [Mobile support](../docs/mobile.md) for UI packaging and running.

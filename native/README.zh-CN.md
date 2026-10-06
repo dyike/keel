@@ -24,3 +24,5 @@
 支持 macOS 14+、Windows 和 Linux，其他平台返回 `native.ErrUnsupported`。Linux 上截图和合成输入走 X11（Wayland 会话里通过 XWayland），通知走 D-Bus，剪贴板 Wayland 和 X11 都支持。各能力在各平台的细节见[原生能力](../docs/native.zh-CN.md)。
 
 文档：[原生能力](../docs/native.zh-CN.md) · [新增原生能力](../docs/extending.zh-CN.md#新增原生能力)
+
+移动端 iOS 和 Android 暂无 `native/*` 后端，各能力返回 `native.ErrUnsupported`。界面打包与运行见 [Mobile 支持](../docs/mobile.zh-CN.md)。

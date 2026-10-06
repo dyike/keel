@@ -11,7 +11,7 @@ Color, size scale, font and system dynamics preferences. For user usage and para
 | `registry.go`, `themes/` | Built-in theme, registry, JSON parsing |
 | `watch.go` | Theme directory polling and hot reloading of the current theme |
 | `scale.go` | Spacing, corner rounded corners, font size and shading scale |
-| `fonts.go`, `fetch_*.go` | Font loading and browser font download |
+| `fonts.go`, `fonts_*.go`, `fetch_*.go` | Font loading, Android system CJK fonts and browser font download |
 | `motion.go` | The system reduces animation and application overlay values, scroll bar preferences |
 
 Depends on Gio and `ui/internal/loop`. `Apply` retains the Material pointer, font, and typesetter, synchronizes the palette, increments `Revision()`, and requests a redraw of all windows; it does not acquire the frame lock itself. `Scope` temporarily switches the color without redrawing or incrementing the version number.

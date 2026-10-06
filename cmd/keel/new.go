@@ -54,13 +54,14 @@ func (c *cli) newProject(args []string) error {
 	cfg := &Config{
 		Name: *name, AppID: *appID, Version: "0.1.0", Build: 1,
 		Binary: binary, Icon: "appicon.png", Main: ".",
-		IOS: &IOSConfig{MinimumVersion: "18.0"},
+		IOS:     &IOSConfig{MinimumVersion: "18.0"},
+		Android: &AndroidConfig{MinimumSDK: 23, TargetSDK: 35},
 	}
 	if cfg.Name == "" {
 		cfg.Name = displayName(base)
 	}
 	if cfg.AppID == "" {
-		cfg.AppID = "com.example." + strings.ReplaceAll(binary, "_", "-")
+		cfg.AppID = "com.example." + strings.NewReplacer("_", "", "-", "").Replace(binary)
 	}
 	if *module == "" {
 		*module = binary

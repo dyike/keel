@@ -96,13 +96,14 @@ func (a *app) Render(cx *el.Context) el.Element {
 ```json
 {
   "name": "My Notes",
-  "appid": "com.example.my-notes",
+  "appid": "com.example.mynotes",
   "version": "0.1.0",
   "build": 1,
   "binary": "my-notes",
   "icon": "appicon.png",
   "main": ".",
-  "ios": {"minimum_version": "18.0"}
+  "ios": {"minimum_version": "18.0"},
+  "android": {"minimum_sdk": 23, "target_sdk": 35}
 }
 ```
 
@@ -115,7 +116,9 @@ func (a *app) Render(cx *el.Context) el.Element {
 
 `keel run` 等同于 `go run`，并把 `appid` 告诉 Gio（Linux 上窗口的 app_id）。生成的 `main.go` 把 `appicon.png` 编进程序并调用 `window.SetIcon`，所以运行时程序坞和任务栏也显示自己的图标（Wayland 除外，见[窗口与应用 · 应用图标](app.zh-CN.md#应用图标)）。`keel run -- --flag` 把 `--` 之后的参数交给应用。
 
-iOS 模拟器使用 `keel run -target ios`：自动构建、安装和启动，`-simulator <UDID>` 选择设备。环境检查用 `keel doctor -target ios`，详见 [iOS（实验性）](ios.zh-CN.md)。
+iOS 模拟器使用 `keel run -target ios`：自动构建、安装和启动，`-simulator <UDID>` 选择设备。环境检查用 `keel doctor -target ios`，详见 [iOS](ios.zh-CN.md)。
+
+Android 使用 `keel run -target android` 安装并启动，多个设备时用 `-serial <serial>` 选择。先执行 `keel doctor -target android` 检查工具链，详见 [Mobile 支持](mobile.zh-CN.md)。
 
 ## 打包
 
@@ -124,10 +127,11 @@ keel build                    # 当前平台
 keel build -target windows    # 在任何系统上都能打 Windows 包
 keel build -target js         # WebAssembly
 keel build -target ios        # macOS + 完整 Xcode，模拟器 .app
+keel build -target android    # Android SDK + NDK + JDK，开发 APK
 keel build -n                 # 只打印要执行的命令
 ```
 
-输出在 `dist/`（`-o` 可改）。打包默认去掉符号表、调试信息和本机路径（`-s -w -trimpath`），体积约小四分之一，崩溃时仍会打印函数名；要用调试器时加 `-debug` 保留。代码高亮和网络图片各约 4 MB，默认不链接，生成的 `main.go` 里有两行注释，用到时取消注释，见 [kit · 可选功能与体积](kit.zh-CN.md#可选功能与体积)。macOS 和浏览器第一次打包会下载 Gio 的打包工具 gogio。
+输出在 `dist/`（`-o` 可改）。打包默认去掉符号表、调试信息和本机路径（`-s -w -trimpath`），体积约小四分之一，崩溃时仍会打印函数名；要用调试器时加 `-debug` 保留。Android 原生库会被 gogio 固定剥离符号，见 [Android](android.zh-CN.md)。代码高亮和网络图片各约 4 MB，默认不链接，生成的 `main.go` 里有两行注释，用到时取消注释，见 [kit · 可选功能与体积](kit.zh-CN.md#可选功能与体积)。macOS、Android 和浏览器第一次打包会下载 Gio 的打包工具 gogio。
 
 | 目标 | 产物 | 图标 | 能在哪里打包 |
 | --- | --- | --- | --- |
@@ -135,6 +139,7 @@ keel build -n                 # 只打印要执行的命令
 | `windows` | `dist/my-notes.exe` 和 `my-notes.ico` | 14 个尺寸嵌进 .exe | 任何系统（不需要 cgo） |
 | `linux` | `dist/linux/`：程序、`<appid>.desktop`、各尺寸图标、`install.sh` | 装进 hicolor 图标主题 | Linux（需要 Wayland/X11 开发头文件） |
 | `ios` | `dist/ios/my-notes.app`；`-device` 输出签名 `.ipa` | iPhone/iPad 图标资源 | macOS（完整 Xcode） |
+| `android` | `dist/android/my-notes.apk` | 各密度图标与 adaptive icon | Android SDK、NDK、JDK |
 | `js` | `dist/web/` | — | 任何系统 |
 
 **macOS**：`-arch arm64,amd64` 打通用包（默认本机架构）。脚手架会重写 Info.plist（应用类型、名称、版本、最低 macOS 14），再给整个 .app 签名：不给身份时是只在本机有效的临时签名；要分发给别人，用 `-sign "Developer ID Application: 你的名字 (TEAMID)"` 签名，再用 `xcrun notarytool` 公证。
@@ -155,7 +160,7 @@ keel build -n                 # 只打印要执行的命令
 
 每个尺寸都从原图直接画到目标大小，不从大图缩小，所以 16、24 这些小图标也清晰。
 
-先看效果再打包：`keel icon` 把各平台的图标都写到 `dist/icons/`（`ios.png`、`macos.png`、`windows.ico` 和 `windows/<尺寸>.png`、`linux/<尺寸>.png`）。
+先看效果再打包：`keel icon` 把各平台的图标都写到 `dist/icons/`（`android.png`、`ios.png`、`macos.png`、`windows.ico` 和 `windows/<尺寸>.png`、`linux/<尺寸>.png`）。
 
 iOS 使用满版原图，系统裁圆角，透明区域合成到白色背景，`icon_mask` 不影响 iOS。可通过 `icons.ios` 指定单独原图。
 

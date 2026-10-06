@@ -1,4 +1,4 @@
-# iOS (experimental)
+# iOS
 
 English | [简体中文](ios.zh-CN.md)
 
