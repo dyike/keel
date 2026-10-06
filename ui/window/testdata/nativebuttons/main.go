@@ -53,6 +53,20 @@ func main() {
 				if C.check_native_buttons(2, 1, 36, 12, -1, 22) != 1 {
 					os.Exit(1)
 				}
+				waitState := func(action C.int) {
+					deadline := time.Now().Add(5 * time.Second)
+					for time.Now().Before(deadline) {
+						if C.check_native_buttons(action, 0, 36, 12, -1, 22) == 1 {
+							return
+						}
+						time.Sleep(20 * time.Millisecond)
+					}
+					fmt.Println("FAIL: native minimize/restore did not finish")
+					os.Exit(1)
+				}
+				waitState(4)
+				C.check_native_buttons(5, 0, 36, 12, -1, 22)
+				waitState(6)
 				C.check_native_buttons(3, 1, 36, 12, -1, 22)
 				return
 			}

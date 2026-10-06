@@ -8,6 +8,9 @@ int check_native_buttons(int action, int report, double height, double left, dou
  dispatch_sync(dispatch_get_main_queue(), ^{
   for (NSWindow *window in NSApp.windows) {
    if (![window.title isEqualToString:@"Native buttons acceptance"]) continue;
+   if (action == 4) { ok = window.miniaturized; break; }
+   if (action == 5) { [window deminiaturize:nil]; ok = 1; break; }
+   if (action == 6) { ok = !window.miniaturized; break; }
    ok = window.titlebarAppearsTransparent && window.titleVisibility == NSWindowTitleHidden && (window.styleMask & NSWindowStyleMaskFullSizeContentView);
    for (NSUInteger kind = NSWindowCloseButton; kind <= NSWindowZoomButton; kind++) {
     NSButton *button = [window standardWindowButton:(NSWindowButton)kind];
@@ -40,8 +43,6 @@ int check_native_buttons(int action, int report, double height, double left, dou
    if (action == 1) [window setContentSize:NSMakeSize(720,360)];
    if (action == 2) {
     [[window standardWindowButton:NSWindowMiniaturizeButton] performClick:nil];
-    if (!window.miniaturized) ok = 0;
-    [window deminiaturize:nil];
    }
    if (action == 3) [[window standardWindowButton:NSWindowCloseButton] performClick:nil];
    break;
