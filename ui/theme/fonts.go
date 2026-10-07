@@ -138,7 +138,9 @@ func (s *FontSet) Use() {
 
 // LoadFontFilesWhere is LoadFontsWhere for font files by path. A file is
 // mapped into memory rather than read where the system allows, and stays
-// mapped: the faces kept refer to its tables, which then take no heap.
+// mapped for the process lifetime. Upstream typesetting v0.3.5 still copies
+// font tables and eagerly parses outlines; mapping the source does not eliminate
+// those heap allocations.
 func LoadFontFilesWhere(keep func(font.Font) bool, paths ...string) error {
 	files := make([][]byte, 0, len(paths))
 	for _, path := range paths {
@@ -151,9 +153,9 @@ func LoadFontFilesWhere(keep func(font.Font) bool, paths ...string) error {
 	return LoadFontsWhere(keep, files...)
 }
 
-// fontBytes lets a font reader that can take tables as slices of the file,
-// rather than copies, do so: data may be a mapped file. LoadFontsWhere's
-// files must therefore not change afterwards.
+// fontBytes retains the source bytes alongside its reader. The Bytes method
+// is not consumed by upstream typesetting v0.3.5; that loader copies tables.
+// LoadFontsWhere's source files must not change afterwards.
 type fontBytes struct {
 	*bytes.Reader
 	data []byte
