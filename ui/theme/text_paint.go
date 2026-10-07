@@ -59,6 +59,19 @@ func (p *GlyphPainter) Paint(ops *op.Ops, sh *text.Shaper, params text.Parameter
 	if len(gs) == 0 {
 		return
 	}
+	if !p.walkFragments(sh, params, gs, col, func(fragment []text.Glyph, displacement fixed.Int26_6) {
+		tr := op.Affine(f32.AffineId().Offset(f32.Pt(float32(displacement)/64, 0))).Push(ops)
+		p.paintFragment(ops, sh, fragment, col)
+		tr.Pop()
+	}) {
+		paintGlyphRun(ops, sh, gs, col)
+	}
+}
+
+func (p *GlyphPainter) walkFragments(sh *text.Shaper, params text.Parameters, gs []text.Glyph, col color.NRGBA, visit func([]text.Glyph, fixed.Int26_6)) bool {
+	if len(gs) == 0 {
+		return true
+	}
 	// Font loading replaces the theme shaper. Release old font/cache references.
 	if p.shaper != sh {
 		p.shaper = sh
@@ -78,8 +91,7 @@ func (p *GlyphPainter) Paint(ops *op.Ops, sh *text.Shaper, params text.Parameter
 		}
 	}
 	if !eligible {
-		paintGlyphRun(ops, sh, gs, col)
-		return
+		return false
 	}
 	// An empty space anchors each path at an integer displacement from the
 	// run's origin. Fractional glyph positions stay inside Shape's cache key,
@@ -92,8 +104,7 @@ func (p *GlyphPainter) Paint(ops *op.Ops, sh *text.Shaper, params text.Parameter
 		sh.LayoutString(params, " ")
 		blank, ok = sh.NextGlyph()
 		if !ok || blank.Bounds != (fixed.Rectangle26_6{}) {
-			paintGlyphRun(ops, sh, gs, col)
-			return
+			return false
 		}
 		if len(p.blanks) >= 128 {
 			clear(p.blanks)
@@ -127,16 +138,15 @@ func (p *GlyphPainter) Paint(ops *op.Ops, sh *text.Shaper, params text.Parameter
 				fragment[i].X = blank.X + (off+step/2)/step*step
 			}
 		}
-		tr := op.Affine(f32.AffineId().Offset(f32.Pt(float32(displacement)/64, 0))).Push(ops)
-		p.paintFragment(ops, sh, fragment[:1+len(part)], col)
-		tr.Pop()
+		visit(fragment[:1+len(part)], displacement)
 	}
+	return true
 }
 
 // Keep fragment identities stable beyond Shaper's 1000-entry whole-run cache.
 // A monospace grid can exceed that count with the same glyphs at different
 // subpixel phases. Bounding this LRU also bounds retained glyph path storage.
-func (p *GlyphPainter) paintFragment(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA) {
+func (p *GlyphPainter) cachedFragment(sh *text.Shaper, gs []text.Glyph) (glyphFragmentKey, glyphFragment) {
 	key := glyphFragmentKey{shaper: sh, count: len(gs)}
 	for i, g := range gs {
 		key.ids[i] = g.ID
@@ -158,6 +168,11 @@ func (p *GlyphPainter) paintFragment(ops *op.Ops, sh *text.Shaper, gs []text.Gly
 		}
 		p.fragments[key] = p.recent.PushFront(f)
 	}
+	return key, f
+}
+
+func (p *GlyphPainter) paintFragment(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA) {
+	_, f := p.cachedFragment(sh, gs)
 	paint.ColorOp{Color: col}.Add(ops)
 	outline := clip.Outline{Path: f.path}.Op().Push(ops)
 	paint.PaintOp{}.Add(ops)

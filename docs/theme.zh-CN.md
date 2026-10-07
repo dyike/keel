@@ -149,3 +149,11 @@ theme.FollowSystemMotion()   // 恢复跟随最近的系统值
 ```
 
 在 UI 回调或 `core.Update` 内调用。自动化模式使用显式覆盖，保持截图稳定；其他平台默认允许动画，应用仍可关闭。
+
+### 字形图片缓存
+
+自定义终端绘制器可以按需启用 `theme.GlyphAtlas`。每帧先调用 `BeginFrame(shaper)`，为所有文字段调用 `Prepare(params, glyphs, color)`，再调用 `Commit()` 和 `Paint(ops, params, glyphs, color)`。只准备当前帧，不预计算后续画面。发生变化的页面每帧生成一个不可变的 `ImageOp`；绘制器关闭时调用 `Release()`。
+
+调用方应使用整数像素平移，字号已换算为物理像素，并且不额外缩放或旋转。其他变换使用 `GlyphPainter`。复杂文字段、半透明颜色、GPU 不可用或缓存超限时回退到矢量绘制；彩色位图字形保留 Gio 的位图绘制。
+
+页面上限为八张 512×512 RGBA 图片（8 MiB），掩码上限为 2 MiB、4096 个条目，每个掩码最多缓存八种颜色。旧页面快照和 GPU 副本还会占用额外内存；`Stats()` 提供当前 CPU 缓存占用和绘制次数。第一帧同步准备所需掩码；后续每帧最多准备 32 个新掩码，连续 60 帧没有新掩码后释放临时 GPU。`SubpixelPhases` 是可选的位置取整，与 `GlyphPainter` 有相同的文字质量取舍。

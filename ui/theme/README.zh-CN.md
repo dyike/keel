@@ -13,6 +13,7 @@
 | `scale.go` | 间距、圆角、字号和阴影刻度 |
 | `fonts.go`、`fonts_*.go`、`fetch_*.go` | 字体加载、Android 系统 CJK 字体与浏览器字体下载 |
 | `text_paint.go` | `GlyphPainter` 为已经排版的单行文字复用矢量片段；缓存有界，复杂字形回退到整段绘制 |
+| `glyph_atlas.go` | 按需启用字形图片图集；掩码和页面缓存有界，绘制前准备，关闭时释放资源 |
 | `motion.go` | 系统减少动画与应用覆盖值、滚动条偏好 |
 
 依赖 Gio 和 `ui/internal/loop`。`Apply` 保留 Material 指针、字体和排版器，同步调色板、递增 `Revision()`，并请求所有窗口重绘；它不自行取得帧锁。`Scope` 临时切换颜色，不重绘、不递增版本号。

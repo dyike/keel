@@ -149,3 +149,11 @@ theme.FollowSystemMotion()   // Restore follows the most recent system value
 ```
 
 Called within a UI callback or `core.Update`. Automation mode uses explicit overrides to keep screenshots stable; other platforms allow animation by default and the app can still be closed.
+
+### Glyph image cache
+
+Custom terminal renderers can opt into `theme.GlyphAtlas`. For each frame, call `BeginFrame(shaper)`, `Prepare(params, glyphs, color)` for every run, then `Commit()` and `Paint(ops, params, glyphs, color)`. Prepare only the current frame; do not precompute future screens. A changed page gets one new immutable `ImageOp` for the frame. Call `Release()` when the renderer closes.
+
+Use it at integral pixel translations, with font size already expressed in physical pixels and no extra scale or rotation. Other transforms should use `GlyphPainter`. Complex runs, translucent colors, unavailable GPU support and cache overflow use vector drawing. Color bitmap glyphs retain Gio's bitmap rendering.
+
+Page pixels are limited to eight 512×512 RGBA pages (8 MiB), masks to 2 MiB and 4096 entries, and each mask to eight colors. Older page snapshots and GPU copies also use memory; `Stats()` reports current CPU cache storage and draw counts. The first frame prepares its needed masks synchronously; later frames prepare up to 32 new masks each; the scratch GPU is released after 60 frames without a new mask. `SubpixelPhases` is opt-in rounding, with the same quality tradeoff as `GlyphPainter`.
