@@ -3,6 +3,7 @@ package el
 import (
 	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/internal/loop"
 	"github.com/dyike/keel/ui/theme"
 	"time"
 )
@@ -79,11 +80,79 @@ func (cx *Context) Countdown(id string, key any, d time.Duration, paused bool, f
 	}
 }
 
+// Poll runs fn every d while the view declares it in each Render, as After,
+// but between frames: fn runs under the frame lock, so it may read and change
+// the view's state, and reports whether it changed what the view shows. Only
+// then do the windows draw. Use it for periodic checks that seldom find a
+// change, such as the system's appearance or a process's state: with After
+// each check draws two frames of the whole window. The key must be
+// comparable and unique within the root; changing d restarts the poll, and
+// a frame that omits it stops it, as does closing the window. Without a
+// window (a screenshot, a test without one) it does not run.
+func (cx *Context) Poll(key any, d time.Duration, fn func() bool) {
+	r := cx.root
+	if r.polls == nil {
+		r.polls = map[any]*viewPoll{}
+	}
+	p := r.polls[key]
+	if p == nil || p.every != d {
+		if p != nil {
+			p.stop()
+		}
+		p = &viewPoll{every: d, win: core.CurrentWindow()}
+		r.polls[key] = p
+		if p.win != nil && d > 0 {
+			p.timer = time.AfterFunc(d, p.tick)
+		}
+	}
+	p.frame = r.timerEpoch
+	p.fn = fn
+}
+
+// viewPoll is a Poll's state. Its fields are guarded by the frame lock.
+type viewPoll struct {
+	every   time.Duration
+	fn      func() bool
+	frame   uint64
+	timer   *time.Timer
+	stopped bool
+	win     core.WindowControls
+}
+
+func (p *viewPoll) tick() {
+	loop.Lock()
+	if closed, ok := p.win.(interface{ Closed() bool }); p.stopped || ok && closed.Closed() {
+		p.stopped = true
+		loop.Unlock()
+		return
+	}
+	changed := p.fn != nil && p.fn()
+	p.timer.Reset(p.every)
+	loop.Unlock()
+	if changed {
+		loop.InvalidateAll()
+	}
+}
+
+// stop ends the poll; called under the frame lock.
+func (p *viewPoll) stop() {
+	p.stopped = true
+	if p.timer != nil {
+		p.timer.Stop()
+	}
+}
+
 func (r *RootWidget) beginTimers() { r.timerEpoch++ }
 func (r *RootWidget) finishTimers() {
 	gtx := r.e.gtx
 	if !gtx.Enabled() {
 		return
+	}
+	for k, p := range r.polls {
+		if p.frame != r.timerEpoch {
+			p.stop()
+			delete(r.polls, k)
+		}
 	}
 	// Collect before invoking callbacks so callbacks cannot mutate this iteration.
 	var due []func()

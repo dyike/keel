@@ -139,6 +139,7 @@ type RootWidget struct {
 	layerSerial    uint64
 	timerEpoch     uint64
 	timers         map[any]*viewTimer
+	polls          map[any]*viewPoll
 	source         input.Source
 	callbacks      bool
 	bg             int // tag of the area under everything; see blur
