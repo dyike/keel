@@ -768,12 +768,8 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	}
 
 	barWidth := e.dp(10)
-	xTrack := image.Rect(viewport.Min.X, max(viewport.Min.Y, viewport.Max.Y-barWidth), viewport.Max.X, viewport.Max.Y)
-	yTrack := image.Rect(max(viewport.Min.X, viewport.Max.X-barWidth), viewport.Min.Y, viewport.Max.X, viewport.Max.Y)
-	if n.style.scrollX && maxX > 0 && n.style.scrollY && maxScroll > 0 {
-		xTrack.Max.X = max(xTrack.Min.X, xTrack.Max.X-barWidth)
-		yTrack.Max.Y = max(yTrack.Min.Y, yTrack.Max.Y-barWidth)
-	}
+	xTrack, yTrack := scrollbarTracks(viewport, e.cornersOf(n.style, n.size).inset(bw), barWidth,
+		n.style.scrollX && maxX > 0 && n.style.scrollY && maxScroll > 0)
 	if n.style.scrollX && n.style.controlledScroll == nil {
 		st.scrollX = st.scrollbarX.update(gtx, xTrack, true, st.scrollX, viewport.Dx(), totalX, e.dp(24), st)
 	}

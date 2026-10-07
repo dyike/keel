@@ -438,7 +438,7 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Elem
 		}
 	}
 	row := el.Div().ID(v.itemID(i)).NoShrink().Role("menuitem").Name(it.label).Row().Items(el.Center).Gap(theme.SpaceLg).
-		Mx(4).Px(theme.SpaceMd).H(el.Dp(30)).Rounded(theme.RadiusSm).Focusable(true).Disabled(v.itemDisabled(i)).
+		Ml(4).Mr(scrollbarGutter).Px(theme.SpaceMd).H(el.Dp(30)).Rounded(theme.RadiusSm).Focusable(true).Disabled(v.itemDisabled(i)).
 		DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).
 		FocusStyle(func(s *el.Style) { s.Bg(theme.Subtle).BorderColor(theme.Subtle) }).
 		OnClick(run).

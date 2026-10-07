@@ -425,12 +425,13 @@ func (v *CommandView) row(cx *el.Context, i int) el.Element {
 		// Group headings share the configured virtual slot height.
 		return el.Div().H(el.Dp(v.itemHeight())).Px(theme.SpaceXl).Pb(theme.SpaceXs).Justify(el.End).Child(el.Text(it.Title).Bold().TextSize(theme.TextSm).TextColor(theme.Muted))
 	}
-	// Keep a 2dp margin on each side of the virtual slot.
+	// Keep 2dp vertical spacing and reserve the 10dp scrollbar track plus
+	// 2dp clearance on the right, so it never covers the row or its hit target.
 	rowID := autoID("command", v) + "/item:" + strconv.Itoa(entry.index)
 	if !it.Disabled && !v.loading && v.searchError == "" && cx.Hovered(rowID) {
 		v.hoveredRow = i
 	}
-	row := el.Div().ID(rowID).Role("option").Name(it.Title).Selected(i == v.active).Disabled(it.Disabled).H(el.Dp(max(1, v.itemHeight()-4))).My(2).Mx(6).Px(10).Rounded(theme.RadiusMd).Row().Items(el.Center).Gap(theme.SpaceMd).Focusable(false)
+	row := el.Div().ID(rowID).Role("option").Name(it.Title).Selected(i == v.active).Disabled(it.Disabled).H(el.Dp(max(1, v.itemHeight()-4))).My(2).Ml(6).Mr(scrollbarGutter).Px(10).Rounded(theme.RadiusMd).Row().Items(el.Center).Gap(theme.SpaceMd).Focusable(false)
 	if v.autoRows {
 		row.H(el.Auto).MinH(el.Dp(max(1, v.itemHeight()-4)))
 	}

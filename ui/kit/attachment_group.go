@@ -70,7 +70,7 @@ func (v *AttachmentGroupView) ScrollState(cx *el.Context) (offset, viewport, con
 
 func (v *AttachmentGroupView) Render(cx *el.Context) el.Element {
 	row := el.Div().ID(autoID("attachment-group", v)).Role("group").Name(v.name).
-		Disabled(v.disabled).W(el.Full).ScrollX().Row().Items(el.Start).Gap(v.gap).Pb(theme.SpaceSm)
+		Disabled(v.disabled).W(el.Full).ScrollX().Row().Items(el.Start).Gap(v.gap).Pb(scrollbarGutter)
 	for _, item := range v.items {
 		row.Child(el.Div().NoShrink().Child(item.Render(cx)))
 	}

@@ -522,12 +522,14 @@ func (v *CodeEditorView) paintCarets(gtx core.C) {
 
 func (v *CodeEditorView) paintScrollbar(gtx core.C) {
 	m := v.metrics
-	total := v.vrowCount() * m.lh
+	// The editor permits one extra line of trailing space. Use the same
+	// extent as clampScroll so the thumb stays in bounds at the bottom.
+	total := v.vrowCount()*m.lh + m.lh
 	if total <= m.size.Y {
 		return
 	}
-	h := max(gtx.Dp(24), m.size.Y*m.size.Y/total)
-	y := int(v.scrollY) * (m.size.Y - h) / max(1, total-m.size.Y)
+	h := min(m.size.Y, max(gtx.Dp(24), m.size.Y*m.size.Y/total))
+	y := min(max(int(v.scrollY), 0), total-m.size.Y) * (m.size.Y - h) / max(1, total-m.size.Y)
 	c := theme.Muted
 	c.A = 0x60
 	w := gtx.Dp(6)

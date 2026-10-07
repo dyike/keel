@@ -110,6 +110,11 @@ func (v *ListView) row(cx *el.Context, p int) el.Element {
 
 	on := v.selectedItem(i)
 	r := el.Div().Role("option").Name(v.items[i]).Selected(on).Disabled(v.itemDisabled[i]).Row().Items(el.Center).Px(10).Rounded(theme.RadiusSm).Mx(4)
+	if v.list.horizontal {
+		r.Mb(scrollbarGutter)
+	} else {
+		r.Mr(scrollbarGutter)
+	}
 	if on {
 		r.Bg(theme.Highlight).TextColor(theme.PrimaryText)
 	}

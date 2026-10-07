@@ -325,7 +325,7 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 	}
 	viewport := el.Div().ID(id + "/bar").Grow().MinW(el.Dp(0)).Row()
 	if v.scrollable {
-		viewport.ScrollX()
+		viewport.ScrollX().Pb(scrollbarGutter)
 	}
 	header.Child(viewport.Decorate(func(gtx core.C, draw func()) {
 		if px := gtx.Metric.PxPerDp; px > 0 {

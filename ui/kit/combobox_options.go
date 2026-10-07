@@ -164,7 +164,7 @@ func (v *ComboboxView) optionRow(cx *el.Context, i int) el.Element {
 	if v.multiple {
 		selected = slices.Contains(v.values, option)
 	}
-	row := el.Div().Disabled(v.optionDisabled(option)).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).Role("option").Name(v.optionLabel(option)).Value(option).Selected(selected).H(el.Dp(max(1, v.optionHeight()-2*ratio))).My(ratio).Mx(4 * ratio).Px(theme.SpaceMd * ratio).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
+	row := el.Div().Disabled(v.optionDisabled(option)).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).Role("option").Name(v.optionLabel(option)).Value(option).Selected(selected).H(el.Dp(max(1, v.optionHeight()-2*ratio))).My(ratio).Ml(4 * ratio).Mr(max(scrollbarGutter, 4*ratio)).Px(theme.SpaceMd * ratio).Row().Items(el.Center).Rounded(theme.RadiusSm).CursorPointer().Focusable(false).
 		Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 	row.Child(el.Div().ID("activate").Absolute().Top(0).Left(0).W(el.Full).H(el.Full).OnClick(func() { v.choose(option); cx.Focus(v.selectionFocusID()) }), v.renderItem(cx, option, selected), v.renderCheck(cx, selected))
 	if v.height > 0 {

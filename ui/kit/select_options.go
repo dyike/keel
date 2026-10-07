@@ -197,7 +197,7 @@ func (v *SelectView) optionRow(cx *el.Context, i int) el.Element {
 	}
 	option := v.entries[row.index]
 	selected := v.picked(option.Value)
-	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(max(1, v.optionHeight()-2))).My(1).Mx(4).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).Focusable(false).TextSize(float32(theme.BodySize) * v.sizeRatio())
+	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(max(1, v.optionHeight()-2))).My(1).Ml(4).Mr(scrollbarGutter).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).Focusable(false).TextSize(float32(theme.BodySize) * v.sizeRatio())
 	var content el.Element
 	if v.renderItem != nil {
 		content = v.renderItem(cx, SelectItemContext{Option: option, Index: row.index, Selected: selected, Active: i == v.active})

@@ -7,7 +7,6 @@ import (
 	"gioui.org/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
-	"github.com/dyike/keel/ui/theme"
 	"image"
 	"image/color"
 )
@@ -30,7 +29,7 @@ func (v *AttachmentGroupView) paintEdgeFade(cx *el.Context, gtx core.C) {
 	}
 	size := gtx.Constraints.Max
 	width := min(gtx.Dp(unit.Dp(24)), size.X/2)
-	height := max(0, size.Y-gtx.Dp(unit.Dp(theme.SpaceSm)))
+	height := max(0, size.Y-gtx.Dp(unit.Dp(scrollbarGutter)))
 	if width <= 0 || height <= 0 {
 		return
 	}

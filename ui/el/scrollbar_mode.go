@@ -43,9 +43,11 @@ func (s *Styled[T]) Scrollbars(mode ScrollbarMode) *T {
 
 var scrollbarDefault atomic.Uint32 // a ScrollbarMode
 
+func init() { scrollbarDefault.Store(uint32(ScrollbarSystem)) }
+
 // SetScrollbarDefault sets the mode of scroll containers that do not choose
-// one, ScrollbarAlways by default. Pass ScrollbarSystem to follow the
-// platform. Windows redraw on their next frame.
+// one, ScrollbarSystem by default. Pass ScrollbarAlways to keep overflowing
+// bars visible. Windows redraw on their next frame.
 func SetScrollbarDefault(mode ScrollbarMode) {
 	if mode <= ScrollbarSystem {
 		scrollbarDefault.Store(uint32(mode))

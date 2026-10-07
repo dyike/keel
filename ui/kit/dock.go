@@ -419,7 +419,7 @@ func (v *DockView) group(cx *el.Context, s DockSide, n *DockNode) el.Element {
 	}
 	active := &n.Active
 	text := locale.Current()
-	tabs := el.Div().Role("tablist").Row().Grow().W(el.Dp(0)).ScrollX().Gap(theme.SpaceXxs)
+	tabs := el.Div().Role("tablist").Row().Grow().W(el.Dp(0)).ScrollX().Pb(scrollbarGutter).Gap(theme.SpaceXxs)
 	for _, id := range ids {
 		id := id
 		on := id == *active

@@ -23,6 +23,26 @@ type scrollbarState struct {
 	grab            float32
 }
 
+// scrollbarTracks keeps the entire painted and interactive tracks clear of
+// rounded corners. Drawing a full-width track inside the rounded viewport
+// otherwise cuts off the thumb's ends, especially in short pill-shaped strips.
+func scrollbarTracks(viewport image.Rectangle, radius corners, width int, both bool) (x, y image.Rectangle) {
+	x = image.Rect(viewport.Min.X, max(viewport.Min.Y, viewport.Max.Y-width), viewport.Max.X, viewport.Max.Y)
+	y = image.Rect(max(viewport.Min.X, viewport.Max.X-width), viewport.Min.Y, viewport.Max.X, viewport.Max.Y)
+	// Keep travel in very short viewports, even when opposing radii meet.
+	xLimit := max(0, (x.Dx()-2)/2)
+	yLimit := max(0, (y.Dy()-2)/2)
+	x.Min.X += min(radius[3], xLimit)
+	x.Max.X -= min(radius[2], xLimit)
+	y.Min.Y += min(radius[1], yLimit)
+	y.Max.Y -= min(radius[2], yLimit)
+	if both {
+		x.Max.X = max(x.Min.X, min(x.Max.X, viewport.Max.X-width))
+		y.Max.Y = max(y.Min.Y, min(y.Max.Y, viewport.Max.Y-width))
+	}
+	return x, y
+}
+
 func scrollbarThumb(track image.Rectangle, horizontal bool, offset, view, total, minimum int) image.Rectangle {
 	length := mainOf(track.Size(), horizontal)
 	if length <= 0 || total <= view || view <= 0 {

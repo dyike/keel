@@ -231,7 +231,7 @@ func (v *TreeView) row(cx *el.Context, i int) el.Element {
 		}
 	}
 	row := el.Div().Role("treeitem").Name(n.Label).Value(state).Selected(on).Disabled(n.Disabled).
-		H(el.Dp(v.list.rowH)).Row().Items(el.Center).Gap(theme.SpaceXs).Pl(8 + v.indent*float32(r.depth)).Pr(theme.SpaceMd).Rounded(theme.RadiusSm).Mx(4)
+		H(el.Dp(v.list.rowH)).Row().Items(el.Center).Gap(theme.SpaceXs).Pl(8 + v.indent*float32(r.depth)).Pr(theme.SpaceMd).Rounded(theme.RadiusSm).Ml(4).Mr(scrollbarGutter)
 	if on {
 		row.Bg(theme.Highlight).TextColor(theme.PrimaryText)
 	}

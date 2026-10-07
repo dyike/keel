@@ -529,7 +529,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 	content := el.Div().MinW(el.Dp(minWidth)).Items(el.Stretch).
 		When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Child(head, el.Div().H(el.Dp(1)).NoShrink().Bg(theme.Border), body)
-	table := el.Div().ID(autoID("table", v)).ScrollX().Role("table").Value(locale.Current().Rows(len(v.order))).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
+	table := el.Div().ID(autoID("table", v)).ScrollX().Pb(scrollbarGutter).Role("table").Value(locale.Current().Rows(len(v.order))).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {

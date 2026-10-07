@@ -29,17 +29,23 @@ func TestScrollbarFadeAndModes(t *testing.T) {
 		t.Fatal("reduced motion does not fade")
 	}
 
-	defer SetScrollbarDefault(ScrollbarAlways)
-	defer theme.SetSystemScrollbarsAutoHide(false)
+	previousDefault := ScrollbarMode(scrollbarDefault.Load())
+	previousAutoHide := theme.SystemScrollbarsAutoHide()
+	defer SetScrollbarDefault(previousDefault)
+	defer theme.SetSystemScrollbarsAutoHide(previousAutoHide)
+	theme.SetSystemScrollbarsAutoHide(false)
 	if resolveScrollbars(0, false) != ScrollbarAlways {
-		t.Fatal("default is Always")
+		t.Fatal("system default with persistent bars is Always")
 	}
-	SetScrollbarDefault(ScrollbarSystem)
 	theme.SetSystemScrollbarsAutoHide(true)
 	if resolveScrollbars(0, false) != ScrollbarScrolling {
 		t.Fatal("system default follows the platform")
 	}
 	if resolveScrollbars(ScrollbarHover, true) != ScrollbarHover || resolveScrollbars(ScrollbarAlways, true) != ScrollbarAlways {
 		t.Fatal("an element's own mode wins")
+	}
+	SetScrollbarDefault(ScrollbarAlways)
+	if resolveScrollbars(0, false) != ScrollbarAlways {
+		t.Fatal("explicit global default wins over the platform")
 	}
 }

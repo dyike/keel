@@ -202,5 +202,5 @@ func (v *StepperView) Render(cx *el.Context) el.Element {
 	if v.vertical {
 		return viewport.ScrollY()
 	}
-	return viewport.ScrollX().Pb(theme.SpaceSm)
+	return viewport.ScrollX().Pb(scrollbarGutter)
 }
