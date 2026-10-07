@@ -38,7 +38,7 @@ const usage = `keel creates, runs and packages Keel apps for desktop, web and iO
 
 Usage:
   keel new <dir> [flags]     create a project in dir
-  keel run [flags] [-- args] run the project (use -target ios for a simulator)
+  keel run [flags] [-- args] run and watch the project (use -watch=false to disable)
   keel build [flags]         package the project into dist/
   keel icon [-o dir]         write each platform's icons, to check them
   keel doctor [flags]        check the toolchain (use -target ios for Xcode)

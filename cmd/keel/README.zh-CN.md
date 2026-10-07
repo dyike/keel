@@ -16,7 +16,8 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `main.go` | 子命令分发，运行外部命令 |
 | `config.go` | `keel.json` 读写与校验 |
 | `new.go` | 新建项目，模板在 `template/` |
-| `run.go` | `keel run` |
+| `run.go` | `keel run` 参数和开发图标 |
+| `run_watch.go`、`run_process_*.go` | 文件监听、重新编译和进程管理 |
 | `build.go` | 各平台打包、Windows 资源、Info.plist、Linux 桌面文件 |
 | `icons.go` | 按平台和尺寸生成图标、`keel icon`、.ico |
 | `doctor.go` | 环境检查 |

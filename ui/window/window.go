@@ -76,6 +76,7 @@ type Window struct {
 // It panics on an invalid shortcut, which is a programming error.
 func Open(o Options) *Window {
 	w := newWindow(o)
+	registerDevelopmentWindow(w)
 	loadRunIcon()
 	if offScreen() {
 		openVirtual(w, true)
@@ -301,6 +302,7 @@ func (w *Window) destroy() {
 
 // finish marks the window closed, runs OnClose and reports how many windows remain.
 func (w *Window) finish() int {
+	unregisterDevelopmentWindow(w)
 	remaining := loop.Unregister(w)
 	loop.Lock()
 	w.closed = true

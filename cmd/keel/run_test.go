@@ -107,7 +107,7 @@ printf '%s\n' "$@"
 	copyPath := filepath.Join(dir, "received.png")
 	t.Setenv("KEEL_ICON_TEST_COPY", copyPath)
 	c, out := newCLI(dir)
-	if err := c.runProject([]string{"--", "--title", "two words"}); err != nil {
+	if err := c.runProject([]string{"-watch=false", "--", "--title", "two words"}); err != nil {
 		t.Fatal(err)
 	}
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")

@@ -113,7 +113,9 @@ func (a *app) Render(cx *el.Context) el.Element {
 
 ## 运行
 
-`keel run` 调用 `go run`，把 `appid` 告诉 Gio，并在打开首个窗口时设置 `keel.json` 中配置的应用图标。它遵循 `icon_mask` 和 `icons` 中的平台覆盖配置，不生成应用包。应用主动调用的 `window.SetIcon` 优先。Wayland 的图标要求见[窗口与应用 · 应用图标](app.zh-CN.md#应用图标)。`keel run -- --flag` 把 `--` 之后的参数交给应用。
+桌面端 `keel run` 默认开启热更新：监听项目源码、资源和本地 `replace`/`go.work` 模块，保存后重新编译，编译成功再重启应用；编译失败时保留当前窗口，等待下一次修改。连续保存会合并触发，构建产物放在临时目录，不生成应用包。macOS/Linux 下，重启前会执行窗口的 `OnClose` 回调，供应用保存持久化状态；普通内存状态仍会重置。用户关闭最后一个窗口或按 Cmd+Q 正常退出应用时，`keel run` 也会结束监听；即使正在编译，也会取消构建，不重新打开窗口。应用崩溃后仍会等待源码修改。按 Ctrl+C 停止，或使用 `keel run -watch=false` 关闭监听。
+
+`keel run` 把 `appid` 告诉 Gio，并在打开首个窗口时设置 `keel.json` 中配置的应用图标。它遵循 `icon_mask` 和 `icons` 中的平台覆盖配置，不生成应用包。应用主动调用的 `window.SetIcon` 优先。Wayland 的图标要求见[窗口与应用 · 应用图标](app.zh-CN.md#应用图标)。`keel run -- --flag` 把 `--` 之后的参数交给应用。
 
 iOS 模拟器使用 `keel run -target ios`：自动构建、安装和启动，`-simulator <UDID>` 选择设备。环境检查用 `keel doctor -target ios`，详见 [iOS（实验性）](ios.zh-CN.md)。
 

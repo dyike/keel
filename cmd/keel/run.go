@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 )
@@ -14,6 +16,7 @@ func (c *cli) runProject(args []string) error {
 	fs := flag.NewFlagSet("run", flag.ContinueOnError)
 	fs.SetOutput(c.errw)
 	target := fs.String("target", "desktop", "desktop or ios")
+	watch := fs.Bool("watch", true, "desktop: rebuild and restart on file changes")
 	simulator := fs.String("simulator", "", "ios: simulator UDID (default: the sole booted device, otherwise the newest available iPhone)")
 	fs.BoolVar(&c.dryRun, "n", false, "print the commands instead of running them")
 	fs.Usage = func() {
@@ -38,12 +41,17 @@ func (c *cli) runProject(args []string) error {
 	if c.dryRun {
 		return c.command(dir, nil, "go", goArgs...)
 	}
+	if *watch {
+		ctx, stop := signal.NotifyContext(context.Background(), runStopSignals()...)
+		defer stop()
+		return c.watchProject(ctx, dir, fs.Args())
+	}
 	icon, cleanup, err := prepareRunIcon(dir, cfg, runtime.GOOS)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	return c.command(dir, []string{"KEEL_RUN_ICON=" + icon}, "go", goArgs...)
+	return c.command(dir, []string{"KEEL_RUN_ICON=" + icon, "KEEL_RUN_WATCH=0"}, "go", goArgs...)
 }
 
 // appIDFlag gives the binary the app ID Gio reports to Linux desktops

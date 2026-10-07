@@ -16,7 +16,8 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `main.go` | Subcommand distribution, running external commands |
 | `config.go` | `keel.json` Reading, writing and verification |
 | `new.go` | New project, template in `template/` |
-| `run.go` | `keel run` |
+| `run.go` | `keel run` flags and development icon |
+| `run_watch.go`, `run_process_*.go` | File watching, rebuilds and process lifecycle |
 | `build.go` | Packaging for each platform, Windows resources, Info.plist, Linux desktop files |
 | `icons.go` | Generate icons, `keel icon`, .ico by platform and size |
 | `doctor.go` | Environmental Check |

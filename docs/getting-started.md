@@ -113,7 +113,9 @@ Create stateful components once in `newApp` and retain them in view fields. `Ren
 
 ## Run
 
-`keel run` invokes `go run`, passes `appid` to Gio, and supplies the icon configured in `keel.json` when the first window opens. It honors `icon_mask` and platform overrides under `icons`, without creating an application bundle. Explicit `window.SetIcon` calls take precedence. Wayland has separate requirements; see [Application icons](app.md#app-icons). Use `keel run -- --flag` to pass arguments to your application.
+Desktop `keel run` watches project files, assets and local `replace`/`go.work` modules by default. Saving rebuilds the app and restarts it only after a successful compilation; build errors leave the current window running until the next edit. Consecutive saves are debounced, and development executables stay in a temporary directory without creating an application bundle. On macOS/Linux, Keel runs the windows’ `OnClose` callbacks before restarting so applications can persist state. Ordinary in-memory state resets. Closing the last window or quitting normally (Cmd+Q on macOS) stops the watcher and cancels any pending build without reopening the app. Application crashes keep the watcher alive for the next edit. Press Ctrl+C to stop, or use `keel run -watch=false` to disable watching.
+
+`keel run` passes `appid` to Gio, and supplies the icon configured in `keel.json` when the first window opens. It honors `icon_mask` and platform overrides under `icons`, without creating an application bundle. Explicit `window.SetIcon` calls take precedence. Wayland has separate requirements; see [Application icons](app.md#app-icons). Use `keel run -- --flag` to pass arguments to your application.
 
 Use `keel run -target ios` to build, install and launch on an iOS simulator; `-simulator <UDID>` selects the device. Check the environment with `keel doctor -target ios`. See [iOS (experimental)](ios.md).
 
