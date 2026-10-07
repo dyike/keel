@@ -4,7 +4,7 @@ English | [简体中文](CLA.zh-CN.md)
 
 This agreement applies to code, documentation, and other materials (the “Contribution”) that you (the “Contributor”) submit to the Keel project (the “Project”, maintained by dyike, the “Maintainer”). Submitting a Contribution means you accept this agreement.
 
-1. **License grant.** You grant the Maintainer and its assigns a perpetual, worldwide, royalty-free, irrevocable, non-exclusive license to reproduce, modify, publish, sublicense, and distribute your Contribution and its derivative works, **including under licenses other than AGPL-3.0, such as a commercial license**.
+1. **License grant.** You grant the Maintainer and its assigns a perpetual, worldwide, royalty-free, irrevocable, non-exclusive license to reproduce, modify, publish, sublicense, and distribute your Contribution and its derivative works, **including under licenses other than MIT, such as a commercial license**.
 
 2. **Patents.** If your Contribution involves patents that you own or are authorized to license, you grant the Maintainer and Project users a perpetual, worldwide, royalty-free, irrevocable patent license to make, use, sell, and distribute your Contribution and its combination with the Project.
 
@@ -14,7 +14,7 @@ This agreement applies to code, documentation, and other materials (the “Contr
 
 5. **No warranty.** Except for Section 4, Contributions are provided “as is”, without any express or implied warranty.
 
-6. **Open-source commitment.** The Maintainer will continue to publish the Project under AGPL-3.0 or another OSI-approved open-source license. Your Contribution will remain available under an open-source license.
+6. **Open-source commitment.** The Maintainer will continue to publish the Project under MIT or another OSI-approved open-source license. Your Contribution will remain available under an open-source license.
 
 Include this sentence in your first Pull Request description to accept the agreement:
 

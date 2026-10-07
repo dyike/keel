@@ -6,11 +6,11 @@
 
 ## 授权
 
-Keel 采用 AGPL-3.0 与商业授权双授权（见 [LICENSING.md](LICENSING.zh-CN.md)）。为了让你的贡献也能随商业授权发布，**提交第一个 Pull Request 前需要同意 [贡献者授权协议（CLA）](CLA.zh-CN.md)**：在 PR 描述里写上
+Keel 采用 MIT 协议（见 [授权说明](LICENSING.zh-CN.md)），贡献也以 MIT 协议发布。**提交第一个 Pull Request 前需要同意 [贡献者授权协议（CLA）](CLA.zh-CN.md)**：在 PR 描述里写上
 
 > I have read and agree to the Keel Contributor License Agreement (CLA.md).
 
-没有同意 CLA 的 PR 不会被合并。CLA 不转让你的版权，只是允许项目以开源和商业两种授权发布你的贡献。
+没有同意 CLA 的 PR 不会被合并。CLA 不转让你的版权，只是授予项目使用和分发你的贡献的权利。
 
 ## 提交前
 

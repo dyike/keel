@@ -37,4 +37,4 @@ Requires Go 1.26+. On macOS, install Xcode Command Line Tools. On Linux, install
 
 ## Licensing
 
-Keel is dual licensed under [AGPL-3.0](LICENSE) and a commercial license. Open-source projects and personal use are free under the AGPL. Using Keel in closed-source software requires a commercial license. See [LICENSING.md](LICENSING.md) and the [contribution guide](CONTRIBUTING.md).
+Keel is licensed under the [MIT License](LICENSE), free for commercial and closed-source use. See [LICENSING.md](LICENSING.md) and the [contribution guide](CONTRIBUTING.md).

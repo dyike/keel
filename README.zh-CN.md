@@ -37,4 +37,4 @@ go test -race ./...
 
 ## 授权
 
-Keel 采用 [AGPL-3.0](LICENSE) 与商业授权双授权。开源项目和个人自用按 AGPL 免费使用；在闭源软件里使用 Keel 需要购买商业授权。详见 [LICENSING.md](LICENSING.zh-CN.md)，参与贡献见 [CONTRIBUTING.md](CONTRIBUTING.zh-CN.md)。
+Keel 采用 [MIT 协议](LICENSE)，可免费用于商业和闭源软件。详见 [授权说明](LICENSING.zh-CN.md)，参与贡献见 [贡献指南](CONTRIBUTING.zh-CN.md)。

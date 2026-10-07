@@ -77,7 +77,7 @@
       </nav>
       {{end}}
       <footer class="edit"><a href="{{.Source}}">{{tr $.Page "在 GitHub 上查看此页源文件" "View this page on GitHub"}}</a>
-        <span class="license">{{tr $.Page "Keel 采用 " "Keel is dual licensed under "}}<a href="{{.Repo}}/blob/main/LICENSE">AGPL-3.0</a>{{tr $.Page " 与" " and "}}<a href="{{.Repo}}/blob/main/{{if eq .Lang "zh-CN"}}LICENSING.zh-CN.md{{else}}LICENSING.md{{end}}">{{tr $.Page "商业授权" "a commercial license"}}</a>{{tr $.Page "双授权" ""}}</span></footer>
+        <span class="license">{{tr $.Page "Keel 采用 " "Keel is licensed under "}}<a href="{{.Repo}}/blob/main/LICENSE">MIT</a>{{tr $.Page " 协议" ""}}</span></footer>
     </article>
   </main>
   {{if .Page.TOC}}

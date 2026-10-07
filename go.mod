@@ -2,8 +2,8 @@ module github.com/dyike/keel
 
 go 1.26.1
 
-// v0.0.1 and v0.0.2 were published before Keel had a license; use v0.0.3
-// or later, released under AGPL-3.0 with a commercial option.
+// v0.0.1 and v0.0.2 were published before Keel had a license.
+// Use a licensed release; see LICENSE in the chosen version.
 retract [v0.0.1, v0.0.2]
 
 require (

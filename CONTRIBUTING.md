@@ -6,11 +6,11 @@ Issues and Pull Requests are welcome.
 
 ## Licensing
 
-Keel is dual licensed under AGPL-3.0 and a commercial license; see [LICENSING.md](LICENSING.md). To allow your contribution in commercial releases, **agree to the [Contributor License Agreement (CLA)](CLA.md) before your first Pull Request**. Include this sentence in the PR description:
+Keel is licensed under MIT; see [LICENSING.md](LICENSING.md). Contributions are released under MIT. Please **agree to the [Contributor License Agreement (CLA)](CLA.md) before your first Pull Request**. Include this sentence in the PR description:
 
 > I have read and agree to the Keel Contributor License Agreement (CLA.md).
 
-PRs without CLA acceptance will not be merged. The CLA preserves your copyright and allows the Project to release your contribution under both open-source and commercial licenses.
+PRs without CLA acceptance will not be merged. The CLA preserves your copyright and grants the Project permission to use and distribute your contribution.
 
 ## Before submitting
 
