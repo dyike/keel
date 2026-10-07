@@ -15,7 +15,7 @@ type shortcut struct {
 }
 
 func (w *Window) handleShortcuts(gtx core.C) {
-	for _, s := range w.shortcuts {
+	for _, s := range append(w.shortcuts, applicationMenuShortcuts()...) {
 		for {
 			ev, ok := gtx.Event(key.Filter{Name: s.name, Required: s.mods})
 			if !ok {

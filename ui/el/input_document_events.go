@@ -68,6 +68,14 @@ func (e *engine) inputDocumentAction(n *Node, st *elemState, action InputAction)
 		}
 	case InputSelectAll:
 		_ = d.session.SelectSource(InputRange{Start: 0, End: len(d.Content().Text())})
+	case InputUndo, InputRedo:
+		if !n.input.readOnly {
+			if action == InputUndo {
+				d.session.Undo()
+			} else {
+				d.session.Redo()
+			}
+		}
 	}
 	documentSyncEditor(st, d)
 }

@@ -7,6 +7,7 @@ import (
 	"gioui.org/io/clipboard"
 	"gioui.org/op"
 	"gioui.org/widget"
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/inputcontent"
 )
 
@@ -18,6 +19,8 @@ const (
 	InputCut
 	InputPaste
 	InputSelectAll
+	InputUndo
+	InputRedo
 )
 
 // InputSelection returns the input's last editor text and rune selection.
@@ -40,7 +43,7 @@ func (cx *Context) InputSelection(id string) (InputEdit, bool) {
 // inputs reject Cut/Paste; password inputs reject Copy/Cut. Paste uses the system
 // clipboard's asynchronous text path and the input's normal filter/transform.
 func (cx *Context) InputAction(id string, action InputAction) {
-	if action > InputSelectAll || !cx.root.e.gtx.Enabled() {
+	if action > InputRedo || !cx.root.e.gtx.Enabled() {
 		return
 	}
 	for _, st := range cx.root.store.states {
@@ -79,6 +82,32 @@ func (e *engine) inputAction(n *Node, st *elemState, action InputAction) (widget
 		}
 	case InputSelectAll:
 		ed.SetCaret(0, ed.Len())
+	case InputUndo, InputRedo:
+		e.inputUndoAction(n, st, action == InputRedo)
 	}
 	return nil, true
+}
+
+// Menu operations preserve the editor's focus, including rich document editors.
+func (e *engine) inputMenuActions(n *Node, st *elemState) {
+	for {
+		action, ok := core.NextEditAction(e.gtx, &st.editor)
+		if !ok {
+			return
+		}
+		switch action {
+		case core.EditCopy:
+			st.inputActions = append(st.inputActions, InputCopy)
+		case core.EditCut:
+			st.inputActions = append(st.inputActions, InputCut)
+		case core.EditPaste:
+			st.inputActions = append(st.inputActions, InputPaste)
+		case core.EditSelectAll:
+			st.inputActions = append(st.inputActions, InputSelectAll)
+		case core.EditUndo:
+			st.inputActions = append(st.inputActions, InputUndo)
+		case core.EditRedo:
+			st.inputActions = append(st.inputActions, InputRedo)
+		}
+	}
 }

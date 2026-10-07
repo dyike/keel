@@ -581,14 +581,13 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 			core.Call(gtx, func() { fn(e) })
 		}
 	}
+	e.inputMenuActions(n, st)
 	if spec.document != nil {
 		e.inputDocumentEvents(n, st)
 	} else {
 		st.inputDocument = nil
 		e.inputPasteKeys(n, st)
-		if spec.transform != nil || spec.transformEdit != nil {
-			e.inputUndoKeys(n, st)
-		}
+		e.inputUndoKeys(n, st)
 		// User edits first, then program changes to the bound string.
 		for {
 			beforeStart, beforeEnd := ed.Selection()
@@ -629,12 +628,12 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 					if text == st.lastText {
 						break
 					}
-					st.inputUndo = append(st.inputUndo, before)
-					if len(st.inputUndo) > 100 {
-						st.inputUndo = st.inputUndo[1:]
-					}
-					st.inputRedo = nil
 				}
+				st.inputUndo = append(st.inputUndo, before)
+				if len(st.inputUndo) > 100 {
+					st.inputUndo = st.inputUndo[1:]
+				}
+				st.inputRedo = nil
 				st.lastText = text
 				if spec.bind != nil {
 					*spec.bind = text

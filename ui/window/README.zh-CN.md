@@ -54,3 +54,7 @@ w.SetTrafficLightLayout(window.TrafficLightLayout{Height: 64, Left: 20})
 ```
 
 应用需为按钮预留左上区域。调整窗口大小、切换全屏及系统重新布局后，Keel 会恢复配置的位置。此选项仅在 macOS 生效；运行时设置可以在 UI 回调或后台 goroutine 中调用。
+
+应用菜单和系统外观通过 Go API 配置：`NewMenuBar`、`SetApplicationMenu`、`SystemAppearance`、`SetNativeAppearance`。自定义方式和平台能力见[窗口与应用](../../docs/app.zh-CN.md#应用菜单与系统外观)。
+
+菜单后端：macOS 使用 AppKit，Windows 使用 Win32，Linux（X11/Wayland）由 Keel 绘制窗口内菜单。`Options.MenuDisplay` 可选择窗口内菜单或应用自行绘制；自定义编辑器通过 `core.NextEditAction` 处理标准编辑操作。

@@ -16,25 +16,33 @@ func (e *engine) inputUndoKeys(n *Node, st *elemState) {
 		if !ok || ke.State != key.Press || !e.gtx.Enabled() || ed.ReadOnly {
 			continue
 		}
-		from, to := &st.inputUndo, &st.inputRedo
-		if ke.Name == "Y" || ke.Modifiers.Contain(key.ModShift) {
-			from, to = to, from
-		}
-		if len(*from) == 0 {
-			continue
-		}
-		start, end := ed.Selection()
-		*to = append(*to, InputEdit{Text: ed.Text(), Start: start, End: end})
-		snapshot := (*from)[len(*from)-1]
-		*from = (*from)[:len(*from)-1]
-		ed.SetText(snapshot.Text)
-		ed.SetCaret(snapshot.Start, snapshot.End)
-		st.lastText = snapshot.Text
-		if n.input.bind != nil {
-			*n.input.bind = snapshot.Text
-		}
-		if fn := n.input.onChange; fn != nil {
-			core.Call(e.gtx, func() { fn(snapshot.Text) })
-		}
+		e.inputUndoAction(n, st, ke.Name == "Y" || ke.Modifiers.Contain(key.ModShift))
+	}
+}
+
+func (e *engine) inputUndoAction(n *Node, st *elemState, redo bool) {
+	ed := &st.editor
+	if !e.gtx.Enabled() || ed.ReadOnly {
+		return
+	}
+	from, to := &st.inputUndo, &st.inputRedo
+	if redo {
+		from, to = to, from
+	}
+	if len(*from) == 0 {
+		return
+	}
+	start, end := ed.Selection()
+	*to = append(*to, InputEdit{Text: ed.Text(), Start: start, End: end})
+	snapshot := (*from)[len(*from)-1]
+	*from = (*from)[:len(*from)-1]
+	ed.SetText(snapshot.Text)
+	ed.SetCaret(snapshot.Start, snapshot.End)
+	st.lastText = snapshot.Text
+	if n.input.bind != nil {
+		*n.input.bind = snapshot.Text
+	}
+	if fn := n.input.onChange; fn != nil {
+		core.Call(e.gtx, func() { fn(snapshot.Text) })
 	}
 }

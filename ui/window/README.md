@@ -53,3 +53,7 @@ w.SetTrafficLightLayout(window.TrafficLightLayout{Height: 64, Left: 20})
 ```
 
 Reserve the top-left button area in your content. Keel reapplies placement after resizing, fullscreen transitions and AppKit layout passes. The option is macOS-only; runtime updates are safe from callbacks and background goroutines.
+
+Application menus and appearance are configured through Go APIs: `NewMenuBar`, `SetApplicationMenu`, `SystemAppearance` and `SetNativeAppearance`. See [Window and Application](../../docs/app.md#application-menus-and-system-appearance) for customization and platform capabilities.
+
+Menu backends: AppKit on macOS, Win32 on Windows, Keel-rendered window menus on Linux (X11/Wayland). `Options.MenuDisplay` permits a custom window menu or application renderer. Focused custom editors handle standard operations through `core.NextEditAction`.

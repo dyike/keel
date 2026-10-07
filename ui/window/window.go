@@ -3,6 +3,7 @@ package window
 import (
 	"image"
 	"os"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -28,11 +29,23 @@ type TrafficLightLayout struct {
 	Height, Left, OffsetY, Spacing float32
 }
 
+// MenuDisplay selects how an installed application menu is shown in this window.
+type MenuDisplay uint8
+
+const (
+	MenuDisplayAuto   MenuDisplay = iota // AppKit/Win32 menus, in-window menus on Linux.
+	MenuDisplayWindow                    // Keel-drawn menu; useful for custom title bars and testing.
+	MenuDisplayHidden                    // Application provides its own renderer; shortcuts remain available.
+)
+
 // Options configures a window. Width and Height are in dp; zero uses 640×480.
 type Options struct {
+	MenuDisplay   MenuDisplay
 	Title         string
 	Width, Height int
-	Content       core.Widget
+	// MinWidth and MinHeight constrain the client area in dp; zero leaves an axis unconstrained.
+	MinWidth, MinHeight int
+	Content             core.Widget
 	// Overlay is drawn over the whole window, above Content, for hand-written
 	// Gio content; el views declare overlays with cx.Overlay instead. It should
 	// take no space while it has nothing to show.
@@ -41,6 +54,9 @@ type Options struct {
 	// "mod+," (Cmd on macOS, Ctrl elsewhere), "ctrl+shift+s", "esc".
 	Shortcuts map[string]func()
 	OnClose   func()
+	// OnResize receives the actual client-area size in dp, on the first frame
+	// and when it changes. It runs on the UI update queue.
+	OnResize func(width, height int)
 	// Frameless hides the system title bar so the content can draw its own,
 	// e.g. a kit.TitleBar; the content then starts at the window's top edge.
 	Frameless bool
@@ -52,10 +68,16 @@ type Options struct {
 }
 
 type Window struct {
+	resizeVersion             atomic.Uint64
+	resizeSerial              sync.Mutex
+	size                      atomic.Uint64
+	lastSize                  image.Point
 	win                       *gioapp.Window // nil in automation mode
 	virt                      *virtual       // non-nil in automation mode
 	opts                      Options
 	shortcuts                 []shortcut
+	menuView                  applicationMenuView
+	menuEdits                 []core.EditAction
 	root                      root
 	closed                    bool // guarded by the frame lock
 	focused                   bool
@@ -83,7 +105,7 @@ func Open(o Options) *Window {
 		return w
 	}
 	w.win = new(gioapp.Window)
-	w.win.Option(gioapp.Title(o.Title), gioapp.Size(unit.Dp(w.opts.Width), unit.Dp(w.opts.Height)), gioapp.Decorated(askDecorations(o.Frameless)))
+	w.win.Option(w.nativeOptions()...)
 	loop.Register(w, w.win.Invalidate)
 	if automating() {
 		openVirtual(w, false) // shadow of the real window, driven by agents
@@ -93,6 +115,9 @@ func Open(o Options) *Window {
 }
 
 func newWindow(o Options) *Window {
+	if o.MinWidth < 0 || o.MinHeight < 0 || uint64(o.MinWidth) > 2147483647 || uint64(o.MinHeight) > 2147483647 {
+		panic("window: invalid minimum size")
+	}
 	if o.TrafficLightLayout != nil {
 		layout := *o.TrafficLightLayout
 		o.TrafficLightLayout = &layout
@@ -103,7 +128,20 @@ func newWindow(o Options) *Window {
 	if o.Height == 0 {
 		o.Height = 480
 	}
-	return &Window{opts: o, focused: true, shortcuts: mustParseShortcuts(o.Shortcuts), shown: make(chan struct{})}
+	o.Width = max(o.Width, o.MinWidth)
+	o.Height = max(o.Height, o.MinHeight)
+	w := &Window{opts: o, focused: true, shortcuts: mustParseShortcuts(o.Shortcuts), shown: make(chan struct{})}
+	w.storeSize(o.Width, o.Height)
+	return w
+}
+
+func (w *Window) nativeOptions() []gioapp.Option {
+	o := w.opts
+	options := []gioapp.Option{gioapp.Title(o.Title), gioapp.Size(unit.Dp(o.Width), unit.Dp(o.Height)), gioapp.Decorated(askDecorations(o.Frameless))}
+	if o.MinWidth > 0 || o.MinHeight > 0 {
+		options = append(options, gioapp.MinSize(unit.Dp(max(1, o.MinWidth)), unit.Dp(max(1, o.MinHeight))))
+	}
+	return options
 }
 
 // SetTrafficLightLayout updates native button placement without recreating
@@ -265,17 +303,22 @@ func (w *Window) run() {
 		default:
 			platformWindowEvent(w, e)
 			iconWindowEvent(w, e)
+			applicationMenuWindowEvent(w, e)
 		}
 	}
 }
 
 func (w *Window) layout(gtx core.C) {
 	defer core.SetCurrentWindow(w)()
+	w.observeSize(gtx)
 	w.titleArea = [4]float32{}
 	defer func() { syncTitleBar(w) }()
 	w.handleShortcuts(gtx)
 	gtx, below := w.belowTitleBar(gtx)
 	defer below()
+	gtx, menuBelow := w.belowApplicationMenu(gtx)
+	defer menuBelow()
+	defer func() { w.menuEdits = nil }()
 	w.root.Layout(gtx, w.opts.Content)
 	if w.opts.Overlay != nil {
 		o := gtx

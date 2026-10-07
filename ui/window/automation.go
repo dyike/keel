@@ -177,13 +177,13 @@ func closeVirtual(w *Window) {
 // blink, button ink) are left for later.
 func (w *Window) render() {
 	v := w.virt
-	size := v.getSize()
 	for range 10 {
 		v.ops.Reset()
-		gtx := layout.Context{Ops: &v.ops, Now: time.Now(), Source: v.router.Source(),
-			Constraints: layout.Exact(size), Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}}
 		loop.Lock()
 		loop.Drain()
+		size := v.getSize()
+		gtx := layout.Context{Ops: &v.ops, Now: time.Now(), Source: v.router.Source(),
+			Constraints: layout.Exact(size), Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}}
 		w.layout(gtx)
 		loop.Unlock()
 		v.router.Frame(&v.ops)

@@ -110,3 +110,62 @@ Render `content` to PNG using the same root view as the window (background, marg
 - After changing the style, compare the before and after screenshots to confirm that there are no unexpected changes (see [Test](testing.md#screenshot-comparison)).
 
 The screenshot only renders one frame, and interactive states such as hovering and pressing are not visible.
+
+## Application menus and system appearance
+
+Applications configure menus entirely in Go; Keel owns the platform bridge. `MenuItem` supports nested children, separators, shortcuts, checked/disabled states, standard editing actions and custom callbacks.
+
+```go
+menu, err := window.NewMenuBar(window.MenuItem{
+    Title: "Shell",
+    Children: []window.MenuItem{
+        {ID: "new-tab", Title: "New tab", Shortcut: "mod+t", OnSelect: newTab},
+        {Separator: true},
+        {ID: "copy", Title: "Copy", Shortcut: "mod+c", Action: window.MenuCopy},
+    },
+})
+if err != nil { panic(err) }
+if err := menu.Install(); err != nil { panic(err) }
+_ = menu.UpdateItem("new-tab", func(item *window.MenuItem) {
+    item.Title = "New session"
+    item.Disabled = busy
+})
+```
+
+`mod` means Command on macOS and Ctrl elsewhere. `OnSelect` runs in the UI update queue and overrides `Action`. Standard actions include copy, cut, paste, select all, undo and redo, forwarded to the focused native view on macOS. Menu roles identify application, edit, window, help and services menus without fixing their contents.
+
+Use `SetApplicationMenu` for a one-time installation or retain a `NewMenuBar` controller for runtime changes. `SetItems` replaces the model; `UpdateItem` edits one item. Validation failures leave the existing model unchanged. Explicit IDs permit targeted updates; omitted IDs are generated. `Items` returns a copy suitable for a custom Go menu renderer; call `Invoke` from UI callbacks. Disabled ancestors also disable their descendants.
+
+`NativeApplicationMenu()` reports native backend availability: macOS uses AppKit, Windows uses Win32. Linux automatically draws an in-window menu compatible with both X11 and Wayland, without requiring a desktop global-menu service. All three use the same Go model for submenus, separators, checks, disabled states, shortcuts and runtime updates.
+
+`Options.MenuDisplay` defaults to `MenuDisplayAuto`. Choose `MenuDisplayWindow` for a Keel-drawn menu, useful with custom title bars, or `MenuDisplayHidden` to render `Items` yourself. The macOS system menu remains application-wide and is unaffected by the per-window setting. In-window menus support mouse selection, F10 / Alt+M, arrow navigation, Enter, Escape and outside-click dismissal. Long menus scroll vertically; top-level labels truncate in narrow windows without a horizontal scrollbar.
+
+Standard editing actions preserve editor focus. Keel inputs, text areas and rich document editors handle copy, cut, paste, select all, undo and redo, respecting password and read-only restrictions. Custom editors call `core.NextEditAction(gtx, focusTag)` during Layout and apply their own semantics; terminals can handle copy, paste and select all without sending undo as shell control characters. `OnSelect` still overrides standard actions. Application shortcuts are not global hotkeys.
+
+`SystemAppearance()` reads the system light/dark preference on macOS and Windows. Linux reads the desktop portal asynchronously and caches it, initially falling back to light. `SetNativeAppearance(window.AppearanceDark)` selects native chrome style, while `AppearanceSystem` restores the system setting. It does not replace the application's custom Go palette. Query `NativeAppearanceSupported()` for capability; only macOS currently supports changing native chrome. Applications remain free to use `theme.Apply` for their own themes.
+
+Native test fixtures are available only with `-tags=keelnativeqa`, for menu, input-method and application-icon regression checks. Normal builds do not include those test APIs.
+
+## Current window size
+
+`Window.Size()` returns the most recently observed client-area width and height in dp, or the requested initial dimensions before the first frame. It includes Keel-drawn menus and decorations, excludes the OS outer frame, and is safe to read from background goroutines.
+
+`Window.Resize(width, height)` requests positive client-area dimensions from UI callbacks or background tasks. Platforms may constrain the request; `Size()` and `Options.OnResize` report the actual result. Closed windows ignore requests. `OnResize` runs in the UI queue on the first frame and whenever dimensions change; `Size()` has already been updated when it runs.
+
+```go
+w := window.Open(window.Options{
+    Width: savedWidth, Height: savedHeight,
+    OnResize: func(width, height int) { rememberSize(width, height) },
+    Content: page,
+})
+width, height := w.Size()
+if err := w.Resize(960, 640); err != nil { panic(err) }
+```
+
+Applications choose where and when to persist dimensions. Layout should continue to use the current viewport rather than startup dimensions.
+
+## Minimum window size
+
+`Options.MinWidth` and `Options.MinHeight` set client-area minimum dimensions in dp; zero leaves that axis unconstrained. For example: `window.Options{Width: 1057, Height: 639, MinWidth: 800, MinHeight: 480}`.
+
+Keel forwards limits to the macOS, Windows and Linux X11/Wayland window drivers, including frameless windows. Initial dimensions (including restored sizes) and `Resize` requests below the minimum are clamped; off-screen automation applies the same limits. Linux window managers/compositors have the final say over size hints.

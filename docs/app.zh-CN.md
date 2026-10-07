@@ -110,3 +110,63 @@ err := window.Screenshot(content, 640, 480, "out.png")
 - 改样式后对比前后截图，确认没有意外变化（见[测试](testing.zh-CN.md#截图对比)）。
 
 截图只渲染一帧，看不到悬停、按下等交互状态。
+
+## 应用菜单与系统外观
+
+业务项目只需要 Go API，AppKit 桥接由 Keel 管理。菜单内容不固定：支持嵌套子菜单、分隔线、快捷键、勾选、禁用、标准编辑动作和自定义回调。
+
+```go
+menu, err := window.NewMenuBar(window.MenuItem{
+    Title: "Shell",
+    Children: []window.MenuItem{
+        {ID: "new-tab", Title: "新标签页", Shortcut: "mod+t", OnSelect: newTab},
+        {Separator: true},
+        {ID: "copy", Title: "复制", Shortcut: "mod+c", Action: window.MenuCopy},
+    },
+})
+if err != nil { panic(err) }
+if err := menu.Install(); err != nil { panic(err) }
+// 可在 UI 回调或后台任务中更新；重新安装菜单由 Keel 调度。
+_ = menu.UpdateItem("new-tab", func(item *window.MenuItem) {
+    item.Title = "新建会话"
+    item.Disabled = busy
+})
+```
+
+`mod` 在 macOS 表示 Command，在其他平台表示 Ctrl。`OnSelect` 在 UI 更新队列中执行；设置它后会覆盖同一项的 `Action`。标准编辑动作包括复制、剪切、粘贴、全选、撤销和重做，macOS 会转发给焦点视图。`Role` 可以标识应用、编辑、窗口、帮助和服务菜单，内容仍由应用决定。
+
+`SetApplicationMenu` 适合一次性配置；`NewMenuBar` 返回可更新的控制器。`SetItems` 可替换整个菜单，`UpdateItem` 可修改单项，验证失败不改变原有内容。显式 `ID` 用于定位；省略时自动生成。`Items` 返回副本，应用可以据此绘制自己的菜单，点击时在 UI 回调中调用 `Invoke`。禁用父菜单也会禁用其子项。
+
+`NativeApplicationMenu()` 查询当前构建的原生菜单后端：macOS 使用 AppKit，Windows 使用 Win32 菜单栏。Linux 自动在窗口内绘制菜单，同时兼容 X11 和 Wayland；不要求桌面环境提供全局菜单服务。三者都使用相同的 Go 配置，支持子菜单、分隔线、勾选、禁用、快捷键和动态更新。
+
+`Options.MenuDisplay` 默认为 `MenuDisplayAuto`；`MenuDisplayWindow` 强制使用 Keel 绘制的菜单，适合自定义标题栏；`MenuDisplayHidden` 隐藏窗口菜单，让应用通过 `Items` 自行绘制。macOS 的系统菜单栏属于应用，不受窗口隐藏选项影响。窗口内菜单支持鼠标、F10 / Alt+M 打开、方向键导航、Enter 执行、Escape 或外部点击关闭，长菜单可纵向滚动。窗口变窄时，顶部标题截断显示，不产生横向滚动条。
+
+标准编辑动作保留编辑器焦点，Keel 的输入框、文本域和富文本输入会自动处理复制、剪切、粘贴、全选、撤销和重做；密码框、只读框继续遵守原有编辑限制。自定义编辑器在 `Layout` 中调用 `core.NextEditAction(gtx, focusTag)`，按自身语义处理动作；例如终端处理复制、粘贴和全选，撤销不应发送 shell 控制字符。设置 `OnSelect` 仍可完全覆盖标准动作。菜单快捷键不能替代全局快捷键。
+
+`SystemAppearance()` 返回系统的浅色/深色偏好：macOS 读取系统偏好，Windows 读取用户主题，Linux 异步读取桌面门户并缓存，未获取到时返回浅色。`SetNativeAppearance(window.AppearanceDark)` 设置原生窗口和菜单外观，`AppearanceSystem` 恢复跟随系统；它不会替换应用自己的 Go 调色板。`NativeAppearanceSupported()` 可查询原生外观设置能力，目前仅 macOS 支持；其他平台保留原生外观。应用仍可自由调用 `theme.Apply` 使用自定义主题。
+
+原生测试桥只在 `-tags=keelnativeqa` 下编译，供开发测试调用菜单、输入法和图标校验；正常构建不包含这些测试接口。
+
+## 当前窗口尺寸
+
+`Window.Size()` 返回最近一帧实际观察到的客户区宽高，单位为 dp，首帧前返回初始请求尺寸。它包含 Keel 绘制的窗口内菜单和标题栏，不包含操作系统的外框；调整大小、缩放、最大化后都会更新，后台读取也安全。
+
+`Window.Resize(width, height)` 请求新的客户区尺寸，参数必须为正数，支持从 UI 回调和后台任务调用。操作系统可能限制请求，实际结果以 `Size()` 和 `Options.OnResize` 为准。已关闭窗口忽略请求。`OnResize` 在第一帧和尺寸改变时执行，回调中的 `Size()` 已更新，回调运行在 UI 队列中。
+
+```go
+w := window.Open(window.Options{
+    Width: savedWidth, Height: savedHeight,
+    OnResize: func(width, height int) { rememberSize(width, height) },
+    Content: page,
+})
+width, height := w.Size()
+if err := w.Resize(960, 640); err != nil { panic(err) }
+```
+
+应用自行决定尺寸保存位置和时机；布局仍应使用当前视口尺寸，而非启动时的宽高。
+
+## 最小窗口尺寸
+
+`Options.MinWidth`、`Options.MinHeight` 设置客户区最小宽高，单位为 dp，零表示该轴不设下限。例如 `window.Options{Width: 1057, Height: 639, MinWidth: 800, MinHeight: 480}`。
+
+Keel 将下限交给 macOS、Windows、Linux X11/Wayland 的窗口驱动，限制用户拖动缩小窗口；无边框窗口也会传入同样的限制。启动尺寸（包括应用恢复的尺寸）以及 `Resize` 请求小于下限时会提升到下限，离屏自动化遵守同样的规则。Linux 窗口管理器或合成器最终决定是否执行尺寸提示。
