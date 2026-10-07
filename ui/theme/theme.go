@@ -54,11 +54,17 @@ const (
 
 // Face lists font families in priority order. Pinning a CJK family avoids tofu
 // from a system fallback font that lacks some simplified Chinese glyphs.
-const Face font.Typeface = "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, Noto Sans SC, Go"
+const Face font.Typeface = "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, Noto Sans SC, Go, " + EmojiFace
 
 // MonoFace lists monospaced families for code, numbers in columns and
 // keycaps; CJK falls back to Face's fonts.
-const MonoFace font.Typeface = "SF Mono, Menlo, Cascadia Mono, Consolas, DejaVu Sans Mono, Go Mono, PingFang SC, Microsoft YaHei, Noto Sans CJK SC"
+const MonoFace font.Typeface = "SF Mono, Menlo, Cascadia Mono, Consolas, DejaVu Sans Mono, Go Mono, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, " + EmojiFace
+
+// EmojiFace lists platform emoji families for use at the end of a custom
+// typeface list. Naming these explicitly lets common-script emoji reach the
+// system's emoji font instead of an arbitrary missing-glyph fallback.
+// Actual color rendering depends on the font format supported by Gio.
+const EmojiFace font.Typeface = "Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Noto Emoji"
 
 // Material is the underlying Gio theme: text shaper and icons.
 var Material = newMaterial()
