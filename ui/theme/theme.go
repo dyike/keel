@@ -69,9 +69,20 @@ const EmojiFace font.Typeface = "Apple Color Emoji, Segoe UI Emoji, Noto Color E
 // Material is the underlying Gio theme: text shaper and icons.
 var Material = newMaterial()
 
+// lazyShaper returns a shaper of faces and the system's fonts that sets
+// itself up when it first shapes text, as text.Shaper does when made without
+// NewShaper. Setting up reads the system's font index: some 70 ms and 60 MB of
+// allocations that a process drawing no text, such as a helper started from
+// the same binary, need not pay at startup.
+func lazyShaper(faces []font.FontFace) *text.Shaper {
+	sh := new(text.Shaper)
+	text.WithCollection(faces)(sh)
+	return sh
+}
+
 func newMaterial() *material.Theme {
 	th := material.NewTheme()
-	th.Shaper = text.NewShaper(text.WithCollection(fallbackFaces()))
+	th.Shaper = lazyShaper(fallbackFaces())
 	th.Palette = material.Palette{Fg: Text, Bg: Surface, ContrastBg: Primary, ContrastFg: OnColor}
 	th.Face = Face
 	th.TextSize = BodySize

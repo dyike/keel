@@ -180,6 +180,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 		st.frame++
 	}
 	e := &r.e
+	e.beginTextMeasurements()
 	e.gtx, e.m, e.store = gtx, gtx.Metric, st
 
 	if gtx.Enabled() {

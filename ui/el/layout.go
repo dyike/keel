@@ -9,6 +9,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
+	"github.com/dyike/keel/ui/theme"
 
 	"github.com/dyike/keel/ui/core"
 )
@@ -18,6 +19,8 @@ const inf = 1 << 24
 
 // engine lays out and paints one element tree for one frame.
 type engine struct {
+	textMeasurements       map[textMeasureCacheKey]layout.Dimensions
+	textPainter            theme.GlyphPainter
 	anchors                map[string]image.Rectangle
 	blockInput, blockFocus bool
 	paintTextColor         *color.NRGBA

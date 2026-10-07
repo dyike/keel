@@ -63,7 +63,7 @@ func textFont(ts textStyle) font.Font {
 
 func (e *engine) measureText(n *Node, maxW int) image.Point {
 	gtx := e.measureGtx(layout.Constraints{Max: image.Pt(min(maxW, inf), inf)})
-	return e.label(n, n.text).Layout(gtx).Size
+	return e.measureLabel(gtx, e.label(n, n.text)).Size
 }
 
 // measureInput: inputs fill the width they are given; their height is one
@@ -71,7 +71,7 @@ func (e *engine) measureText(n *Node, maxW int) image.Point {
 func (e *engine) measureInput(n *Node, maxW int) image.Point {
 	// Empty text has a shorter line box and clips Latin descenders. Use the
 	// same stable mixed-script metrics as textShift, independent of input contents.
-	line := e.label(n, "国Ag").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
+	line := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}), e.label(n, "国Ag")).Size.Y
 	w := maxW
 	if w >= inf {
 		w = e.dp(200)
@@ -115,11 +115,11 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 				lb.LineHeightScale = n.textStyle.lineHeight
 			}
 			lb.MaxLines = spec.maxRows
-			measured := lb.Layout(e.measureGtx(layout.Constraints{Max: image.Pt(w, inf)})).Size.Y
+			measured := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(w, inf)}), lb).Size.Y
 			// Measure baseline spacing rather than multiplying glyph bounds:
 			// the first line and subsequent line advances need not match.
-			one := e.label(n, "M").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
-			two := e.label(n, "M\nM").Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)})).Size.Y
+			one := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}), e.label(n, "M")).Size.Y
+			two := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}), e.label(n, "M\nM")).Size.Y
 			advance := max(two-one, 1)
 			rowHeight := func(rows int) int { return one + min(rows-1, (inf-one)/advance)*advance }
 			minH, maxH := rowHeight(spec.minRows), rowHeight(spec.maxRows)
@@ -532,7 +532,7 @@ func (e *engine) paintText(n *Node, inner image.Rectangle) {
 	} else if len(n.textRanges) > 0 {
 		e.paintRangeText(n, g, inner.Size())
 	} else {
-		e.label(n, n.text).Layout(g)
+		e.paintLabel(g, e.label(n, n.text))
 	}
 }
 
@@ -959,7 +959,7 @@ func (e *engine) textShift(n *Node) int {
 	if ts.lineHeight > 0 {
 		lb.LineHeightScale = ts.lineHeight
 	}
-	dims := lb.Layout(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}))
+	dims := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}), lb)
 	boxDescent := dims.Baseline // below the baseline
 	boxAscent := dims.Size.Y - boxDescent
 	// Center the body of the text (国 and a capital); g gives the lowest ink.

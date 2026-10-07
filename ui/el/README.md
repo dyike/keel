@@ -20,6 +20,8 @@ GPUI-style elements and views: Views are ordinary structs, and each frame `Rende
 | `style.go` | `Style`, length (`Dp`, `Frac`, `Full`), alignment constants |
 | `layout.go`, `flow.go` | flexbox, line wrapping and simple grid layout |
 | `paint.go` | Drawing, click area, scrolling, input box, semantic information |
+| `text_measure.go` | Dimensions-only text measurement with a frame-local cache; shares Gio shaping without generating drawing operations |
+| `text_paint.go` | Reuses vector glyph fragments for short, single-line numeric labels; falls back to Gio labels for complex or overlapping text |
 | `viewport.go` | Procedural scrolling that draws coordinates, visible area, and nearest scroll container |
 | `state.go` | Element state storage and recycling; long press on the touch screen to open the right-click menu |
 | `root.go` | `View`, `ViewFunc`, `Context`, `Root`, `Embed`, the execution order of each frame |
