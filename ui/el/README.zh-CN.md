@@ -22,6 +22,7 @@ GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回�
 | `paint.go` | 绘制、点击区域、滚动、输入框、语义信息 |
 | `text_measure.go` | 只计算文字尺寸，同帧复用测量结果；使用 Gio 排版，不生成绘制操作 |
 | `text_paint.go` | 短的单行数字标签复用矢量字形片段；复杂排版或字形重叠时回退到 Gio 标签 |
+| `text_atlas.go` | 按需启用数字标签图片缓存；绘制前准备可见标签，限制每帧存储，并检查绘制时的参数 |
 | `viewport.go` | 绘制坐标、可视区域与最近滚动容器的程序滚动 |
 | `state.go` | 元素状态存储与回收；触屏长按打开右键菜单 |
 | `root.go` | `View`、`ViewFunc`、`Context`、`Root`、`Embed`，每帧的执行顺序 |

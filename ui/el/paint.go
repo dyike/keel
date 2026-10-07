@@ -532,7 +532,10 @@ func (e *engine) paintText(n *Node, inner image.Rectangle) {
 	} else if len(n.textRanges) > 0 {
 		e.paintRangeText(n, g, inner.Size())
 	} else {
-		e.paintLabel(g, e.label(n, n.text))
+		lb := e.label(n, n.text)
+		if !e.paintAtlasLabel(n, g, lb) {
+			e.paintLabel(g, lb)
+		}
 	}
 }
 

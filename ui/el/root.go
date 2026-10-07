@@ -172,6 +172,20 @@ func Embed(v View) *RootWidget {
 // FillsWindow tells ui/window to give the root the whole window.
 func (r *RootWidget) FillsWindow() bool { return r.fill }
 
+// SetTextAtlas enables an optional image cache for simple numeric labels.
+// The root must be drawn at an integral pixel translation, without additional
+// scaling or rotation. Decorated and scroll subtrees, overlays, rich text and
+// editors retain vector drawing. Pass nil to disable the cache.
+//
+// Use a separate atlas for each root, call this from UI code, and call the
+// atlas's Release when the root is discarded. The caller owns the atlas.
+func (r *RootWidget) SetTextAtlas(atlas *theme.GlyphAtlas) {
+	r.e.textAtlas = atlas
+	r.e.textAtlasActive = false
+	r.e.atlasLabels = nil
+	r.e.atlasGlyphs = nil
+}
+
 func (r *RootWidget) Layout(gtx core.C) core.D {
 	// A missing input source can mean measurement or a disabled parent.
 	// Both render real state without advancing its lifecycle.
@@ -251,6 +265,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	e.layout(tree, max.X, max.Y, base)
 	e.place(tree)
 	e.origin, e.visible = image.Point{}, image.Rectangle{Max: max}
+	e.prepareTextAtlas(tree)
 	// Everything is painted inside an area that sees every press, so a click
 	// on empty space can take focus away from inputs and selected text.
 	area := clip.Rect{Max: max}.Push(gtx.Ops)
@@ -265,6 +280,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 		core.Role("el-inert").Add(gtx.Ops)
 	}
 	e.paint(tree)
+	e.textAtlasActive = false
 	area.Pop()
 	e.blockInput, e.blockFocus = false, false
 	r.paintLayers(&cx, base, priorFocus)

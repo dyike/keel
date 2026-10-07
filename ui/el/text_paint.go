@@ -19,6 +19,28 @@ import (
 // reusable without introducing a renderer or font dependency fork.
 // Complex layout, overlapping ink and translucent text use the standard label.
 func (e *engine) paintLabel(gtx layout.Context, lb material.LabelStyle) {
+	var buf [64]text.Glyph
+	params, gs, viewport, ok := shapeNumericLabel(gtx, lb, buf[:0])
+	if !ok {
+		lb.Layout(gtx)
+		return
+	}
+	defer clip.Rect(viewport).Push(gtx.Ops).Pop()
+	semantic.LabelOp(lb.Text).Add(gtx.Ops)
+	if len(gs) > 0 {
+		tr := op.Affine(f32.AffineId().Offset(f32.Pt(float32(gs[0].X)/64, float32(gs[0].Y)))).Push(gtx.Ops)
+		e.textPainter.Paint(gtx.Ops, lb.Shaper, params, gs, lb.Color)
+		tr.Pop()
+	}
+}
+
+func labelParameters(gtx layout.Context, lb material.LabelStyle) text.Parameters {
+	cs := gtx.Constraints
+	return text.Parameters{Font: lb.Font, PxPerEm: fixed.I(gtx.Sp(lb.TextSize)), MaxLines: lb.MaxLines, Truncator: lb.Truncator, Alignment: lb.Alignment, WrapPolicy: lb.WrapPolicy, MinWidth: cs.Min.X, MaxWidth: cs.Max.X, Locale: gtx.Locale, LineHeight: fixed.I(gtx.Sp(lb.LineHeight)), LineHeightScale: lb.LineHeightScale}
+}
+
+func shapeNumericLabel(gtx layout.Context, lb material.LabelStyle, buf []text.Glyph) (text.Parameters, []text.Glyph, image.Rectangle, bool) {
+	params := labelParameters(gtx, lb)
 	numeric := false
 	for _, r := range lb.Text {
 		if r >= '0' && r <= '9' {
@@ -27,30 +49,24 @@ func (e *engine) paintLabel(gtx layout.Context, lb material.LabelStyle) {
 		}
 	}
 	if !numeric || len(lb.Text) > 128 || lb.Color.A != 255 || lb.State != nil {
-		lb.Layout(gtx)
-		return
+		return params, nil, image.Rectangle{}, false
 	}
 	cs := gtx.Constraints
 	sh := lb.Shaper
-	params := text.Parameters{Font: lb.Font, PxPerEm: fixed.I(gtx.Sp(lb.TextSize)), MaxLines: lb.MaxLines, Truncator: lb.Truncator, Alignment: lb.Alignment, WrapPolicy: lb.WrapPolicy, MinWidth: cs.Min.X, MaxWidth: cs.Max.X, Locale: gtx.Locale, LineHeight: fixed.I(gtx.Sp(lb.LineHeight)), LineHeightScale: lb.LineHeightScale}
 	sh.LayoutString(params, lb.Text)
-	var buf [64]text.Glyph
 	gs := buf[:0]
 	var padding image.Rectangle
 	for g, ok := sh.NextGlyph(); ok; g, ok = sh.NextGlyph() {
-		if len(gs) == cap(gs) || g.Offset != (fixed.Point26_6{}) || g.Flags&(text.FlagTowardOrigin|text.FlagParagraphBreak) != 0 || len(gs) > 0 && g.Y != gs[0].Y {
-			lb.Layout(gtx)
-			return
+		if len(gs) == 64 || g.Offset != (fixed.Point26_6{}) || g.Flags&(text.FlagTowardOrigin|text.FlagParagraphBreak) != 0 || len(gs) > 0 && g.Y != gs[0].Y {
+			return params, nil, image.Rectangle{}, false
 		}
 		if g.X+g.Advance < 0 || g.X > fixed.I(cs.Max.X) || int(g.Y)+g.Descent.Ceil() < 0 || int(g.Y)-g.Ascent.Ceil() > cs.Max.Y {
-			lb.Layout(gtx)
-			return
+			return params, nil, image.Rectangle{}, false
 		}
 		if len(gs) > 0 {
 			prev := gs[len(gs)-1]
 			if prev.X+prev.Bounds.Max.X > g.X+g.Bounds.Min.X {
-				lb.Layout(gtx)
-				return
+				return params, nil, image.Rectangle{}, false
 			}
 		}
 		padding.Min.X = min(padding.Min.X, g.Bounds.Min.X.Floor())
@@ -60,11 +76,5 @@ func (e *engine) paintLabel(gtx layout.Context, lb material.LabelStyle) {
 		gs = append(gs, g)
 	}
 	viewport := image.Rectangle{Min: padding.Min, Max: cs.Max.Add(padding.Max)}
-	defer clip.Rect(viewport).Push(gtx.Ops).Pop()
-	semantic.LabelOp(lb.Text).Add(gtx.Ops)
-	if len(gs) > 0 {
-		tr := op.Affine(f32.AffineId().Offset(f32.Pt(float32(gs[0].X)/64, float32(gs[0].Y)))).Push(gtx.Ops)
-		e.textPainter.Paint(gtx.Ops, sh, params, gs, lb.Color)
-		tr.Pop()
-	}
+	return params, gs, viewport, true
 }

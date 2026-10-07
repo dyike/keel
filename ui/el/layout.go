@@ -8,6 +8,7 @@ import (
 	"gioui.org/io/input"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"github.com/dyike/keel/ui/theme"
 
@@ -21,6 +22,10 @@ const inf = 1 << 24
 type engine struct {
 	textMeasurements       map[textMeasureCacheKey]layout.Dimensions
 	textPainter            theme.GlyphPainter
+	textAtlas              *theme.GlyphAtlas
+	textAtlasActive        bool
+	atlasLabels            map[*Node]atlasLabel
+	atlasGlyphs            []text.Glyph
 	anchors                map[string]image.Rectangle
 	blockInput, blockFocus bool
 	paintTextColor         *color.NRGBA

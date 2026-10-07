@@ -45,6 +45,21 @@ window.Main()
 
 Render 每帧都会调用，要保持便宜：只根据状态搭树，不做 I/O、不做大计算。耗时的事放 goroutine，完成后用 `core.Update` 改状态。线程规则和其他模块相同，见[架构 · 线程规则](architecture.zh-CN.md#线程规则)。
 
+### 数字标签图片缓存
+
+大量数字标签持续变化的界面，可以按需共用一份字形图集：
+
+```go
+atlas := new(theme.GlyphAtlas)
+root := el.Root(view)
+root.SetTextAtlas(atlas)
+window.Open(window.Options{Content: root, OnClose: atlas.Release})
+```
+
+每个 root 使用独立的图集。root 应以整数像素平移绘制，不额外缩放或旋转；字号仍随显示比例换算。`SubpixelPhases` 保持零即可保留字形位置。root 先准备可见、较短、不透明且包含数字的单行标签，再统一提交变化的图片页并绘制。文字、字体、约束和颜色必须与准备时一致。标签原点带小数、复杂排版、Decorate 或滚动子树、浮层、富文本和编辑器继续使用原来的绘制路径，点击和无障碍标签保持有效。
+
+每帧最多保留 2048 个标签、32768 个字形的准备数据，超出的标签使用原路径。图片和掩码遵守 [GlyphAtlas 的预算](theme.zh-CN.md#字形图片缓存)，GPU 副本另占内存。首帧需要建立缓存，启用前应测量实际界面的启动、CPU 和物理内存。向 `SetTextAtlas` 传入 `nil` 可关闭；图集由调用方持有，不再使用时调用 `Release`。
+
 ## 元素
 
 | 构造 | 说明 |

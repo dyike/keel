@@ -45,6 +45,21 @@ The ready-made components are at [ui/kit](kit.md), and they are all el views.
 
 Render will be called every frame, so it should be kept cheap: only build trees based on status, no I/O, no large calculations. Put time-consuming things into goroutine, and use `core.Update` to change the status after completion. Threading rules are the same as other modules, see [Architecture · Threading Rules](architecture.md#threading).
 
+### Numeric label image cache
+
+Views with many changing numeric labels can opt into a shared glyph atlas:
+
+```go
+atlas := new(theme.GlyphAtlas)
+root := el.Root(view)
+root.SetTextAtlas(atlas)
+window.Open(window.Options{Content: root, OnClose: atlas.Release})
+```
+
+Use one atlas per root. The root must be drawn at an integral pixel translation, without extra scaling or rotation; font sizes still follow the display metric. Leave `SubpixelPhases` at zero to preserve glyph positions. The root prepares visible, short, opaque, single-line labels containing digits, commits the changed image pages once, then paints them. Text, font, constraints and color must still match at paint time. Fractional label origins, complex text, decorated or scroll subtrees, overlays, rich text and editors retain the existing drawing path. Input handling and accessibility labels are preserved.
+
+Preparation retains at most 2048 labels and 32768 glyphs for one frame; additional labels use the existing path. Images and masks follow [GlyphAtlas's budgets](theme.md#glyph-image-cache), with extra memory for GPU copies. The first frame must build its cache, so measure startup, CPU and physical memory for your view before enabling it. Pass `nil` to `SetTextAtlas` to disable it, and call the caller-owned atlas's `Release` when it is no longer needed.
+
 ## Element
 
 | Construction | Description |
