@@ -135,6 +135,8 @@ When writing your own Gio drawing code, you can use `theme.Scope(p)` to temporar
 
 `theme.Face` specifies the font priority of the main text, with glyph fallback; `theme.MonoFace` specifies the same-width font priority. The desktop version gives priority to using system fonts, and fonts are only used when the system does not have corresponding fonts.
 
+`MonoFace` tries monospaced families first, then reuses the full `Face` fallback list for CJK and other missing glyphs. On macOS without an indexed PingFang face, this lets terminal text use Hiragino Sans GB, as body text does, instead of an arbitrary Han fallback such as Arial Unicode MS. Font memory and Chinese glyph appearance depend on the resolved family; Latin text retains its monospaced font.
+
 `theme.LoadFonts(data...)` receives the byte content of TTF, OTF, and TTC files, and redraws all windows after loading. The browser downloads and loads through `theme.FetchFonts("font.ttf")`; for Chinese font preparation, see [Run](web.md#build) in the browser.
 
 `BodySize` / `SmallSize` / `HeadingSize` are 15 / 13 / 22sp respectively, and the standard single-line field height is `ControlHeight` (36dp). `theme.Material`'s glyph formatter can be reused when drawing directly with Gio.

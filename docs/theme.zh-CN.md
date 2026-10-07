@@ -135,6 +135,8 @@ kit 的间距都已改用这套刻度；剩下的 10、14、20dp 是刻意的视
 
 `theme.Face` 指定正文的字体优先级，逐字形回退；`theme.MonoFace` 指定等宽字体优先级。桌面版优先使用系统字体，兜底字体只在系统没有对应字体时使用。
 
+`MonoFace` 优先尝试等宽字体，缺失的中文等字形复用完整的 `Face` 回退列表。macOS 的字体索引没有 PingFang 时，终端中文可以和正文一样使用 Hiragino Sans GB，避免落到 Arial Unicode MS 等任意汉字回退字体。字体内存和中文字形外观取决于实际选择的字体；拉丁文字保留等宽字体。
+
 `theme.LoadFonts(data...)` 接收 TTF、OTF、TTC 文件的字节内容，加载后重绘所有窗口。浏览器通过 `theme.FetchFonts("font.ttf")` 下载并加载；中文字体准备见 [在浏览器里运行](web.zh-CN.md#构建)。
 
 `BodySize` / `SmallSize` / `HeadingSize` 分别为 15 / 13 / 22sp，标准单行字段高 `ControlHeight`（36dp）。直接使用 Gio 绘制时可复用 `theme.Material` 的字形排版器。

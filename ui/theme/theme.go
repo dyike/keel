@@ -58,7 +58,7 @@ const Face font.Typeface = "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto
 
 // MonoFace lists monospaced families for code, numbers in columns and
 // keycaps; CJK falls back to Face's fonts.
-const MonoFace font.Typeface = "SF Mono, Menlo, Cascadia Mono, Consolas, DejaVu Sans Mono, Go Mono, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, " + EmojiFace
+const MonoFace font.Typeface = "SF Mono, Menlo, Cascadia Mono, Consolas, DejaVu Sans Mono, Go Mono, " + Face
 
 // EmojiFace lists platform emoji families for use at the end of a custom
 // typeface list. Naming these explicitly lets common-script emoji reach the
