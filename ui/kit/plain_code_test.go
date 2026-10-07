@@ -20,6 +20,9 @@ func TestCodeEditorWithoutHighlighter(t *testing.T) {
 	ed := CodeEditor("package main\n\nfunc main() {}\n").Language("go")
 	hr := editorHarness(ed)
 	hr.Frame()
+	if ed.hlRunning {
+		t.Fatal("started background highlighting without a highlighter")
+	}
 	if ed.Value() == "" {
 		t.Fatal("editor lost its text")
 	}

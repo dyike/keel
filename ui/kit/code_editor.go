@@ -154,7 +154,14 @@ func CodeEditor(text string) *CodeEditorView {
 // Language picks the syntax highlighting and bracket rules by chroma lexer
 // name, e.g. "go", "python", "json". Unknown names show plain text.
 func (v *CodeEditorView) Language(name string) *CodeEditorView {
+	if v.lang == name {
+		return v
+	}
 	v.lang, v.hlRev = name, 0
+	v.buf.lines.each(0, func(_ int, line *codeLine) bool {
+		line.spans = nil
+		return true
+	})
 	return v
 }
 

@@ -680,7 +680,7 @@ func (v *CodeEditorView) semantics(gtx core.C) {
 // is running; its result replaces the spans if the text is still the same.
 func (v *CodeEditorView) highlight() {
 	style := codeStyleName()
-	if v.hlRunning || v.lang == "" || (v.hlRev == v.buf.revision && v.hlStyle == style) {
+	if v.hlRunning || !knownLanguage(v.lang) || (v.hlRev == v.buf.revision && v.hlStyle == style) {
 		return
 	}
 	v.hlRunning = true
@@ -690,7 +690,7 @@ func (v *CodeEditorView) highlight() {
 		spans := highlightCode(lang, src, style)
 		core.Update(func() {
 			v.hlRunning = false
-			if v.buf.revision == rev && len(spans) == v.buf.count() {
+			if v.buf.revision == rev && v.lang == lang && codeStyleName() == style && len(spans) == v.buf.count() {
 				v.buf.lines.each(0, func(i int, l *codeLine) bool {
 					l.spans = spans[i]
 					return true
