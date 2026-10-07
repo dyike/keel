@@ -1,6 +1,7 @@
 package window
 
 import (
+	"fmt"
 	"image"
 	"os"
 	"sync"
@@ -167,7 +168,13 @@ func Main() {
 	if automating() {
 		go serveAutomation()
 	}
+	if os.Getenv("REX_STARTUP_TRACE") != "" {
+		fmt.Fprintf(os.Stderr, "keel %d Main\n", time.Now().UnixMicro())
+	}
 	watchSystemPreferences()
+	if os.Getenv("REX_STARTUP_TRACE") != "" {
+		fmt.Fprintf(os.Stderr, "keel %d gioapp.Main\n", time.Now().UnixMicro())
+	}
 	gioapp.Main()
 }
 
@@ -266,7 +273,11 @@ func (w *Window) run() {
 	var ops op.Ops
 	positioned := false
 	for {
-		switch e := w.win.Event().(type) {
+		ev := w.win.Event()
+		if os.Getenv("REX_STARTUP_TRACE") != "" {
+			fmt.Fprintf(os.Stderr, "keel %d event %T\n", time.Now().UnixMicro(), ev)
+		}
+		switch e := ev.(type) {
 		case gioapp.DestroyEvent:
 			w.markShown()
 			w.destroy()
