@@ -14,11 +14,11 @@ import (
 func (c *cli) doctor(args []string) error {
 	flags := flag.NewFlagSet("doctor", flag.ContinueOnError)
 	flags.SetOutput(c.errw)
-	target := flags.String("target", runtime.GOOS, "target to check; ios checks full Xcode, both SDKs and simulator runtimes")
+	target := flags.String("target", runtime.GOOS, "target to check; ios checks Xcode, android checks SDK, NDK, Java and adb")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if *target != runtime.GOOS && *target != "ios" {
+	if *target != runtime.GOOS && *target != "ios" && *target != "android" {
 		return fmt.Errorf("cannot check target %q on this machine", *target)
 	}
 	ok := true
@@ -36,6 +36,13 @@ func (c *cli) doctor(args []string) error {
 	goVersion, err := exec.Command("go", "env", "GOVERSION").Output()
 	v := strings.TrimSpace(string(goVersion))
 	check("Go 1.26 or newer", err == nil && goAtLeast(v, 1, 26), v)
+	if *target == "android" {
+		c.doctorAndroid(check)
+		if !ok {
+			return fmt.Errorf("fix the items above")
+		}
+		return nil
+	}
 	if *target == "ios" {
 		check("macOS host", runtime.GOOS == "darwin", "iOS builds require full Xcode on a Mac")
 		if runtime.GOOS == "darwin" {
@@ -96,7 +103,8 @@ func (c *cli) doctor(args []string) error {
 	case "linux":
 		fmt.Fprintln(c.out, "  linux        here")
 	}
-	fmt.Fprintln(c.out, "  The first macOS or js build downloads Gio's packager,", gogio)
+	fmt.Fprintln(c.out, "  android      SDK, NDK and Java required; check with keel doctor -target android")
+	fmt.Fprintln(c.out, "  The first macOS, Android or js build downloads Gio's packager,", gogio)
 	if !ok {
 		return fmt.Errorf("fix the items above")
 	}

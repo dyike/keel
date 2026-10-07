@@ -8,7 +8,7 @@ Keel's scaffolding: `keel new` creates a new project, `keel run` runs it, `keel 
 go install github.com/dyike/keel/cmd/keel@latest
 ```
 
-- **Dependencies**: `internal/svgicon` (draw the SVG of the original image into PNG), `internal/appicon` (the icon shape of each platform, `ui/window` also uses it when running), `golang.org/x/image` (scaling, vector rasterization), `github.com/tc-hib/winres` (Windows resources: icons, manifests, version information). Keel's interface package is not referenced; macOS and browser packaging call Gio's gogio (fixed in v0.10.0), and macOS signature calls the system's `codesign`.
+- **Dependencies**: `internal/svgicon` (draw the SVG of the original image into PNG), `internal/appicon` (the icon shape of each platform, `ui/window` also uses it when running), `golang.org/x/image` (scaling, vector rasterization), `github.com/tc-hib/winres` (Windows resources: icons, manifests, version information). Keel's interface package is not referenced; macOS, Android and browser packaging call Gio's gogio (fixed in v0.10.0), and macOS signature calls the system's `codesign`.
 - **Test**: `go test ./cmd/keel` generates the project, checks the packaging commands for each platform (`-n`), and compiles the generated project with Keel in this repository (`-short` skips).
 
 | File | Responsibility |
@@ -23,3 +23,5 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `doctor.go` | Environmental Check |
 
 iOS builds invoke Go and Xcode SDKs, `actool` and signing tools directly; the runner uses `simctl`, without Python. `ios.go` handles packaging, Metal compatibility, icons and signing; `ios_run.go` selects, installs and launches simulators. Full packaging check: `KEEL_IOS=1 go test ./cmd/keel -run TestNewIOSProjectBuilds -count=1`. See [iOS](../../docs/ios.md).
+
+Android builds use the pinned Gio packager. `android.go` handles development signing, APK packaging, adb device selection and launch; `android_doctor.go` checks the SDK, NDK, Java and adb. Full packaging check: `KEEL_ANDROID=1 go test ./cmd/keel -run TestNewAndroidProjectBuilds -count=1`. See [Mobile support](../../docs/mobile.md) and [Android](../../docs/android.md).

@@ -62,10 +62,10 @@ func (s *iconSet) icon(platform string, size int) (image.Image, error) {
 		draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Src, nil)
 		return dst, nil
 	}
-	if platform == "ios" {
+	if platform == "ios" || platform == "android" {
 		dst := image.NewNRGBA(image.Rect(0, 0, size, size))
 		draw.CatmullRom.Scale(dst, dst.Bounds(), s.art, s.art.Bounds(), draw.Src, nil)
-		return dst, nil // UIKit applies the rounded mask itself.
+		return dst, nil // Mobile platforms apply their own launcher masks.
 	}
 	shape := map[string]appicon.Shape{"darwin": appicon.MacOS, "windows": appicon.Windows, "linux": appicon.Linux}[platform]
 	return shape.Render(s.art, size, s.cfg.IconMask != "none"), nil
@@ -102,7 +102,7 @@ func (c *cli) iconCommand(args []string) error {
 	fs.SetOutput(c.errw)
 	out := fs.String("o", filepath.Join("dist", "icons"), "output directory")
 	fs.Usage = func() {
-		fmt.Fprintln(c.errw, "Usage: keel icon [-o dir]\n\nWrites the macOS, Windows, Linux and iOS icons made from keel.json's icon.")
+		fmt.Fprintln(c.errw, "Usage: keel icon [-o dir]\n\nWrites the macOS, Windows, Linux, iOS and Android icons made from keel.json's icon.")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -156,7 +156,14 @@ func (c *cli) iconCommand(args []string) error {
 	if err := writePNG(filepath.Join(outDir, "ios.png"), opaqueIOSIcon(ios)); err != nil {
 		return err
 	}
-	fmt.Fprintln(c.out, "Wrote macOS, Windows, Linux and iOS icons to", outDir)
+	android, err := set.icon("android", 1024)
+	if err != nil {
+		return err
+	}
+	if err := writePNG(filepath.Join(outDir, "android.png"), android); err != nil {
+		return err
+	}
+	fmt.Fprintln(c.out, "Wrote macOS, Windows, Linux, iOS and Android icons to", outDir)
 	return nil
 }
 

@@ -36,12 +36,32 @@ type Config struct {
 	// transparency and only fitting it into the plate's area.
 	IconMask string `json:"icon_mask,omitempty"`
 	// Icons replaces the generated icon of a platform ("darwin", "windows",
-	// "linux", "ios") with a finished square PNG; iOS flattens transparency.
+	// "linux", "ios", "android") with a finished square PNG; iOS flattens transparency.
 	Icons map[string]string `json:"icons,omitempty"`
 	// Main is the main package, relative to keel.json.
 	Main string `json:"main"`
 	// IOS configures the mobile build; omitted projects target iOS 18.0.
-	IOS *IOSConfig `json:"ios,omitempty"`
+	IOS     *IOSConfig     `json:"ios,omitempty"`
+	Android *AndroidConfig `json:"android,omitempty"`
+}
+
+// AndroidConfig specifies API levels used by the Android packager.
+type AndroidConfig struct {
+	MinimumSDK int `json:"minimum_sdk,omitempty"`
+	TargetSDK  int `json:"target_sdk,omitempty"`
+}
+
+func (c *Config) androidMinimumSDK() int {
+	if c.Android != nil && c.Android.MinimumSDK != 0 {
+		return c.Android.MinimumSDK
+	}
+	return 23
+}
+func (c *Config) androidTargetSDK() int {
+	if c.Android != nil && c.Android.TargetSDK != 0 {
+		return c.Android.TargetSDK
+	}
+	return 35
 }
 
 type IOSConfig struct {
@@ -82,8 +102,8 @@ func (c *Config) validate() error {
 		errs = append(errs, fmt.Errorf("icon_mask %q is not \"platform\" or \"none\"", c.IconMask))
 	}
 	for platform := range c.Icons {
-		if platform != "darwin" && platform != "windows" && platform != "linux" && platform != "ios" {
-			errs = append(errs, fmt.Errorf("icons: unknown platform %q (darwin, windows, linux, ios)", platform))
+		if platform != "darwin" && platform != "windows" && platform != "linux" && platform != "ios" && platform != "android" {
+			errs = append(errs, fmt.Errorf("icons: unknown platform %q (darwin, windows, linux, ios, android)", platform))
 		}
 	}
 	minimum := c.iosMinimumVersion()
@@ -91,6 +111,12 @@ func (c *Config) validate() error {
 		errs = append(errs, fmt.Errorf("ios.minimum_version %q: use a version such as 18.0", minimum))
 	} else if major, _ := strconv.Atoi(strings.Split(minimum, ".")[0]); major < 13 {
 		errs = append(errs, errors.New("ios.minimum_version must be at least 13.0 for UIScene"))
+	}
+	if c.androidMinimumSDK() < 23 {
+		errs = append(errs, errors.New("android.minimum_sdk must be at least 23"))
+	}
+	if c.androidTargetSDK() < max(31, c.androidMinimumSDK()) {
+		errs = append(errs, errors.New("android.target_sdk must be at least 31 and not lower than minimum_sdk"))
 	}
 	return errors.Join(errs...)
 }

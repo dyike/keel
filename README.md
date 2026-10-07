@@ -4,7 +4,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Build desktop UIs in pure Go, without HTML, CSS, JavaScript, or a WebView. [Gio](https://gioui.org) draws the interface; `native/` provides permissions, screenshots, synthetic input, global hotkeys, system notifications, and a rich clipboard. Keel runs on macOS, Windows, and Linux, compiles to WebAssembly for the browser, and offers [experimental iOS support](docs/ios.md).
+Build desktop UIs in pure Go, without HTML, CSS, JavaScript, or a WebView. [Gio](https://gioui.org) draws the interface; `native/` provides permissions, screenshots, synthetic input, global hotkeys, system notifications, and a rich clipboard. Keel runs on macOS, Windows, and Linux, compiles to WebAssembly for the browser, and supports [Mobile (iOS / Android)](docs/mobile.md).
 
 Create an application:
 
@@ -30,7 +30,7 @@ Requires Go 1.26+. On macOS, install Xcode Command Line Tools. On Linux, install
 
 - [Overview](docs/README.md): find guides for your development task.
 - [Getting started](docs/getting-started.md): create, develop, run, and package an application with the scaffold.
-- [iOS (experimental)](docs/ios.md): scaffold build/run and current verification scope.
+- [Mobile (iOS / Android)](docs/mobile.md): build and run iOS and Android apps, with platform capability limits.
 - [Components](docs/kit.md): browse components by purpose, with APIs and interactive examples.
 - [Automation](docs/automation.md): let an agent click, type, scroll, and take screenshots.
 - [Architecture](docs/architecture.md): modules, dependency boundaries, and threading rules.

@@ -1,4 +1,4 @@
-// Command keel creates, runs and packages Keel apps for desktop, web and iOS.
+// Command keel creates, runs and packages Keel apps for desktop, web, iOS and Android.
 //
 //	keel new myapp         create a project
 //	keel run               run it
@@ -34,14 +34,15 @@ type cli struct {
 	release   bool   // strip symbols and paths from builds
 }
 
-const usage = `keel creates, runs and packages Keel apps for desktop, web and iOS.
+const usage = `keel creates, runs and packages Keel apps for desktop, web, iOS and Android.
 
 Usage:
   keel new <dir> [flags]     create a project in dir
-  keel run [flags] [-- args] run and watch the project (use -watch=false to disable)
+  keel run [flags] [-- args] run and watch the desktop project (-watch=false disables watching)
+                            use -target ios or android for mobile
   keel build [flags]         package the project into dist/
   keel icon [-o dir]         write each platform's icons, to check them
-  keel doctor [flags]        check the toolchain (use -target ios for Xcode)
+  keel doctor [flags]        check the toolchain (use -target ios or android for mobile)
   keel version               print the version
 
 Run "keel <command> -h" for a command's flags.

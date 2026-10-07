@@ -1,4 +1,4 @@
-# iOS（实验性）
+# iOS
 
 [English](ios.md) | 简体中文
 

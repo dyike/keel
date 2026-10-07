@@ -96,13 +96,14 @@ Create stateful components once in `newApp` and retain them in view fields. `Ren
 ```json
 {
   "name": "My Notes",
-  "appid": "com.example.my-notes",
+  "appid": "com.example.mynotes",
   "version": "0.1.0",
   "build": 1,
   "binary": "my-notes",
   "icon": "appicon.png",
   "main": ".",
-  "ios": {"minimum_version": "18.0"}
+  "ios": {"minimum_version": "18.0"},
+  "android": {"minimum_sdk": 23, "target_sdk": 35}
 }
 ```
 
@@ -117,7 +118,9 @@ Desktop `keel run` watches project files, assets and local `replace`/`go.work` m
 
 `keel run` passes `appid` to Gio, and supplies the icon configured in `keel.json` when the first window opens. It honors `icon_mask` and platform overrides under `icons`, without creating an application bundle. Explicit `window.SetIcon` calls take precedence. Wayland has separate requirements; see [Application icons](app.md#app-icons). Use `keel run -- --flag` to pass arguments to your application.
 
-Use `keel run -target ios` to build, install and launch on an iOS simulator; `-simulator <UDID>` selects the device. Check the environment with `keel doctor -target ios`. See [iOS (experimental)](ios.md).
+Use `keel run -target ios` to build, install and launch on an iOS simulator; `-simulator <UDID>` selects the device. Check the environment with `keel doctor -target ios`. See [iOS](ios.md).
+
+Use `keel run -target android` to install and launch; select a device with `-serial <serial>` when several are connected. Check the toolchain with `keel doctor -target android`. See [Mobile support](mobile.md).
 
 ## Package
 
@@ -126,10 +129,11 @@ keel build                    # Current platform
 keel build -target windows    # Build a Windows package on any platform
 keel build -target js         # WebAssembly
 keel build -target ios        # macOS + full Xcode; simulator .app
+keel build -target android    # Android SDK + NDK + JDK; development APK
 keel build -n                 # Print commands without executing them
 ```
 
-Output goes to `dist/`; change it with `-o`. Builds strip symbols, debug information, and local paths by default (`-s -w -trimpath`), reducing size by about a quarter. Crash traces still show function names. Add `-debug` when using a debugger. Syntax highlighting and network images each add about 4 MB and are optional: uncomment their imports in the generated `main.go` when needed. See [Optional features and binary size](kit.md#optional-features-and-binary-size). The first macOS or browser build downloads Gio’s packaging tool, gogio.
+Output goes to `dist/`; change it with `-o`. Builds strip symbols, debug information, and local paths by default (`-s -w -trimpath`), reducing size by about a quarter. Crash traces still show function names. Add `-debug` when using a debugger. Android native libraries are always stripped by gogio; see [Android](android.md). Syntax highlighting and network images each add about 4 MB and are optional: uncomment their imports in the generated `main.go` when needed. See [Optional features and binary size](kit.md#optional-features-and-binary-size). The first macOS, Android or browser build downloads Gio’s packaging tool, gogio.
 
 | Target | Output | Icon | Build host |
 | --- | --- | --- | --- |
@@ -137,6 +141,7 @@ Output goes to `dist/`; change it with `-o`. Builds strip symbols, debug informa
 | `windows` | `dist/my-notes.exe` and `my-notes.ico` | Embeds 14 icon sizes in the executable | Any platform; no cgo required |
 | `linux` | `dist/linux/`: executable, `<appid>.desktop`, icons, and `install.sh` | Uses the hicolor icon theme | Linux with Wayland/X11 development headers |
 | `ios` | `dist/ios/my-notes.app`; `-device` produces a signed `.ipa` | iPhone/iPad assets | macOS with full Xcode |
+| `android` | `dist/android/my-notes.apk` | Density variants and adaptive icon | Android SDK, NDK and JDK |
 | `js` | `dist/web/` | — | Any platform |
 
 **macOS:** `-arch arm64,amd64` creates a universal bundle; the default uses the host architecture. The CLI rewrites Info.plist with the application type, name, version, and minimum macOS version (14), then signs the entire bundle. Without a signing identity, it uses an ad hoc signature for local use. For distribution, sign with `-sign "Developer ID Application: Your Name (TEAMID)"`, then notarize with `xcrun notarytool`.
@@ -157,7 +162,7 @@ Output goes to `dist/`; change it with `-o`. Builds strip symbols, debug informa
 
 Each size is rendered directly from the source image rather than downscaled from a larger output, keeping small 16 and 24 icons clear.
 
-Preview before packaging: `keel icon` writes all platforms’ icons to `dist/icons/`: `ios.png`, `macos.png`, `windows.ico`, `windows/<size>.png`, and `linux/<size>.png`.
+Preview before packaging: `keel icon` writes all platforms’ icons to `dist/icons/`: `android.png`, `ios.png`, `macos.png`, `windows.ico`, `windows/<size>.png`, and `linux/<size>.png`.
 
 iOS uses full-bleed artwork with system rounding and transparency flattened over white; `icon_mask` does not affect iOS. Use `icons.ios` for separate artwork.
 

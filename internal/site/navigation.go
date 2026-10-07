@@ -35,6 +35,9 @@ func (s *site) buildNav() error {
 	}
 	for i := range groups {
 		for _, p := range groups[i].Pages {
+			if canonicalSource(p.Src) == "docs/mobile.md" {
+				p.NavTitle = translateUI(p, "概览", "Overview")
+			}
 			if canonicalSource(p.Src) == "docs/kit.md" {
 				p.NavTitle = translateUI(p, "全部组件", "Overview")
 				groups[i].Children = components

@@ -24,7 +24,7 @@ const gogio = "gioui.org/cmd/gogio@v0.10.0"
 func (c *cli) build(args []string) error {
 	fs := flag.NewFlagSet("build", flag.ContinueOnError)
 	fs.SetOutput(c.errw)
-	target := fs.String("target", runtime.GOOS, "darwin, windows, linux, js or ios (simulator by default)")
+	target := fs.String("target", runtime.GOOS, "darwin, windows, linux, js, android or ios (simulator by default)")
 	arch := fs.String("arch", "", "architectures, comma-separated (default: this machine's; amd64 for windows)")
 	out := fs.String("o", "dist", "output directory")
 	sign := fs.String("sign", "", "codesign identity: Developer ID Application for macOS, Apple Development/Distribution for iOS devices")
@@ -61,6 +61,11 @@ func (c *cli) build(args []string) error {
 	// functions; only debuggers lose their information.
 	c.release = !*debug
 	switch *target {
+	case "android":
+		if *sign != "" {
+			return errors.New("-sign is an Apple signing identity; Android builds use a development keystore")
+		}
+		return c.buildAndroid(dir, cfg, icons, outDir, main, *arch)
 	case "ios":
 		return c.buildIOS(dir, cfg, icons, outDir, main, *arch, *sign, *provision, *device)
 	case "darwin", "macos":
@@ -74,7 +79,7 @@ func (c *cli) build(args []string) error {
 		// scan imports it (see docs/web.md).
 		return c.command(dir, c.trimEnv(), "go", "run", gogio, "-target", "js", "-tags", "osusergo", "-ldflags", c.ldflags(""), "-o", filepath.Join(outDir, "web"), main)
 	}
-	return fmt.Errorf("unknown target %q: use darwin, windows, linux, js or ios", *target)
+	return fmt.Errorf("unknown target %q: use darwin, windows, linux, js, android or ios", *target)
 }
 
 func (c *cli) buildDarwin(dir string, cfg *Config, icons *iconSet, outDir, main, arch, sign string) error {
