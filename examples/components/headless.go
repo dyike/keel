@@ -36,7 +36,7 @@ type headlessGallery struct {
 }
 
 func (v *headlessGallery) Render(cx *el.Context) el.Element {
-	return el.Div().Gap(20).W(el.Dp(560)).Child(
+	return el.Div().Gap(20).W(el.Dp(560)).MaxW(el.Full).Child(
 		el.Text(demoText("Drawn with el; keyboard navigation, type-ahead, and multiselect rules come from ui/base, matching kit lists.", "外观用 el 自己画，键盘导航、首字母跳转、多选规则来自 ui/base，和 kit 的列表一致。")).TextColor(theme.Muted),
 		v.swatches(),
 		v.fileList(cx),
@@ -46,7 +46,7 @@ func (v *headlessGallery) Render(cx *el.Context) el.Element {
 // swatches is a horizontal single-choice list: ← → move, letters jump.
 func (v *headlessGallery) swatches() el.Element {
 	v.nav.Count = len(v.colors)
-	box := el.Div().ID("swatches").Role("listbox").Name(demoText("Color", "颜色")).Focusable(true).Row().Gap(8).P(8).Rounded(theme.RadiusLg).
+	box := el.Div().ID("swatches").Role("listbox").Name(demoText("Color", "颜色")).Focusable(true).Wrap().Gap(8).P(8).Rounded(theme.RadiusLg).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).Border(1, theme.Border).
 		OnKey(func(e el.KeyEvent) bool {
 			if t, ok := base.Text(e.Name, e.Modifiers&(key.ModCtrl|key.ModCommand|key.ModAlt) != 0); ok {

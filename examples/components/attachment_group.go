@@ -26,7 +26,7 @@ func init() {
 		}
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			group.EdgeFade(theme.Bg)
-			paging := el.Div().Row().Gap(8).Child(
+			paging := el.Div().Wrap().Gap(8).Child(
 				kit.Button(demoText("Previous screen", "前一屏"), func() { offset, width, _ := group.ScrollState(cx); group.ScrollTo(offset - width) }).Render(cx),
 				kit.Button(demoText("Next screen", "后一屏"), func() { offset, width, _ := group.ScrollState(cx); group.ScrollTo(offset + width) }).Render(cx),
 			)

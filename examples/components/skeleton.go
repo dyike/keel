@@ -20,7 +20,7 @@ func (v *skeletonGallery) Render(cx *el.Context) el.Element {
 		label = demoText("Reload", "重新加载")
 		card.Child(el.Text(demoText("Keel component gallery", "Keel 组件库")).Bold(), el.Text(demoText("Loaded content replaces the gray placeholders.", "加载完成后，真实内容替换灰色占位。")), el.Text(demoText("Reserve space for the avatar, title, and body.", "头像、标题和正文都可以预先保留空间。")).TextColor(theme.Muted))
 	} else {
-		card.Child(kit.Skeleton().W(el.Dp(48)).H(el.Dp(48)).Circle().Render(cx), kit.Skeleton().W(el.Dp(180)).Shimmer().Render(cx), kit.Skeleton().Shimmer().Render(cx), kit.Skeleton().W(el.Dp(240)).Secondary(true).Render(cx))
+		card.Child(kit.Skeleton().W(el.Dp(48)).H(el.Dp(48)).Circle().Render(cx), kit.Skeleton().W(el.Dp(180)).Shimmer().Render(cx), kit.Skeleton().Shimmer().Render(cx), el.Div().W(el.Dp(240)).MaxW(el.Full).Child(kit.Skeleton().Secondary(true).Render(cx)))
 	}
 	return el.Div().P(24).Gap(16).Child(
 		el.Text(demoText("Skeleton · Loading placeholder", "Skeleton · 加载占位")).Bold(),
@@ -28,7 +28,7 @@ func (v *skeletonGallery) Render(cx *el.Context) el.Element {
 		card,
 		kit.Button(label, func() { v.loaded = !v.loaded }).Render(cx),
 		el.Text(demoText("Basic shapes: circle, rounded rectangle, rectangle", "基本形状：圆形、圆角矩形、直角矩形")).TextColor(theme.Muted),
-		el.Div().Row().Gap(16).Child(kit.Skeleton().W(el.Dp(48)).H(el.Dp(48)).Circle().Render(cx), kit.Skeleton().W(el.Dp(120)).H(el.Dp(48)).Rounded(24).Render(cx), kit.Skeleton().W(el.Dp(120)).H(el.Dp(48)).Rounded(0).Render(cx)),
+		el.Div().Wrap().Gap(16).Child(kit.Skeleton().W(el.Dp(48)).H(el.Dp(48)).Circle().Render(cx), kit.Skeleton().W(el.Dp(120)).H(el.Dp(48)).Rounded(24).Render(cx), kit.Skeleton().W(el.Dp(120)).H(el.Dp(48)).Rounded(0).Render(cx)),
 		kit.Button(demoText("Toggle reduced motion", "切换减少动画"), func() { theme.SetReducedMotion(!theme.ReducedMotion) }).Render(cx),
 	)
 }
