@@ -32,6 +32,7 @@ type GlyphPainter struct {
 	blanks         map[glyphAnchorKey]text.Glyph
 	fragments      map[glyphFragmentKey]*list.Element
 	recent         list.List
+	fragment       [9]text.Glyph
 }
 
 type glyphFragmentKey struct {
@@ -123,7 +124,9 @@ func (p *GlyphPainter) walkFragments(sh *text.Shaper, params text.Parameters, gs
 	if p.SubpixelPhases > 0 {
 		step = fixed.Int26_6(64 / max(1, min(p.SubpixelPhases, 64)))
 	}
-	var fragment [9]text.Glyph
+	// The visitor is synchronous and must not retain this scratch slice. Keep
+	// it on the serial painter instead of allocating once for every text run.
+	fragment := p.fragment[:]
 	for start := 0; start < len(gs); start += size {
 		part := gs[start:min(start+size, len(gs))]
 		displacement := fixed.I((part[0].X - gs[0].X).Floor())

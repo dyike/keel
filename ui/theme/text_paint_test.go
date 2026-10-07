@@ -123,3 +123,25 @@ func TestGlyphPainterFragmentCacheBounded(t *testing.T) {
 		t.Fatal("eviction was not exercised", len(p.fragments))
 	}
 }
+
+func TestGlyphPainterWarmFragmentsDoNotAllocate(t *testing.T) {
+	sh := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	params := text.Parameters{PxPerEm: fixed.I(13), MaxWidth: 4000}
+	sh.LayoutString(params, "0123456789")
+	var gs []text.Glyph
+	for g, ok := sh.NextGlyph(); ok; g, ok = sh.NextGlyph() {
+		gs = append(gs, g)
+	}
+	p := GlyphPainter{FragmentSize: 1, SubpixelPhases: 4}
+	visited := 0
+	visit := func(fragment []text.Glyph, _ fixed.Int26_6) { visited += len(fragment) - 1 }
+	if !p.walkFragments(sh, params, gs, color.NRGBA{A: 255}, visit) {
+		t.Fatal("simple digits unexpectedly require whole-run drawing")
+	}
+	allocs := testing.AllocsPerRun(100, func() {
+		p.walkFragments(sh, params, gs, color.NRGBA{A: 255}, visit)
+	})
+	if allocs != 0 || visited == 0 {
+		t.Fatalf("warm fragment iteration allocated %v times", allocs)
+	}
+}
