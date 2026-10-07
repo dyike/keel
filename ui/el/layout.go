@@ -532,6 +532,11 @@ func (e *engine) measureGtx(cs layout.Constraints) core.C {
 }
 
 func (e *engine) measureWidget(n *Node, innerW, innerH, limW, limH int) image.Point {
+	// Explicit dimensions already determine this leaf's size. A measuring
+	// Layout would discard its operations and rebuild them during painting.
+	if innerW >= 0 && innerH >= 0 {
+		return image.Pt(innerW, innerH)
+	}
 	cs := layout.Constraints{Max: image.Pt(min(limW, inf), min(limH, inf))}
 	if innerW >= 0 {
 		cs.Min.X, cs.Max.X = innerW, innerW
