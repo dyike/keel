@@ -113,7 +113,7 @@ Create stateful components once in `newApp` and retain them in view fields. `Ren
 
 ## Run
 
-`keel run` invokes `go run` and passes `appid` to Gio for the Linux window’s app_id. The generated `main.go` embeds `appicon.png` and calls `window.SetIcon`, so the Dock and taskbar show your icon during development. Wayland has separate requirements; see [Application icons](app.md#app-icons). Use `keel run -- --flag` to pass arguments to your application.
+`keel run` invokes `go run`, passes `appid` to Gio, and supplies the icon configured in `keel.json` when the first window opens. It honors `icon_mask` and platform overrides under `icons`, without creating an application bundle. Explicit `window.SetIcon` calls take precedence. Wayland has separate requirements; see [Application icons](app.md#app-icons). Use `keel run -- --flag` to pass arguments to your application.
 
 Use `keel run -target ios` to build, install and launch on an iOS simulator; `-simulator <UDID>` selects the device. Check the environment with `keel doctor -target ios`. See [iOS (experimental)](ios.md).
 

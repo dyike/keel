@@ -4,5 +4,5 @@ package window
 
 import "image"
 
-func platformSetIcon(art image.Image)  {}
-func iconWindowEvent(w *Window, e any) {}
+func platformSetIcon(art image.Image, finished bool) {}
+func iconWindowEvent(w *Window, e any)               {}

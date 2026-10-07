@@ -20,7 +20,7 @@ var x11Icons struct {
 	windows map[*Window]uint32
 }
 
-func platformSetIcon(art image.Image) {
+func platformSetIcon(art image.Image, finished bool) {
 	x11Icons.Lock()
 	ids := make([]uint32, 0, len(x11Icons.windows))
 	for _, id := range x11Icons.windows {
@@ -29,7 +29,7 @@ func platformSetIcon(art image.Image) {
 	x11Icons.Unlock()
 	go func() {
 		for _, id := range ids {
-			setX11Icon(id, art)
+			setX11Icon(id, art, finished)
 		}
 	}()
 }
@@ -54,13 +54,13 @@ func iconWindowEvent(w *Window, e any) {
 	}
 	x11Icons.windows[w] = id
 	x11Icons.Unlock()
-	if art := currentIcon(); art != nil {
-		go setX11Icon(id, art)
+	if art, finished := currentIconState(); art != nil {
+		go setX11Icon(id, art, finished)
 	}
 }
 
-func setX11Icon(id uint32, art image.Image) {
-	data := netWMIcon(art)
+func setX11Icon(id uint32, art image.Image, finished bool) {
+	data := netWMIcon(art, finished)
 	withX11(func(c *xgb.Conn, atom func(string) (xproto.Atom, error)) error {
 		prop, err := atom("_NET_WM_ICON")
 		if err != nil {

@@ -76,6 +76,7 @@ type Window struct {
 // It panics on an invalid shortcut, which is a programming error.
 func Open(o Options) *Window {
 	w := newWindow(o)
+	loadRunIcon()
 	if offScreen() {
 		openVirtual(w, true)
 		return w

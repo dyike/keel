@@ -46,7 +46,7 @@ window.Main()
 - **Linux X11**：每个窗口的 `_NET_WM_ICON`。
 - **Linux Wayland、浏览器**：不处理。Wayland 由合成器按 app_id 找已安装的 `.desktop` 文件取图标（`keel build` 生成的安装包会装上），浏览器用页面图标。
 
-打好的包本身就带图标，`SetIcon` 补的是 `go run` / `keel run` 这种直接跑可执行文件的情况，否则系统只会显示通用图标。它对已打开和之后打开的窗口都生效，可以在 `Open` 之前调用，也可以随时换。脚手架生成的 `main.go` 已经用 `//go:embed appicon.png` 把图标编进程序并调用它。
+打好的包本身就带图标。开发时，`keel run` 读取 `keel.json` 的 `icon`、`icon_mask` 和 `icons` 平台覆盖配置，在打开首个窗口时设置图标，无需打包或额外编写应用代码。直接使用 `go run` 时可以调用 `SetIcon`；脚手架已嵌入 `appicon.png` 并调用它。主动调用的 `SetIcon` 优先于命令行传入的图标，对已打开和之后打开的窗口都生效，也可以随时更换。
 
 ## Window 的方法
 

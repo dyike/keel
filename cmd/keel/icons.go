@@ -25,16 +25,24 @@ type iconSet struct {
 }
 
 func loadIcons(dir string, cfg *Config) (*iconSet, error) {
+	set, err := readIcons(dir, cfg)
+	if err != nil {
+		return nil, err
+	}
+	if size := set.art.Bounds().Dx(); size < 512 {
+		fmt.Fprintf(os.Stderr, "keel: icon %s is %dpx; give 1024px so every size stays sharp\n", cfg.Icon, size)
+	}
+	return set, nil
+}
+
+func readIcons(dir string, cfg *Config) (*iconSet, error) {
 	art, err := decodePNG(filepath.Join(dir, cfg.Icon))
 	if err != nil {
 		return nil, err
 	}
 	b := art.Bounds()
-	if b.Dx() != b.Dy() {
+	if b.Dx() != b.Dy() || b.Dx() == 0 {
 		return nil, fmt.Errorf("icon %s is %dx%d; it must be square", cfg.Icon, b.Dx(), b.Dy())
-	}
-	if b.Dx() < 512 {
-		fmt.Fprintf(os.Stderr, "keel: icon %s is %dpx; give 1024px so every size stays sharp\n", cfg.Icon, b.Dx())
 	}
 	return &iconSet{dir: dir, cfg: cfg, art: art}, nil
 }

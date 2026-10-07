@@ -16,10 +16,9 @@ import (
 	"github.com/dyike/keel/internal/appicon"
 )
 
-// platformSetIcon gives the Dock Apple's plate: 824px with continuous
-// corners and the template shadow on a 1024px canvas.
-func platformSetIcon(art image.Image) {
-	data := encodePNG(appicon.MacOS.Render(art, 1024, true))
+// platformSetIcon supplies the Dock icon, preserving finished CLI artwork.
+func platformSetIcon(art image.Image, finished bool) {
+	data := encodePNG(renderIcon(art, appicon.MacOS, 1024, finished))
 	C.keel_set_app_icon(unsafe.Pointer(&data[0]), C.size_t(len(data)))
 }
 

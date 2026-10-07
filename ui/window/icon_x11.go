@@ -15,11 +15,11 @@ var x11IconSizes = []int{16, 32, 48, 64, 128}
 // netWMIcon encodes _NET_WM_ICON: for each size, width, height, then rows
 // of non-premultiplied ARGB, as 32-bit values in the connection's (little
 // endian) byte order.
-func netWMIcon(art image.Image) []byte {
+func netWMIcon(art image.Image, finished bool) []byte {
 	var out []byte
 	put := func(v uint32) { out = binary.LittleEndian.AppendUint32(out, v) }
 	for _, size := range x11IconSizes {
-		img := appicon.Linux.Render(art, size, true)
+		img := renderIcon(art, appicon.Linux, size, finished)
 		put(uint32(size))
 		put(uint32(size))
 		for y := 0; y < size; y++ {

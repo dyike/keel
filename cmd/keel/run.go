@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 )
@@ -34,9 +35,64 @@ func (c *cli) runProject(args []string) error {
 		return fmt.Errorf("run target %q: use desktop or ios; -simulator requires ios", *target)
 	}
 	goArgs := append([]string{"run", "-ldflags", appIDFlag(cfg), "./" + filepath.ToSlash(filepath.Clean(cfg.Main))}, fs.Args()...)
-	return c.command(dir, nil, "go", goArgs...)
+	if c.dryRun {
+		return c.command(dir, nil, "go", goArgs...)
+	}
+	icon, cleanup, err := prepareRunIcon(dir, cfg, runtime.GOOS)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+	return c.command(dir, []string{"KEEL_RUN_ICON=" + icon}, "go", goArgs...)
 }
 
 // appIDFlag gives the binary the app ID Gio reports to Linux desktops
 // (the Wayland app_id and X11 WM_CLASS), so a .desktop file matches it.
 func appIDFlag(cfg *Config) string { return "-X gioui.org/app.ID=" + cfg.AppID }
+
+// prepareRunIcon passes a finished platform icon to the bare development
+// executable. Keep it alive until go run exits, without creating a bundle.
+func prepareRunIcon(dir string, cfg *Config, platform string) (string, func(), error) {
+	noop := func() {}
+	source := cfg.Icon
+	if override := cfg.Icons[platform]; override != "" {
+		source = override
+	}
+	if source == "" {
+		return "", noop, nil
+	}
+	if _, err := os.Stat(filepath.Join(dir, source)); os.IsNotExist(err) && source == "appicon.png" && cfg.Icons[platform] == "" {
+		// Existing projects without artwork still run with the system icon.
+		return "", noop, nil
+	}
+	// An override is complete artwork; it need not have a base icon.
+	var set *iconSet
+	var err error
+	if cfg.Icons[platform] != "" {
+		set = &iconSet{dir: dir, cfg: cfg}
+	} else {
+		set, err = readIcons(dir, cfg)
+		if err != nil {
+			return "", noop, err
+		}
+	}
+	size := 256
+	if platform == "darwin" {
+		size = 1024
+	}
+	img, err := set.icon(platform, size)
+	if err != nil {
+		return "", noop, err
+	}
+	tmp, err := os.MkdirTemp("", "keel-run-icon-")
+	if err != nil {
+		return "", noop, err
+	}
+	cleanup := func() { os.RemoveAll(tmp) }
+	path := filepath.Join(tmp, "icon.png")
+	if err := writePNG(path, img); err != nil {
+		cleanup()
+		return "", noop, err
+	}
+	return path, cleanup, nil
+}

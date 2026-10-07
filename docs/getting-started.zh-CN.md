@@ -113,7 +113,7 @@ func (a *app) Render(cx *el.Context) el.Element {
 
 ## 运行
 
-`keel run` 等同于 `go run`，并把 `appid` 告诉 Gio（Linux 上窗口的 app_id）。生成的 `main.go` 把 `appicon.png` 编进程序并调用 `window.SetIcon`，所以运行时程序坞和任务栏也显示自己的图标（Wayland 除外，见[窗口与应用 · 应用图标](app.zh-CN.md#应用图标)）。`keel run -- --flag` 把 `--` 之后的参数交给应用。
+`keel run` 调用 `go run`，把 `appid` 告诉 Gio，并在打开首个窗口时设置 `keel.json` 中配置的应用图标。它遵循 `icon_mask` 和 `icons` 中的平台覆盖配置，不生成应用包。应用主动调用的 `window.SetIcon` 优先。Wayland 的图标要求见[窗口与应用 · 应用图标](app.zh-CN.md#应用图标)。`keel run -- --flag` 把 `--` 之后的参数交给应用。
 
 iOS 模拟器使用 `keel run -target ios`：自动构建、安装和启动，`-simulator <UDID>` 选择设备。环境检查用 `keel doctor -target ios`，详见 [iOS（实验性）](ios.zh-CN.md)。
 
