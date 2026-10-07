@@ -30,6 +30,7 @@ var allowed = map[string][]string{
 	"native":                   {},
 	"native/internal/sys":      {"native"},
 	"native/internal/wlclip":   {"native"},
+	"native/process":           {"native", "native/internal/sys"},
 	"native/permission":        {"native", "native/internal/sys"},
 	"native/screen":            {"native", "native/internal/sys"},
 	"native/input":             {"native", "native/internal/sys"},

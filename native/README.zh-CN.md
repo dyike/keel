@@ -12,6 +12,7 @@
 | [hotkey](hotkey/README.zh-CN.md) | 全局快捷键 | 同上 |
 | [clipboard](clipboard/README.zh-CN.md) | 异步读取剪贴板文本、编码图片和文件引用（macOS / Windows / Linux Wayland、X11） | 同上 |
 | [notification](notification/README.zh-CN.md) | 系统通知权限、投递与撤回（macOS .app / Linux D-Bus） | 同上 |
+| [process](process/README.zh-CN.md) | 终端前台进程组、进程工作目录（macOS / Linux） | `native`、`native/internal/sys` |
 
 模块之间互不引用，也不引用 `ui` 和 Gio，这一点由 `internal/deps` 里的测试保证。
 

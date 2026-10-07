@@ -201,3 +201,5 @@ kit.Button("刷新", func() {
 `native/clipboard` 依赖 native/internal/sys、native/internal/wlclip 与 native；wlclip 是 Linux Wayland 读取剪贴板的 cgo 绑定，单独成包，只用截图、快捷键等模块的程序因此不链接 libwayland。Wayland 连接由应用从 `window.Window.WaylandDisplay()` 取出交给 `clipboard.UseWaylandDisplay`，两组模块仍互不引用。macOS 在主队列读取剪贴板快照，再由后台 goroutine 交付。应用将结果适配为 core.ClipboardData，通过 Input/TextArea.PasteReader 接入；el 在 core.Update 后处理完成，不在帧锁内等待主线程。UI 模块没有新增 native 依赖。
 
 SVG 图标由 `ui/kit` 内的 `oksvg` 与 `rasterx` 解析并按物理像素栅格化，仍通过 Gio 绘制；不新增 Keel 模块依赖。入口、格式子集和缓存上限见 [Icon](kit/icon.zh-CN.md)。
+
+`native/process` 仅依赖 `native` 和 `native/internal/sys`，不引用 UI 或 Gio。终端前台进程组和进程工作目录的平台绑定位于 `native/internal/sys`，业务项目通过 Go API 调用。

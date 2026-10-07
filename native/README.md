@@ -12,6 +12,7 @@ A collection of system capability modules. Each subdirectory is an independent m
 | [hotkey](hotkey/README.md) | Global shortcut keys | Same as above |
 | [clipboard](clipboard/README.md) | Asynchronously read clipboard text, encoded images, and file references (macOS / Windows / Linux Wayland, X11) | Same as above |
 | [notification](notification/README.md) | System notification permissions, delivery and withdrawal (macOS .app / Linux D-Bus) | Same as above |
+| [process](process/README.md) | Terminal foreground process group and process working directory (macOS / Linux) | `native`, `native/internal/sys` |
 
 Modules do not reference each other, nor do they reference `ui` and Gio. This is guaranteed by the tests in `internal/deps`.
 
