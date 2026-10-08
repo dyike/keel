@@ -12,10 +12,15 @@ import (
 
 // root paints the window background and scrolls the content when it is taller
 // than the window.
-type root struct{ list widget.List }
+type root struct {
+	list        widget.List
+	transparent bool
+}
 
 func (r *root) Layout(gtx core.C, content core.Widget) core.D {
-	paint.Fill(gtx.Ops, theme.Bg)
+	if !r.transparent {
+		paint.Fill(gtx.Ops, theme.Bg)
+	}
 	if content == nil {
 		return core.D{Size: gtx.Constraints.Max}
 	}

@@ -11,6 +11,7 @@
 | `shortcut.go` | 快捷键解析与分发 |
 | `icon*.go` | `SetIcon`：运行时的应用图标（macOS 程序坞、Windows 窗口、X11 `_NET_WM_ICON`），形状由 `internal/appicon` 按平台规范裁出 |
 | `root.go` | 窗口根视图：背景、滚动、24dp 边距 |
+| `glass*` | macOS 原生玻璃背景、透明 Metal 渲染及平台回退，见[用法](../../docs/app.zh-CN.md#macos-玻璃背景) |
 | `position_*` | 首次显示居中；macOS 按屏幕可用区域计算，其他平台使用 Gio 动作 |
 | `screenshot.go` | `Screenshot` 离屏渲染成 PNG |
 | `decorations*.go` | Linux 合成器不画标题栏时由 Keel 绘制 |

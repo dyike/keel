@@ -23,6 +23,9 @@ func TestRealWindows(t *testing.T) {
 	}
 	if runtime.GOOS == "darwin" {
 		cases = append(cases, []string{"./testdata/center"})
+		if GlassSupported() {
+			cases = append(cases, []string{"./testdata/glass"})
+		}
 	}
 	for _, args := range cases {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {

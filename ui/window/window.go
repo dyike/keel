@@ -3,6 +3,7 @@ package window
 import (
 	"fmt"
 	"image"
+	"log"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -66,6 +67,9 @@ type Options struct {
 	// Other platforms ignore this option.
 	NativeTrafficLights bool
 	TrafficLightLayout  *TrafficLightLayout
+	// Glass enables a native macOS glass backdrop. Leave the desired glass
+	// areas transparent in Content. Other platforms keep the theme background.
+	Glass *GlassOptions
 }
 
 type Window struct {
@@ -92,6 +96,7 @@ type Window struct {
 	deco                      widget.Decorations
 	drawsTitle                bool          // Keel draws the title bar; see decorations.go
 	shown                     chan struct{} // closed at the first frame or at destruction
+	glassRenderer             glassRenderer
 }
 
 // Open creates and shows a centered window where the platform supports it.
@@ -116,6 +121,11 @@ func Open(o Options) *Window {
 }
 
 func newWindow(o Options) *Window {
+	if o.Glass != nil {
+		glass := *o.Glass
+		glass.validate()
+		o.Glass = &glass
+	}
 	if o.MinWidth < 0 || o.MinHeight < 0 || uint64(o.MinWidth) > 2147483647 || uint64(o.MinHeight) > 2147483647 {
 		panic("window: invalid minimum size")
 	}
@@ -139,6 +149,9 @@ func newWindow(o Options) *Window {
 func (w *Window) nativeOptions() []gioapp.Option {
 	o := w.opts
 	options := []gioapp.Option{gioapp.Title(o.Title), gioapp.Size(unit.Dp(o.Width), unit.Dp(o.Height)), gioapp.Decorated(askDecorations(o.Frameless))}
+	if w.opts.Glass != nil && GlassSupported() {
+		options = append(options, gioapp.CustomRenderer(true))
+	}
 	if o.MinWidth > 0 || o.MinHeight > 0 {
 		options = append(options, gioapp.MinSize(unit.Dp(max(1, o.MinWidth)), unit.Dp(max(1, o.MinHeight))))
 	}
@@ -303,6 +316,12 @@ func (w *Window) run() {
 			loop.Drain()
 			w.layout(gtx)
 			loop.Unlock()
+			if w.glassRenderer != nil {
+				if err := w.glassRenderer.Frame(gtx.Ops, e.Size); err != nil {
+					log.Printf("window: glass rendering: %v", err)
+					w.Close()
+				}
+			}
 			e.Frame(gtx.Ops)
 			if !positioned {
 				positioned = true
@@ -313,6 +332,7 @@ func (w *Window) run() {
 			w.markShown()
 		default:
 			platformWindowEvent(w, e)
+			platformGlassEvent(w, e)
 			iconWindowEvent(w, e)
 			applicationMenuWindowEvent(w, e)
 		}
@@ -330,6 +350,7 @@ func (w *Window) layout(gtx core.C) {
 	gtx, menuBelow := w.belowApplicationMenu(gtx)
 	defer menuBelow()
 	defer func() { w.menuEdits = nil }()
+	w.root.transparent = w.opts.Glass != nil && GlassSupported() && !offScreen()
 	w.root.Layout(gtx, w.opts.Content)
 	if w.opts.Overlay != nil {
 		o := gtx
@@ -356,6 +377,10 @@ func (w *Window) destroy() {
 
 // finish marks the window closed, runs OnClose and reports how many windows remain.
 func (w *Window) finish() int {
+	if w.glassRenderer != nil {
+		w.glassRenderer.Release()
+		w.glassRenderer = nil
+	}
 	unregisterDevelopmentWindow(w)
 	remaining := loop.Unregister(w)
 	loop.Lock()

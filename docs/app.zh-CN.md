@@ -37,6 +37,42 @@ window.Main()
 
 `window.Main()` 必须在 `main` goroutine 里调用，而且不会返回。最后一个窗口关闭时进程退出。
 
+## macOS 玻璃背景
+
+在 `Options.Glass` 中启用原生背景，并让需要透出玻璃的区域保持透明：
+
+```go
+page := el.Root(el.ViewFunc(func(*el.Context) el.Element {
+    return el.Div().Row().Bg(color.NRGBA{}).Child(
+        el.Div().W(el.Dp(220)).P(20).Child(el.Text("玻璃侧栏")),
+        el.Div().Grow().Bg(theme.Bg).P(24).Child(el.Text("实色内容区")),
+    )
+}))
+window.Open(window.Options{
+    Title: "Glass", Width: 900, Height: 600,
+    Glass: &window.GlassOptions{Style: window.GlassRegular, CornerRadius: 20},
+    Content: page,
+})
+window.Main()
+```
+
+上例另需导入 `image/color`。`el.Root` 默认填充主题背景，因此最外层必须显式调用 `Bg(color.NRGBA{})`；其他容器的实色背景也会遮住玻璃。可以只让侧栏、顶部透明，其余区域正常绘制。
+
+`GlassRegular`、`GlassClear` 在 macOS 26+ 使用 `NSGlassEffectView`，构建需要 macOS 26+ SDK；旧系统或旧 SDK 自动使用 `NSVisualEffectView`。`GlassFrosted` 始终使用传统毛玻璃。`CornerRadius` 单位为 dp，零保留系统玻璃默认曲率；无效样式、负数或非有限圆角会触发 panic。
+
+玻璃窗口使用独立的透明 Metal 表面。AppKit 负责背后窗口的采样和玻璃效果，Gio 继续处理文字、布局和输入。`GlassSupported()` 查询当前构建的原生背景能力，`LiquidGlassSupported()` 查询 Liquid Glass 能力。Windows、Linux、浏览器、iOS 和 `-tags=nometal` 构建保留实色主题背景。未配置 `Glass` 的窗口使用原有渲染路径。
+
+材质随原生外观和系统辅助功能设置变化；应用仍需为 Go 内容选择合适的调色板。此接口覆盖整个客户区，不提供单个 Go 控件的折射或玻璃融合动画。`Screenshot` 和自动化离屏图无法包含原生合成效果，应在真实窗口验证。
+
+```sh
+go run ./examples/glass -backdrop
+go run ./examples/glass -style clear -dark
+go run ./examples/glass -style frosted
+go run ./examples/glass -opaque
+```
+
+`-backdrop` 打开一个彩色参考窗口，便于观察透光；示例支持导航、切换明暗、打开 Clear 和毛玻璃对比窗口。
+
 ## 空闲时归还堆页
 
 更重视空闲内存占用的应用，可以在打开窗口前启用：

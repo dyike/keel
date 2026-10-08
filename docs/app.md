@@ -37,6 +37,42 @@ The new window will be centered by default after it is first displayed, and will
 
 `window.Main()` must be called in the `main` goroutine and will not return. The process exits when the last window is closed.
 
+## macOS glass backdrop
+
+Enable `Options.Glass` and leave the intended glass areas transparent:
+
+```go
+page := el.Root(el.ViewFunc(func(*el.Context) el.Element {
+    return el.Div().Row().Bg(color.NRGBA{}).Child(
+        el.Div().W(el.Dp(220)).P(20).Child(el.Text("Glass sidebar")),
+        el.Div().Grow().Bg(theme.Bg).P(24).Child(el.Text("Opaque content")),
+    )
+}))
+window.Open(window.Options{
+    Title: "Glass", Width: 900, Height: 600,
+    Glass: &window.GlassOptions{Style: window.GlassRegular, CornerRadius: 20},
+    Content: page,
+})
+window.Main()
+```
+
+Import `image/color` for the transparent color. `el.Root` supplies a theme background unless its outer element explicitly sets `Bg(color.NRGBA{})`. Opaque containers hide glass, so the main content can remain opaque while a sidebar or toolbar exposes the backdrop.
+
+`GlassRegular` and `GlassClear` use `NSGlassEffectView` on macOS 26+ when built with a macOS 26+ SDK. Older systems or SDKs fall back to `NSVisualEffectView`. `GlassFrosted` always uses traditional vibrancy. `CornerRadius` is in dp; zero keeps the system's default glass curvature. Invalid styles, negative radii and non-finite radii panic.
+
+Glass windows use a separate transparent Metal surface. AppKit samples windows behind the application and supplies the material; Gio retains text, layout and input handling. `GlassSupported()` reports native backdrop support in this build; `LiquidGlassSupported()` reports Liquid Glass support. Windows, Linux, browsers, iOS and `-tags=nometal` builds retain the opaque theme background. Windows without `Glass` keep their existing rendering path.
+
+The material follows native appearance and system accessibility settings; choose a matching Go palette for the foreground. This API covers the window content area; it does not provide per-control refraction or glass morphing. Off-screen `Screenshot` and automation images cannot include native compositor effects. Verify those in a real window.
+
+```sh
+go run ./examples/glass -backdrop
+go run ./examples/glass -style clear -dark
+go run ./examples/glass -style frosted
+go run ./examples/glass -opaque
+```
+
+`-backdrop` opens a colored reference window behind the demo. The demo supports navigation, light/dark appearance and additional Clear/frosted comparison windows.
+
 ## Idle heap reclamation
 
 Applications that favor lower idle memory can opt in before opening windows:

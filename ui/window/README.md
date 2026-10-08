@@ -11,6 +11,7 @@ Window: open, close, bring to front (including activation token), window shortcu
 | `shortcut.go` | Shortcut key analysis and distribution |
 | `icon*.go` | `SetIcon`: The runtime application icon (macOS Dock, Windows window, X11 `_NET_WM_ICON`), the shape is cut out by `internal/appicon` according to the platform specification |
 | `root.go` | Window root view: background, scroll, 24dp margins |
+| `glass*` | Opt-in macOS glass backdrop, transparent Metal rendering and platform fallback; see [usage](../../docs/app.md#macos-glass-backdrop) |
 | `position_*` | First display centered; macOS calculated based on available screen area, other platforms use Gio actions |
 | `screenshot.go` | `Screenshot` Off-screen rendering to PNG |
 | `decorations*.go` | Linux compositor is drawn by Keel when not drawing title bar |
