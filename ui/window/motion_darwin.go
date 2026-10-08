@@ -13,6 +13,7 @@ import "C"
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
@@ -20,6 +21,7 @@ import (
 
 var motionOnce sync.Once
 var motionUpdates = make(chan bool, 1)
+var scrollersAutoHide atomic.Bool
 
 func watchSystemPreferences() {
 	motionOnce.Do(func() {
@@ -60,7 +62,11 @@ func keel_scroll_event(precise, active, momentum, ended C.int) {
 
 //export keel_scrollers_changed
 func keel_scrollers_changed(overlay C.int) {
-	theme.SetSystemScrollbarsAutoHide(overlay != 0)
+	// Gio's Invalidate can synchronously re-enter its event loop on AppKit's
+	// main thread while holding invMu. Post from another goroutine instead,
+	// and read the latest preference when applying possibly queued updates.
+	scrollersAutoHide.Store(overlay != 0)
+	go core.Update(func() { theme.SetSystemScrollbarsAutoHide(scrollersAutoHide.Load()) })
 }
 
 func overlayScrollers() bool { return C.keel_overlay_scrollers() != 0 }
