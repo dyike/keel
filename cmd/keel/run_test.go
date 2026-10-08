@@ -96,6 +96,16 @@ func TestRunPassesIconAndArguments(t *testing.T) {
 	}
 	bin := t.TempDir()
 	shim := `#!/bin/sh
+if [ "$1" = "build" ]; then
+cat > "$3" <<'APP'
+#!/bin/sh
+printf '%s\n' "$KEEL_RUN_ICON"
+cp "$KEEL_RUN_ICON" "$KEEL_ICON_TEST_COPY"
+printf '%s\n' "$@"
+APP
+chmod +x "$3"
+exit 0
+fi
 printf '%s\n' "$KEEL_RUN_ICON"
 cp "$KEEL_RUN_ICON" "$KEEL_ICON_TEST_COPY"
 printf '%s\n' "$@"

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -49,12 +50,38 @@ func (c *cli) runProject(args []string) error {
 	}
 	goArgs := append([]string{"run", "-ldflags", appIDFlag(cfg), "./" + filepath.ToSlash(filepath.Clean(cfg.Main))}, fs.Args()...)
 	if c.dryRun {
+		if runtime.GOOS == "darwin" {
+			bundle := filepath.Join("<temporary>", cfg.Binary+".app")
+			binary := filepath.Join(bundle, "Contents", "MacOS", cfg.Binary)
+			if err := c.command(dir, nil, "go", "build", "-o", binary, "-ldflags", appIDFlag(cfg), "./"+filepath.ToSlash(filepath.Clean(cfg.Main))); err != nil {
+				return err
+			}
+			fmt.Fprintln(c.out, "write development bundle metadata and icon to", bundle)
+			return c.command(dir, nil, binary, fs.Args()...)
+		}
 		return c.command(dir, nil, "go", goArgs...)
 	}
 	if *watch {
 		ctx, stop := signal.NotifyContext(context.Background(), runStopSignals()...)
 		defer stop()
 		return c.watchProject(ctx, dir, fs.Args())
+	}
+	if runtime.GOOS == "darwin" {
+		// go run launches a bare temporary binary. Build once inside an app
+		// bundle so non-watching runs have the same Dock identity as watch.
+		ctx, stop := signal.NotifyContext(context.Background(), runStopSignals()...)
+		defer stop()
+		tmp, err := os.MkdirTemp("", "keel-run-")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(tmp)
+		result := c.compileRun(ctx, dir, tmp, 1)
+		defer result.cleanup()
+		if result.err != nil {
+			return result.err
+		}
+		return c.runOnce(ctx, dir, result, fs.Args())
 	}
 	icon, cleanup, err := prepareRunIcon(dir, cfg, runtime.GOOS)
 	if err != nil {
@@ -64,12 +91,32 @@ func (c *cli) runProject(args []string) error {
 	return c.command(dir, []string{"KEEL_RUN_ICON=" + icon, "KEEL_RUN_WATCH=0"}, "go", goArgs...)
 }
 
+func (c *cli) runOnce(ctx context.Context, dir string, build runBuild, args []string) error {
+	cmd := exec.Command(build.binary, args...)
+	cmd.Dir = dir
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, c.out, c.errw
+	cmd.Env = append(os.Environ(), "KEEL_RUN_ICON="+build.icon, "KEEL_RUN_WATCH=0")
+	configureRunProcess(cmd)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		stopRunProcess(cmd, done)
+		return nil
+	}
+}
+
 // appIDFlag gives the binary the app ID Gio reports to Linux desktops
 // (the Wayland app_id and X11 WM_CLASS), so a .desktop file matches it.
 func appIDFlag(cfg *Config) string { return "-X gioui.org/app.ID=" + cfg.AppID }
 
-// prepareRunIcon passes a finished platform icon to the bare development
-// executable. Keep it alive until go run exits, without creating a bundle.
+// prepareRunIcon passes a finished platform icon to the development
+// executable. Keep it alive until the child exits.
 func prepareRunIcon(dir string, cfg *Config, platform string) (string, func(), error) {
 	noop := func() {}
 	source := cfg.Icon

@@ -158,6 +158,12 @@ func (c *cli) compileRun(ctx context.Context, dir, tmp string, generation int) r
 	result.err = cmd.Run()
 	if result.err == nil {
 		result.icon, result.cleanup, result.err = prepareRunIcon(dir, cfg, runtime.GOOS)
+		if result.err == nil {
+			var cleanupBundle func()
+			result.binary, cleanupBundle, result.err = prepareRunBundle(ctx, cfg, result.binary, result.icon)
+			cleanupIcon := result.cleanup
+			result.cleanup = func() { cleanupBundle(); cleanupIcon() }
+		}
 	}
 	return result
 }

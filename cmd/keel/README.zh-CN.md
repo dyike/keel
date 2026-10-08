@@ -4,6 +4,8 @@
 
 Keel 的脚手架：`keel new` 新建项目，`keel run` 运行，`keel build` 按平台打包（带图标、名称、版本），`keel doctor` 检查环境。用法见 [快速开始](../../docs/getting-started.zh-CN.md)。
 
+macOS 的 `keel run` 构建带配置名称和图标的临时应用包，并做本地签名。热重载和 `-watch=false` 都直接启动包内的可执行文件，保留工作目录、参数、标准输入输出和信号处理；应用退出后清理包和图标。
+
 ```sh
 go install github.com/dyike/keel/cmd/keel@latest
 ```
@@ -16,7 +18,7 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `main.go` | 子命令分发，运行外部命令 |
 | `config.go` | `keel.json` 读写与校验 |
 | `new.go` | 新建项目，模板在 `template/` |
-| `run.go` | `keel run` 参数和开发图标 |
+| `run.go`、`run_bundle_*.go` | `keel run` 参数、开发图标和 macOS 应用包 |
 | `run_watch.go`、`run_process_*.go` | 文件监听、重新编译和进程管理 |
 | `build.go` | 各平台打包、Windows 资源、Info.plist、Linux 桌面文件 |
 | `icons.go` | 按平台和尺寸生成图标、`keel icon`、.ico |

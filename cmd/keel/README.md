@@ -4,6 +4,8 @@ English | [简体中文](README.zh-CN.md)
 
 Keel's scaffolding: `keel new` creates a new project, `keel run` runs it, `keel build` packages it by platform (with icon, name, version), and `keel doctor` checks the environment. For usage, see [Quick Start](../../docs/getting-started.md).
 
+On macOS, `keel run` builds a temporary signed app bundle with the configured name and icon. Both watching and `-watch=false` launch its executable directly, preserving the working directory, arguments, stdio and signal handling. The bundle and icon are removed after the application exits.
+
 ```sh
 go install github.com/dyike/keel/cmd/keel@latest
 ```
@@ -16,7 +18,7 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `main.go` | Subcommand distribution, running external commands |
 | `config.go` | `keel.json` Reading, writing and verification |
 | `new.go` | New project, template in `template/` |
-| `run.go` | `keel run` flags and development icon |
+| `run.go`, `run_bundle_*.go` | `keel run` flags, development icons and macOS app bundles |
 | `run_watch.go`, `run_process_*.go` | File watching, rebuilds and process lifecycle |
 | `build.go` | Packaging for each platform, Windows resources, Info.plist, Linux desktop files |
 | `icons.go` | Generate icons, `keel icon`, .ico by platform and size |
