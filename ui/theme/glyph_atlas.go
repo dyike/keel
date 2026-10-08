@@ -365,6 +365,7 @@ func (a *GlyphAtlas) flushMasks() {
 		// our empty anchor). Keep actual bitmap glyphs on their original path.
 		if hasInk {
 			m.bitmap = op.CallOp{}
+			a.maskBytes -= m.trimTransparentBorder()
 		}
 		m.ready = true
 		for _, col := range m.wanted[:m.wantedCount] {
@@ -372,6 +373,36 @@ func (a *GlyphAtlas) flushMasks() {
 		}
 		m.wantedCount = 0
 	}
+}
+
+// trimTransparentBorder removes only zero-coverage pixels after rasterization.
+// The rasterizer still receives its safety border; cached color variants and
+// textures need not retain it. Return the number of released alpha bytes.
+func (m *atlasMask) trimTransparentBorder() int {
+	width, height := m.bounds.Dx(), m.bounds.Dy()
+	left, top, right, bottom := width, height, 0, 0
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			if m.alpha[y*width+x] != 0 {
+				left = min(left, x)
+				top = min(top, y)
+				right = max(right, x+1)
+				bottom = max(bottom, y+1)
+			}
+		}
+	}
+	// Empty masks may represent bitmap glyphs; leave their metadata untouched.
+	if right <= left || bottom <= top || left == 0 && top == 0 && right == width && bottom == height {
+		return 0
+	}
+	cropped := make([]byte, (right-left)*(bottom-top))
+	for y := top; y < bottom; y++ {
+		copy(cropped[(y-top)*(right-left):], m.alpha[y*width+left:y*width+right])
+	}
+	released := len(m.alpha) - len(cropped)
+	m.alpha = cropped
+	m.bounds = image.Rect(m.bounds.Min.X+left, m.bounds.Min.Y+top, m.bounds.Min.X+right, m.bounds.Min.Y+bottom)
+	return released
 }
 
 func (a *GlyphAtlas) allocate(size image.Point) (atlasLocation, bool) {

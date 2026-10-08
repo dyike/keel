@@ -260,3 +260,49 @@ func TestGlyphAtlasBatchesAndDeferredColors(t *testing.T) {
 	}
 
 }
+
+func TestGlyphAtlasTrimsOnlyTransparentPixels(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		ink  image.Rectangle
+	}{
+		{"empty", image.Rectangle{}},
+		{"full", image.Rect(0, 0, 9, 7)},
+		{"interior", image.Rect(2, 1, 7, 5)},
+		{"edge", image.Rect(0, 3, 4, 7)},
+		{"single", image.Rect(8, 6, 9, 7)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bounds := image.Rect(-4, -12, 5, -5)
+			m := atlasMask{bounds: bounds, alpha: make([]byte, 63)}
+			for y := tc.ink.Min.Y; y < tc.ink.Max.Y; y++ {
+				for x := tc.ink.Min.X; x < tc.ink.Max.X; x++ {
+					m.alpha[y*9+x] = byte(1 + (x+y*9)%255)
+				}
+			}
+			before := append([]byte(nil), m.alpha...)
+			released := m.trimTransparentBorder()
+			if released != len(before)-len(m.alpha) {
+				t.Fatal("incorrect memory accounting")
+			}
+			if cap(m.alpha) != len(m.alpha) {
+				t.Fatal("old oversized backing storage retained")
+			}
+			for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+				for x := bounds.Min.X; x < bounds.Max.X; x++ {
+					want := before[(y-bounds.Min.Y)*9+x-bounds.Min.X]
+					var got byte
+					if image.Pt(x, y).In(m.bounds) {
+						got = m.alpha[(y-m.bounds.Min.Y)*m.bounds.Dx()+x-m.bounds.Min.X]
+					}
+					if got != want {
+						t.Fatalf("coverage changed at (%d,%d): %d -> %d", x, y, want, got)
+					}
+				}
+			}
+			if !tc.ink.Empty() && m.bounds != tc.ink.Add(bounds.Min) {
+				t.Fatalf("bounds=%v", m.bounds)
+			}
+		})
+	}
+}
