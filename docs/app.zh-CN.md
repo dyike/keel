@@ -37,6 +37,18 @@ window.Main()
 
 `window.Main()` 必须在 `main` goroutine 里调用，而且不会返回。最后一个窗口关闭时进程退出。
 
+## 空闲时归还堆页
+
+更重视空闲内存占用的应用，可以在打开窗口前启用：
+
+```go
+window.SetIdleMemoryReclaim(true)
+```
+
+这是进程级策略，默认关闭。全部 Keel 窗口连续两秒没有 UI 帧或回调，且至少有 32 MiB 空闲堆页尚未归还系统时，才执行回收。策略避开正在执行的 UI 回调，最多每 30 秒回收一次；静止窗口不会为此重绘，也不会周期性反复 GC。传入 `false` 可取消尚未执行的任务。
+
+回收使用 Go 的 `debug.FreeOSMemory`，其中包含一次 GC；不修改 `GOGC` 或 `GOMEMLIMIT`，不释放仍在使用的缓存和 GPU 纹理。GC 可能短暂停顿其他 goroutine，Keel 外部的后台任务也不属于 UI 空闲判断范围。有低延迟后台任务的应用应保持关闭，启用前在目标设备上验证交互延迟与内存收益。
+
 ## 应用图标
 
 `window.SetIcon(png)` 在程序运行时设置应用图标，参数是满版的正方形 PNG 原图（和脚手架项目的 `appicon.png` 一样），按各平台的规范裁形状：

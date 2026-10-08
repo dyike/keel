@@ -7,6 +7,7 @@
 | 文件 | 内容 |
 | --- | --- |
 | `window.go` | `Open`、`Main`、`Options`（含 `Overlay`）、`Window`（`Raise`、`Activate`、`WaylandDisplay` …） |
+| `memory.go` | 按需启用的进程级空闲 Go 堆回收 |
 | `shortcut.go` | 快捷键解析与分发 |
 | `icon*.go` | `SetIcon`：运行时的应用图标（macOS 程序坞、Windows 窗口、X11 `_NET_WM_ICON`），形状由 `internal/appicon` 按平台规范裁出 |
 | `root.go` | 窗口根视图：背景、滚动、24dp 边距 |

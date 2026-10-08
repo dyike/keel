@@ -37,6 +37,18 @@ The new window will be centered by default after it is first displayed, and will
 
 `window.Main()` must be called in the `main` goroutine and will not return. The process exits when the last window is closed.
 
+## Idle heap reclamation
+
+Applications that favor lower idle memory can opt in before opening windows:
+
+```go
+window.SetIdleMemoryReclaim(true)
+```
+
+This is a process-wide policy, disabled by default. After two seconds without a Keel UI frame or callback, it returns unused Go heap pages to the OS if at least 32 MiB remain unreturned. It checks activity across all Keel windows, avoids running during UI callbacks, and limits collection to once every 30 seconds. A static window does not redraw or keep collecting periodically. Pass `false` to cancel pending work.
+
+The policy runs Go's `debug.FreeOSMemory`, including a collection; it does not change `GOGC` or `GOMEMLIMIT`, and it does not free live caches or GPU textures. Collection can briefly pause other goroutines, and background work outside Keel is not an idle signal. Leave it off for latency-sensitive background workloads; measure interaction latency and memory on target devices before enabling it.
+
 ## App icons
 
 `window.SetIcon(png)` sets the application icon when the program is running. The parameter is the full square PNG original image (the same as the `appicon.png` of the scaffolding project), and the shape is cut according to the specifications of each platform:

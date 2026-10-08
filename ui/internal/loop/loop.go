@@ -14,8 +14,8 @@ var (
 )
 
 // Lock is held while a window lays out a frame, and so during every UI callback.
-func Lock()   { frame.Lock() }
-func Unlock() { frame.Unlock() }
+func Lock()   { memoryActivity(); frame.Lock() }
+func Unlock() { frame.Unlock(); memoryActivity() }
 
 // Register adds a window; invalidate requests a redraw of it.
 func Register(key any, invalidate func()) {

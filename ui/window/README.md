@@ -7,6 +7,7 @@ Window: open, close, bring to front (including activation token), window shortcu
 | File | Responsibility |
 | --- | --- |
 | `window.go` | `Open`, `Main`, `Options` (including `Overlay`), `Window` (`Raise`, `Activate`, `WaylandDisplay`…) |
+| `memory.go` | Opt-in process-wide idle Go heap reclamation |
 | `shortcut.go` | Shortcut key analysis and distribution |
 | `icon*.go` | `SetIcon`: The runtime application icon (macOS Dock, Windows window, X11 `_NET_WM_ICON`), the shape is cut out by `internal/appicon` according to the platform specification |
 | `root.go` | Window root view: background, scroll, 24dp margins |
