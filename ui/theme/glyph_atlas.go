@@ -18,6 +18,8 @@ const (
 	glyphAtlasPages = 8
 	glyphMaskSide   = 64
 	glyphMaskLimit  = 2 << 20
+	glyphMaskBatch  = 64
+	glyphMaskSheet  = 8 * glyphMaskSide
 )
 
 // GlyphAtlas reuses rasterized vector glyphs in immutable image pages. It is
@@ -38,10 +40,13 @@ type GlyphAtlas struct {
 	shaper                   *text.Shaper
 	window                   *headless.Window
 	scratch                  op.Ops
+	readback                 *image.RGBA
+	pending                  []pendingMask
+	maskBatches              uint64
 	failed                   bool
 	committed                bool
 	frame                    uint64
-	masks                    map[glyphFragmentKey]*atlasMask
+	masks                    map[atlasMaskKey]*atlasMask
 	maskBytes                int
 	lastMaskFrame            uint64
 	newMasks                 int
@@ -49,10 +54,30 @@ type GlyphAtlas struct {
 	pages                    []*atlasPage
 }
 
+// An atlas fragment always contains one anchor and one glyph. Shaper changes
+// clear the atlas; retaining the general nine-glyph vector key is unnecessary.
+type atlasMaskKey struct {
+	anchor, glyph text.GlyphID
+	phase         fixed.Int26_6
+}
+
+func maskKey(gs []text.Glyph) atlasMaskKey {
+	return atlasMaskKey{gs[0].ID, gs[1].ID, gs[1].X - gs[0].X}
+}
+
+type pendingMask struct {
+	mask *atlasMask
+	path clip.PathSpec
+}
+
 type atlasMask struct {
-	bounds image.Rectangle
-	alpha  []byte
-	colors map[color.NRGBA]atlasLocation
+	ready       bool
+	wanted      [8]color.NRGBA
+	wantedCount int
+	bitmap      op.CallOp
+	bounds      image.Rectangle
+	alpha       []byte
+	colors      map[color.NRGBA]atlasLocation
 }
 
 type atlasLocation struct {
@@ -90,49 +115,70 @@ func (a *GlyphAtlas) Prepare(params text.Parameters, gs []text.Glyph, col color.
 		return
 	}
 	a.vector.walkFragments(a.shaper, params, gs, col, func(fragment []text.Glyph, _ fixed.Int26_6) {
-		key, f := a.vector.cachedFragment(a.shaper, fragment)
+		key := maskKey(fragment)
 		m, known := a.masks[key]
 		if !known {
 			if len(a.masks) >= 4096 || a.frame > 1 && a.newMasks >= 32 {
 				return
 			}
+			_, f := a.vector.cachedFragment(a.shaper, fragment)
 			m = a.makeMask(f.path, fragment)
+			if m != nil {
+				m.bitmap = f.bitmap
+			}
 			if a.masks == nil {
-				a.masks = make(map[glyphFragmentKey]*atlasMask)
+				a.masks = make(map[atlasMaskKey]*atlasMask)
 			}
 			a.masks[key] = m
 		}
 		if m == nil || len(m.alpha) == 0 {
 			return
 		}
-		if loc, ok := m.colors[col]; ok {
-			a.pages[loc.page].used = a.frame
-			return
-		}
-		if len(m.colors) >= 8 {
-			return
-		}
-		loc, ok := a.allocate(m.bounds.Size())
-		if !ok {
-			return
-		}
-		page := a.pages[loc.page]
-		lut := atlasColorTable(col)
-		for y := 0; y < m.bounds.Dy(); y++ {
-			for x := 0; x < m.bounds.Dx(); x++ {
-				alpha := m.alpha[y*m.bounds.Dx()+x]
-				off := page.pixels.PixOffset(loc.rect.Min.X+x, loc.rect.Min.Y+y)
-				copy(page.pixels.Pix[off:off+3], lut[alpha][:])
-				page.pixels.Pix[off+3] = alpha
+		a.prepareColor(m, col)
+	})
+}
+
+func (a *GlyphAtlas) prepareColor(m *atlasMask, col color.NRGBA) {
+	if !m.ready {
+		for _, c := range m.wanted[:m.wantedCount] {
+			if c == col {
+				return
 			}
 		}
-		m.colors[col] = loc
-	})
+		if m.wantedCount < len(m.wanted) {
+			m.wanted[m.wantedCount] = col
+			m.wantedCount++
+		}
+		return
+	}
+	if loc, ok := m.colors[col]; ok {
+		a.pages[loc.page].used = a.frame
+		return
+	}
+	if len(m.colors) >= 8 {
+		return
+	}
+	loc, ok := a.allocate(m.bounds.Size())
+	if !ok {
+		return
+	}
+	page := a.pages[loc.page]
+	lut := atlasColorTable(col)
+	for y := 0; y < m.bounds.Dy(); y++ {
+		for x := 0; x < m.bounds.Dx(); x++ {
+			alpha := m.alpha[y*m.bounds.Dx()+x]
+			off := page.pixels.PixOffset(loc.rect.Min.X+x, loc.rect.Min.Y+y)
+			copy(page.pixels.Pix[off:off+3], lut[alpha][:])
+			page.pixels.Pix[off+3] = alpha
+		}
+	}
+	m.colors[col] = loc
 }
 
 // Commit freezes changed image pages. Prepare must not be called again until
 // the next BeginFrame. Existing ImageOps always keep their pixels immutable.
 func (a *GlyphAtlas) Commit() {
+	a.flushMasks()
 	for _, p := range a.pages {
 		if p.dirty {
 			p.image = paint.NewImageOp(p.pixels)
@@ -141,11 +187,10 @@ func (a *GlyphAtlas) Commit() {
 		}
 	}
 	// The scratch renderer can retain large coverage textures even for a tiny
-	// viewport. Keep only the CPU masks between frames, not its GPU resources.
-	if a.window != nil && a.frame > a.lastMaskFrame+60 {
-		a.window.Release()
-		a.window = nil
-		a.scratch.Reset()
+	// viewport. Release the initial population immediately: a static view may
+	// never draw enough frames for the later inactivity threshold.
+	if a.window != nil && (a.frame == 1 || a.frame > a.lastMaskFrame+60) {
+		a.ReleaseScratch()
 	}
 	a.committed = true
 }
@@ -161,8 +206,7 @@ func (a *GlyphAtlas) Paint(ops *op.Ops, params text.Parameters, gs []text.Glyph,
 		return
 	}
 	if !a.vector.walkFragments(a.shaper, params, gs, col, func(fragment []text.Glyph, displacement fixed.Int26_6) {
-		key, f := a.vector.cachedFragment(a.shaper, fragment)
-		tr := op.Offset(image.Pt(displacement.Round(), 0)).Push(ops)
+		key := maskKey(fragment)
 		m := a.masks[key]
 		loc, ok := atlasLocation{}, false
 		if m != nil {
@@ -172,26 +216,52 @@ func (a *GlyphAtlas) Paint(ops *op.Ops, params text.Parameters, gs []text.Glyph,
 			a.rasterDraws++
 			page := a.pages[loc.page]
 			page.used = a.frame
-			offset := m.bounds.Min.Sub(loc.rect.Min)
+			offset := m.bounds.Min.Sub(loc.rect.Min).Add(image.Pt(displacement.Round(), 0))
 			imgTr := op.Offset(offset).Push(ops)
 			cl := clip.Rect(loc.rect).Push(ops)
 			page.image.Add(ops)
 			paint.PaintOp{}.Add(ops)
 			cl.Pop()
 			imgTr.Pop()
+			if m.bitmap != (op.CallOp{}) {
+				tr := op.Offset(image.Pt(displacement.Round(), 0)).Push(ops)
+				m.bitmap.Add(ops)
+				tr.Pop()
+			}
 		} else if m == nil || len(m.alpha) != 0 {
 			a.vectorDraws++
+			_, f := a.vector.cachedFragment(a.shaper, fragment)
+			tr := op.Offset(image.Pt(displacement.Round(), 0)).Push(ops)
 			paint.ColorOp{Color: col}.Add(ops)
 			cl := clip.Outline{Path: f.path}.Op().Push(ops)
 			paint.PaintOp{}.Add(ops)
 			cl.Pop()
+			f.bitmap.Add(ops)
+			tr.Pop()
+		} else if m.bitmap != (op.CallOp{}) {
+			tr := op.Offset(image.Pt(displacement.Round(), 0)).Push(ops)
+			m.bitmap.Add(ops)
+			tr.Pop()
 		}
-		f.bitmap.Add(ops)
-		tr.Pop()
 	}) {
 		a.vectorDraws += uint64(len(gs))
 		paintGlyphRun(ops, a.shaper, gs, col)
 	}
+}
+
+// ReleaseScratch frees temporary rasterization resources while preserving
+// cached masks and image pages. Call serially after Commit, for example when
+// the UI becomes idle. Future new glyphs recreate the renderer as needed.
+func (a *GlyphAtlas) ReleaseScratch() {
+	if len(a.pending) != 0 {
+		return
+	} // queued paths still need rasterization
+	if a.window != nil {
+		a.window.Release()
+		a.window = nil
+	}
+	a.scratch = op.Ops{}
+	a.readback = nil
 }
 
 // Release frees the scratch GPU and drops cached masks and image pages.
@@ -223,38 +293,85 @@ func (a *GlyphAtlas) makeMask(path clip.PathSpec, gs []text.Glyph) *atlasMask {
 	if bounds.Dx() > glyphMaskSide || bounds.Dy() > glyphMaskSide || a.maskBytes+bounds.Dx()*bounds.Dy() > glyphMaskLimit {
 		return nil
 	}
-	if a.window == nil {
-		w, err := headless.NewWindow(glyphMaskSide, glyphMaskSide)
-		if err != nil {
-			a.failed = true
-			return nil
-		}
-		a.window = w
+	if len(a.pending) == glyphMaskBatch {
+		a.flushMasks()
+	}
+	if a.failed {
+		return nil
 	}
 	a.newMasks++
 	a.lastMaskFrame = a.frame
+	m := &atlasMask{bounds: bounds, alpha: make([]byte, bounds.Dx()*bounds.Dy()), colors: make(map[color.NRGBA]atlasLocation)}
+	a.maskBytes += len(m.alpha)
+	a.pending = append(a.pending, pendingMask{mask: m, path: path})
+	return m
+}
+
+// Rasterize up to 64 isolated tiles with one GPU submission and readback.
+// Mask storage is reserved before enqueueing, so pending work respects the
+// same memory and per-frame glyph budgets as completed masks.
+func (a *GlyphAtlas) flushMasks() {
+	if len(a.pending) == 0 {
+		return
+	}
+	defer func() { clear(a.pending); a.pending = a.pending[:0] }()
+	if a.failed {
+		return
+	}
+	if a.window == nil {
+		w, err := headless.NewWindow(glyphMaskSheet, glyphMaskSheet)
+		if err != nil {
+			a.failed = true
+			return
+		}
+		a.window = w
+	}
 	a.scratch.Reset()
-	tr := op.Offset(bounds.Min.Mul(-1)).Push(&a.scratch)
-	paint.ColorOp{Color: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}.Add(&a.scratch)
-	cl := clip.Outline{Path: path}.Op().Push(&a.scratch)
-	paint.PaintOp{}.Add(&a.scratch)
-	cl.Pop()
-	tr.Pop()
+	for i, p := range a.pending {
+		tile := image.Pt(i%8*glyphMaskSide, i/8*glyphMaskSide)
+		area := clip.Rect(image.Rectangle{Min: tile, Max: tile.Add(image.Pt(glyphMaskSide, glyphMaskSide))}).Push(&a.scratch)
+		tr := op.Offset(tile.Sub(p.mask.bounds.Min)).Push(&a.scratch)
+		paint.ColorOp{Color: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}.Add(&a.scratch)
+		cl := clip.Outline{Path: p.path}.Op().Push(&a.scratch)
+		paint.PaintOp{}.Add(&a.scratch)
+		cl.Pop()
+		tr.Pop()
+		area.Pop()
+	}
 	if err := a.window.Frame(&a.scratch); err != nil {
 		a.failed = true
-		return nil
+		return
 	}
-	img := image.NewRGBA(image.Rectangle{Max: bounds.Size()})
-	if err := a.window.Screenshot(img); err != nil {
+	if a.readback == nil {
+		a.readback = image.NewRGBA(image.Rect(0, 0, glyphMaskSheet, glyphMaskSheet))
+	}
+	if err := a.window.Screenshot(a.readback); err != nil {
 		a.failed = true
-		return nil
+		return
 	}
-	m := &atlasMask{bounds: bounds, alpha: make([]byte, bounds.Dx()*bounds.Dy()), colors: make(map[color.NRGBA]atlasLocation)}
-	for i := range m.alpha {
-		m.alpha[i] = img.Pix[4*i+3]
+	a.maskBatches++
+	for i, p := range a.pending {
+		m := p.mask
+		tile := image.Pt(i%8*glyphMaskSide, i/8*glyphMaskSide)
+		hasInk := false
+		for y := 0; y < m.bounds.Dy(); y++ {
+			for x := 0; x < m.bounds.Dx(); x++ {
+				alpha := a.readback.Pix[a.readback.PixOffset(tile.X+x, tile.Y+y)+3]
+				m.alpha[y*m.bounds.Dx()+x] = alpha
+				hasInk = hasInk || alpha != 0
+			}
+		}
+		// Gio's bitmap macro is empty for an outline glyph (the other glyph is
+		// our empty anchor). Keep actual bitmap glyphs on their original path.
+		if hasInk {
+			m.bitmap = op.CallOp{}
+		}
+		m.ready = true
+		for _, col := range m.wanted[:m.wantedCount] {
+			a.prepareColor(m, col)
+		}
+		m.wantedCount = 0
 	}
-	a.maskBytes += len(m.alpha)
-	return m
 }
 
 func (a *GlyphAtlas) allocate(size image.Point) (atlasLocation, bool) {
@@ -351,8 +468,10 @@ func atlasColorTable(col color.NRGBA) (lut [256][3]byte) {
 type GlyphAtlasStats struct {
 	Masks, MaskBytes, Pages, PageBytes int
 	RasterDraws, VectorDraws           uint64
+	// MaskBatches counts successful offscreen submissions and readbacks.
+	MaskBatches uint64
 }
 
 func (a *GlyphAtlas) Stats() GlyphAtlasStats {
-	return GlyphAtlasStats{Masks: len(a.masks), MaskBytes: a.maskBytes, Pages: len(a.pages), PageBytes: len(a.pages) * glyphAtlasSide * glyphAtlasSide * 4, RasterDraws: a.rasterDraws, VectorDraws: a.vectorDraws}
+	return GlyphAtlasStats{Masks: len(a.masks), MaskBytes: a.maskBytes, Pages: len(a.pages), PageBytes: len(a.pages) * glyphAtlasSide * glyphAtlasSide * 4, RasterDraws: a.rasterDraws, VectorDraws: a.vectorDraws, MaskBatches: a.maskBatches}
 }

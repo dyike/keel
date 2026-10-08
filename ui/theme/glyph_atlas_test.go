@@ -104,7 +104,7 @@ func TestGlyphAtlasPagesImmutableAndBounded(t *testing.T) {
 	m := &atlasMask{colors: map[color.NRGBA]atlasLocation{
 		{R: 1}: {page: 0}, {R: 2}: {page: 1},
 	}}
-	a.masks = map[glyphFragmentKey]*atlasMask{{}: m}
+	a.masks = map[atlasMaskKey]*atlasMask{{}: m}
 	a.frame++
 	loc, ok := a.allocate(image.Pt(1, 1))
 	if !ok || loc.page != 0 {
@@ -148,4 +148,115 @@ func TestGlyphAtlasMaskLimitsAndShaperReset(t *testing.T) {
 	if a.maskBytes != 0 || len(a.masks) != 0 || len(a.pages) != 0 {
 		t.Fatal("old font cache retained")
 	}
+}
+
+func TestGlyphAtlasBatchesAndDeferredColors(t *testing.T) {
+	sh := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	var a GlyphAtlas
+	defer a.Release()
+	params := text.Parameters{PxPerEm: fixed.I(13), MaxWidth: 4000}
+	// More than one batch of distinct glyphs, plus duplicate requests before
+	// Commit. Both deferred and already-rasterized glyphs must receive colors.
+	var value []rune
+	for r := rune('!'); r <= '~'; r++ {
+		value = append(value, r)
+	}
+	sh.LayoutString(params, string(value))
+	var gs []text.Glyph
+	for g, ok := sh.NextGlyph(); ok; g, ok = sh.NextGlyph() {
+		gs = append(gs, g)
+	}
+	a.BeginFrame(sh)
+	colors := []color.NRGBA{{R: 255, A: 255}, {G: 255, A: 255}}
+	// Prepare glyphs separately to avoid whole-run overlap fallback.
+	for _, col := range colors {
+		for _, g := range gs {
+			a.Prepare(params, []text.Glyph{g}, col)
+		}
+	}
+	a.Commit()
+	if a.failed {
+		t.Skip("offscreen renderer unavailable")
+	}
+	if a.newMasks <= glyphMaskBatch || a.maskBatches != uint64((a.newMasks+glyphMaskBatch-1)/glyphMaskBatch) {
+		t.Fatalf("masks=%d batches=%d", a.newMasks, a.maskBatches)
+	}
+	if a.window != nil || a.readback != nil {
+		t.Fatal("initial frame retained scratch resources")
+	}
+	if len(a.pending) != 0 {
+		t.Fatal("commit retained pending masks")
+	}
+	for _, m := range a.masks {
+		if m == nil || len(m.alpha) == 0 {
+			continue
+		}
+		if !m.ready || m.wantedCount != 0 || len(m.colors) != 2 {
+			t.Fatalf("incomplete colors: ready=%v wanted=%d colors=%d", m.ready, m.wantedCount, len(m.colors))
+		}
+	}
+	// Compare masks on both sides of the batch boundary with isolated
+	// rasterization, so tile placement and readback offsets cannot mix glyphs.
+	for _, i := range []int{0, 63, 64, len(gs) - 1} {
+		var single GlyphAtlas
+		single.BeginFrame(sh)
+		single.Prepare(params, gs[i:i+1], colors[0])
+		single.Commit()
+		for key, want := range single.masks {
+			got := a.masks[key]
+			if want == nil || len(want.alpha) == 0 {
+				continue
+			}
+			if got == nil || got.bounds != want.bounds || len(got.alpha) != len(want.alpha) {
+				t.Fatalf("batch tile %d has wrong bounds or length", i)
+			}
+			// Integer translation inside the larger surface can change GPU
+			// coverage rounding by one alpha unit, but not move the glyph.
+			for j, w := range want.alpha {
+				d := int(got.alpha[j]) - int(w)
+				if d < 0 {
+					d = -d
+				}
+				if d > 1 {
+					t.Fatalf("batch tile %d pixel %d alpha difference %d", i, j, d)
+				}
+			}
+		}
+		single.Release()
+	}
+	batches := a.maskBatches
+	a.BeginFrame(sh)
+	for _, g := range gs {
+		a.Prepare(params, []text.Glyph{g}, colors[0])
+	}
+	a.Commit()
+	if a.maskBatches != batches {
+		t.Fatal("warm cache submitted new raster work")
+	}
+	pages := len(a.pages)
+	a.ReleaseScratch()
+	if a.window != nil || a.readback != nil || len(a.pages) != pages {
+		t.Fatal("scratch release removed cache or retained renderer")
+	}
+	a.BeginFrame(sh)
+	for _, g := range gs {
+		a.Prepare(params, []text.Glyph{g}, colors[0])
+	}
+	a.Commit()
+	if a.window != nil || a.maskBatches != batches {
+		t.Fatal("cached glyphs recreated scratch renderer")
+	}
+	params.PxPerEm = fixed.I(17)
+	sh.LayoutString(params, "9")
+	g, ok := sh.NextGlyph()
+	if !ok {
+		t.Fatal("no glyph")
+	}
+	a.BeginFrame(sh)
+	a.Prepare(params, []text.Glyph{g}, colors[0])
+	a.Commit()
+	if a.window == nil || a.maskBatches != batches+1 {
+		t.Fatal("new glyph did not recreate scratch renderer")
+	}
+
 }
