@@ -4,7 +4,7 @@
 
 [English](README.md) | 简体中文
 
-用纯 Go 写桌面界面，不需要 HTML、CSS、JavaScript 或 WebView。界面由 [Gio](https://gioui.org) 绘制；Gio 没有的原生能力（权限、截图、合成输入、全局快捷键、系统通知、富剪贴板）在 `native/` 下。支持 macOS、Windows、Linux，也能编译成 WebAssembly 在浏览器里运行，并支持 [Mobile（iOS / Android）](docs/mobile.zh-CN.md)。
+用纯 Go 写桌面界面，不需要 HTML、CSS、JavaScript 或 WebView。界面由 [Gio](https://gioui.org) 绘制，Keel 自带打过补丁的副本 [`third_party/`](third_party/README.zh-CN.md)；Gio 没有的原生能力（权限、截图、合成输入、全局快捷键、系统通知、富剪贴板）在 `native/` 下。支持 macOS、Windows、Linux，也能编译成 WebAssembly 在浏览器里运行，并支持 [Mobile（iOS / Android）](docs/mobile.zh-CN.md)。
 
 新建一个应用：
 

@@ -106,14 +106,15 @@ func TestWin32MenuHandlesAndCommands(t *testing.T) {
 		{"hidden", false, MenuDisplayHidden, false},
 		{"native-restored", false, MenuDisplayAuto, true},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			target.w.opts.Frameless = tc.frameless
-			target.w.opts.MenuDisplay = tc.display
-			rebuildNativeMenu(target)
-			installed, _, _ := user32.NewProc("GetMenu").Call(hwnd)
-			if (installed != 0) != tc.native {
-				t.Fatalf("native menu=%x, want attached=%v", installed, tc.native)
-			}
-		})
+		// Not t.Run: a subtest runs on another goroutine, so another OS
+		// thread, and SetMenu sends messages to the window's thread, which
+		// would be parked in t.Run instead of pumping them.
+		target.w.opts.Frameless = tc.frameless
+		target.w.opts.MenuDisplay = tc.display
+		rebuildNativeMenu(target)
+		installed, _, _ := user32.NewProc("GetMenu").Call(hwnd)
+		if (installed != 0) != tc.native {
+			t.Fatalf("%s: native menu=%x, want attached=%v", tc.name, installed, tc.native)
+		}
 	}
 }

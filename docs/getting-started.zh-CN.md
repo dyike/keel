@@ -185,6 +185,21 @@ keel run
 
 脚手架会在应用的 `go.mod` 中写入本地替换。已有脚手架项目可以执行 `go mod edit -replace=github.com/dyike/keel=../keel` 和 `go mod tidy`。
 
+## Keel 自带的 Gio
+
+Keel 用 `third_party/` 里自带的 Gio 和 go-text 副本绘制界面，其中包含等不及上游发版的修复和优化（更低的内存、更快的帧；见 [third_party/README.zh-CN.md](../third_party/README.zh-CN.md)）。代码照常导入 `gioui.org/...`，Keel 的 `go.mod` 用 `replace` 把这些模块指向副本。
+
+`replace` 只对写它的模块生效。用 `keel new -replace <Keel 检出目录>` 创建的项目会自动得到同样的几行；其他项目可以自行加上，指向 Keel 检出目录：
+
+```
+replace (
+	gioui.org => /path/to/keel/third_party/gio
+	github.com/go-text/typesetting => /path/to/keel/third_party/typesetting
+)
+```
+
+不加时项目基于上游 Gio 和 go-text 构建，Keel 同样支持，只是没有这些改进。
+
 ## 下一步
 
 - [组件参考](kit.zh-CN.md)：按用途找组件，操作在线示例，查看展示代码。

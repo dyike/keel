@@ -37,3 +37,12 @@ require (
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 )
+
+// Keel draws with its own copies of Gio and go-text, in third_party: fixes
+// and speedups that cannot wait for upstream releases (third_party/README.md
+// lists them). A replace only applies to the module that writes it: apps
+// add the same lines to use the copies too (docs/getting-started.md).
+replace (
+	gioui.org => ./third_party/gio
+	github.com/go-text/typesetting => ./third_party/typesetting
+)

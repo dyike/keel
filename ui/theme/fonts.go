@@ -39,9 +39,11 @@ func LoadFonts(files ...[]byte) error {
 }
 
 // LoadFontsWhere is LoadFonts for the faces keep accepts, and parses only
-// those. The faces may keep referring to files, which must not change. A face parsed holds its tables in memory, megabytes for a CJK one,
-// and a collection such as PingFang.ttc holds two dozen faces of which an
-// app draws one or two: loading all of it costs hundreds of megabytes.
+// those. The faces refer to files instead of copying their tables, so files
+// must not change afterwards; mapped from disk (LoadFontFilesWhere), those
+// tables stay clean pages the system can drop and read back. A collection
+// such as PingFang.ttc holds two dozen faces of which an app draws one or
+// two, so parsing only the faces kept also saves their parsed glyph data.
 func LoadFontsWhere(keep func(font.Font) bool, files ...[]byte) error {
 	faces, err := parseFaces(keep, files)
 	if err != nil {
@@ -153,9 +155,10 @@ func LoadFontFilesWhere(keep func(font.Font) bool, paths ...string) error {
 	return LoadFontsWhere(keep, files...)
 }
 
-// fontBytes retains the source bytes alongside its reader. The Bytes method
-// is not consumed by upstream typesetting v0.3.5; that loader copies tables.
-// LoadFontsWhere's source files must not change afterwards.
+// fontBytes is a font file's bytes with a reader over them. Keel's go-text
+// (third_party/typesetting) reads the tables of a resource with a Bytes
+// method in place instead of copying them; upstream go-text ignores it.
+// The bytes must not change afterwards.
 type fontBytes struct {
 	*bytes.Reader
 	data []byte

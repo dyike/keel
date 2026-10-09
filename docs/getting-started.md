@@ -185,6 +185,21 @@ keel run
 
 The scaffold adds a local replacement to the application’s `go.mod`. In an existing project, run `go mod edit -replace=github.com/dyike/keel=../keel` followed by `go mod tidy`.
 
+## Keel's copy of Gio
+
+Keel draws with its own copies of Gio and go-text in `third_party/`, with fixes and speedups that cannot wait for upstream releases (lower memory, faster frames; [third_party/README.md](../third_party/README.md) lists them). Code keeps importing `gioui.org/...`; Keel's `go.mod` points those modules at the copies with `replace`.
+
+A `replace` only applies to the module that writes it. A project created with `keel new -replace <Keel checkout>` gets the same lines; any other project can add them, pointing at a Keel checkout:
+
+```
+replace (
+	gioui.org => /path/to/keel/third_party/gio
+	github.com/go-text/typesetting => /path/to/keel/third_party/typesetting
+)
+```
+
+Without them the project builds against upstream Gio and go-text, which Keel also supports, without those improvements.
+
 ## Next steps
 
 - [Components](kit.md): find components by purpose, try live examples, and inspect their source.

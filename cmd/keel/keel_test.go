@@ -144,4 +144,13 @@ func TestNewProjectCompiles(t *testing.T) {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated project does not build: %v\n%s", err, b)
 	}
+	// It draws with the checkout's copies of Gio and go-text, as Keel does.
+	for _, m := range []string{"gioui.org", "github.com/go-text/typesetting"} {
+		list := exec.Command("go", "list", "-m", "-f", "{{.Replace.Dir}}", m)
+		list.Dir = cmd.Dir
+		b, err := list.Output()
+		if err != nil || !strings.Contains(filepath.ToSlash(string(b)), "third_party/") {
+			t.Fatalf("%s is not replaced by Keel's copy: %s %v", m, b, err)
+		}
+	}
 }

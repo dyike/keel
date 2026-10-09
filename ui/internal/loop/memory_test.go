@@ -21,7 +21,7 @@ func TestReclaimPolicy(t *testing.T) {
 	for _, tc := range []struct {
 		idle, released uint64
 		want           bool
-	}{{0, 1, false}, {reclaimMinimum - 1, 0, false}, {reclaimMinimum, 0, true}, {64 << 20, 40 << 20, false}} {
+	}{{0, 1, false}, {reclaimMinimum - 1, 0, false}, {reclaimMinimum, 0, true}, {64 << 20, 60 << 20, false}} {
 		if reclaimable(tc.idle, tc.released) != tc.want {
 			t.Fatalf("incorrect page threshold: %+v", tc)
 		}

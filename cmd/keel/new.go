@@ -98,7 +98,7 @@ func (c *cli) newProject(args []string) error {
 		if err != nil {
 			return err
 		}
-		gomod += "\nrequire github.com/dyike/keel v0.0.0\n\nreplace github.com/dyike/keel => " + abs + "\n"
+		gomod += "\nrequire github.com/dyike/keel v0.0.0\n\nreplace github.com/dyike/keel => " + abs + "\n" + thirdPartyReplaces(abs)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gomod), 0o644); err != nil {
 		return err
@@ -115,6 +115,23 @@ func (c *cli) newProject(args []string) error {
 	}
 	fmt.Fprintf(c.out, "Created %s (%s, %s).\n\n  cd %s\n  keel run\n", cfg.Name, cfg.AppID, *module, dirArg)
 	return nil
+}
+
+// thirdPartyReplaces points Gio and go-text at the copies in a Keel checkout,
+// as Keel's own go.mod does: a replace only applies to the module that
+// writes it. Checkouts without the copies get none.
+func thirdPartyReplaces(keel string) string {
+	var out string
+	for _, m := range []struct{ path, dir string }{
+		{"gioui.org", "third_party/gio"},
+		{"github.com/go-text/typesetting", "third_party/typesetting"},
+	} {
+		dir := filepath.Join(keel, filepath.FromSlash(m.dir))
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			out += "replace " + m.path + " => " + dir + "\n"
+		}
+	}
+	return out
 }
 
 func writeTemplate(path, name string, data any) error {
