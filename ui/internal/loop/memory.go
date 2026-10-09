@@ -9,8 +9,12 @@ import (
 )
 
 const reclaimQuiet = 2 * time.Second
-const reclaimCooldown = 30 * time.Second
-const reclaimMinimum = 32 << 20
+
+// A reclamation is one GC over the live heap, milliseconds for a UI, so it
+// may follow a second wave of startup garbage soon; reclaimMinimum keeps it
+// from running for small gains.
+const reclaimCooldown = 5 * time.Second
+const reclaimMinimum = 8 << 20
 
 // Idle reclamation is on by default: startup (reading the system's font
 // index, the first layouts) leaves tens of megabytes of freed heap the
