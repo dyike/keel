@@ -27,6 +27,7 @@ type CFF struct {
 	// It has a length of numGlyphs and is indexed by glyph ID.
 	// See `LoadGlyph` for a way to intepret the glyph data.
 	Charstrings [][]byte
+	charstrings indexView
 
 	fontName    []byte // name from the Name INDEX
 	globalSubrs [][]byte
@@ -41,7 +42,29 @@ type CFF struct {
 // single file, embedded CFF font file in PDF or in TrueType/OpenType fonts
 // shall consist of exactly one font or CIDFont. Thus, this function
 // returns an error if the file contains more than one font.
-func Parse(file []byte) (*CFF, error) {
+func Parse(file []byte) (*CFF, error) { return parse(file, false) }
+
+// ParseCompact keeps CharStrings in their encoded index rather than allocating
+// a slice descriptor for every glyph. Use LoadGlyph and GlyphCount to access
+// them; the exported Charstrings field remains nil in this mode.
+func ParseCompact(file []byte) (*CFF, error) { return parse(file, true) }
+
+// GlyphCount returns the number of charstrings in either representation.
+func (f *CFF) GlyphCount() int {
+	if f.Charstrings != nil {
+		return len(f.Charstrings)
+	}
+	return f.charstrings.count
+}
+
+func (f *CFF) charstring(gid int) []byte {
+	if f.Charstrings != nil {
+		return f.Charstrings[gid]
+	}
+	return f.charstrings.at(gid)
+}
+
+func parse(file []byte, compact bool) (*CFF, error) {
 	// read 4 bytes to check if its a supported CFF file
 	if L := len(file); L < 4 {
 		return nil, fmt.Errorf("EOF: expected length: %d, got %d", 4, L)
@@ -49,7 +72,7 @@ func Parse(file []byte) (*CFF, error) {
 	if file[0] != 1 || file[1] != 0 || file[2] != 4 {
 		return nil, errUnsupportedCFFVersion
 	}
-	p := cffParser{src: file, offset: 4}
+	p := cffParser{src: file, offset: 4, compact: compact}
 	out, err := p.parse()
 	if err != nil {
 		return nil, err
@@ -130,8 +153,9 @@ func (u userStrings) getString(sid uint16) (string, error) {
 //   - http://wwwimages.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/5176.CFF.pdf
 //   - http://wwwimages.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/5177.Type2.pdf
 type cffParser struct {
-	src    []byte // whole input
-	offset int    // current position
+	compact bool
+	src     []byte // whole input
+	offset  int    // current position
 }
 
 func (p *cffParser) parse() ([]CFF, error) {
@@ -189,11 +213,21 @@ func (p *cffParser) parse() ([]CFF, error) {
 		if err = p.seek(topDict.charStringsOffset); err != nil {
 			return nil, err
 		}
-		out[i].Charstrings, err = p.parseIndex()
+		if p.compact {
+			count, offSize, headerErr := p.parseIndexHeader()
+			if headerErr != nil {
+				return nil, headerErr
+			}
+			var read int
+			out[i].charstrings, read, err = parseIndexView(p.src[p.offset:], indexStart{count: uint32(count), offSize: offSize})
+			p.offset += read
+		} else {
+			out[i].Charstrings, err = p.parseIndex()
+		}
 		if err != nil {
 			return nil, err
 		}
-		numGlyphs := uint16(len(out[i].Charstrings))
+		numGlyphs := uint16(out[i].GlyphCount())
 
 		out[i].charset, err = p.parseCharset(topDict.charsetOffset, numGlyphs)
 		if err != nil {
@@ -274,11 +308,36 @@ func (p *cffParser) parseTopDicts() ([]topDict, error) {
 	return out, nil
 }
 
-// src does NOT includes header, but starts at the array offset
-// also returns the length read from 'src'
+// indexView retains validated INDEX offsets without a slice header per entry.
+type indexView struct {
+	offsets, data  []byte
+	count, offSize int
+}
+
+func (v indexView) at(i int) []byte {
+	start := 0
+	if i > 0 {
+		start = int(bigEndian(v.offsets[i*v.offSize:(i+1)*v.offSize])) - 1
+	}
+	end := int(bigEndian(v.offsets[(i+1)*v.offSize:(i+2)*v.offSize])) - 1
+	return v.data[start:end]
+}
+
 func parseIndexContent(src []byte, header indexStart) ([][]byte, int, error) {
+	v, read, err := parseIndexView(src, header)
+	if err != nil || v.count == 0 {
+		return nil, read, err
+	}
+	out := make([][]byte, v.count)
+	for i := range out {
+		out[i] = v.at(i)
+	}
+	return out, read, nil
+}
+
+func parseIndexView(src []byte, header indexStart) (indexView, int, error) {
 	if header.count == 0 {
-		return nil, 0, nil
+		return indexView{}, 0, nil
 	}
 	oSize := int(header.offSize)
 	// offSize must be 1..4 (CFF spec, 5176 §5). The CFF2 INDEX header parser
@@ -287,7 +346,7 @@ func parseIndexContent(src []byte, header indexStart) ([][]byte, int, error) {
 	// array size below and let the length check pass while
 	// make([][]byte, count) still allocates gigabytes.
 	if oSize < 1 || oSize > 4 {
-		return nil, 0, fmt.Errorf("reading INDEX: invalid offSize %d", oSize)
+		return indexView{}, 0, fmt.Errorf("reading INDEX: invalid offSize %d", oSize)
 	}
 	// The offset array holds count+1 offsets of oSize bytes each. Compute in
 	// uint64 so that a 32-bit count near 0xFFFFFFFF cannot wrap, on 64- or
@@ -295,14 +354,14 @@ func parseIndexContent(src []byte, header indexStart) ([][]byte, int, error) {
 	// int (it is <= len(src)) and bounds count, so the make below is safe.
 	size := (uint64(header.count) + 1) * uint64(oSize)
 	if uint64(len(src)) < size {
-		return nil, 0, fmt.Errorf("reading INDEX offsets: EOF: expected length: %d, got %d", size, len(src))
+		return indexView{}, 0, fmt.Errorf("reading INDEX offsets: EOF: expected length: %d, got %d", size, len(src))
 	}
 	offsetArraySize := int(size)
-	out := make([][]byte, header.count)
+	out := indexView{offsets: src[:offsetArraySize], count: int(header.count), offSize: oSize}
 	data := src[offsetArraySize:]
 
 	prev := 0
-	for i := range out {
+	for i := 0; i < out.count; i++ {
 		// In the same paragraph, "Therefore the first element of the offset
 		// array is always 1" before correcting for the off-by-1.
 		loc := int(bigEndian(src[(i+1)*oSize : (i+2)*oSize]))
@@ -312,22 +371,22 @@ func parseIndexContent(src []byte, header indexStart) ([][]byte, int, error) {
 		// precedes the object data... This ensures that every object has a
 		// corresponding offset which is always nonzero".
 		if loc == 0 {
-			return nil, 0, errors.New("invalid INDEX locations (0)")
+			return indexView{}, 0, errors.New("invalid INDEX locations (0)")
 		}
 		loc--
 
 		if loc < prev { // Check that locations are increasing
-			return nil, 0, errors.New("invalid INDEX locations (not increasing)")
+			return indexView{}, 0, errors.New("invalid INDEX locations (not increasing)")
 		}
 
 		// Check that locations are in bounds, that is offsetsLength + loc <= len(src)
 		if int(loc) > len(data) {
-			return nil, 0, errors.New("invalid INDEX locations (out of bounds)")
+			return indexView{}, 0, errors.New("invalid INDEX locations (out of bounds)")
 		}
 
-		out[i] = data[prev:loc]
 		prev = loc
 	}
+	out.data = data[:prev]
 	return out, offsetArraySize + prev, nil
 }
 

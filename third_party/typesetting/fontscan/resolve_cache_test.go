@@ -45,3 +45,24 @@ func TestResolveFaceCachesMatchFreshMaps(t *testing.T) {
 		}
 	}
 }
+
+// Keel patch test: SetQuery keeps its own copy of the families. Gio's text
+// shaper parses typefaces into a buffer it reuses for the next one.
+func TestSetQueryCopiesFamilies(t *testing.T) {
+	fm := NewFontMap(nil)
+	if err := fm.UseSystemFonts(t.TempDir()); err != nil {
+		t.Skip("no system fonts:", err)
+	}
+	families := []string{"Menlo"}
+	fm.SetQuery(Query{Families: families})
+	menlo := fm.ResolveFace('a')
+	families[0] = "Times New Roman"
+	fm.SetQuery(Query{Families: families})
+	times := fm.ResolveFace('a')
+	if menlo == nil || times == nil {
+		t.Skip("Menlo or Times New Roman missing")
+	}
+	if fm.FontLocation(menlo.Font) == fm.FontLocation(times.Font) {
+		t.Fatal("a query changed in place kept the previous query's face")
+	}
+}

@@ -14,7 +14,7 @@ import (
 // LoadGlyph parses the glyph charstring to compute segments and path bounds.
 // It returns an error if the glyph is invalid or if decoding the charstring fails.
 func (f *CFF) LoadGlyph(glyph tables.GlyphID) ([]ot.Segment, ps.PathBounds, error) {
-	if int(glyph) >= len(f.Charstrings) {
+	if int(glyph) >= f.GlyphCount() {
 		return nil, ps.PathBounds{}, errGlyph
 	}
 
@@ -32,7 +32,7 @@ func (f *CFF) LoadGlyph(glyph tables.GlyphID) ([]ot.Segment, ps.PathBounds, erro
 	}
 
 	subrs := f.localSubrs[index]
-	err = psi.Run(f.Charstrings[glyph], subrs, f.globalSubrs, &loader)
+	err = psi.Run(f.charstring(int(glyph)), subrs, f.globalSubrs, &loader)
 	return loader.cs.Segments, loader.cs.Bounds, err
 }
 

@@ -212,6 +212,7 @@ const (
 
 // imageOpData is the shadow of paint.ImageOp.
 type imageOpData struct {
+	tint   color.NRGBA
 	src    *image.RGBA
 	handle any
 	filter byte
@@ -233,6 +234,7 @@ func decodeImageOp(data []byte, refs []any) imageOpData {
 		src:    refs[0].(*image.RGBA),
 		handle: handle,
 		filter: data[1],
+		tint:   color.NRGBA{R: data[2], G: data[3], B: data[4], A: data[5]},
 	}
 }
 
@@ -314,6 +316,7 @@ type uniformBuffer struct {
 }
 
 type pipeline struct {
+	load     func() (driver.Pipeline, *uniformBuffer)
 	pipeline driver.Pipeline
 	uniforms *uniformBuffer
 }
@@ -417,6 +420,23 @@ func (g *gpu) Idle() {
 	}
 }
 
+// Trim discards rebuildable frame data after sustained idle, while keeping
+// shader pipelines compiled for a prompt next frame. Keel patch.
+func (g *gpu) Trim() {
+	g.cache.release()
+	g.cache = newTextureCache()
+	g.drawOps.pathCache.release()
+	g.drawOps = drawOps{pathCache: newOpCache()}
+	r := g.renderer
+	r.quads, r.quadOps, r.quadTexs = nil, nil, nil
+	r.pather.stenciler.fbos.delete(g.ctx, 0)
+	r.pather.stenciler.intersections.delete(g.ctx, 0)
+	r.layerFBOs.delete(g.ctx, 0)
+	if t, ok := g.ctx.(interface{ Trim() }); ok {
+		t.Trim()
+	}
+}
+
 func (g *gpu) collect(viewport image.Point, frameOps *op.Ops) {
 	g.renderer.blitter.viewport = viewport
 	g.renderer.pather.viewport = viewport
@@ -447,7 +467,7 @@ func (g *gpu) frame(target RenderTarget) error {
 	g.renderer.intersect(g.drawOps.imageOps)
 	g.stencilTimer.end()
 	g.coverTimer.begin()
-	g.renderer.uploadImages(g.cache, g.drawOps.imageOps)
+	g.renderer.uploadImages(g.cache, g.drawOps.imageOps, len(g.drawOps.layers) == 0)
 	g.renderer.prepareDrawOps(g.drawOps.imageOps)
 	g.drawOps.layers = g.renderer.packLayers(g.drawOps.layers)
 	g.renderer.drawLayers(g.drawOps.layers, g.drawOps.imageOps)
@@ -485,6 +505,7 @@ func (g *gpu) Profile() string {
 
 func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Texture {
 	key := textureCacheKey{
+		tint:   data.tint,
 		filter: data.filter,
 		handle: data.handle,
 	}
@@ -518,7 +539,11 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 	if err != nil {
 		panic(err)
 	}
-	driver.UploadImage(handle, image.Pt(0, 0), data.src)
+	src := data.src
+	if data.tint != whiteTint {
+		src = tintImage(src, data.tint)
+	}
+	driver.UploadImage(handle, image.Pt(0, 0), src)
 	tex.tex = handle
 	return tex.tex
 }
@@ -599,112 +624,53 @@ func (b *blitter) release() {
 }
 
 func createColorPrograms(b driver.Device, vsSrc shader.Sources, fsSrc [3]shader.Sources, uniforms [3][]byte) (pipelines [2][3]*pipeline, err error) {
-	defer func() {
-		if err != nil {
-			for _, p := range pipelines {
-				for _, p := range p {
-					if p != nil {
-						p.Release()
-					}
-				}
-			}
-		}
-	}()
-	blend := driver.BlendDesc{
-		SrcFactor: driver.BlendFactorOne,
-		DstFactor: driver.BlendFactorOneMinusSrcAlpha,
-	}
-	layout := driver.VertexLayout{
-		Inputs: []driver.InputDesc{
-			{Type: shader.DataTypeFloat, Size: 2, Offset: 0},
-			{Type: shader.DataTypeFloat, Size: 2, Offset: 4 * 2},
-		},
-		Stride: 4 * 4,
-	}
-	vsh, err := b.NewVertexShader(vsSrc)
-	if err != nil {
-		return pipelines, err
-	}
-	defer vsh.Release()
+	// Color, texture and gradient variants for both framebuffer formats are
+	// optional. Quad-only frames need none of these fallback pipelines.
 	for i, format := range []driver.TextureFormat{driver.TextureFormatOutput, driver.TextureFormatSRGBA} {
-		{
-			fsh, err := b.NewFragmentShader(fsSrc[materialTexture])
-			if err != nil {
-				return pipelines, err
-			}
-			defer fsh.Release()
-			pipe, err := b.NewPipeline(driver.PipelineDesc{
-				VertexShader:   vsh,
-				FragmentShader: fsh,
-				BlendDesc:      blend,
-				VertexLayout:   layout,
-				PixelFormat:    format,
-				Topology:       driver.TopologyTriangleStrip,
-			})
-			if err != nil {
-				return pipelines, err
-			}
-			var vertBuffer *uniformBuffer
-			if u := uniforms[materialTexture]; u != nil {
-				vertBuffer = newUniformBuffer(b, u)
-			}
-			pipelines[i][materialTexture] = &pipeline{pipe, vertBuffer}
-		}
-		{
-			var vertBuffer *uniformBuffer
-			fsh, err := b.NewFragmentShader(fsSrc[materialColor])
-			if err != nil {
-				return pipelines, err
-			}
-			defer fsh.Release()
-			pipe, err := b.NewPipeline(driver.PipelineDesc{
-				VertexShader:   vsh,
-				FragmentShader: fsh,
-				BlendDesc:      blend,
-				VertexLayout:   layout,
-				PixelFormat:    format,
-				Topology:       driver.TopologyTriangleStrip,
-			})
-			if err != nil {
-				return pipelines, err
-			}
-			if u := uniforms[materialColor]; u != nil {
-				vertBuffer = newUniformBuffer(b, u)
-			}
-			pipelines[i][materialColor] = &pipeline{pipe, vertBuffer}
-		}
-		{
-			var vertBuffer *uniformBuffer
-			fsh, err := b.NewFragmentShader(fsSrc[materialLinearGradient])
-			if err != nil {
-				return pipelines, err
-			}
-			defer fsh.Release()
-			pipe, err := b.NewPipeline(driver.PipelineDesc{
-				VertexShader:   vsh,
-				FragmentShader: fsh,
-				BlendDesc:      blend,
-				VertexLayout:   layout,
-				PixelFormat:    format,
-				Topology:       driver.TopologyTriangleStrip,
-			})
-			if err != nil {
-				return pipelines, err
-			}
-			if u := uniforms[materialLinearGradient]; u != nil {
-				vertBuffer = newUniformBuffer(b, u)
-			}
-			pipelines[i][materialLinearGradient] = &pipeline{pipe, vertBuffer}
+		for mat := range fsSrc {
+			format, src, u := format, fsSrc[mat], uniforms[mat]
+			pipelines[i][mat] = &pipeline{load: func() (driver.Pipeline, *uniformBuffer) {
+				vsh, fsh, err := newShaders(b, vsSrc, src)
+				if err != nil {
+					panic(err)
+				}
+				defer vsh.Release()
+				defer fsh.Release()
+				pipe, err := b.NewPipeline(driver.PipelineDesc{
+					VertexShader: vsh, FragmentShader: fsh,
+					BlendDesc:    driver.BlendDesc{SrcFactor: driver.BlendFactorOne, DstFactor: driver.BlendFactorOneMinusSrcAlpha},
+					VertexLayout: driver.VertexLayout{Inputs: []driver.InputDesc{{Type: shader.DataTypeFloat, Size: 2, Offset: 0}, {Type: shader.DataTypeFloat, Size: 2, Offset: 8}}, Stride: 16},
+					PixelFormat:  format, Topology: driver.TopologyTriangleStrip,
+				})
+				if err != nil {
+					panic(err)
+				}
+				var buf *uniformBuffer
+				if u != nil {
+					buf = newUniformBuffer(b, u)
+				}
+				return pipe, buf
+			}}
 		}
 	}
 	return pipelines, nil
 }
+
+func (p *pipeline) ensure() {
+	if p.load != nil {
+		p.pipeline, p.uniforms = p.load()
+		p.load = nil
+	}
+}
+
+func (p *pipeline) bind(ctx driver.Device) { p.ensure(); ctx.BindPipeline(p.pipeline) }
 
 func (r *renderer) stencilClips(pathCache *opCache, ops []*pathOp) {
 	if len(r.packer.sizes) == 0 {
 		return
 	}
 	fbo := -1
+	r.pather.stenciler.ensure()
 	r.pather.begin(r.packer.sizes)
 	for _, p := range ops {
 		if fbo != p.place.Idx {
@@ -739,6 +705,7 @@ func (r *renderer) intersect(ops []imageOp) {
 	if len(r.intersections.sizes) == 0 {
 		return
 	}
+	r.pather.stenciler.ensure()
 	fbo := -1
 	r.pather.stenciler.beginIntersect(r.intersections.sizes)
 	for _, img := range ops {
@@ -911,6 +878,7 @@ func (r *renderer) drawLayers(layers []opacityLayer, ops []imageOp) {
 				material: materialTexture,
 				tex:      f.tex,
 				uvTrans:  uvTrans,
+				color:    f32color.RGBA{R: 1, G: 1, B: 1, A: 1},
 				opacity:  l.opacity,
 			},
 			layerOps: l.opEnd - l.opStart - 1,
@@ -1238,14 +1206,58 @@ func (d *drawState) materialFor(rect f32.Rectangle, off f32.Point, partTrans f32
 	return m
 }
 
-func (r *renderer) uploadImages(cache *textureCache, ops []imageOp) {
-	for i := range ops {
-		img := &ops[i]
-		m := img.material
-		if m.material == materialTexture {
-			img.material.tex = r.texHandle(cache, m.data)
+var whiteTint = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+
+func (r *renderer) uploadImages(cache *textureCache, ops []imageOp, noLayers bool) {
+	// Reserve all instance storage before choosing shared tinted textures. A
+	// successful preparation guarantees that DrawQuads cannot fall back midway.
+	tintedQuads := false
+	if !r.noQuads && noLayers {
+		for _, img := range ops {
+			if img.material.material == materialTexture && img.material.data.tint != whiteTint && img.clipType == clipTypeNone {
+				if b, ok := r.ctx.(driver.TintedQuadBatcher); ok {
+					tintedQuads = b.PrepareQuads(len(ops))
+				}
+				break
+			}
 		}
 	}
+	for i := range ops {
+		img := &ops[i]
+		m := &img.material
+		if m.material != materialTexture {
+			continue
+		}
+		data := m.data
+		m.color = f32color.RGBA{R: 1, G: 1, B: 1, A: 1}
+		if tintedQuads && img.clipType == clipTypeNone {
+			m.color = f32color.LinearFromSRGB(data.tint)
+			data.tint = whiteTint
+		}
+		m.tex = r.texHandle(cache, data)
+	}
+}
+
+// The portable fallback bakes tint into an independently cached texture.
+// This also handles path clips and opacity layers, whose existing shaders
+// have no tint uniform. Never modify the image held by the caller.
+func tintImage(src *image.RGBA, tint color.NRGBA) *image.RGBA {
+	dst := image.NewRGBA(src.Bounds())
+	c := f32color.LinearFromSRGB(tint)
+	var lut [256][3]byte
+	for i := range lut {
+		v := f32color.LinearFromSRGB(color.NRGBA{R: byte(i), G: byte(i), B: byte(i), A: 255})
+		out := (f32color.RGBA{R: v.R * c.R, G: v.G * c.G, B: v.B * c.B, A: 1}).SRGB()
+		lut[i] = [3]byte{out.R, out.G, out.B}
+	}
+	for y := src.Rect.Min.Y; y < src.Rect.Max.Y; y++ {
+		for x := src.Rect.Min.X; x < src.Rect.Max.X; x++ {
+			i, j := src.PixOffset(x, y), dst.PixOffset(x, y)
+			dst.Pix[j], dst.Pix[j+1], dst.Pix[j+2] = lut[src.Pix[i]][0], lut[src.Pix[i+1]][1], lut[src.Pix[i+2]][2]
+			dst.Pix[j+3] = byte((uint32(src.Pix[i+3])*uint32(tint.A) + 127) / 255)
+		}
+	}
+	return dst
 }
 
 func (r *renderer) prepareDrawOps(ops []imageOp) {
@@ -1327,7 +1339,7 @@ func (r *renderer) drawOps(isFBO bool, opOff, viewport image.Point, ops []imageO
 		} else {
 			t1, t2, t3, t4, t5, t6 := m.uvTrans.Elems()
 			q.UV0, q.UV1 = [4]float32{t1, t2, t3, float32(slot)}, [4]float32{t4, t5, t6, 0}
-			q.Color = [4]float32{m.opacity, m.opacity, m.opacity, m.opacity}
+			q.Color = [4]float32{m.color.R * m.opacity, m.color.G * m.opacity, m.color.B * m.opacity, m.color.A * m.opacity}
 		}
 		r.quads = append(r.quads, q)
 		r.quadOps = append(r.quadOps, i)
@@ -1372,7 +1384,7 @@ func (r *renderer) drawEachOp(isFBO bool, opOff, viewport image.Point, ops []ima
 		switch img.clipType {
 		case clipTypeNone:
 			p := r.blitter.pipelines[fboIdx][m.material]
-			r.ctx.BindPipeline(p.pipeline)
+			p.bind(r.ctx)
 			r.ctx.BindVertexBuffer(r.blitter.quadVerts, 0)
 			r.blitter.blit(m.material, isFBO, m.color, m.color1, m.color2, scale, off, m.opacity, m.uvTrans)
 			continue
@@ -1391,7 +1403,7 @@ func (r *renderer) drawEachOp(isFBO bool, opOff, viewport image.Point, ops []ima
 		}
 		coverScale, coverOff := texSpaceTransform(f32.FRect(uv), fbo.size)
 		p := r.pather.coverer.pipelines[fboIdx][m.material]
-		r.ctx.BindPipeline(p.pipeline)
+		p.bind(r.ctx)
 		r.ctx.BindVertexBuffer(r.blitter.quadVerts, 0)
 		r.pather.cover(m.material, isFBO, m.color, m.color1, m.color2, scale, off, m.uvTrans, coverScale, coverOff)
 	}
@@ -1403,7 +1415,7 @@ func (b *blitter) blit(mat materialType, fbo bool, col f32color.RGBA, col1, col2
 		fboIdx = 1
 	}
 	p := b.pipelines[fboIdx][mat]
-	b.ctx.BindPipeline(p.pipeline)
+	p.bind(b.ctx)
 	var uniforms *blitUniforms
 	switch mat {
 	case materialColor:
@@ -1453,6 +1465,7 @@ func (u *uniformBuffer) Release() {
 }
 
 func (p *pipeline) UploadUniforms(ctx driver.Device) {
+	p.ensure()
 	if p.uniforms != nil {
 		p.uniforms.Upload()
 		ctx.BindUniforms(p.uniforms.buf)
@@ -1460,7 +1473,10 @@ func (p *pipeline) UploadUniforms(ctx driver.Device) {
 }
 
 func (p *pipeline) Release() {
-	p.pipeline.Release()
+	p.load = nil
+	if p.pipeline != nil {
+		p.pipeline.Release()
+	}
 	if p.uniforms != nil {
 		p.uniforms.Release()
 	}

@@ -195,6 +195,9 @@ func initSystemFonts(logger Logger, userCacheDir string) error {
 		cachePath := filepath.Join(dir, fmt.Sprintf(cacheFilePattern, cacheFormatVersion))
 
 		systemFonts, err = refreshSystemFontsIndex(logger, cachePath)
+		if err == nil {
+			systemFonts.shareRuneSets()
+		}
 	})
 
 	return err
@@ -384,7 +387,11 @@ func (fm *FontMap) SetQuery(query Query) {
 	if query.Aspect == fm.query.Aspect && equalFamilies(query.Families, fm.query.Families) {
 		return
 	}
+	// A copy: callers reuse their slice, and the early return above
+	// compares with what was set.
+	families := append(fm.query.Families[:0:0], query.Families...)
 	fm.query = query
+	fm.query.Families = families
 	fm.built = false
 	fm.resetRuneCaches()
 }

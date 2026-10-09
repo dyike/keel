@@ -4,11 +4,13 @@ package gpu
 
 import (
 	"fmt"
+	"image/color"
 
 	"gioui.org/internal/f32"
 )
 
 type textureCacheKey struct {
+	tint   color.NRGBA
 	filter byte
 	handle any
 }

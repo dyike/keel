@@ -516,12 +516,12 @@ func loadCff(ld *ot.Loader, numGlyphs int) (*cff.CFF, error) {
 	if err != nil {
 		return nil, err
 	}
-	cff, err := cff.Parse(raw)
+	cff, err := cff.ParseCompact(raw)
 	if err != nil {
 		return nil, err
 	}
 
-	if N := len(cff.Charstrings); N != numGlyphs {
+	if N := cff.GlyphCount(); N != numGlyphs {
 		return nil, fmt.Errorf("invalid number of glyphs in CFF table (%d != %d)", N, numGlyphs)
 	}
 	return cff, nil
@@ -630,7 +630,7 @@ type Face struct {
 
 // NewFace wraps [font] and initializes glyph caches.
 func NewFace(font *Font) *Face {
-	out := &Face{Font: font, extentsCache: make(extentsCache, font.nGlyphs)}
+	out := &Face{Font: font, extentsCache: extentsCache{count: font.nGlyphs}}
 	out.cmapCache.clear()
 	out.cmapNotSupportedCache.clear()
 	return out

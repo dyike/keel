@@ -5,27 +5,44 @@ type glyphExtents struct {
 	extents GlyphExtents
 }
 
-type extentsCache []glyphExtents
+// Cache only pages containing measured glyphs. CJK fonts can have tens of
+// thousands of glyphs while a window uses only a few dozen.
+const extentsPageSize = 128
 
-func (ec extentsCache) get(gid GID) (GlyphExtents, bool) {
-	if int(gid) >= len(ec) {
+type extentsCache struct {
+	count int
+	pages []*[extentsPageSize]glyphExtents
+}
+
+func (ec *extentsCache) get(gid GID) (GlyphExtents, bool) {
+	if uint64(gid) >= uint64(ec.count) {
 		return GlyphExtents{}, false
 	}
-	ge := ec[gid]
+	page := int(gid) / extentsPageSize
+	if page >= len(ec.pages) || ec.pages[page] == nil {
+		return GlyphExtents{}, false
+	}
+	ge := ec.pages[page][int(gid)%extentsPageSize]
 	return ge.extents, ge.valid
 }
 
-func (ec extentsCache) set(gid GID, extents GlyphExtents) {
-	if int(gid) >= len(ec) {
+func (ec *extentsCache) set(gid GID, extents GlyphExtents) {
+	if uint64(gid) >= uint64(ec.count) {
 		return
 	}
-	ec[gid].valid = true
-	ec[gid].extents = extents
+	if ec.pages == nil {
+		ec.pages = make([]*[extentsPageSize]glyphExtents, (ec.count+extentsPageSize-1)/extentsPageSize)
+	}
+	page := int(gid) / extentsPageSize
+	if ec.pages[page] == nil {
+		ec.pages[page] = new([extentsPageSize]glyphExtents)
+	}
+	ec.pages[page][int(gid)%extentsPageSize] = glyphExtents{valid: true, extents: extents}
 }
 
-func (ec extentsCache) reset() {
-	for i := range ec {
-		ec[i] = glyphExtents{}
+func (ec *extentsCache) reset() {
+	for i := range ec.pages {
+		ec.pages[i] = nil
 	}
 }
 

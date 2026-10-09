@@ -218,6 +218,14 @@ func (seg *Segmenter) splitByBidi(text Input) {
 	if text.Direction.Progression() == di.TowardTopLeft {
 		def = bidi.RightToLeft
 	}
+	// Keel patch: left-to-right text without right-to-left or bidi control
+	// characters is one left-to-right run; the algorithm allocated and
+	// looked up every rune to find that out.
+	if def == bidi.LeftToRight && simpleLTR(text.Text[text.RunStart:text.RunEnd]) {
+		text.Direction.SetProgression(di.FromTopLeft)
+		seg.output = append(seg.output, text)
+		return
+	}
 	out := seg.bidiParagraph.Segment(text.Text[text.RunStart:text.RunEnd], def)
 	if out.NumRuns() == 0 {
 		seg.output = append(seg.output, text)
@@ -241,6 +249,39 @@ func (seg *Segmenter) splitByBidi(text Input) {
 		seg.output = append(seg.output, currentInput)
 		input.RunStart = currentInput.RunEnd
 	}
+}
+
+// notSimpleLTR are the bidi classes that can give a left-to-right paragraph
+// a level other than zero (strong right-to-left, Arabic numbers, explicit
+// embeddings and isolates), and the paragraph separator, at which
+// [bidi.Paragraph] stops.
+const notSimpleLTR = ucd.BD_R | ucd.BD_AL | ucd.BD_AN | ucd.BD_B |
+	ucd.BD_LRE | ucd.BD_LRO | ucd.BD_RLE | ucd.BD_RLO | ucd.BD_PDF |
+	ucd.BD_LRI | ucd.BD_RLI | ucd.BD_FSI | ucd.BD_PDI
+
+// simpleLTRBelow tells, for runes below the Hebrew block, whether their
+// class is not in notSimpleLTR.
+var simpleLTRBelow = func() (t [0x590]bool) {
+	for r := range t {
+		c, _ := ucd.LookupBidiClass(rune(r))
+		t[r] = c&notSimpleLTR == 0
+	}
+	return t
+}()
+
+// simpleLTR reports whether a left-to-right paragraph of text resolves to
+// a single run at level zero: it has no rune of the notSimpleLTR classes.
+func simpleLTR(text []rune) bool {
+	for _, r := range text {
+		if r < rune(len(simpleLTRBelow)) {
+			if !simpleLTRBelow[r] {
+				return false
+			}
+		} else if c, _ := ucd.LookupBidiClass(r); c&notSimpleLTR != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // lookupDelimIndex binary searches in the list of the paired delimiters,

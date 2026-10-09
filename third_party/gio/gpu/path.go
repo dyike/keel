@@ -138,7 +138,7 @@ const (
 func newPather(ctx driver.Device) *pather {
 	return &pather{
 		ctx:       ctx,
-		stenciler: newStenciler(ctx),
+		stenciler: &stenciler{ctx: ctx},
 		coverer:   newCoverer(ctx),
 	}
 }
@@ -162,6 +162,14 @@ func newCoverer(ctx driver.Device) *coverer {
 	}
 	c.pipelines = pipelines
 	return c
+}
+
+func (s *stenciler) ensure() {
+	if s.pipeline.pipeline != nil {
+		return
+	}
+	initialized := newStenciler(s.ctx)
+	s.pipeline, s.ipipeline, s.indexBuf = initialized.pipeline, initialized.ipipeline, initialized.indexBuf
 }
 
 func newStenciler(ctx driver.Device) *stenciler {
@@ -220,7 +228,7 @@ func newStenciler(ctx driver.Device) *stenciler {
 		PixelFormat: driver.TextureFormatFloat,
 		Topology:    driver.TopologyTriangles,
 	})
-	st.pipeline.pipeline = &pipeline{pipe, vertUniforms}
+	st.pipeline.pipeline = &pipeline{pipeline: pipe, uniforms: vertUniforms}
 	if err != nil {
 		panic(err)
 	}
@@ -243,7 +251,7 @@ func newStenciler(ctx driver.Device) *stenciler {
 		PixelFormat: driver.TextureFormatFloat,
 		Topology:    driver.TopologyTriangleStrip,
 	})
-	st.ipipeline.pipeline = &pipeline{ipipe, vertUniforms}
+	st.ipipeline.pipeline = &pipeline{pipeline: ipipe, uniforms: vertUniforms}
 	if err != nil {
 		panic(err)
 	}
@@ -318,9 +326,15 @@ func (s *fboSet) delete(ctx driver.Device, idx int) {
 func (s *stenciler) release() {
 	s.fbos.delete(s.ctx, 0)
 	s.intersections.delete(s.ctx, 0)
-	s.pipeline.pipeline.Release()
-	s.ipipeline.pipeline.Release()
-	s.indexBuf.Release()
+	if s.pipeline.pipeline != nil {
+		s.pipeline.pipeline.Release()
+	}
+	if s.ipipeline.pipeline != nil {
+		s.ipipeline.pipeline.Release()
+	}
+	if s.indexBuf != nil {
+		s.indexBuf.Release()
+	}
 }
 
 func (p *pather) release() {

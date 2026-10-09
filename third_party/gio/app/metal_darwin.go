@@ -75,6 +75,7 @@ static CFTypeRef newCommandQueue(CFTypeRef devRef) {
 import "C"
 
 type mtlContext struct {
+	idle     metalIdleState
 	dev      C.CFTypeRef
 	view     C.CFTypeRef
 	layer    C.CFTypeRef
@@ -111,6 +112,7 @@ func newMtlContext(w *window) (*mtlContext, error) {
 }
 
 func (c *mtlContext) RenderTarget() (gpu.RenderTarget, error) {
+	c.resumeIdle()
 	if c.drawable != 0 || c.texture != 0 {
 		return nil, errors.New("metal:a previous RenderTarget wasn't Presented")
 	}
@@ -136,6 +138,7 @@ func (c *mtlContext) API() gpu.API {
 }
 
 func (c *mtlContext) Release() {
+	c.stopIdle()
 	C.CFRelease(c.queue)
 	C.CFRelease(c.dev)
 	C.CFRelease(c.layer)

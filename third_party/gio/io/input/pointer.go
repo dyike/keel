@@ -120,7 +120,13 @@ type collectState struct {
 type pointerCollector struct {
 	q         *pointerQueue
 	state     collectState
-	nodeStack []int
+	nodeStack []areaStack
+}
+
+// areaStack records the sibling link to restore when a drawing-only clip
+// can be discarded at pop time.
+type areaStack struct {
+	node, area, previousSibling int
 }
 
 type semanticContent struct {
@@ -170,8 +176,10 @@ func (c *pointerCollector) pushArea(kind areaKind, bounds image.Rectangle) {
 	parentID := c.currentArea()
 	areaID := len(c.q.areas)
 	areaOp := areaOp{kind: kind, rect: bounds}
+	previousSibling := -1
 	if parentID != -1 {
 		parent := &c.q.areas[parentID]
+		previousSibling = parent.lastChild
 		if parent.firstChild == -1 {
 			parent.firstChild = areaID
 		}
@@ -190,7 +198,7 @@ func (c *pointerCollector) pushArea(kind areaKind, bounds image.Rectangle) {
 	}
 
 	c.q.areas = append(c.q.areas, an)
-	c.nodeStack = append(c.nodeStack, c.state.nodePlusOne-1)
+	c.nodeStack = append(c.nodeStack, areaStack{node: c.state.nodePlusOne - 1, area: areaID, previousSibling: previousSibling})
 	c.addHitNode(hitNode{
 		area: areaID,
 		pass: true,
@@ -199,7 +207,30 @@ func (c *pointerCollector) pushArea(kind areaKind, bounds image.Rectangle) {
 
 func (c *pointerCollector) popArea() {
 	n := len(c.nodeStack)
-	c.state.nodePlusOne = c.nodeStack[n-1] + 1
+	entry := c.nodeStack[n-1]
+	a := &c.q.areas[entry.area]
+	// Pure drawing clips have no effect on input, cursor or semantics. Since
+	// their nested drawing-only clips are discarded first, this is always
+	// a suffix removal and keeps every surviving handler index stable.
+	// Only remove a node immediately after its predecessor: an intervening
+	// sibling could otherwise change inherited cursor precedence.
+	if entry.area == len(c.q.areas)-1 && a.firstChild == -1 && !a.semantic.valid && a.semantic.content.tag == nil && a.cursor == pointer.CursorDefault && a.action == 0 {
+		last := len(c.q.hitTree) - 1
+		if last >= 0 && c.q.hitTree[last].area == entry.area && c.q.hitTree[last].tag == nil && last == entry.node+1 {
+			if a.parent >= 0 {
+				parent := &c.q.areas[a.parent]
+				parent.lastChild = entry.previousSibling
+				if entry.previousSibling < 0 {
+					parent.firstChild = -1
+				} else {
+					c.q.areas[entry.previousSibling].sibling = -1
+				}
+			}
+			c.q.areas = c.q.areas[:entry.area]
+			c.q.hitTree = c.q.hitTree[:last]
+		}
+	}
+	c.state.nodePlusOne = entry.node + 1
 	c.nodeStack = c.nodeStack[:n-1]
 }
 
