@@ -1,6 +1,6 @@
 package core
 
-import "gioui.org/io/event"
+import "github.com/dyike/keel/third_party/gio/io/event"
 
 // EditAction is a standard application-menu operation. Custom editors may
 // consume these with NextEditAction while they retain keyboard focus.

@@ -1,13 +1,13 @@
 package theme
 
 import (
-	"gioui.org/f32"
-	"gioui.org/font/gofont"
-	"gioui.org/gpu/headless"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
-	"gioui.org/text"
+	"github.com/dyike/keel/third_party/gio/f32"
+	"github.com/dyike/keel/third_party/gio/font/gofont"
+	"github.com/dyike/keel/third_party/gio/gpu/headless"
+	"github.com/dyike/keel/third_party/gio/op"
+	"github.com/dyike/keel/third_party/gio/op/clip"
+	"github.com/dyike/keel/third_party/gio/op/paint"
+	"github.com/dyike/keel/third_party/gio/text"
 	"golang.org/x/image/math/fixed"
 	"image"
 	"image/color"

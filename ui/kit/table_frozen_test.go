@@ -2,9 +2,9 @@ package kit
 
 import (
 	"fmt"
-	"gioui.org/f32"
-	"gioui.org/io/pointer"
-	"gioui.org/unit"
+	"github.com/dyike/keel/third_party/gio/f32"
+	"github.com/dyike/keel/third_party/gio/io/pointer"
+	"github.com/dyike/keel/third_party/gio/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"

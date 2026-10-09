@@ -4,7 +4,7 @@ import (
 	"io"
 	"strings"
 
-	"gioui.org/io/clipboard"
+	"github.com/dyike/keel/third_party/gio/io/clipboard"
 
 	"github.com/dyike/keel/ui/core"
 )

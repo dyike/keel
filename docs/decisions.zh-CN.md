@@ -77,7 +77,7 @@ Gio 的好处：界面完全由 Go 绘制，组件只是普通 Go 结构体，�
 - **分层让依赖可读**：先看 `core` 和 `theme` 就懂地基，`window` 不认识任何具体组件。理解一个模块只需要看它和它下面的模块。
 - **增长方式固定**：新组件是 `widget/` 下的新文件，新容器是 `layout/` 下的新文件，不会冒出新目录。
 
-**代价**：业务代码引入 `layout`、`widget`、`window` 三个包，比第二版多两行 import。`layout` 和 Gio 的 `gioui.org/layout` 同名，同一个文件里都要用时得起别名。
+**代价**：业务代码引入 `layout`、`widget`、`window` 三个包，比第二版多两行 import。`layout` 和 Gio 的 `layout`（`third_party/gio/layout`）同名，同一个文件里都要用时得起别名。
 
 ## Agent 测试在内存里渲染，不驱动真实窗口
 

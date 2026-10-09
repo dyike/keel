@@ -3,9 +3,9 @@ package theme
 import (
 	"sync"
 
-	"gioui.org/font"
-	"gioui.org/font/gofont"
-	"gioui.org/font/opentype"
+	"github.com/dyike/keel/third_party/gio/font"
+	"github.com/dyike/keel/third_party/gio/font/gofont"
+	"github.com/dyike/keel/third_party/gio/font/opentype"
 	"golang.org/x/image/font/gofont/gobold"
 	"golang.org/x/image/font/gofont/goitalic"
 	"golang.org/x/image/font/gofont/gomono"

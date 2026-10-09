@@ -1,9 +1,9 @@
 package core
 
 import (
-	"gioui.org/io/semantic"
-	"gioui.org/op"
-	"gioui.org/op/clip"
+	"github.com/dyike/keel/third_party/gio/io/semantic"
+	"github.com/dyike/keel/third_party/gio/op"
+	"github.com/dyike/keel/third_party/gio/op/clip"
 )
 
 // Semantic lays out w inside its own clip area and attaches semantic ops to

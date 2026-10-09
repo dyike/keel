@@ -9,6 +9,7 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -18,8 +19,45 @@ import (
 	"github.com/tc-hib/winres/version"
 )
 
-// gogio is Gio's packager, pinned to the release Keel builds on.
-const gogio = "gioui.org/cmd/gogio@v0.10.0"
+// gogio is Gio's packager, carried in Keel's module next to its copy of
+// Gio. It is built from the Keel the app requires, so the packager always
+// matches the Gio it packages.
+const gogio = "github.com/dyike/keel/third_party/gio/cmd/gogio"
+
+// runGogio builds gogio and runs it in dir with args. The app's go.sum does
+// not list gogio's own dependencies (golang.org/x/tools, ...), so gogio is
+// built in the directory of the Keel module the app uses, whose go.sum does,
+// for this machine whatever GOOS and GOARCH the app targets.
+func (c *cli) runGogio(dir string, env []string, args ...string) error {
+	if c.dryRun {
+		return c.command(dir, env, "go", append([]string{"run", gogio}, args...)...)
+	}
+	keelDir, err := toolOutput(dir, "go", "list", "-m", "-f", "{{.Dir}}", "github.com/dyike/keel")
+	if err != nil {
+		return fmt.Errorf("find the Keel module for gogio: %w", err)
+	}
+	tmp, err := os.MkdirTemp("", "keel-gogio-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+	bin := filepath.Join(tmp, "gogio")
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
+	build := exec.Command("go", "build", "-o", bin, gogio)
+	build.Dir = keelDir
+	build.Stdout, build.Stderr = c.out, c.errw
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "GOOS=") && !strings.HasPrefix(kv, "GOARCH=") {
+			build.Env = append(build.Env, kv)
+		}
+	}
+	if err := build.Run(); err != nil {
+		return fmt.Errorf("build gogio: %w", err)
+	}
+	return c.command(dir, env, bin, args...)
+}
 
 func (c *cli) build(args []string) error {
 	fs := flag.NewFlagSet("build", flag.ContinueOnError)
@@ -77,7 +115,7 @@ func (c *cli) build(args []string) error {
 	case "js", "web":
 		// osusergo: os/user has no js/wasm implementation, and Gio's font
 		// scan imports it (see docs/web.md).
-		return c.command(dir, c.trimEnv(), "go", "run", gogio, "-target", "js", "-tags", "osusergo", "-ldflags", c.ldflags(""), "-o", filepath.Join(outDir, "web"), main)
+		return c.runGogio(dir, c.trimEnv(), "-target", "js", "-tags", "osusergo", "-ldflags", c.ldflags(""), "-o", filepath.Join(outDir, "web"), main)
 	}
 	return fmt.Errorf("unknown target %q: use darwin, windows, linux, js, android or ios", *target)
 }
@@ -107,7 +145,7 @@ func (c *cli) buildDarwin(dir string, cfg *Config, icons *iconSet, outDir, main,
 	if err := writePNG(iconPath, mac); err != nil {
 		return err
 	}
-	if err := c.command(dir, c.trimEnv(), "go", "run", gogio, "-target", "macos", "-arch", arch,
+	if err := c.runGogio(dir, c.trimEnv(), "-target", "macos", "-arch", arch,
 		"-appid", cfg.AppID, "-version", cfg.fourPart(), "-icon", iconPath, "-ldflags", c.ldflags(""), "-o", app, main); err != nil {
 		return err
 	}

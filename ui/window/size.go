@@ -5,8 +5,8 @@ import (
 	"image"
 	"math"
 
-	gioapp "gioui.org/app"
-	"gioui.org/unit"
+	gioapp "github.com/dyike/keel/third_party/gio/app"
+	"github.com/dyike/keel/third_party/gio/unit"
 	"github.com/dyike/keel/ui/core"
 )
 

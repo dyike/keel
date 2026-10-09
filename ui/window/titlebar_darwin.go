@@ -5,7 +5,7 @@ package window
 import (
 	"sync"
 
-	gioapp "gioui.org/app"
+	gioapp "github.com/dyike/keel/third_party/gio/app"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/appkit"
 	"github.com/dyike/keel/ui/internal/loop"

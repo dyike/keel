@@ -10,12 +10,12 @@ import (
 	"time"
 	"unsafe"
 
-	gioapp "gioui.org/app"
-	"gioui.org/io/system"
-	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/unit"
-	"gioui.org/widget"
+	gioapp "github.com/dyike/keel/third_party/gio/app"
+	"github.com/dyike/keel/third_party/gio/io/system"
+	"github.com/dyike/keel/third_party/gio/layout"
+	"github.com/dyike/keel/third_party/gio/op"
+	"github.com/dyike/keel/third_party/gio/unit"
+	"github.com/dyike/keel/third_party/gio/widget"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/loop"

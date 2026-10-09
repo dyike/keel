@@ -2,7 +2,7 @@ package kit
 
 import (
 	"encoding/csv"
-	"gioui.org/io/key"
+	"github.com/dyike/keel/third_party/gio/io/key"
 	"github.com/dyike/keel/ui/el"
 	"slices"
 	"strings"

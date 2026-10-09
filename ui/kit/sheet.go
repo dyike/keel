@@ -7,7 +7,7 @@ import (
 
 	"github.com/dyike/keel/ui/locale"
 
-	"gioui.org/op"
+	"github.com/dyike/keel/third_party/gio/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"

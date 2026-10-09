@@ -3,9 +3,9 @@ package el
 import (
 	"image"
 
-	"gioui.org/layout"
-	"gioui.org/text"
-	"gioui.org/widget/material"
+	"github.com/dyike/keel/third_party/gio/layout"
+	"github.com/dyike/keel/third_party/gio/text"
+	"github.com/dyike/keel/third_party/gio/widget/material"
 	"golang.org/x/image/math/fixed"
 )
 

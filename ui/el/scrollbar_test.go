@@ -5,8 +5,8 @@ import (
 	"image"
 	"testing"
 
-	"gioui.org/io/key"
-	"gioui.org/unit"
+	"github.com/dyike/keel/third_party/gio/io/key"
+	"github.com/dyike/keel/third_party/gio/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/uitest"
 )

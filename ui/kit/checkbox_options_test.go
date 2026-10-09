@@ -1,7 +1,7 @@
 package kit
 
 import (
-	"gioui.org/io/key"
+	"github.com/dyike/keel/third_party/gio/io/key"
 	"math"
 	"testing"
 )

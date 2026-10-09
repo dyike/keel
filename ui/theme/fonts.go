@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"gioui.org/font"
-	"gioui.org/font/opentype"
-	"gioui.org/text"
-	gotext "github.com/go-text/typesetting/font"
-	ot "github.com/go-text/typesetting/font/opentype"
+	"github.com/dyike/keel/third_party/gio/font"
+	"github.com/dyike/keel/third_party/gio/font/opentype"
+	"github.com/dyike/keel/third_party/gio/text"
+	gotext "github.com/dyike/keel/third_party/typesetting/font"
+	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
 
 	"github.com/dyike/keel/ui/internal/loop"
 )

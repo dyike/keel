@@ -49,7 +49,7 @@ It is only hoped that when the right mouse button is turned on, different left-c
 `MouseButton(pointer.ButtonPrimary/Secondary/Tertiary)` Select to automatically switch panels when the left, right or middle button is pressed. The default is 0, which is opened by the trigger element itself; `MouseButton(0)` restores this mode. Illegal values are ignored, and pressing multiple keys at the same time does not trigger. `RightClick(true/false)` is equivalent to selecting right-click/return to manual mode respectively, and the last setting takes effect.
 
 ```go
-info.MouseButton(pointer.ButtonTertiary) // gioui.org/io/pointer
+info.MouseButton(pointer.ButtonTertiary) // github.com/dyike/keel/third_party/gio/io/pointer
 ```
 
 Listeners will not swallow events that trigger the element itself. When selecting the left button to open automatically, do not bind Toggle to the button left button callback, otherwise it will switch once when pressed and released. Automatic listening does not add tab stops, and the keyboard replacement entrance is still provided by the trigger element.

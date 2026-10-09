@@ -1,7 +1,7 @@
 package window
 
 import (
-	"gioui.org/io/key"
+	"github.com/dyike/keel/third_party/gio/io/key"
 	"github.com/dyike/keel/ui/internal/uitest"
 	"testing"
 )

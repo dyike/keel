@@ -2,7 +2,7 @@ package markdown
 
 // Rich text with decorations and clickable links.
 //
-// The line breaking follows gioui.org/x/styledtext (Unlicense OR MIT): each
+// The line breaking follows github.com/dyike/keel/third_party/gio/x/styledtext (Unlicense OR MIT): each
 // run is shaped with the width left on the current line, and what does not fit
 // continues on the next. On top of that this keeps every piece of a run it
 // placed, so it can draw what styledtext cannot: backgrounds behind inline
@@ -16,21 +16,21 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"gioui.org/font"
+	"github.com/dyike/keel/third_party/gio/font"
 	"io"
 
-	"gioui.org/gesture"
-	"gioui.org/io/clipboard"
-	"gioui.org/io/event"
-	"gioui.org/io/key"
-	"gioui.org/io/pointer"
-	"gioui.org/io/semantic"
-	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
-	"gioui.org/text"
-	"gioui.org/unit"
+	"github.com/dyike/keel/third_party/gio/gesture"
+	"github.com/dyike/keel/third_party/gio/io/clipboard"
+	"github.com/dyike/keel/third_party/gio/io/event"
+	"github.com/dyike/keel/third_party/gio/io/key"
+	"github.com/dyike/keel/third_party/gio/io/pointer"
+	"github.com/dyike/keel/third_party/gio/io/semantic"
+	"github.com/dyike/keel/third_party/gio/layout"
+	"github.com/dyike/keel/third_party/gio/op"
+	"github.com/dyike/keel/third_party/gio/op/clip"
+	"github.com/dyike/keel/third_party/gio/op/paint"
+	"github.com/dyike/keel/third_party/gio/text"
+	"github.com/dyike/keel/third_party/gio/unit"
 	"golang.org/x/image/math/fixed"
 
 	"github.com/dyike/keel/ui/core"

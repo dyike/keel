@@ -1,7 +1,7 @@
 package el
 
 import (
-	"gioui.org/unit"
+	"github.com/dyike/keel/third_party/gio/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/uitest"
 	"image"

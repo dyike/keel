@@ -2,7 +2,7 @@ package window
 
 import (
 	"bytes"
-	"gioui.org/f32"
+	"github.com/dyike/keel/third_party/gio/f32"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"image/color"

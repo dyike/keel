@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"gioui.org/io/key"
+	"github.com/dyike/keel/third_party/gio/io/key"
 )
 
 func TestListKeysSkipDisabled(t *testing.T) {

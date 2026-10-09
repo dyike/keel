@@ -103,7 +103,7 @@ func TestNewAndBuildPlans(t *testing.T) {
 	if p := plan("-target", "windows"); !strings.Contains(p, "zz_keel_windows_amd64.syso") || !strings.Contains(p, "-H=windowsgui") || !strings.Contains(p, "my-notes.exe") || !strings.Contains(p, "my-notes.ico") {
 		t.Fatal("windows plan:\n" + p)
 	}
-	if p := plan("-target", "linux"); !strings.Contains(p, "-X gioui.org/app.ID=dev.keel.notes") || !strings.Contains(p, "dev.keel.notes.desktop") {
+	if p := plan("-target", "linux"); !strings.Contains(p, "-X github.com/dyike/keel/third_party/gio/app.ID=dev.keel.notes") || !strings.Contains(p, "dev.keel.notes.desktop") {
 		t.Fatal("linux plan:\n" + p)
 	}
 	if p := plan("-target", "windows"); !strings.Contains(p, "go build -trimpath -ldflags -s -w -H=windowsgui") {

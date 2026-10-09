@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"gioui.org/op"
-	"gioui.org/op/clip"
+	"github.com/dyike/keel/third_party/gio/op"
+	"github.com/dyike/keel/third_party/gio/op/clip"
 
-	"gioui.org/io/key"
+	"github.com/dyike/keel/third_party/gio/io/key"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"

@@ -3,7 +3,7 @@ package kit
 import (
 	"slices"
 
-	"gioui.org/op"
+	"github.com/dyike/keel/third_party/gio/op"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"

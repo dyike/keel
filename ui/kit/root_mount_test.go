@@ -3,7 +3,7 @@ package kit
 import (
 	"testing"
 
-	"gioui.org/io/key"
+	"github.com/dyike/keel/third_party/gio/io/key"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"
 )

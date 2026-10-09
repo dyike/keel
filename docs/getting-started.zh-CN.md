@@ -185,6 +185,16 @@ keel run
 
 脚手架会在应用的 `go.mod` 中写入本地替换。已有脚手架项目可以执行 `go mod edit -replace=github.com/dyike/keel=../keel` 和 `go mod tidy`。
 
+## Gio 的导入路径
+
+Keel 用自带的 Gio 副本 `github.com/dyike/keel/third_party/gio` 绘制界面，这样能直接修复和优化 Gio，不必等上游发版。代码里和 Keel 一起使用的 Gio 包（`layout`、`op`、`unit` 等）从这里导入。之前导入 `gioui.org/...` 的项目切换一次：
+
+```sh
+keel migrate
+```
+
+它改写项目里 Go 文件的导入路径，包括 go-text 的（`github.com/go-text/typesetting` → `github.com/dyike/keel/third_party/typesetting`），再运行 `go mod tidy`。`gioui.org/shader` 保持不变。两套混用时，凡是 Keel API 接收 Gio 类型的地方都编译不过：它们是不同的包。
+
 ## 下一步
 
 - [组件参考](kit.zh-CN.md)：按用途找组件，操作在线示例，查看展示代码。

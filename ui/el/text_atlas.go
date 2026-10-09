@@ -4,12 +4,12 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/io/semantic"
-	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/text"
-	"gioui.org/widget/material"
+	"github.com/dyike/keel/third_party/gio/io/semantic"
+	"github.com/dyike/keel/third_party/gio/layout"
+	"github.com/dyike/keel/third_party/gio/op"
+	"github.com/dyike/keel/third_party/gio/op/clip"
+	"github.com/dyike/keel/third_party/gio/text"
+	"github.com/dyike/keel/third_party/gio/widget/material"
 	"github.com/dyike/keel/ui/theme"
 )
 

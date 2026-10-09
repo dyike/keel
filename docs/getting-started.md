@@ -185,6 +185,16 @@ keel run
 
 The scaffold adds a local replacement to the application’s `go.mod`. In an existing project, run `go mod edit -replace=github.com/dyike/keel=../keel` followed by `go mod tidy`.
 
+## Gio imports
+
+Keel draws with its own copy of Gio, `github.com/dyike/keel/third_party/gio`, so it can fix and speed Gio up without waiting for upstream releases. Code that uses Gio packages next to Keel's (`layout`, `op`, `unit`, …) imports them from there. A project that imported `gioui.org/...` switches once:
+
+```sh
+keel migrate
+```
+
+It rewrites the import paths of the project's Go files, including go-text's (`github.com/go-text/typesetting` → `github.com/dyike/keel/third_party/typesetting`), and runs `go mod tidy`. `gioui.org/shader` stays as it is. Mixing the two would not compile where Keel's API takes a Gio type: they are different packages.
+
 ## Next steps
 
 - [Components](kit.md): find components by purpose, try live examples, and inspect their source.

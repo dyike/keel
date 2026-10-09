@@ -1,7 +1,7 @@
 package el
 
 import (
-	"gioui.org/op"
+	"github.com/dyike/keel/third_party/gio/op"
 	"image"
 )
 

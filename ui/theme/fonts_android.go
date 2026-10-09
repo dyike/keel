@@ -3,8 +3,8 @@ package theme
 import (
 	"os"
 
-	"gioui.org/font"
-	"gioui.org/font/opentype"
+	"github.com/dyike/keel/third_party/gio/font"
+	"github.com/dyike/keel/third_party/gio/font/opentype"
 )
 
 // Gio scans system fonts through os.UserCacheDir, which has no usable default

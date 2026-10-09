@@ -34,7 +34,7 @@ func TestIOSPlans(t *testing.T) {
 	if c.main([]string{"build", "-target", "ios", "-arch", "arm64", "-n"}) != 0 {
 		t.Fatal(out.String())
 	}
-	for _, want := range []string{"--sdk iphonesimulator", "prepare simulator Metal shaders", "go build -trimpath -ldflags -s -w -X gioui.org/app.ID=dev.keel.notes", "KeelSceneDelegate", "--platform iphonesimulator", "codesign --force --sign -", "ios/notes.app"} {
+	for _, want := range []string{"--sdk iphonesimulator", "prepare simulator Metal shaders", "go build -trimpath -ldflags -s -w -X github.com/dyike/keel/third_party/gio/app.ID=dev.keel.notes", "KeelSceneDelegate", "--platform iphonesimulator", "codesign --force --sign -", "ios/notes.app"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("simulator plan missing %q:\n%s", want, out.String())
 		}

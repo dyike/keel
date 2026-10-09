@@ -7,7 +7,7 @@ import (
 	"sync"
 	"unsafe"
 
-	gioapp "gioui.org/app"
+	gioapp "github.com/dyike/keel/third_party/gio/app"
 	"golang.org/x/sys/windows"
 
 	"github.com/dyike/keel/internal/appicon"

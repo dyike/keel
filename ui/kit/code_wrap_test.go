@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"gioui.org/f32"
-	"gioui.org/io/key"
+	"github.com/dyike/keel/third_party/gio/f32"
+	"github.com/dyike/keel/third_party/gio/io/key"
 )
 
 func TestCodeEditorSoftWrap(t *testing.T) {

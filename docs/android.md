@@ -19,7 +19,7 @@ adb devices
 keel run -target android
 ```
 
-Builds use `gioui.org/cmd/gogio@v0.10.0`. NDK lookup prefers the newest side-by-side version under the SDK, then `ndk-bundle`, then `ANDROID_NDK_ROOT`. See [Gio's Android installation guide](https://gioui.org/doc/install/android); compatibility is determined by the pinned packager and actual builds.
+Builds use Gio's packager gogio from Keel's copy, `third_party/gio/cmd/gogio`, compiled from the Keel version the app requires. NDK lookup prefers the newest side-by-side version under the SDK, then `ndk-bundle`, then `ANDROID_NDK_ROOT`. See [Gio's Android installation guide](https://gioui.org/doc/install/android); compatibility is determined by that packager and actual builds.
 
 The output is `dist/android/<binary>.apk`. Builds include arm64 and amd64 by default; use `-arch arm64` for a smaller APK. `arm`, `386` and comma-separated architectures are also accepted. `-o` changes the output root; `-n` prints commands.
 

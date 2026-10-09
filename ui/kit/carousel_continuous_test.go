@@ -1,8 +1,8 @@
 package kit
 
 import (
-	"gioui.org/f32"
-	"gioui.org/io/pointer"
+	"github.com/dyike/keel/third_party/gio/f32"
+	"github.com/dyike/keel/third_party/gio/io/pointer"
 	"github.com/dyike/keel/ui/el"
 	"testing"
 	"time"

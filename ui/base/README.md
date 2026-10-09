@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 Component behavior, without appearance: keyboard navigation of lists, jump by first letter (typeahead), multi-selection with shift range, open/closed state. Doesn't draw anything, just normal Go state and functions.
 
-- **Dependencies**: Only relies on Gio's key name (`gioui.org/io/key`) and does not rely on any Keel module.
+- **Dependencies**: Only relies on Gio's key name (`third_party/gio/io/key`) and does not rely on any Keel module.
 - **Used by it**: `kit`'s List, Tree, Menu, Select, Command, Sidebar, and Table use it to handle keyboard and selection; applications can also use it with `el` to write components with completely customized appearance.
 
 | File | Responsibility |

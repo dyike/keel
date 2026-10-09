@@ -20,7 +20,7 @@ func TestAndroidPlans(t *testing.T) {
 	if c.main([]string{"build", "-target", "android", "-arch", "arm64, amd64", "-n"}) != 0 {
 		t.Fatal(out.String())
 	}
-	for _, want := range []string{"-target android -arch arm64,amd64", "-minsdk 26 -targetsdk 35", "-appid dev.keel.notes -name Mobile Notes -version 0.1.0.1", "-ldflags -s -w -X gioui.org/app.ID=dev.keel.notes", "android/notes.apk", "-signkey", "-genkeypair"} {
+	for _, want := range []string{"-target android -arch arm64,amd64", "-minsdk 26 -targetsdk 35", "-appid dev.keel.notes -name Mobile Notes -version 0.1.0.1", "-ldflags -s -w -X github.com/dyike/keel/third_party/gio/app.ID=dev.keel.notes", "android/notes.apk", "-signkey", "-genkeypair"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("missing %q:\n%s", want, out.String())
 		}

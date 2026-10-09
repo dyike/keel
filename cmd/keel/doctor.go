@@ -104,7 +104,7 @@ func (c *cli) doctor(args []string) error {
 		fmt.Fprintln(c.out, "  linux        here")
 	}
 	fmt.Fprintln(c.out, "  android      SDK, NDK and Java required; check with keel doctor -target android")
-	fmt.Fprintln(c.out, "  The first macOS, Android or js build downloads Gio's packager,", gogio)
+	fmt.Fprintln(c.out, "  macOS, Android and js builds compile Gio's packager from Keel's module:", gogio)
 	if !ok {
 		return fmt.Errorf("fix the items above")
 	}

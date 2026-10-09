@@ -77,7 +77,7 @@ Reasons for choosing the third edition:
 - **Layering makes dependencies readable**: Look at `core` and `theme` first to understand the foundation, `window` does not recognize any specific components. To understand a module, you only need to look at it and the modules below it.
 - **Growth method fixed**: New components are new files under `widget/`, new containers are new files under `layout/`, and new directories will not pop up.
 
-**Cost**: The business code introduces three packages `layout`, `widget`, and `window`, which are two more lines of import than the second version. `layout` and Gio's `gioui.org/layout` have the same name, and they must be aliased when used in the same file.
+**Cost**: The business code introduces three packages `layout`, `widget`, and `window`, which are two more lines of import than the second version. `layout` and Gio's `layout` (`third_party/gio/layout`) have the same name, and they must be aliased when used in the same file.
 
 ## Agent tests are rendered in memory and do not drive the real window
 

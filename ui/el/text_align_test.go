@@ -4,8 +4,8 @@ import (
 	"image/color"
 	"testing"
 
-	"gioui.org/text"
-	"gioui.org/unit"
+	"github.com/dyike/keel/third_party/gio/text"
+	"github.com/dyike/keel/third_party/gio/unit"
 )
 
 func TestTextAlignmentInheritanceAndLabel(t *testing.T) {

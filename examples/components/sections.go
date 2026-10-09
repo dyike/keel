@@ -4,7 +4,7 @@ import (
 	"image"
 	"sort"
 
-	"gioui.org/layout"
+	"github.com/dyike/keel/third_party/gio/layout"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/locale"
 )
