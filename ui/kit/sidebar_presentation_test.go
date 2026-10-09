@@ -50,6 +50,37 @@ func TestSidebarSuffixIndependentAndDisabled(t *testing.T) {
 	}
 }
 
+func TestSidebarCustomIconUsesStandardSlotAndSelection(t *testing.T) {
+	for _, scale := range []int{1, 2} {
+		icon := el.ViewFunc(func(*el.Context) el.Element {
+			return el.Div().Role("image").Name("Agent logo").Size(el.Dp(16))
+		})
+		v := Sidebar().Section("", SidebarItem{ID: "agent", Label: "Agent", Icon: IconFolder, IconView: icon})
+		h := renderView(v, 300, scale)
+		logo := bounds(h, "Agent logo")
+		if logo.Dx() != 16*scale || logo.Dy() != 16*scale {
+			t.Fatalf("custom icon did not use standard slot: %v", logo)
+		}
+		click(t, h, "Agent")
+		if v.Value() != "agent" {
+			t.Fatal("custom icon blocked row activation")
+		}
+		v.SetCollapsed(true)
+		h.Frame()
+		h.Frame()
+		if !shown(h, "Agent logo") {
+			t.Fatal("collapsed sidebar lost custom icon")
+		}
+		v.SetDisabled(true)
+		v.SetValue("")
+		h.Frame()
+		click(t, h, "Agent")
+		if v.Value() != "" {
+			t.Fatal("custom icon bypassed disabled navigation")
+		}
+	}
+}
+
 func TestSidebarItemMenuLifecycle(t *testing.T) {
 	calls := 0
 	menu := Menu().Item("Run item", "", func() { calls++ })

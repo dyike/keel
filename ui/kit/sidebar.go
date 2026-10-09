@@ -15,6 +15,7 @@ import (
 type SidebarItem struct {
 	ID, Label   string
 	Icon        IconName // optional; IconNone shows no icon
+	IconView    el.View  // optional display-only custom icon, in the same 16dp slot; overrides Icon
 	Disabled    bool
 	Children    []SidebarItem
 	Badge       int       // a count shown at the end; 0 hides it
@@ -152,7 +153,9 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 			}
 			return ok
 		})
-	if it.Icon != IconNone {
+	if it.IconView != nil {
+		row.Child(el.Div().Size(el.Dp(16)).NoShrink().Center().Child(it.IconView.Render(cx)))
+	} else if it.Icon != IconNone {
 		row.Child(Icon(it.Icon).Size(16).Color(fg).Render(cx))
 	} else if v.collapsed {
 		row.Child(el.Text(string([]rune(it.Label)[:min(1, len([]rune(it.Label)))])))
@@ -174,9 +177,14 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 			if v.expanded[it.ID] {
 				icon = IconChevronDown
 			}
-			row.Child(Icon(icon).Size(14).Color(fg).Render(cx))
+			// Keep the disclosure next to its label, while the label can still
+			// truncate within the remaining space before independent suffixes.
+			row.Child(el.Div().Row().Items(el.Center).Gap(6).Grow().W(el.Dp(0)).Child(
+				el.Text(it.Label).MaxLines(1),
+				el.Div().Size(el.Dp(14)).NoShrink().Child(Icon(icon).Size(14).Color(fg).Render(cx))))
+		} else {
+			row.Child(el.Text(it.Label).Grow().MaxLines(1))
 		}
-		row.Child(el.Text(it.Label).Grow().MaxLines(1))
 		if it.Badge > 0 {
 			count := strconv.Itoa(it.Badge)
 			if it.Badge > 99 {

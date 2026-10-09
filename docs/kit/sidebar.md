@@ -20,6 +20,7 @@ nav := kit.Sidebar().
 - `Height(dp)` explicitly sets the height of the sidebar. When the navigation content overflows, only the middle area is scrolled. The height is set according to the content by default, and the upper limit is the window height. The height returned by `cx.ViewportSize()` can be passed when embedded in the application shell.
 - The bottom button can collapse the sidebar, and the width after collapse is 56dp: only the icon is displayed, the name is changed to Tooltip, and the corner icon becomes a dot.
 - `Icon` can be omitted (`IconNone`): only the text will be displayed when expanded, and the first letter of the name will be displayed when collapsed.
+- `SidebarItem.IconView` accepts a display-only custom icon, overriding `Icon` in the same 16dp slot. It remains visible when collapsed; the application controls its colors. Branch disclosure arrows sit immediately after the label, before badges and independent suffixes.
 - `Filter(query)` Displays only items whose names contain query (case-insensitive), and the parents leading to them, which are temporarily expanded; groups without matching items are hidden along with their titles. Pass an empty string to restore all. Selected items remain selected while being filtered out. The component library application `go run ./examples/components` uses it for searching.
 - `Side(el.Right)` Move the divider to the left, and adjust the folding arrow and the prompt direction of the collapsed state; the default is `el.Left`. The application still needs to place the sidebar to the right of the main content, and the component does not change the parent layout order. `BorderWidth(dp)` adjusts the divider, 0 hides it.
 - `Collapsible(false)` hides the built-in collapse button; programs can still call `SetCollapsed`.
@@ -27,7 +28,7 @@ nav := kit.Sidebar().
 - `SidebarItem.ContextMenu` / `SetContextMenu(id, menu)` adds a right-click menu to the item, supporting Menu's submenus, shortcut key tips, links and custom content. A Menu instance belongs to only one item, and its Trigger is not used; the menu appearance and position are still configured by Menu. Hiding, disabling or replacing an entry menu closes the old menu. Right-clicking does not change the selected item.
 - `Value()` / `SetValue(id)`, `SetBadge(id, n)`, `Collapsed()` / `SetCollapsed`, `Width(dp)` (default 220).
 
-Options structures are copied recursively; Suffix and ContextMenu retain the passed-in instance. The ID of the entire Sidebar must be non-empty and unique; when the new Section contains empty values or duplicate IDs, the entire group will not be added. Parent disabling does not implicitly disable children.
+Options structures are copied recursively; IconView, Suffix and ContextMenu retain the passed-in instance. The ID of the entire Sidebar must be non-empty and unique; when the new Section contains empty values or duplicate IDs, the entire group will not be added. Parent disabling does not implicitly disable children.
 
 Agent: container role `navigation`; the leaf item is `link`, the branch is `button` with an expanded Boolean value, `selected` represents the current page; the collapse button is named "Collapse Sidebar" and "Expand Sidebar".
 
