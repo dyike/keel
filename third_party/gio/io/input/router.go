@@ -884,6 +884,15 @@ func (q *Router) collect() {
 
 // WakeupTime returns the most recent time for doing another frame,
 // as determined from the last call to Frame.
+// PeekWakeup is WakeupTime without consuming the wakeup. Keel patch.
+func (q *Router) PeekWakeup() (time.Time, bool) {
+	t, w := q.wakeupTime, q.wakeup
+	if len(q.changes) > 1 || len(q.changes) == 1 && len(q.changes[0].events) > 0 {
+		t, w = time.Time{}, true
+	}
+	return t, w
+}
+
 func (q *Router) WakeupTime() (time.Time, bool) {
 	t, w := q.wakeupTime, q.wakeup
 	q.wakeup = false

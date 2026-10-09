@@ -441,6 +441,8 @@ type Backend struct {
 	prog     *Program
 	topology C.MTLPrimitiveType
 
+	pool bufferPool
+
 	stagingBuf C.CFTypeRef
 	stagingOff int
 
@@ -481,6 +483,7 @@ type Buffer struct {
 	backend *Backend
 	size    int
 	buffer  C.CFTypeRef
+	class   int // capacity of buffer, a size class of the pool
 
 	// store is the buffer contents for buffers not allocated on the GPU.
 	store []byte
@@ -521,6 +524,9 @@ func (b *Backend) BeginFrame(target driver.RenderTarget, clear bool, viewport im
 		C.cmdBufferWaitUntilCompleted(b.lastCmdBuffer)
 		b.stagingOff = 0
 	}
+	// Every command buffer committed so far has completed: buffers released
+	// before this frame are no longer read by the GPU.
+	b.pool.frameStarted()
 	if target == nil {
 		return nil
 	}
@@ -609,6 +615,7 @@ func (b *Backend) IsTimeContinuous() bool {
 }
 
 func (b *Backend) Release() {
+	b.pool.trim()
 	if b.cmdBuffer != 0 {
 		C.CFRelease(b.cmdBuffer)
 	}
@@ -762,8 +769,12 @@ func (b *Backend) NewBuffer(typ driver.BufferBinding, size int) (driver.Buffer, 
 	if size <= 4096 && typ&(driver.BufferBindingShaderStorageWrite|driver.BufferBindingIndices) == 0 {
 		return &Buffer{size: size, store: make([]byte, size)}, nil
 	}
-	buf := C.newBuffer(b.dev, C.NSUInteger(size), C.MTLResourceStorageModePrivate)
-	return &Buffer{backend: b, size: size, buffer: buf}, nil
+	class := bufferClass(size)
+	buf := b.pool.get(class)
+	if buf == 0 {
+		buf = C.newBuffer(b.dev, C.NSUInteger(class), C.MTLResourceStorageModePrivate)
+	}
+	return &Buffer{backend: b, size: size, buffer: buf, class: class}, nil
 }
 
 func (b *Backend) NewImmutableBuffer(typ driver.BufferBinding, data []byte) (driver.Buffer, error) {
@@ -1120,11 +1131,15 @@ func bufferSlice(buf C.CFTypeRef, off, len int) []byte {
 }
 
 func (b *Buffer) Release() {
-	if b.buffer != 0 {
+	if b.buffer != 0 && !b.backend.pool.put(b.class, b.buffer) {
 		C.CFRelease(b.buffer)
 	}
 	*b = Buffer{}
 }
+
+// Trim releases the buffers kept for reuse. Keel patch; the gpu package
+// calls it when a window goes idle.
+func (b *Backend) Trim() { b.pool.trim() }
 
 func (t *Texture) ReadPixels(src image.Rectangle, pixels []byte, stride int) error {
 	if len(pixels) == 0 {

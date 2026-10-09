@@ -71,3 +71,14 @@ leave nested modules out. So:
   non-volatile again when a frame resizes them for use. An idle window's
   largest GPU allocations leave its footprint: hello 72 -> 64 MB on macOS.
   Other backends do not implement it yet.
+  Since an animating window would pay a kernel call per frame for it, the
+  marking happens only when a frame asks for no frame within 100 ms
+  (`app.Window` calls `gpu.Idle`, using `input.Router.PeekWakeup`, which
+  does not consume the wakeup). Each texture remembers its state, so
+  nothing is called while it is unchanged.
+- `gio/gpu/internal/metal`: GPU buffers are pooled by power-of-two size
+  class instead of created and released every frame (`newBuffer` and
+  `CFRelease` took a fifth of an animating window's CPU). A buffer released
+  during a frame is reused only after the next `BeginFrame`, which waits
+  for the previous command buffer; the pool is bounded (32 MB, 64 per
+  class) and emptied by `gpu.Idle`.

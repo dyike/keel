@@ -201,9 +201,22 @@ func (w *Window) validateAndProcess(size image.Point, sync bool, frame *op.Ops, 
 		var err error
 		if w.gpu != nil {
 			err = w.ctx.Present()
+			w.idleGPU()
 			w.ctx.Unlock()
 		}
 		return err
+	}
+}
+
+// idleGPU lets the renderer release memory when the frame just drawn asked
+// for no frame soon: it is not animating. Keel patch: idle windows keep their
+// coverage textures out of their footprint without paying for it per frame.
+func (w *Window) idleGPU() {
+	if t, ok := w.queue.PeekWakeup(); ok && time.Until(t) < 100*time.Millisecond {
+		return
+	}
+	if g, ok := w.gpu.(interface{ Idle() }); ok {
+		g.Idle()
 	}
 }
 

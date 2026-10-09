@@ -378,12 +378,19 @@ func (g *gpu) Release() {
 
 func (g *gpu) Frame(frameOps *op.Ops, target RenderTarget, viewport image.Point) error {
 	g.collect(viewport, frameOps)
-	err := g.frame(target)
-	// Keel patch: coverage textures are redrawn every frame before use; once
-	// the frame is committed, let the system reclaim them until the next.
+	return g.frame(target)
+}
+
+// Idle tells the renderer its window drew its last frame for now: no frame
+// is due soon. Coverage textures, redrawn every frame before use, become
+// reclaimable by the system until the next frame, and the driver releases
+// what it kept for reuse. Keel patch; app.Window calls it.
+func (g *gpu) Idle() {
 	g.renderer.pather.stenciler.fbos.setVolatile(true)
 	g.renderer.pather.stenciler.intersections.setVolatile(true)
-	return err
+	if t, ok := g.ctx.(interface{ Trim() }); ok {
+		t.Trim()
+	}
 }
 
 func (g *gpu) collect(viewport image.Point, frameOps *op.Ops) {

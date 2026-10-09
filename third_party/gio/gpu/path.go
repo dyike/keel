@@ -94,8 +94,9 @@ type fboSet struct {
 }
 
 type FBO struct {
-	size image.Point
-	tex  driver.Texture
+	size     image.Point
+	tex      driver.Texture
+	volatile bool // Keel patch: see fboSet.setVolatile
 }
 
 type pathData struct {
@@ -282,6 +283,7 @@ func (s *fboSet) resize(ctx driver.Device, format driver.TextureFormat, sizes []
 			}
 			f.size = sz
 			f.tex = tex
+			f.volatile = false
 		}
 	}
 	// Delete extra fbos.
@@ -290,12 +292,17 @@ func (s *fboSet) resize(ctx driver.Device, format driver.TextureFormat, sizes []
 }
 
 // setVolatile marks the set's textures as scratch the system may reclaim
-// between frames: every frame draws them again before use. Keel patch; a
-// window idles with its largest coverage textures out of its footprint.
+// while the window is idle: every frame draws them again before use. Keel
+// patch; an idle window's largest coverage textures leave its footprint.
 func (s *fboSet) setVolatile(volatile bool) {
-	for _, f := range s.fbos {
+	for i := range s.fbos {
+		f := &s.fbos[i]
+		if f.volatile == volatile {
+			continue // a kernel call on Metal: only on changes
+		}
 		if v, ok := f.tex.(driver.Volatile); ok {
 			v.SetVolatile(volatile)
+			f.volatile = volatile
 		}
 	}
 }
