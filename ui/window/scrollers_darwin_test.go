@@ -1,4 +1,4 @@
-//go:build darwin && !ios && cgo
+//go:build darwin && !ios
 
 package window
 
@@ -44,7 +44,7 @@ func TestScrollerCallbackDoesNotWaitForRedraw(t *testing.T) {
 	defer loop.Unregister(key)
 	done := make(chan struct{})
 	go func() {
-		keel_scrollers_changed(1)
+		scrollersChanged(true)
 		close(done)
 	}()
 

@@ -19,12 +19,12 @@
 | `scene_ios.*` | 实验性 iOS 单场景生命周期适配，需在 Info.plist 配置 `KeelSceneDelegate`，见 [iOS 验证](../../docs/ios.zh-CN.md) |
 | `activation_*` | `Activate(token)`：Wayland 走 xdg-activation，X11 写启动 ID 后请求激活 |
 | `motion_*` | 系统偏好：减少动态效果（macOS）、滚动条自动隐藏（macOS、Windows），写进 `theme` |
-| `scroll_darwin.m`、`scroll_wayland*` | 滚动的设备和手势阶段（触控板抬手、滚轮），Gio 不提供，交给 `core.ReportScrollGesture` |
+| `motion_darwin.go`（macOS）、`scroll_wayland*` | 滚动的设备和手势阶段（触控板抬手、滚轮），Gio 不提供，交给 `core.ReportScrollGesture` |
 | `automation.go` | 自动化模式：内存窗口、语义快照、模拟点击输入滚动 |
 | `automation_server.go` | 自动化协议：`KEEL_AUTOMATION` socket 上的 JSON 请求 |
 | `testdata/raise` | 真实窗口死锁回归测试 |
 
-- **依赖**：`core`、`theme`、`internal/appicon`（图标形状，和脚手架共用），以及 Linux 上的 `jezek/xgb`（X11 激活）和 libwayland-client（Gio 本来就链接）。不依赖 `el`、`kit`：窗口只认 `core.Widget` 接口，系统偏好经 `theme` 交给 el。
+- **依赖**：`core`、`theme`、`internal/appicon`（图标形状，和脚手架共用）、`ui/internal/appkit`（通过 purego 调 AppKit，仅 macOS，不用 cgo），以及 Linux 上的 `jezek/xgb`（X11 激活）和 libwayland-client（经 `ui/internal/wayland` 通过 purego 调用，不用 cgo，用 Gio 打开的连接）。不依赖 `el`、`kit`：窗口只认 `core.Widget` 接口，系统偏好经 `theme` 交给 el。
 - **被谁依赖**：应用代码。`cmd/keel-mcp` 通过 socket 协议驱动它，不引用它的代码。
 
 设置环境变量 `KEEL_AUTOMATION=1`（或 socket 路径）启动应用时，每个窗口会多一个影子窗口，供 Agent 操作；真实窗口照常显示，Agent 的操作会实时反映在屏幕上。再加 `KEEL_HEADLESS=1` 则不显示窗口，见 [Agent 端到端测试](../../docs/automation.zh-CN.md)。

@@ -7,7 +7,7 @@
 ## 环境
 
 - Go 1.26.1 或更新。
-- macOS：安装 Xcode Command Line Tools（`xcode-select --install`）。Gio 和 `native/` 都走 cgo；原生能力要求 macOS 14+。
+- macOS：安装 Xcode Command Line Tools（`xcode-select --install`）。Gio 走 cgo（`native/` 不用）；原生能力要求 macOS 14+。
 - Windows：安装 Go 即可开始；Linux 需要 Wayland/X11、xkbcommon、EGL 的开发包。各平台的原生能力见 [原生能力](native.zh-CN.md)。
 
 ## 检查环境

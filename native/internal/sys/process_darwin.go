@@ -1,39 +1,47 @@
-//go:build darwin && !ios && cgo
+//go:build darwin && !ios
 
 package sys
 
-/*
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <libproc.h>
-#include <sys/proc_info.h>
-static int keel_process_foreground(int fd){return tcgetpgrp(fd);}
-static int keel_process_cwd(int pid,char *out,int size){
- struct proc_vnodepathinfo info;
- if(proc_pidinfo(pid,PROC_PIDVNODEPATHINFO,0,&info,sizeof(info)) != sizeof(info))return 0;
- strlcpy(out,info.pvi_cdir.vip_path,size);return 1;
-}
-*/
-import "C"
 import (
 	"fmt"
-	"github.com/dyike/keel/native"
+	"syscall"
 	"unsafe"
+
+	"github.com/dyike/keel/native"
+	"github.com/ebitengine/purego"
+	"golang.org/x/sys/unix"
 )
 
 func ProcessForegroundPID(fd uintptr) (int, error) {
-	pid, err := C.keel_process_foreground(C.int(fd))
-	if pid < 0 {
+	pid, err := unix.IoctlGetInt(int(fd), unix.TIOCGPGRP)
+	if err != nil {
 		return 0, fmt.Errorf("%w: foreground process: %v", native.ErrFailed, err)
 	}
-	return int(pid), nil
+	return pid, nil
 }
+
+// struct proc_vnodepathinfo: the current directory's vnode_info (152 bytes),
+// then its path; the root directory follows.
+const (
+	procPIDVnodePathInfo   = 9
+	procVnodePathInfoSize  = 2352
+	procVnodePathCwdOffset = 152
+	maxPathLen             = 1024
+)
+
 func ProcessDirectory(pid int) (string, error) {
-	var buf [4096]byte
-	ok, err := C.keel_process_cwd(C.int(pid), (*C.char)(unsafe.Pointer(&buf[0])), C.int(len(buf)))
-	if ok == 0 {
-		return "", fmt.Errorf("%w: process directory: %v", native.ErrFailed, err)
+	load()
+	var info [procVnodePathInfoSize]byte
+	n, _, errno := purego.SyscallN(mustSym("proc_pidinfo"), uintptr(pid), procPIDVnodePathInfo, 0, uintptr(unsafe.Pointer(&info[0])), procVnodePathInfoSize)
+	if int32(n) != procVnodePathInfoSize {
+		return "", fmt.Errorf("%w: process directory: %v", native.ErrFailed, syscall.Errno(errno))
 	}
-	return C.GoString((*C.char)(unsafe.Pointer(&buf[0]))), nil
+	path := info[procVnodePathCwdOffset : procVnodePathCwdOffset+maxPathLen]
+	for i, b := range path {
+		if b == 0 {
+			path = path[:i]
+			break
+		}
+	}
+	return string(path), nil
 }

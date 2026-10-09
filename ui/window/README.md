@@ -19,12 +19,12 @@ Window: open, close, bring to front (including activation token), window shortcu
 | `scene_ios.*` | Experimental iOS scene lifecycle adapter, selected by `KeelSceneDelegate` in Info.plist; see [iOS simulator](../../docs/ios.md) |
 | `activation_*` | `Activate(token)`: Wayland uses xdg-activation, X11 writes the startup ID and then requests activation |
 | `motion_*` | System preferences: reduce dynamic effects (macOS), scrollbar auto-hide (macOS, Windows), write in `theme` |
-| `scroll_darwin.m`, `scroll_wayland*` | The device and gesture stages of scrolling (trackpad hand lift, scroll wheel) are not provided by Gio and are left to `core.ReportScrollGesture` |
+| `motion_darwin.go` (macOS), `scroll_wayland*` | The device and gesture stages of scrolling (trackpad hand lift, scroll wheel) are not provided by Gio and are left to `core.ReportScrollGesture` |
 | `automation.go` | Automation mode: memory window, semantic snapshot, simulated click input scrolling |
 | `automation_server.go` | Automation protocol: JSON request on `KEEL_AUTOMATION` socket |
 | `testdata/raise` | Real window deadlock regression testing |
 
-- **Dependencies**: `core`, `theme`, `internal/appicon` (icon shape, shared with scaffolding), and `jezek/xgb` (X11 activation) and libwayland-client (Gio natively linked) on Linux. Does not rely on `el`, `kit`: the window only recognizes the `core.Widget` interface, and the system preferences are handed over to el through `theme`.
+- **Dependencies**: `core`, `theme`, `internal/appicon` (icon shape, shared with scaffolding), `ui/internal/appkit` (AppKit through purego, macOS only, no cgo), and `jezek/xgb` (X11 activation) and libwayland-client on Linux, reached through `ui/internal/wayland` (purego, no cgo) on the connection Gio opened. Does not rely on `el`, `kit`: the window only recognizes the `core.Widget` interface, and the system preferences are handed over to el through `theme`.
 - **Used by**: Application code. `cmd/keel-mcp` drives it through the socket protocol and does not reference its code.
 
 When the environment variable `KEEL_AUTOMATION=1` (or socket path) is set to start the application, each window will have an additional shadow window for Agent operations; the real window will be displayed as usual, and the Agent's operations will be reflected on the screen in real time. Adding `KEEL_HEADLESS=1` will not display the window, see [Agent end-to-end test](../../docs/automation.md).

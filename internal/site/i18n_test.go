@@ -182,8 +182,9 @@ func TestDocumentationTranslationCoverage(t *testing.T) {
 			return err
 		}
 		src = filepath.ToSlash(src)
-		// The root TODO is a local working note, excluded from the repository.
-		if src == "TODO.md" {
+		// The root TODO is a local working note, excluded from the repository;
+		// AGENTS.md instructs coding agents and is not published.
+		if src == "TODO.md" || src == "AGENTS.md" {
 			return nil
 		}
 		if !strings.HasSuffix(src, ".md") || sourceLanguage(src) == "zh-CN" || strings.HasPrefix(src, "examples/chat/samples/") {

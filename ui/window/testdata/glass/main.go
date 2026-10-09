@@ -1,13 +1,6 @@
-//go:build darwin && !ios && cgo && !nometal
+//go:build darwin && !ios && !nometal
 
 package main
-
-/*
-#cgo CFLAGS: -x objective-c -fblocks
-#cgo LDFLAGS: -framework AppKit -framework QuartzCore -framework Metal
-int check_glass(int kind, int width, int height);
-*/
-import "C"
 
 import (
 	"fmt"
@@ -27,19 +20,16 @@ func main() {
 			w := window.Open(window.Options{Title: "glass acceptance", Width: 480, Height: 320, Frameless: true, NativeTrafficLights: true, Glass: &window.GlassOptions{Style: style, CornerRadius: 16}, Content: el.Root(el.ViewFunc(func(*el.Context) el.Element {
 				return el.Div().Bg(color.NRGBA{}).Child(el.Text("Gio content on native glass"))
 			}))})
-			kind := 0
-			if style != window.GlassFrosted && window.LiquidGlassSupported() {
-				kind = 1
-			}
+			liquid := style != window.GlassFrosted && window.LiquidGlassSupported()
 			wait := func(width, height int) {
 				deadline := time.Now().Add(5 * time.Second)
 				for time.Now().Before(deadline) {
-					if C.check_glass(C.int(kind), C.int(width), C.int(height)) == 1 {
+					if checkGlass(liquid, float64(width), float64(height)) {
 						return
 					}
 					time.Sleep(30 * time.Millisecond)
 				}
-				fmt.Printf("FAIL: native glass kind=%d size=%dx%d\n", kind, width, height)
+				fmt.Printf("FAIL: native glass liquid=%v size=%dx%d\n", liquid, width, height)
 				os.Exit(1)
 			}
 			wait(480, 320)

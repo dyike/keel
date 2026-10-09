@@ -1,13 +1,6 @@
-//go:build darwin && !ios && cgo
+//go:build darwin && !ios
 
 package main
-
-/*
-#cgo CFLAGS: -x objective-c -fblocks
-#cgo LDFLAGS: -framework AppKit
-int check_positions(int move, int report);
-*/
-import "C"
 
 import (
 	"fmt"
@@ -24,14 +17,14 @@ func main() {
 	go func() {
 		deadline := time.Now().Add(10 * time.Second)
 		for time.Now().Before(deadline) {
-			if C.check_positions(0, 0) == 1 {
+			if checkPositions(false, false, false) {
 				// Moving the windows and requesting further frames must not recenter them.
-				C.check_positions(1, 0)
+				checkPositions(true, false, false)
 				for range 5 {
 					core.Update(func() {})
 					time.Sleep(50 * time.Millisecond)
 				}
-				if C.check_positions(2, 1) != 1 {
+				if !checkPositions(false, true, true) {
 					fmt.Println("FAIL: later frames moved the windows")
 					os.Exit(1)
 				}
@@ -40,7 +33,7 @@ func main() {
 			}
 			time.Sleep(50 * time.Millisecond)
 		}
-		C.check_positions(0, 1)
+		checkPositions(false, true, false)
 		fmt.Println("FAIL: windows did not center")
 		os.Exit(1)
 	}()

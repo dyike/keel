@@ -19,8 +19,8 @@
 两个共享部分不是独立模块：
 
 - `native`（本目录的 `native.go`）：所有模块共用的错误值 `native.Err*`。
-- `native/internal/sys`：平台绑定，macOS 的 cgo 与 Objective-C、Windows 的 Win32 调用、Linux 的 X11 协议和 D-Bus 都在这里。外部不能引用。
-- `native/internal/wlclip`：Linux Wayland 剪贴板的 cgo 绑定，只有 clipboard 引用，所以别的模块不会链接 libwayland。
+- `native/internal/sys`：平台绑定，macOS 通过 purego 调 Objective-C 运行时和系统框架（不用 cgo）、Windows 的 Win32 调用、Linux 的 X11 协议和 D-Bus 都在这里。外部不能引用。
+- `native/internal/wlclip`：读取 Linux Wayland 剪贴板，运行时通过 purego 加载 libwayland-client（不用 cgo）。只有 clipboard 引用，所以别的模块不会加载 libwayland。
 
 支持 macOS 14+、Windows 和 Linux，其他平台返回 `native.ErrUnsupported`。Linux 上截图和合成输入走 X11（Wayland 会话里通过 XWayland），通知走 D-Bus，剪贴板 Wayland 和 X11 都支持。各能力在各平台的细节见[原生能力](../docs/native.zh-CN.md)。
 

@@ -20,7 +20,7 @@ github.com/dyike/keel
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
 │   ├── highlight/        可选：代码高亮（chroma），引入后 kit 和 markdown 才着色
 │   ├── netimage/         可选：http(s) 图片加载（net/http），引入后图片才能用网络地址
-│   └── internal/         loop（帧锁）、editorstyle（输入绘制）、inputcontent（原子引用编辑）、imageload（图片加载）、uitest（测试工具）
+│   └── internal/         loop（帧锁）、editorstyle（输入绘制）、inputcontent（原子引用编辑）、imageload（图片加载）、appkit（通过 purego 调 AppKit，供 window 用）、wayland（通过 purego 调 libwayland，供 window 用）、uitest（测试工具）
 ├── native/
 │   ├── permission/       权限检查与申请
 │   ├── screen/           显示器列表、截图
@@ -28,8 +28,8 @@ github.com/dyike/keel
 │   ├── hotkey/           全局快捷键
 │   ├── notification/     系统通知（不依赖 UI）
 │   ├── clipboard/        异步读取文本、编码图片和文件路径（不依赖 UI）
-│   ├── internal/sys/     cgo 绑定，所有 Objective-C 代码只在这里
-│   ├── internal/wlclip/  Linux Wayland 剪贴板的 cgo 绑定（只有 clipboard 引用）
+│   ├── internal/sys/     平台绑定；macOS 通过 purego 调用 Objective-C，不用 cgo
+│   ├── internal/wlclip/  通过 purego 读取 Linux Wayland 剪贴板（只有 clipboard 引用）
 │   └── native.go         共用的错误值
 ├── cmd/
 │   ├── keel/             脚手架：新建项目、运行、生成各平台图标并打包
@@ -97,6 +97,8 @@ native:
 | `ui/window` | 与窗口绑定的东西：生命周期、快捷键、根视图、截图 | 具体组件 |
 | `ui/el` | 元素、样式、布局引擎、元素状态、视图 | 业务组件（它们在应用里写成函数或视图） |
 | `ui/internal/loop` | 跨窗口共享的可变状态：帧锁、更新队列 | 任何 Gio 类型 |
+| `ui/internal/appkit` | macOS：通过 purego 驱动 Objective-C 运行时（消息、自动释放池、主队列、block、类） | Keel 模块、Gio、cgo |
+| `ui/internal/wayland` | Linux：通过 purego 调用 libwayland-client（请求、私有队列、统一的事件分发） | Keel 模块、Gio、cgo |
 | `ui/internal/inputcontent` | 原子输入引用、字素边界、坐标映射与撤销事务 | Gio、其他 Keel 模块及平台事件 |
 | `ui/internal/editorstyle` | 输入框的光标、选区绘制和字形测量 | 具体 Keel 组件、窗口和主题 |
 | `ui/internal/imageload` | 图片来源解析、异步加载、尺寸限制、加载中和失败占位 | 组件外观、点击等交互 |
@@ -198,7 +200,7 @@ kit.Button("刷新", func() {
 
 `ui/plot` 面向自定义图表，直接依赖 core 和 theme（主题字体），不依赖 kit、el 或 window；应用可将绘制嵌入 Widget。成品 Chart/Plot 保留在 kit，现有绘制实现尚未迁移到公共包。
 
-`native/clipboard` 依赖 native/internal/sys、native/internal/wlclip 与 native；wlclip 是 Linux Wayland 读取剪贴板的 cgo 绑定，单独成包，只用截图、快捷键等模块的程序因此不链接 libwayland。Wayland 连接由应用从 `window.Window.WaylandDisplay()` 取出交给 `clipboard.UseWaylandDisplay`，两组模块仍互不引用。macOS 在主队列读取剪贴板快照，再由后台 goroutine 交付。应用将结果适配为 core.ClipboardData，通过 Input/TextArea.PasteReader 接入；el 在 core.Update 后处理完成，不在帧锁内等待主线程。UI 模块没有新增 native 依赖。
+`native/clipboard` 依赖 native/internal/sys、native/internal/wlclip 与 native；wlclip 读取 Linux Wayland 剪贴板，运行时通过 purego 加载 libwayland-client，单独成包，只用截图、快捷键等模块的程序因此不会加载 libwayland。Wayland 连接由应用从 `window.Window.WaylandDisplay()` 取出交给 `clipboard.UseWaylandDisplay`，两组模块仍互不引用。macOS 在主队列读取剪贴板快照，再由后台 goroutine 交付。应用将结果适配为 core.ClipboardData，通过 Input/TextArea.PasteReader 接入；el 在 core.Update 后处理完成，不在帧锁内等待主线程。UI 模块没有新增 native 依赖。
 
 SVG 图标由 `ui/kit` 内的 `oksvg` 与 `rasterx` 解析并按物理像素栅格化，仍通过 Gio 绘制；不新增 Keel 模块依赖。入口、格式子集和缓存上限见 [Icon](kit/icon.zh-CN.md)。
 

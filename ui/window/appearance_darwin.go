@@ -1,28 +1,34 @@
-//go:build darwin && !ios && cgo
+//go:build darwin && !ios
 
 package window
 
-/*
-#cgo LDFLAGS: -framework AppKit
-int keel_system_dark(void);
-void keel_native_appearance(int mode);
-*/
-import "C"
+import "github.com/dyike/keel/ui/internal/appkit"
 
 func platformSystemAppearance() Appearance {
-	if C.keel_system_dark() != 0 {
+	dark := false
+	appkit.Pool(func() {
+		defaults := appkit.Send(appkit.Class("NSUserDefaults"), "standardUserDefaults")
+		dark = appkit.Equal(appkit.Send(defaults, "stringForKey:", uintptr(appkit.String("AppleInterfaceStyle"))), "Dark")
+	})
+	if dark {
 		return AppearanceDark
 	}
 	return AppearanceLight
 }
 func platformNativeAppearanceSupported() bool { return true }
 func platformSetNativeAppearance(value Appearance) {
-	mode := 0
-	if value == AppearanceLight {
-		mode = 1
-	}
-	if value == AppearanceDark {
-		mode = 2
-	}
-	C.keel_native_appearance(C.int(mode))
+	appkit.MainAsync(func() {
+		app := appkit.App()
+		if app == 0 {
+			return
+		}
+		var appearance appkit.ID
+		switch value {
+		case AppearanceLight:
+			appearance = appkit.Send(appkit.Class("NSAppearance"), "appearanceNamed:", uintptr(appkit.Constant("NSAppearanceNameAqua")))
+		case AppearanceDark:
+			appearance = appkit.Send(appkit.Class("NSAppearance"), "appearanceNamed:", uintptr(appkit.Constant("NSAppearanceNameDarkAqua")))
+		}
+		appkit.Send(app, "setAppearance:", uintptr(appearance))
+	})
 }

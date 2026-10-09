@@ -72,45 +72,26 @@ func (v *CounterView) Render(cx *el.Context) el.Element {
 
 ## 新增原生能力
 
-以"读取剪贴板文本"为例走一遍。这个例子在写文档时编译并测试通过，没有合入仓库。
+以"读取剪贴板文本"为例走一遍。写文档时 macOS 这一步按当前辅助函数编译通过；例子没有合入仓库。
 
-**第一步：写 C 函数。** 追加到 `native/internal/sys/sys_darwin.m`：
-
-```objc
-int keel_clipboard_text(char **out){
- @autoreleasepool {
- NSString *s=[[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString];
- if(!s){*out=NULL;return 0;}
- *out=strdup(s.UTF8String);return *out?0:100;
- }
-}
-```
-
-返回值约定：`0` 成功，`1` 无权限，`2` 不支持，`3` 参数错，`4` 线程不对，`5` 超时，`6` 冲突，其他值是失败。`sys_darwin.go` 里的 `status()` 把它们转成 `native.Err*`。需要新的错误类别时，两边一起加。
-
-在 `sys_darwin.h` 里声明：
-
-```c
-int keel_clipboard_text(char **out);
-```
-
-**第二步：包成 Go 函数。** `sys_darwin.go`：
+**第一步：在 Go 里调 AppKit。** macOS 的代码也是 Go：`objc_darwin.go` 通过 purego 驱动 Objective-C 运行时，不用 cgo。追加到 `native/internal/sys/sys_darwin.go`：
 
 ```go
 func ClipboardText() (string, error) {
-    var p *C.char
-    if err := status(C.keel_clipboard_text(&p)); err != nil {
-        return "", err
-    }
-    if p == nil {
-        return "", nil
-    }
-    defer C.free(unsafe.Pointer(p))
-    return C.GoString(p), nil
+    var text string
+    onMain(func() { // AppKit 的剪贴板属于主线程
+        board := send(class("NSPasteboard"), "generalPasteboard")
+        text = goString(send(board, "stringForType:", uintptr(constant("NSPasteboardTypeString"))))
+    })
+    return text, nil
 }
 ```
 
-C 分配的内存由 Go 侧 `C.free` 释放。不要把 Go 指针交给 C 长期保存。
+`send` 发送参数为整数或指针的消息；浮点和结构体（`NSRect`、`CGPoint`）要用 `purego.RegisterFunc` 注册一次的函数。`onMain` 和 `mainAsync` 在主队列上、自动释放池里执行；`withPool` 在当前线程做同样的事。`alloc`/`init`/`new`/`copy` 得到的对象由你 `release`。
+
+错误用同一套约定：`0` 成功，`1` 无权限，`2` 不支持，`3` 参数错，`4` 线程不对，`5` 超时，`6` 冲突，其他值是失败。`sys_darwin.go` 里的 `status()` 把它们转成 `native.Err*`。需要新的错误类别时，两边一起加。
+
+**第二步：回调。** 系统稍后才回答时（完成回调、通知），会调用一个 block 或运行时注册的类的方法。purego 的回调永不释放，所以每种签名只创建一次（`objc.NewBlock` 按函数类型复用），用令牌或对象指针找到 Go 的状态；不要把 Go 指针交给会保存它的原生代码。
 
 **第三步：其他平台。** `sys_windows.go`（Win32）和 `sys_linux.go`（X11）也要有同名函数，暂时做不了就先返回 `native.ErrUnsupported`。`sys_other.go` 覆盖其余平台：
 

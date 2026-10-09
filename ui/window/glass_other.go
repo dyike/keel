@@ -1,4 +1,4 @@
-//go:build !(darwin && !ios && cgo && !nometal)
+//go:build !(darwin && !ios && !nometal)
 
 package window
 

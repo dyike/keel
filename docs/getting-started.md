@@ -7,7 +7,7 @@ Create an application with the `keel` scaffold, develop its UI in the generated 
 ## Environment
 
 - Go 1.26.1 or newer.
-- macOS: install Xcode Command Line Tools (`xcode-select --install`). Gio and `native/` use cgo; native capabilities require macOS 14+.
+- macOS: install Xcode Command Line Tools (`xcode-select --install`). Gio uses cgo (`native/` does not); native capabilities require macOS 14+.
 - Windows: install Go. Linux also requires development packages for Wayland/X11, xkbcommon, and EGL. See [Native APIs](native.md) for platform support.
 
 ## Check the environment

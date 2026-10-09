@@ -72,45 +72,26 @@ Then complete the supporting files, `ui/kit/conventions_test.go` will check whic
 
 ## Add native capabilities
 
-Take "Read Clipboard Text" as an example and walk through it. This example was compiled and tested when writing the document, and it was not merged into the repository.
+Take "Read Clipboard Text" as an example and walk through it. The macOS step was compiled against the current helpers when writing the document; the example is not in the repository.
 
-**Step one: Write a C function.**Append to `native/internal/sys/sys_darwin.m`:
-
-```objc
-int keel_clipboard_text(char **out){
- @autoreleasepool {
- NSString *s=[[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString];
- if(!s){*out=NULL;return 0;}
- *out=strdup(s.UTF8String);return *out?0:100;
- }
-}
-```
-
-Return value convention: `0` is successful, `1` has no permission, `2` is not supported, `3` parameters are wrong, `4` has wrong thread, `5` times out, `6` conflicts, other values are failures. `status()` in `sys_darwin.go` to convert them to `native.Err*`. When a new error category is needed, add both sides together.
-
-Declare in `sys_darwin.h`:
-
-```c
-int keel_clipboard_text(char **out);
-```
-
-**Step 2: Package it into a Go function.** `sys_darwin.go`:
+**Step one: Call AppKit from Go.** macOS code is Go too: `objc_darwin.go` drives the Objective-C runtime through purego, without cgo. Append to `native/internal/sys/sys_darwin.go`:
 
 ```go
 func ClipboardText() (string, error) {
-    var p *C.char
-    if err := status(C.keel_clipboard_text(&p)); err != nil {
-        return "", err
-    }
-    if p == nil {
-        return "", nil
-    }
-    defer C.free(unsafe.Pointer(p))
-    return C.GoString(p), nil
+    var text string
+    onMain(func() { // AppKit's pasteboard belongs to the main thread
+        board := send(class("NSPasteboard"), "generalPasteboard")
+        text = goString(send(board, "stringForType:", uintptr(constant("NSPasteboardTypeString"))))
+    })
+    return text, nil
 }
 ```
 
-Memory allocated by C is freed by Go side `C.free`. Don't give Go pointers to C for long-term storage.
+`send` sends a message with integer or pointer arguments; floats and structs (`NSRect`, `CGPoint`) need a function registered once with `purego.RegisterFunc`. `onMain` and `mainAsync` run code on the main queue inside an autorelease pool; `withPool` does the same on the current thread. Objects from `alloc`/`init`/`new`/`copy` are yours to `release`.
+
+Errors use one convention: `0` is success, `1` no permission, `2` unsupported, `3` invalid argument, `4` wrong thread, `5` timeout, `6` conflict, other values are failures. `status()` in `sys_darwin.go` converts them to `native.Err*`; add both sides together when a new category is needed.
+
+**Step 2: Callbacks.** A system that answers later (a completion handler, a notification) calls a block or a method of a class registered at run time. purego never frees callbacks, so create them once per signature (`objc.NewBlock` reuses one per function type) and find the Go state through a token or the object pointer; never hand a Go pointer to native code that keeps it.
 
 **Step 3: Other platforms.** `sys_windows.go` (Win32) and `sys_linux.go` (X11) must also have functions with the same name. If it cannot be done temporarily, it will return to `native.ErrUnsupported` first. `sys_other.go` covers the rest of the platforms:
 

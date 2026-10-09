@@ -21,7 +21,7 @@ var allowed = map[string][]string{
 	"ui/highlight":             {"ui/core", "ui/internal/loop"},
 	"ui/netimage":              {"ui/core", "ui/internal/loop"},
 	"ui/kit":                   {"ui/base", "ui/core", "ui/theme", "ui/locale", "ui/el", "ui/internal/loop", "ui/internal/editorstyle", "ui/internal/inputcontent"},
-	"ui/window":                {"ui/core", "ui/theme", "ui/internal/loop", "internal/appicon"},
+	"ui/window":                {"ui/core", "ui/theme", "ui/internal/loop", "ui/internal/appkit", "ui/internal/wayland", "internal/appicon"},
 	"ui/el":                    {"ui/core", "ui/theme", "ui/locale", "ui/internal/loop", "ui/internal/editorstyle", "ui/internal/inputcontent"},
 	"ui/markdown":              {"ui/el", "ui/core", "ui/theme", "ui/locale", "ui/internal/imageload", "ui/internal/loop", "ui/internal/editorstyle", "ui/internal/inputcontent"},
 	"ui/internal/imageload":    {"ui/core", "ui/theme", "ui/locale", "ui/internal/loop"},

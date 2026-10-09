@@ -1,13 +1,6 @@
-//go:build darwin && !ios && cgo
+//go:build darwin && !ios
 
 package main
-
-/*
-#cgo CFLAGS: -x objective-c -fblocks
-#cgo LDFLAGS: -framework AppKit
-int check_native_buttons(int action, int report, double height, double left, double offsetY, double spacing);
-*/
-import "C"
 
 import (
 	"fmt"
@@ -25,13 +18,13 @@ func main() {
 	go func() {
 		deadline := time.Now().Add(15 * time.Second)
 		for time.Now().Before(deadline) {
-			if C.check_native_buttons(0, 0, 44, 15, 0, 23) == 1 {
-				C.check_native_buttons(1, 0, 44, 15, 0, 23) // Resize: Gio reconfigures the decorations.
+			if checkNativeButtons(checkLayout, false, 44, 15, 0, 23) {
+				checkNativeButtons(resizeWindow, false, 44, 15, 0, 23) // Resize: Gio reconfigures the decorations.
 				for range 10 {
 					core.Update(func() {})
 					time.Sleep(50 * time.Millisecond)
 				}
-				if C.check_native_buttons(0, 1, 44, 15, 0, 23) != 1 {
+				if !checkNativeButtons(checkLayout, true, 44, 15, 0, 23) {
 					os.Exit(1)
 				}
 				w.SetTrafficLightLayout(window.TrafficLightLayout{Height: 64, Left: 20, OffsetY: 2, Spacing: 22})
@@ -39,7 +32,7 @@ func main() {
 					core.Update(func() {})
 					time.Sleep(50 * time.Millisecond)
 				}
-				if C.check_native_buttons(0, 1, 64, 20, 2, 22) != 1 {
+				if !checkNativeButtons(checkLayout, true, 64, 20, 2, 22) {
 					os.Exit(1)
 				}
 				w.SetTrafficLightLayout(window.TrafficLightLayout{Height: 36, Left: 12, OffsetY: -1, Spacing: 22})
@@ -47,16 +40,16 @@ func main() {
 					core.Update(func() {})
 					time.Sleep(50 * time.Millisecond)
 				}
-				if C.check_native_buttons(0, 1, 36, 12, -1, 22) != 1 {
+				if !checkNativeButtons(checkLayout, true, 36, 12, -1, 22) {
 					os.Exit(1)
 				}
-				if C.check_native_buttons(2, 1, 36, 12, -1, 22) != 1 {
+				if !checkNativeButtons(clickMinimize, true, 36, 12, -1, 22) {
 					os.Exit(1)
 				}
-				waitState := func(action C.int) {
+				waitState := func(action int) {
 					deadline := time.Now().Add(5 * time.Second)
 					for time.Now().Before(deadline) {
-						if C.check_native_buttons(action, 0, 36, 12, -1, 22) == 1 {
+						if checkNativeButtons(action, false, 36, 12, -1, 22) {
 							return
 						}
 						time.Sleep(20 * time.Millisecond)
@@ -64,15 +57,15 @@ func main() {
 					fmt.Println("FAIL: native minimize/restore did not finish")
 					os.Exit(1)
 				}
-				waitState(4)
-				C.check_native_buttons(5, 0, 36, 12, -1, 22)
-				waitState(6)
-				C.check_native_buttons(3, 1, 36, 12, -1, 22)
+				waitState(isMinimized)
+				checkNativeButtons(deminiaturize, false, 36, 12, -1, 22)
+				waitState(isRestored)
+				checkNativeButtons(clickClose, true, 36, 12, -1, 22)
 				return
 			}
 			time.Sleep(50 * time.Millisecond)
 		}
-		C.check_native_buttons(0, 1, 44, 15, 0, 23)
+		checkNativeButtons(checkLayout, true, 44, 15, 0, 23)
 		fmt.Println("FAIL: native buttons did not appear")
 		os.Exit(1)
 	}()

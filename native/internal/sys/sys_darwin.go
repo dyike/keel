@@ -1,23 +1,19 @@
-//go:build darwin && !ios && cgo
+//go:build darwin && !ios
 
 package sys
 
-/*
-#cgo CFLAGS: -x objective-c -fobjc-arc -mmacosx-version-min=14.0
-#cgo LDFLAGS: -framework AppKit -framework CoreGraphics -framework ApplicationServices -framework Carbon -framework ScreenCaptureKit
-#include <stdlib.h>
-#include "sys_darwin.h"
-*/
-import "C"
 import (
 	"fmt"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/dyike/keel/native"
+	"github.com/ebitengine/purego"
+	"github.com/ebitengine/purego/objc"
 )
 
-func status(code C.int) error {
+func status(code int) error {
 	switch code {
 	case 0:
 		return nil
@@ -34,54 +30,209 @@ func status(code C.int) error {
 	case 6:
 		return native.ErrConflict
 	default:
-		return fmt.Errorf("%w: status %d", native.ErrFailed, int(code))
+		return fmt.Errorf("%w: status %d", native.ErrFailed, code)
 	}
 }
 
+// Permission kinds: accessibility, screen recording, input monitoring.
 func Permission(kind int, request bool) (bool, error) {
-	r := C.int(0)
-	if request {
-		r = 1
+	load()
+	var granted uintptr
+	switch kind {
+	case 0:
+		if !request {
+			granted = call("AXIsProcessTrusted")
+			break
+		}
+		withPool(func() {
+			yes := send(class("NSNumber"), "numberWithBool:", 1)
+			options := send(class("NSDictionary"), "dictionaryWithObject:forKey:", uintptr(yes), uintptr(constant("kAXTrustedCheckOptionPrompt")))
+			granted = call("AXIsProcessTrustedWithOptions", uintptr(options))
+		})
+	case 1:
+		granted = call(pick(request, "CGRequestScreenCaptureAccess", "CGPreflightScreenCaptureAccess"))
+	case 2:
+		granted = call(pick(request, "CGRequestListenEventAccess", "CGPreflightListenEventAccess"))
+	default:
+		return false, status(3)
 	}
-	s := C.keel_permission(C.int(kind), r)
-	if s < 0 {
-		return false, status(-s)
+	return byte(granted) != 0, nil
+}
+
+func pick(first bool, a, b string) string {
+	if first {
+		return a
 	}
-	return s == 1, nil
+	return b
 }
 
 func Displays() ([]Display, error) {
-	var p *C.keel_display
-	var n C.uint32_t
-	if err := status(C.keel_displays(&p, &n)); err != nil {
-		return nil, err
+	load()
+	var n uint32
+	if err := call("CGGetActiveDisplayList", 0, 0, uintptr(unsafe.Pointer(&n))); int32(err) != 0 {
+		return nil, status(100 + int(int32(err)))
 	}
-	defer C.free(unsafe.Pointer(p))
+	if n == 0 {
+		return []Display{}, nil
+	}
+	ids := make([]uint32, n)
+	if err := call("CGGetActiveDisplayList", uintptr(n), uintptr(unsafe.Pointer(&ids[0])), uintptr(unsafe.Pointer(&n))); int32(err) != 0 {
+		return nil, status(100 + int(int32(err)))
+	}
 	out := make([]Display, int(n))
-	for i, d := range unsafe.Slice(p, int(n)) {
-		out[i] = Display{ID: uint32(d.id), X: float64(d.x), Y: float64(d.y), Width: float64(d.w), Height: float64(d.h),
-			PixelWidth: int(d.pw), PixelHeight: int(d.ph), Primary: d.primary != 0}
+	for i, d := range ids[:n] {
+		b := cgDisplayBounds(d)
+		out[i] = Display{ID: d, X: b.Origin.X, Y: b.Origin.Y, Width: b.Size.Width, Height: b.Size.Height,
+			PixelWidth: int(call("CGDisplayPixelsWide", uintptr(d))), PixelHeight: int(call("CGDisplayPixelsHigh", uintptr(d))),
+			Primary: uint32(call("CGDisplayIsMain", uintptr(d))) != 0}
 	}
 	return out, nil
 }
 
-func Capture(id uint32) ([]byte, error) {
-	var p unsafe.Pointer
-	var n C.size_t
-	if err := status(C.keel_capture(C.uint32_t(id), &p, &n)); err != nil {
-		return nil, err
+const nsBitmapImageFileTypePNG = 4
+
+// Capture takes a PNG of a display with ScreenCaptureKit (macOS 14+). It
+// waits for the system, so it must not run on the main thread.
+func Capture(displayID uint32) ([]byte, error) {
+	load()
+	if isMainThread() {
+		return nil, status(4)
 	}
-	defer C.free(p)
-	return C.GoBytes(p, C.int(n)), nil
+	if byte(call("CGPreflightScreenCaptureAccess")) == 0 {
+		return nil, status(1)
+	}
+	if uint32(call("CGDisplayIsActive", uintptr(displayID))) == 0 {
+		return nil, status(3)
+	}
+	if class("SCShareableContent") == 0 || class("SCScreenshotManager") == 0 {
+		return nil, status(2)
+	}
+	type result struct {
+		png  []byte
+		code int
+	}
+	// Buffered: the system may answer after the timeout.
+	done := make(chan result, 1)
+	captured := objc.NewBlock(func(_ objc.Block, image uintptr, err id) {
+		r := result{code: 100}
+		if image != 0 && err == 0 {
+			withPool(func() {
+				rep := send(send(class("NSBitmapImageRep"), "alloc"), "initWithCGImage:", image)
+				if png := send(rep, "representationUsingType:properties:", nsBitmapImageFileTypePNG, uintptr(send(class("NSDictionary"), "dictionary"))); png != 0 {
+					r = result{png: goBytes(png)}
+				}
+				release(rep)
+			})
+		}
+		done <- r
+	})
+	content := objc.NewBlock(func(_ objc.Block, content, err id) {
+		if content == 0 || err != 0 {
+			done <- result{code: 100}
+			return
+		}
+		withPool(func() {
+			var display id
+			displays := send(content, "displays")
+			for i := uintptr(0); i < uintptr(send(displays, "count")); i++ {
+				d := send(displays, "objectAtIndex:", i)
+				if uint32(send(d, "displayID")) == displayID {
+					display = d
+					break
+				}
+			}
+			if display == 0 {
+				done <- result{code: 3}
+				return
+			}
+			filter := send(send(class("SCContentFilter"), "alloc"), "initWithDisplay:excludingWindows:", uintptr(display), uintptr(send(class("NSArray"), "array")))
+			config := send(class("SCStreamConfiguration"), "new")
+			send(config, "setWidth:", call("CGDisplayPixelsWide", uintptr(displayID)))
+			send(config, "setHeight:", call("CGDisplayPixelsHigh", uintptr(displayID)))
+			send(config, "setShowsCursor:", 0)
+			send(class("SCScreenshotManager"), "captureImageWithFilter:configuration:completionHandler:", uintptr(filter), uintptr(config), uintptr(captured))
+			release(filter)
+			release(config)
+		})
+	})
+	withPool(func() {
+		send(class("SCShareableContent"), "getShareableContentExcludingDesktopWindows:onScreenWindowsOnly:completionHandler:", 0, 1, uintptr(content))
+	})
+	// The system copied the blocks; ours are no longer needed once they ran.
+	defer content.Release()
+	select {
+	case r := <-done:
+		// The capture block may still be referenced until the system
+		// returns from calling it; release after a grace period.
+		go func() { time.Sleep(time.Second); captured.Release() }()
+		if r.code != 0 {
+			return nil, status(r.code)
+		}
+		return r.png, nil
+	case <-time.After(10 * time.Second):
+		return nil, status(5)
+	}
 }
 
+const (
+	cgHIDEventTap       = 0
+	cgEventMouseMoved   = 5
+	cgMouseClickState   = 1
+	carbonEventNotFound = -9874
+)
+
+func accessible() bool { load(); return byte(call("AXIsProcessTrusted")) != 0 }
+
 func MousePosition() (float64, float64, error) {
-	var x, y C.double
-	err := status(C.keel_position(&x, &y))
-	return float64(x), float64(y), err
+	load()
+	e := call("CGEventCreate", 0)
+	if e == 0 {
+		return 0, 0, status(100)
+	}
+	p := cgEventGetLocation(e)
+	cfRelease(e)
+	return p.X, p.Y, nil
 }
-func MouseMove(x, y float64) error { return status(C.keel_move(C.double(x), C.double(y))) }
-func Click(button int) error       { return status(C.keel_click(C.int(button))) }
+
+func MouseMove(x, y float64) error {
+	if !accessible() {
+		return status(1)
+	}
+	e := cgEventCreateMouse(0, cgEventMouseMoved, cgPoint{x, y}, 0)
+	if e == 0 {
+		return status(100)
+	}
+	call("CGEventPost", cgHIDEventTap, e)
+	cfRelease(e)
+	return nil
+}
+
+func Click(button int) error {
+	if !accessible() {
+		return status(1)
+	}
+	if button < 0 || button > 2 {
+		return status(3)
+	}
+	x, y, err := MousePosition()
+	if err != nil {
+		return err
+	}
+	down := [...]uint32{1, 3, 25} // left, right, other mouse down
+	up := [...]uint32{2, 4, 26}
+	d := cgEventCreateMouse(0, down[button], cgPoint{x, y}, uint32(button))
+	u := cgEventCreateMouse(0, up[button], cgPoint{x, y}, uint32(button))
+	defer cfRelease(d)
+	defer cfRelease(u)
+	if d == 0 || u == 0 {
+		return status(100)
+	}
+	call("CGEventSetIntegerValueField", d, cgMouseClickState, 1)
+	call("CGEventSetIntegerValueField", u, cgMouseClickState, 1)
+	call("CGEventPost", cgHIDEventTap, d)
+	call("CGEventPost", cgHIDEventTap, u)
+	return nil
+}
 
 func HasKey(key string) bool { _, ok := keyCodes[key]; return ok }
 
@@ -90,11 +241,16 @@ func Key(key string, down bool) error {
 	if !ok {
 		return fmt.Errorf("%w: unknown key %q", native.ErrInvalidArgument, key)
 	}
-	d := C.int(0)
-	if down {
-		d = 1
+	if !accessible() {
+		return status(1)
 	}
-	return status(C.keel_key(C.ushort(code), d))
+	e := cgEventCreateKeyboard(0, code, down)
+	if e == 0 {
+		return status(100)
+	}
+	call("CGEventPost", cgHIDEventTap, e)
+	cfRelease(e)
+	return nil
 }
 
 // Carbon virtual key codes follow physical positions, independent of keyboard layout.
@@ -106,23 +262,48 @@ var keyCodes = map[string]uint16{
 	"home": 115, "pageup": 116, "delete": 117, "end": 119, "pagedown": 121, "left": 123, "right": 124, "down": 125, "up": 126,
 }
 
+// Carbon hotkeys: one event handler for every hotkey, installed while any
+// is registered, and one callback for the process.
 var hotkeys struct {
 	sync.Mutex
 	next  uint32
 	fired map[uint32]chan struct{}
+	// Main thread only.
+	handler  uintptr
+	count    int
+	callback uintptr
 }
 
-//export keelHotkeyFired
-func keelHotkeyFired(id C.uint32_t) {
+const (
+	hotkeySignature         = 'K'<<24 | 'E'<<16 | 'E'<<8 | 'L'
+	kEventClassKeyboard     = 'k'<<24 | 'e'<<16 | 'y'<<8 | 'b'
+	kEventHotKeyPressed     = 5
+	kEventParamDirectObject = '-'<<24 | '-'<<16 | '-'<<8 | '-'
+	typeEventHotKeyID       = 'h'<<24 | 'k'<<16 | 'i'<<8 | 'd'
+	eventHotKeyExistsErr    = -9878
+)
+
+type eventHotKeyID struct{ Signature, ID uint32 }
+
+func hotkeyEvent(next, event, _ uintptr) uintptr {
+	var hk eventHotKeyID
+	s := call("GetEventParameter", event, kEventParamDirectObject, typeEventHotKeyID, 0, unsafe.Sizeof(hk), 0, uintptr(unsafe.Pointer(&hk)))
+	if int32(s) != 0 || hk.Signature != hotkeySignature {
+		notHandled := int32(carbonEventNotFound)
+		return uintptr(uint32(notHandled))
+	}
 	hotkeys.Lock()
 	defer hotkeys.Unlock()
-	if ch := hotkeys.fired[uint32(id)]; ch != nil {
+	if ch := hotkeys.fired[hk.ID]; ch != nil {
 		select {
 		case ch <- struct{}{}:
 		default:
 		}
 	}
+	return 0
 }
+
+var carbonModifiers = [...]uintptr{ModCtrl: 4096, ModAlt: 2048, ModShift: 512, ModCmd: 256}
 
 // Hotkey registers key+mods; fn runs on its own goroutine and presses that
 // arrive while it runs are merged.
@@ -131,21 +312,51 @@ func Hotkey(key string, mods uint, fn func()) (func() error, error) {
 	if !ok {
 		return nil, fmt.Errorf("%w: unknown key %q", native.ErrInvalidArgument, key)
 	}
+	load()
 	fired := make(chan struct{}, 1)
 	hotkeys.Lock()
 	if hotkeys.fired == nil {
 		hotkeys.fired = map[uint32]chan struct{}{}
+		hotkeys.callback = purego.NewCallback(hotkeyEvent)
 	}
 	hotkeys.next++
 	id := hotkeys.next
 	hotkeys.fired[id] = fired
 	hotkeys.Unlock()
-	var ref unsafe.Pointer
-	if err := status(C.keel_hotkey_register(C.uint32_t(id), C.ushort(code), C.uint(mods), &ref)); err != nil {
+	var result int32
+	var ref uintptr
+	onMain(func() {
+		if hotkeys.handler == 0 {
+			spec := [2]uint32{kEventClassKeyboard, kEventHotKeyPressed}
+			result = int32(call("InstallEventHandler", call("GetApplicationEventTarget"), hotkeys.callback, 1, uintptr(unsafe.Pointer(&spec)), 0, uintptr(unsafe.Pointer(&hotkeys.handler))))
+			if result != 0 {
+				return
+			}
+		}
+		var flags uintptr
+		for bit, m := range carbonModifiers {
+			if mods&uint(bit) != 0 {
+				flags |= m
+			}
+		}
+		// EventHotKeyID is passed by value, packed in one register.
+		ident := uintptr(hotkeySignature) | uintptr(id)<<32
+		result = int32(call("RegisterEventHotKey", uintptr(code), flags, ident, call("GetApplicationEventTarget"), 0, uintptr(unsafe.Pointer(&ref))))
+		if result == 0 {
+			hotkeys.count++
+		} else if hotkeys.count == 0 {
+			call("RemoveEventHandler", hotkeys.handler)
+			hotkeys.handler = 0
+		}
+	})
+	if result != 0 {
 		hotkeys.Lock()
 		delete(hotkeys.fired, id)
 		hotkeys.Unlock()
-		return nil, err
+		if result == eventHotKeyExistsErr {
+			return nil, status(6)
+		}
+		return nil, status(int(result))
 	}
 	go func() {
 		for range fired {
@@ -156,7 +367,18 @@ func Hotkey(key string, mods uint, fn func()) (func() error, error) {
 	var err error
 	return func() error {
 		once.Do(func() {
-			err = status(C.keel_hotkey_unregister(ref))
+			var result int32
+			onMain(func() {
+				result = int32(call("UnregisterEventHotKey", ref))
+				if result == 0 && hotkeys.count > 0 {
+					hotkeys.count--
+					if hotkeys.count == 0 {
+						call("RemoveEventHandler", hotkeys.handler)
+						hotkeys.handler = 0
+					}
+				}
+			})
+			err = status(int(result))
 			hotkeys.Lock()
 			delete(hotkeys.fired, id)
 			close(fired)

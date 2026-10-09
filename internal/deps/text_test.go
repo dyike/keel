@@ -18,7 +18,8 @@ func TestNoHardcodedFrameworkText(t *testing.T) {
 	for _, dir := range []string{"ui/core", "ui/el", "ui/kit", "ui/window", "ui/markdown", "ui/internal/editorstyle", "ui/internal/imageload"} {
 		files, _ := filepath.Glob(filepath.Join("..", "..", dir, "*.go"))
 		for _, f := range files {
-			if strings.HasSuffix(f, "_test.go") {
+			// Native QA fixtures (-tags keelnativeqa) type sample IME text.
+			if strings.HasSuffix(f, "_test.go") || strings.HasPrefix(filepath.Base(f), "native_qa_") {
 				continue
 			}
 			fset := token.NewFileSet()

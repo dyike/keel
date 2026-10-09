@@ -1,4 +1,4 @@
-//go:build !(darwin && !ios && cgo) && !(linux && !android)
+//go:build !(darwin && !ios) && !(linux && !android)
 
 package sys
 

@@ -9,6 +9,7 @@ retract [v0.0.1, v0.0.2]
 require (
 	gioui.org v0.10.3
 	github.com/alecthomas/chroma/v2 v2.27.0
+	github.com/ebitengine/purego v0.11.1
 	github.com/go-text/typesetting v0.3.5
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/jezek/xgb v1.3.1

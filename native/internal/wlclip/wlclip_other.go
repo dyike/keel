@@ -1,4 +1,4 @@
-//go:build !linux || android || !cgo || nowayland
+//go:build !linux || android || nowayland
 
 package wlclip
 

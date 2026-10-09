@@ -20,7 +20,7 @@ github.com/dyike/keel
 │   ├── markdown/         Markdown Rendering, for AI streaming output
 │   ├── highlight/        Optional: code highlighting (chroma), kit and markdown are colored after introduction
 │   ├── netimage/         Optional: http(s) image loading (net/http), only after importing can the image use the network address
-│   └── internal/         loop（Frame lock), editorstyle (input drawing), inputcontent (atomic reference editing), imageload (image loading), uitest (test tool)
+│   └── internal/         loop（Frame lock), editorstyle (input drawing), inputcontent (atomic reference editing), imageload (image loading), appkit (AppKit through purego, for window), wayland (libwayland through purego, for window), uitest (test tool)
 ├── native/
 │   ├── permission/       Permission check and application
 │   ├── screen/           Monitor list, screenshots
@@ -28,8 +28,8 @@ github.com/dyike/keel
 │   ├── hotkey/           Global shortcut keys
 │   ├── notification/     System notification (not dependent on UI)
 │   ├── clipboard/        Asynchronously read text, encoded images and file paths (not dependent on UI)
-│   ├── internal/sys/     cgo Bindings, all Objective-C code only goes here
-│   ├── internal/wlclip/  Linux Wayland cgo binding for clipboard (only clipboard reference)
+│   ├── internal/sys/     Platform bindings; macOS calls Objective-C through purego, without cgo
+│   ├── internal/wlclip/  Linux Wayland clipboard through purego (only clipboard reference)
 │   └── native.go         shared error value
 ├── cmd/
 │   ├── keel/             Scaffolding: Create a new project, run it, generate icons for each platform and package it
@@ -97,6 +97,8 @@ These rules are enforced by the test of `internal/deps`: it writes the packages 
 | `ui/window` | Things bound to the window: life cycle, shortcut keys, root view, screenshots | Specific components |
 | `ui/el` | Elements, styles, layout engines, element states, views | Business components (they are written as functions or views in the application) |
 | `ui/internal/loop` | Mutable state shared across windows: frame locks, update queues | any Gio type |
+| `ui/internal/appkit` | macOS: the Objective-C runtime through purego (messages, pools, main queue, blocks, classes) | Keel modules, Gio, cgo |
+| `ui/internal/wayland` | Linux: libwayland-client through purego (requests, private queues, one event dispatcher) | Keel modules, Gio, cgo |
 | `ui/internal/inputcontent` | Atomic input references, grapheme boundaries, coordinate mapping and undo transactions | Gio, other Keel modules and platform events |
 | `ui/internal/editorstyle` | Input box cursor, selection drawing and glyph measurement | Specific Keel components, windows and themes |
 | `ui/internal/imageload` | Image source analysis, asynchronous loading, size restrictions, loading and failed placeholder | Component appearance, click and other interactions |
@@ -198,7 +200,7 @@ When adding new window methods (setting position, sticking to top, changing titl
 
 `ui/plot` is designed for custom charts, directly relying on core and theme (theme font), without relying on kit, el or window; applications can embed drawings into Widgets. The finished Chart/Plot remains in the kit, the existing plotting implementation has not yet been migrated to the public package.
 
-`native/clipboard` relies on native/internal/sys, native/internal/wlclip and native; wlclip is the cgo binding for Linux Wayland to read the clipboard. It is packaged separately and is a program that only uses modules such as screenshots and shortcut keys, so it does not link to libwayland. The Wayland connection is taken from `window.Window.WaylandDisplay()` by the application and handed over to `clipboard.UseWaylandDisplay`. The two sets of modules still do not reference each other. macOS reads the clipboard snapshot from the main queue and then delivers it to the background goroutine. The application adapts the result to core.ClipboardData and accesses it through Input/TextArea.PasteReader; el is processed after core.Update and does not wait for the main thread in the frame lock. The UI module does not have a new native dependency.
+`native/clipboard` relies on native/internal/sys, native/internal/wlclip and native; wlclip reads the Linux Wayland clipboard, loading libwayland-client at run time through purego. It is packaged separately, so a program that only uses modules such as screenshots and shortcut keys never loads libwayland. The Wayland connection is taken from `window.Window.WaylandDisplay()` by the application and handed over to `clipboard.UseWaylandDisplay`. The two sets of modules still do not reference each other. macOS reads the clipboard snapshot from the main queue and then delivers it to the background goroutine. The application adapts the result to core.ClipboardData and accesses it through Input/TextArea.PasteReader; el is processed after core.Update and does not wait for the main thread in the frame lock. The UI module does not have a new native dependency.
 
 The SVG icon is parsed by `oksvg` and `rasterx` in `ui/kit` and rasterized by physical pixels, and is still drawn by Gio; no new Keel module dependency is added. See [Icon](kit/icon.md) for entries, format subsets, and cache limits.
 

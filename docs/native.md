@@ -12,11 +12,11 @@ Packages under `native/` provide system capabilities not found in Gio. They do n
 | `native/hotkey` | Global shortcut keys | None |
 | `native/clipboard` | Asynchronously read text, encoded images, file paths (macOS / Windows / Linux Wayland, X11) | None |
 
-Three platforms are supported. On other platforms and macOS built with cgo turned off, all functions return `native.ErrUnsupported` and the program compiles as usual.
+Three platforms are supported. On other platforms (and iOS), all functions return `native.ErrUnsupported` and the program compiles as usual.
 
 | Platform | Implementation | Description |
 | --- | --- | --- |
-| macOS 14+ | cgo calls the system framework | User authorization is required, see below |
+| macOS 14+ | Calls the system frameworks through purego, no cgo required | User authorization is required, see below |
 | Windows 10+ | Directly call user32, gdi32, no cgo required | No authorization required; coordinates are converted into logical points according to the DPI of the main display |
 | Linux | Pure Go X11 protocol implementation; no cgo | Requires an X11 session and the X server’s XTEST extension for synthetic input; logical points are converted using `Xft.dpi` |
 
@@ -131,7 +131,7 @@ Requires `window.Main()` to be running on macOS: shortcut key events are dispatc
 
 macOS uses AppKit, and images are PNG first and TIFF second. Windows uses Win32, reads Unicode text, PNG, CF_DIB, and CF_HDROP; DIB adds a BMP file header and returns as `image/bmp`, without decoding pixels. File references take precedence over image previews included with Explorer. The total size of text, path UTF-8 bytes and encoded images can be up to 16MiB, and the number of files can be up to 128; errors do not return partial results. Windows keeps the clipboard open during reading and copies all data before closing; it tries up to 8 times with 15ms intervals while the clipboard is occupied.
 
-DIB supports RGB, palette and bitfield layout of 40/108/124 byte header; compressed bitmap and V5 layout with independent color profile are not supported yet. HTML/RTF has not yet been returned as a standalone format. iOS and macOS without cgo return `ErrUnsupported`.
+DIB supports RGB, palette and bitfield layout of 40/108/124 byte header; compressed bitmap and V5 layout with independent color profile are not supported yet. HTML/RTF has not yet been returned as a standalone format. iOS returns `ErrUnsupported`.
 
 The component library's Input/Textarea and CodeEditor examples already share this read adaptation; on failure, it pastes along the original Gio text path. Windows has passed format parsing, pixel decoding, error/upper limit testing and cross-compilation. System clipboard and real window pasting have not yet been accepted on Windows real devices.
 
@@ -139,4 +139,4 @@ Linux X11 uses an independent connection to read CLIPBOARD, supporting UTF-8/Lat
 
 Connection uses DISPLAY and XAUTHORITY (default ~/.Xauthority), supports MIT-MAGIC-COOKIE-1.
 
-Wayland only gives the clipboard to the client with keyboard focus, so it cannot open another connection: the application gives it the connection of the focused window, `clipboard.UseWaylandDisplay(w.WaylandDisplay())`, and then `Read` opens a private event queue on this connection, binds the data device of the seat, reads the type provided by the current selection (the same text, URI list and image format and restrictions as X11, 5-second period), without interfering with Gio's own event processing. Fallback to X11/XWayland when there is no incoming connection, or the compositor has no data device. This path links to libwayland-client and can be removed when building with `-tags nowayland`. The C code only uses the core protocol, is grouped by opcodes, has been syntax and cgo type checked on macOS with real header files, and has not yet been run on the Wayland desktop. Format, chunked protocol surrogate, error cap testing and cross-compilation passed, Linux desktop real clipboard and XWayland bridging are still pending acceptance.
+Wayland only gives the clipboard to the client with keyboard focus, so it cannot open another connection: the application gives it the connection of the focused window, `clipboard.UseWaylandDisplay(w.WaylandDisplay())`, and then `Read` opens a private event queue on this connection, binds the data device of the seat, reads the type provided by the current selection (the same text, URI list and image format and restrictions as X11, 5-second period), without interfering with Gio's own event processing. Fallback to X11/XWayland when there is no incoming connection, or the compositor has no data device. This path loads libwayland-client 1.20+ at run time through purego, without cgo, and can be removed when building with `-tags nowayland`. It only uses the core protocol, marshalled by opcode with `wl_proxy_marshal_array_flags`, with one event dispatcher for every proxy; it has not yet been run on a Wayland desktop. Format, chunked protocol surrogate, error cap testing and cross-compilation passed, Linux desktop real clipboard and XWayland bridging are still pending acceptance.

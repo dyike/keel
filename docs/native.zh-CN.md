@@ -12,11 +12,11 @@
 | `native/hotkey` | 全局快捷键 | 无 |
 | `native/clipboard` | 异步读取文本、编码图片、文件路径（macOS / Windows / Linux Wayland、X11） | 无 |
 
-支持三个平台，其他平台以及关闭 cgo 构建的 macOS 上，所有函数返回 `native.ErrUnsupported`，程序照常编译。
+支持三个平台，其他平台（以及 iOS）上，所有函数返回 `native.ErrUnsupported`，程序照常编译。
 
 | 平台 | 实现 | 说明 |
 | --- | --- | --- |
-| macOS 14+ | cgo 调用系统框架 | 需要用户授权，见下文 |
+| macOS 14+ | 通过 purego 调用系统框架，不需要 cgo | 需要用户授权，见下文 |
 | Windows 10+ | 直接调用 user32、gdi32，不需要 cgo | 不需要授权；坐标按主显示器的 DPI 换算成逻辑点 |
 | Linux | 纯 Go 实现 X11 协议，不需要 cgo | 需要 X11 会话；合成输入需要 X 服务器的 XTEST 扩展；逻辑点按 `Xft.dpi` 换算 |
 
@@ -131,7 +131,7 @@ macOS 上需要 `window.Main()` 在运行：快捷键事件由主线程的事件
 
 macOS 使用 AppKit，图片优先 PNG、其次 TIFF。Windows 使用 Win32，读取 Unicode 文本、PNG、CF_DIB 和 CF_HDROP；DIB 添加 BMP 文件头后以 `image/bmp` 返回，不解码像素。文件引用优先于资源管理器附带的图片预览。文本、路径 UTF-8 字节与编码图片合计最多 16MiB，文件最多 128 个；错误不返回部分结果。Windows 读取期间保持剪贴板打开，并在关闭前复制所有数据；剪贴板占用时最多尝试 8 次，间隔 15ms。
 
-DIB 支持 40/108/124 字节头的 RGB、调色板和位域布局；压缩位图及带独立颜色配置文件的 V5 布局暂不支持。HTML/RTF 尚未作为独立格式返回。iOS 及无 cgo 的 macOS 返回 `ErrUnsupported`。
+DIB 支持 40/108/124 字节头的 RGB、调色板和位域布局；压缩位图及带独立颜色配置文件的 V5 布局暂不支持。HTML/RTF 尚未作为独立格式返回。iOS 返回 `ErrUnsupported`。
 
 组件库的 Input/Textarea 和 CodeEditor 示例已共用这个读取适配；失败时沿原有 Gio 文本通路粘贴。Windows 已通过格式解析、像素解码、错误/上限测试和交叉编译，系统剪贴板及真实窗口粘贴尚未在 Windows 真机验收。
 
@@ -139,4 +139,4 @@ Linux X11 使用独立连接读取 CLIPBOARD，支持 UTF-8/Latin-1 文本、PNG
 
 连接使用 DISPLAY 和 XAUTHORITY（默认 ~/.Xauthority），支持 MIT-MAGIC-COOKIE-1。
 
-Wayland 只把剪贴板交给有键盘焦点的客户端，所以不能另开连接：应用把聚焦窗口的连接交给它，`clipboard.UseWaylandDisplay(w.WaylandDisplay())`，之后 `Read` 在这个连接上开一个私有事件队列，绑定 seat 的数据设备，读取当前选区提供的类型（与 X11 相同的文本、URI 列表和图片格式及限制，5 秒期限），不干扰 Gio 自己的事件处理。没有传入连接、或合成器没有数据设备时退回 X11/XWayland。这一路径链接 libwayland-client，用 `-tags nowayland` 构建可去掉。C 代码只用核心协议、按操作码编组，已用真实头文件在 macOS 上做语法和 cgo 类型检查，尚未在 Wayland 桌面上运行。格式、分块协议替身、错误上限测试与交叉编译通过，Linux 桌面真实剪贴板和 XWayland 桥接仍待验收。
+Wayland 只把剪贴板交给有键盘焦点的客户端，所以不能另开连接：应用把聚焦窗口的连接交给它，`clipboard.UseWaylandDisplay(w.WaylandDisplay())`，之后 `Read` 在这个连接上开一个私有事件队列，绑定 seat 的数据设备，读取当前选区提供的类型（与 X11 相同的文本、URI 列表和图片格式及限制，5 秒期限），不干扰 Gio 自己的事件处理。没有传入连接、或合成器没有数据设备时退回 X11/XWayland。这一路径在运行时通过 purego 加载 libwayland-client 1.20+，不用 cgo，用 `-tags nowayland` 构建可去掉。它只用核心协议，用 `wl_proxy_marshal_array_flags` 按操作码编组，所有代理共用一个事件分发函数；尚未在 Wayland 桌面上运行。格式、分块协议替身、错误上限测试与交叉编译通过，Linux 桌面真实剪贴板和 XWayland 桥接仍待验收。
