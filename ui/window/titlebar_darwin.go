@@ -57,9 +57,16 @@ func syncTitleBar(w *Window) {
 
 //export keel_titlebar_double_click
 func keel_titlebar_double_click(view C.uintptr_t, action C.int) {
-	if value, ok := nativeWindows.Load(uintptr(view)); ok {
+	postTitleBarAction(uintptr(view), int(action))
+}
+
+func postTitleBarAction(view uintptr, action int) {
+	if value, ok := nativeWindows.Load(view); ok {
 		w := value.(*Window)
-		core.Update(func() {
+		// AppKit invokes this on the main thread. Gio's Invalidate wakes and
+		// flushes events inline there, re-entering its own invalidation mutex.
+		// Post from another goroutine so the native callback returns first.
+		go core.Update(func() {
 			if w.closed {
 				return
 			}
