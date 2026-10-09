@@ -170,17 +170,26 @@ func (v *SelectView) Render(cx *el.Context) el.Element {
 	}
 	ratio := v.sizeRatio()
 	field := fieldFrame(id+"/frame", cx.FocusWithin(id), v.err != "", v.disabled, false).
-		MinH(el.Dp(float32(theme.ControlHeight) * ratio)).Px(10 * ratio).Py(theme.SpaceXs * ratio).Gap(theme.SpaceMd * ratio)
+		MinH(el.Dp(float32(theme.ControlHeight) * ratio)).P(0).Gap(theme.SpaceMd * ratio)
 	if v.height > 0 {
 		field.TextSize(float32(theme.BodySize) * ratio)
 	}
 	if v.plain {
 		field.Bg(color.NRGBA{}).Border(0, color.NRGBA{})
 	}
+	// The focusable trigger owns the whole field, including its padding. Keep
+	// the framed variant's border in the outer box and use a fill for plain
+	// controls; a text-height focus ring would overlap the selected label.
+	triggerHeight := float32(theme.ControlHeight) * ratio
+	if !v.plain {
+		triggerHeight -= 2 // the frame's 1dp border on each side
+	}
 	trigger := el.Div().ID(id).Role("select").Name(name).Value(strings.Join(v.Values(), ", ")).
-		Grow().W(el.Dp(0)).Row().Items(el.Center).Gap(theme.SpaceSm).Focusable(true).FocusStyle(func(s *el.Style) {
-		if !v.plain {
-			s.BorderColor(color.NRGBA{})
+		Grow().W(el.Dp(0)).MinH(el.Dp(triggerHeight)).Px(10 * ratio).Py(theme.SpaceXs * ratio).
+		Rounded(theme.RadiusMd).Row().Items(el.Center).Gap(theme.SpaceSm).Focusable(true).FocusStyle(func(s *el.Style) {
+		s.BorderColor(color.NRGBA{})
+		if v.plain {
+			s.Bg(theme.Highlight)
 		}
 	}).
 		OnClick(func() { v.setOpen(cx, !v.open) }).
