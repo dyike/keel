@@ -218,6 +218,13 @@ func (w *Window) idleGPU() {
 	if g, ok := w.gpu.(interface{ Idle() }); ok {
 		g.Idle()
 	}
+	if c, ok := w.ctx.(interface{ Idle(func()) }); ok {
+		c.Idle(func() {
+			if g, ok := w.gpu.(interface{ Trim() }); ok {
+				g.Trim()
+			}
+		})
+	}
 }
 
 func (w *Window) frame(frame *op.Ops, viewport image.Point) error {

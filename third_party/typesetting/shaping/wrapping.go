@@ -653,6 +653,26 @@ func (w *wrapBuffer) singleRunParagraph(run Output) []Line {
 	return w.finalParagraph()
 }
 
+// fittingLine collects first and the remaining runs into a line, from line's
+// free space when it is large enough. It reports whether their advances fit
+// in maxWidth.
+func (w *wrapBuffer) fittingLine(first Output, runs RunIterator, maxWidth fixed.Int26_6) (Line, bool) {
+	line := append(w.line[w.lineUsed:w.lineUsed], first)
+	advance := first.Advance
+	for {
+		_, run, ok := runs.Next()
+		if !ok {
+			break
+		}
+		line = append(line, run)
+		advance += run.Advance
+		if advance > maxWidth {
+			return nil, false
+		}
+	}
+	return line, advance <= maxWidth
+}
+
 func (w *wrapBuffer) paragraphAppend(line []Output) {
 	w.paragraph = append(w.paragraph, line)
 }
@@ -801,24 +821,25 @@ func (l *LineWrapper) WrapParagraphF(config WrapConfig, maxWidth fixed.Int26_6, 
 		// We can only skip wrapping if the text doesn't contain any forced line
 		// breaks that need to be evaluated by the real algorithm, so we need to
 		// quickly scan it for that.
-		l.breaker = newBreaker(&l.seg, paragraph)
-		hasMandatoryBreak := false
-		for {
-			option, ok := l.breaker.nextWordBreak()
-			if !ok {
-				break
-			}
-			if option.required {
-				hasMandatoryBreak = true
-				break
-			}
-		}
-		if !hasMandatoryBreak {
+		if !hasMandatoryBreak(paragraph) {
 			_, firstRun, hasFirst := runs.Next()
 			_, _, hasSecond := runs.Peek()
 			if hasFirst && !hasSecond {
 				if firstRun.Advance <= maxWidth {
 					return l.scratch.singleRunParagraph(firstRun), 0
+				}
+			}
+			// Keel patch: several runs that fit (text in several scripts or
+			// fonts) form one line too, finished as postProcessLine does.
+			// Upstream ran the full algorithm for them.
+			if hasFirst && hasSecond && config.TruncateAfterLines == 0 {
+				if line, ok := l.scratch.fittingLine(firstRun, runs, maxWidth); ok {
+					computeBidiOrdering(config.Direction, line)
+					if !config.DisableTrailingWhitespaceTrim {
+						trimTrailingWhitespace(config.Direction, line)
+					}
+					l.scratch.paragraphAppend(line)
+					return l.scratch.finalParagraph(), 0
 				}
 			}
 		}
@@ -837,6 +858,27 @@ func (l *LineWrapper) WrapParagraphF(config WrapConfig, maxWidth fixed.Int26_6, 
 		}
 	}
 	return l.scratch.finalParagraph(), line.Truncated
+}
+
+// hasMandatoryBreak reports whether text has a mandatory line break before
+// its last rune, as the segmenter would find it: UAX#14 rules LB4 and LB5
+// come first, and break after the BK, LF and NL classes, and after CR
+// unless LF follows.
+//
+// Keel patch: upstream ran the whole segmenter over the paragraph to find
+// out, which cost more than shaping it for short runs of text.
+func hasMandatoryBreak(text []rune) bool {
+	for i := 0; i < len(text)-1; i++ {
+		switch text[i] {
+		case '\n', '\v', '\f', 0x85, 0x2028, 0x2029:
+			return true
+		case '\r':
+			if text[i+1] != '\n' {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // fillUntil tries to fill the line candidate slice with runs until it reaches a run containing the
@@ -930,49 +972,57 @@ func computeBidiOrdering(dir di.Direction, finalLine Line) {
 	}
 }
 
+// trimTrailingWhitespace zeroes the advance of the last visual glyph of a
+// line ordered by computeBidiOrdering, if it is whitespace, and returns the
+// advance removed.
+func trimTrailingWhitespace(dir di.Direction, finalLine Line) (trimmed fixed.Int26_6) {
+	// Here we find the last visual run in the line.
+	goalIdx := len(finalLine) - 1
+	if dir.Progression() == di.TowardTopLeft {
+		goalIdx = 0
+	}
+	for logicalIdx, run := range finalLine {
+		if run.VisualIndex == int32(goalIdx) {
+			goalIdx = logicalIdx
+			break
+		}
+	}
+	finalVisualRun := &finalLine[goalIdx]
+
+	// This next block locates the first/last visual glyph on the line and
+	// zeroes its advance if it is whitespace.
+	if L := len(finalVisualRun.Glyphs); L > 0 {
+		var finalVisualGlyph *Glyph
+		if dir.Progression() == di.FromTopLeft {
+			finalVisualGlyph = &finalVisualRun.Glyphs[L-1]
+		} else {
+			finalVisualGlyph = &finalVisualRun.Glyphs[0]
+		}
+
+		if finalVisualRun.Direction.IsVertical() {
+			if finalVisualGlyph.Height == 0 {
+				finalVisualGlyph.YAdvance = 0
+				finalVisualGlyph.Advance = 0
+			}
+		} else { // horizontal
+			if finalVisualGlyph.Width == 0 {
+				finalVisualGlyph.XAdvance = 0
+				finalVisualGlyph.Advance = 0
+			}
+		}
+		beforeTrim := finalVisualRun.Advance
+		finalVisualRun.RecomputeAdvance()
+		trimmed = beforeTrim - finalVisualRun.Advance
+	}
+	return trimmed
+}
+
 func (l *LineWrapper) postProcessLine(finalLine Line, done bool) (WrappedLine, bool) {
 	var trimmed fixed.Int26_6
 	if len(finalLine) > 0 {
 		computeBidiOrdering(l.config.Direction, finalLine)
 		if !l.config.DisableTrailingWhitespaceTrim {
-			// Here we find the last visual run in the line.
-			goalIdx := len(finalLine) - 1
-			if l.config.Direction.Progression() == di.TowardTopLeft {
-				goalIdx = 0
-			}
-			for logicalIdx, run := range finalLine {
-				if run.VisualIndex == int32(goalIdx) {
-					goalIdx = logicalIdx
-					break
-				}
-			}
-			finalVisualRun := &finalLine[goalIdx]
-
-			// This next block locates the first/last visual glyph on the line and
-			// zeroes its advance if it is whitespace.
-			if L := len(finalVisualRun.Glyphs); L > 0 {
-				var finalVisualGlyph *Glyph
-				if l.config.Direction.Progression() == di.FromTopLeft {
-					finalVisualGlyph = &finalVisualRun.Glyphs[L-1]
-				} else {
-					finalVisualGlyph = &finalVisualRun.Glyphs[0]
-				}
-
-				if finalVisualRun.Direction.IsVertical() {
-					if finalVisualGlyph.Height == 0 {
-						finalVisualGlyph.YAdvance = 0
-						finalVisualGlyph.Advance = 0
-					}
-				} else { // horizontal
-					if finalVisualGlyph.Width == 0 {
-						finalVisualGlyph.XAdvance = 0
-						finalVisualGlyph.Advance = 0
-					}
-				}
-				beforeTrim := finalVisualRun.Advance
-				finalVisualRun.RecomputeAdvance()
-				trimmed = beforeTrim - finalVisualRun.Advance
-			}
+			trimmed = trimTrailingWhitespace(l.config.Direction, finalLine)
 		}
 
 		finalLogicalRun := finalLine[len(finalLine)-1]

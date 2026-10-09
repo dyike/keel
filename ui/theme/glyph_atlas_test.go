@@ -191,7 +191,11 @@ func TestGlyphAtlasBatchesAndDeferredColors(t *testing.T) {
 		if m == nil || len(m.alpha) == 0 {
 			continue
 		}
-		if !m.ready || m.wantedCount != 0 || len(m.colors) != 2 {
+		expectedColors := 2
+		if atlasTintSupported {
+			expectedColors = 1
+		}
+		if !m.ready || m.wantedCount != 0 || len(m.colors) != expectedColors {
 			t.Fatalf("incomplete colors: ready=%v wanted=%d colors=%d", m.ready, m.wantedCount, len(m.colors))
 		}
 	}
@@ -304,5 +308,32 @@ func TestGlyphAtlasTrimsOnlyTransparentPixels(t *testing.T) {
 				t.Fatalf("bounds=%v", m.bounds)
 			}
 		})
+	}
+}
+
+func TestGlyphAtlasSharesColors(t *testing.T) {
+	if !atlasTintSupported {
+		t.Skip("Gio build has no tinted image extension")
+	}
+	var a GlyphAtlas
+	defer a.Release()
+	a.frame = 1
+	m := &atlasMask{ready: true, bounds: image.Rect(0, 0, 2, 1), alpha: []byte{255, 128}, colors: make(map[color.NRGBA]atlasLocation)}
+	a.prepareColor(m, color.NRGBA{R: 255, A: 255})
+	a.Commit()
+	first := a.pages[0].pixels
+	for i := 0; i < 256; i++ {
+		a.frame++
+		a.prepareColor(m, color.NRGBA{R: uint8(i), G: uint8(255 - i), A: 255})
+		a.Commit()
+	}
+	if len(m.colors) != 1 || len(a.pages) != 1 {
+		t.Fatal("colors duplicate mask storage")
+	}
+	if a.pages[0].pixels != first {
+		t.Fatal("new colors copied an immutable page")
+	}
+	if a.pages[0].x != 2 {
+		t.Fatal("new colors consumed atlas space")
 	}
 }

@@ -168,6 +168,14 @@ type QuadBatcher interface {
 	DrawQuads(textures []Texture, quads []Quad) bool
 }
 
+// TintedQuadBatcher reserves instance storage and prepares the output pipeline
+// before a render pass. Success guarantees DrawQuads for at most count total
+// quads this frame, including per-quad linear color multiplication of textures.
+type TintedQuadBatcher interface {
+	QuadBatcher
+	PrepareQuads(count int) bool
+}
+
 // Volatile is implemented by textures whose memory the system may reclaim
 // while their contents are not needed, as Metal's purgeable state allows.
 // A volatile texture's contents are undefined until it is made non-volatile

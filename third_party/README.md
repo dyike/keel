@@ -47,6 +47,8 @@ leave nested modules out. So:
 
 ## Patches
 
+- `gio/gpu/internal/metal`: idle trimming waits for the last submitted GPU work, then releases its command buffer, staging buffer and quad instance buffer. Live textures and pipelines remain cached; temporary buffers are recreated on the next draw or readback. This lowers retained idle memory without requesting frames. A headless regression test checks repeated trim, readback and resumed rendering.
+
 - `go vet` fixes for unkeyed struct literals in `gio/internal/f32` and
   `gio/app/internal/ibus`.
 - `typesetting/font/opentype`: resources that expose their bytes (`Shared`,
@@ -112,3 +114,60 @@ leave nested modules out. So:
   state live in the reused `Buffer` instead of 1.3 KB and more allocated per
   run. Shaping output is identical for 239 macOS faces with `morx`; text
   allocation in the benchmark grid scene halved.
+- `typesetting/fontscan`: `FontMap.ResolveFace` resolves ASCII runes from a
+  per-query table and hashes the query's families once per `SetQuery`
+  instead of once per rune. `SetQuery` and `SetScript` keep the caches when
+  the query or script is unchanged; Gio calls both for every run of text it
+  shapes. A test checks that cached and fresh maps resolve the same faces.
+- `gio/app` (macOS): a window nobody can see (covered, on another space, or
+  with the screen locked or asleep) draws nothing after its first frame and
+  stops its display link; it redraws when it shows again
+  (`windowDidChangeOcclusionState:`). AppKit reports changes only, so the
+  state is also read when the view attaches. Gio drew every animation frame
+  of hidden windows: the benchmark grid scene used 0.49 s of CPU per second
+  with the screen locked, now 0.001 s.
+- `gio/app` (macOS): with every display asleep, creating the display link
+  failed and window creation then panicked in `gio_onDestroy` (a view
+  without a handle). The display link falls back to the main display, and a
+  view without a handle skips `gio_onDestroy`.
+
+- `gio/op/paint`, `gio/gpu`, `gio/gpu/internal/metal`: the optional Metal-build
+  `ImageOp.AddTinted` extension multiplies an immutable image by a per-draw
+  linear color. Keel's glyph atlas stores white coverage once instead of
+  duplicating it for every text color (the benchmark grid uses one 1 MiB page
+  instead of six). Metal reserves the frame's quad storage before texture
+  upload, so shared tinted textures cannot enter the untinted fallback during
+  a render pass. Path clips, opacity layers and unavailable batching bake the
+  tint into separately cached textures. Other builds and upstream Gio retain
+  Keel's colored atlas pages through interface detection. Tests cover texture
+  sharing, cache eviction, fallback colors, transparency, transforms, clipping
+  and opacity; 8-bit coverage quantization can change edge pixels slightly.
+  On an Apple M4, three alternating runs reduced median process footprint
+  from 205 to 145 MB for the grid and 191 to 148 MB for widgets. A 240-frame
+  offscreen grid test reduced median time from 2.776 to 2.452 ms/frame and
+  allocation from 1.18 to 1.04 MB/frame. These are local measurements with
+  both atlases enabled, not memory limits or promises for other applications.
+
+- `gio/app` (macOS): after one second without drawing, a cancellable one-shot
+  callback trims GPU textures, paths and scratch buffers, then shrinks the
+  Metal drawable pool to 1×1. Core Animation retains the displayed frame;
+  the next render restores the drawable size. Compiled pipelines stay alive.
+  Native tests cover repeated idle/resume and closure with a pending callback.
+  Native calls use purego v0.11.1, raising this fork's Go minimum to 1.25.
+- `gio/gpu`: color/texture/gradient fallback pipelines and the stencil renderer
+  initialize on first use, avoiding unused shader resources in quad-only scenes.
+  Headless pixel tests exercise rendering and readback before and after trimming.
+- `gio/io/input`: discard adjacent drawing-only leaf clips when collecting input.
+  Handler, cursor, semantic and window-action clips remain. Randomized tests
+  compare hit testing against the original collector.
+- `typesetting/font`: allocate glyph-extents cache pages only for measured
+  glyphs. CFF fonts retain validated charstring INDEX offsets instead of a Go
+  slice header per glyph; the public expanded CFF parser remains available.
+  Tests cover cache boundaries, malformed INDEX data and equivalent outlines.
+- `typesetting/fontscan`: share equal immutable system-font coverage sets,
+  checking full contents after hashing; retain ownership of query family slices
+  so caller reuse cannot corrupt resolution caches.
+- `gio/text`, `typesetting/shaping`, `typesetting/harfbuzz`: cache parsed
+  typefaces, bypass unnecessary wrapping and segmentation for eligible text,
+  reuse normalization scratch and avoid copying shaping-plan keys.
+  Fast paths preserve mandatory Unicode breaks and have regression tests.

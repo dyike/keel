@@ -10,6 +10,7 @@ import (
 	"math"
 
 	"gioui.org/f32"
+	"gioui.org/internal/f32color"
 	"gioui.org/internal/ops"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -104,10 +105,17 @@ func (i ImageOp) Size() image.Point {
 }
 
 func (i ImageOp) Add(o *op.Ops) {
+	i.addTinted(o, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+}
+
+func (i ImageOp) addTinted(o *op.Ops, tint color.NRGBA) {
 	if i.uniform {
-		ColorOp{
-			Color: i.color,
-		}.Add(o)
+		col := i.color
+		if tint != (color.NRGBA{R: 255, G: 255, B: 255, A: 255}) {
+			a, b := f32color.LinearFromSRGB(col), f32color.LinearFromSRGB(tint)
+			col = (f32color.RGBA{R: a.R * b.R, G: a.G * b.G, B: a.B * b.B, A: a.A * b.A}).SRGB()
+		}
+		ColorOp{Color: col}.Add(o)
 		return
 	} else if i.src == nil || i.src.Bounds().Empty() {
 		return
@@ -115,6 +123,7 @@ func (i ImageOp) Add(o *op.Ops) {
 	data := ops.Write2(&o.Internal, ops.TypeImageLen, i.src, i.handle)
 	data[0] = byte(ops.TypeImage)
 	data[1] = byte(i.Filter)
+	data[2], data[3], data[4], data[5] = tint.R, tint.G, tint.B, tint.A
 }
 
 func (c ColorOp) Add(o *op.Ops) {

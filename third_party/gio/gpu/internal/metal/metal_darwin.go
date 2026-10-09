@@ -1142,7 +1142,26 @@ func (b *Buffer) Release() {
 
 // Trim releases the buffers kept for reuse. Keel patch; the gpu package
 // calls it when a window goes idle.
-func (b *Backend) Trim() { b.pool.trim() }
+func (b *Backend) Trim() {
+	// The next frame must not reuse storage still read by the GPU. Finish
+	// this frame before dropping the completion fence and temporary buffers.
+	if b.lastCmdBuffer != 0 {
+		C.cmdBufferWaitUntilCompleted(b.lastCmdBuffer)
+		C.CFRelease(b.lastCmdBuffer)
+		b.lastCmdBuffer = 0
+	}
+	b.pool.trim()
+	if b.stagingBuf != 0 {
+		C.CFRelease(b.stagingBuf)
+		b.stagingBuf = 0
+	}
+	b.stagingOff = 0
+	if b.quads.buf != 0 {
+		C.CFRelease(b.quads.buf)
+		b.quads.buf = 0
+	}
+	b.quads.off = 0
+}
 
 func (t *Texture) ReadPixels(src image.Rectangle, pixels []byte, stride int) error {
 	if len(pixels) == 0 {

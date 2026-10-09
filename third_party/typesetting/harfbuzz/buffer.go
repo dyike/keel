@@ -107,6 +107,9 @@ type Buffer struct {
 	// aat is the context of AAT shaping, reused (Keel patch, see
 	// newAatApplyContext).
 	aat aatApplyContext
+	// normalize is the context of normalization (Keel patch, see
+	// otNormalizeContext).
+	normalize otNormalizeContext
 
 	haveOutput bool
 

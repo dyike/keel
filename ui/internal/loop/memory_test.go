@@ -98,3 +98,36 @@ func TestIdleMemoryConcurrentConfiguration(t *testing.T) {
 		t.Fatal("disabled configuration left work scheduled")
 	}
 }
+
+func TestIdleReclaimerCollectsUncollectedGarbage(t *testing.T) {
+	calls := 0
+	stats := runtime.MemStats{HeapAlloc: 28 << 20, HeapIdle: 13 << 20, HeapReleased: 13 << 20, TotalAlloc: 64 << 20}
+	r := idleReclaimer{enabled: true, last: time.Now().Add(-time.Minute), reclaim: func() { calls++ }, readStats: func(s *runtime.MemStats) { *s = stats }}
+	defer func() {
+		if r.timer != nil {
+			r.timer.Stop()
+		}
+	}()
+	r.fire(0)
+	if calls != 1 || r.timer != nil {
+		t.Fatal("uncollected heap was skipped or periodic work scheduled")
+	}
+	// Another interaction without substantial allocation must not collect the
+	// same live heap again, even after the cooldown.
+	r.next = time.Time{}
+	stats.HeapAlloc = 15 << 20
+	r.fire(0)
+	if calls != 1 || r.timer != nil {
+		t.Fatal("unchanged live heap collected again")
+	}
+	stats.TotalAlloc += reclaimMinimum - 1
+	r.fire(0)
+	if calls != 1 {
+		t.Fatal("small allocation triggered collection")
+	}
+	stats.TotalAlloc++
+	r.fire(0)
+	if calls != 2 {
+		t.Fatal("new allocation budget did not trigger collection")
+	}
+}

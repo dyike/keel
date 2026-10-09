@@ -210,6 +210,10 @@ type shaperImpl struct {
 		Printf(format string, args ...any)
 	}
 	parser parser
+	// typeface and families are the last typeface parsed and its families.
+	// Keel patch: the typeface was parsed for every text shaped.
+	typeface giofont.Typeface
+	families []string
 
 	// Shaping and wrapping state.
 	shaper        shaping.HarfbuzzShaper
@@ -390,12 +394,16 @@ func (s *shaperImpl) shapeAndWrapText(params Parameters, txt []rune) (_ []shapin
 		DisableTrailingWhitespaceTrim: params.DisableSpaceTrim,
 	}
 	families := s.defaultFaces
-	if params.Font.Typeface != "" {
-		parsed, err := s.parser.parse(string(params.Font.Typeface))
+	if tf := params.Font.Typeface; tf != "" && tf == s.typeface {
+		families = s.families
+	} else if tf != "" {
+		parsed, err := s.parser.parse(string(tf))
 		if err != nil {
-			s.logger.Printf("Unable to parse typeface %q: %v", params.Font.Typeface, err)
+			s.logger.Printf("Unable to parse typeface %q: %v", tf, err)
 		} else {
-			families = parsed
+			// A copy: parsed is the parser's, which a failed parse changes.
+			s.typeface, s.families = tf, append(s.families[:0], parsed...)
+			families = s.families
 		}
 	}
 	s.fontMap.SetQuery(fontscan.Query{

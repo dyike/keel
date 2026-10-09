@@ -12,13 +12,13 @@ const reclaimQuiet = 2 * time.Second
 
 // A reclamation is one GC over the live heap, milliseconds for a UI, so it
 // may follow a second wave of startup garbage soon; reclaimMinimum keeps it
-// from running for small gains.
+// from running without substantial heap growth or unreturned pages.
 const reclaimCooldown = 5 * time.Second
 const reclaimMinimum = 8 << 20
 
 // Idle reclamation is on by default: startup (reading the system's font
-// index, the first layouts) leaves tens of megabytes of freed heap the
-// runtime keeps for minutes, and the OS counts all of it. Go's heap belongs
+// index, the first layouts) leaves garbage and unused pages that the
+// runtime can keep for minutes, and the OS counts all of it. Go's heap belongs
 // to the whole process, so apps can opt out. It does not request frames or
 // modify GOGC/GOMEMLIMIT.
 var reclaimEnabled atomic.Bool
@@ -30,13 +30,14 @@ func init() {
 }
 
 type idleReclaimer struct {
-	mu         sync.Mutex
-	enabled    bool
-	last, next time.Time
-	timer      *time.Timer
-	generation uint64
-	reclaim    func()
-	readStats  func(*runtime.MemStats)
+	mu             sync.Mutex
+	enabled        bool
+	last, next     time.Time
+	timer          *time.Timer
+	generation     uint64
+	reclaim        func()
+	readStats      func(*runtime.MemStats)
+	reclaimedAlloc uint64 // TotalAlloc at the last idle collection
 }
 
 func SetIdleMemoryReclaim(enabled bool) {
@@ -117,10 +118,16 @@ func (r *idleReclaimer) fire(generation uint64) {
 	} else {
 		runtime.ReadMemStats(&stats)
 	}
-	if !reclaimable(stats.HeapIdle, stats.HeapReleased) {
+	// HeapIdle excludes unreachable objects until a GC discovers them. A
+	// static first frame may leave substantial garbage in HeapAlloc while
+	// the scavenger has already returned all known idle pages. Also collect
+	// after a bounded amount of allocation since our last idle collection.
+	allocated := stats.TotalAlloc >= r.reclaimedAlloc && stats.TotalAlloc-r.reclaimedAlloc >= reclaimMinimum
+	if !reclaimable(stats.HeapIdle, stats.HeapReleased) && !(allocated && stats.HeapAlloc >= reclaimMinimum) {
 		return
 	}
 	r.reclaim()
+	r.reclaimedAlloc = stats.TotalAlloc
 	r.next = time.Now().Add(reclaimCooldown)
 	// Leave the timer stopped until subsequent UI activity. Static windows do
 	// not accumulate periodic GC work or maintenance frames.

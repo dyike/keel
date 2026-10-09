@@ -71,22 +71,26 @@ func (plan *shapePlan) init(copy bool, font *Font, props SegmentProperties,
 	plan.shaper.init(font.face.Font, coords)
 }
 
-func (plan shapePlan) userFeaturesMatch(other shapePlan) bool {
-	if len(plan.userFeatures) != len(other.userFeatures) {
+func userFeaturesMatch(features, other []Feature) bool {
+	if len(features) != len(other) {
 		return false
 	}
-	for i, feat := range plan.userFeatures {
-		if feat.Tag != other.userFeatures[i].Tag || feat.Value != other.userFeatures[i].Value ||
+	for i, feat := range features {
+		if feat.Tag != other[i].Tag || feat.Value != other[i].Value ||
 			(feat.Start == FeatureGlobalStart && feat.End == FeatureGlobalEnd) !=
-				(other.userFeatures[i].Start == FeatureGlobalStart && other.userFeatures[i].End == FeatureGlobalEnd) {
+				(other[i].Start == FeatureGlobalStart && other[i].End == FeatureGlobalEnd) {
 			return false
 		}
 	}
 	return true
 }
 
-func (plan shapePlan) equal(other shapePlan) bool {
-	return plan.props == other.props && plan.userFeaturesMatch(other)
+// matches reports whether plan suits props and userFeatures.
+//
+// Keel patch: upstream built a whole plan as the key, initializing its
+// shaper for the font, and compared plans by value, copying each.
+func (plan *shapePlan) matches(props SegmentProperties, userFeatures []Feature) bool {
+	return plan.props == props && userFeaturesMatch(plan.userFeatures, userFeatures)
 }
 
 // Constructs a shaping plan for a combination of @face, @userFeatures, @props,
@@ -130,13 +134,10 @@ func (sp *shapePlan) execute(font *Font, buffer *Buffer, features []Feature) {
 func (b *Buffer) newShapePlanCached(font *Font, props SegmentProperties,
 	userFeatures []Feature, coords []tables.Coord,
 ) *shapePlan {
-	var key shapePlan
-	key.init(false, font, props, userFeatures, coords)
-
 	plans := b.planCache[font.face]
 
 	for _, plan := range plans {
-		if plan.equal(key) {
+		if plan.matches(props, userFeatures) {
 			if debugMode {
 				fmt.Printf("\tPLAN %p fulfilled from cache\n", plan)
 			}

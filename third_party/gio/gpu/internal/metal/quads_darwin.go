@@ -199,3 +199,25 @@ func (b *Backend) DrawQuads(textures []driver.Texture, quads []driver.Quad) bool
 	q.off += n
 	return true
 }
+
+// PrepareQuads guarantees the tinted path has no allocation/compilation
+// fallback inside a render pass. BeginFrame has waited for the previous use.
+func (b *Backend) PrepareQuads(count int) bool {
+	q := &b.quads
+	if !q.ready(b) {
+		return false
+	}
+	size := count * quadSize
+	if q.buf != 0 && len(bufferStore(q.buf)) >= size {
+		return true
+	}
+	buf := C.quadNewBuffer(b.dev, C.NSUInteger(max(64<<10, 2*size)))
+	if buf == 0 {
+		return false
+	}
+	if q.buf != 0 {
+		C.CFRelease(q.buf)
+	}
+	q.buf, q.off = buf, 0
+	return true
+}

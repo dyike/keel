@@ -1,6 +1,6 @@
 module gioui.org
 
-go 1.24.0
+go 1.25.0
 
 require (
 	gioui.org/shader v1.0.9
@@ -13,7 +13,10 @@ require (
 
 require golang.org/x/net v0.48.0
 
-require github.com/godbus/dbus/v5 v5.2.2
+require (
+	github.com/ebitengine/purego v0.11.1
+	github.com/godbus/dbus/v5 v5.2.2
+)
 
 // Keel: build against Keel's copy of go-text next to this one.
 replace github.com/go-text/typesetting => ../typesetting

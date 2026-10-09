@@ -81,7 +81,7 @@ Keel returns unused Go heap pages to the OS once its windows are idle. Startup a
 window.SetIdleMemoryReclaim(false)
 ```
 
-This is a process-wide policy, enabled by default. After two seconds without a Keel UI frame or callback, it returns unused Go heap pages to the OS if at least 8 MiB remain unreturned. It checks activity across all Keel windows, avoids running during UI callbacks, and limits collection to once every 5 seconds. A static window does not redraw or keep collecting periodically. Passing `false` also cancels pending work.
+This is a process-wide policy, enabled by default. After two seconds without a Keel UI frame or callback, it returns unused Go heap pages to the OS if at least 8 MiB remain unreturned. It also collects when heap objects occupy at least 8 MiB and at least 8 MiB have been allocated since the last idle collection, so unreachable startup objects are collected even when the runtime has already returned its known idle pages. It checks activity across all Keel windows, avoids running during UI callbacks, and limits collection to once every 5 seconds. A static window does not redraw or keep collecting periodically. Passing `false` also cancels pending work.
 
 The policy runs Go's `debug.FreeOSMemory`, including a collection; it does not change `GOGC` or `GOMEMLIMIT`, and it does not free live caches or GPU textures. Collection can briefly pause other goroutines, and background work outside Keel is not an idle signal. Turn it off for latency-sensitive background workloads, after measuring interaction latency and memory on target devices.
 

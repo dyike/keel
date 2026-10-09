@@ -30,7 +30,9 @@ const (
 //
 // Each frame: BeginFrame, Prepare all runs, Commit, then Paint those runs.
 // Preparing all runs before painting lets each changed page be uploaded once.
-// Cached page pixels are bounded to 8 MiB, masks to 2 MiB and 4096 entries.
+// On Keel's Metal backend, colors share white coverage pixels and are applied
+// when drawing; other builds keep colored pages. Cached page pixels are
+// bounded to 8 MiB, masks to 2 MiB and 4096 entries.
 // GPU textures and recent immutable page snapshots add to that memory.
 // Use serially, keep it across frames, and call Release when no longer needed.
 // Do not copy a GlyphAtlas after first use.
@@ -58,8 +60,21 @@ type GlyphAtlas struct {
 	pages                    []*atlasPage
 }
 
-// An atlas fragment always contains one anchor and one glyph. Shaper changes
-// clear the atlas; retaining the general nine-glyph vector key is unnecessary.
+// Detect the optional Metal extension without depending on fork-only APIs.
+// Upstream Gio and other backend builds keep the colored-page path.
+type tintedImage interface {
+	AddTinted(*op.Ops, color.NRGBA)
+}
+
+var atlasTintSupported = func() bool {
+	_, ok := any(paint.ImageOp{}).(tintedImage)
+	return ok
+}()
+
+var atlasWhite = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+
+// An atlas fragment contains one anchor and one glyph. Shaper changes clear
+// the atlas, so the general nine-glyph vector key is unnecessary.
 type atlasMaskKey struct {
 	anchor, glyph text.GlyphID
 	phase         fixed.Int26_6
@@ -94,6 +109,7 @@ type atlasLocation struct {
 type atlasPage struct {
 	pixels          *image.RGBA
 	image           paint.ImageOp
+	tint            tintedImage
 	dirty           bool
 	x, y, rowHeight int
 	used            uint64
@@ -151,6 +167,9 @@ func (a *GlyphAtlas) prepare(params text.Parameters, gs []text.Glyph, col color.
 }
 
 func (a *GlyphAtlas) prepareColor(m *atlasMask, col color.NRGBA) {
+	if atlasTintSupported {
+		col = atlasWhite
+	}
 	if !m.ready {
 		for _, c := range m.wanted[:m.wantedCount] {
 			if c == col {
@@ -195,6 +214,7 @@ func (a *GlyphAtlas) Commit() {
 		if p.dirty {
 			p.image = paint.NewImageOp(p.pixels)
 			p.image.Filter = paint.FilterNearest
+			p.tint, _ = any(p.image).(tintedImage)
 			p.dirty = false
 		}
 	}
@@ -227,7 +247,11 @@ func (a *GlyphAtlas) paint(ops *op.Ops, params text.Parameters, gs []text.Glyph,
 		m := a.masks[key]
 		loc, ok := atlasLocation{}, false
 		if m != nil {
-			loc, ok = m.colors[col]
+			key := col
+			if atlasTintSupported {
+				key = atlasWhite
+			}
+			loc, ok = m.colors[key]
 		}
 		if ok {
 			a.rasterDraws++
@@ -236,7 +260,11 @@ func (a *GlyphAtlas) paint(ops *op.Ops, params text.Parameters, gs []text.Glyph,
 			offset := m.bounds.Min.Sub(loc.rect.Min).Add(image.Pt(displacement.Round(), 0))
 			imgTr := op.Offset(offset).Push(ops)
 			cl := clip.Rect(loc.rect).Push(ops)
-			page.image.Add(ops)
+			if atlasTintSupported {
+				page.tint.AddTinted(ops, col)
+			} else {
+				page.image.Add(ops)
+			}
 			paint.PaintOp{}.Add(ops)
 			cl.Pop()
 			imgTr.Pop()

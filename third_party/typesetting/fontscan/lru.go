@@ -49,14 +49,24 @@ func (l *runeLRU) init() {
 }
 
 func (l *runeLRU) KeyFor(q Query, s language.Script, r rune) runeLRUKey {
+	return l.keyForHash(l.familiesHash(q), q, s, r)
+}
+
+// familiesHash hashes q's families for keys (Keel patch: split from KeyFor
+// so that FontMap hashes them once per query).
+func (l *runeLRU) familiesHash(q Query) uint64 {
 	l.init()
 	var h maphash.Hash
 	h.SetSeed(l.seed)
 	for _, s := range q.Families {
 		h.WriteString(s)
 	}
+	return h.Sum64()
+}
+
+func (l *runeLRU) keyForHash(hash uint64, q Query, s language.Script, r rune) runeLRUKey {
 	return runeLRUKey{
-		familiesHash: h.Sum64(),
+		familiesHash: hash,
 		s:            s,
 		aspect:       q.Aspect,
 		r:            r,
