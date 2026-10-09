@@ -39,3 +39,15 @@ upstream packages run `keel migrate` once.
 - `gio/cmd/gogio`: looks for `github.com/dyike/keel/third_party/gio/app`
   instead of `gioui.org/app`. `keel build` compiles it from the Keel module
   the app requires.
+- `typesetting/font/opentype`: `Shared` resources (`NewShared`) hand out
+  table slices instead of copies and never write into a caller's buffer.
+  `typesetting/fontscan` maps system font files read-only (`mmap`,
+  `MapViewOfFile`) and parses them as `Shared`, so a face's tables are clean
+  file-backed pages, not Go heap: hello's idle footprint went from 153 to
+  103 MB on macOS. `gio/font/opentype.ParseCollectionShared` does the same
+  for bytes that never change; `gio/font/gofont` and Keel's theme use it.
+  Tested by parsing, describing, shaping and outlining every system font
+  from read-only mappings (`fontscan/openfont_test.go`).
+- `typesetting/harfbuzz`: an attachment chain pointing before the buffer
+  returns as in HarfBuzz instead of indexing `pos[-1]`, which panicked
+  shaping macOS's Farisi.ttf.

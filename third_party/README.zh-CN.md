@@ -24,3 +24,5 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 - 导入路径改为本模块；修复 `gio/internal/f32` 和 `gio/app/internal/ibus` 里 `go vet` 报的无字段名结构体字面量。
 - `gio/cmd/gogio`：查找 `github.com/dyike/keel/third_party/gio/app` 而不是 `gioui.org/app`。`keel build` 从应用所依赖的 Keel 模块编译它。
+- `typesetting/font/opentype`：`Shared` 资源（`NewShared`）给出的表是切片而不是副本，也从不写入调用方传入的缓冲区。`typesetting/fontscan` 以只读方式映射系统字体文件（`mmap`、`MapViewOfFile`）并按 `Shared` 解析，字体的表是可回收的文件页，不占 Go 堆：hello 在 macOS 上空闲时的内存占用从 153 MB 降到 103 MB。`gio/font/opentype.ParseCollectionShared` 对不会变的字节做同样的事，`gio/font/gofont` 和 Keel 的主题使用它。测试用只读映射解析、描述、排版并取轮廓全部系统字体（`fontscan/openfont_test.go`）。
+- `typesetting/harfbuzz`：附着链指向缓冲区之前时像 HarfBuzz 一样直接返回，不再访问 `pos[-1]`；原来排版 macOS 的 Farisi.ttf 会崩溃。

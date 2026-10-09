@@ -64,7 +64,10 @@ func propagateAttachmentOffsets(pos []GlyphPosition, i int, direction Direction)
 
 	j := i + int(chain)
 
-	if j >= len(pos) {
+	// Keel patch: HarfBuzz's j is unsigned, so a chain pointing before the
+	// buffer wraps and returns here too; upstream's Go port indexed pos[-1]
+	// and panicked shaping some fonts (macOS's Farisi.ttf).
+	if j < 0 || j >= len(pos) {
 		return
 	}
 

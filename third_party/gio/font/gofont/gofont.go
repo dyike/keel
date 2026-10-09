@@ -37,7 +37,7 @@ var (
 
 func loadRegular() {
 	regOnce.Do(func() {
-		faces, err := opentype.ParseCollection(goregular.TTF)
+		faces, err := opentype.ParseCollectionShared(goregular.TTF)
 		if err != nil {
 			panic(fmt.Errorf("failed to parse font: %v", err))
 		}
@@ -75,7 +75,7 @@ func Collection() []font.FontFace {
 }
 
 func register(ttf []byte) {
-	faces, err := opentype.ParseCollection(ttf)
+	faces, err := opentype.ParseCollectionShared(ttf)
 	if err != nil {
 		panic(fmt.Errorf("failed to parse font: %v", err))
 	}

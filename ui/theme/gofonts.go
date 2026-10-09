@@ -19,7 +19,7 @@ import (
 var fallbackFaces = sync.OnceValue(func() []font.FontFace {
 	faces := append(platformFaces(), gofont.Regular()...)
 	for _, ttf := range [][]byte{gobold.TTF, goitalic.TTF, gomono.TTF, gomonobold.TTF} {
-		parsed, err := opentype.ParseCollection(ttf)
+		parsed, err := opentype.ParseCollectionShared(ttf) // compiled in, never changes
 		if err != nil {
 			panic(err) // the fonts are compiled in
 		}

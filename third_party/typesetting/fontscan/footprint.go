@@ -2,7 +2,6 @@ package fontscan
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -120,11 +119,14 @@ func (fp *Footprint) isMonoHint() bool {
 func (fp *Footprint) loadFromDisk() (*font.Face, error) {
 	location := fp.Location
 
-	file, err := os.Open(location.File)
+	// Keel patch: map the file and parse it in place, so the face's tables
+	// are clean file-backed pages instead of copies on the Go heap. Faces are
+	// cached for the life of the process, as is the mapping.
+	file, release, err := openFont(location.File)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer release()
 
 	loaders, err := ot.NewLoaders(file)
 	if err != nil {

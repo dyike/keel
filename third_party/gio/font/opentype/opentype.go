@@ -51,7 +51,20 @@ func Parse(src []byte) (Face, error) {
 // BUG(whereswaldon): the only Variant that can be detected automatically is
 // "Mono".
 func ParseCollection(src []byte) ([]giofont.FontFace, error) {
-	lds, err := opentype.NewLoaders(bytes.NewReader(src))
+	return parseCollection(bytes.NewReader(src))
+}
+
+// ParseCollectionShared is ParseCollection for bytes that never change while
+// the faces are in use, such as a font compiled into the program or a mapped
+// file: the faces refer to src instead of copying its tables.
+//
+// Keel patch.
+func ParseCollectionShared(src []byte) ([]giofont.FontFace, error) {
+	return parseCollection(opentype.NewShared(src))
+}
+
+func parseCollection(src opentype.Resource) ([]giofont.FontFace, error) {
+	lds, err := opentype.NewLoaders(src)
 	if err != nil {
 		return nil, err
 	}

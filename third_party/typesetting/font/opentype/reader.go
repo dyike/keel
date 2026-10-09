@@ -126,6 +126,13 @@ func NewLoaders(file Resource) ([]*Loader, error) {
 
 // dst is an optional storage which may be provided to reduce allocations.
 func (pr *Loader) findTableBuffer(s tableSection, dst []byte) ([]byte, error) {
+	// Keel patch: tables of a Shared resource are slices of it, never copies.
+	// Callers pass the previous table back as dst, which for a Shared resource
+	// is part of it (read-only when mapped), so never write into dst then.
+	sh, shared := pr.file.(Shared)
+	if shared {
+		dst = nil
+	}
 	if s.length != 0 && s.length < s.zLength {
 		zbuf := io.NewSectionReader(pr.file, int64(s.offset), int64(s.length))
 		r, err := zlib.NewReader(zbuf)
@@ -142,6 +149,11 @@ func (pr *Loader) findTableBuffer(s tableSection, dst []byte) ([]byte, error) {
 			return nil, err
 		}
 	} else {
+		if shared {
+			if end := uint64(s.offset) + uint64(s.length); end <= uint64(len(sh.data)) {
+				return sh.data[s.offset:end:end], nil
+			}
+		}
 		if cap(dst) < int(s.length) {
 			dst = make([]byte, s.length)
 		}
