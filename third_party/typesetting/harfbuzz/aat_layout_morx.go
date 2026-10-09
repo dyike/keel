@@ -30,7 +30,7 @@ func (c *aatApplyContext) applyMorx(chain font.MorxChain, accelerators []morxSub
 
 		c.subtableFlags = subtableFlags
 		c.firstSet = accelerators[i].glyphSet
-		c.machineClassCache = accelerators[i].classCache
+		c.machineClassCache = &accelerators[i].classCache
 
 		if !c.bufferIntersectsMachine() {
 			if debugMode {
@@ -97,22 +97,26 @@ func (c *aatApplyContext) applyMorxSubtable(subtable font.MorxSubtable) bool {
 	}
 	switch data := subtable.Data.(type) {
 	case font.MorxRearrangementSubtable:
-		var dc driverContextRearrangement
+		dc := &c.rearrangement
+		*dc = driverContextRearrangement{}
 		driver := newStateTableDriver(font.AATStateTable(data), c.face)
-		driver.drive(&dc, c)
+		driver.drive(dc, c)
 	case font.MorxContextualSubtable:
-		dc := driverContextContextual{c: c, table: data}
+		dc := &c.contextual
+		*dc = driverContextContextual{c: c, table: data}
 		driver := newStateTableDriver(data.Machine, c.face)
-		driver.drive(&dc, c)
+		driver.drive(dc, c)
 		return dc.ret
 	case font.MorxLigatureSubtable:
-		dc := driverContextLigature{c: c, table: data}
+		dc := &c.ligature
+		dc.c, dc.table, dc.matchLength = c, data, 0
 		driver := newStateTableDriver(data.Machine, c.face)
-		driver.drive(&dc, c)
+		driver.drive(dc, c)
 	case font.MorxInsertionSubtable:
-		dc := driverContextInsertion{c: c, insertionAction: data.Insertions}
+		dc := &c.insertion
+		*dc = driverContextInsertion{c: c, insertionAction: data.Insertions}
 		driver := newStateTableDriver(data.Machine, c.face)
-		driver.drive(&dc, c)
+		driver.drive(dc, c)
 	case font.MorxNonContextualSubtable:
 		return c.applyNonContextualSubtable(data)
 	}

@@ -441,7 +441,8 @@ type Backend struct {
 	prog     *Program
 	topology C.MTLPrimitiveType
 
-	pool bufferPool
+	pool  bufferPool
+	quads quadBatcher
 
 	stagingBuf C.CFTypeRef
 	stagingOff int
@@ -527,6 +528,7 @@ func (b *Backend) BeginFrame(target driver.RenderTarget, clear bool, viewport im
 	// Every command buffer committed so far has completed: buffers released
 	// before this frame are no longer read by the GPU.
 	b.pool.frameStarted()
+	b.quads.frameStarted()
 	if target == nil {
 		return nil
 	}
@@ -616,6 +618,7 @@ func (b *Backend) IsTimeContinuous() bool {
 
 func (b *Backend) Release() {
 	b.pool.trim()
+	b.quads.release()
 	if b.cmdBuffer != 0 {
 		C.CFRelease(b.cmdBuffer)
 	}

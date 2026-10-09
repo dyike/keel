@@ -146,6 +146,28 @@ type Texture interface {
 	Release()
 }
 
+// Quad is one quad for QuadBatcher: Gio's blit of the full-screen quad
+// scaled and offset into clip space (Transform: scale x, y, offset x, y),
+// with the UV affine transform's rows (UV0, UV1: xyz), the index of its
+// texture in UV0[3] (-1 for a solid color), and a premultiplied color with
+// the opacity applied (for a texture: the opacity in every channel). Keel
+// patch.
+type Quad struct {
+	Transform, UV0, UV1, Color [4]float32
+}
+
+// MaxQuadTextures is how many textures one QuadBatcher call may sample.
+const MaxQuadTextures = 8
+
+// QuadBatcher is implemented by devices that draw many quads in one call,
+// in order, each a solid color or a sample of one of up to MaxQuadTextures
+// textures, blended as Gio's blit pipelines blend, into the current render
+// pass, which targets the output format. It reports false when it cannot,
+// and draws nothing. Keel patch.
+type QuadBatcher interface {
+	DrawQuads(textures []Texture, quads []Quad) bool
+}
+
 // Volatile is implemented by textures whose memory the system may reclaim
 // while their contents are not needed, as Metal's purgeable state allows.
 // A volatile texture's contents are undefined until it is made non-volatile

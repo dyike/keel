@@ -98,3 +98,17 @@ leave nested modules out. So:
   drawables. The renderer waits for the previous frame before the next, so
   a third only held a window-sized surface (5 MB at 640x512 pt, 33 MB on
   4K); hello's idle footprint varied with it by 5 MB between runs.
+- `gio/gpu`, `gio/gpu/internal/metal`: consecutive ops clipped to a plain
+  rectangle and filled with a solid color or a texture are drawn as one
+  instanced draw (`driver.QuadBatcher`, up to 8 textures a batch) instead of
+  a draw call each: a terminal-sized text grid issued 3,300 draws a frame.
+  The Metal shader is compiled at run time and computes what Gio's blit
+  shaders compute; other backends keep the per-op path. Every static
+  component screenshot is byte-identical.
+- `typesetting/harfbuzz`: AAT shaping (`morx`, `kerx`, used by Apple fonts
+  such as Menlo) keeps each subtable's glyph class cache on the font's
+  accelerator, as HarfBuzz does; upstream copied it into a per-call context
+  and threw the filled copy away. The context and the subtable drivers'
+  state live in the reused `Buffer` instead of 1.3 KB and more allocated per
+  run. Shaping output is identical for 239 macOS faces with `morx`; text
+  allocation in the benchmark grid scene halved.

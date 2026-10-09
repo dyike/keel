@@ -27,7 +27,7 @@ func (c *aatApplyContext) applyKernx(kerx font.Kernx, accelerators []kernxSubtab
 
 		c.firstSet = accelerators[i].first_set
 		c.secondSet = accelerators[i].second_set
-		c.machineClassCache = accelerators[i].class_cache
+		c.machineClassCache = &accelerators[i].class_cache
 
 		if !c.bufferIntersectsMachine() {
 			if debugMode {
