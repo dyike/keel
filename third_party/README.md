@@ -105,3 +105,10 @@ leave nested modules out. So:
   The Metal shader is compiled at run time and computes what Gio's blit
   shaders compute; other backends keep the per-op path. Every static
   component screenshot is byte-identical.
+- `typesetting/harfbuzz`: AAT shaping (`morx`, `kerx`, used by Apple fonts
+  such as Menlo) keeps each subtable's glyph class cache on the font's
+  accelerator, as HarfBuzz does; upstream copied it into a per-call context
+  and threw the filled copy away. The context and the subtable drivers'
+  state live in the reused `Buffer` instead of 1.3 KB and more allocated per
+  run. Shaping output is identical for 239 macOS faces with `morx`; text
+  allocation in the benchmark grid scene halved.

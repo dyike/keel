@@ -467,18 +467,30 @@ type aatApplyContext struct {
 	usingBufferGlyphSet bool
 	bufferGlyphSet      intSet // runes or glyphs
 
-	firstSet          intSet        // readonly
-	secondSet         intSet        // readonly
-	machineClassCache aatClassCache // readonly
+	firstSet  intSet // readonly
+	secondSet intSet // readonly
+	// machineClassCache is the current subtable accelerator's cache (Keel
+	// patch: upstream copied it here, so lookups filled a copy thrown away
+	// after each call and every call started cold, as HarfBuzz does not).
+	machineClassCache *aatClassCache
+
+	// Keel patch: state of the subtable drivers, kept here so that driving
+	// a subtable allocates nothing.
+	rearrangement driverContextRearrangement
+	contextual    driverContextContextual
+	ligature      driverContextLigature
+	insertion     driverContextInsertion
 }
 
+// newAatApplyContext returns the buffer's context, reset. Keel patch: the
+// context lives in the buffer, which a shaper reuses for every run, instead
+// of 1.3 KB allocated up to four times per run; shaping uses one context at
+// a time. The glyph set keeps its storage.
 func newAatApplyContext(plan *otShapePlan, font *Font, buffer *Buffer) *aatApplyContext {
-	var out aatApplyContext
-	out.plan = plan
-	out.font = font
-	out.face = font.face
-	out.buffer = buffer
-	return &out
+	out := &buffer.aat
+	set := out.bufferGlyphSet
+	*out = aatApplyContext{plan: plan, font: font, face: font.face, buffer: buffer, bufferGlyphSet: set}
+	return out
 }
 
 func (c *aatApplyContext) reverseBuffer() {
@@ -614,7 +626,7 @@ func (s stateTableDriver) drive(c driverContext, ac *aatApplyContext) {
 	for buffer.idx = 0; ; {
 		class := classEndOfText
 		if buffer.idx < len(buffer.Info) {
-			class = s.getClass(buffer.Info[buffer.idx].Glyph, &ac.machineClassCache)
+			class = s.getClass(buffer.Info[buffer.idx].Glyph, ac.machineClassCache)
 		}
 	resume:
 		if debugMode {
@@ -674,7 +686,7 @@ func (s stateTableDriver) drive(c driverContext, ac *aatApplyContext) {
 
 					class = classEndOfText
 					if buffer.idx < len(buffer.Info) {
-						class = s.getClass(buffer.Info[buffer.idx].Glyph, &ac.machineClassCache)
+						class = s.getClass(buffer.Info[buffer.idx].Glyph, ac.machineClassCache)
 					}
 				}
 

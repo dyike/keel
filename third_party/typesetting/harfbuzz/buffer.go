@@ -104,6 +104,10 @@ type Buffer struct {
 	idx          int                // Cursor into `info` and `pos` arrays
 	scratchFlags bufferScratchFlags // Have space-fallback, etc.
 
+	// aat is the context of AAT shaping, reused (Keel patch, see
+	// newAatApplyContext).
+	aat aatApplyContext
+
 	haveOutput bool
 
 	planCache map[Face][]*shapePlan
