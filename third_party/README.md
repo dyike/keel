@@ -82,3 +82,11 @@ leave nested modules out. So:
   during a frame is reused only after the next `BeginFrame`, which waits
   for the previous command buffer; the pool is bounded (32 MB, 64 per
   class) and emptied by `gpu.Idle`.
+- `gio/gpu`: clip paths are cached by content (a hash of the path data,
+  with stroke width, outline and transform) instead of by the ops that
+  recorded them, whose key changes whenever the `Ops` are reset. Keel
+  records each frame anew, so every border and rounded shape was
+  re-tessellated and re-uploaded every frame. The offset is not part of the
+  key, so moved content reuses its paths too. An animating gallery
+  allocated 881 -> 470 MB per 10 s (51 -> 29 GCs). All static component
+  screenshots are byte-identical.

@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash/maphash"
 	"image"
 	"image/color"
 	"math"
@@ -164,6 +165,23 @@ type opKey struct {
 	strokeWidth    float32
 	sx, hx, sy, hy float32
 	ops.Key
+	// content is a hash of a clip path's data, set instead of ops.Key (Keel
+	// patch): see pathContentKey.
+	content uint64
+}
+
+var pathSeed = maphash.MakeSeed()
+
+// pathContentKey keys a clip path by its data instead of the ops that
+// recorded it. Keel patch: an ops.Key changes whenever its Ops are reset, so
+// a UI that records its frame anew (as Keel does) never reused a path, and
+// re-tessellated and re-uploaded every border and rounded shape each frame.
+// The offset is not part of the key, so content that moves, as when
+// scrolling, reuses its paths too.
+func pathContentKey(k opKey, data []byte) opKey {
+	k.Key = ops.Key{}
+	k.content = maphash.Bytes(pathSeed, data)
+	return k
 }
 
 type material struct {
@@ -1048,6 +1066,7 @@ loop:
 				// There is a clipping path, build the gpu data and update the
 				// cache key such that it will be equal only if the transform is the
 				// same also. Use cached data if we have it.
+				quads.key = pathContentKey(quads.key, quads.aux)
 				quads.key = quads.key.SetTransform(trans)
 				if v, ok := d.pathCache.get(quads.key); ok {
 					// Since the GPU data exists in the cache aux will not be used.
