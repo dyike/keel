@@ -146,6 +146,16 @@ type Texture interface {
 	Release()
 }
 
+// Volatile is implemented by textures whose memory the system may reclaim
+// while their contents are not needed, as Metal's purgeable state allows.
+// A volatile texture's contents are undefined until it is made non-volatile
+// and drawn again.
+//
+// Keel patch.
+type Volatile interface {
+	SetVolatile(volatile bool)
+}
+
 const (
 	BufferBindingIndices BufferBinding = 1 << iota
 	BufferBindingVertices

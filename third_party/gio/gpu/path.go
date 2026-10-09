@@ -286,6 +286,18 @@ func (s *fboSet) resize(ctx driver.Device, format driver.TextureFormat, sizes []
 	}
 	// Delete extra fbos.
 	s.delete(ctx, len(sizes))
+	s.setVolatile(false)
+}
+
+// setVolatile marks the set's textures as scratch the system may reclaim
+// between frames: every frame draws them again before use. Keel patch; a
+// window idles with its largest coverage textures out of its footprint.
+func (s *fboSet) setVolatile(volatile bool) {
+	for _, f := range s.fbos {
+		if v, ok := f.tex.(driver.Volatile); ok {
+			v.SetVolatile(volatile)
+		}
+	}
 }
 
 func (s *fboSet) delete(ctx driver.Device, idx int) {

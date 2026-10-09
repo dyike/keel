@@ -378,7 +378,12 @@ func (g *gpu) Release() {
 
 func (g *gpu) Frame(frameOps *op.Ops, target RenderTarget, viewport image.Point) error {
 	g.collect(viewport, frameOps)
-	return g.frame(target)
+	err := g.frame(target)
+	// Keel patch: coverage textures are redrawn every frame before use; once
+	// the frame is committed, let the system reclaim them until the next.
+	g.renderer.pather.stenciler.fbos.setVolatile(true)
+	g.renderer.pather.stenciler.intersections.setVolatile(true)
+	return err
 }
 
 func (g *gpu) collect(viewport image.Point, frameOps *op.Ops) {

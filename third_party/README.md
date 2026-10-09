@@ -51,3 +51,10 @@ upstream packages run `keel migrate` once.
 - `typesetting/harfbuzz`: an attachment chain pointing before the buffer
   returns as in HarfBuzz instead of indexing `pos[-1]`, which panicked
   shaping macOS's Farisi.ttf.
+- `gio/gpu`: the path renderer's coverage textures (stencil and
+  intersection FBOs, often larger than the window since they pack every
+  rounded shape) are redrawn every frame, so after a committed frame they
+  are marked volatile (`driver.Volatile`, Metal's purgeable state) and made
+  non-volatile again when a frame resizes them for use. An idle window's
+  largest GPU allocations leave its footprint: hello 72 -> 64 MB on macOS.
+  Other backends do not implement it yet.

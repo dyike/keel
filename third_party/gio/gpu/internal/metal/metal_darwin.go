@@ -47,6 +47,13 @@ static CFTypeAndError ok(id obj) {
 	return res;
 }
 
+static void textureSetVolatile(CFTypeRef texRef, int volatile_) {
+	@autoreleasepool {
+		id<MTLTexture> tex = (__bridge id<MTLTexture>)texRef;
+		[tex setPurgeableState:volatile_ ? MTLPurgeableStateVolatile : MTLPurgeableStateNonVolatile];
+	}
+}
+
 static CFTypeRef queueNewBuffer(CFTypeRef queueRef) {
 	@autoreleasepool {
 		id<MTLCommandQueue> queue = (__bridge id<MTLCommandQueue>)queueRef;
@@ -948,6 +955,16 @@ func (t *Texture) Upload(offset, size image.Point, pixels []byte, stride int) {
 	if t.mipmap {
 		C.blitEncGenerateMipmapsForTexture(enc, t.texture)
 	}
+}
+
+// SetVolatile lets the system reclaim the texture's memory while it is
+// volatile, which also takes it out of the process's footprint. Keel patch.
+func (t *Texture) SetVolatile(volatile bool) {
+	v := C.int(0)
+	if volatile {
+		v = 1
+	}
+	C.textureSetVolatile(t.texture, v)
 }
 
 func (t *Texture) Release() {
