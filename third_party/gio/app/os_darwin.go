@@ -70,6 +70,9 @@ type displayLink struct {
 	// running tracks the desired state of the link. running is accessed
 	// with atomic.
 	running uint32
+	// requested is the state last asked for with Start or Stop, accessed
+	// with atomic (Keel patch).
+	requested uint32
 }
 
 // displayLinks maps CFTypeRefs to *displayLinks.
@@ -177,11 +180,21 @@ func (d *displayLink) run(dl C.CFTypeRef) {
 	}
 }
 
+// Start runs the display link. Keel patch: only a change of the requested
+// state is sent. macOS windows call Start on every animated frame, and the
+// send blocked the main thread on a goroutine handoff each time.
 func (d *displayLink) Start() {
+	if atomic.SwapUint32(&d.requested, 1) == 1 {
+		return
+	}
 	d.states <- true
 }
 
+// Stop stops the display link after a delay; see Start.
 func (d *displayLink) Stop() {
+	if atomic.SwapUint32(&d.requested, 0) == 0 {
+		return
+	}
 	d.states <- false
 }
 

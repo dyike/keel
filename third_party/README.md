@@ -90,3 +90,7 @@ leave nested modules out. So:
   key, so moved content reuses its paths too. An animating gallery
   allocated 881 -> 470 MB per 10 s (51 -> 29 GCs). All static component
   screenshots are byte-identical.
+- `gio/app` (macOS, iOS): `displayLink.Start` and `Stop` only send to the
+  display link's goroutine when the requested state changes. Windows call
+  `Start` on every animated frame, and the unbuffered send blocked the main
+  thread on a goroutine handoff each time.
