@@ -126,11 +126,14 @@ func NewLoaders(file Resource) ([]*Loader, error) {
 
 // dst is an optional storage which may be provided to reduce allocations.
 func (pr *Loader) findTableBuffer(s tableSection, dst []byte) ([]byte, error) {
-	// Keel patch: tables of a Shared resource are slices of it, never copies.
-	// Callers pass the previous table back as dst, which for a Shared resource
-	// is part of it (read-only when mapped), so never write into dst then.
-	sh, shared := pr.file.(Shared)
+	// Keel patch: tables of a resource that exposes its bytes (Shared, or any
+	// with a Bytes method) are slices of them, never copies. Callers pass the
+	// previous table back as dst, which then is part of those bytes
+	// (read-only when mapped), so never write into dst for them.
+	sh, shared := pr.file.(interface{ Bytes() []byte })
+	var data []byte
 	if shared {
+		data = sh.Bytes()
 		dst = nil
 	}
 	if s.length != 0 && s.length < s.zLength {
@@ -150,8 +153,8 @@ func (pr *Loader) findTableBuffer(s tableSection, dst []byte) ([]byte, error) {
 		}
 	} else {
 		if shared {
-			if end := uint64(s.offset) + uint64(s.length); end <= uint64(len(sh.data)) {
-				return sh.data[s.offset:end:end], nil
+			if end := uint64(s.offset) + uint64(s.length); end <= uint64(len(data)) {
+				return data[s.offset:end:end], nil
 			}
 		}
 		if cap(dst) < int(s.length) {

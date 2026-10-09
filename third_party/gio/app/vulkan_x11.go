@@ -7,8 +7,8 @@ package app
 import (
 	"unsafe"
 
-	"github.com/dyike/keel/third_party/gio/gpu"
-	"github.com/dyike/keel/third_party/gio/internal/vk"
+	"gioui.org/gpu"
+	"gioui.org/internal/vk"
 )
 
 type x11VkContext struct {

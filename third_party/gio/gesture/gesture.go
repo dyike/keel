@@ -15,14 +15,14 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/internal/fling"
-	"github.com/dyike/keel/third_party/gio/io/event"
-	"github.com/dyike/keel/third_party/gio/io/input"
-	"github.com/dyike/keel/third_party/gio/io/key"
-	"github.com/dyike/keel/third_party/gio/io/pointer"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/f32"
+	"gioui.org/internal/fling"
+	"gioui.org/io/event"
+	"gioui.org/io/input"
+	"gioui.org/io/key"
+	"gioui.org/io/pointer"
+	"gioui.org/op"
+	"gioui.org/unit"
 )
 
 // The duration is somewhat arbitrary.

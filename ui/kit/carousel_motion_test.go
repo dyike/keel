@@ -1,16 +1,16 @@
 package kit
 
 import (
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/gpu/headless"
-	"github.com/dyike/keel/third_party/gio/io/pointer"
-	"github.com/dyike/keel/third_party/gio/layout"
+	"gioui.org/f32"
+	"gioui.org/gpu/headless"
+	"gioui.org/io/pointer"
+	"gioui.org/layout"
 	"image"
 	"image/color"
 	"testing"
 	"time"
 
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"

@@ -5,13 +5,13 @@ import (
 	"image/color"
 	"slices"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/io/semantic"
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/clip"
-	"github.com/dyike/keel/third_party/gio/op/paint"
-	"github.com/dyike/keel/third_party/gio/text"
+	"gioui.org/f32"
+	"gioui.org/io/semantic"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
+	"gioui.org/text"
 	"golang.org/x/image/math/fixed"
 )
 

@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/dyike/keel/third_party/gio/internal/f32color"
+	"gioui.org/internal/f32color"
 
 	"golang.org/x/sys/windows"
 )

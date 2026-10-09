@@ -4,7 +4,7 @@ import (
 	"image/color"
 	"slices"
 
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
 
 	"github.com/dyike/keel/ui/el"

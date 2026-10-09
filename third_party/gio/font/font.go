@@ -4,7 +4,7 @@ Package font provides type describing font faces attributes.
 package font
 
 import (
-	"github.com/dyike/keel/third_party/typesetting/font"
+	"github.com/go-text/typesetting/font"
 )
 
 // A FontFace is a Font and a matching Face.

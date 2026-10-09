@@ -1,7 +1,7 @@
 package di
 
 import (
-	"github.com/dyike/keel/third_party/typesetting/harfbuzz"
+	"github.com/go-text/typesetting/harfbuzz"
 )
 
 // Direction indicates the layout direction of a piece of text.

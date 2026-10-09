@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/dyike/keel/third_party/gio/gpu"
+	"gioui.org/gpu"
 )
 
 type Context struct {

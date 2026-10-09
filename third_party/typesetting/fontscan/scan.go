@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
+	ot "github.com/go-text/typesetting/font/opentype"
 )
 
 // DefaultFontDirectories return the OS-dependent usual directories for

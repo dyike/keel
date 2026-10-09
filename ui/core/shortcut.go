@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dyike/keel/third_party/gio/io/key"
+	"gioui.org/io/key"
 )
 
 // ParseShortcut reads a key chord such as "mod+s", "ctrl+shift+k" or "esc"

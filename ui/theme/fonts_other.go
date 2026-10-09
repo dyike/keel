@@ -2,6 +2,6 @@
 
 package theme
 
-import "github.com/dyike/keel/third_party/gio/font"
+import "gioui.org/font"
 
 func platformFaces() []font.FontFace { return nil }

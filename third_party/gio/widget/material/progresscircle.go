@@ -7,9 +7,9 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/paint"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/op/paint"
 )
 
 type ProgressCircleStyle struct {

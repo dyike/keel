@@ -6,13 +6,13 @@ import (
 	"image"
 	"time"
 
-	"github.com/dyike/keel/third_party/gio/gesture"
-	"github.com/dyike/keel/third_party/gio/io/event"
-	"github.com/dyike/keel/third_party/gio/io/key"
-	"github.com/dyike/keel/third_party/gio/io/semantic"
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/clip"
+	"gioui.org/gesture"
+	"gioui.org/io/event"
+	"gioui.org/io/key"
+	"gioui.org/io/semantic"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/op/clip"
 )
 
 // Clickable represents a clickable area.

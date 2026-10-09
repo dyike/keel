@@ -3,7 +3,7 @@
 package segmenter
 
 import (
-	ucd "github.com/dyike/keel/third_party/typesetting/internal/unicodedata"
+	ucd "github.com/go-text/typesetting/internal/unicodedata"
 )
 
 // Apply the Line Breaking Rules and returns the computed break opportunity

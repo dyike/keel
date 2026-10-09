@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dyike/keel/third_party/typesetting/font"
+	"github.com/go-text/typesetting/font"
 )
 
 // defines the routines to serialize a font set to

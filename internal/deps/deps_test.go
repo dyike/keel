@@ -51,16 +51,12 @@ func TestModuleBoundaries(t *testing.T) {
 		for _, dep := range strings.Fields(string(out)) {
 			switch {
 			case dep == mod+"/"+pkg:
-			case strings.HasPrefix(dep, mod+"/third_party/"):
-				// Keel's copies of Gio and go-text stand for the upstream
-				// modules: allowed in the interface, never in native or the CLI.
-				if strings.HasPrefix(pkg, "native") || strings.HasPrefix(pkg, "cmd/") {
-					t.Errorf("%s imports %s: it must work without the GUI", pkg, dep)
-				}
 			case strings.HasPrefix(dep, mod+"/"):
 				if rel := strings.TrimPrefix(dep, mod+"/"); !slices.Contains(ok, rel) {
 					t.Errorf("%s imports %s, which it is not allowed to depend on", pkg, rel)
 				}
+			case (strings.HasPrefix(pkg, "native") || strings.HasPrefix(pkg, "cmd/")) && strings.HasPrefix(dep, "gioui.org"):
+				t.Errorf("%s imports %s: it must work without the GUI", pkg, dep)
 			}
 		}
 	}
@@ -74,8 +70,7 @@ func TestEveryModuleIsListed(t *testing.T) {
 	}
 	for _, p := range strings.Fields(string(out)) {
 		rel := strings.TrimPrefix(p, mod+"/")
-		if strings.HasPrefix(rel, "examples/") || strings.HasPrefix(rel, "internal/") || strings.HasPrefix(rel, "ui/internal/") || strings.Contains(rel, "/testdata/") ||
-			strings.HasPrefix(rel, "third_party/") {
+		if strings.HasPrefix(rel, "examples/") || strings.HasPrefix(rel, "internal/") || strings.HasPrefix(rel, "ui/internal/") || strings.Contains(rel, "/testdata/") {
 			continue
 		}
 		if _, ok := allowed[rel]; !ok {
@@ -92,7 +87,7 @@ func TestKitDirectDependencies(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, dep := range strings.Fields(string(out)) {
-		if strings.HasPrefix(dep, mod+"/") && !strings.HasPrefix(dep, mod+"/third_party/") && !slices.Contains([]string{mod + "/ui/base", mod + "/ui/core", mod + "/ui/theme", mod + "/ui/locale", mod + "/ui/el"}, dep) {
+		if strings.HasPrefix(dep, mod+"/") && !slices.Contains([]string{mod + "/ui/base", mod + "/ui/core", mod + "/ui/theme", mod + "/ui/locale", mod + "/ui/el"}, dep) {
 			t.Errorf("kit directly imports %s", dep)
 		}
 	}

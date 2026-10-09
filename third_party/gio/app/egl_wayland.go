@@ -8,7 +8,7 @@ import (
 	"errors"
 	"unsafe"
 
-	"github.com/dyike/keel/third_party/gio/internal/egl"
+	"gioui.org/internal/egl"
 )
 
 /*

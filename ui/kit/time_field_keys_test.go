@@ -1,8 +1,8 @@
 package kit
 
 import (
-	"github.com/dyike/keel/third_party/gio/io/key"
-	"github.com/dyike/keel/third_party/gio/io/transfer"
+	"gioui.org/io/key"
+	"gioui.org/io/transfer"
 	"github.com/dyike/keel/ui/el"
 	"io"
 	"strings"

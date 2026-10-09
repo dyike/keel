@@ -6,7 +6,7 @@ import (
 	"image"
 	"sync"
 
-	gioapp "github.com/dyike/keel/third_party/gio/app"
+	gioapp "gioui.org/app"
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/xproto"
 )

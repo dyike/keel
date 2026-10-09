@@ -3,22 +3,35 @@
 English | [简体中文](README.zh-CN.md)
 
 Keel carries its own copies of the libraries it draws with, so it can fix
-and speed them up without waiting for upstream releases, and so every app
-gets the fixes through its Keel requirement alone (a `replace` in Keel's
-`go.mod` would not reach apps).
+and speed them up without waiting for upstream releases. They keep their
+module paths and are wired in with `replace` in Keel's `go.mod`:
+
+```
+replace (
+	gioui.org => ./third_party/gio
+	github.com/go-text/typesetting => ./third_party/typesetting
+)
+```
 
 | Directory | Upstream | Base | License |
 | --- | --- | --- | --- |
 | `gio/` | [Gio](https://gioui.org) `gioui.org` | v0.10.3 | Unlicense OR MIT (`gio/LICENSE`) |
-| `gio/cmd/gogio/` | Gio's packager, `gioui.org/cmd/gogio` | v0.10.0 | Unlicense OR MIT |
-| `typesetting/` | [go-text](https://github.com/go-text/typesetting) | v0.3.5 | Unlicense OR BSD-3-Clause (`typesetting/LICENSE`) |
+| `typesetting/` | [go-text](https://github.com/go-text/typesetting) `github.com/go-text/typesetting` | v0.3.5 | Unlicense OR BSD-3-Clause (`typesetting/LICENSE`) |
 
-`gioui.org/shader` stays an ordinary dependency: precompiled shaders, no
-types in any API.
+`gioui.org/shader` and the packager `gioui.org/cmd/gogio` stay upstream.
 
-Import paths are `github.com/dyike/keel/third_party/gio/...` and
-`github.com/dyike/keel/third_party/typesetting/...`. Apps that imported the
-upstream packages run `keel migrate` once.
+A `replace` only applies to the module that writes it, and module zips
+leave nested modules out. So:
+
+- Keel's own builds, tests and examples use the copies.
+- Projects made with `keel new -replace <Keel checkout>` get the same
+  `replace` lines. Other apps add them, pointing at a Keel checkout, to use
+  the copies; without them they build against upstream Gio and go-text.
+- Keel's code outside `third_party` must therefore build against upstream
+  too: a patch adds no API Keel calls, or only one upstream accepts
+  unchanged (as the `Bytes` method below). Check with the `replace` lines
+  removed: `go mod edit -dropreplace gioui.org -dropreplace
+  github.com/go-text/typesetting && go build ./...`, then restore `go.mod`.
 
 ## Rules
 
@@ -26,26 +39,26 @@ upstream packages run `keel migrate` once.
   cosmetic. Each change is listed below with the reason, so a rebase onto a
   newer upstream can redo it.
 - Upstream tests and test data are not copied. A patch comes with its own
-  test next to it.
+  test next to it. Each copy is its own module: test it from its directory
+  (`cd third_party/typesetting && go test ./...`).
 - Updating to a newer upstream: copy the release without `*_test.go` and
-  `testdata`, rewrite the import paths (`gioui.org/` except
-  `gioui.org/shader`, `github.com/go-text/typesetting/`), then reapply the
-  patches below.
+  `testdata`, keep `go.mod` (gio's also replaces go-text with `../typesetting`),
+  then reapply the patches below.
 
 ## Patches
 
-- Import paths rewritten to this module; `go vet` fixes for unkeyed struct
-  literals in `gio/internal/f32` and `gio/app/internal/ibus`.
-- `gio/cmd/gogio`: looks for `github.com/dyike/keel/third_party/gio/app`
-  instead of `gioui.org/app`. `keel build` compiles it from the Keel module
-  the app requires.
-- `typesetting/font/opentype`: `Shared` resources (`NewShared`) hand out
-  table slices instead of copies and never write into a caller's buffer.
+- `go vet` fixes for unkeyed struct literals in `gio/internal/f32` and
+  `gio/app/internal/ibus`.
+- `typesetting/font/opentype`: resources that expose their bytes (`Shared`,
+  or any with a `Bytes() []byte` method, so callers build against upstream
+  too) hand out table slices instead of copies and never write into a
+  caller's buffer.
   `typesetting/fontscan` maps system font files read-only (`mmap`,
   `MapViewOfFile`) and parses them as `Shared`, so a face's tables are clean
   file-backed pages, not Go heap: hello's idle footprint went from 153 to
   103 MB on macOS. `gio/font/opentype.ParseCollectionShared` does the same
-  for bytes that never change; `gio/font/gofont` and Keel's theme use it.
+  for bytes that never change, used by `gio/font/gofont`; Keel's theme
+  passes its font files with a `Bytes` method.
   Tested by parsing, describing, shaping and outlining every system font
   from read-only mappings (`fontscan/openfont_test.go`).
 - `typesetting/harfbuzz`: an attachment chain pointing before the buffer

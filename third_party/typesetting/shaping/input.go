@@ -3,13 +3,13 @@
 package shaping
 
 import (
-	"github.com/dyike/keel/third_party/typesetting/bidi"
-	"github.com/dyike/keel/third_party/typesetting/di"
-	"github.com/dyike/keel/third_party/typesetting/font"
-	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
-	"github.com/dyike/keel/third_party/typesetting/harfbuzz"
-	ucd "github.com/dyike/keel/third_party/typesetting/internal/unicodedata"
-	"github.com/dyike/keel/third_party/typesetting/language"
+	"github.com/go-text/typesetting/bidi"
+	"github.com/go-text/typesetting/di"
+	"github.com/go-text/typesetting/font"
+	ot "github.com/go-text/typesetting/font/opentype"
+	"github.com/go-text/typesetting/harfbuzz"
+	ucd "github.com/go-text/typesetting/internal/unicodedata"
+	"github.com/go-text/typesetting/language"
 	"golang.org/x/image/math/fixed"
 )
 

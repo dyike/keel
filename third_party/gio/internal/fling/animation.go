@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/unit"
 )
 
 type Animation struct {

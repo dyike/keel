@@ -7,14 +7,14 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/dyike/keel/third_party/gio/io/event"
-	"github.com/dyike/keel/third_party/gio/io/key"
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/io/event"
+	"gioui.org/io/key"
+	"gioui.org/op"
 
-	"github.com/dyike/keel/third_party/gio/gpu"
-	"github.com/dyike/keel/third_party/gio/io/pointer"
-	"github.com/dyike/keel/third_party/gio/io/system"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/gpu"
+	"gioui.org/io/pointer"
+	"gioui.org/io/system"
+	"gioui.org/unit"
 )
 
 // errOutOfDate is reported when the GPU surface dimensions or properties no

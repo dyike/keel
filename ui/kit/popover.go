@@ -1,7 +1,7 @@
 package kit
 
 import (
-	"github.com/dyike/keel/third_party/gio/io/pointer"
+	"gioui.org/io/pointer"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 )

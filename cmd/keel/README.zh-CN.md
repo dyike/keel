@@ -25,8 +25,7 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `build.go` | 各平台打包、Windows 资源、Info.plist、Linux 桌面文件 |
 | `icons.go` | 按平台和尺寸生成图标、`keel icon`、.ico |
 | `doctor.go` | 环境检查 |
-| `migrate.go` | `keel migrate`：把应用里的 `gioui.org` 和 go-text 导入改到 Keel 在 `third_party` 下的副本 |
 
 iOS 构建直接调用 Go 和 Xcode 的 SDK、`actool`、签名工具；运行调用 `simctl`，不依赖 Python。`ios.go` 负责打包、Metal 兼容、图标和签名，`ios_run.go` 负责模拟器选择、安装和启动。完整打包验证：`KEEL_IOS=1 go test ./cmd/keel -run TestNewIOSProjectBuilds -count=1`。用法见 [iOS](../../docs/ios.zh-CN.md)。
 
-Android、macOS 和 Web 构建使用 `third_party/gio/cmd/gogio` 里的 Gio 打包器，按应用所依赖的 Keel 模块编译；`android.go` 负责开发签名、APK 打包、adb 设备选择和启动，`android_doctor.go` 检查 SDK、NDK、Java 与 adb。完整打包验证：`KEEL_ANDROID=1 go test ./cmd/keel -run TestNewAndroidProjectBuilds -count=1`。用法见 [Mobile 支持](../../docs/mobile.zh-CN.md) 和 [Android](../../docs/android.zh-CN.md)。
+Android 构建由固定版本 Gio 打包器完成；`android.go` 负责开发签名、APK 打包、adb 设备选择和启动，`android_doctor.go` 检查 SDK、NDK、Java 与 adb。完整打包验证：`KEEL_ANDROID=1 go test ./cmd/keel -run TestNewAndroidProjectBuilds -count=1`。用法见 [Mobile 支持](../../docs/mobile.zh-CN.md) 和 [Android](../../docs/android.zh-CN.md)。

@@ -7,11 +7,11 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/dyike/keel/third_party/gio/font"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/clip"
-	"github.com/dyike/keel/third_party/gio/op/paint"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/font"
+	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
+	"gioui.org/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
 )

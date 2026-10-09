@@ -7,13 +7,13 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/dyike/keel/third_party/gio/io/pointer"
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/clip"
-	"github.com/dyike/keel/third_party/gio/op/paint"
-	"github.com/dyike/keel/third_party/gio/unit"
-	"github.com/dyike/keel/third_party/gio/widget"
+	"gioui.org/io/pointer"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
+	"gioui.org/unit"
+	"gioui.org/widget"
 )
 
 // fromListPosition converts a layout.Position into two floats representing

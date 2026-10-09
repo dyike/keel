@@ -3,13 +3,13 @@ package markdown
 import (
 	"image"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/font"
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/clip"
-	"github.com/dyike/keel/third_party/gio/op/paint"
-	"github.com/dyike/keel/third_party/gio/text"
+	"gioui.org/f32"
+	"gioui.org/font"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
+	"gioui.org/text"
 
 	"github.com/dyike/keel/ui/theme"
 )

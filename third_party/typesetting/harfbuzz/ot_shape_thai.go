@@ -1,8 +1,8 @@
 package harfbuzz
 
 import (
-	ucd "github.com/dyike/keel/third_party/typesetting/internal/unicodedata"
-	"github.com/dyike/keel/third_party/typesetting/language"
+	ucd "github.com/go-text/typesetting/internal/unicodedata"
+	"github.com/go-text/typesetting/language"
 )
 
 // ported from harfbuzz/src/hb-ot-shape-complex-thai.cc Copyright © 2010,2012  Google, Inc.  Behdad Esfahbod

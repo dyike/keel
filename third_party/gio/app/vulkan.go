@@ -8,8 +8,8 @@ import (
 	"errors"
 	"unsafe"
 
-	"github.com/dyike/keel/third_party/gio/gpu"
-	"github.com/dyike/keel/third_party/gio/internal/vk"
+	"gioui.org/gpu"
+	"gioui.org/internal/vk"
 )
 
 type vkContext struct {

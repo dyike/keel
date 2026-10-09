@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/dyike/keel/third_party/typesetting/font/cff"
-	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
-	"github.com/dyike/keel/third_party/typesetting/font/opentype/tables"
+	"github.com/go-text/typesetting/font/cff"
+	ot "github.com/go-text/typesetting/font/opentype"
+	"github.com/go-text/typesetting/font/opentype/tables"
 )
 
 type (

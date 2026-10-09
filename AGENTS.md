@@ -1,8 +1,8 @@
 # AGENTS.md
 
 Keel is a desktop UI framework in pure Go: no HTML, CSS, JavaScript or
-WebView. `ui/*` draws the interface on Keel's own copy of
-[Gio](https://gioui.org) in `third_party/gio`;
+WebView. `ui/*` draws the interface on [Gio](https://gioui.org), with
+Keel's patched copy in `third_party/gio`;
 `native/*` provides system capabilities Gio lacks (permissions, screen
 capture, synthetic input, global hotkeys, notifications, rich clipboard).
 Targets: macOS, Windows, Linux, WebAssembly, iOS and Android.
@@ -37,13 +37,15 @@ window lifecycle. [docs/testing.md](docs/testing.md) and
   autorelease pool on a locked OS thread; copy blocks (`_Block_copy`) you
   call later and release them after use. Never pass Go pointers to native
   code that keeps them; use a token (integer handle) instead.
-- **Gio and go-text are ours to change.** They live in `third_party/gio`
-  and `third_party/typesetting` (import paths
-  `github.com/dyike/keel/third_party/...`); never import `gioui.org/...`
-  or `github.com/go-text/typesetting` (only `gioui.org/shader` stays
-  external). Fix or speed them up in place, keep upstream style there, and
-  log every patch with its reason in `third_party/README.md` (both
-  languages) so it survives an upstream update. A patch brings its own test.
+- **Gio and go-text are ours to change.** Keel's copies live in
+  `third_party/gio` and `third_party/typesetting`, keep their module paths
+  (`gioui.org`, `github.com/go-text/typesetting`) and are wired in with
+  `replace` in `go.mod`. Fix or speed them up in place, keep upstream style
+  there, and log every patch with its reason in `third_party/README.md`
+  (both languages). A patch brings its own test; each copy is its own
+  module, so test it from its directory. Apps without the `replace` build
+  against upstream: Keel's code outside `third_party` must compile against
+  upstream too (check with the `replace` lines dropped).
 - **Dependencies only go down.** `internal/deps` enforces the module table
   in the architecture guide: `ui` and `native` never import each other,
   same-layer modules never import each other, heavy dependencies (chroma,
@@ -94,7 +96,9 @@ above, now done inside `third_party/gio`.
 
 ```sh
 gofmt -l .                                       # must print nothing
-go vet ./...                                     # third_party too (Windows vet reports upstream unsafe.Pointer uses)
+go vet ./...
+(cd third_party/typesetting && go vet ./... && go test ./...)   # the copies are their own modules
+(cd third_party/gio && go vet ./...)
 go test ./...                                    # includes internal/deps and convention checks
 go test -race ./...
 CGO_ENABLED=0 GOOS=windows go build ./...       # Windows is already cgo-free; keep it so
@@ -115,6 +119,4 @@ go run ./cmd/keel run ./examples/hello                   # the CLI's dev loop
 - New roles exposed to agents go into `ui/window/automation.go` and
   `docs/automation.md`.
 - `work/`, `TODO.md` and `TODO.zh-CN.md` are local only (gitignored).
-- Apps that imported upstream Gio run `keel migrate`; keep it in step when
-  more paths move.
 - Keep PRs to one change; explain what and why in the commit message.

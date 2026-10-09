@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dyike/keel/third_party/gio/gpu/headless"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/gpu/headless"
+	"gioui.org/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"

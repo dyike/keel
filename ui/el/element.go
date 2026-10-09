@@ -5,11 +5,11 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/dyike/keel/third_party/gio/font"
+	"gioui.org/font"
 	"github.com/dyike/keel/ui/theme"
 
-	"github.com/dyike/keel/third_party/gio/io/pointer"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/io/pointer"
+	"gioui.org/unit"
 
 	"github.com/dyike/keel/ui/core"
 )

@@ -3,9 +3,9 @@ package harfbuzz
 import (
 	"fmt"
 
-	"github.com/dyike/keel/third_party/typesetting/font"
-	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
-	"github.com/dyike/keel/third_party/typesetting/font/opentype/tables"
+	"github.com/go-text/typesetting/font"
+	ot "github.com/go-text/typesetting/font/opentype"
+	"github.com/go-text/typesetting/font/opentype/tables"
 )
 
 // ported from src/hb-ot-layout.cc, hb-ot-layout.hh

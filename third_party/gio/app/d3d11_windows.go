@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/dyike/keel/third_party/gio/gpu"
-	"github.com/dyike/keel/third_party/gio/internal/d3d11"
+	"gioui.org/gpu"
+	"gioui.org/internal/d3d11"
 )
 
 type d3d11Context struct {

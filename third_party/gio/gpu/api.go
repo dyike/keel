@@ -2,7 +2,7 @@
 
 package gpu
 
-import "github.com/dyike/keel/third_party/gio/gpu/internal/driver"
+import "gioui.org/gpu/internal/driver"
 
 // An API carries the necessary GPU API specific resources to create a Device.
 // There is an API type for each supported GPU API such as OpenGL and Direct3D.

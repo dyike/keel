@@ -3,7 +3,7 @@ package cff
 import (
 	"errors"
 
-	"github.com/dyike/keel/third_party/typesetting/font/opentype/tables"
+	"github.com/go-text/typesetting/font/opentype/tables"
 )
 
 //go:generate ../../../typesetting-utils/generators/binarygen/cmd/generator . _src.go

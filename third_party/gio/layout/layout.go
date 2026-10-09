@@ -5,9 +5,9 @@ package layout
 import (
 	"image"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/f32"
+	"gioui.org/op"
+	"gioui.org/unit"
 )
 
 // Constraints represent the minimum and maximum size of a widget.

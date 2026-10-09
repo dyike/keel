@@ -14,7 +14,7 @@ Keel 采用 [MIT 协议](LICENSE)，SPDX 标识为 `MIT`。
 
 第三方组件保留各自的版权声明和协议条款，详见它们的源码仓库：
 
-- Gio（`gioui.org`）及其打包器 gogio，修改后复制在 `third_party/gio`：Unlicense 或 MIT，见 `third_party/gio/LICENSE`
+- Gio（`gioui.org`），修改后复制在 `third_party/gio`：Unlicense 或 MIT，见 `third_party/gio/LICENSE`
 - go-text/typesetting，修改后复制在 `third_party/typesetting`：Unlicense 或 BSD-3-Clause，见 `third_party/typesetting/LICENSE`
 - goldmark、chroma、jezek/xgb 等：MIT 或 BSD
 - `golang.org/x/*`：BSD-3-Clause

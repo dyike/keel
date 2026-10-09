@@ -7,9 +7,9 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/io/event"
-	"github.com/dyike/keel/third_party/gio/io/key"
+	"gioui.org/f32"
+	"gioui.org/io/event"
+	"gioui.org/io/key"
 )
 
 // EditorState represents the state of an editor needed by input handlers.

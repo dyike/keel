@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dyike/keel/third_party/gio/gpu/headless"
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/clip"
-	"github.com/dyike/keel/third_party/gio/op/paint"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/gpu/headless"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
+	"gioui.org/unit"
 	"github.com/dyike/keel/ui/core"
 )
 

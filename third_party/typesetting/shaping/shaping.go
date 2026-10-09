@@ -3,10 +3,10 @@
 package shaping
 
 import (
-	"github.com/dyike/keel/third_party/typesetting/di"
-	ft "github.com/dyike/keel/third_party/typesetting/font"
-	"github.com/dyike/keel/third_party/typesetting/harfbuzz"
-	ucd "github.com/dyike/keel/third_party/typesetting/internal/unicodedata"
+	"github.com/go-text/typesetting/di"
+	ft "github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/harfbuzz"
+	ucd "github.com/go-text/typesetting/internal/unicodedata"
 	"golang.org/x/image/math/fixed"
 )
 

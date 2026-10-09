@@ -43,7 +43,6 @@ Usage:
   keel build [flags]         package the project into dist/
   keel icon [-o dir]         write each platform's icons, to check them
   keel doctor [flags]        check the toolchain (use -target ios or android for mobile)
-  keel migrate [dir]         move gioui.org and go-text imports to Keel's copies
   keel version               print the version
 
 Run "keel <command> -h" for a command's flags.
@@ -66,8 +65,6 @@ func (c *cli) main(args []string) int {
 		err = c.iconCommand(args[1:])
 	case "doctor":
 		err = c.doctor(args[1:])
-	case "migrate":
-		err = c.migrate(args[1:])
 	case "version":
 		fmt.Fprintln(c.out, "keel", keelVersion())
 	case "help", "-h", "-help", "--help":

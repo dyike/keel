@@ -1,7 +1,7 @@
 package kit
 
 import (
-	"github.com/dyike/keel/third_party/gio/io/key"
+	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"

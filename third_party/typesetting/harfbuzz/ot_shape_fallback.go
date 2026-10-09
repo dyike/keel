@@ -3,7 +3,7 @@ package harfbuzz
 import (
 	"fmt"
 
-	ucd "github.com/dyike/keel/third_party/typesetting/internal/unicodedata"
+	ucd "github.com/go-text/typesetting/internal/unicodedata"
 )
 
 // ported from harfbuzz/src/hb-ot-shape-fallback.cc Copyright © 2011,2012 Google, Inc. Behdad Esfahbod

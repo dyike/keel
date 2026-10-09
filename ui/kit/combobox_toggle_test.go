@@ -1,8 +1,8 @@
 package kit
 
 import (
-	"github.com/dyike/keel/third_party/gio/io/input"
-	"github.com/dyike/keel/third_party/gio/io/key"
+	"gioui.org/io/input"
+	"gioui.org/io/key"
 	"image"
 	"reflect"
 	"testing"

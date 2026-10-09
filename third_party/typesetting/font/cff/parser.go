@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 
-	ps "github.com/dyike/keel/third_party/typesetting/font/cff/interpreter"
-	"github.com/dyike/keel/third_party/typesetting/font/opentype"
+	ps "github.com/go-text/typesetting/font/cff/interpreter"
+	"github.com/go-text/typesetting/font/opentype"
 )
 
 var errUnsupportedCFFVersion = errors.New("unsupported CFF version")

@@ -5,7 +5,7 @@ package layout
 import (
 	"image"
 
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/op"
 )
 
 // Stack lays out child elements on top of each other,

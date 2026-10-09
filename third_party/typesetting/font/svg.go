@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dyike/keel/third_party/typesetting/font/opentype/tables"
+	"github.com/go-text/typesetting/font/opentype/tables"
 )
 
 type svg []svgDocument

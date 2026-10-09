@@ -5,7 +5,7 @@ package fontscan
 import (
 	"os"
 
-	"github.com/dyike/keel/third_party/typesetting/font"
+	"github.com/go-text/typesetting/font"
 )
 
 func openFont(path string) (font.Resource, func(), error) {

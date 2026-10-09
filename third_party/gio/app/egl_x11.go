@@ -7,7 +7,7 @@ package app
 import (
 	"unsafe"
 
-	"github.com/dyike/keel/third_party/gio/internal/egl"
+	"gioui.org/internal/egl"
 )
 
 type x11Context struct {

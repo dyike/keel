@@ -3,8 +3,8 @@ package kit
 import (
 	"strconv"
 
-	"github.com/dyike/keel/third_party/gio/io/key"
-	"github.com/dyike/keel/third_party/gio/io/pointer"
+	"gioui.org/io/key"
+	"gioui.org/io/pointer"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"

@@ -4,8 +4,8 @@ import (
 	"math"
 	"slices"
 
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/op"
+	"gioui.org/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 )

@@ -8,12 +8,12 @@ import (
 	"image"
 	"math"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	f32internal "github.com/dyike/keel/third_party/gio/internal/f32"
-	"github.com/dyike/keel/third_party/gio/internal/ops"
-	"github.com/dyike/keel/third_party/gio/internal/scene"
-	"github.com/dyike/keel/third_party/gio/internal/stroke"
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/f32"
+	f32internal "gioui.org/internal/f32"
+	"gioui.org/internal/ops"
+	"gioui.org/internal/scene"
+	"gioui.org/internal/stroke"
+	"gioui.org/op"
 )
 
 // Op represents a clip area. Op intersects the current clip area with

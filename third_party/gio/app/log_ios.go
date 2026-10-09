@@ -19,7 +19,7 @@ import (
 	"log"
 	"unsafe"
 
-	_ "github.com/dyike/keel/third_party/gio/internal/cocoainit"
+	_ "gioui.org/internal/cocoainit"
 )
 
 func init() {

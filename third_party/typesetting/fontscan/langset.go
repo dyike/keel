@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/dyike/keel/third_party/typesetting/language"
+	"github.com/go-text/typesetting/language"
 )
 
 // LangID is a compact representation of a language

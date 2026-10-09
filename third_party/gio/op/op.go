@@ -14,9 +14,9 @@ to a ui/app.Window's Update method.
 
 Drawing a colored square:
 
-	import "github.com/dyike/keel/third_party/gio/unit"
-	import "github.com/dyike/keel/third_party/gio/app"
-	import "github.com/dyike/keel/third_party/gio/op/paint"
+	import "gioui.org/unit"
+	import "gioui.org/app"
+	import "gioui.org/op/paint"
 
 	var w app.Window
 	var e system.FrameEvent
@@ -68,8 +68,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/internal/ops"
+	"gioui.org/f32"
+	"gioui.org/internal/ops"
 )
 
 // Ops holds a list of operations. Operations are stored in

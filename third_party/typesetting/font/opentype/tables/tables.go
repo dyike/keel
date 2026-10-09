@@ -2,7 +2,7 @@
 
 package tables
 
-import "github.com/dyike/keel/third_party/typesetting/font/opentype"
+import "github.com/go-text/typesetting/font/opentype"
 
 //go:generate ../../../../typesetting-utils/generators/binarygen/cmd/generator . _src.go
 

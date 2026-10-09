@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dyike/keel/third_party/typesetting/di"
-	"github.com/dyike/keel/third_party/typesetting/font"
-	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
-	"github.com/dyike/keel/third_party/typesetting/language"
-	"github.com/dyike/keel/third_party/typesetting/shaping"
+	"github.com/go-text/typesetting/di"
+	"github.com/go-text/typesetting/font"
+	ot "github.com/go-text/typesetting/font/opentype"
+	"github.com/go-text/typesetting/language"
+	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
 )
 

@@ -20,7 +20,7 @@ package transfer
 import (
 	"io"
 
-	"github.com/dyike/keel/third_party/gio/io/event"
+	"gioui.org/io/event"
 )
 
 // OfferCmd is used by data sources as a response to a RequestEvent.

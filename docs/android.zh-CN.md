@@ -19,7 +19,7 @@ adb devices
 keel run -target android
 ```
 
-构建使用 Keel 自带的 Gio 打包器 `third_party/gio/cmd/gogio`，按应用所依赖的 Keel 版本编译，NDK 优先使用 SDK 下最新的 side-by-side 版本，再检查 `ndk-bundle` 和 `ANDROID_NDK_ROOT`。工具链安装说明见 [Gio Android 文档](https://gioui.org/doc/install/android)；具体兼容性以该打包器和实际构建为准。
+构建通过固定版本 `gioui.org/cmd/gogio@v0.10.0` 完成，NDK 优先使用 SDK 下最新的 side-by-side 版本，再检查 `ndk-bundle` 和 `ANDROID_NDK_ROOT`。工具链安装说明见 [Gio Android 文档](https://gioui.org/doc/install/android)；具体兼容性以固定版本打包器和实际构建为准。
 
 产物为 `dist/android/<binary>.apk`。默认包含 arm64 和 amd64，兼顾常见真机及模拟器；可用 `-arch arm64` 缩小包体，也接受 `arm`、`386` 和逗号分隔的架构。`-o` 改变输出根目录，`-n` 打印命令。
 

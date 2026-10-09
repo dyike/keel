@@ -1,9 +1,9 @@
 package harfbuzz
 
 import (
-	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
-	"github.com/dyike/keel/third_party/typesetting/font/opentype/tables"
-	ucd "github.com/dyike/keel/third_party/typesetting/internal/unicodedata"
+	ot "github.com/go-text/typesetting/font/opentype"
+	"github.com/go-text/typesetting/font/opentype/tables"
+	ucd "github.com/go-text/typesetting/internal/unicodedata"
 )
 
 // ported from harfbuzz/src/hb-ot-shape-complex-hebrew.cc Copyright © 2010,2012  Google, Inc.  Behdad Esfahbod

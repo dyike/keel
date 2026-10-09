@@ -3,7 +3,8 @@ package opentype
 import "bytes"
 
 // Shared is a [Resource] over bytes that stay unchanged while the fonts
-// parsed from it are in use: a memory-mapped file, or a font compiled into
+// parsed from it are in use (any Resource with a Bytes method is treated the
+// same, so code also builds against upstream go-text): a memory-mapped file, or a font compiled into
 // the program. Tables of a Shared resource are slices of its bytes instead of
 // copies, so a mapped font's tables stay clean file-backed pages the system
 // can drop and read back, and parsing allocates far less.

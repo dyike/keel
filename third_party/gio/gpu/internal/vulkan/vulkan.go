@@ -10,9 +10,9 @@ import (
 	"image"
 	"math/bits"
 
+	"gioui.org/gpu/internal/driver"
+	"gioui.org/internal/vk"
 	"gioui.org/shader"
-	"github.com/dyike/keel/third_party/gio/gpu/internal/driver"
-	"github.com/dyike/keel/third_party/gio/internal/vk"
 )
 
 type Backend struct {

@@ -6,8 +6,8 @@ import (
 	"math/bits"
 	"sort"
 
-	"github.com/dyike/keel/third_party/typesetting/font"
-	"github.com/dyike/keel/third_party/typesetting/language"
+	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/language"
 )
 
 // Rune coverage implementation, inspired by the fontconfig FcCharset type.

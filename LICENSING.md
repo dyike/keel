@@ -14,7 +14,7 @@ The software is provided “as is”, without warranty. The full terms in [LICEN
 
 Third-party components retain their own copyright notices and license terms. See their source repositories:
 
-- Gio (`gioui.org`) and its packager gogio, copied with changes into `third_party/gio`: Unlicense or MIT, see `third_party/gio/LICENSE`
+- Gio (`gioui.org`), copied with changes into `third_party/gio`: Unlicense or MIT, see `third_party/gio/LICENSE`
 - go-text/typesetting, copied with changes into `third_party/typesetting`: Unlicense or BSD-3-Clause, see `third_party/typesetting/LICENSE`
 - goldmark, chroma, jezek/xgb, and others: MIT or BSD
 - `golang.org/x/*`: BSD-3-Clause

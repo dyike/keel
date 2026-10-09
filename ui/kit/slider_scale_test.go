@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/io/key"
-	"github.com/dyike/keel/third_party/gio/io/pointer"
+	"gioui.org/f32"
+	"gioui.org/io/key"
+	"gioui.org/io/pointer"
 	"github.com/dyike/keel/ui/el"
 )
 

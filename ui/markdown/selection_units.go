@@ -4,7 +4,7 @@ import (
 	"image"
 	"unicode"
 
-	"github.com/dyike/keel/third_party/typesetting/segmenter"
+	"github.com/go-text/typesetting/segmenter"
 )
 
 // character chooses the glyph under the pointer, not the nearest caret. The

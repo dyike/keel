@@ -1,8 +1,8 @@
 package shaping
 
 import (
-	"github.com/dyike/keel/third_party/typesetting/font"
-	"github.com/dyike/keel/third_party/typesetting/harfbuzz"
+	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/harfbuzz"
 )
 
 // adjust the cache size of the zero value, used by default

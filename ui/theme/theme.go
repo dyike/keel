@@ -5,10 +5,10 @@ package theme
 import (
 	"image/color"
 
-	"github.com/dyike/keel/third_party/gio/font"
-	"github.com/dyike/keel/third_party/gio/text"
-	"github.com/dyike/keel/third_party/gio/unit"
-	"github.com/dyike/keel/third_party/gio/widget/material"
+	"gioui.org/font"
+	"gioui.org/text"
+	"gioui.org/unit"
+	"gioui.org/widget/material"
 )
 
 // Colors. Components read them at layout time.

@@ -5,7 +5,7 @@ package layout
 import (
 	"image"
 
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/op"
 )
 
 // Flex lays out child elements along an axis,

@@ -9,9 +9,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	gioapp "github.com/dyike/keel/third_party/gio/app"
-	"github.com/dyike/keel/third_party/gio/gpu"
-	"github.com/dyike/keel/third_party/gio/op"
+	gioapp "gioui.org/app"
+	"gioui.org/gpu"
+	"gioui.org/op"
 	"github.com/dyike/keel/ui/internal/appkit"
 	"github.com/ebitengine/purego/objc"
 )

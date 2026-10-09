@@ -3,7 +3,7 @@ package fontscan
 import (
 	"strings"
 
-	"github.com/dyike/keel/third_party/typesetting/font"
+	"github.com/go-text/typesetting/font"
 )
 
 // this file implements the family substitution feature,

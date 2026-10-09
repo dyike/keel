@@ -4,7 +4,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Build desktop UIs in pure Go, without HTML, CSS, JavaScript, or a WebView. [Gio](https://gioui.org) draws the interface, through Keel's own copy in [`third_party/gio`](third_party/README.md); `native/` provides permissions, screenshots, synthetic input, global hotkeys, system notifications, and a rich clipboard. Keel runs on macOS, Windows, and Linux, compiles to WebAssembly for the browser, and supports [Mobile (iOS / Android)](docs/mobile.md).
+Build desktop UIs in pure Go, without HTML, CSS, JavaScript, or a WebView. [Gio](https://gioui.org) draws the interface, with Keel's patched copy in [`third_party/`](third_party/README.md); `native/` provides permissions, screenshots, synthetic input, global hotkeys, system notifications, and a rich clipboard. Keel runs on macOS, Windows, and Linux, compiles to WebAssembly for the browser, and supports [Mobile (iOS / Android)](docs/mobile.md).
 
 Create an application:
 

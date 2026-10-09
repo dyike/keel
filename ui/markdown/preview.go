@@ -3,8 +3,8 @@ package markdown
 import (
 	"image"
 
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/clip"
+	"gioui.org/op"
+	"gioui.org/op/clip"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 )

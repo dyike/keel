@@ -34,7 +34,7 @@ jobs:
         run: go test ./internal/site
 
       - name: Build the component gallery for the browser
-        run: go run ./third_party/gio/cmd/gogio -target js -tags osusergo -o demo ./examples/components
+        run: go run gioui.org/cmd/gogio@v0.10.0 -target js -tags osusergo -o demo ./examples/components
 
       - uses: actions/setup-python@v5
         with:

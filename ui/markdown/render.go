@@ -9,12 +9,12 @@ import (
 
 	"github.com/dyike/keel/ui/locale"
 
-	"github.com/dyike/keel/third_party/gio/font"
-	"github.com/dyike/keel/third_party/gio/io/semantic"
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/text"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/font"
+	"gioui.org/io/semantic"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/text"
+	"gioui.org/unit"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"

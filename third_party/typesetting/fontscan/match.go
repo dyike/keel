@@ -4,8 +4,8 @@ import (
 	"math"
 	"sort"
 
-	"github.com/dyike/keel/third_party/typesetting/font"
-	"github.com/dyike/keel/third_party/typesetting/language"
+	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/language"
 )
 
 // Query exposes the intention of an author about the

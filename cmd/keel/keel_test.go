@@ -103,7 +103,7 @@ func TestNewAndBuildPlans(t *testing.T) {
 	if p := plan("-target", "windows"); !strings.Contains(p, "zz_keel_windows_amd64.syso") || !strings.Contains(p, "-H=windowsgui") || !strings.Contains(p, "my-notes.exe") || !strings.Contains(p, "my-notes.ico") {
 		t.Fatal("windows plan:\n" + p)
 	}
-	if p := plan("-target", "linux"); !strings.Contains(p, "-X github.com/dyike/keel/third_party/gio/app.ID=dev.keel.notes") || !strings.Contains(p, "dev.keel.notes.desktop") {
+	if p := plan("-target", "linux"); !strings.Contains(p, "-X gioui.org/app.ID=dev.keel.notes") || !strings.Contains(p, "dev.keel.notes.desktop") {
 		t.Fatal("linux plan:\n" + p)
 	}
 	if p := plan("-target", "windows"); !strings.Contains(p, "go build -trimpath -ldflags -s -w -H=windowsgui") {
@@ -143,5 +143,14 @@ func TestNewProjectCompiles(t *testing.T) {
 	}
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated project does not build: %v\n%s", err, b)
+	}
+	// It draws with the checkout's copies of Gio and go-text, as Keel does.
+	for _, m := range []string{"gioui.org", "github.com/go-text/typesetting"} {
+		list := exec.Command("go", "list", "-m", "-f", "{{.Replace.Dir}}", m)
+		list.Dir = cmd.Dir
+		b, err := list.Output()
+		if err != nil || !strings.Contains(filepath.ToSlash(string(b)), "third_party/") {
+			t.Fatalf("%s is not replaced by Keel's copy: %s %v", m, b, err)
+		}
 	}
 }

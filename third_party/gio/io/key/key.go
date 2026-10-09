@@ -7,10 +7,10 @@ import (
 	"image"
 	"strings"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/internal/ops"
-	"github.com/dyike/keel/third_party/gio/io/event"
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/f32"
+	"gioui.org/internal/ops"
+	"gioui.org/io/event"
+	"gioui.org/op"
 )
 
 // Filter matches any [Event] that matches the parameters.
@@ -27,7 +27,7 @@ type Filter struct {
 	//
 	// However, keys with platform specific side-effects, such as Tab
 	// and Shift-Tab for changing focus, are only matched by filters
-	// that specify their Name explicitly. See [github.com/dyike/keel/third_party/gio/io/input.SystemEvent].
+	// that specify their Name explicitly. See [gioui.org/io/input.SystemEvent].
 	Name Name
 }
 

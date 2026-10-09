@@ -3,8 +3,8 @@
 package widget
 
 import (
-	"github.com/dyike/keel/third_party/gio/io/semantic"
-	"github.com/dyike/keel/third_party/gio/layout"
+	"gioui.org/io/semantic"
+	"gioui.org/layout"
 )
 
 type Bool struct {

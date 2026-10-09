@@ -4,8 +4,8 @@ import (
 	"math"
 	"sort"
 
-	"github.com/dyike/keel/third_party/typesetting/di"
-	"github.com/dyike/keel/third_party/typesetting/segmenter"
+	"github.com/go-text/typesetting/di"
+	"github.com/go-text/typesetting/segmenter"
 	"golang.org/x/image/math/fixed"
 )
 

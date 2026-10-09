@@ -109,7 +109,7 @@ func (c *cli) buildAndroid(dir string, cfg *Config, icons *iconSet, outDir, main
 	}
 	apk := filepath.Join(base, cfg.Binary+".apk")
 	env := append(c.trimEnv(), "ANDROID_HOME="+androidSDK())
-	if err := c.runGogio(dir, env, "-target", "android", "-arch", arches,
+	if err := c.command(dir, env, "go", "run", gogio, "-target", "android", "-arch", arches,
 		"-minsdk", fmt.Sprint(cfg.androidMinimumSDK()), "-targetsdk", fmt.Sprint(cfg.androidTargetSDK()),
 		"-appid", cfg.AppID, "-name", cfg.Name, "-version", cfg.fourPart(), "-icon", icon,
 		"-signkey", key, "-signpass", "android", "-ldflags", c.ldflags(appIDFlag(cfg)), "-o", apk, main); err != nil {

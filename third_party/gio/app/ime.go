@@ -7,8 +7,8 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/dyike/keel/third_party/gio/io/input"
-	"github.com/dyike/keel/third_party/gio/io/key"
+	"gioui.org/io/input"
+	"gioui.org/io/key"
 )
 
 type editorState struct {

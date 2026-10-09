@@ -1,7 +1,7 @@
 package kit
 
 import (
-	"github.com/dyike/keel/third_party/gio/f32"
+	"gioui.org/f32"
 	"slices"
 )
 

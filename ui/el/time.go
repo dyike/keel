@@ -1,7 +1,7 @@
 package el
 
 import (
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/loop"
 	"github.com/dyike/keel/ui/theme"

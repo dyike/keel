@@ -1,7 +1,7 @@
 package window
 
 import (
-	"github.com/dyike/keel/third_party/gio/f32"
+	"gioui.org/f32"
 	"testing"
 
 	"github.com/dyike/keel/ui/el"

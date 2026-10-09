@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/dyike/keel/third_party/typesetting/font/opentype/tables"
+	"github.com/go-text/typesetting/font/opentype/tables"
 )
 
 type os2 struct {

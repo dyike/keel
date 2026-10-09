@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"sort"
 
-	ucd "github.com/dyike/keel/third_party/typesetting/internal/unicodedata"
+	ucd "github.com/go-text/typesetting/internal/unicodedata"
 )
 
 // This file contains a port of the reference implementation of the

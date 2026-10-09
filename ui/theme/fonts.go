@@ -1,14 +1,15 @@
 package theme
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
-	"github.com/dyike/keel/third_party/gio/font"
-	"github.com/dyike/keel/third_party/gio/font/opentype"
-	"github.com/dyike/keel/third_party/gio/text"
-	gotext "github.com/dyike/keel/third_party/typesetting/font"
-	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
+	"gioui.org/font"
+	"gioui.org/font/opentype"
+	"gioui.org/text"
+	gotext "github.com/go-text/typesetting/font"
+	ot "github.com/go-text/typesetting/font/opentype"
 
 	"github.com/dyike/keel/ui/internal/loop"
 )
@@ -62,7 +63,7 @@ func parseFaces(keep func(font.Font) bool, files [][]byte) ([]font.FontFace, err
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			lds, err := ot.NewLoaders(ot.NewShared(data))
+			lds, err := ot.NewLoaders(fontBytes{bytes.NewReader(data), data})
 			if err != nil {
 				errs[i] = fmt.Errorf("font file %d: %w", i, err)
 				return
@@ -153,6 +154,17 @@ func LoadFontFilesWhere(keep func(font.Font) bool, paths ...string) error {
 	}
 	return LoadFontsWhere(keep, files...)
 }
+
+// fontBytes is a font file's bytes with a reader over them. Keel's go-text
+// (third_party/typesetting) reads the tables of a resource with a Bytes
+// method in place instead of copying them; upstream go-text ignores it.
+// The bytes must not change afterwards.
+type fontBytes struct {
+	*bytes.Reader
+	data []byte
+}
+
+func (f fontBytes) Bytes() []byte { return f.data }
 
 // parsedFace is a face LoadFontsWhere parsed.
 type parsedFace struct{ f *gotext.Font }

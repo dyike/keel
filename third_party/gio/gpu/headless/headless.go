@@ -9,9 +9,9 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/dyike/keel/third_party/gio/gpu"
-	"github.com/dyike/keel/third_party/gio/gpu/internal/driver"
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/gpu"
+	"gioui.org/gpu/internal/driver"
+	"gioui.org/op"
 )
 
 // Window is a headless window.

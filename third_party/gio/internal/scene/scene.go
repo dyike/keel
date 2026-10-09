@@ -11,14 +11,14 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/dyike/keel/third_party/gio/internal/f32"
+	"gioui.org/internal/f32"
 )
 
 type Op uint32
 
 type Command [sceneElemSize / 4]uint32
 
-// GPU commands from piet/scene.h in package github.com/dyike/keel/third_party/gio/shaders.
+// GPU commands from piet/scene.h in package gioui.org/shaders.
 const (
 	OpNop Op = iota
 	OpLine

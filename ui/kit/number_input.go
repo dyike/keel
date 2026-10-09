@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dyike/keel/third_party/gio/io/key"
+	"gioui.org/io/key"
 
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"

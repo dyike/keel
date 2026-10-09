@@ -9,7 +9,7 @@ import (
 	"image/gif"
 	"time"
 
-	"github.com/dyike/keel/third_party/gio/op/paint"
+	"gioui.org/op/paint"
 	"github.com/srwiley/rasterx"
 
 	"github.com/dyike/keel/ui/core"

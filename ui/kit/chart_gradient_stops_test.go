@@ -7,11 +7,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/gpu/headless"
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op/paint"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/f32"
+	"gioui.org/gpu/headless"
+	"gioui.org/layout"
+	"gioui.org/op/paint"
+	"gioui.org/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/uitest"
 )

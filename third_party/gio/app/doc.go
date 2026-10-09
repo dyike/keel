@@ -44,7 +44,7 @@ For example, to display a blank but otherwise functional window:
 
 	package main
 
-	import "github.com/dyike/keel/third_party/gio/app"
+	import "gioui.org/app"
 
 	func main() {
 		go func() {
@@ -67,9 +67,9 @@ application calls [ClosingEvent.Abort] while handling the event.
 
 # Permissions
 
-The packages under github.com/dyike/keel/third_party/gio/app/permission should be imported
+The packages under gioui.org/app/permission should be imported
 by a Gio program or by one of its dependencies to indicate that specific
 operating-system permissions are required.  Please see documentation for
-package github.com/dyike/keel/third_party/gio/app/permission for more information.
+package gioui.org/app/permission for more information.
 */
 package app

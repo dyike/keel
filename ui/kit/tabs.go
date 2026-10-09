@@ -5,11 +5,11 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/locale"
 
-	"github.com/dyike/keel/third_party/gio/io/key"
+	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 )

@@ -6,9 +6,9 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/dyike/keel/third_party/gio/io/clipboard"
+	"gioui.org/io/clipboard"
 
-	"github.com/dyike/keel/third_party/gio/io/transfer"
+	"gioui.org/io/transfer"
 	"github.com/dyike/keel/ui/core"
 )
 

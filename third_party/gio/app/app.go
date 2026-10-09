@@ -3,7 +3,7 @@
 package app
 
 import (
-	"github.com/dyike/keel/third_party/gio/io/event"
+	"gioui.org/io/event"
 	"golang.org/x/net/idna"
 	"image"
 	"net/url"
@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dyike/keel/third_party/gio/io/input"
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/io/input"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/unit"
 )
 
 // extraArgs contains extra arguments to append to
@@ -32,9 +32,9 @@ var extraArgs string
 // on Wayland it is the toplevel app_id,
 // on X11 it is the X11 XClassHint.
 //
-// ID is set by the [github.com/dyike/keel/third_party/gio/cmd/gogio] tool or manually with the -X linker flag. For example,
+// ID is set by the [gioui.org/cmd/gogio] tool or manually with the -X linker flag. For example,
 //
-//	go build -ldflags="-X 'github.com/dyike/keel/third_party/gio/app.ID=org.gioui.example.Kitchen'" .
+//	go build -ldflags="-X 'gioui.org/app.ID=org.gioui.example.Kitchen'" .
 //
 // Note that ID is treated as a constant, and that changing it at runtime
 // is not supported. The default value of ID is filepath.Base(os.Args[0]).

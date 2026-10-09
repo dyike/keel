@@ -6,10 +6,10 @@ import (
 	"image"
 	"math"
 
-	"github.com/dyike/keel/third_party/gio/gesture"
-	"github.com/dyike/keel/third_party/gio/io/pointer"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/clip"
+	"gioui.org/gesture"
+	"gioui.org/io/pointer"
+	"gioui.org/op"
+	"gioui.org/op/clip"
 )
 
 type scrollChild struct {

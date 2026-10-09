@@ -2,7 +2,7 @@ package kit
 
 import (
 	"fmt"
-	"github.com/dyike/keel/third_party/gio/io/input"
+	"gioui.org/io/input"
 	"github.com/dyike/keel/ui/el"
 	"image"
 	"strings"

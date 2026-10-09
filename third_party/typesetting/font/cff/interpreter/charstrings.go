@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math"
 
-	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
+	ot "github.com/go-text/typesetting/font/opentype"
 )
 
 // PathBounds represents a control bounds for

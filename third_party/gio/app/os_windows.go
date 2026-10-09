@@ -5,7 +5,7 @@ package app
 import (
 	"errors"
 	"fmt"
-	"github.com/dyike/keel/third_party/gio/io/transfer"
+	"gioui.org/io/transfer"
 	syscall "golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 	"image"
@@ -21,16 +21,16 @@ import (
 	"unicode/utf8"
 	"unsafe"
 
-	"github.com/dyike/keel/third_party/gio/app/internal/windows"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/app/internal/windows"
+	"gioui.org/op"
+	"gioui.org/unit"
 	gowindows "golang.org/x/sys/windows"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/io/event"
-	"github.com/dyike/keel/third_party/gio/io/key"
-	"github.com/dyike/keel/third_party/gio/io/pointer"
-	"github.com/dyike/keel/third_party/gio/io/system"
+	"gioui.org/f32"
+	"gioui.org/io/event"
+	"gioui.org/io/key"
+	"gioui.org/io/pointer"
+	"gioui.org/io/system"
 )
 
 type Win32ViewEvent struct {

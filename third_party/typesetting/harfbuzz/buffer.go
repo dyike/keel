@@ -1,8 +1,8 @@
 package harfbuzz
 
 import (
-	"github.com/dyike/keel/third_party/typesetting/font/opentype/tables"
-	"github.com/dyike/keel/third_party/typesetting/language"
+	"github.com/go-text/typesetting/font/opentype/tables"
+	"github.com/go-text/typesetting/language"
 )
 
 /* ported from harfbuzz/src/hb-buffer.hh and hb-buffer.h

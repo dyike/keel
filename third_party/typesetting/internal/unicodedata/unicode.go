@@ -6,7 +6,7 @@ import (
 	"sort"
 	"unicode"
 
-	"github.com/dyike/keel/third_party/typesetting/language"
+	"github.com/go-text/typesetting/language"
 )
 
 // GeneralCategory is an enum storing the Unicode General Category of a rune.

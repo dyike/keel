@@ -25,8 +25,7 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `build.go` | Packaging for each platform, Windows resources, Info.plist, Linux desktop files |
 | `icons.go` | Generate icons, `keel icon`, .ico by platform and size |
 | `doctor.go` | Environmental Check |
-| `migrate.go` | `keel migrate`: moves an app's `gioui.org` and go-text imports to Keel's copies in `third_party` |
 
 iOS builds invoke Go and Xcode SDKs, `actool` and signing tools directly; the runner uses `simctl`, without Python. `ios.go` handles packaging, Metal compatibility, icons and signing; `ios_run.go` selects, installs and launches simulators. Full packaging check: `KEEL_IOS=1 go test ./cmd/keel -run TestNewIOSProjectBuilds -count=1`. See [iOS](../../docs/ios.md).
 
-Android, macOS and web builds use Gio's packager from `third_party/gio/cmd/gogio`, compiled from the Keel module the app requires. `android.go` handles development signing, APK packaging, adb device selection and launch; `android_doctor.go` checks the SDK, NDK, Java and adb. Full packaging check: `KEEL_ANDROID=1 go test ./cmd/keel -run TestNewAndroidProjectBuilds -count=1`. See [Mobile support](../../docs/mobile.md) and [Android](../../docs/android.md).
+Android builds use the pinned Gio packager. `android.go` handles development signing, APK packaging, adb device selection and launch; `android_doctor.go` checks the SDK, NDK, Java and adb. Full packaging check: `KEEL_ANDROID=1 go test ./cmd/keel -run TestNewAndroidProjectBuilds -count=1`. See [Mobile support](../../docs/mobile.md) and [Android](../../docs/android.md).

@@ -1,10 +1,10 @@
 package window
 
 import (
-	gioapp "github.com/dyike/keel/third_party/gio/app"
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/unit"
+	gioapp "gioui.org/app"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/unit"
 	"github.com/dyike/keel/ui/core"
 	"image"
 	"testing"

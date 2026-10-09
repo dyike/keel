@@ -3,8 +3,8 @@ package fontscan
 import (
 	"hash/maphash"
 
-	"github.com/dyike/keel/third_party/typesetting/font"
-	"github.com/dyike/keel/third_party/typesetting/language"
+	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/language"
 )
 
 // runeLRUEntry holds a single key-value pair for an LRU cache.

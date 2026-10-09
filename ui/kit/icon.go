@@ -1,16 +1,16 @@
 package kit
 
 import (
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/f32"
+	"gioui.org/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"image"
 	"image/color"
 	"math"
 
-	"github.com/dyike/keel/third_party/gio/unit"
-	giowidget "github.com/dyike/keel/third_party/gio/widget"
+	"gioui.org/unit"
+	giowidget "gioui.org/widget"
 	"github.com/dyike/keel/ui/theme"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 )

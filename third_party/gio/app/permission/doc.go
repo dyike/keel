@@ -5,13 +5,13 @@ Package permission includes sub-packages that should be imported
 by a Gio program or by one of its dependencies to indicate that specific
 operating-system permissions are required. For example, if a Gio
 program requires access to a device's Bluetooth interface, it
-should import "github.com/dyike/keel/third_party/gio/app/permission/bluetooth" as follows:
+should import "gioui.org/app/permission/bluetooth" as follows:
 
 	package main
 
 	import (
-		"github.com/dyike/keel/third_party/gio/app"
-		_ "github.com/dyike/keel/third_party/gio/app/permission/bluetooth"
+		"gioui.org/app"
+		_ "gioui.org/app/permission/bluetooth"
 	)
 
 	func main() {

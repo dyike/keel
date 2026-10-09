@@ -121,9 +121,7 @@ func (c *cli) runOnce(ctx context.Context, dir string, build runBuild, args []st
 
 // appIDFlag gives the binary the app ID Gio reports to Linux desktops
 // (the Wayland app_id and X11 WM_CLASS), so a .desktop file matches it.
-func appIDFlag(cfg *Config) string {
-	return "-X github.com/dyike/keel/third_party/gio/app.ID=" + cfg.AppID
-}
+func appIDFlag(cfg *Config) string { return "-X gioui.org/app.ID=" + cfg.AppID }
 
 // prepareRunIcon passes a finished platform icon to the development
 // executable. Keep it alive until the child exits.

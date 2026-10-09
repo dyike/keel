@@ -7,7 +7,7 @@ package app
 import (
 	"errors"
 
-	"github.com/dyike/keel/third_party/gio/gpu"
+	"gioui.org/gpu"
 )
 
 /*

@@ -3,9 +3,9 @@ package theme
 import (
 	"math"
 
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/text"
+	"gioui.org/f32"
+	"gioui.org/op"
+	"gioui.org/text"
 	"golang.org/x/image/math/fixed"
 	"image/color"
 )

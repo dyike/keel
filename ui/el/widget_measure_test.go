@@ -4,9 +4,9 @@ import (
 	"image"
 	"testing"
 
-	"github.com/dyike/keel/third_party/gio/layout"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/unit"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/unit"
 	"github.com/dyike/keel/ui/core"
 )
 

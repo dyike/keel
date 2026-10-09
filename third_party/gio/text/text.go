@@ -5,7 +5,7 @@ package text
 import (
 	"fmt"
 
-	"github.com/dyike/keel/third_party/gio/io/system"
+	"gioui.org/io/system"
 	"golang.org/x/image/math/fixed"
 )
 

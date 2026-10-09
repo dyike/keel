@@ -1,9 +1,9 @@
 package el
 
 import (
-	"github.com/dyike/keel/third_party/gio/f32"
-	"github.com/dyike/keel/third_party/gio/op"
-	"github.com/dyike/keel/third_party/gio/op/clip"
+	"gioui.org/f32"
+	"gioui.org/op"
+	"gioui.org/op/clip"
 	"image"
 	"math"
 )

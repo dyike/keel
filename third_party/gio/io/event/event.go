@@ -4,8 +4,8 @@
 package event
 
 import (
-	"github.com/dyike/keel/third_party/gio/internal/ops"
-	"github.com/dyike/keel/third_party/gio/op"
+	"gioui.org/internal/ops"
+	"gioui.org/op"
 )
 
 // Tag is the stable identifier for an event handler.

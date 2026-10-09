@@ -3,8 +3,8 @@ package harfbuzz
 import (
 	"sort"
 
-	"github.com/dyike/keel/third_party/typesetting/font"
-	ot "github.com/dyike/keel/third_party/typesetting/font/opentype"
+	"github.com/go-text/typesetting/font"
+	ot "github.com/go-text/typesetting/font/opentype"
 )
 
 // ported from harfbuzz/src/hb-aat-map.cc, hb-att-map.hh Copyright © 2018  Google, Inc. Behdad Esfahbod
