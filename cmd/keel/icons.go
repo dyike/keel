@@ -189,4 +189,4 @@ func writeICO(set *iconSet, path string) error {
 	return os.WriteFile(path, b.Bytes(), 0o644)
 }
 
-var errOtherSyso = errors.New("the main package already has .syso resources; remove them, keel build writes the icon, manifest and version itself")
+var errOtherSyso = errors.New("the main package already has .syso resources; Keel needs its own object for the icon, manifest and version")

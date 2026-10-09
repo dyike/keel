@@ -188,12 +188,14 @@ func (c *cli) buildWindows(dir string, cfg *Config, icons *iconSet, outDir, main
 
 func windowsResources(cfg *Config, icons *iconSet) (*winres.ResourceSet, error) {
 	rs := &winres.ResourceSet{}
-	ico, err := icons.windowsIcon()
-	if err != nil {
-		return nil, err
-	}
-	if err := rs.SetIcon(winres.Name("APPICON"), ico); err != nil {
-		return nil, err
+	if icons != nil {
+		ico, err := icons.windowsIcon()
+		if err != nil {
+			return nil, err
+		}
+		if err := rs.SetIcon(winres.Name("APPICON"), ico); err != nil {
+			return nil, err
+		}
 	}
 	rs.SetManifest(winres.AppManifest{
 		Description:         cfg.Name,

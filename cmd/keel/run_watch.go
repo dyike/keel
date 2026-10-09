@@ -47,6 +47,9 @@ func snapshotRunFiles(roots []string) (runSnapshot, error) {
 			if strings.HasPrefix(name, ".") || strings.HasSuffix(name, "~") {
 				return nil
 			}
+			if strings.HasPrefix(name, "zz_keel_run_windows_") && filepath.Ext(name) == ".syso" {
+				return nil
+			}
 			switch filepath.Ext(name) {
 			case ".log", ".tmp", ".swp", ".swo", ".lock":
 				return nil
@@ -148,7 +151,13 @@ func (c *cli) compileRun(ctx context.Context, dir, tmp string, generation int) r
 	if runtime.GOOS == "windows" {
 		result.binary += ".exe"
 	}
-	cmd := exec.CommandContext(ctx, "go", "build", "-o", result.binary, "-ldflags", appIDFlag(cfg), "./"+filepath.ToSlash(filepath.Clean(cfg.Main)))
+	cleanupResources, err := prepareRunResources(dir, cfg, runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		result.err = err
+		return result
+	}
+	defer cleanupResources()
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", result.binary, "-ldflags", runLinkFlags(cfg, runtime.GOOS), "./"+filepath.ToSlash(filepath.Clean(cfg.Main)))
 	cmd.Dir = dir
 	cmd.Stdout = c.out
 	cmd.Stderr = c.errw

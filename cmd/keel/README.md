@@ -6,6 +6,8 @@ Keel's scaffolding: `keel new` creates a new project, `keel run` runs it, `keel 
 
 On macOS, `keel run` builds a temporary signed app bundle with the configured name and icon. Both watching and `-watch=false` launch its executable directly, preserving the working directory, arguments, stdio and signal handling. The bundle and icon are removed after the application exits.
 
+On Windows, `keel run` and `keel build` share the native resources: PerMonitorV2 DPI awareness, Common Controls 6, long-path support, icons and version metadata. Both watching and `-watch=false` launch a GUI executable. Temporary `.syso` objects are removed after compilation; existing objects cause a conflict error and remain untouched. Legacy projects without a default icon still receive the manifest and version resources.
+
 ```sh
 go install github.com/dyike/keel/cmd/keel@latest
 ```

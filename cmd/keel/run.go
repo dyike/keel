@@ -50,6 +50,14 @@ func (c *cli) runProject(args []string) error {
 	}
 	goArgs := append([]string{"run", "-ldflags", appIDFlag(cfg), "./" + filepath.ToSlash(filepath.Clean(cfg.Main))}, fs.Args()...)
 	if c.dryRun {
+		if runtime.GOOS == "windows" {
+			fmt.Fprintln(c.out, "write temporary Windows resources (icon, per-monitor DPI manifest, version)")
+			binary := filepath.Join("<temporary>", cfg.Binary+".exe")
+			if err := c.command(dir, nil, "go", "build", "-o", binary, "-ldflags", runLinkFlags(cfg, runtime.GOOS), "./"+filepath.ToSlash(filepath.Clean(cfg.Main))); err != nil {
+				return err
+			}
+			return c.command(dir, nil, binary, fs.Args()...)
+		}
 		if runtime.GOOS == "darwin" {
 			bundle := filepath.Join("<temporary>", cfg.Binary+".app")
 			binary := filepath.Join(bundle, "Contents", "MacOS", cfg.Binary)
@@ -66,9 +74,9 @@ func (c *cli) runProject(args []string) error {
 		defer stop()
 		return c.watchProject(ctx, dir, fs.Args())
 	}
-	if runtime.GOOS == "darwin" {
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
 		// go run launches a bare temporary binary. Build once inside an app
-		// bundle so non-watching runs have the same Dock identity as watch.
+		// bundle on macOS, or with native resources on Windows, just as watch does.
 		ctx, stop := signal.NotifyContext(context.Background(), runStopSignals()...)
 		defer stop()
 		tmp, err := os.MkdirTemp("", "keel-run-")

@@ -6,6 +6,8 @@ Keel 的脚手架：`keel new` 新建项目，`keel run` 运行，`keel build` �
 
 macOS 的 `keel run` 构建带配置名称和图标的临时应用包，并做本地签名。热重载和 `-watch=false` 都直接启动包内的可执行文件，保留工作目录、参数、标准输入输出和信号处理；应用退出后清理包和图标。
 
+Windows 的 `keel run` 和 `keel build` 使用同一套原生资源：PerMonitorV2 DPI 清单、Common Controls 6、长路径支持、图标和版本。热重载和 `-watch=false` 都启动带资源的 GUI EXE；临时 `.syso` 在编译结束后清理，已有 `.syso` 时报告冲突并保留用户文件。没有默认图标的旧项目仍会嵌入清单和版本。
+
 ```sh
 go install github.com/dyike/keel/cmd/keel@latest
 ```

@@ -30,7 +30,7 @@ func TestRunWatchSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, ignored := range []string{".git/index", "dist/output.go", "node_modules/script.js", "server.log", "lock.lock", "file.go~", ".main.go.swp"} {
+	for _, ignored := range []string{".git/index", "dist/output.go", "node_modules/script.js", "server.log", "lock.lock", "file.go~", ".main.go.swp", "zz_keel_run_windows_amd64.syso"} {
 		write(ignored, "ignored")
 	}
 	after, err := snapshotRunFiles([]string{root})
