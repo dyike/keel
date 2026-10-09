@@ -12,10 +12,18 @@ const reclaimQuiet = 2 * time.Second
 const reclaimCooldown = 30 * time.Second
 const reclaimMinimum = 32 << 20
 
-// Idle reclamation is opt-in because Go's heap belongs to the whole process.
-// It does not request frames or modify GOGC/GOMEMLIMIT.
+// Idle reclamation is on by default: startup (reading the system's font
+// index, the first layouts) leaves tens of megabytes of freed heap the
+// runtime keeps for minutes, and the OS counts all of it. Go's heap belongs
+// to the whole process, so apps can opt out. It does not request frames or
+// modify GOGC/GOMEMLIMIT.
 var reclaimEnabled atomic.Bool
 var memoryIdle = idleReclaimer{reclaim: debug.FreeOSMemory}
+
+func init() {
+	reclaimEnabled.Store(true)
+	memoryIdle.enabled = true
+}
 
 type idleReclaimer struct {
 	mu         sync.Mutex

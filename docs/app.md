@@ -75,15 +75,15 @@ go run ./examples/glass -opaque
 
 ## Idle heap reclamation
 
-Applications that favor lower idle memory can opt in before opening windows:
+Keel returns unused Go heap pages to the OS once its windows are idle. Startup alone (reading the system's font index, the first layouts) leaves tens of megabytes of freed heap that the Go runtime would otherwise keep for minutes, and the OS counts all of it: on macOS, the hello example idles at about half the memory with it. Applications with latency-sensitive background work can opt out before opening windows:
 
 ```go
-window.SetIdleMemoryReclaim(true)
+window.SetIdleMemoryReclaim(false)
 ```
 
-This is a process-wide policy, disabled by default. After two seconds without a Keel UI frame or callback, it returns unused Go heap pages to the OS if at least 32 MiB remain unreturned. It checks activity across all Keel windows, avoids running during UI callbacks, and limits collection to once every 30 seconds. A static window does not redraw or keep collecting periodically. Pass `false` to cancel pending work.
+This is a process-wide policy, enabled by default. After two seconds without a Keel UI frame or callback, it returns unused Go heap pages to the OS if at least 32 MiB remain unreturned. It checks activity across all Keel windows, avoids running during UI callbacks, and limits collection to once every 30 seconds. A static window does not redraw or keep collecting periodically. Passing `false` also cancels pending work.
 
-The policy runs Go's `debug.FreeOSMemory`, including a collection; it does not change `GOGC` or `GOMEMLIMIT`, and it does not free live caches or GPU textures. Collection can briefly pause other goroutines, and background work outside Keel is not an idle signal. Leave it off for latency-sensitive background workloads; measure interaction latency and memory on target devices before enabling it.
+The policy runs Go's `debug.FreeOSMemory`, including a collection; it does not change `GOGC` or `GOMEMLIMIT`, and it does not free live caches or GPU textures. Collection can briefly pause other goroutines, and background work outside Keel is not an idle signal. Turn it off for latency-sensitive background workloads, after measuring interaction latency and memory on target devices.
 
 ## App icons
 
