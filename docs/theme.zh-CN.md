@@ -159,3 +159,19 @@ theme.FollowSystemMotion()   // 恢复跟随最近的系统值
 调用方应使用整数像素平移，字号已换算为物理像素，并且不额外缩放或旋转。其他变换使用 `GlyphPainter`。复杂文字段、半透明颜色、GPU 不可用或缓存超限时回退到矢量绘制；彩色位图字形保留 Gio 的位图绘制。
 
 页面上限为八张 512×512 RGBA 图片（8 MiB），掩码上限为 2 MiB、4096 个条目，每个掩码最多缓存八种颜色。旧页面快照和 GPU 副本还会占用额外内存；`Stats()` 提供当前 CPU 缓存占用、绘制次数和成功的掩码批次数。新掩码每批最多 64 个，在 512×512 临时画布的独立 64×64 区域内生成，共用一次 GPU 提交和读回；临时 RGBA 读回缓冲在释放前额外占用 1 MiB。第一帧同步准备所需掩码；后续每帧最多准备 32 个新掩码，首帧生成完成后释放临时 GPU 和读回缓冲；后续字形重建临时资源后，连续 60 帧没有新掩码再释放。静止的自定义绘制器也可在 `Commit()` 后串行调用 `ReleaseScratch()`；已缓存的掩码和图片页保留，新字形会按需重建临时资源。`SubpixelPhases` 是可选的位置取整，与 `GlyphPainter` 有相同的文字质量取舍。
+
+### 自定义字形绘制入口
+
+`GlyphRenderer` 统一管理现有图集和矢量缓存。每个视图保留一个实例；文字排版并确定字形位置后，在准备和绘制阶段使用同一份 `GlyphRun`：
+
+```go
+renderer.BeginFrame(shaper)
+run := theme.GlyphRun{Params: params, Glyphs: glyphs, Color: color, Position: baseline}
+renderer.Prepare(run) // 先准备所有可见文字段，再 Commit
+renderer.Commit()
+renderer.Paint(ops, run)
+```
+
+`Position` 是物理像素单位的基线原点。垂直位置为整数时使用字形图片；水平小数位置按四种像素相位写入掩码，避免平移图片时再次插值，边缘可能比旧矢量覆盖纹理的小数平移更清晰。垂直位置有小数时保留原矢量位置。复杂文字、半透明颜色、GPU 不可用和预算耗尽时沿用已有回退。排版、裁剪和语义文字由调用方负责；额外缩放或旋转应直接使用 `GlyphPainter`。字形切片必须保留到绘制结束。
+
+视图关闭或替换时调用 `Release()`；空闲时可以在 `Commit()` 后调用 `ReleaseScratch()`，释放临时栅格化资源。字体变化会自动清理两套缓存。`Stats()` 提供图集预算和绘制计数；`BenchmarkGlyphRendererScrolling` 对比变化的文字网格与整段矢量绘制，在 Keel 中复现下游性能回归。

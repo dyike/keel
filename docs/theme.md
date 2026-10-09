@@ -159,3 +159,19 @@ Custom terminal renderers can opt into `theme.GlyphAtlas`. For each frame, call 
 Use it at integral pixel translations, with font size already expressed in physical pixels and no extra scale or rotation. Other transforms should use `GlyphPainter`. Complex runs, translucent colors, unavailable GPU support and cache overflow use vector drawing. Color bitmap glyphs retain Gio's bitmap rendering.
 
 Page pixels are limited to eight 512×512 RGBA pages (8 MiB), masks to 2 MiB and 4096 entries, and each mask to eight colors. Older page snapshots and GPU copies also use memory; `Stats()` reports current CPU cache storage, draw counts and successful mask batches. New masks are rasterized in batches of up to 64 isolated 64×64 tiles on one 512×512 scratch surface, sharing a GPU submission and readback. The temporary RGBA readback buffer adds 1 MiB until released. The first frame prepares its needed masks synchronously; later frames prepare up to 32 new masks each; the scratch GPU and readback buffer are released after the initial frame, then after 60 frames without a new mask if later glyphs recreate them. A static custom renderer can call `ReleaseScratch()` serially after `Commit()` when idle; cached masks and pages remain usable, and new glyphs recreate the temporary resources. `SubpixelPhases` is opt-in rounding, with the same quality tradeoff as `GlyphPainter`.
+
+### Custom glyph renderer
+
+`GlyphRenderer` coordinates the existing atlas and vector caches for custom single-line views. Keep one renderer per view. After shaping and positioning the glyphs, use the same `GlyphRun` in the prepare and paint passes:
+
+```go
+renderer.BeginFrame(shaper)
+run := theme.GlyphRun{Params: params, Glyphs: glyphs, Color: color, Position: baseline}
+renderer.Prepare(run) // prepare all visible runs before Commit
+renderer.Commit()
+renderer.Paint(ops, run)
+```
+
+`Position` is the baseline origin in physical pixels. Integer vertical origins use cached images; horizontal fractional positions are baked into the masks at four subpixel phases, avoiding an extra image interpolation. Edges can look sharper than fractionally translating a vector coverage texture. Fractional vertical origins keep the exact vector positions. Complex runs, translucent text, unavailable GPUs and exhausted budgets retain the existing fallbacks. The caller owns shaping, clipping and semantic text; extra scale or rotation should use `GlyphPainter` directly. Glyph slices must stay valid until painting.
+
+Call `Release()` on close or when replacing a view. `ReleaseScratch()` can free temporary rasterization resources after `Commit()` when idle. Font changes invalidate both caches automatically. `Stats()` exposes the atlas budgets and draw counts. `BenchmarkGlyphRendererScrolling` compares a changing grid with whole-run drawing so downstream regressions can be reproduced in Keel.
