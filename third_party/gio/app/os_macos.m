@@ -44,6 +44,13 @@ __attribute__ ((visibility ("hidden"))) CALayer *gio_layerFactory(BOOL presentWi
   GioView *view = (GioView *)window.contentView;
 	gio_onDraw(view.handle);
 }
+// Keel patch: windows nobody can see (covered, on another space, the
+// screen locked) stop drawing; see gio_onOcclusion.
+- (void)windowDidChangeOcclusionState:(NSNotification *)notification {
+	NSWindow *window = (NSWindow *)[notification object];
+	GioView *view = (GioView *)window.contentView;
+	gio_onOcclusion(view.handle, (window.occlusionState & NSWindowOcclusionStateVisible) != 0);
+}
 - (void)windowDidChangeScreen:(NSNotification *)notification {
 	NSWindow *window = (NSWindow *)[notification object];
 	CGDirectDisplayID dispID = [[[window screen] deviceDescription][@"NSScreenNumber"] unsignedIntValue];
@@ -215,7 +222,10 @@ static void handleMouse(GioView *view, NSEvent *event, int typ, CGFloat dx, CGFl
 	gio_onDraw(self.handle);
 }
 - (void)dealloc {
-	gio_onDestroy(self.handle);
+	// Keel patch: a view whose window failed to initialize never got a handle.
+	if (self.handle != 0) {
+		gio_onDestroy(self.handle);
+	}
 }
 - (BOOL) becomeFirstResponder {
 	gio_onFocus(self.handle, 1);
@@ -241,8 +251,16 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef dl, const CVTimeStamp *inNo
 }
 
 CFTypeRef gio_createDisplayLink(void) {
-	CVDisplayLinkRef dl;
-	CVDisplayLinkCreateWithActiveCGDisplays(&dl);
+	// Keel patch: with every display asleep there are no active displays and
+	// creation fails, leaving dl unset. Fall back to the main display; the
+	// window moves the link to its own display later.
+	CVDisplayLinkRef dl = NULL;
+	if (CVDisplayLinkCreateWithActiveCGDisplays(&dl) != kCVReturnSuccess) {
+		dl = NULL;
+		if (CVDisplayLinkCreateWithCGDisplay(CGMainDisplayID(), &dl) != kCVReturnSuccess) {
+			return NULL;
+		}
+	}
 	CVDisplayLinkSetOutputCallback(dl, displayLinkCallback, nil);
 	return dl;
 }
@@ -390,8 +408,9 @@ CFTypeRef gio_createWindow(CFTypeRef viewRef, CGFloat width, CGFloat height) {
 														   defer:NO];
 		[window setAcceptsMouseMovedEvents:YES];
 		NSView *view = (__bridge NSView *)viewRef;
-		[window setContentView:view];
+		// Keel patch: the delegate first, so the view sees it when it attaches.
 		window.delegate = globalWindowDel;
+		[window setContentView:view];
 		return (__bridge_retained CFTypeRef)window;
 	}
 }

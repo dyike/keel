@@ -117,3 +117,14 @@ leave nested modules out. So:
   instead of once per rune. `SetQuery` and `SetScript` keep the caches when
   the query or script is unchanged; Gio calls both for every run of text it
   shapes. A test checks that cached and fresh maps resolve the same faces.
+- `gio/app` (macOS): a window nobody can see (covered, on another space, or
+  with the screen locked or asleep) draws nothing after its first frame and
+  stops its display link; it redraws when it shows again
+  (`windowDidChangeOcclusionState:`). AppKit reports changes only, so the
+  state is also read when the view attaches. Gio drew every animation frame
+  of hidden windows: the benchmark grid scene used 0.49 s of CPU per second
+  with the screen locked, now 0.001 s.
+- `gio/app` (macOS): with every display asleep, creating the display link
+  failed and window creation then panicked in `gio_onDestroy` (a view
+  without a handle). The display link falls back to the main display, and a
+  view without a handle skips `gio_onDestroy`.

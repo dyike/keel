@@ -102,6 +102,19 @@ static NSPoint cascadeTopLeftFromPoint(CFTypeRef windowRef, NSPoint topLeft) {
 	}
 }
 
+// isWindowVisible reports the occlusion state of the view's window when
+// that window reports changes to us; any other view counts as visible.
+static int isWindowVisible(CFTypeRef viewRef) {
+	@autoreleasepool {
+		NSView *view = (__bridge NSView *)viewRef;
+		NSWindow *window = view.window;
+		if (window == nil || window.contentView != view || ![window.delegate isKindOfClass:NSClassFromString(@"GioWindowDelegate")]) {
+			return 1;
+		}
+		return (window.occlusionState & NSWindowOcclusionStateVisible) != 0;
+	}
+}
+
 static void makeKeyAndOrderFront(CFTypeRef windowRef) {
 	@autoreleasepool {
 		NSWindow *window = (__bridge NSWindow *)windowRef;
@@ -359,6 +372,9 @@ type window struct {
 	w           *callbacks
 	anim        bool
 	displayLink *displayLink
+	// occluded is set while nothing of the window shows on screen, and drawn
+	// once its first frame is (Keel patch, see gio_onOcclusion).
+	occluded, drawn bool
 	// redraw is a single entry channel for making sure only one
 	// display link redraw request is in flight.
 	redraw      chan struct{}
@@ -563,7 +579,7 @@ func (w *window) SetInputHint(_ key.InputHint) {}
 func (w *window) SetAnimating(anim bool) {
 	w.anim = anim
 	window := C.windowForView(w.view)
-	if w.anim && window != 0 && C.isMiniaturized(window) == 0 {
+	if w.anim && !w.occluded && window != 0 && C.isMiniaturized(window) == 0 {
 		w.displayLink.Start()
 	} else {
 		w.displayLink.Stop()
@@ -730,6 +746,22 @@ func gio_onMouse(h C.uintptr_t, evt C.CFTypeRef, cdir C.int, cbtn C.NSInteger, x
 func gio_onDraw(h C.uintptr_t) {
 	w := windowFor(h)
 	w.draw()
+}
+
+// gio_onOcclusion runs when the window starts or stops showing on screen
+// (Keel patch).
+//
+//export gio_onOcclusion
+func gio_onOcclusion(h C.uintptr_t, visible C.int) {
+	w := windowFor(h)
+	w.occluded = visible == 0
+	if w.occluded {
+		w.displayLink.Stop()
+		return
+	}
+	// Catch up: animations resume and the window shows its current state.
+	w.SetAnimating(w.anim)
+	C.setNeedsDisplay(w.view)
 }
 
 //export gio_onFocus
@@ -919,14 +951,22 @@ func gio_firstRectForCharacterRange(h C.uintptr_t, crng C.NSRange, actual C.NSRa
 }
 
 func (w *window) draw() {
+	select {
+	case <-w.redraw:
+	default:
+	}
+	// Keel patch: a window nobody can see draws nothing after its first
+	// frame (which window code may wait for), as AppKit apps do; it
+	// redraws when it shows again. Gio drew every animation frame of
+	// covered windows and of every window while the screen was locked.
+	if w.occluded && w.drawn {
+		return
+	}
+	w.drawn = true
 	cnf := w.config
 	w.updateWindowMode()
 	if w.config != cnf {
 		w.ProcessEvent(ConfigEvent{Config: w.config})
-	}
-	select {
-	case <-w.redraw:
-	default:
 	}
 	if w.anim {
 		w.SetAnimating(w.anim)
@@ -984,6 +1024,9 @@ func gio_onAttached(h C.uintptr_t, attached C.int) {
 	w := windowFor(h)
 	if attached != 0 {
 		layer := C.layerForView(w.view)
+		// Keel patch: AppKit reports occlusion changes only, and a window
+		// created while the screen is locked stays occluded from the start.
+		w.occluded = C.isWindowVisible(w.view) == 0
 		w.ProcessEvent(AppKitViewEvent{View: uintptr(w.view), Layer: uintptr(layer)})
 	} else {
 		w.ProcessEvent(AppKitViewEvent{})
