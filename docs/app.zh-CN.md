@@ -187,7 +187,7 @@ _ = menu.UpdateItem("new-tab", func(item *window.MenuItem) {
 
 `NativeApplicationMenu()` 查询当前构建的原生菜单后端：macOS 使用 AppKit，Windows 使用 Win32 菜单栏。Linux 自动在窗口内绘制菜单，同时兼容 X11 和 Wayland；不要求桌面环境提供全局菜单服务。三者都使用相同的 Go 配置，支持子菜单、分隔线、勾选、禁用、快捷键和动态更新。
 
-`Options.MenuDisplay` 默认为 `MenuDisplayAuto`；`MenuDisplayWindow` 强制使用 Keel 绘制的菜单，适合自定义标题栏；`MenuDisplayHidden` 隐藏窗口菜单，让应用通过 `Items` 自行绘制。macOS 的系统菜单栏属于应用，不受窗口隐藏选项影响。窗口内菜单支持鼠标、F10 / Alt+M 打开、方向键导航、Enter 执行、Escape 或外部点击关闭，长菜单可纵向滚动。窗口变窄时，顶部标题截断显示，不产生横向滚动条。
+`Options.MenuDisplay` 默认为 `MenuDisplayAuto`。Windows 的普通窗口使用 Win32 菜单栏，由系统决定高度和 DPI 缩放；无边框窗口自动改用 Keel 绘制的菜单，因为 Gio 的无边框模式会隐藏原生菜单所在的非客户区。`MenuDisplayWindow` 强制使用 Keel 绘制的菜单；`MenuDisplayHidden` 隐藏窗口菜单，让应用通过 `Items` 自行绘制。macOS 的系统菜单栏属于应用，不受窗口隐藏选项影响。窗口内菜单支持鼠标、F10 / Alt+M 打开、方向键导航、Enter 执行、Escape 或外部点击关闭，长菜单可纵向滚动。窗口变窄时，顶部标题截断显示，不产生横向滚动条。
 
 标准编辑动作保留编辑器焦点，Keel 的输入框、文本域和富文本输入会自动处理复制、剪切、粘贴、全选、撤销和重做；密码框、只读框继续遵守原有编辑限制。自定义编辑器在 `Layout` 中调用 `core.NextEditAction(gtx, focusTag)`，按自身语义处理动作；例如终端处理复制、粘贴和全选，撤销不应发送 shell 控制字符。设置 `OnSelect` 仍可完全覆盖标准动作。菜单快捷键不能替代全局快捷键。
 

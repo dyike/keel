@@ -55,7 +55,7 @@ func (v *applicationMenuView) reset() {
 func (w *Window) belowApplicationMenu(gtx core.C) (core.C, func()) {
 	v := &w.menuView
 	bar, generation := currentMenu()
-	show := w.opts.MenuDisplay == MenuDisplayWindow || (w.opts.MenuDisplay != MenuDisplayHidden && platformDrawApplicationMenu())
+	show := w.opts.MenuDisplay == MenuDisplayWindow || (w.opts.MenuDisplay == MenuDisplayAuto && platformDrawApplicationMenu(w))
 	if !show || bar == nil {
 		return gtx, func() {}
 	}

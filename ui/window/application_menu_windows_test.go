@@ -87,9 +87,33 @@ func TestWin32MenuHandlesAndCommands(t *testing.T) {
 		done := calls == 11
 		loop.Unlock()
 		if done {
-			return
+			break
 		}
 		time.Sleep(time.Millisecond)
 	}
-	t.Fatalf("native command dispatch calls=%d want=11", calls)
+	if calls != 11 {
+		t.Fatalf("native command dispatch calls=%d want=11", calls)
+	}
+	for _, tc := range []struct {
+		name      string
+		frameless bool
+		display   MenuDisplay
+		native    bool
+	}{
+		{"native", false, MenuDisplayAuto, true},
+		{"frameless-auto", true, MenuDisplayAuto, false},
+		{"window", false, MenuDisplayWindow, false},
+		{"hidden", false, MenuDisplayHidden, false},
+		{"native-restored", false, MenuDisplayAuto, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			target.w.opts.Frameless = tc.frameless
+			target.w.opts.MenuDisplay = tc.display
+			rebuildNativeMenu(target)
+			installed, _, _ := user32.NewProc("GetMenu").Call(hwnd)
+			if (installed != 0) != tc.native {
+				t.Fatalf("native menu=%x, want attached=%v", installed, tc.native)
+			}
+		})
+	}
 }

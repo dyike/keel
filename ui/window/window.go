@@ -35,7 +35,7 @@ type TrafficLightLayout struct {
 type MenuDisplay uint8
 
 const (
-	MenuDisplayAuto   MenuDisplay = iota // AppKit/Win32 menus, in-window menus on Linux.
+	MenuDisplayAuto   MenuDisplay = iota // AppKit/Win32 menus; in-window on Linux and frameless Windows.
 	MenuDisplayWindow                    // Keel-drawn menu; useful for custom title bars and testing.
 	MenuDisplayHidden                    // Application provides its own renderer; shortcuts remain available.
 )

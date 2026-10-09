@@ -29,7 +29,7 @@ func keel_application_menu_command(generation C.uint64_t, id *C.char) {
 	dispatchNativeMenu(uint64(generation), C.GoString(id))
 }
 
-func platformDrawApplicationMenu() bool       { return false }
-func applicationMenuWindowEvent(*Window, any) {}
+func platformDrawApplicationMenu(*Window) bool { return false }
+func applicationMenuWindowEvent(*Window, any)  {}
 
 func platformNativeMenuShortcuts() bool { return true }

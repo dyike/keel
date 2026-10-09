@@ -39,9 +39,9 @@ type nativeMenuWindow struct {
 	commands             map[uintptr]nativeMenuCommand // native thread only
 }
 
-func platformNativeApplicationMenu() bool     { return true }
-func platformDrawApplicationMenu() bool       { return false }
-func platformMenuEdit(action MenuAction) bool { return requestMenuEdit(action) }
+func platformNativeApplicationMenu() bool        { return true }
+func platformDrawApplicationMenu(w *Window) bool { return w.opts.Frameless }
+func platformMenuEdit(action MenuAction) bool    { return requestMenuEdit(action) }
 
 func platformInstallApplicationMenu(data []byte) {
 	var model menuWire
@@ -113,7 +113,7 @@ func rebuildNativeMenu(target *nativeMenuWindow) {
 	winMenus.Lock()
 	model := winMenus.model
 	winMenus.Unlock()
-	if target.w.opts.MenuDisplay != MenuDisplayAuto {
+	if target.w.opts.MenuDisplay != MenuDisplayAuto || platformDrawApplicationMenu(target.w) {
 		model.Items = nil
 	}
 	commands := map[uintptr]nativeMenuCommand{}

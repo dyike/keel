@@ -8,7 +8,7 @@ func platformNativeApplicationMenu() bool   { return false }
 func platformInstallApplicationMenu([]byte) {}
 func platformMenuEdit(MenuAction) bool      { return false }
 
-func platformDrawApplicationMenu() bool       { return false }
-func applicationMenuWindowEvent(*Window, any) {}
+func platformDrawApplicationMenu(*Window) bool { return false }
+func applicationMenuWindowEvent(*Window, any)  {}
 
 func platformNativeMenuShortcuts() bool { return false }

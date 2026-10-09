@@ -1,0 +1,17 @@
+name: Windows native chrome
+
+on: [push, pull_request]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Check native menu handles and frameless fallback
+        run: go test ./ui/window -run 'TestWin32Menu|TestWindowsFrameless|TestWindowMenu' -count=1 -timeout=120s
+      - name: Check development executable resources and watcher
+        run: go test ./cmd/keel -run 'TestRunResources|TestWindowsCompileRun|TestRunWatchSnapshot|TestRunWatchRebuildRecovery' -count=1 -timeout=180s
