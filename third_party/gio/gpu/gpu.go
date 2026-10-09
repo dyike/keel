@@ -67,6 +67,12 @@ type renderer struct {
 	intersections packer
 	layers        packer
 	layerFBOs     fboSet
+
+	// Keel patch: runs of quads drawn with one call, see drawOps.
+	quads    []driver.Quad
+	quadOps  []int
+	quadTexs []driver.Texture
+	noQuads  bool
 }
 
 type drawOps struct {
@@ -1263,11 +1269,93 @@ func (r *renderer) prepareDrawOps(ops []imageOp) {
 	}
 }
 
+// drawOps draws ops in order. Keel patch: consecutive ops clipped to a plain
+// rectangle and filled with a solid color or a texture go to the device as
+// one batch when it implements driver.QuadBatcher, up to
+// driver.MaxQuadTextures textures a batch, instead of a draw call each
+// (thousands a frame for a screen of text from a glyph atlas's pages).
 func (r *renderer) drawOps(isFBO bool, opOff, viewport image.Point, ops []imageOp) {
-	var coverTex driver.Texture
+	batcher, ok := r.ctx.(driver.QuadBatcher)
+	if !ok || isFBO || r.noQuads {
+		r.drawEachOp(isFBO, opOff, viewport, ops, nil)
+		return
+	}
+	flush := func() {
+		if len(r.quadOps) == 0 {
+			return
+		}
+		if !batcher.DrawQuads(r.quadTexs, r.quads) {
+			// The device cannot batch: draw these one by one, and stop trying.
+			r.noQuads = true
+			r.drawEachOp(isFBO, opOff, viewport, ops, r.quadOps)
+		}
+		clear(r.quadTexs)
+		r.quads, r.quadOps, r.quadTexs = r.quads[:0], r.quadOps[:0], r.quadTexs[:0]
+	}
 	for i := 0; i < len(ops); i++ {
 		img := ops[i]
-		i += img.layerOps
+		next := i + img.layerOps
+		m := img.material
+		if img.clipType != clipTypeNone || m.material != materialColor && m.material != materialTexture {
+			flush()
+			r.drawEachOp(isFBO, opOff, viewport, ops[i:next+1], nil)
+			i = next
+			continue
+		}
+		slot := -1
+		if m.material == materialTexture {
+			for s, t := range r.quadTexs {
+				if t == m.tex {
+					slot = s
+					break
+				}
+			}
+			if slot < 0 {
+				if len(r.quadTexs) == driver.MaxQuadTextures {
+					flush()
+				}
+				slot = len(r.quadTexs)
+				r.quadTexs = append(r.quadTexs, m.tex)
+			}
+		}
+		scale, off := clipSpaceTransform(img.clip.Add(opOff), viewport)
+		q := driver.Quad{Transform: [4]float32{scale.X, scale.Y, off.X, off.Y}}
+		if m.material == materialColor {
+			q.UV0[3] = -1
+			c := m.color
+			q.Color = [4]float32{c.R * m.opacity, c.G * m.opacity, c.B * m.opacity, c.A * m.opacity}
+		} else {
+			t1, t2, t3, t4, t5, t6 := m.uvTrans.Elems()
+			q.UV0, q.UV1 = [4]float32{t1, t2, t3, float32(slot)}, [4]float32{t4, t5, t6, 0}
+			q.Color = [4]float32{m.opacity, m.opacity, m.opacity, m.opacity}
+		}
+		r.quads = append(r.quads, q)
+		r.quadOps = append(r.quadOps, i)
+		i = next
+	}
+	flush()
+}
+
+// drawEachOp draws ops one draw call each: those listed in only, or all.
+func (r *renderer) drawEachOp(isFBO bool, opOff, viewport image.Point, ops []imageOp, only []int) {
+	var coverTex driver.Texture
+	for k := 0; ; k++ {
+		var i int
+		if only != nil {
+			if k == len(only) {
+				break
+			}
+			i = only[k]
+		} else {
+			if k >= len(ops) {
+				break
+			}
+			i = k
+		}
+		img := ops[i]
+		if only == nil {
+			k += img.layerOps
+		}
 		m := img.material
 		switch m.material {
 		case materialTexture:
