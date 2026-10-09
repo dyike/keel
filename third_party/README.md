@@ -94,3 +94,7 @@ leave nested modules out. So:
   display link's goroutine when the requested state changes. Windows call
   `Start` on every animated frame, and the unbuffered send blocked the main
   thread on a goroutine handoff each time.
+- `gio/app` (macOS): the window's `CAMetalLayer` keeps at most two
+  drawables. The renderer waits for the previous frame before the next, so
+  a third only held a window-sized surface (5 MB at 640x512 pt, 33 MB on
+  4K); hello's idle footprint varied with it by 5 MB between runs.

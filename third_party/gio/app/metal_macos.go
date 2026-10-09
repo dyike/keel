@@ -17,6 +17,10 @@ CALayer *gio_layerFactory(BOOL presentWithTrans) {
 		l.autoresizingMask = kCALayerHeightSizable|kCALayerWidthSizable;
 		l.needsDisplayOnBoundsChange = YES;
 		l.presentsWithTransaction = presentWithTrans;
+		// Keel patch: the renderer waits for the previous frame before the
+		// next (gpu/internal/metal BeginFrame), so a third drawable only
+		// holds a window-sized surface: 5 MB at 640x512 pt, 33 MB on 4K.
+		l.maximumDrawableCount = 2;
 		return l;
 	}
 }
