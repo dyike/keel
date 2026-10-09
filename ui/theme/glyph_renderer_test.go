@@ -3,6 +3,7 @@ package theme
 import (
 	"image"
 	"image/color"
+	"math"
 	"runtime"
 	"strings"
 	"testing"
@@ -35,7 +36,11 @@ func TestGlyphRendererOriginsAndFallbacks(t *testing.T) {
 			for g, ok := sh.NextGlyph(); ok; g, ok = sh.NextGlyph() {
 				glyphs = append(glyphs, g)
 			}
-			for _, position := range []f32.Point{{X: 10, Y: 60}, {X: 10.25, Y: 60}, {X: 10.75, Y: 60}, {X: -0.25, Y: 60}, {X: 10.25, Y: 60.5}} {
+			positions := []f32.Point{{X: 10, Y: 60}, {X: 10.25, Y: 60}, {X: 10.75, Y: 60}, {X: -0.25, Y: 60}, {X: 10.25, Y: -.25}, {X: 10.25, Y: 60.6}, {X: 10.25, Y: 60.999}}
+			for phase := range 64 {
+				positions = append(positions, f32.Pt(10.25, 60+float32(phase)/64))
+			}
+			for _, position := range positions {
 				for _, alpha := range []uint8{255, 128} {
 					run := GlyphRun{Params: params, Glyphs: glyphs, Color: color.NRGBA{R: 230, G: 190, B: 160, A: alpha}, Position: position}
 					var images [2]*image.RGBA
@@ -75,8 +80,26 @@ func TestGlyphRendererOriginsAndFallbacks(t *testing.T) {
 					// Baking a fractional origin into a mask removes the extra
 					// texture interpolation of the old vector path. Its edges
 					// may be sharper, but local coverage and placement must match.
-					fractionalMask := position.X != float32(int(position.X)) && position.Y == float32(int(position.Y))
+					fractionalMask := position.X != float32(int(position.X)) || position.Y != float32(int(position.Y))
 					if fractionalMask {
+						// Exact coordinates in the reference are not rounded to
+						// the atlas's 1/64 grid. Bound the coverage centroid as well
+						// as local coverage so sharper edges cannot hide a shift.
+						var centroid [2][2]float64
+						for mode, img := range images {
+							for y := 0; y < 100; y++ {
+								for x := 0; x < 500; x++ {
+									weight := float64(max(0, int(img.Pix[img.PixOffset(x, y)])-20))
+									centroid[mode][0] += weight
+									centroid[mode][1] += weight * float64(y)
+								}
+							}
+						}
+						if centroid[0][0] > 0 && centroid[1][0] > 0 {
+							if delta := math.Abs(centroid[0][1]/centroid[0][0] - centroid[1][1]/centroid[1][0]); delta > .25 {
+								t.Fatalf("%q origin=%v vertical coverage centroid moved %g pixels", value, position, delta)
+							}
+						}
 						for y := 0; y < 100; y += 8 {
 							for x := 0; x < 500; x += 8 {
 								for channel := 0; channel < 3; channel++ {
@@ -119,10 +142,56 @@ func TestGlyphRendererOriginsAndFallbacks(t *testing.T) {
 	}
 }
 
+func TestGlyphRendererBaselineMasksStayCached(t *testing.T) {
+	sh := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	params := text.Parameters{Font: font.Font{Typeface: "Go Mono"}, PxPerEm: fixed.I(45), MaxWidth: 10000}
+	sh.LayoutString(params, "abcdef")
+	var glyphs []text.Glyph
+	for g, ok := sh.NextGlyph(); ok; g, ok = sh.NextGlyph() {
+		glyphs = append(glyphs, g)
+	}
+	var renderer GlyphRenderer
+	defer renderer.Release()
+	var ops op.Ops
+	runs := make([]GlyphRun, 5)
+	for i := range runs {
+		runs[i] = GlyphRun{Params: params, Glyphs: glyphs, Color: color.NRGBA{A: 255}, Position: f32.Pt(.25, 45+float32(i)*57.6)}
+	}
+	renderer.BeginFrame(sh)
+	for _, run := range runs {
+		renderer.Prepare(run)
+	}
+	renderer.Commit()
+	if renderer.atlas.failed {
+		t.Fatal("offscreen renderer unavailable")
+	}
+	before := renderer.Stats()
+	if before.Masks <= len(glyphs) {
+		t.Fatal("vertical phases shared the same mask")
+	}
+	for frame := range 10 {
+		ops.Reset()
+		renderer.BeginFrame(sh)
+		for _, run := range runs {
+			run.Position.Y += float32(frame * 64)
+			renderer.Prepare(run)
+		}
+		renderer.Commit()
+		for _, run := range runs {
+			run.Position.Y += float32(frame * 64)
+			renderer.Paint(&ops, run)
+		}
+	}
+	after := renderer.Stats()
+	if after.MaskBatches != before.MaskBatches || after.Masks != before.Masks || after.VectorDraws != 0 || after.RasterDraws == 0 {
+		t.Fatalf("fractional baselines rebuilt masks or fell back: before=%+v after=%+v", before, after)
+	}
+}
+
 // A changing grid catches whole-string outline cache churn in custom views.
 // Keep this benchmark in Keel so downstream apps share the same regression.
 func BenchmarkGlyphRendererScrolling(b *testing.B) {
-	for _, mode := range []string{"WholeRun", "Cached"} {
+	for _, mode := range []string{"WholeRun", "Cached", "CachedFractionalBaseline"} {
 		b.Run(mode, func(b *testing.B) {
 			sh := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
 			w, err := headless.NewWindow(1920, 992)
@@ -157,15 +226,18 @@ func BenchmarkGlyphRendererScrolling(b *testing.B) {
 						glyphs[y] = append(glyphs[y], g)
 					}
 					runs[y] = GlyphRun{Params: params, Glyphs: glyphs[y], Color: color.NRGBA{R: 220, G: 220, B: 220, A: 255}, Position: f32.Pt(.25, float32(25+y*32))}
-					if mode == "Cached" {
+					if mode == "CachedFractionalBaseline" {
+						runs[y].Position.Y += .6
+					}
+					if mode != "WholeRun" {
 						renderer.Prepare(runs[y])
 					}
 				}
-				if mode == "Cached" {
+				if mode != "WholeRun" {
 					renderer.Commit()
 				}
 				for _, run := range runs {
-					if mode == "Cached" {
+					if mode != "WholeRun" {
 						renderer.Paint(&ops, run)
 					} else {
 						tr := op.Affine(f32.AffineId().Offset(run.Position)).Push(&ops)

@@ -23,9 +23,9 @@ type GlyphRun struct {
 // GlyphRenderer shares bounded glyph caches across changing custom text runs.
 // Keep one per view and use serially: BeginFrame, Prepare all visible runs,
 // Commit, then Paint. Release it when the view closes. Do not copy after use.
-// Integral vertical origins use GlyphAtlas. Horizontal fractions are baked
-// into glyph masks so cached pixels are never resampled. Other origins use
-// vector drawing. Complex runs retain the atlas/painter
+// Finite origins use GlyphAtlas. Horizontal and vertical fractions are baked
+// into glyph masks so cached pixels are never resampled. Vertical positions
+// retain 1/64-pixel precision. Complex runs retain the atlas/painter
 // fallbacks for overlapping ink, combining marks, bidi and translucent colors.
 // Extra caller-applied scale or rotation requires GlyphPainter directly.
 type GlyphRenderer struct {
@@ -43,12 +43,15 @@ func (r *GlyphRenderer) BeginFrame(sh *text.Shaper) {
 	}
 	r.shaper = sh
 	r.atlas.SubpixelPhases = 4
+	// Vertical phases multiply the color variants needed by large text grids.
+	// Allocate lazily, retaining explicit bounds for each custom view.
+	r.atlas.maxPages, r.atlas.maxColors = 32, 32
 	r.atlas.BeginFrame(sh)
 }
 
 func (r *GlyphRenderer) Prepare(run GlyphRun) {
 	if atlasOrigin(run.Position) {
-		r.atlas.Prepare(run.Params, r.positionedGlyphs(run), run.Color)
+		r.atlas.prepare(run.Params, r.positionedGlyphs(run), run.Color, baselinePhase(run.Position.Y))
 	}
 }
 
@@ -62,13 +65,13 @@ func (r *GlyphRenderer) Paint(ops *op.Ops, run GlyphRun) {
 	useAtlas := atlasOrigin(position)
 	if useAtlas {
 		position.X = float32(math.Floor(float64(position.X)))
+		position.Y = float32(math.Floor(float64(position.Y)))
 	}
 	tr := op.Affine(f32.AffineId().Offset(position)).Push(ops)
 	if useAtlas {
-		r.atlas.Paint(ops, run.Params, r.positionedGlyphs(run), run.Color)
+		r.atlas.paint(ops, run.Params, r.positionedGlyphs(run), run.Color, baselinePhase(run.Position.Y))
 	} else {
-		// Non-integral baselines retain exact vector antialiasing. Reuse
-		// individual glyphs without rounding their positions.
+		// Unsupported non-finite origins retain the original vector path.
 		r.vector.FragmentSize, r.vector.SubpixelPhases = 1, 0
 		r.vector.Paint(ops, r.shaper, run.Params, run.Glyphs, run.Color)
 	}
@@ -88,8 +91,11 @@ func (r *GlyphRenderer) Stats() GlyphAtlasStats { return r.atlas.Stats() }
 
 func atlasOrigin(p f32.Point) bool {
 	return !math.IsNaN(float64(p.X)) && !math.IsNaN(float64(p.Y)) &&
-		!math.IsInf(float64(p.X), 0) && !math.IsInf(float64(p.Y), 0) &&
-		p.Y == float32(math.Trunc(float64(p.Y)))
+		!math.IsInf(float64(p.X), 0) && !math.IsInf(float64(p.Y), 0)
+}
+
+func baselinePhase(y float32) fixed.Int26_6 {
+	return fixed.Int26_6(math.Round((float64(y) - math.Floor(float64(y))) * 64))
 }
 
 // A zero-ink anchor moves the fractional origin into glyph spacing. The

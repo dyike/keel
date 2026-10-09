@@ -4,7 +4,9 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sort"
 
+	"gioui.org/f32"
 	"gioui.org/gpu/headless"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -36,6 +38,8 @@ type GlyphAtlas struct {
 	// SubpixelPhases has the same meaning as GlyphPainter.SubpixelPhases.
 	// Zero preserves the exact horizontal positions.
 	SubpixelPhases           int
+	maxPages, maxColors      int
+	scratchBaseline          fixed.Int26_6
 	vector                   GlyphPainter
 	shaper                   *text.Shaper
 	window                   *headless.Window
@@ -59,20 +63,22 @@ type GlyphAtlas struct {
 type atlasMaskKey struct {
 	anchor, glyph text.GlyphID
 	phase         fixed.Int26_6
+	baseline      fixed.Int26_6
 }
 
-func maskKey(gs []text.Glyph) atlasMaskKey {
-	return atlasMaskKey{gs[0].ID, gs[1].ID, gs[1].X - gs[0].X}
+func maskKey(gs []text.Glyph, baseline fixed.Int26_6) atlasMaskKey {
+	return atlasMaskKey{gs[0].ID, gs[1].ID, gs[1].X - gs[0].X, baseline}
 }
 
 type pendingMask struct {
-	mask *atlasMask
-	path clip.PathSpec
+	mask     *atlasMask
+	path     clip.PathSpec
+	baseline fixed.Int26_6
 }
 
 type atlasMask struct {
 	ready       bool
-	wanted      [8]color.NRGBA
+	wanted      [32]color.NRGBA
 	wantedCount int
 	bitmap      op.CallOp
 	bounds      image.Rectangle
@@ -111,18 +117,24 @@ func (a *GlyphAtlas) BeginFrame(sh *text.Shaper) {
 // match the parameters used to shape gs. It may replace the shaper's iterator.
 // Cache limits or an unavailable offscreen GPU leave a run on the vector path.
 func (a *GlyphAtlas) Prepare(params text.Parameters, gs []text.Glyph, col color.NRGBA) {
+	a.prepare(params, gs, col, 0)
+}
+
+// baseline is the fractional vertical origin, baked into the coverage mask.
+// Keep the public atlas API at integral origins; GlyphRenderer owns positioning.
+func (a *GlyphAtlas) prepare(params text.Parameters, gs []text.Glyph, col color.NRGBA, baseline fixed.Int26_6) {
 	if a.shaper == nil || a.committed {
 		return
 	}
 	a.vector.walkFragments(a.shaper, params, gs, col, func(fragment []text.Glyph, _ fixed.Int26_6) {
-		key := maskKey(fragment)
+		key := maskKey(fragment, baseline)
 		m, known := a.masks[key]
 		if !known {
 			if len(a.masks) >= 4096 || a.frame > 1 && a.newMasks >= 32 {
 				return
 			}
 			_, f := a.vector.cachedFragment(a.shaper, fragment)
-			m = a.makeMask(f.path, fragment)
+			m = a.makeMask(f.path, fragment, baseline)
 			if m != nil {
 				m.bitmap = f.bitmap
 			}
@@ -145,7 +157,7 @@ func (a *GlyphAtlas) prepareColor(m *atlasMask, col color.NRGBA) {
 				return
 			}
 		}
-		if m.wantedCount < len(m.wanted) {
+		if m.wantedCount < a.colorLimit() {
 			m.wanted[m.wantedCount] = col
 			m.wantedCount++
 		}
@@ -155,7 +167,7 @@ func (a *GlyphAtlas) prepareColor(m *atlasMask, col color.NRGBA) {
 		a.pages[loc.page].used = a.frame
 		return
 	}
-	if len(m.colors) >= 8 {
+	if len(m.colors) >= a.colorLimit() {
 		return
 	}
 	loc, ok := a.allocate(m.bounds.Size())
@@ -198,15 +210,20 @@ func (a *GlyphAtlas) Commit() {
 // Paint draws a previously prepared run at the same origin as Shaper.Shape.
 // The caller owns clipping, baseline translation and semantic operations.
 func (a *GlyphAtlas) Paint(ops *op.Ops, params text.Parameters, gs []text.Glyph, col color.NRGBA) {
+	a.paint(ops, params, gs, col, 0)
+}
+
+func (a *GlyphAtlas) paint(ops *op.Ops, params text.Parameters, gs []text.Glyph, col color.NRGBA, baseline fixed.Int26_6) {
 	if len(gs) == 0 || a.shaper == nil {
 		return
 	}
 	if !a.committed {
+		defer op.Affine(f32.AffineId().Offset(f32.Pt(0, float32(baseline)/64))).Push(ops).Pop()
 		a.vector.Paint(ops, a.shaper, params, gs, col)
 		return
 	}
 	if !a.vector.walkFragments(a.shaper, params, gs, col, func(fragment []text.Glyph, displacement fixed.Int26_6) {
-		key := maskKey(fragment)
+		key := maskKey(fragment, baseline)
 		m := a.masks[key]
 		loc, ok := atlasLocation{}, false
 		if m != nil {
@@ -224,14 +241,14 @@ func (a *GlyphAtlas) Paint(ops *op.Ops, params text.Parameters, gs []text.Glyph,
 			cl.Pop()
 			imgTr.Pop()
 			if m.bitmap != (op.CallOp{}) {
-				tr := op.Offset(image.Pt(displacement.Round(), 0)).Push(ops)
+				tr := op.Affine(f32.AffineId().Offset(f32.Pt(float32(displacement.Round()), float32(baseline)/64))).Push(ops)
 				m.bitmap.Add(ops)
 				tr.Pop()
 			}
 		} else if m == nil || len(m.alpha) != 0 {
 			a.vectorDraws++
 			_, f := a.vector.cachedFragment(a.shaper, fragment)
-			tr := op.Offset(image.Pt(displacement.Round(), 0)).Push(ops)
+			tr := op.Affine(f32.AffineId().Offset(f32.Pt(float32(displacement.Round()), float32(baseline)/64))).Push(ops)
 			paint.ColorOp{Color: col}.Add(ops)
 			cl := clip.Outline{Path: f.path}.Op().Push(ops)
 			paint.PaintOp{}.Add(ops)
@@ -239,12 +256,13 @@ func (a *GlyphAtlas) Paint(ops *op.Ops, params text.Parameters, gs []text.Glyph,
 			f.bitmap.Add(ops)
 			tr.Pop()
 		} else if m.bitmap != (op.CallOp{}) {
-			tr := op.Offset(image.Pt(displacement.Round(), 0)).Push(ops)
+			tr := op.Affine(f32.AffineId().Offset(f32.Pt(float32(displacement.Round()), float32(baseline)/64))).Push(ops)
 			m.bitmap.Add(ops)
 			tr.Pop()
 		}
 	}) {
 		a.vectorDraws += uint64(len(gs))
+		defer op.Affine(f32.AffineId().Offset(f32.Pt(0, float32(baseline)/64))).Push(ops).Pop()
 		paintGlyphRun(ops, a.shaper, gs, col)
 	}
 }
@@ -270,11 +288,11 @@ func (a *GlyphAtlas) Release() {
 	if a.window != nil {
 		a.window.Release()
 	}
-	phases := a.SubpixelPhases
-	*a = GlyphAtlas{SubpixelPhases: phases}
+	phases, pages, colors := a.SubpixelPhases, a.maxPages, a.maxColors
+	*a = GlyphAtlas{SubpixelPhases: phases, maxPages: pages, maxColors: colors}
 }
 
-func (a *GlyphAtlas) makeMask(path clip.PathSpec, gs []text.Glyph) *atlasMask {
+func (a *GlyphAtlas) makeMask(path clip.PathSpec, gs []text.Glyph, baseline fixed.Int26_6) *atlasMask {
 	if a.failed {
 		return nil
 	}
@@ -284,7 +302,7 @@ func (a *GlyphAtlas) makeMask(path clip.PathSpec, gs []text.Glyph) *atlasMask {
 			continue
 		}
 		x := g.X - gs[0].X
-		bounds = bounds.Union(image.Rect((x + g.Bounds.Min.X).Floor(), g.Bounds.Min.Y.Floor(), (x + g.Bounds.Max.X).Ceil(), g.Bounds.Max.Y.Ceil()))
+		bounds = bounds.Union(image.Rect((x + g.Bounds.Min.X).Floor(), (g.Bounds.Min.Y + baseline).Floor(), (x + g.Bounds.Max.X).Ceil(), (g.Bounds.Max.Y + baseline).Ceil()))
 	}
 	if bounds.Empty() {
 		return &atlasMask{}
@@ -293,17 +311,14 @@ func (a *GlyphAtlas) makeMask(path clip.PathSpec, gs []text.Glyph) *atlasMask {
 	if bounds.Dx() > glyphMaskSide || bounds.Dy() > glyphMaskSide || a.maskBytes+bounds.Dx()*bounds.Dy() > glyphMaskLimit {
 		return nil
 	}
-	if len(a.pending) == glyphMaskBatch {
-		a.flushMasks()
-	}
-	if a.failed {
-		return nil
-	}
+	// Reserve the frame's bounded masks before Commit. Flushing while runs
+	// are prepared would interleave vertical phases and recreate the scratch
+	// renderer for each small batch instead of once per phase.
 	a.newMasks++
 	a.lastMaskFrame = a.frame
 	m := &atlasMask{bounds: bounds, alpha: make([]byte, bounds.Dx()*bounds.Dy()), colors: make(map[color.NRGBA]atlasLocation)}
 	a.maskBytes += len(m.alpha)
-	a.pending = append(a.pending, pendingMask{mask: m, path: path})
+	a.pending = append(a.pending, pendingMask{mask: m, path: path, baseline: baseline})
 	return m
 }
 
@@ -315,9 +330,36 @@ func (a *GlyphAtlas) flushMasks() {
 		return
 	}
 	defer func() { clear(a.pending); a.pending = a.pending[:0] }()
+	// Gio reuses path coverage without a fractional translation in its cache key.
+	// Isolate vertical phases so one cached coverage cannot rasterize another phase.
+	sort.Slice(a.pending, func(i, j int) bool { return a.pending[i].baseline < a.pending[j].baseline })
+	for start := 0; start < len(a.pending); {
+		end := start + 1
+		for end < len(a.pending) && end-start < glyphMaskBatch && a.pending[end].baseline == a.pending[start].baseline {
+			end++
+		}
+		a.flushMaskBatch(a.pending[start:end])
+		start = end
+	}
+}
+
+func (a *GlyphAtlas) colorLimit() int {
+	if a.maxColors == 0 {
+		return 8
+	}
+	return min(a.maxColors, 32)
+}
+
+func (a *GlyphAtlas) flushMaskBatch(pending []pendingMask) {
 	if a.failed {
 		return
 	}
+	if a.window != nil && a.scratchBaseline != pending[0].baseline {
+		a.window.Release()
+		a.window = nil
+		a.scratch = op.Ops{}
+	}
+	a.scratchBaseline = pending[0].baseline
 	if a.window == nil {
 		w, err := headless.NewWindow(glyphMaskSheet, glyphMaskSheet)
 		if err != nil {
@@ -327,14 +369,16 @@ func (a *GlyphAtlas) flushMasks() {
 		a.window = w
 	}
 	a.scratch.Reset()
-	for i, p := range a.pending {
+	for i, p := range pending {
 		tile := image.Pt(i%8*glyphMaskSide, i/8*glyphMaskSide)
 		area := clip.Rect(image.Rectangle{Min: tile, Max: tile.Add(image.Pt(glyphMaskSide, glyphMaskSide))}).Push(&a.scratch)
 		tr := op.Offset(tile.Sub(p.mask.bounds.Min)).Push(&a.scratch)
+		phase := op.Affine(f32.AffineId().Offset(f32.Pt(0, float32(p.baseline)/64))).Push(&a.scratch)
 		paint.ColorOp{Color: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}.Add(&a.scratch)
 		cl := clip.Outline{Path: p.path}.Op().Push(&a.scratch)
 		paint.PaintOp{}.Add(&a.scratch)
 		cl.Pop()
+		phase.Pop()
 		tr.Pop()
 		area.Pop()
 	}
@@ -350,7 +394,7 @@ func (a *GlyphAtlas) flushMasks() {
 		return
 	}
 	a.maskBatches++
-	for i, p := range a.pending {
+	for i, p := range pending {
 		m := p.mask
 		tile := image.Pt(i%8*glyphMaskSide, i/8*glyphMaskSide)
 		hasInk := false
@@ -413,7 +457,11 @@ func (a *GlyphAtlas) allocate(size image.Point) (atlasLocation, bool) {
 			return atlasLocation{i, rect}, true
 		}
 	}
-	if len(a.pages) < glyphAtlasPages {
+	limit := a.maxPages
+	if limit == 0 {
+		limit = glyphAtlasPages
+	}
+	if len(a.pages) < limit {
 		p := &atlasPage{pixels: image.NewRGBA(image.Rect(0, 0, glyphAtlasSide, glyphAtlasSide)), dirty: true, used: a.frame}
 		a.pages = append(a.pages, p)
 		r, _ := p.place(size)
