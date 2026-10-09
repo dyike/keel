@@ -112,3 +112,8 @@ leave nested modules out. So:
   state live in the reused `Buffer` instead of 1.3 KB and more allocated per
   run. Shaping output is identical for 239 macOS faces with `morx`; text
   allocation in the benchmark grid scene halved.
+- `typesetting/fontscan`: `FontMap.ResolveFace` resolves ASCII runes from a
+  per-query table and hashes the query's families once per `SetQuery`
+  instead of once per rune. `SetQuery` and `SetScript` keep the caches when
+  the query or script is unchanged; Gio calls both for every run of text it
+  shapes. A test checks that cached and fresh maps resolve the same faces.

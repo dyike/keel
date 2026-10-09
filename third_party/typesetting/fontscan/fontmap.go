@@ -67,6 +67,14 @@ type FontMap struct {
 	scriptMap map[language.Script][]int
 	lru       runeLRU
 
+	// Keel patch: ResolveFace runs for every rune shaped. queryHash is the
+	// hash of query's families, computed once per query instead of per rune,
+	// and ascii holds the faces of ASCII runes for the current query and
+	// script, skipping the LRU for most text. See resetRuneCaches.
+	queryHash   uint64
+	queryHashed bool
+	ascii       [128]*font.Face
+
 	// built holds whether the candidates are populated.
 	built bool
 	// the candidates for the current query, which influences ResolveFace output
@@ -133,6 +141,7 @@ func (fm *FontMap) UseSystemFonts(cacheDir string) error {
 	fm.built = false
 
 	fm.lru.Clear()
+	fm.resetRuneCaches()
 	return nil
 }
 
@@ -282,6 +291,7 @@ func (fm *FontMap) AddFont(fontFile font.Resource, fileID, familyName string) er
 	fm.built = false
 
 	fm.lru.Clear()
+	fm.resetRuneCaches()
 	return nil
 }
 
@@ -298,6 +308,7 @@ func (fm *FontMap) AddFace(face *font.Face, location Location, md font.Descripti
 
 	fm.built = false
 	fm.lru.Clear()
+	fm.resetRuneCaches()
 }
 
 func (fm *FontMap) cache(fp Footprint, face *font.Face) {
@@ -368,15 +379,46 @@ func (fm *FontMap) SetQuery(query Query) {
 	if len(query.Families) == 0 {
 		query.Families = []string{""}
 	}
+	// Keel patch: an unchanged query keeps its candidates and caches; text
+	// shapers set it for every string they lay out.
+	if query.Aspect == fm.query.Aspect && equalFamilies(query.Families, fm.query.Families) {
+		return
+	}
 	fm.query = query
 	fm.built = false
+	fm.resetRuneCaches()
 }
 
 // SetScript set the script to which the (next) runes passed to [ResolveFace]
 // belongs, influencing the choice of fallback fonts.
 func (fm *FontMap) SetScript(s language.Script) {
+	if s == fm.script {
+		return // Keel patch: see SetQuery
+	}
 	fm.script = s
 	fm.built = false
+	fm.ascii = [128]*font.Face{}
+}
+
+// resetRuneCaches drops what ResolveFace derived from the query, script
+// and faces (Keel patch). The candidates are rebuilt too: upstream rebuilt
+// them on every SetQuery, which now returns early for an unchanged query.
+func (fm *FontMap) resetRuneCaches() {
+	fm.queryHashed = false
+	fm.ascii = [128]*font.Face{}
+	fm.built = false
+}
+
+func equalFamilies(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // candidates is a cache storing the indices into FontMap.database of footprints matching a Query
@@ -509,7 +551,21 @@ func (fm *FontMap) resolveForLang(candidates []int, lang LangID) *font.Face {
 // This face will be nil only if the underlying font database is empty,
 // or if the file system is broken; otherwise the returned [font.Face] is always valid.
 func (fm *FontMap) ResolveFace(r rune) (face *font.Face) {
-	key := fm.lru.KeyFor(fm.query, fm.script, r)
+	if 0 <= r && r < 128 {
+		if face := fm.ascii[r]; face != nil {
+			return face
+		}
+		defer func() {
+			if face != nil {
+				fm.ascii[r] = face
+			}
+		}()
+	}
+	if !fm.queryHashed {
+		fm.queryHash = fm.lru.familiesHash(fm.query)
+		fm.queryHashed = true
+	}
+	key := fm.lru.keyForHash(fm.queryHash, fm.query, fm.script, r)
 	face, ok := fm.lru.Get(key, fm.query)
 	if ok {
 		return face
