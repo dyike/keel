@@ -135,11 +135,17 @@ When writing your own Gio drawing code, you can use `theme.Scope(p)` to temporar
 
 `theme.Face` specifies the font priority of the main text, with glyph fallback; `theme.MonoFace` specifies the same-width font priority. The desktop version gives priority to using system fonts, and fonts are only used when the system does not have corresponding fonts.
 
-`MonoFace` tries monospaced families first, then reuses the full `Face` fallback list for CJK and other missing glyphs. On macOS without an indexed PingFang face, this lets terminal text use Hiragino Sans GB, as body text does, instead of an arbitrary Han fallback such as Arial Unicode MS. Font memory and Chinese glyph appearance depend on the resolved family; Latin text retains its monospaced font.
+`MonoFace` tries monospaced families first, then reuses the full `Face` fallback list for CJK and other missing glyphs, so terminal text uses the same Chinese face as body text instead of an arbitrary Han fallback such as Arial Unicode MS. Latin text retains its monospaced font. On macOS, Keel's go-text copy also indexes the system font assets (`/System/Library/AssetsV2`), where PingFang lives; with upstream go-text, Chinese falls back to Hiragino Sans GB.
 
 `theme.LoadFonts(data...)` receives the byte content of TTF, OTF, and TTC files, and redraws all windows after loading. The browser downloads and loads through `theme.FetchFonts("font.ttf")`; for Chinese font preparation, see [Run](web.md#build) in the browser.
 
 `BodySize` / `SmallSize` / `HeadingSize` are 15 / 13 / 22sp respectively, and the standard single-line field height is `ControlHeight` (36dp). `theme.Material`'s glyph formatter can be reused when drawing directly with Gio.
+
+### Platform text (macOS)
+
+With Keel's Gio and go-text copies (see `third_party/README.md`), macOS draws solid-color text with CoreText, as native and WebKit apps do: the same antialiasing, stem darkening and gamma, where Gio's vector outlines blended in linear light looked thin and grey. Shaping, layout and metrics stay Gio's; only glyph pixels change. Labels, inputs, rich ranges, markdown, the code editor, shimmer and `GlyphRenderer` use it. Text CoreText cannot draw — fonts built in memory, color emoji, sizes over 160 px — keeps vector outlines. Masks are cached in up to eight 1024×1024 pages (32 MiB).
+
+`theme.PaintGlyphs(ops, shaper, glyphs, color, origin)` draws one shaped line the same way from custom code; `theme.PlatformText(shaper)` reports whether a shaper uses it. `theme.UsePlatformText(false)`, or `KEEL_TEXT=vector` in the environment, keeps vector outlines for comparison. With upstream Gio the hooks are absent and text keeps vector outlines.
 
 ## Reduced motion
 

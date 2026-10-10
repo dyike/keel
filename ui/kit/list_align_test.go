@@ -28,15 +28,17 @@ func TestAlignedOffset(t *testing.T) {
 
 func TestVirtualListsScrollToAlign(t *testing.T) {
 	var cx *el.Context
-	vl := VirtualList(100, 30, func(cx *el.Context, i int) el.Element { return el.Text("v" + strconv.Itoa(i)) }).Height(300)
+	// Name the 30dp row, not its text: a label's line box depends on the font.
+	vl := VirtualList(100, 30, func(cx *el.Context, i int) el.Element {
+		return el.Div().HFull().Name("v" + strconv.Itoa(i)).Child(el.Text("v" + strconv.Itoa(i)))
+	}).Height(300)
 	vroot := el.Root(viewFunc(func(c *el.Context) el.Element { cx = c; return el.Div().Child(vl.Render(c)) }))
 	h := uitest.NewFunc(func(gtx core.C) { gtx.Constraints.Max = image.Pt(300, 400); vroot.Layout(gtx) })
 	settle(h)
 	for align, want := range map[ScrollAlign]int{ScrollStart: 15, ScrollCenter: 150, ScrollEnd: 285} {
 		vl.ScrollToAlign(cx, 50, align)
 		settle(h)
-		// The label's box carries its optical text shift; allow a pixel.
-		if r := bounds(h, "v50"); abs((r.Min.Y+r.Max.Y)/2-want) > 1 {
+		if r := bounds(h, "v50"); (r.Min.Y+r.Max.Y)/2 != want {
 			t.Fatalf("align %d: row at %v, want center %d", align, r, want)
 		}
 	}
@@ -66,5 +68,3 @@ func TestVirtualListsScrollToAlign(t *testing.T) {
 		t.Fatalf("variable list end: row at %v", r)
 	}
 }
-
-func abs(n int) int { return max(n, -n) }

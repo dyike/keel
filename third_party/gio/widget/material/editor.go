@@ -75,6 +75,7 @@ func (e EditorStyle) Layout(gtx layout.Context) layout.Dimensions {
 		MaxLines:        maxlines,
 		LineHeight:      e.LineHeight,
 		LineHeightScale: e.LineHeightScale,
+		Color:           &e.HintColor,
 	}
 	dims := tl.Layout(gtx, e.shaper, e.Font, e.TextSize, e.Hint, hintColor)
 	call := macro.Stop()
@@ -87,6 +88,7 @@ func (e EditorStyle) Layout(gtx layout.Context) layout.Dimensions {
 	}
 	e.Editor.LineHeight = e.LineHeight
 	e.Editor.LineHeightScale = e.LineHeightScale
+	e.Editor.Color = &e.Color
 	dims = e.Editor.Layout(gtx, e.shaper, e.Font, e.TextSize, textColor, selectionColor)
 	if e.Editor.Len() == 0 {
 		call.Add(gtx.Ops)

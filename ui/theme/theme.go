@@ -77,6 +77,7 @@ var Material = newMaterial()
 func lazyShaper(faces []font.FontFace) *text.Shaper {
 	sh := new(text.Shaper)
 	text.WithCollection(faces)(sh)
+	installPlatformText(sh)
 	return sh
 }
 

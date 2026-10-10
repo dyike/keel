@@ -424,16 +424,7 @@ func (v *CodeEditorView) paintTextFace(gtx core.C, face font.Font, s string, at 
 	if len(glyphs) == 0 {
 		return
 	}
-	sh := theme.Material.Shaper
-	t := op.Affine(f32.AffineId().Offset(f32.Pt(float32(at.X)+float32(glyphs[0].X.Round()), float32(at.Y)))).Push(gtx.Ops)
-	outline := clip.Outline{Path: sh.Shape(glyphs)}.Op().Push(gtx.Ops)
-	paint.ColorOp{Color: c}.Add(gtx.Ops)
-	paint.PaintOp{}.Add(gtx.Ops)
-	outline.Pop()
-	if call := sh.Bitmaps(glyphs); call != (op.CallOp{}) {
-		call.Add(gtx.Ops)
-	}
-	t.Pop()
+	theme.PaintGlyphs(gtx.Ops, theme.Material.Shaper, glyphs, c, f32.Pt(float32(at.X)+float32(glyphs[0].X.Round()), float32(at.Y)))
 }
 
 func (v *CodeEditorView) paintGutter(gtx core.C, row int) {

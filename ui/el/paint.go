@@ -1038,8 +1038,9 @@ func (e *engine) textShift(n *Node, sc script) int {
 	shift := 0
 	if found {
 		// The line box runs from -boxAscent to +boxDescent around the baseline.
-		// Round: truncating left CJK a visible half-pixel step high at 2x.
-		shift = int(math.Round(float64((boxDescent-boxAscent)-(bodyTop+bodyBottom)) / 2))
+		// Round halves down (positive): truncating, or rounding -0.5 away
+		// from zero, left CJK a visible half-pixel step high at 2x.
+		shift = int(math.Floor(float64((boxDescent-boxAscent)-(bodyTop+bodyBottom))/2 + 0.5))
 		shift = max(min(shift, max(boxDescent-lowest, 0)), min(-boxAscent-highest, 0))
 	}
 	shifts[key] = shift

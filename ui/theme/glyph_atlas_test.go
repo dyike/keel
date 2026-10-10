@@ -17,6 +17,9 @@ import (
 )
 
 func TestGlyphAtlasPixels(t *testing.T) {
+	// These cover the vector atlas; macOS CoreText text replaces it.
+	UsePlatformText(false)
+	defer UsePlatformText(true)
 	w, err := headless.NewWindow(600, 150)
 	if err != nil {
 		t.Skip(err)
@@ -86,6 +89,9 @@ func TestGlyphAtlasPixels(t *testing.T) {
 }
 
 func TestGlyphAtlasPagesImmutableAndBounded(t *testing.T) {
+	// These cover the vector atlas; macOS CoreText text replaces it.
+	UsePlatformText(false)
+	defer UsePlatformText(true)
 	var a GlyphAtlas
 	a.frame = 1
 	for i := 0; i < glyphAtlasPages; i++ {
@@ -127,6 +133,9 @@ func TestGlyphAtlasPagesImmutableAndBounded(t *testing.T) {
 }
 
 func TestGlyphAtlasMaskLimitsAndShaperReset(t *testing.T) {
+	// These cover the vector atlas; macOS CoreText text replaces it.
+	UsePlatformText(false)
+	defer UsePlatformText(true)
 	sh := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
 	var a GlyphAtlas
 	defer a.Release()
@@ -151,6 +160,9 @@ func TestGlyphAtlasMaskLimitsAndShaperReset(t *testing.T) {
 }
 
 func TestGlyphAtlasBatchesAndDeferredColors(t *testing.T) {
+	// These cover the vector atlas; macOS CoreText text replaces it.
+	UsePlatformText(false)
+	defer UsePlatformText(true)
 	sh := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
 	var a GlyphAtlas
 	defer a.Release()
@@ -266,6 +278,9 @@ func TestGlyphAtlasBatchesAndDeferredColors(t *testing.T) {
 }
 
 func TestGlyphAtlasTrimsOnlyTransparentPixels(t *testing.T) {
+	// These cover the vector atlas; macOS CoreText text replaces it.
+	UsePlatformText(false)
+	defer UsePlatformText(true)
 	for _, tc := range []struct {
 		name string
 		ink  image.Rectangle
@@ -312,6 +327,9 @@ func TestGlyphAtlasTrimsOnlyTransparentPixels(t *testing.T) {
 }
 
 func TestGlyphAtlasSharesColors(t *testing.T) {
+	// These cover the vector atlas; macOS CoreText text replaces it.
+	UsePlatformText(false)
+	defer UsePlatformText(true)
 	if !atlasTintSupported {
 		t.Skip("Gio build has no tinted image extension")
 	}

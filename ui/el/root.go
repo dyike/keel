@@ -197,6 +197,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	st := r.store
 	if live {
 		st.frame++
+		theme.BeginTextFrame()
 	}
 	e := &r.e
 	e.beginTextMeasurements()

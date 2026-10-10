@@ -201,9 +201,12 @@ type runLayout struct {
 // shaperImpl implements the shaping and line-wrapping of opentype fonts.
 type shaperImpl struct {
 	// Fields for tracking fonts/faces.
-	fontMap      *fontscan.FontMap
-	faces        []*font.Face
-	faceToIndex  map[*font.Font]int
+	fontMap     *fontscan.FontMap
+	faces       []*font.Face
+	faceToIndex map[*font.Font]int
+	// sources maps faces to their files; collection faces without a file
+	// map to an empty location. Keel patch for platform glyph rasterizers.
+	sources      map[*font.Font]fontscan.Location
 	faceMeta     []giofont.Font
 	defaultFaces []string
 	logger       interface {
@@ -250,6 +253,7 @@ func newShaperImpl(systemFonts bool, collection []FontFace) *shaperImpl {
 	shaper.logger = newDebugLogger()
 	shaper.fontMap = fontscan.NewFontMap(shaper.logger)
 	shaper.faceToIndex = make(map[*font.Font]int)
+	shaper.sources = make(map[*font.Font]fontscan.Location)
 	if systemFonts {
 		str, err := os.UserCacheDir()
 		if err != nil {
@@ -275,6 +279,12 @@ func (s *shaperImpl) Load(f FontFace) {
 	desc := opentype.FontToDescription(f.Font)
 	face := f.Face.Face()
 	s.fontMap.AddFace(face, fontscan.Location{File: fmt.Sprint(desc)}, desc)
+	var loc fontscan.Location
+	if src, ok := f.Face.(giofont.FaceSource); ok {
+		path, index := src.Source()
+		loc = fontscan.Location{File: path, Index: uint16(index)}
+	}
+	s.sources[face.Font] = loc
 	s.addFace(face, f.Font)
 }
 
@@ -824,4 +834,22 @@ func toLine(faceToIndex map[*font.Font]int, o shaping.Line, dir system.TextDirec
 		x += line.runs[runIdx].Advance
 	}
 	return line
+}
+
+// glyphFile reports the font file of id's face. Keel patch.
+func (s *shaperImpl) glyphFile(id GlyphID) (string, int, fixed.Int26_6, uint16, bool) {
+	ppem, faceIdx, gid := splitGlyphID(id)
+	if faceIdx >= len(s.faces) || s.faces[faceIdx] == nil {
+		return "", 0, 0, 0, false
+	}
+	face := s.faces[faceIdx]
+	loc, collection := s.sources[face.Font]
+	if !collection {
+		loc = s.fontMap.FontLocation(face.Font)
+	}
+	// Variable instances and coordinates would draw a different design.
+	if loc.File == "" || loc.Instance != 0 || len(face.Coords()) != 0 || gid > 0xffff {
+		return "", 0, 0, 0, false
+	}
+	return loc.File, int(loc.Index), ppem, uint16(gid), true
 }

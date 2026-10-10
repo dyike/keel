@@ -2,13 +2,16 @@ package theme
 
 import (
 	"container/list"
+	"image"
+	"image/color"
+	"math"
+
 	"gioui.org/f32"
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"golang.org/x/image/math/fixed"
-	"image/color"
 )
 
 // GlyphPainter paints shaped single-line text using reusable vector fragments.
@@ -183,6 +186,25 @@ func (p *GlyphPainter) paintFragment(ops *op.Ops, sh *text.Shaper, gs []text.Gly
 	if f.bitmap != (op.CallOp{}) {
 		f.bitmap.Add(ops)
 	}
+}
+
+// PaintGlyphs draws one line of glyphs in a solid color, placed as
+// Shaper.Shape places them, with the run's origin at origin in the current
+// transform. On macOS CoreText draws them as native text looks; elsewhere,
+// and for glyphs it cannot draw, they are filled vector outlines.
+func PaintGlyphs(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA, origin f32.Point) {
+	if len(gs) == 0 {
+		return
+	}
+	x, y := math.Floor(float64(origin.X)), math.Floor(float64(origin.Y))
+	tr := op.Offset(image.Pt(int(x), int(y))).Push(ops)
+	drawn := platformPaintRun(ops, sh, gs, col, origin.X-float32(x), origin.Y-float32(y))
+	tr.Pop()
+	if drawn {
+		return
+	}
+	defer op.Affine(f32.AffineId().Offset(origin)).Push(ops).Pop()
+	paintGlyphRun(ops, sh, gs, col)
 }
 
 func paintGlyphRun(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA) {

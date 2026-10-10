@@ -221,6 +221,7 @@ type Shaper struct {
 	}
 	initialized      bool
 	shaper           shaperImpl
+	rasterHook       RasterHook // Keel patch
 	pathCache        pathCache
 	bitmapShapeCache bitmapShapeCache
 	layoutCache      layoutCache
@@ -644,6 +645,16 @@ func (l *Shaper) Shape(gs []Glyph) clip.PathSpec {
 	shape = l.shaper.Shape(pathOps, gs)
 	l.pathCache.Put(key, gs, shape)
 	return shape
+}
+
+// GlyphFile reports the font file a glyph's face was read from, the face's
+// index in a collection, the glyph's size and its id in the face, for
+// platform rasterizers that draw the same face. It reports false for faces
+// built in memory, variable font instances and faces with variation
+// coordinates. Keel patch; it uses only upstream types, so Keel can detect it.
+func (l *Shaper) GlyphFile(id GlyphID) (path string, index int, ppem fixed.Int26_6, gid uint16, ok bool) {
+	l.init()
+	return l.shaper.glyphFile(id)
 }
 
 // Bitmaps extracts bitmap glyphs from the provided slice and creates an op.CallOp to present

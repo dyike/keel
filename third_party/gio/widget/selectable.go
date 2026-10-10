@@ -2,6 +2,7 @@ package widget
 
 import (
 	"image"
+	"image/color"
 	"io"
 	"math"
 	"strings"
@@ -54,6 +55,9 @@ func (s stringSource) ReplaceRunes(byteOffset, runeCount int64, str string) {
 type Selectable struct {
 	// Alignment controls the alignment of the text.
 	Alignment text.Alignment
+	// Color, when set, is the solid color the text material paints. It lets
+	// the shaper's text.RasterHook draw the glyphs. Keel patch.
+	Color *color.NRGBA
 	// MaxLines is the maximum number of lines of text to be displayed.
 	MaxLines int
 	// Truncator is the symbol to use at the end of the final line of text
@@ -112,7 +116,7 @@ func (l *Selectable) paintSelection(gtx layout.Context, material op.CallOp) {
 // paintText paints the text glyphs with the provided material.
 func (l *Selectable) paintText(gtx layout.Context, material op.CallOp) {
 	l.initialize()
-	l.text.PaintText(gtx, material)
+	l.text.paintText(gtx, material, l.Color)
 }
 
 // SelectionLen returns the length of the selection, in runes; it is

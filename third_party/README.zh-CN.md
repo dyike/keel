@@ -69,3 +69,5 @@ replace (
 - `gio/text`、`typesetting/shaping`、`typesetting/harfbuzz`：缓存已解析字体族，
   为符合条件的文本跳过多余换行和分段，复用规范化临时空间，避免复制整份
   shaping-plan 键。快速路径保留 Unicode 强制换行，并配有回归测试。
+- `typesetting/fontscan`（macOS）：额外扫描 `/System/Library/AssetsV2/com_apple_MobileAsset_Font*`，当前 macOS 把苹方等系统字体放在这里。否则"PingFang SC"永远解析不到，中文回退到冬青黑 W3，且没有 Medium、Semibold。`fontscan/scan_darwin_test.go` 验证三种字重都能解析。
+- `gio/text`、`gio/font`、`gio/widget`、`gio/widget/material`：平台字形光栅化。`Shaper.GlyphFile(id)` 返回字形所在的字体文件、集合内序号、字号和字形 id（实现 `font.FaceSource` 的字体保留路径；内置字体、可变字体实例和设置了变体坐标的字体返回 false）。`Shaper.SetRasterHook` 注册绘制一行纯色字形的函数；`Label`、`Editor`、`Selectable` 新增可选的 `Color`（由 `material.LabelStyle` 和 `EditorStyle` 设置），有挂钩时每行按整像素平移并把小数部分交给挂钩，挂钩返回 false 时回退到轮廓。Keel 的 theme 在 macOS 上设置挂钩，用 CoreText 绘制；两个接口只用上游类型，Keel 通过接口断言检测，仍可在上游 Gio 上编译。
