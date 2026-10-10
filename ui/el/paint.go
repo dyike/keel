@@ -59,6 +59,9 @@ func textFont(ts textStyle) font.Font {
 	if ts.weight != nil {
 		f.Weight = *ts.weight
 	}
+	if ts.italic != nil && *ts.italic {
+		f.Style = font.Italic
+	}
 	return f
 }
 
@@ -249,6 +252,19 @@ func (e *engine) paintContent(n *Node) {
 		}
 		if n.disabledStyle != nil {
 			n.disabledStyle(&st)
+		}
+	}
+	if theme.Frameless {
+		st.borderWidth = 0
+		if !n.effectiveDisabled && ((n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus) || (n.input != nil && gtx.Focused(&state.editor))) {
+			bg := theme.Highlight
+			if st.bg != nil && st.bg.A != 0 {
+				bg = *st.bg
+				bg.R = uint8((4*uint16(bg.R) + uint16(theme.Muted.R)) / 5)
+				bg.G = uint8((4*uint16(bg.G) + uint16(theme.Muted.G)) / 5)
+				bg.B = uint8((4*uint16(bg.B) + uint16(theme.Muted.B)) / 5)
+			}
+			st.Bg(bg)
 		}
 	}
 	// Visual text-color variants inherit without changing measured text metrics.
@@ -559,11 +575,16 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	// A single-line box has no use for ↑ ↓ PageUp PageDown beyond jumping to
 	// its ends, so OnKey takes them before the editor sees them. Escape also
 	// reaches the handler for inline controls; modal layers handle it earlier.
-	if n.onKey != nil && !spec.multiline && gtx.Enabled() {
-		filters := []event.Filter{
-			key.Filter{Focus: ed, Name: key.NameUpArrow}, key.Filter{Focus: ed, Name: key.NameDownArrow},
-			key.Filter{Focus: ed, Name: key.NamePageUp}, key.Filter{Focus: ed, Name: key.NamePageDown},
-			key.Filter{Focus: ed, Name: key.NameEscape},
+	// A multiline box keeps those keys for editing; it gives OnKey only the
+	// keys it captures, e.g. a plain Enter to send while Shift+Enter breaks
+	// the line. An input method composing text consumes Enter first.
+	if n.onKey != nil && (!spec.multiline || len(spec.captureKeys) > 0) && gtx.Enabled() {
+		var filters []event.Filter
+		if !spec.multiline {
+			filters = append(filters,
+				key.Filter{Focus: ed, Name: key.NameUpArrow}, key.Filter{Focus: ed, Name: key.NameDownArrow},
+				key.Filter{Focus: ed, Name: key.NamePageUp}, key.Filter{Focus: ed, Name: key.NamePageDown},
+				key.Filter{Focus: ed, Name: key.NameEscape})
 		}
 		for _, name := range spec.captureKeys {
 			if name != "" {

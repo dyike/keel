@@ -93,7 +93,7 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 | 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`、`Ml`、`Mr`（外边距），单位 dp |
 | 滚动与定位 | `ScrollX()` 横向滚动（需要约束宽度）、`ScrollY()` 纵向滚动（需要确定的高度），`StickToBottom()` 跟随到底，`ScrollToEndOn(v)` 在 v 变化时跳到底部；`Absolute()` + `Top/Right/Bottom/Left` 绝对定位，同时给左右会拉伸宽度 |
 | 外观 | `Bg(c)`、`Border(dp, c)`、`Rounded(dp)`（用 `theme.RadiusSm/Md/Lg/Xl/Full`），`RoundedCorners(左上, 右上, 右下, 左下)` 分别设置四个角，比如按钮组只圆外侧的角、`Shadow(theme.ElevationSm/Md/Lg)` 阴影画在元素外面、不改变尺寸，`Opacity(a)` 设置整个子树 0–1 透明度（0 完全不绘制，仍保留布局和交互），`CursorPointer()`、`Hidden(b)`、`IsHidden()`（读取本元素声明的隐藏值，不包含祖先） |
-| 文字（向下继承） | `TextColor(c)`、`TextSize(sp)`（用 `theme.TextXs` … `theme.TextHeading`）、`Bold()`、`Medium()`、`Mono()` 等宽字体（`theme.MonoFace`）、`LineHeight(倍数)`、`MaxLines(n)` |
+| 文字（向下继承） | `TextColor(c)`、`TextSize(sp)`（用 `theme.TextXs` … `theme.TextHeading`）、`Bold()`、`Medium()`、`Mono()` 等宽字体（`theme.MonoFace`）、`Italic()` 斜体、`LineHeight(倍数)`、`MaxLines(n)` |
 | 状态变体 | `Hover(func(*el.Style))`、`Active(func(*el.Style))`：悬停、按下时的颜色变化，背景在 120ms 内渐变过去；开启减少动画（`theme.SetReducedMotion`，自动化模式默认开启）时直接切换 |
 | 交互 | `OnClick(fn)`、`OnDoubleClick(fn)` |
 | 结构 | `ID(s)`、`Child(...)`、`Children(slice)`、`When(cond, func(*T))` |
@@ -401,7 +401,7 @@ row := el.Div().Row().Items(el.ContentBottom).Child(avatar, body)
 
 布局使用当前帧尺寸计算对齐线以上和以下所需空间，支持 Row 和 Wrap 的每一行。目标不接受绝对定位节点；容器显式限高时仍遵守限高。此模式不用于纵向容器或 Grid。
 
-`el.Input().SelectOnFocus(true)` 在获得焦点时选中全部内容。`CaptureKeys(names...)` 让单行输入的 OnKey 提前接收指定的无修饰键；这些键由回调完全负责，返回 false 也不会交还编辑器，带修饰键的快捷键不受影响。`cx.SelectInput(id, start, end)` 在下一次 Bind 同步后设置 rune 选区，不改变焦点或文字；端点由编辑器限制到有效范围，缺失或禁用输入忽略。上述接口用于 TimeField 的快速分段编辑，已验证中文 rune 选区、范围限制及带修饰键的编辑行为。
+`el.Input().SelectOnFocus(true)` 在获得焦点时选中全部内容。`CaptureKeys(names...)` 让 OnKey 先于编辑器接收指定的无修饰键，单行输入和 `TextArea` 都适用；这些键由回调完全负责，返回 false 也不会交还编辑器。带修饰键的按键不受影响，因此捕获 `⏎` 发送的 `TextArea` 仍可用 Shift+Enter 换行；输入法组字时 Enter 由输入法自己处理。`cx.SelectInput(id, start, end)` 在下一次 Bind 同步后设置 rune 选区，不改变焦点或文字；端点由编辑器限制到有效范围，缺失或禁用输入忽略。上述接口用于 TimeField 的快速分段编辑，已验证中文 rune 选区、范围限制及带修饰键的编辑行为。
 
 `el.Input().TransformEdit(func(before, after el.InputEdit) el.InputEdit)` 在编辑归一化时同时提供编辑前后的文本及 rune 选区，适合格式掩码判断删除方向。它与 Transform 互斥，后配置者生效；撤销重做保存归一化后的文本与选区，程序 Bind 更新仍清空历史。已通过掩码删除和撤销重做回归。
 

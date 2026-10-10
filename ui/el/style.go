@@ -127,6 +127,7 @@ type textStyle struct {
 	size       unit.Sp
 	weight     *font.Weight
 	mono       *bool
+	italic     *bool
 	lineHeight float32 // multiple of the size; 0 keeps the font's own
 	lines      int
 }
@@ -146,6 +147,9 @@ func (t textStyle) inherit(parent textStyle) textStyle {
 	}
 	if t.mono == nil {
 		t.mono = parent.mono
+	}
+	if t.italic == nil {
+		t.italic = parent.italic
 	}
 	if t.lineHeight == 0 {
 		t.lineHeight = parent.lineHeight
