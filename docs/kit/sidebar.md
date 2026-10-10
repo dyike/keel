@@ -34,6 +34,8 @@ nav := kit.Sidebar().
 
 Options structures are copied recursively; IconView, Suffix and ContextMenu retain the passed-in instance. The ID of the entire Sidebar must be non-empty and unique; when the new Section contains empty values or duplicate IDs, the entire group will not be added. Parent disabling does not implicitly disable children.
 
+Sidebar skips painting rows outside the scroll viewport, but still constructs and lays out the expanded rows each frame; it is not a fully virtualized list. Menu cleanup visits the complete model once with a set of listed IDs, and row hover/focus queries reuse el's per-render indexes. The regression tests cover 1000 rows at 1x/2x, offscreen paint, keyboard reveal/activation and menu closure after collapsing a parent. Run `go test ./ui/kit -run '^$' -bench BenchmarkSidebarScroll -benchmem` to measure flat lists and closed project trees with per-item menus and hover suffixes.
+
 Agent: container role `navigation`; the leaf item is `link`, the branch is `button` with an expanded Boolean value, `selected` represents the current page; the collapse button is named "Collapse Sidebar" and "Expand Sidebar".
 
 Verify: `go run ./examples/components -section sidebar`, add `-theme dark` to check the dark theme.

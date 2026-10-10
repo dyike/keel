@@ -218,6 +218,8 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 			frame := el.Div().ID(frameID).Row().Items(el.Center).H(el.Dp(36)).Rounded(theme.RadiusLg).Disabled(disabled)
 			if on {
 				frame.Bg(theme.Subtle)
+			} else if !disabled {
+				frame.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 			}
 			suffix := el.Div().ID(prefix + "/" + it.ID + "/suffix").NoShrink().MaxW(el.Dp(v.width / 2)).Pr(theme.SpaceSm).Child(it.Suffix.Render(cx))
 			if it.SuffixOnHover && !cx.Hovered(frameID) && !cx.FocusVisible(prefix+"/"+it.ID) && !cx.FocusWithin(prefix+"/"+it.ID+"/suffix") && (it.ContextMenu == nil || !it.ContextMenu.Value()) {
@@ -276,11 +278,24 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 		v.expandParents(v.revealID)
 	}
 	ids := v.ids()
-	for _, id := range v.allIDs() {
-		it := v.find(id)
-		if it.ContextMenu != nil && (v.disabled || it.Disabled || !slices.Contains(ids, id)) {
-			it.ContextMenu.SetValue(false)
+	// Menu cleanup visits the model once. Looking up every ID by walking
+	// the whole tree made even closed project descendants cost O(n²).
+	listed := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		listed[id] = true
+	}
+	var closeHiddenMenus func([]SidebarItem)
+	closeHiddenMenus = func(items []SidebarItem) {
+		for i := range items {
+			it := &items[i]
+			if it.ContextMenu != nil && (v.disabled || it.Disabled || !listed[it.ID]) {
+				it.ContextMenu.SetValue(false)
+			}
+			closeHiddenMenus(it.Children)
 		}
+	}
+	for _, section := range v.sections {
+		closeHiddenMenus(section.items)
 	}
 	v.positions = map[string]float32{}
 	y := float32(0)

@@ -34,6 +34,8 @@ nav := kit.Sidebar().
 
 选项结构会递归复制；IconView、Suffix 和 ContextMenu 保留传入实例。整个 Sidebar 的 ID 必须非空且唯一；新增 Section 包含空值或重复 ID 时整组不加入。父项禁用不隐式禁用子项。
 
+Sidebar 跳过滚动视口外的行绘制，但每帧仍会构建和布局展开的条目，尚不是完整的虚拟列表。菜单清理通过已列出的 ID 集合一次遍历整份数据，行内 hover 和焦点查询复用 el 的本轮渲染索引。回归测试覆盖 1×/2× 下的 1000 行列表、屏外绘制、键盘定位与选择，以及收起父项后的菜单关闭。运行 `go test ./ui/kit -run '^$' -bench BenchmarkSidebarScroll -benchmem`，可测量带逐项菜单和 hover 按钮的平铺列表及已收起的项目树。
+
 Agent：容器角色 `navigation`；叶项是 `link`，分支是带展开布尔值的 `button`，`selected` 表示当前页；收起按钮名为"收起侧栏""展开侧栏"。
 
 验证：`go run ./examples/components -section sidebar`，加 `-theme dark` 检查深色。
