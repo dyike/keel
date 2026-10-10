@@ -64,6 +64,22 @@ static void keelCTDrawGlyph(CTFontRef font, CGGlyph g, double ox, double oy, int
 	CGContextFlush(ctx);
 	CGContextRelease(ctx);
 }
+// keelCTDrawColorGlyph draws a color glyph (emoji) with its origin at (ox, oy)
+// pixels from the bottom left of a transparent w×h premultiplied RGBA bitmap.
+static void keelCTDrawColorGlyph(CTFontRef font, CGGlyph g, double ox, double oy, int w, int h, unsigned char *out) {
+	CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+	CGContextRef ctx = CGBitmapContextCreate(out, w, h, 8, w * 4, cs, kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+	CGColorSpaceRelease(cs);
+	if (!ctx) return;
+	CGContextSetAllowsAntialiasing(ctx, true);
+	CGContextSetShouldAntialias(ctx, true);
+	CGContextSetShouldSubpixelPositionFonts(ctx, true);
+	CGContextSetShouldSubpixelQuantizeFonts(ctx, false);
+	CGPoint pos = CGPointMake(ox, oy);
+	CTFontDrawGlyphs(font, &g, &pos, 1, ctx);
+	CGContextFlush(ctx);
+	CGContextRelease(ctx);
+}
 */
 import "C"
 
@@ -149,6 +165,29 @@ func coreTextMask(path string, index int, px float64, gid uint16, phaseX, phaseY
 		return image.Rectangle{}, nil, true
 	}
 	return image.Rect(minX, minY, maxX, maxY), alpha, true
+}
+
+// coreTextColorGlyph draws a color glyph (emoji) as CoreText shows it, in
+// premultiplied sRGB, the format image textures use. bounds is relative to the
+// glyph origin, y down. ok is false for fonts without color glyphs.
+func coreTextColorGlyph(path string, index int, px float64, gid uint16, phaseX, phaseY float64) (bounds image.Rectangle, pix []byte, ok bool) {
+	f := ctFont(path, index, px)
+	if f == 0 || C.keelCTColorGlyphs(f) == 0 {
+		return image.Rectangle{}, nil, false
+	}
+	var bx, by, bw, bh C.double
+	C.keelCTGlyphBounds(f, C.CGGlyph(gid), &bx, &by, &bw, &bh)
+	if bw <= 0 || bh <= 0 {
+		return image.Rectangle{}, nil, true
+	}
+	minX := int(math.Floor(float64(bx)+phaseX)) - ctPad
+	maxX := int(math.Ceil(float64(bx+bw)+phaseX)) + ctPad
+	minY := int(math.Floor(-float64(by+bh)+phaseY)) - ctPad
+	maxY := int(math.Ceil(-float64(by)+phaseY)) + ctPad
+	w, h := maxX-minX, maxY-minY
+	pix = make([]byte, w*h*4)
+	C.keelCTDrawColorGlyph(f, C.CGGlyph(gid), C.double(-float64(minX)+phaseX), C.double(float64(maxY)-phaseY), C.int(w), C.int(h), (*C.uchar)(unsafe.Pointer(&pix[0])))
+	return image.Rect(minX, minY, maxX, maxY), pix, true
 }
 
 // ctDark and ctLight map a CoreText pixel to the linear-light alpha that

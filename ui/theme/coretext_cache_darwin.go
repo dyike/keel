@@ -94,8 +94,9 @@ type ctGlyphKey struct {
 }
 
 type ctGlyph struct {
-	vector bool            // drawn as an outline: no file, color glyph or too large
+	vector bool            // drawn as an outline: no file or too large
 	blank  bool            // no ink
+	color  *paint.ImageOp  // a color glyph (emoji), drawn untinted as CoreText shows it
 	page   int             // page index while cached in a page
 	rect   image.Rectangle // location in the page
 	bounds image.Rectangle // pixels relative to the glyph origin, y down
@@ -178,6 +179,15 @@ func ctPaintRun(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA, 
 		if gl.blank {
 			continue
 		}
+		if gl.color != nil {
+			tr := op.Offset(image.Pt(int(ix), int(iy)).Add(gl.bounds.Min)).Push(ops)
+			cl := clip.Rect(image.Rectangle{Max: gl.bounds.Size()}).Push(ops)
+			gl.color.Add(ops)
+			paint.PaintOp{}.Add(ops)
+			cl.Pop()
+			tr.Pop()
+			continue
+		}
 		p := ct.pages[gl.page]
 		p.used = ct.frame
 		if !p.opValid {
@@ -206,6 +216,19 @@ func ctGlyphFor(sh *text.Shaper, g text.Glyph, phaseX, phaseY uint8, dark bool) 
 	gl := &ctGlyph{vector: true}
 	path, index, ppem, gid, ok := any(sh).(glyphFiler).GlyphFile(g.ID)
 	if ok && ppem > 0 && ppem <= fixed.I(ctMaxPPEM) {
+		if b, pix, isColor := coreTextColorGlyph(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases); isColor {
+			// Emoji are few: each keeps its own image. The key's dark flag
+			// duplicates them per ink tone, which is harmless.
+			if pix == nil {
+				gl = &ctGlyph{blank: true}
+			} else {
+				img := &image.RGBA{Pix: pix, Stride: b.Dx() * 4, Rect: image.Rectangle{Max: b.Size()}}
+				imageOp := paint.NewImageOp(img)
+				gl = &ctGlyph{color: &imageOp, bounds: b}
+			}
+			ct.glyphs[key] = gl
+			return gl
+		}
 		bounds, alpha, ok := coreTextMask(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases, dark)
 		switch {
 		case !ok:
