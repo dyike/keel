@@ -270,6 +270,10 @@ func (e *engine) paintContent(n *Node) {
 				bg.B = uint8((4*uint16(bg.B) + uint16(theme.Muted.B)) / 5)
 			}
 			st.Bg(bg)
+			if n.focus != nil {
+				n.focus(&st)
+			}
+			st.borderWidth = 0
 		}
 	}
 	// Visual text-color variants inherit without changing measured text metrics.
