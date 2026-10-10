@@ -275,9 +275,9 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 	fill := appearance.FillColor
 	bar := el.Div().Rounded(appearance.TrackRadius).Bg(appearance.TrackColor)
 	if v.vertical > 0 {
-		bar.W(el.Dp(appearance.TrackSize)).HFull().Child(el.Div().H(el.Frac(1-hi)).NoShrink(), el.Div().W(el.Dp(appearance.TrackSize)).H(el.Frac(hi-lo)).NoShrink().Bg(fill))
+		bar.W(el.Dp(appearance.TrackSize)).HFull().Child(el.Div().H(el.Frac(1-hi)).NoShrink(), el.Div().W(el.Dp(appearance.TrackSize)).H(el.Frac(hi-lo)).NoShrink().Rounded(appearance.TrackRadius).Bg(fill))
 	} else {
-		bar.H(el.Dp(appearance.TrackSize)).WFull().Row().Child(el.Div().W(el.Frac(lo)).NoShrink(), el.Div().H(el.Dp(appearance.TrackSize)).W(el.Frac(hi-lo)).NoShrink().Bg(fill))
+		bar.H(el.Dp(appearance.TrackSize)).WFull().Row().Child(el.Div().W(el.Frac(lo)).NoShrink(), el.Div().H(el.Dp(appearance.TrackSize)).W(el.Frac(hi-lo)).NoShrink().Rounded(appearance.TrackRadius).Bg(fill))
 	}
 	keyHandler := func(upper bool) func(el.KeyEvent) bool {
 		return func(e el.KeyEvent) bool {
