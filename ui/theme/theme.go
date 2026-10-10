@@ -13,6 +13,7 @@ import (
 
 // Colors. Components read them at layout time.
 var (
+	Frameless    bool            // opt-in borderless controls; see Palette.Frameless
 	Bg           = RGB(0xf5f6f8) // window background
 	Surface      = RGB(0xffffff) // cards and fields
 	Border       = RGB(0xe3e5e8) // borders and dividers

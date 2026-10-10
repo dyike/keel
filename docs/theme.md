@@ -19,6 +19,8 @@ Built-in themes: `light`, `dark`, `nord`, `paper`, `solarized-dark`, `high-contr
 
 ## Palette and caching
 
+Set `Palette.Frameless` to remove element outlines, including focus borders. Keyboard and input focus use a background fill instead; per-edge separators remain visible. This is opt-in and follows palette scopes.
+
 `Light()`, `Dark()`, `Current()` returns a copy of the palette. Modify the copy when customizing and replace all colors with `Apply`; zero value fields are also applied.
 
 ```go
