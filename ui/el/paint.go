@@ -6,6 +6,7 @@ import (
 	"math"
 	"strings"
 	"time"
+	"unicode"
 
 	"gioui.org/f32"
 	"gioui.org/io/key"
@@ -524,7 +525,7 @@ func (e *engine) paintShadow(sh theme.Elevation, rect image.Rectangle, radius co
 
 func (e *engine) paintText(n *Node, inner image.Rectangle) {
 	gtx := e.gtx
-	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n)))).Push(gtx.Ops).Pop()
+	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n, scriptOf(n.text))))).Push(gtx.Ops).Pop()
 	g := gtx
 	g.Constraints = layout.Constraints{Max: inner.Size()}
 	if n.shimmer != nil {
@@ -680,7 +681,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		inner.Min.Y += (inner.Dy() - spec.line) / 2
 		inner.Max.Y = inner.Min.Y + spec.line
 	}
-	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n)))).Push(gtx.Ops).Pop()
+	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n, scriptMixed)))).Push(gtx.Ops).Pop()
 	g := gtx
 	g.Constraints = layout.Exact(inner.Size())
 	ts := n.textStyle
@@ -936,28 +937,74 @@ type shiftKey struct {
 	px         int
 	weight     font.Weight
 	lineHeight float32
+	script     script
 }
 
 // shifts caches textShift per text style. Touched only under the frame lock.
 var shifts = map[shiftKey]int{}
 
-// textShift moves glyphs down so their ink, not the font's line box, is
-// centered in the box. Fonts differ: macOS PingFang leaves a deep empty
-// descent, so CJK text sits high; Windows YaHei fits its ink tightly. The
-// shift is measured from the font, and never pushes the lowest ink (the
-// descender of g) further out of the line box.
-func (e *engine) textShift(n *Node) int {
+// script says which faces set a text, and so which line box it gets: East
+// Asian text usually comes from a fallback face (PingFang behind SF Pro) whose
+// ascent, descent and body differ from the Latin face's. Mixed text takes the
+// taller extent of both.
+type script uint8
+
+const (
+	scriptLatin script = iota
+	scriptWide
+	scriptMixed
+)
+
+func scriptOf(s string) script {
+	var latin, wide bool
+	for _, r := range s {
+		switch {
+		case unicode.IsSpace(r):
+			// Spaces are set by the run around them.
+		case r >= 0x1100 && (unicode.In(r, unicode.Han, unicode.Hiragana, unicode.Katakana, unicode.Hangul) ||
+			r >= 0x3000 && r <= 0x303f || r >= 0xff00 && r <= 0xffef):
+			wide = true
+		default:
+			latin = true
+		}
+	}
+	switch {
+	case wide && latin:
+		return scriptMixed
+	case wide:
+		return scriptWide
+	}
+	return scriptLatin
+}
+
+// textShift moves glyphs so their ink, not the font's line box, is centered
+// in the box, matching icons beside the text. Fonts differ: macOS PingFang
+// leaves a deep empty descent, so CJK text sits high; Windows YaHei fits its
+// ink tightly. The shift is measured in the line box of the faces that set
+// the text: Latin centers its cap height, East Asian text centers 国, and mixed
+// text centers both. One mixed measurement for all text set Latin labels low
+// and Chinese labels high beside their icons. The shift never pushes the
+// lowest or highest ink further out of the line box.
+func (e *engine) textShift(n *Node, sc script) int {
 	ts := n.textStyle
 	face := textFont(ts)
 	px := e.m.Sp(ts.size)
-	key := shiftKey{face.Typeface, px, face.Weight, ts.lineHeight}
+	key := shiftKey{face.Typeface, px, face.Weight, ts.lineHeight, sc}
 	if s, ok := shifts[key]; ok {
 		return s
 	}
 	// The line box is what a Label of this style measures: Gio sizes a text
 	// box that way, and fallback fonts (国 in a Latin face) would otherwise
 	// skew metrics read from single glyphs.
-	lb := material.Label(theme.Material, ts.size, "国Ag")
+	// Bodies: A, 国, or both; g gives the lowest ink.
+	sample, body := "Ag", 1
+	switch sc {
+	case scriptWide:
+		sample = "国"
+	case scriptMixed:
+		sample, body = "国Ag", 2
+	}
+	lb := material.Label(theme.Material, ts.size, sample)
 	lb.Font = face
 	if ts.lineHeight > 0 {
 		lb.LineHeightScale = ts.lineHeight
@@ -965,10 +1012,9 @@ func (e *engine) textShift(n *Node) int {
 	dims := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}), lb)
 	boxDescent := dims.Baseline // below the baseline
 	boxAscent := dims.Size.Y - boxDescent
-	// Center the body of the text (国 and a capital); g gives the lowest ink.
 	shaper := theme.Material.Shaper
-	shaper.LayoutString(text.Parameters{Font: face, PxPerEm: fixed.I(px), MaxWidth: 1 << 20}, "国Ag")
-	bodyTop, bodyBottom, lowest := 0, 0, 0
+	shaper.LayoutString(text.Parameters{Font: face, PxPerEm: fixed.I(px), MaxWidth: 1 << 20}, sample)
+	bodyTop, bodyBottom, highest, lowest := 0, 0, 0, 0
 	found := false
 	for i := 0; ; i++ {
 		g, ok := shaper.NextGlyph()
@@ -979,8 +1025,8 @@ func (e *engine) textShift(n *Node) int {
 			continue
 		}
 		top, bottom := g.Bounds.Min.Y.Floor(), g.Bounds.Max.Y.Ceil()
-		lowest = max(lowest, bottom)
-		if i < 2 { // 国 and A
+		highest, lowest = min(highest, top), max(lowest, bottom)
+		if i < body {
 			if !found {
 				bodyTop, bodyBottom, found = top, bottom, true
 			}
@@ -990,8 +1036,9 @@ func (e *engine) textShift(n *Node) int {
 	shift := 0
 	if found {
 		// The line box runs from -boxAscent to +boxDescent around the baseline.
-		shift = ((boxDescent - boxAscent) - (bodyTop + bodyBottom)) / 2
-		shift = max(min(shift, boxDescent-lowest), 0)
+		// Round: truncating left CJK a visible half-pixel step high at 2x.
+		shift = int(math.Round(float64((boxDescent-boxAscent)-(bodyTop+bodyBottom)) / 2))
+		shift = max(min(shift, max(boxDescent-lowest, 0)), min(-boxAscent-highest, 0))
 	}
 	shifts[key] = shift
 	return shift

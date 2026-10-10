@@ -35,7 +35,8 @@ func TestVirtualListsScrollToAlign(t *testing.T) {
 	for align, want := range map[ScrollAlign]int{ScrollStart: 15, ScrollCenter: 150, ScrollEnd: 285} {
 		vl.ScrollToAlign(cx, 50, align)
 		settle(h)
-		if r := bounds(h, "v50"); (r.Min.Y+r.Max.Y)/2 != want {
+		// The label's box carries its optical text shift; allow a pixel.
+		if r := bounds(h, "v50"); abs((r.Min.Y+r.Max.Y)/2-want) > 1 {
 			t.Fatalf("align %d: row at %v, want center %d", align, r, want)
 		}
 	}
@@ -65,3 +66,5 @@ func TestVirtualListsScrollToAlign(t *testing.T) {
 		t.Fatalf("variable list end: row at %v", r)
 	}
 }
+
+func abs(n int) int { return max(n, -n) }
