@@ -98,10 +98,12 @@ leave nested modules out. So:
   display link's goroutine when the requested state changes. Windows call
   `Start` on every animated frame, and the unbuffered send blocked the main
   thread on a goroutine handoff each time.
-- `gio/app` (macOS): the window's `CAMetalLayer` keeps at most two
-  drawables. The renderer waits for the previous frame before the next, so
-  a third only held a window-sized surface (5 MB at 640x512 pt, 33 MB on
-  4K); hello's idle footprint varied with it by 5 MB between runs.
+- `gio/app` (macOS): keep three `CAMetalLayer` drawables during rendering.
+  Core Animation can retain two presented surfaces during resize; limiting
+  the pool to two intermittently blocked the main thread in `nextDrawable`
+  for about a second. Idle trimming still shrinks spare surfaces. The native
+  `TestMetalResizeWindow` regression drives 60 growing/shrinking frames and
+  rejects the compositor stall (`KEEL_DESKTOP=1 go test ./app`).
 - `gio/gpu`, `gio/gpu/internal/metal`: consecutive ops clipped to a plain
   rectangle and filled with a solid color or a texture are drawn as one
   instanced draw (`driver.QuadBatcher`, up to 8 textures a batch) instead of
