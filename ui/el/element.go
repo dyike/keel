@@ -415,6 +415,9 @@ func (s *Styled[T]) TextAlign(a Align) *T {
 // not shout: selected tabs, table headers.
 func (s *Styled[T]) Medium() *T { w := font.Medium; s.n.style.text.weight = &w; return s.self }
 
+// Weight sets any font weight; Bold and Medium are the common ones.
+func (s *Styled[T]) Weight(w font.Weight) *T { s.n.style.text.weight = &w; return s.self }
+
 // Mono sets theme.MonoFace: code and numbers that must line up.
 func (s *Styled[T]) Mono() *T { on := true; s.n.style.text.mono = &on; return s.self }
 

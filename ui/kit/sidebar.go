@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strconv"
 
+	"gioui.org/font"
 	"gioui.org/io/key"
 	"github.com/dyike/keel/ui/base"
 	"github.com/dyike/keel/ui/el"
@@ -18,14 +19,16 @@ type SidebarItem struct {
 	IconView    el.View  // optional display-only custom icon, in the same 16dp slot; overrides Icon
 	Disabled    bool
 	Children    []SidebarItem
+	Tag         el.View   // optional display-only marker right after the label, such as a Tag; hidden when collapsed
 	Badge       int       // a count shown at the end; 0 hides it
 	Suffix      el.View   // optional independent trailing content, hidden when collapsed
 	ContextMenu *MenuView // optional menu owned by this item; do not share between items
 }
 
 type sidebarSection struct {
-	title string
-	items []SidebarItem
+	title  string
+	action el.View
+	items  []SidebarItem
 }
 
 // SidebarView is the app's navigation column: sections of items, one
@@ -42,6 +45,7 @@ type SidebarView struct {
 	height         float32
 	disabled       bool
 	header, footer el.View
+	titleWeight    font.Weight
 	query          string
 	expanded       map[string]bool
 	positions      map[string]float32
@@ -56,15 +60,25 @@ func Sidebar() *SidebarView {
 
 // Section adds a titled group of items; an empty title adds no heading.
 func (v *SidebarView) Section(title string, items ...SidebarItem) *SidebarView {
+	return v.SectionAction(title, nil, items...)
+}
+
+// SectionAction is Section with trailing content in the heading, such as an
+// add button. A section with an action keeps its heading while it is empty,
+// unless a filter query is active.
+func (v *SidebarView) SectionAction(title string, action el.View, items ...SidebarItem) *SidebarView {
 	seen := map[string]bool{}
 	for _, id := range v.allIDs() {
 		seen[id] = true
 	}
 	if copy, ok := copySidebarItems(items, seen); ok {
-		v.sections = append(v.sections, sidebarSection{title, copy})
+		v.sections = append(v.sections, sidebarSection{title, action, copy})
 	}
 	return v
 }
+
+// SectionTitleWeight sets the weight of section headings, regular by default.
+func (v *SidebarView) SectionTitleWeight(w font.Weight) *SidebarView { v.titleWeight = w; return v }
 
 // Width sets the expanded width in dp, 220 by default.
 func (v *SidebarView) Width(dp float32) *SidebarView {
@@ -172,19 +186,21 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 		row.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 	}
 	if !v.collapsed {
+		// Keep the tag and disclosure next to the label, while the label can
+		// still truncate within the remaining space before independent suffixes.
+		label := el.Div().Row().Items(el.Center).Gap(6).Grow().W(el.Dp(0)).Child(el.Text(it.Label).MaxLines(1))
+		if it.Tag != nil {
+			// A selected row is bold; its marker keeps its own weight.
+			label.Child(el.Div().NoShrink().Weight(font.Normal).Child(it.Tag.Render(cx)))
+		}
 		if len(it.Children) > 0 {
 			icon := IconChevronRight
 			if v.expanded[it.ID] {
 				icon = IconChevronDown
 			}
-			// Keep the disclosure next to its label, while the label can still
-			// truncate within the remaining space before independent suffixes.
-			row.Child(el.Div().Row().Items(el.Center).Gap(6).Grow().W(el.Dp(0)).Child(
-				el.Text(it.Label).MaxLines(1),
-				el.Div().Size(el.Dp(14)).NoShrink().Child(Icon(icon).Size(14).Color(fg).Render(cx))))
-		} else {
-			row.Child(el.Text(it.Label).Grow().MaxLines(1))
+			label.Child(el.Div().Size(el.Dp(14)).NoShrink().Child(Icon(icon).Size(14).Color(fg).Render(cx)))
 		}
+		row.Child(label)
 		if it.Badge > 0 {
 			count := strconv.Itoa(it.Badge)
 			if it.Badge > 99 {
@@ -276,11 +292,16 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 		}
 	}
 	for i, s := range v.sections {
-		if !slices.ContainsFunc(s.items, v.shown) {
+		if !slices.ContainsFunc(s.items, v.shown) && (s.action == nil || v.query != "" || v.collapsed) {
 			continue
 		}
 		if s.title != "" && !v.collapsed {
-			body.Child(el.Div().H(el.Dp(28)).Px(10).Justify(el.Center).Child(el.Text(s.title).TextSize(theme.TextSm).TextColor(theme.Muted)))
+			heading := el.Div().H(el.Dp(28)).Px(10).Row().Items(el.Center).Child(el.Text(s.title).Grow().TextSize(theme.TextSm).TextColor(theme.Muted).Weight(v.titleWeight))
+			if s.action != nil {
+				// Trailing actions sit flush with the content edge, like a header toolbar.
+				heading.Pr(0).Child(s.action.Render(cx))
+			}
+			body.Child(heading)
 			y += 32
 		} else if i > 0 {
 			body.Child(el.Div().H(el.Dp(17)).Px(theme.SpaceMd).Justify(el.Center).Child(el.Div().H(el.Dp(1)).Bg(theme.Border)))
