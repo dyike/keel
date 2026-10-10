@@ -83,6 +83,25 @@ func TestSelectCustomRowsAndSearch(t *testing.T) {
 		t.Fatal("custom empty")
 	}
 }
+
+func TestSelectReservesScrollbarSpaceOnlyForOverflow(t *testing.T) {
+	widths := make([]int, 2)
+	for i, count := range []int{3, 50} {
+		v := Select("Permission").MenuWidth(144)
+		entries := make([]SelectOption, count)
+		for j := range entries {
+			entries[j] = SelectOption{Value: fmt.Sprint(j), Label: fmt.Sprintf("Option %d", j)}
+		}
+		v.SetEntries(entries...)
+		h := page(v)
+		clickRole(t, h, "select", "Permission")
+		h.Frame()
+		widths[i] = bounds(h, "Option 0").Dx()
+	}
+	if widths[0] == 0 || widths[0]-widths[1] != int(scrollbarGutter-4) {
+		t.Fatalf("short/overflow option widths = %v; scrollbar space must be conditional", widths)
+	}
+}
 func TestSelectClearInheritedDisabled(t *testing.T) {
 	v := Select("Choice", "a").Clearable(true)
 	v.SetValue("a")
