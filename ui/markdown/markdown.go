@@ -111,7 +111,7 @@ func (d *Doc) SetStreaming(on bool) {
 }
 
 func (d *Doc) update() {
-	if d.plugins != nil || strings.Contains(d.src, "]:") || strings.Contains(d.src, "[^") || hasMathMacros(d.src) {
+	if d.plugins != nil && !d.plugins.local || strings.Contains(d.src, "]:") || strings.Contains(d.src, "[^") || hasMathMacros(d.src) {
 		d.updateContextual()
 		return
 	}
