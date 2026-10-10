@@ -95,3 +95,24 @@ func TestHoverBarsCaptureAndReleaseOutsideViewport(t *testing.T) {
 		t.Fatal("hidden hover bar intercepted content", clicks)
 	}
 }
+
+func TestHiddenScrollbarKeepsWheelScrolling(t *testing.T) {
+	var cx *Context
+	root := Root(viewFunc(func(c *Context) Element {
+		cx = c
+		return Div().Items(Start).Child(Div().ID("hidden").W(Dp(120)).H(Dp(60)).ScrollX().Scrollbars(ScrollbarHidden).Child(Div().W(Dp(400)).H(Dp(40))))
+	}))
+	h := uitest.New(root)
+	h.Frame()
+	h.Router.Queue(pointer.Event{Kind: pointer.Scroll, Source: pointer.Mouse, Position: f32.Pt(30, 20), Scroll: f32.Pt(100, 0)})
+	h.Frame()
+	h.Frame()
+	if x, _, _ := cx.ScrollStateX("hidden"); x <= 0 {
+		t.Fatal("hidden bar disabled wheel scrolling")
+	}
+	st := elemState{}
+	_, show, alpha := st.scrollbarVisibility(core.C{}, Div().Scrollbars(ScrollbarHidden).node(), true, false)
+	if show || alpha != 0 {
+		t.Fatal("hidden bar became visible on hover")
+	}
+}

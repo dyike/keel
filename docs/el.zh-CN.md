@@ -221,6 +221,8 @@ return el.Div().Hidden(!visible).Child(el.Text("已保存"))
 
 `Scrollbars(el.ScrollbarAlways / el.ScrollbarHover / el.ScrollbarScrolling)` 设置单个滚动容器的显示策略，两轴共用；默认 System，跟随系统偏好；Always 在内容溢出时持续显示。Hover 在指针进入整个视口时显示；Scrolling 在偏移实际变化后显示，停止 900ms 后隐藏，鼠标拖动滚动条期间持续显示。程序定位、键盘滚动也会显示；停在边界且偏移不变不会重新计时。隐藏后不保留滚动条点击区域，内容仍能接收指针事件；滚轮和键盘滚动不受策略影响。`ScrollOffset` 的受控模式仍隐藏所有滚动条。Hover 和 Scrolling 模式下滚动条出现时 120ms 淡入、隐藏时 200ms 淡出（开启减少动画时直接显示或隐藏），淡出过程中不接收点击；Always 不渐变，从 Always 切到其他模式立即隐藏。
 
+`Scrollbars(el.ScrollbarHidden)` 隐藏两轴滚动条，保留滚轮、触摸和键盘滚动，适用于紧凑的标签栏。
+
 `el.ScrollbarSystem` 跟随系统设置：macOS 读"显示滚动条"（自动/滚动时 → Scrolling，始终 → Always，系统设置改变后实时更新），Windows 读"自动隐藏滚动条"（启动时读一次），其他平台按 Always。没有单独设置模式的容器使用 `el.SetScrollbarDefault(mode)` 设的默认值，默认值为 System；想让整个应用的滚动条常显，可调用 `el.SetScrollbarDefault(el.ScrollbarAlways)`。圆角容器会缩进轨道两端，避免滑块被圆角裁切；内容布局不变。内置可选列表行和横向组件条预留 12dp，包括 10dp 滚动条交互区和 2dp 间隔。自行组合 `ScrollX`/`ScrollY` 内容时，可用内边距或行外边距预留同样的空间。滚动条显示和隐藏不会改变内容尺寸。`el.SystemScrollbars()` 返回读到的系统偏好。已验证横纵双倍率交互、空闲隐藏后的点击穿透、拖出视口时继续拖动和显示策略切换的窗口像素。
 
 `cx.ScrollState(id)` 返回带 ID 的 `ScrollY` 元素上一帧的滚动偏移、可视高度、内容高度，单位 dp；第一次绘制之前三个值都是 0。虚拟列表用它决定构建哪些行。`cx.ScrollIntoView(id, top, bottom)` 以最小的滚动量让内容中 `[top, bottom]` 这一段可见，在下一次绘制时生效。

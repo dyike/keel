@@ -213,6 +213,10 @@ func (st *elemState) scrollKey(gtx core.C, ev key.Event) bool {
 
 func (st *elemState) scrollbarVisibility(gtx core.C, n *Node, viewportHovered, animate bool) (ScrollbarMode, bool, float32) {
 	mode := resolveScrollbars(n.style.scrollbarMode, n.style.scrollbarModeSet)
+	if mode == ScrollbarHidden {
+		st.scrollAlpha = 0
+		return mode, false, 0
+	}
 	showBars := true
 	switch mode {
 	case ScrollbarHover:
