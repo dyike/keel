@@ -14,15 +14,16 @@ import (
 
 // SidebarItem is one destination in a Sidebar. IDs must be unique.
 type SidebarItem struct {
-	ID, Label   string
-	Icon        IconName // optional; IconNone shows no icon
-	IconView    el.View  // optional display-only custom icon, in the same 16dp slot; overrides Icon
-	Disabled    bool
-	Children    []SidebarItem
-	Tag         el.View   // optional display-only marker right after the label, such as a Tag; hidden when collapsed
-	Badge       int       // a count shown at the end; 0 hides it
-	Suffix      el.View   // optional independent trailing content, hidden when collapsed
-	ContextMenu *MenuView // optional menu owned by this item; do not share between items
+	ID, Label     string
+	Icon          IconName // optional; IconNone shows no icon
+	IconView      el.View  // optional display-only custom icon, in the same 16dp slot; overrides Icon
+	Disabled      bool
+	Children      []SidebarItem
+	Tag           el.View   // optional display-only marker right after the label, such as a Tag; hidden when collapsed
+	Badge         int       // a count shown at the end; 0 hides it
+	Suffix        el.View   // optional independent trailing content, hidden when collapsed
+	SuffixOnHover bool      // reveal suffix on row hover, keyboard focus, or an open context menu
+	ContextMenu   *MenuView // optional menu owned by this item; do not share between items
 }
 
 type sidebarSection struct {
@@ -213,11 +214,17 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 		var content el.Element = row
 		if it.Suffix != nil {
 			row.Grow().W(el.Dp(0))
-			frame := el.Div().Row().Items(el.Center).H(el.Dp(36)).Rounded(theme.RadiusLg).Disabled(disabled)
+			frameID := prefix + "/" + it.ID + "/frame"
+			frame := el.Div().ID(frameID).Row().Items(el.Center).H(el.Dp(36)).Rounded(theme.RadiusLg).Disabled(disabled)
 			if on {
 				frame.Bg(theme.Subtle)
 			}
-			content = frame.Child(row, el.Div().ID(prefix+"/"+it.ID+"/suffix").NoShrink().MaxW(el.Dp(v.width/2)).Pr(theme.SpaceSm).Child(it.Suffix.Render(cx)))
+			suffix := el.Div().ID(prefix + "/" + it.ID + "/suffix").NoShrink().MaxW(el.Dp(v.width / 2)).Pr(theme.SpaceSm).Child(it.Suffix.Render(cx))
+			if it.SuffixOnHover && !cx.Hovered(frameID) && !cx.FocusVisible(prefix+"/"+it.ID) && !cx.FocusWithin(prefix+"/"+it.ID+"/suffix") && (it.ContextMenu == nil || !it.ContextMenu.Value()) {
+				// Preserve the title width while hiding both paint and interaction.
+				suffix.Opacity(0).Disabled(true)
+			}
+			content = frame.Child(row, suffix)
 		}
 		return v.itemMenu(cx, it, content)
 	}

@@ -30,6 +30,8 @@ nav := kit.Sidebar().
 - `SidebarItem.ContextMenu` / `SetContextMenu(id, menu)` 为条目添加右键菜单，支持 Menu 的子菜单、快捷键提示、链接及自定义内容。一个 Menu 实例只属于一个条目，其 Trigger 不使用；菜单外观与位置仍由 Menu 配置。隐藏、禁用或替换条目菜单会关闭旧菜单。右键不改变选中项。
 - `Value()` / `SetValue(id)`、`SetBadge(id, n)`、`Collapsed()` / `SetCollapsed`、`Width(dp)`（默认 220）。
 
+`SidebarItem.SuffixOnHover` 让尾部内容在整行悬停、行内有键盘焦点或上下文菜单打开时显示。隐藏时保留布局占位，且不能触发操作。
+
 选项结构会递归复制；IconView、Suffix 和 ContextMenu 保留传入实例。整个 Sidebar 的 ID 必须非空且唯一；新增 Section 包含空值或重复 ID 时整组不加入。父项禁用不隐式禁用子项。
 
 Agent：容器角色 `navigation`；叶项是 `link`，分支是带展开布尔值的 `button`，`selected` 表示当前页；收起按钮名为"收起侧栏""展开侧栏"。

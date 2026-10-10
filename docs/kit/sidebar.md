@@ -30,6 +30,8 @@ nav := kit.Sidebar().
 - `SidebarItem.ContextMenu` / `SetContextMenu(id, menu)` adds a right-click menu to the item, supporting Menu's submenus, shortcut key tips, links and custom content. A Menu instance belongs to only one item, and its Trigger is not used; the menu appearance and position are still configured by Menu. Hiding, disabling or replacing an entry menu closes the old menu. Right-clicking does not change the selected item.
 - `Value()` / `SetValue(id)`, `SetBadge(id, n)`, `Collapsed()` / `SetCollapsed`, `Width(dp)` (default 220).
 
+`SidebarItem.SuffixOnHover` reveals the suffix while the row is hovered, contains keyboard focus, or has an open context menu. Hidden suffixes retain their layout space and cannot be activated.
+
 Options structures are copied recursively; IconView, Suffix and ContextMenu retain the passed-in instance. The ID of the entire Sidebar must be non-empty and unique; when the new Section contains empty values or duplicate IDs, the entire group will not be added. Parent disabling does not implicitly disable children.
 
 Agent: container role `navigation`; the leaf item is `link`, the branch is `button` with an expanded Boolean value, `selected` represents the current page; the collapse button is named "Collapse Sidebar" and "Expand Sidebar".
