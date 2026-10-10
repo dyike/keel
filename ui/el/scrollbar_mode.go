@@ -29,8 +29,9 @@ const (
 	scrollbarFadeOut = 200 * time.Millisecond
 )
 
-// Scrollbars selects the display mode for this ScrollX/ScrollY element. Invalid
-// modes are ignored. Hidden bars have no pointer hit area; scrolling and
+// Scrollbars selects the display mode for a ScrollX/ScrollY element or a
+// multiline input using Keel’s Gio viewport capability. Invalid modes are
+// ignored. Hidden bars have no pointer hit area; scrolling and
 // keyboard navigation remain available. ScrollOffset still hides all bars.
 // Elements without a mode use SetScrollbarDefault's.
 func (s *Styled[T]) Scrollbars(mode ScrollbarMode) *T {

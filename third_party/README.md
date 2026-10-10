@@ -47,6 +47,8 @@ leave nested modules out. So:
 
 ## Patches
 
+- `gio/widget.Editor`: exposes optional `ScrollBounds`, `ScrollOffset` and `ScrollTo` methods for multiline scrollbar drawing and dragging. Moving the viewport preserves the selection; the next edit or caret movement resumes caret scrolling. Keel detects this capability at runtime, so upstream Gio still builds and retains native wheel scrolling. A 1×/2× regression checks clamping, selection, caret reveal and content replacement.
+
 - `gio/gpu/internal/metal`: idle trimming waits for the last submitted GPU work, then releases its command buffer, staging buffer and quad instance buffer. Live textures and pipelines remain cached; temporary buffers are recreated on the next draw or readback. This lowers retained idle memory without requesting frames. A headless regression test checks repeated trim, readback and resumed rendering.
 
 - `go vet` fixes for unkeyed struct literals in `gio/internal/f32` and

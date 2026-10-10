@@ -80,10 +80,15 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 	if w >= inf {
 		w = e.dp(200)
 	}
+	textW := w
+	if n.input.multiline {
+		st := e.store.get(n.key)
+		textW = max(1, w-inputScrollbarWidth(&st.editor, true, e.dp(10)))
+	}
 	var objectState *elemState
 	if n.input.document != nil {
 		objectState = e.store.get(n.key)
-		e.prepareInputObjects(n, objectState, w)
+		e.prepareInputObjects(n, objectState, textW)
 		for _, dims := range objectState.inputObjects.sizes {
 			line = max(line, dims.Size.Y)
 		}
@@ -121,7 +126,7 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 			// One extra row: overflowing text then clamps to exactly maxRows
 			// rows, whatever the truncator's own line box would add.
 			lb.MaxLines = spec.maxRows + 1
-			measured := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(w, inf)}), lb).Size.Y
+			measured := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(textW, inf)}), lb).Size.Y
 			// Measure baseline spacing rather than multiplying glyph bounds:
 			// the first line and subsequent line advances need not match.
 			one := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}), e.label(n, "M")).Size.Y
@@ -708,14 +713,18 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		inner.Min.Y += (inner.Dy() - spec.line) / 2
 		inner.Max.Y = inner.Min.Y + spec.line
 	}
-	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n, scriptMixed)))).Push(gtx.Ops).Pop()
+	defer op.Offset(inner.Min).Push(gtx.Ops).Pop()
 	g := gtx
-	g.Constraints = layout.Exact(inner.Size())
+	barWidth := min(inner.Dx(), inputScrollbarWidth(ed, spec.multiline, e.dp(10)))
+	textSize := image.Pt(max(0, inner.Dx()-barWidth), inner.Dy())
+	track := image.Rect(textSize.X, 0, inner.Dx(), inner.Dy())
+	e.updateInputScrollbar(n, st, inner.Size(), track)
+	g.Constraints = layout.Exact(textSize)
 	ts := n.textStyle
 	th := theme.Material
 	shaper := theme.Material.Shaper
 	if spec.document != nil {
-		e.prepareInputObjects(n, st, inner.Dx())
+		e.prepareInputObjects(n, st, textSize.X)
 		documentSyncEditor(st, spec.document)
 		if st.inputObjects.shaper != nil {
 			copy := *th
@@ -731,6 +740,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		me.Font = st.inputObjects.font
 	}
 	me.LineHeightScale = ts.lineHeight
+	editorOffset := op.Offset(image.Pt(0, e.textShift(n, scriptMixed))).Push(gtx.Ops)
 	if spec.document != nil {
 		st.caret.LayoutDecorated(g, me, shaper, func(g layout.Context) { e.paintInputTokens(n, st, g) })
 	} else {
@@ -739,6 +749,8 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	if spec.document != nil {
 		e.inputDocumentIME(n, st, g)
 	}
+	editorOffset.Pop()
+	e.paintInputScrollbar(n, st, inner.Size(), track)
 	// Keep the value in the semantic tree for agents.
 	value := ed.Text()
 	if spec.document != nil {
@@ -824,36 +836,7 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	if st.scrollX != previousX || st.scrollY != previousY || st.scrollbarX.active || st.scrollbarY.active {
 		st.scrollVisibleUntil = gtx.Now.Add(ScrollbarLinger)
 	}
-	mode := resolveScrollbars(n.style.scrollbarMode, n.style.scrollbarModeSet)
-	showBars := true
-	switch mode {
-	case ScrollbarHover:
-		showBars = viewportHovered || st.scrollbarX.active || st.scrollbarY.active
-	case ScrollbarScrolling:
-		showBars = gtx.Now.Before(st.scrollVisibleUntil) || st.scrollbarX.active || st.scrollbarY.active
-		if showBars && gtx.Enabled() && n.style.controlledScroll == nil {
-			gtx.Execute(op.InvalidateCmd{At: st.scrollVisibleUntil})
-		}
-	}
-	// Fade between shown and hidden; wanted bars take input at any opacity.
-	// Always mode does not fade, and switching away from it hides at once.
-	alpha := float32(1)
-	if mode != ScrollbarAlways {
-		if showBars {
-			if st.scrollAlpha == 0 {
-				st.scrollShownAt = gtx.Now
-			}
-			st.scrollWantedAt = gtx.Now
-		}
-		alpha = scrollbarAlpha(showBars, gtx.Now, st.scrollShownAt, st.scrollWantedAt)
-		if alpha > 0 && alpha < 1 && gtx.Enabled() {
-			gtx.Execute(op.InvalidateCmd{})
-		}
-	}
-	st.scrollAlpha = alpha
-	if mode == ScrollbarAlways {
-		st.scrollWantedAt = time.Time{}
-	}
+	mode, showBars, alpha := st.scrollbarVisibility(gtx, n, viewportHovered, n.style.controlledScroll == nil)
 
 	// The viewport is its own area with the scroll handler, so it is a node
 	// in the semantic tree and agents only see what shows through it.

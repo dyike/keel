@@ -230,6 +230,19 @@ func (e *Editor) processEvents(gtx layout.Context) (ev EditorEvent, ok bool) {
 	return nil, false
 }
 
+// ScrollBounds returns the available viewport offsets after the last layout.
+func (e *Editor) ScrollBounds() image.Rectangle { return e.text.ScrollBounds() }
+
+// ScrollOffset returns the current text viewport offset in pixels.
+func (e *Editor) ScrollOffset() image.Point { return e.text.ScrollOff() }
+
+// ScrollTo moves the viewport without changing the selection. A subsequent edit
+// or caret movement resumes automatic scrolling to the caret.
+func (e *Editor) ScrollTo(offset image.Point) {
+	e.text.scrollAbs(offset.X, offset.Y)
+	e.scrollCaret = false
+}
+
 func (e *Editor) processPointer(gtx layout.Context) (EditorEvent, bool) {
 	sbounds := e.text.ScrollBounds()
 	var smin, smax int
