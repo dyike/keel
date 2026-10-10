@@ -405,8 +405,15 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 			want := max(crossSize-cs-ce, 0)
 			if crossOf(c.size, row) != want {
 				main, _ := c.force(row)
+				before := mainOf(c.size, row)
 				c.setForce(main, want, row)
 				e.layoutChild(c, n, limW, limH)
+				// Stretching can change the main size too: a table whose cells
+				// grow into the width was far taller at its natural width. An
+				// automatic container must not keep the stale extent.
+				if mainDef < 0 {
+					total += mainOf(c.size, row) - before
+				}
 			}
 		}
 	}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dyike/keel/ui/locale"
+	"golang.org/x/image/math/fixed"
 
 	"gioui.org/font"
 	"gioui.org/io/semantic"
@@ -189,8 +190,11 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 				r.separator = "\n\n"
 			}
 		}
-		return el.Div().Grow().W(el.Dp(1)).Px(10).Py(8).Child(el.Widget(r))
+		return el.Div().W(el.Dp(st.basis(t)[i])).Px(10).Py(8).Child(el.Widget(r))
 	}
+	// Columns take their widest cell's natural width, the same in every row,
+	// so they line up and the table is as wide as its content, as in a web
+	// page. Wider than the document, rows shrink alike and cells wrap.
 	grid := el.Div().Role("table").Value(locale.Current().Rows(len(t.rows))).Border(1, theme.Border).Rounded(6)
 	head := el.Div().Row().Bg(theme.Subtle).Role("row").Name(joinCells(t.header))
 	for i := range cols {
@@ -211,7 +215,8 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 		grid.Child(row)
 	}
 	d.guardPreview(cx, grid)
-	return grid
+	// A row keeps the column from stretching the table to its width.
+	return el.Div().Row().Child(grid)
 }
 
 func joinCells(cells [][]span) string {
@@ -223,7 +228,45 @@ func joinCells(cells [][]span) string {
 }
 
 // tableView keeps each cell's rich text state across frames.
-type tableView struct{ cells map[string]*richBlock }
+type tableView struct {
+	cells  map[string]*richBlock
+	widths []float32 // column widths in dp, cell padding included
+}
+
+// tableTextScale measures cell text at this many pixels per em, then scales.
+const tableTextScale = 100
+
+// basis returns each column's width: its widest single-line cell plus the
+// cell's horizontal padding. Measured once; a table's cells do not change.
+func (st *tableView) basis(t *tableData) []float32 {
+	if len(st.widths) == len(t.header) {
+		return st.widths
+	}
+	sh := theme.Material.Shaper
+	measure := func(spans []span, bold bool) float32 {
+		f := font.Font{Typeface: theme.Face}
+		if bold {
+			f.Weight = font.Bold
+		}
+		sh.LayoutString(text.Parameters{Font: f, PxPerEm: fixed.I(tableTextScale), MaxWidth: 1 << 24}, plain(spans))
+		width := 0
+		for g, ok := sh.NextGlyph(); ok; g, ok = sh.NextGlyph() {
+			width = max(width, (g.X + g.Advance).Ceil())
+		}
+		return float32(width) * float32(theme.BodySize) / tableTextScale
+	}
+	st.widths = make([]float32, len(t.header))
+	for i := range t.header {
+		w := measure(t.header[i], true)
+		for _, row := range t.rows {
+			if i < len(row) {
+				w = max(w, measure(row[i], false))
+			}
+		}
+		st.widths[i] = w + 20 + 2 // Px(10) each side, and rounding room
+	}
+	return st.widths
+}
 
 func (t *tableView) cell(key string, spans []span, bold bool, align cellAlign, onLink func(string)) *richBlock {
 	if t.cells == nil {
