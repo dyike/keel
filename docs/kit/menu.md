@@ -89,3 +89,15 @@ core.BindIn("Terminal || Shell", "clear", "mod+k")          // one of the two
 - The incorrectly written expression `BindIn` returns an error and changes nothing. A single name is an expression with only one identifier, and the original writing method still takes effect.
 
 `cx.ActionAt` Handles resolved keystrokes only when there is focus within the specified element. Among nested targets, deeper targets take precedence, and the same level is in the order of declaration; explicit null binding in the inner level will also prevent the same action in the outer level from being processed. Do not simultaneously register the same action with global `cx.Action`. When a function is passed to `ActionItem`, the click only calls this function; when nil is passed, the click is routed according to the action name: from the trigger (or the element specified by `ActionContext`), look out for the innermost `cx.ActionAt` processor. If the global processor of `cx.Action` cannot be found, the effect is the same as pressing the shortcut key there, and there is no need to bind any keys. In this way, menus, shortcut keys and command panels can be implemented using one command. Routing does not switch focus. The bottom layer is `cx.Perform(targetID, action)`, and the command panel can also be called directly. Explicit shortcut keys for normal `Item` and standalone `KbdFor` retain their original behavior. The underlying `el.KeyHint` can be used to display content with the same rules and is not responsible for registering shortcut keys.
+
+## Scrollbar visibility
+
+Use `kit.Menu().Scrollbars(el.ScrollbarAlways)` to keep the scrollbar visible
+whenever the menu overflows. Other modes are `ScrollbarHover` (pointer inside
+or dragging), `ScrollbarScrolling` (during scrolling and briefly afterward),
+and `ScrollbarSystem` (platform preference). Without an explicit setting,
+the global `el.SetScrollbarDefault` applies. Submenus inherit the nearest
+parent's explicit mode and can override it. Invalid values are ignored.
+Short menus have symmetric row margins; overflowing menus reserve a scrollbar
+hit area even while the bar fades out, so rows do not jump during scrolling.
+The long-menu component example uses `ScrollbarAlways`.

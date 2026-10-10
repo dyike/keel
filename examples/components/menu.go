@@ -43,7 +43,7 @@ func newMenuGallery() *menuGallery {
 	g.menu.Link(demoText("Keel documentation", "Keel 文档"), "https://github.com/dyike/keel")
 	g.menu.SetItemDisabled(demoText("Paste", "粘贴"), true)
 	g.menu.Trigger(kit.Button(demoText("More actions", "更多操作"), g.menu.Toggle).Variant(kit.ButtonSecondary))
-	g.long = kit.Menu()
+	g.long = kit.Menu().Scrollbars(el.ScrollbarAlways)
 	for i := 1; i <= 60; i++ {
 		label := fmt.Sprintf(demoText("Action %02d", "操作 %02d"), i)
 		g.long.Item(label, "", do(label))

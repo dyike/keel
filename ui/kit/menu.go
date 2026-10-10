@@ -39,24 +39,26 @@ type menuItem struct {
 // → opens a submenu, ← or Esc closes one level. Running any item closes the
 // whole menu. Shortcuts are only displayed, never registered.
 type MenuView struct {
-	trigger       el.View
-	items         []menuItem
-	open          bool
-	openSub       int // index of the open submenu, -1 none
-	parent        *MenuView
-	width         float32
-	disabled      bool
-	reveal        int
-	find          base.Typeahead
-	side          el.Side
-	align         el.Align
-	offset        float32
-	checkRight    bool
-	focusPending  bool
-	onLink        func(string)
-	onLinkError   func(error)
-	hideLinkIcon  bool
-	actionContext string
+	trigger          el.View
+	items            []menuItem
+	open             bool
+	openSub          int // index of the open submenu, -1 none
+	parent           *MenuView
+	width            float32
+	disabled         bool
+	reveal           int
+	find             base.Typeahead
+	side             el.Side
+	align            el.Align
+	offset           float32
+	checkRight       bool
+	focusPending     bool
+	onLink           func(string)
+	onLinkError      func(error)
+	hideLinkIcon     bool
+	actionContext    string
+	scrollbarMode    el.ScrollbarMode
+	scrollbarModeSet bool
 }
 
 func Menu() *MenuView { return &MenuView{openSub: -1, width: 220, reveal: -1, offset: 4} }
@@ -88,6 +90,25 @@ func (v *MenuView) Width(dp float32) *MenuView {
 		v.width = dp
 	}
 	return v
+}
+
+// Scrollbars selects when overflowing menu scrollbars are visible.
+// Unconfigured submenus inherit their parent's mode; otherwise the global
+// el scrollbar default applies. Invalid modes are ignored.
+func (v *MenuView) Scrollbars(mode el.ScrollbarMode) *MenuView {
+	if mode <= el.ScrollbarSystem {
+		v.scrollbarMode, v.scrollbarModeSet = mode, true
+	}
+	return v
+}
+
+func (v *MenuView) scrollbarSetting() (el.ScrollbarMode, bool) {
+	for menu := v; menu != nil; menu = menu.parent {
+		if menu.scrollbarModeSet {
+			return menu.scrollbarMode, true
+		}
+	}
+	return 0, false
 }
 
 // ActionItem adds a command that shows the key bound to a keymap action
@@ -337,6 +358,15 @@ func (v *MenuView) renderSub(cx *el.Context) {
 func (v *MenuView) panel(cx *el.Context) el.Element {
 	w, h := cx.ViewportSize()
 	list := floating(theme.ElevationMd).ID(autoID("menu-scroll", v)).Role("menu").Name(v.label()).MinW(el.Dp(min(v.width, max(0, w-16)))).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().Py(theme.SpaceXs).Items(el.Stretch)
+	if mode, set := v.scrollbarSetting(); set {
+		list.Scrollbars(mode)
+	}
+	_, viewport, content := cx.ScrollState(autoID("menu-scroll", v))
+	overflowing := viewport > 0 && content > viewport
+	rightMargin := float32(4)
+	if overflowing {
+		rightMargin = scrollbarGutter
+	}
 	rows := make([]el.Element, len(v.items))
 	leading := false
 	for _, it := range v.items {
@@ -355,11 +385,15 @@ func (v *MenuView) panel(cx *el.Context) el.Element {
 			list.Child(rows[i])
 			continue
 		}
-		rows[i] = v.row(cx, i, it, leading)
+		rows[i] = v.row(cx, i, it, leading, rightMargin)
 		list.Child(rows[i])
 	}
 	return list.Decorate(func(gtx core.C, draw func()) {
 		draw()
+		_, viewport, content := cx.ScrollState(autoID("menu-scroll", v))
+		if (viewport > 0 && content > viewport) != overflowing {
+			gtx.Execute(op.InvalidateCmd{})
+		}
 		if v.reveal < 0 || v.reveal >= len(rows) || !gtx.Enabled() {
 			return
 		}
@@ -406,7 +440,7 @@ func (v *MenuView) label() string {
 	return locale.Current().Menu
 }
 
-func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Element {
+func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool, rightMargin float32) el.Element {
 	run := func() {
 		if v.itemDisabled(i) {
 			return
@@ -438,7 +472,7 @@ func (v *MenuView) row(cx *el.Context, i int, it menuItem, leading bool) el.Elem
 		}
 	}
 	row := el.Div().ID(v.itemID(i)).NoShrink().Role("menuitem").Name(it.label).Row().Items(el.Center).Gap(theme.SpaceLg).
-		Ml(4).Mr(scrollbarGutter).Px(theme.SpaceMd).H(el.Dp(30)).Rounded(theme.RadiusSm).Focusable(true).Disabled(v.itemDisabled(i)).
+		Ml(4).Mr(rightMargin).Px(theme.SpaceMd).H(el.Dp(30)).Rounded(theme.RadiusSm).Focusable(true).Disabled(v.itemDisabled(i)).
 		DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).
 		FocusStyle(func(s *el.Style) { s.Bg(theme.Subtle).BorderColor(theme.Subtle) }).
 		OnClick(run).
