@@ -116,3 +116,15 @@ func (v *CommandView) Bordered(on bool) *CommandView { v.borderless = !on; retur
 // PanelStyle refines each freshly built panel, e.g. width and background.
 // Do not retain the element. Nil removes the customization.
 func (v *CommandView) PanelStyle(fn func(*el.DivEl)) *CommandView { v.panelStyle = fn; return v }
+
+// HeaderBelowSearch places supplemental controls between the search field and results.
+func (v *CommandView) HeaderBelowSearch(on bool) *CommandView {
+	v.headerBelowSearch = on
+	return v
+}
+
+// CloseButton shows a dismiss control beside the search field.
+func (v *CommandView) CloseButton(on bool) *CommandView {
+	v.closeButton = on
+	return v
+}

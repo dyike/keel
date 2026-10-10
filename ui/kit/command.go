@@ -39,11 +39,13 @@ type CommandItem struct {
 // finds "New window"). ↑ ↓ move, Enter runs, Esc closes. Bind it to a
 // shortcut yourself: cx.Shortcut("mod+k", palette.Toggle).
 type CommandView struct {
+	closeButton                         bool
 	list                                *VirtualListView
 	variable                            *VariableListView
 	autoRows, revealActive              bool
 	inline, nonsearchable, pendingFocus bool
 	header, footer, empty               el.View
+	headerBelowSearch                   bool
 	renderItem                          func(CommandItem, bool) el.View
 	rowHeight                           float32
 	maxHeight                           float32
@@ -266,6 +268,7 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 		placeholder = text.SearchCommands
 	}
 	search := el.Input().ID(id + "/search").Name(text.SearchCommands).Placeholder(placeholder).Bind(&v.query).
+		FocusStyle(func(s *el.Style) { s.Bg(color.NRGBA{}).BorderColor(color.NRGBA{}) }).
 		OnChange(func(string) { v.queryChanged(); cx.ScrollTo(v.listID(), 0) }).
 		OnSubmit(func(string) { v.confirmActive() }).OnKey(keyHandler)
 	// Bound supplementary content separately so a long header/footer cannot hide
@@ -322,11 +325,24 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 	if v.nonsearchable {
 		panel.Focusable(true).OnKey(keyHandler)
 	}
-	if v.header != nil {
+	if v.header != nil && !v.headerBelowSearch {
 		panel.Child(el.Div().ID(id + "/header").MaxH(el.Dp(slotHeight)).ScrollY().Child(v.header.Render(cx)))
 	}
 	if !v.nonsearchable {
-		panel.Child(el.Div().P(theme.SpaceMd).Child(searchField(cx, id+"/searchbox", id+"/search", search)), el.Div().H(el.Dp(1)).Bg(theme.Border))
+		field := searchField(cx, id+"/searchbox", id+"/search", search)
+		// The empty editor caret is painted just before the placeholder.
+		// Reserve ink space inside the input clip.
+		search.Pl(4)
+		row := el.Div().P(theme.SpaceMd).Row().Items(el.Center).Gap(8)
+		field.Grow().W(el.Dp(0))
+		row.Child(field)
+		if v.closeButton {
+			row.Child(Button("", v.cancel).Name(text.Close).Icon(IconClose).Variant(ButtonGhost).Size(28).Render(cx))
+		}
+		panel.Child(row, el.Div().H(el.Dp(1)).Bg(theme.Border))
+	}
+	if v.header != nil && v.headerBelowSearch {
+		panel.Child(el.Div().ID(id + "/header").MaxH(el.Dp(slotHeight)).ScrollY().Child(v.header.Render(cx)))
 	}
 	panel.Child(el.Div().ID(id + "/results").MaxH(el.Dp(viewport)).ScrollY().Items(el.Stretch).Child(results))
 	if v.footer != nil {
