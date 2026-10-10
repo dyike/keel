@@ -47,6 +47,8 @@ leave nested modules out. So:
 
 ## Patches
 
+- `gio/widget.Editor`: exposes optional `ScrollBounds`, `ScrollOffset` and `ScrollTo` methods for multiline scrollbar drawing and dragging. Moving the viewport preserves the selection; the next edit or caret movement resumes caret scrolling. Keel detects this capability at runtime, so upstream Gio still builds and retains native wheel scrolling. A 1×/2× regression checks clamping, selection, caret reveal and content replacement.
+
 - `gio/gpu/internal/metal`: idle trimming waits for the last submitted GPU work, then releases its command buffer, staging buffer and quad instance buffer. Live textures and pipelines remain cached; temporary buffers are recreated on the next draw or readback. This lowers retained idle memory without requesting frames. A headless regression test checks repeated trim, readback and resumed rendering.
 
 - `go vet` fixes for unkeyed struct literals in `gio/internal/f32` and
@@ -96,10 +98,12 @@ leave nested modules out. So:
   display link's goroutine when the requested state changes. Windows call
   `Start` on every animated frame, and the unbuffered send blocked the main
   thread on a goroutine handoff each time.
-- `gio/app` (macOS): the window's `CAMetalLayer` keeps at most two
-  drawables. The renderer waits for the previous frame before the next, so
-  a third only held a window-sized surface (5 MB at 640x512 pt, 33 MB on
-  4K); hello's idle footprint varied with it by 5 MB between runs.
+- `gio/app` (macOS): keep three `CAMetalLayer` drawables during rendering.
+  Core Animation can retain two presented surfaces during resize; limiting
+  the pool to two intermittently blocked the main thread in `nextDrawable`
+  for about a second. Idle trimming still shrinks spare surfaces. The native
+  `TestMetalResizeWindow` regression drives 60 growing/shrinking frames and
+  rejects the compositor stall (`KEEL_DESKTOP=1 go test ./app`).
 - `gio/gpu`, `gio/gpu/internal/metal`: consecutive ops clipped to a plain
   rectangle and filled with a solid color or a texture are drawn as one
   instanced draw (`driver.QuadBatcher`, up to 8 textures a batch) instead of
@@ -171,3 +175,5 @@ leave nested modules out. So:
   typefaces, bypass unnecessary wrapping and segmentation for eligible text,
   reuse normalization scratch and avoid copying shaping-plan keys.
   Fast paths preserve mandatory Unicode breaks and have regression tests.
+- `typesetting/fontscan` (macOS): also scan `/System/Library/AssetsV2/com_apple_MobileAsset_Font*`, where current macOS keeps system fonts such as PingFang. Without it, "PingFang SC" never resolved and Chinese fell back to Hiragino Sans GB W3, with no Medium or Semibold. `fontscan/scan_darwin_test.go` resolves all three weights.
+- `gio/text`, `gio/font`, `gio/widget`, `gio/widget/material`: platform glyph rasterizers. `Shaper.GlyphFile(id)` reports a glyph's font file, face index, size and glyph id (faces from `font.FaceSource` keep their path; built-in, variable-instance and varied faces report false). `Shaper.SetRasterHook` registers a function that draws a solid-color line of glyphs; `Label`, `Editor` and `Selectable` take an optional `Color` (set by `material.LabelStyle` and `EditorStyle`) and, with a hook, translate each line by whole pixels and pass the fraction to it, falling back to outlines when it reports false. Keel's theme sets the hook on macOS to draw with CoreText; both APIs use only upstream types, so Keel detects them with interface assertions and still builds against upstream Gio.

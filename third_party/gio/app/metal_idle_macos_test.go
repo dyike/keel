@@ -24,6 +24,10 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	if os.Getenv("GIO_METAL_RESIZE_HELPER") == "1" {
+		metalResizeWindowHelper()
+		return
+	}
 	if os.Getenv("GIO_METAL_IDLE_HELPER") == "1" {
 		metalIdleWindowHelper()
 		return

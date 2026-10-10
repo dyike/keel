@@ -16,8 +16,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"gioui.org/font"
 	"io"
+
+	"gioui.org/f32"
+	"gioui.org/font"
 
 	"gioui.org/gesture"
 	"gioui.org/io/clipboard"
@@ -35,6 +37,7 @@ import (
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/imageload"
+	"github.com/dyike/keel/ui/theme"
 )
 
 // run is a stretch of text in one style.
@@ -410,11 +413,7 @@ func shapeLine(gtx layout.Context, shaper *text.Shaper, rn run, content string, 
 		}
 		// Shape draws relative to the batch's first glyph: its pen position
 		// and baseline. Place that from the line start and the piece's top.
-		stk := op.Offset(image.Pt((buf[0].X - firstX).Floor(), int(buf[0].Y))).Push(gtx.Ops)
-		o := clip.Outline{Path: shaper.Shape(buf)}.Op().Push(gtx.Ops)
-		paint.PaintOp{}.Add(gtx.Ops)
-		o.Pop()
-		stk.Pop()
+		theme.PaintGlyphs(gtx.Ops, shaper, buf, rn.color, f32.Pt(float32((buf[0].X-firstX).Floor()), float32(buf[0].Y)))
 		buf = buf[:0]
 	}
 	for g, ok := shaper.NextGlyph(); ok; g, ok = shaper.NextGlyph() {

@@ -39,12 +39,15 @@ func (f ViewFunc) Render(cx *Context) Element { return f(cx) }
 
 // Context is passed to Render.
 type Context struct {
-	layers         []overlayDecl
-	shortcuts      []viewShortcut
-	actions        []scopedAction
-	globalActions  map[string]func() // by name, for Perform
-	bindingTargets map[string]actionBindingTarget
-	root           *RootWidget
+	queryRevision          uint64
+	queryHover, queryFocus map[string][]*elemState
+	queryNodes             map[string]*Node
+	layers                 []overlayDecl
+	shortcuts              []viewShortcut
+	actions                []scopedAction
+	globalActions          map[string]func() // by name, for Perform
+	bindingTargets         map[string]actionBindingTarget
+	root                   *RootWidget
 }
 
 // ClickModifiers reports modifier keys during the current pointer click
@@ -130,6 +133,7 @@ func (cx *Context) Action(name string, fn func()) {
 
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
+	queryRevision  uint64
 	mounts         []mount // views rendered after the root view; see Mount
 	clickModifiers key.Modifiers
 	requestedFocus event.Tag
@@ -153,6 +157,10 @@ type RootWidget struct {
 
 	pointerDispatch  bool
 	focusFromPointer bool
+	// keyboardModality is whether the last press came from the keyboard. Focus
+	// returned by a closing overlay shows its ring only then, like
+	// :focus-visible.
+	keyboardModality bool
 }
 
 // Root makes v the whole content of a window: it fills the window, with the
@@ -187,12 +195,20 @@ func (r *RootWidget) SetTextAtlas(atlas *theme.GlyphAtlas) {
 }
 
 func (r *RootWidget) Layout(gtx core.C) core.D {
+	return r.LayoutViewport(gtx, image.Rectangle{Max: gtx.Constraints.Max})
+}
+
+// LayoutViewport retains natural layout while painting only the visible area.
+// Embed implements core.ViewportWidget, so el containers propagate their clip
+// automatically. Wrappers should retain it with core.ViewportFunc.
+func (r *RootWidget) LayoutViewport(gtx core.C, visible image.Rectangle) core.D {
 	// A missing input source can mean measurement or a disabled parent.
 	// Both render real state without advancing its lifecycle.
 	live := gtx.Enabled()
 	st := r.store
 	if live {
 		st.frame++
+		theme.BeginTextFrame()
 	}
 	e := &r.e
 	e.beginTextMeasurements()
@@ -213,9 +229,11 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	r.prepareLayers(&cx)
 	r.callbacks = false
 	r.requestedFocus = nil
+	cx.resetInteractionQueries()
 	if live {
 		r.dispatchLayers(&cx)
 		r.dispatchHover(gtx)
+		cx.resetInteractionQueries()
 		r.blur(gtx)
 		r.dispatchTab(&cx)
 		r.dispatchKeys(gtx)
@@ -240,6 +258,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 				break
 			}
 			if k, ok := ev.(key.Event); ok && k.State == key.Press {
+				r.keyboardModality = true
 				core.Call(gtx, s.fn)
 			}
 		}
@@ -262,9 +281,10 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 			tree.style.BgGradient(theme.BgGradient)
 		}
 	}
+	cx.resetInteractionQueries()
 	e.layout(tree, max.X, max.Y, base)
 	e.place(tree)
-	e.origin, e.visible = image.Point{}, image.Rectangle{Max: max}
+	e.origin, e.visible = image.Point{}, visible.Intersect(image.Rectangle{Max: max})
 	e.prepareTextAtlas(tree)
 	// Everything is painted inside an area that sees every press, so a click
 	// on empty space can take focus away from inputs and selected text.
@@ -312,6 +332,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 				if ev, ok := ev.(pointer.Event); !ok || ev.Kind != pointer.Press {
 					continue
 				}
+				r.keyboardModality = false
 				if st.pressEditor {
 					editorTarget = st
 				} else {
@@ -370,9 +391,12 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			if !ok {
 				break
 			}
-			if ev.Kind == gesture.KindPress && st.focusable {
-				st.pointerFocus = true
-				focusTarget = st
+			if ev.Kind == gesture.KindPress {
+				r.keyboardModality = false
+				if st.focusable {
+					st.pointerFocus = true
+					focusTarget = st
+				}
 			}
 			if ev.Kind != gesture.KindClick {
 				continue
@@ -405,6 +429,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			switch ev.Kind {
 			case pointer.Press:
 				kind = DragStart
+				r.keyboardModality = false
 				if st.focusable {
 					st.pointerFocus = true
 					focusTarget = st

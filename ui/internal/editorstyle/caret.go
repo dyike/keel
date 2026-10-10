@@ -102,8 +102,9 @@ func (c *Caret) LayoutDecorated(gtx layout.Context, style material.EditorStyle, 
 	if ed.Len() == 0 && style.Hint != "" {
 		// A caret centered on the hint's first glyph merges with its strokes
 		// (a dark bar beside 搜 reads as 锼). Draw it just before the hint,
-		// in the field's padding, the way native text fields do.
-		x1 = pos.X - gtx.Dp(1)
+		// in the field's padding, the way native text fields do. Platform
+		// text (CoreText) darkens stems past the outline by about a pixel.
+		x1 = pos.X - gtx.Dp(1) - half
 		x0 = x1 - 2*half
 		area.Min.X = x0
 	}

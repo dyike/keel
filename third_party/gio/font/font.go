@@ -37,6 +37,12 @@ type Face interface {
 	Face() *font.Face
 }
 
+// FaceSource is implemented by a Face parsed from a font file. Keel patch:
+// it lets platform rasterizers draw the same face from its file.
+type FaceSource interface {
+	Source() (path string, index int)
+}
+
 // Typeface identifies a list of font families to attempt to use for displaying
 // a string. The syntax is a comma-delimited list of family names. In order to
 // allow for the remote possibility of needing to express a font family name

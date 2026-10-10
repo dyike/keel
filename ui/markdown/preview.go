@@ -2,6 +2,9 @@ package markdown
 
 import (
 	"image"
+	"math"
+
+	"gioui.org/unit"
 
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -10,16 +13,18 @@ import (
 )
 
 type documentPreview struct {
-	lines   int
-	clamped bool
-	origin  image.Point
-	height  int
+	lines     int
+	maxHeight unit.Dp
+	clamped   bool
+	origin    image.Point
+	height    int
 }
 
 // MaxLines limits the document to n body-line heights, including block spacing.
 // Zero or a negative value removes the limit. Taller headings can consume more
 // than one line of this budget. It does not add an ellipsis or expand button.
 func (d *Doc) MaxLines(n int) *Doc {
+	d.preview.maxHeight = 0
 	d.preview.lines = max(0, min(n, 100000))
 	if n <= 0 {
 		d.preview.clamped = false
@@ -30,26 +35,44 @@ func (d *Doc) MaxLines(n int) *Doc {
 	return d
 }
 
+// MaxHeight limits the document preview in density-independent pixels. It
+// replaces MaxLines; zero, negative or non-finite values remove the limit.
+func (d *Doc) MaxHeight(height unit.Dp) *Doc {
+	if height <= 0 || math.IsNaN(float64(height)) || math.IsInf(float64(height), 0) {
+		height = 0
+	}
+	d.preview.lines = 0
+	d.preview.maxHeight = min(height, 1e6)
+	if height == 0 {
+		d.preview.clamped = false
+	} else {
+		d.ranges.reveal = nil
+	}
+	return d
+}
+
+func (p *documentPreview) enabled() bool { return p.lines > 0 || p.maxHeight > 0 }
+
 // IsClamped reports whether the most recently painted frame hid content because
-// of MaxLines. It is false before the first frame and after removing the limit.
+// of MaxLines or MaxHeight. It is false before the first frame and after removing the limit.
 func (d *Doc) IsClamped() bool { return d.preview.clamped }
 
 func (d *Doc) beginPreview(cx *el.Context, root el.Element, gtx core.C) {
 	d.preview.origin, _ = cx.PaintGeometry()
 	d.preview.height = gtx.Constraints.Max.Y
-	clamped := d.preview.lines > 0 && el.ContainerContentSize(root).Y > d.preview.height
+	clamped := d.preview.enabled() && el.ContainerContentSize(root).Y > d.preview.height
 	if clamped != d.preview.clamped {
 		d.preview.clamped = clamped
 		// Let a caller's expand affordance observe the result on its next Render.
 		gtx.Execute(op.InvalidateCmd{})
 	}
-	if d.preview.lines > 0 {
+	if d.preview.enabled() {
 		d.ranges.reveal = nil
 	}
 }
 
 func (d *Doc) paintPreview(gtx core.C, draw func()) {
-	if d.preview.lines <= 0 {
+	if !d.preview.enabled() {
 		draw()
 		return
 	}
@@ -81,7 +104,7 @@ func (d *Doc) paintPreview(gtx core.C, draw func()) {
 // removes a partial last line; this guard prevents a stranded empty row frame.
 func (d *Doc) guardPreview(cx *el.Context, row *el.DivEl) {
 	row.Decorate(func(gtx core.C, draw func()) {
-		if d.preview.lines <= 0 {
+		if !d.preview.enabled() {
 			draw()
 			return
 		}

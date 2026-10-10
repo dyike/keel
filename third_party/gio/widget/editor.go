@@ -5,6 +5,7 @@ package widget
 import (
 	"bufio"
 	"image"
+	"image/color"
 	"io"
 	"math"
 	"strings"
@@ -35,6 +36,9 @@ type Editor struct {
 	// text manages the text buffer and provides shaping and cursor positioning
 	// services.
 	text textView
+	// Color, when set, is the solid color the text material paints. It lets
+	// the shaper's text.RasterHook draw the glyphs. Keel patch.
+	Color *color.NRGBA
 	// Alignment controls the alignment of text within the editor.
 	Alignment text.Alignment
 	// LineHeight determines the gap between baselines of text. If zero, a sensible
@@ -224,6 +228,19 @@ func (e *Editor) processEvents(gtx layout.Context) (ev EditorEvent, ok bool) {
 		return ev, ok
 	}
 	return nil, false
+}
+
+// ScrollBounds returns the available viewport offsets after the last layout.
+func (e *Editor) ScrollBounds() image.Rectangle { return e.text.ScrollBounds() }
+
+// ScrollOffset returns the current text viewport offset in pixels.
+func (e *Editor) ScrollOffset() image.Point { return e.text.ScrollOff() }
+
+// ScrollTo moves the viewport without changing the selection. A subsequent edit
+// or caret movement resumes automatic scrolling to the caret.
+func (e *Editor) ScrollTo(offset image.Point) {
+	e.text.scrollAbs(offset.X, offset.Y)
+	e.scrollCaret = false
 }
 
 func (e *Editor) processPointer(gtx layout.Context) (EditorEvent, bool) {
@@ -805,7 +822,7 @@ func (e *Editor) paintSelection(gtx layout.Context, material op.CallOp) {
 // glyphs.
 func (e *Editor) paintText(gtx layout.Context, material op.CallOp) {
 	e.initBuffer()
-	e.text.PaintText(gtx, material)
+	e.text.paintText(gtx, material, e.Color)
 }
 
 func (e *Editor) paintComposition(gtx layout.Context, material op.CallOp) {

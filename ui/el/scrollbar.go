@@ -1,9 +1,11 @@
 package el
 
 import (
+	"gioui.org/op"
 	"image"
 	"image/color"
 	"math"
+	"time"
 
 	"gioui.org/gesture"
 	"gioui.org/io/key"
@@ -94,7 +96,7 @@ func (s *scrollbarState) update(gtx core.C, track image.Rectangle, horizontal bo
 			if pos < start || pos >= start+size {
 				s.grab = size / 2
 			}
-			if focus.focusable {
+			if focus != nil && focus.focusable {
 				focus.pointerFocus = true
 				gtx.Execute(key.FocusCmd{Tag: focus})
 			}
@@ -207,4 +209,43 @@ func (st *elemState) scrollKey(gtx core.C, ev key.Event) bool {
 		}
 	}
 	return true
+}
+
+func (st *elemState) scrollbarVisibility(gtx core.C, n *Node, viewportHovered, animate bool) (ScrollbarMode, bool, float32) {
+	mode := resolveScrollbars(n.style.scrollbarMode, n.style.scrollbarModeSet)
+	if mode == ScrollbarHidden {
+		st.scrollAlpha = 0
+		return mode, false, 0
+	}
+	showBars := true
+	switch mode {
+	case ScrollbarHover:
+		showBars = viewportHovered || st.scrollbarX.active || st.scrollbarY.active
+	case ScrollbarScrolling:
+		showBars = gtx.Now.Before(st.scrollVisibleUntil) || st.scrollbarX.active || st.scrollbarY.active
+		if showBars && gtx.Enabled() && animate {
+			gtx.Execute(op.InvalidateCmd{At: st.scrollVisibleUntil})
+		}
+	}
+	// Fade between shown and hidden; wanted bars take input at any opacity.
+	// Always mode does not fade, and switching away from it hides at once.
+	alpha := float32(1)
+	if mode != ScrollbarAlways {
+		if showBars {
+			if st.scrollAlpha == 0 {
+				st.scrollShownAt = gtx.Now
+			}
+			st.scrollWantedAt = gtx.Now
+		}
+		alpha = scrollbarAlpha(showBars, gtx.Now, st.scrollShownAt, st.scrollWantedAt)
+		if alpha > 0 && alpha < 1 && gtx.Enabled() {
+			gtx.Execute(op.InvalidateCmd{})
+		}
+	}
+	st.scrollAlpha = alpha
+	if mode == ScrollbarAlways {
+		st.scrollWantedAt = time.Time{}
+	}
+
+	return mode, showBars, alpha
 }

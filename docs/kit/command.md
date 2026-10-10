@@ -80,3 +80,7 @@ commands := kit.Command(
     kit.CommandItem{Title: "Current mode", Checked: true},
 ).AutoRowHeight(true).Placeholder("Search actions").MaxHeight(280)
 ```
+
+Use `HeaderBelowSearch(true)` to place the header between the search field and results, for example for category filters.
+
+`CloseButton(true)` adds a dismiss button to the right of the search field.

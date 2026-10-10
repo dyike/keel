@@ -3,6 +3,7 @@ package widget
 import (
 	"bufio"
 	"image"
+	"image/color"
 	"io"
 	"math"
 	"slices"
@@ -327,6 +328,12 @@ func (e *textView) PaintSelection(gtx layout.Context, material op.CallOp) {
 // PaintText clips and paints the visible text glyph outlines using the provided
 // material to fill the glyphs.
 func (e *textView) PaintText(gtx layout.Context, material op.CallOp) {
+	e.paintText(gtx, material, nil)
+}
+
+// paintText is PaintText with the material's solid color, when known, for
+// text.RasterHook. Keel patch.
+func (e *textView) paintText(gtx layout.Context, material op.CallOp, col *color.NRGBA) {
 	m := op.Record(gtx.Ops)
 	viewport := image.Rectangle{
 		Min: e.scrollOff,
@@ -335,6 +342,7 @@ func (e *textView) PaintText(gtx layout.Context, material op.CallOp) {
 	it := textIterator{
 		viewport: viewport,
 		material: material,
+		color:    col,
 	}
 
 	startGlyph := 0

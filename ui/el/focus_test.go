@@ -392,3 +392,46 @@ func TestDirectPointerFocusDoesNotPaintRing(t *testing.T) {
 		t.Fatal("keyboard activation must restore the ring")
 	}
 }
+
+// Closing an overlay returns focus to its trigger. That focus shows a ring
+// only when the keyboard was last used, like :focus-visible; a menu opened
+// and picked with the mouse left its sidebar row outlined.
+func TestRestoredFocusRingFollowsInputModality(t *testing.T) {
+	open := false
+	root := Root(viewFunc(func(cx *Context) Element {
+		if open {
+			cx.Overlay("menu", Modal(Div().W(Dp(120)).Child(
+				Div().ID("item").Name("item").H(Dp(20)).Focusable(true).OnClick(func() { open = false }))).
+				OnDismiss(func() { open = false }))
+		}
+		return Div().Child(Div().ID("trigger").Name("trigger").Size(Dp(40)).Focusable(true).OnClick(func() { open = true }))
+	}))
+	h := uitest.New(root)
+	cx := &Context{root: root}
+	h.Click(10, 10)
+	h.Frame()
+	if !open {
+		t.Fatal("trigger did not open the overlay")
+	}
+	box := nodeBounds(h, "item")
+	h.Click(float32(box.Min.X+4), float32(box.Min.Y+4))
+	h.Frame()
+	h.Frame()
+	if open || !cx.Focused("trigger") {
+		t.Fatalf("pointer close: open=%v focused=%v", open, cx.Focused("trigger"))
+	}
+	if cx.FocusVisible("trigger") {
+		t.Fatal("focus restored after a pointer close must not show a ring")
+	}
+	h.Key(key.NameSpace, 0)
+	h.Frame()
+	if !open {
+		t.Fatal("keyboard did not reopen the overlay")
+	}
+	h.Key(key.NameEscape, 0)
+	h.Frame()
+	h.Frame()
+	if !cx.FocusVisible("trigger") {
+		t.Fatal("focus restored after Escape must show a ring")
+	}
+}

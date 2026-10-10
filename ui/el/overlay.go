@@ -143,8 +143,9 @@ func (cx *Context) Hovered(id string) bool {
 	if id == "" {
 		return false
 	}
-	for _, s := range cx.root.store.states {
-		if s.id == id && !s.disabled && !s.blocked && s.hovered {
+	cx.prepareInteractionQueries()
+	for _, st := range cx.queryHover[id] {
+		if st.hovered && !st.disabled && !st.blocked {
 			return true
 		}
 	}
@@ -256,6 +257,9 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 			if !ok {
 				break
 			}
+			if k, ok := ev.(key.Event); ok && k.State == key.Press {
+				r.keyboardModality = true
+			}
 			if k, ok := ev.(key.Event); ok && k.State == key.Press && !d.layer.keepOnEscape {
 				handled := false
 				if d.layer.onEscape != nil {
@@ -279,6 +283,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 			if !ok {
 				break
 			}
+			r.keyboardModality = false
 			p := ev.(pointer.Event).Position
 			pos := image.Pt(int(p.X), int(p.Y))
 			if !d.layer.keepOnOutside && !pos.In(st.bounds) && !pos.In(st.arrowBounds) && (d.layer.modal || !pos.In(st.anchor)) {
@@ -545,6 +550,8 @@ func (r *RootWidget) focusTag(tag event.Tag) {
 			continue
 		}
 		if tag == s || tag == &s.editor {
+			// After a pointer close the trigger takes focus quietly, as if pressed.
+			s.pointerFocus = !r.keyboardModality
 			r.e.gtx.Execute(key.FocusCmd{Tag: tag})
 			return
 		}

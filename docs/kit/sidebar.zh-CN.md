@@ -23,12 +23,18 @@ nav := kit.Sidebar().
 - `SidebarItem.IconView` 接受仅用于显示的自定义图标，在同一个 16dp 插槽内覆盖 `Icon`；收起后仍显示，颜色由应用控制。分支展开箭头紧跟名称，位于角标和独立尾部内容之前。
 - `Filter(query)` 只显示名称包含 query 的项（不区分大小写），以及通向它们的父项，父项会临时展开；没有匹配项的分组连同标题一起隐藏。传空字符串恢复全部。选中项被过滤掉时仍保持选中。组件库应用 `go run ./examples/components` 用它做搜索。
 - `Side(el.Right)` 将分隔线放到左边，并调整折叠箭头与收起状态的提示方向；默认 `el.Left`。应用仍需把侧栏放在主内容右边，组件不改变父布局顺序。`BorderWidth(dp)` 调整分隔线，0 隐藏。
+- `SidebarItem.Tag` 在名称后、展开箭头前放置仅展示的内容，通常是 `Tag`。名称截断时它保持尺寸；选中行加粗时它保持常规字重；折叠时隐藏。
+- `SectionAction(title, view, items...)` 在分组标题末尾放置内容（如添加按钮）；这样的分组为空时仍显示标题（筛选时隐藏）。`SectionTitleWeight(font.Weight)` 设置分组标题字重，默认常规。
 - `Collapsible(false)` 隐藏内置折叠按钮；程序仍可调用 `SetCollapsed`。
 - `SidebarItem.Suffix` / `SetSuffix(id, view)` 添加独立尾部内容，可以放按钮或开关；点击尾部不选择或展开导航项。收起时隐藏尾部内容，展开时最大宽度为侧栏配置宽度的一半，高度应适配 36dp 行。Badge 仍可同时显示。
 - `SidebarItem.ContextMenu` / `SetContextMenu(id, menu)` 为条目添加右键菜单，支持 Menu 的子菜单、快捷键提示、链接及自定义内容。一个 Menu 实例只属于一个条目，其 Trigger 不使用；菜单外观与位置仍由 Menu 配置。隐藏、禁用或替换条目菜单会关闭旧菜单。右键不改变选中项。
 - `Value()` / `SetValue(id)`、`SetBadge(id, n)`、`Collapsed()` / `SetCollapsed`、`Width(dp)`（默认 220）。
 
+`SidebarItem.SuffixOnHover` 让尾部内容在整行悬停、行内有键盘焦点或上下文菜单打开时显示。隐藏时保留布局占位，且不能触发操作。
+
 选项结构会递归复制；IconView、Suffix 和 ContextMenu 保留传入实例。整个 Sidebar 的 ID 必须非空且唯一；新增 Section 包含空值或重复 ID 时整组不加入。父项禁用不隐式禁用子项。
+
+Sidebar 跳过滚动视口外的行绘制，但每帧仍会构建和布局展开的条目，尚不是完整的虚拟列表。菜单清理通过已列出的 ID 集合一次遍历整份数据，行内 hover 和焦点查询复用 el 的本轮渲染索引。回归测试覆盖 1×/2× 下的 1000 行列表、屏外绘制、键盘定位与选择，以及收起父项后的菜单关闭。运行 `go test ./ui/kit -run '^$' -bench BenchmarkSidebarScroll -benchmem`，可测量带逐项菜单和 hover 按钮的平铺列表及已收起的项目树。
 
 Agent：容器角色 `navigation`；叶项是 `link`，分支是带展开布尔值的 `button`，`selected` 表示当前页；收起按钮名为"收起侧栏""展开侧栏"。
 

@@ -94,7 +94,8 @@ func TestTreeLazyRequestsAndCollapseInvalidation(t *testing.T) {
 	requests := map[string][]uint64{}
 	tr := Tree(&TreeNode{ID: "a", Label: "A", Lazy: true}, &TreeNode{ID: "b", Label: "B", Lazy: true}).OnLoad(func(id string, token uint64) { requests[id] = append(requests[id], token) })
 	h := page(tr)
-	click(t, h, "A")
+	// Click the label: a narrow row's center can fall on its disclosure.
+	clickRole(t, h, "", "A")
 	h.Key(key.NameRightArrow, 0)
 	h.Frame()
 	if !tr.NodeLoading("a") || len(requests["a"]) != 1 {

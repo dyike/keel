@@ -19,6 +19,9 @@ import (
 )
 
 func TestNumericLabelAtlasPixels(t *testing.T) {
+	// The atlas matches vector outlines; macOS's CoreText text replaces both.
+	theme.UsePlatformText(false)
+	defer theme.UsePlatformText(true)
 	w, err := headless.NewWindow(400, 160)
 	if err != nil {
 		t.Skip(err)
@@ -101,6 +104,8 @@ func TestNumericLabelAtlasPixels(t *testing.T) {
 }
 
 func TestNumericLabelAtlasFrameBudget(t *testing.T) {
+	theme.UsePlatformText(false)
+	defer theme.UsePlatformText(true)
 	var atlas theme.GlyphAtlas
 	defer atlas.Release()
 	count, value := 530, strings.Repeat("12", 32)
@@ -134,6 +139,8 @@ func TestNumericLabelAtlasFrameBudget(t *testing.T) {
 }
 
 func TestNumericLabelAtlasPreservesClicksAndSemantics(t *testing.T) {
+	theme.UsePlatformText(false)
+	defer theme.UsePlatformText(true)
 	var atlas theme.GlyphAtlas
 	defer atlas.Release()
 	count := 0

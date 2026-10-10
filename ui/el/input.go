@@ -104,9 +104,10 @@ func (e *InputEl) Transform(fn func(InputEdit) InputEdit) *InputEl {
 	return e
 }
 
-// CaptureKeys reserves named, unmodified keys for OnKey before the single-line
-// editor handles them. The handler owns these keys even when it returns false.
-// Ordinary editing shortcuts with modifiers remain with the editor.
+// CaptureKeys reserves named, unmodified keys for OnKey before the editor
+// handles them. The handler owns these keys even when it returns false.
+// Ordinary editing shortcuts with modifiers remain with the editor, so a
+// TextArea that captures "⏎" to send still breaks lines with Shift+Enter.
 func (e *InputEl) CaptureKeys(names ...string) *InputEl {
 	e.n.input.captureKeys = append([]string(nil), names...)
 	return e

@@ -1,5 +1,7 @@
 # 主题
 
+设置 `Palette.Frameless` 可去掉元素外框，包括焦点边框。键盘和输入框焦点改用背景填充，单边分隔线保留。该选项默认关闭，并随局部调色板生效。
+
 [English](theme.md) | 简体中文
 
 `ui/theme` 管颜色、尺寸刻度和字体。组件每次 Render 都从 theme 读取，所以切换主题后所有窗口下一帧就换成新样子，不用重建视图。
@@ -135,11 +137,17 @@ kit 的间距都已改用这套刻度；剩下的 10、14、20dp 是刻意的视
 
 `theme.Face` 指定正文的字体优先级，逐字形回退；`theme.MonoFace` 指定等宽字体优先级。桌面版优先使用系统字体，兜底字体只在系统没有对应字体时使用。
 
-`MonoFace` 优先尝试等宽字体，缺失的中文等字形复用完整的 `Face` 回退列表。macOS 的字体索引没有 PingFang 时，终端中文可以和正文一样使用 Hiragino Sans GB，避免落到 Arial Unicode MS 等任意汉字回退字体。字体内存和中文字形外观取决于实际选择的字体；拉丁文字保留等宽字体。
+`MonoFace` 优先尝试等宽字体，缺失的中文等字形复用完整的 `Face` 回退列表，终端中文因此和正文使用同一款中文字体，不会落到 Arial Unicode MS 等任意汉字回退字体；拉丁文字保留等宽字体。在 macOS 上，Keel 的 go-text 副本还会索引系统字体资源目录（`/System/Library/AssetsV2`），苹方就在其中；使用上游 go-text 时中文回退到冬青黑（Hiragino Sans GB）。
 
 `theme.LoadFonts(data...)` 接收 TTF、OTF、TTC 文件的字节内容，加载后重绘所有窗口。浏览器通过 `theme.FetchFonts("font.ttf")` 下载并加载；中文字体准备见 [在浏览器里运行](web.zh-CN.md#构建)。
 
 `BodySize` / `SmallSize` / `HeadingSize` 分别为 15 / 13 / 22sp，标准单行字段高 `ControlHeight`（36dp）。直接使用 Gio 绘制时可复用 `theme.Material` 的字形排版器。
+
+### 平台文字渲染（macOS）
+
+使用 Keel 的 Gio 和 go-text 副本时（见 `third_party/README.zh-CN.md`），macOS 上纯色文字由 CoreText 绘制，与原生应用和 WebKit 一致：同样的抗锯齿、笔画加粗和 gamma。此前 Gio 的矢量轮廓在线性光空间混合，看起来偏细、发灰。字形排版、布局和度量仍由 Gio 负责，只改变字形像素。标签、输入框、富文本区间、Markdown、代码编辑器、闪光文字和 `GlyphRenderer` 都会使用它。CoreText 画不了的文字（内存中构建的字体、彩色表情、超过 160 px 的字号）仍用矢量轮廓。字形缓存最多 8 页 1024×1024（32 MiB）。
+
+自定义绘制可用 `theme.PaintGlyphs(ops, shaper, glyphs, color, origin)` 以同样方式绘制一行已排版的字形；`theme.PlatformText(shaper)` 报告某个排版器是否使用它。`theme.UsePlatformText(false)` 或环境变量 `KEEL_TEXT=vector` 可切回矢量轮廓做对比。使用上游 Gio 时没有这些挂钩，文字保持矢量轮廓。
 
 ## 系统减少动画
 

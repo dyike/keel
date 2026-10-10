@@ -28,7 +28,10 @@ func TestAlignedOffset(t *testing.T) {
 
 func TestVirtualListsScrollToAlign(t *testing.T) {
 	var cx *el.Context
-	vl := VirtualList(100, 30, func(cx *el.Context, i int) el.Element { return el.Text("v" + strconv.Itoa(i)) }).Height(300)
+	// Name the 30dp row, not its text: a label's line box depends on the font.
+	vl := VirtualList(100, 30, func(cx *el.Context, i int) el.Element {
+		return el.Div().HFull().Name("v" + strconv.Itoa(i)).Child(el.Text("v" + strconv.Itoa(i)))
+	}).Height(300)
 	vroot := el.Root(viewFunc(func(c *el.Context) el.Element { cx = c; return el.Div().Child(vl.Render(c)) }))
 	h := uitest.NewFunc(func(gtx core.C) { gtx.Constraints.Max = image.Pt(300, 400); vroot.Layout(gtx) })
 	settle(h)

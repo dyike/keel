@@ -286,6 +286,30 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 	// main size; without one, growing is meaningless and all are natural.
 	growing := func(c *Node) bool { return mainDef >= 0 && c.style.grow > 0 }
 
+	// shrink takes -free from the children that may shrink, in proportion to
+	// their size, and reports whether any could.
+	shrink := func(free int) bool {
+		var weight float32
+		for _, c := range kids {
+			if c.style.shrink >= 0 {
+				weight += float32(mainOf(c.size, row))
+			}
+		}
+		if weight <= 0 {
+			return false
+		}
+		for _, c := range kids {
+			if c.style.shrink < 0 {
+				continue
+			}
+			cut := int(float32(-free) * float32(mainOf(c.size, row)) / weight)
+			_, cross := c.force(row)
+			c.setForce(max(mainOf(c.size, row)-cut, 0), cross, row)
+			e.layoutChild(c, n, limW, limH)
+		}
+		return true
+	}
+
 	total := 0
 	var grow float32
 	for i, c := range kids {
@@ -349,26 +373,14 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 				ms, me, _, _ := e.margins(c, row)
 				total += m - ms - me
 			}
-		} else if free < 0 {
-			var weight float32
-			for _, c := range kids {
-				if c.style.shrink >= 0 {
-					weight += float32(mainOf(c.size, row))
-				}
-			}
-			if weight > 0 {
-				for _, c := range kids {
-					if c.style.shrink < 0 {
-						continue
-					}
-					cut := int(float32(-free) * float32(mainOf(c.size, row)) / weight)
-					_, cross := c.force(row)
-					c.setForce(max(mainOf(c.size, row)-cut, 0), cross, row)
-					e.layoutChild(c, n, limW, limH)
-				}
-				total = mainDef
-			}
+		} else if free < 0 && shrink(free) {
+			total = mainDef
 		}
+	} else if row && limW < inf && total > limW && shrink(limW-total) {
+		// An automatic row capped by its maximum width shrinks its children
+		// into it, as a CSS flex row with max-width does, rather than
+		// overflowing; otherwise trailing controls land outside the box.
+		total = limW
 	}
 
 	// Cross size, then stretch children that have no cross size of their own.
@@ -393,8 +405,15 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 			want := max(crossSize-cs-ce, 0)
 			if crossOf(c.size, row) != want {
 				main, _ := c.force(row)
+				before := mainOf(c.size, row)
 				c.setForce(main, want, row)
 				e.layoutChild(c, n, limW, limH)
+				// Stretching can change the main size too: a table whose cells
+				// grow into the width was far taller at its natural width. An
+				// automatic container must not keep the stale extent.
+				if mainDef < 0 {
+					total += mainOf(c.size, row) - before
+				}
 			}
 		}
 	}
@@ -549,5 +568,9 @@ func (e *engine) measureWidget(n *Node, innerW, innerH, limW, limH int) image.Po
 	if innerH >= 0 {
 		cs.Min.Y, cs.Max.Y = innerH, innerH
 	}
-	return n.widget.Layout(e.measureGtx(cs)).Size
+	gtx := e.measureGtx(cs)
+	if w, ok := n.widget.(core.ViewportWidget); ok {
+		return w.LayoutViewport(gtx, image.Rectangle{}).Size
+	}
+	return n.widget.Layout(gtx).Size
 }

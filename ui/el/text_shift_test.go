@@ -78,3 +78,17 @@ func redInkScaled(t *testing.T, e Element, scale int) int {
 	h.Frame()
 	return n
 }
+
+// Labels center their ink in the line box of the faces that set them; one
+// shared measurement put Latin low and Chinese high beside the same icon.
+func TestTextScript(t *testing.T) {
+	for s, want := range map[string]script{
+		"modu": scriptLatin, "H5000M · 1": scriptLatin, "": scriptLatin,
+		"模板": scriptWide, "远端 远端": scriptWide, "远端，远端": scriptWide,
+		"新增 SSH 远端": scriptMixed, "提交代码1": scriptMixed, "H5000M · 远端": scriptMixed,
+	} {
+		if got := scriptOf(s); got != want {
+			t.Errorf("%q: script %d, want %d", s, got, want)
+		}
+	}
+}

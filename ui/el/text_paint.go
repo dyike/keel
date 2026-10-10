@@ -10,6 +10,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/text"
 	"gioui.org/widget/material"
+	"github.com/dyike/keel/ui/theme"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -28,7 +29,13 @@ func (e *engine) paintLabel(gtx layout.Context, lb material.LabelStyle) {
 	defer clip.Rect(viewport).Push(gtx.Ops).Pop()
 	semantic.LabelOp(lb.Text).Add(gtx.Ops)
 	if len(gs) > 0 {
-		tr := op.Affine(f32.AffineId().Offset(f32.Pt(float32(gs[0].X)/64, float32(gs[0].Y)))).Push(gtx.Ops)
+		origin := f32.Pt(float32(gs[0].X)/64, float32(gs[0].Y))
+		if theme.PlatformText(lb.Shaper) {
+			// The platform rasterizer caches glyph masks itself.
+			theme.PaintGlyphs(gtx.Ops, lb.Shaper, gs, lb.Color, origin)
+			return
+		}
+		tr := op.Affine(f32.AffineId().Offset(origin)).Push(gtx.Ops)
 		e.textPainter.Paint(gtx.Ops, lb.Shaper, params, gs, lb.Color)
 		tr.Pop()
 	}

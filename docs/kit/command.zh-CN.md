@@ -80,3 +80,7 @@ commands := kit.Command(
     kit.CommandItem{Title: "当前模式", Checked: true},
 ).AutoRowHeight(true).Placeholder("搜索操作").MaxHeight(280)
 ```
+
+使用 `HeaderBelowSearch(true)` 可将头部放在搜索框和结果之间，例如分类筛选栏。
+
+`CloseButton(true)` 在搜索框右侧显示关闭按钮。

@@ -4,6 +4,8 @@ package widget
 
 import (
 	"image"
+	"image/color"
+	"math"
 
 	"gioui.org/f32"
 	"gioui.org/font"
@@ -36,6 +38,9 @@ type Label struct {
 	// LineHeightScale applies a scaling factor to the LineHeight. If zero, a
 	// sensible default will be used.
 	LineHeightScale float32
+	// Color, when set, is the solid color the material paints. It lets
+	// the shaper's text.RasterHook draw the glyphs. Keel patch.
+	Color *color.NRGBA
 }
 
 // Layout the label with the given shaper, font, size, text, and material.
@@ -75,6 +80,7 @@ func (l Label) LayoutDetailed(gtx layout.Context, lt *text.Shaper, font font.Fon
 		viewport: viewport,
 		maxLines: l.MaxLines,
 		material: textMaterial,
+		color:    l.Color,
 	}
 	semantic.LabelOp(txt).Add(gtx.Ops)
 	var glyphs [32]text.Glyph
@@ -108,6 +114,8 @@ type textIterator struct {
 	// the color of the glyphs is undefined and may change unpredictably if the
 	// text contains color glyphs.
 	material op.CallOp
+	// color is the material's solid color, when known. Keel patch.
+	color *color.NRGBA
 	// truncated tracks the count of truncated runes in the text.
 	truncated int
 	// linesSeen tracks the quantity of line endings this iterator has seen.
@@ -210,6 +218,16 @@ func (it *textIterator) paintGlyph(gtx layout.Context, shaper *text.Shaper, glyp
 		line = append(line, glyph)
 	}
 	if glyph.Flags&text.FlagLineBreak != 0 || cap(line)-len(line) == 0 || !visibleOrBefore {
+		if hook := shaper.Raster(); it.color != nil && hook != nil && len(line) > 0 {
+			// Keep raster glyphs on the pixel grid; the hook places the fraction.
+			x, y := math.Floor(float64(it.lineOff.X)), math.Round(float64(it.lineOff.Y))
+			t := op.Offset(image.Pt(int(x), int(y))).Push(gtx.Ops)
+			drawn := hook(gtx.Ops, line, *it.color, it.lineOff.X-float32(x))
+			t.Pop()
+			if drawn {
+				return line[:0], visibleOrBefore
+			}
+		}
 		t := op.Affine(f32.AffineId().Offset(it.lineOff)).Push(gtx.Ops)
 		path := shaper.Shape(line)
 		outline := clip.Outline{Path: path}.Op().Push(gtx.Ops)

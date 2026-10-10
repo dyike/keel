@@ -93,7 +93,7 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 | 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`、`Ml`、`Mr`（外边距），单位 dp |
 | 滚动与定位 | `ScrollX()` 横向滚动（需要约束宽度）、`ScrollY()` 纵向滚动（需要确定的高度），`StickToBottom()` 跟随到底，`ScrollToEndOn(v)` 在 v 变化时跳到底部；`Absolute()` + `Top/Right/Bottom/Left` 绝对定位，同时给左右会拉伸宽度 |
 | 外观 | `Bg(c)`、`Border(dp, c)`、`Rounded(dp)`（用 `theme.RadiusSm/Md/Lg/Xl/Full`），`RoundedCorners(左上, 右上, 右下, 左下)` 分别设置四个角，比如按钮组只圆外侧的角、`Shadow(theme.ElevationSm/Md/Lg)` 阴影画在元素外面、不改变尺寸，`Opacity(a)` 设置整个子树 0–1 透明度（0 完全不绘制，仍保留布局和交互），`CursorPointer()`、`Hidden(b)`、`IsHidden()`（读取本元素声明的隐藏值，不包含祖先） |
-| 文字（向下继承） | `TextColor(c)`、`TextSize(sp)`（用 `theme.TextXs` … `theme.TextHeading`）、`Bold()`、`Medium()`、`Mono()` 等宽字体（`theme.MonoFace`）、`LineHeight(倍数)`、`MaxLines(n)` |
+| 文字（向下继承） | `TextColor(c)`、`TextSize(sp)`（用 `theme.TextXs` … `theme.TextHeading`）、`Bold()`、`Medium()`、`Mono()` 等宽字体（`theme.MonoFace`）、`Italic()` 斜体、`LineHeight(倍数)`、`MaxLines(n)` |
 | 状态变体 | `Hover(func(*el.Style))`、`Active(func(*el.Style))`：悬停、按下时的颜色变化，背景在 120ms 内渐变过去；开启减少动画（`theme.SetReducedMotion`，自动化模式默认开启）时直接切换 |
 | 交互 | `OnClick(fn)`、`OnDoubleClick(fn)` |
 | 结构 | `ID(s)`、`Child(...)`、`Children(slice)`、`When(cond, func(*T))` |
@@ -221,6 +221,8 @@ return el.Div().Hidden(!visible).Child(el.Text("已保存"))
 
 `Scrollbars(el.ScrollbarAlways / el.ScrollbarHover / el.ScrollbarScrolling)` 设置单个滚动容器的显示策略，两轴共用；默认 System，跟随系统偏好；Always 在内容溢出时持续显示。Hover 在指针进入整个视口时显示；Scrolling 在偏移实际变化后显示，停止 900ms 后隐藏，鼠标拖动滚动条期间持续显示。程序定位、键盘滚动也会显示；停在边界且偏移不变不会重新计时。隐藏后不保留滚动条点击区域，内容仍能接收指针事件；滚轮和键盘滚动不受策略影响。`ScrollOffset` 的受控模式仍隐藏所有滚动条。Hover 和 Scrolling 模式下滚动条出现时 120ms 淡入、隐藏时 200ms 淡出（开启减少动画时直接显示或隐藏），淡出过程中不接收点击；Always 不渐变，从 Always 切到其他模式立即隐藏。
 
+`Scrollbars(el.ScrollbarHidden)` 隐藏两轴滚动条，保留滚轮、触摸和键盘滚动，适用于紧凑的标签栏。
+
 `el.ScrollbarSystem` 跟随系统设置：macOS 读"显示滚动条"（自动/滚动时 → Scrolling，始终 → Always，系统设置改变后实时更新），Windows 读"自动隐藏滚动条"（启动时读一次），其他平台按 Always。没有单独设置模式的容器使用 `el.SetScrollbarDefault(mode)` 设的默认值，默认值为 System；想让整个应用的滚动条常显，可调用 `el.SetScrollbarDefault(el.ScrollbarAlways)`。圆角容器会缩进轨道两端，避免滑块被圆角裁切；内容布局不变。内置可选列表行和横向组件条预留 12dp，包括 10dp 滚动条交互区和 2dp 间隔。自行组合 `ScrollX`/`ScrollY` 内容时，可用内边距或行外边距预留同样的空间。滚动条显示和隐藏不会改变内容尺寸。`el.SystemScrollbars()` 返回读到的系统偏好。已验证横纵双倍率交互、空闲隐藏后的点击穿透、拖出视口时继续拖动和显示策略切换的窗口像素。
 
 `cx.ScrollState(id)` 返回带 ID 的 `ScrollY` 元素上一帧的滚动偏移、可视高度、内容高度，单位 dp；第一次绘制之前三个值都是 0。虚拟列表用它决定构建哪些行。`cx.ScrollIntoView(id, top, bottom)` 以最小的滚动量让内容中 `[top, bottom]` 这一段可见，在下一次绘制时生效。
@@ -274,6 +276,8 @@ Esc 交给最上层**设置了 OnDismiss** 的浮层。没有 OnDismiss 的浮�
 
 `cx.Mount(key, view)` 把一个视图挂到当前 root 上：之后每帧先渲染根视图，再按挂载顺序渲染这些视图，返回的元素放进根元素，不参与它的排版（应返回浮层声明、Absolute 或隐藏元素）。同一个 key 再次挂载会替换原视图，`cx.Unmount(key)` 取下，`cx.Mounted(key)` / `cx.MountedView(key)` 查询。根元素是文字、输入框这类叶子时会自动包一层容器。kit 的 `Dialog.Show`、`Sheet.Show` 和 `kit.WindowNotifier` 就建立在它上面，对应 GPUI 根视图自带的对话框、抽屉和通知层。
 
+Hover 和焦点查询在本轮渲染首次使用时，为上一份声明建立索引，避免每查一个 ID 都重新遍历全部状态或元素树。输入分发和重新渲染时会使索引失效；禁用、模态遮挡及鼠标与键盘焦点的行为保持不变。
+
 完整浮层能力要求 `el.Root`。`el.Embed` 使用嵌入时的最大约束，通过 `op.Defer` 延后绘制，属于尽力支持；其可用空间不一定等于窗口大小。浮层不跨窗口。无输入源的帧统一按只读帧处理，包括测量和父组件禁用。它们复用真实的 store/cache，保留输入内容和滚动位置；不分发事件、不触发关闭回调、不增减浮层生命周期、不推进定时器，也不清理状态或覆盖焦点恢复记录。
 
 验证：`go run ./examples/components -section overlay`，加 `-theme dark` 检查深色；切换浮层、打开模态、编辑输入框，并用 Tab / Shift+Tab / Esc 检查焦点。
@@ -309,6 +313,8 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 - **整个窗口用 el**：`window.Options{Content: el.Root(view)}`。`Root` 占满窗口，窗口不再加边距和外层滚动；页面要滚动时，给根 `Div` 加 `ScrollY()`。浮层（对话框、菜单）用 `cx.Overlay` 声明，不需要 `window.Options.Overlay`。
 - **在 el 里放 Gio 代码**：`el.Widget(w)` 嵌入任意 `core.Widget`，比如用 `core.Func` 包起来的一段 Gio 布局。
 - **把 el 放进 Gio 布局**：`el.Embed(view)` 得到一个按内容定尺寸的 `core.Widget`。
+
+`el.Root` 和 `el.Embed` 实现 `core.ViewportWidget`：el 容器以组件本地像素坐标传递父级滚动裁剪区，长内容只绘制可见子节点，完整自然高度保持不变。包装时用 `core.ViewportFunc`，将矩形传给 `root.LayoutViewport(gtx, visible)`。普通 `core.Func` 包装保留原有行为。空矩形表示只测量、不绘制，不会缩小布局约束或内容尺寸。
 
 ## Agent 能看到什么
 
@@ -401,7 +407,7 @@ row := el.Div().Row().Items(el.ContentBottom).Child(avatar, body)
 
 布局使用当前帧尺寸计算对齐线以上和以下所需空间，支持 Row 和 Wrap 的每一行。目标不接受绝对定位节点；容器显式限高时仍遵守限高。此模式不用于纵向容器或 Grid。
 
-`el.Input().SelectOnFocus(true)` 在获得焦点时选中全部内容。`CaptureKeys(names...)` 让单行输入的 OnKey 提前接收指定的无修饰键；这些键由回调完全负责，返回 false 也不会交还编辑器，带修饰键的快捷键不受影响。`cx.SelectInput(id, start, end)` 在下一次 Bind 同步后设置 rune 选区，不改变焦点或文字；端点由编辑器限制到有效范围，缺失或禁用输入忽略。上述接口用于 TimeField 的快速分段编辑，已验证中文 rune 选区、范围限制及带修饰键的编辑行为。
+`el.Input().SelectOnFocus(true)` 在获得焦点时选中全部内容。`CaptureKeys(names...)` 让 OnKey 先于编辑器接收指定的无修饰键，单行输入和 `TextArea` 都适用；这些键由回调完全负责，返回 false 也不会交还编辑器。带修饰键的按键不受影响，因此捕获 `⏎` 发送的 `TextArea` 仍可用 Shift+Enter 换行；输入法组字时 Enter 由输入法自己处理。`cx.SelectInput(id, start, end)` 在下一次 Bind 同步后设置 rune 选区，不改变焦点或文字；端点由编辑器限制到有效范围，缺失或禁用输入忽略。上述接口用于 TimeField 的快速分段编辑，已验证中文 rune 选区、范围限制及带修饰键的编辑行为。
 
 `el.Input().TransformEdit(func(before, after el.InputEdit) el.InputEdit)` 在编辑归一化时同时提供编辑前后的文本及 rune 选区，适合格式掩码判断删除方向。它与 Transform 互斥，后配置者生效；撤销重做保存归一化后的文本与选区，程序 Bind 更新仍清空历史。已通过掩码删除和撤销重做回归。
 

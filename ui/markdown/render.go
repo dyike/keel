@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dyike/keel/ui/locale"
+	"golang.org/x/image/math/fixed"
 
 	"gioui.org/font"
 	"gioui.org/io/semantic"
@@ -42,6 +43,9 @@ func (d *Doc) Render(cx *el.Context) el.Element {
 	if d.preview.lines > 0 {
 		root.MaxH(el.Sp(float32(theme.BodySize) * 1.6 * float32(d.preview.lines))).Reveal(1)
 	}
+	if d.preview.maxHeight > 0 {
+		root.MaxH(el.Dp(float32(d.preview.maxHeight))).Reveal(1)
+	}
 	var all []*block
 	for i := range d.chunks {
 		for j := range d.chunks[i].blocks {
@@ -57,7 +61,7 @@ func (d *Doc) Render(cx *el.Context) el.Element {
 			root.Child(el.Text(caret).TextColor(theme.Primary))
 		}
 		tail := d.streaming && i == tailIndex
-		if tail || d.plugins != nil || d.dynamicCode(b) {
+		if tail || d.plugins != nil && hasCustomContent(b) || d.dynamicCode(b) {
 			root.Child(d.block(cx, b, tail)) // streaming or custom controls: rebuild
 			continue
 		}
@@ -175,6 +179,10 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 		b.view = st
 	}
 	cols := len(t.header)
+	divider := theme.Border
+	if d.hideTableDividers {
+		divider = color.NRGBA{}
+	}
 	cell := func(key string, spans []span, i int, bold bool) el.Element {
 		align := alignLeft
 		if i < len(t.align) {
@@ -189,16 +197,25 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 				r.separator = "\n\n"
 			}
 		}
-		return el.Div().Grow().W(el.Dp(1)).Px(10).Py(8).Child(el.Widget(r))
+		box := el.Div().W(el.Dp(st.basis(t)[i])).Px(10).Py(8).Child(el.Widget(r))
+		if i < cols-1 && !d.hideTableDividers {
+			// A separator, rather than a cell outline: keep it visible in a
+			// frameless palette and span the tallest (possibly wrapped) cell.
+			box.Child(el.Div().Absolute().Right(0).Top(0).Bottom(0).W(el.Dp(1)).Bg(theme.Border))
+		}
+		return box
 	}
+	// Columns take their widest cell's natural width, the same in every row,
+	// so they line up and the table is as wide as its content, as in a web
+	// page. Wider than the document, rows shrink alike and cells wrap.
 	grid := el.Div().Role("table").Value(locale.Current().Rows(len(t.rows))).Border(1, theme.Border).Rounded(6)
-	head := el.Div().Row().Bg(theme.Subtle).Role("row").Name(joinCells(t.header))
+	head := el.Div().Row().Items(el.Stretch).Bg(theme.Subtle).Role("row").Name(joinCells(t.header))
 	for i := range cols {
 		head.Child(cell("h"+strconv.Itoa(i), t.header[i], i, true))
 	}
 	grid.Child(head)
 	for r, row := range t.rows {
-		line := el.Div().Row().Role("row").Name(joinCells(row))
+		line := el.Div().Row().Items(el.Stretch).Role("row").Name(joinCells(row))
 		for i := range cols {
 			var spans []span
 			if i < len(row) {
@@ -206,12 +223,13 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 			}
 			line.Child(cell(strconv.Itoa(r)+"/"+strconv.Itoa(i), spans, i, false))
 		}
-		row := el.Div().Child(el.Div().H(el.Dp(1)).Bg(theme.Border), line)
+		row := el.Div().Child(el.Div().H(el.Dp(1)).Bg(divider), line)
 		d.guardPreview(cx, row)
 		grid.Child(row)
 	}
 	d.guardPreview(cx, grid)
-	return grid
+	// A row keeps the column from stretching the table to its width.
+	return el.Div().Row().Child(grid)
 }
 
 func joinCells(cells [][]span) string {
@@ -223,7 +241,45 @@ func joinCells(cells [][]span) string {
 }
 
 // tableView keeps each cell's rich text state across frames.
-type tableView struct{ cells map[string]*richBlock }
+type tableView struct {
+	cells  map[string]*richBlock
+	widths []float32 // column widths in dp, cell padding included
+}
+
+// tableTextScale measures cell text at this many pixels per em, then scales.
+const tableTextScale = 100
+
+// basis returns each column's width: its widest single-line cell plus the
+// cell's horizontal padding. Measured once; a table's cells do not change.
+func (st *tableView) basis(t *tableData) []float32 {
+	if len(st.widths) == len(t.header) {
+		return st.widths
+	}
+	sh := theme.Material.Shaper
+	measure := func(spans []span, bold bool) float32 {
+		f := font.Font{Typeface: theme.Face}
+		if bold {
+			f.Weight = font.Bold
+		}
+		sh.LayoutString(text.Parameters{Font: f, PxPerEm: fixed.I(tableTextScale), MaxWidth: 1 << 24}, plain(spans))
+		width := 0
+		for g, ok := sh.NextGlyph(); ok; g, ok = sh.NextGlyph() {
+			width = max(width, (g.X + g.Advance).Ceil())
+		}
+		return float32(width) * float32(theme.BodySize) / tableTextScale
+	}
+	st.widths = make([]float32, len(t.header))
+	for i := range t.header {
+		w := measure(t.header[i], true)
+		for _, row := range t.rows {
+			if i < len(row) {
+				w = max(w, measure(row[i], false))
+			}
+		}
+		st.widths[i] = w + 20 + 2 // Px(10) each side, and rounding room
+	}
+	return st.widths
+}
 
 func (t *tableView) cell(key string, spans []span, bold bool, align cellAlign, onLink func(string)) *richBlock {
 	if t.cells == nil {

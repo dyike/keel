@@ -107,12 +107,11 @@ func (d *Doc) code(cx *el.Context, b *block) el.Element {
 // Center the visible ink, not the font's line box: CJK fallback fonts
 // reserve different descent space than Latin fonts and square icons.
 func codeLabel(gtx core.C, label string, size unit.Sp, color color.NRGBA) core.D {
-	rn := run{size: size, font: font.Font{Typeface: theme.Face}}
+	rn := run{size: size, font: font.Font{Typeface: theme.Face}, color: color}
 	res := shapeLine(gtx, theme.Material.Shaper, rn, label, gtx.Constraints.Max.X, false)
 	height := res.inkAscent + res.inkDescent
 	dims := gtx.Constraints.Constrain(image.Pt(res.width, height))
 	off := op.Offset(image.Pt(0, (dims.Y-height)/2+res.inkAscent-res.ascent)).Push(gtx.Ops)
-	paint.ColorOp{Color: color}.Add(gtx.Ops)
 	res.call.Add(gtx.Ops)
 	off.Pop()
 	return core.D{Size: dims}

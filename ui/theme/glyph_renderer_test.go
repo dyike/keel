@@ -19,6 +19,9 @@ import (
 )
 
 func TestGlyphRendererOriginsAndFallbacks(t *testing.T) {
+	// These cover the vector atlas; macOS CoreText text replaces it.
+	UsePlatformText(false)
+	defer UsePlatformText(true)
 	w, err := headless.NewWindow(500, 100)
 	if err != nil {
 		t.Skipf("GPU unavailable: %v", err)
@@ -143,6 +146,9 @@ func TestGlyphRendererOriginsAndFallbacks(t *testing.T) {
 }
 
 func TestGlyphRendererBaselineMasksStayCached(t *testing.T) {
+	// These cover the vector atlas; macOS CoreText text replaces it.
+	UsePlatformText(false)
+	defer UsePlatformText(true)
 	sh := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
 	params := text.Parameters{Font: font.Font{Typeface: "Go Mono"}, PxPerEm: fixed.I(45), MaxWidth: 10000}
 	sh.LayoutString(params, "abcdef")

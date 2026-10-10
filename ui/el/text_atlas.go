@@ -37,7 +37,9 @@ func (e *engine) prepareTextAtlas(tree *Node) {
 	e.textAtlasActive = false
 	clear(e.atlasLabels)
 	e.atlasGlyphs = e.atlasGlyphs[:0]
-	if e.textAtlas == nil {
+	// The platform rasterizer caches its own glyph images; vector atlas masks
+	// beside it would draw labels differently from their neighbours.
+	if e.textAtlas == nil || theme.PlatformText(theme.Material.Shaper) {
 		return
 	}
 	e.textAtlas.BeginFrame(theme.Material.Shaper)

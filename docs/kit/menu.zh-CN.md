@@ -89,3 +89,13 @@ core.BindIn("Terminal || Shell", "clear", "mod+k")          // 两者之一
 - 写错的表达式 `BindIn` 返回错误，什么都不改。单个名称就是只有一个标识的表达式，原来的写法照常生效。
 
 `cx.ActionAt` 仅在指定元素内有焦点时处理解析出的按键。嵌套目标中，较深的目标优先，同层按声明顺序；内层显式空绑定也会阻止外层同动作处理。不要同时用全局 `cx.Action` 注册同一动作。`ActionItem` 传了函数时，点击只调用这个函数；传 nil 时，点击按动作名路由：从触发器（或 `ActionContext` 指定的元素）往外找最内层的 `cx.ActionAt` 处理器，找不到再用 `cx.Action` 的全局处理器，和在那里按快捷键效果一样，而且不需要绑定任何键。这样菜单、快捷键和命令面板可以共用一份命令实现。路由不会切换焦点。底层是 `cx.Perform(targetID, action)`，命令面板等也可以直接调用。普通 `Item` 的显式快捷键和独立 `KbdFor` 保持原有行为。底层 `el.KeyHint` 可用于相同规则的展示内容，不负责注册快捷键。
+
+## 滚动条显示方式
+
+使用 `kit.Menu().Scrollbars(el.ScrollbarAlways)`，可在菜单内容溢出时始终显示滚动条。
+其他模式包括 `ScrollbarHover`（鼠标位于菜单内或拖动滚动条时显示）、
+`ScrollbarScrolling`（滚动时及停止后短暂显示）和 `ScrollbarSystem`（跟随系统）。
+未设置时使用全局 `el.SetScrollbarDefault`。子菜单继承最近父菜单的显式配置，
+也可以单独覆盖；无效值会被忽略。
+短菜单使用左右对称的行边距；溢出的菜单在滚动条淡出后仍保留点击区域，
+避免滚动过程中菜单项左右跳动。组件示例中的长菜单使用 `ScrollbarAlways`。

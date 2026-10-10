@@ -120,6 +120,7 @@ func PrepareFontFiles(keep func(font.Font) bool, paths ...string) (*FontSet, err
 		return nil, err
 	}
 	sh := text.NewShaper(text.WithCollection(append(faces[:len(faces):len(faces)], fallbackFaces()...)))
+	installPlatformText(sh)
 	return &FontSet{faces: faces, shaper: sh}, nil
 }
 
@@ -174,6 +175,7 @@ func (p parsedFace) Face() *gotext.Face { return gotext.NewFace(p.f) }
 func addFaces(faces []font.FontFace) {
 	loaded = append(loaded, faces...)
 	Material.Shaper = text.NewShaper(text.WithCollection(append(loaded[:len(loaded):len(loaded)], fallbackFaces()...)))
+	installPlatformText(Material.Shaper)
 	revision++
 	loop.InvalidateAll()
 }
@@ -185,5 +187,7 @@ func NewShaper(extra ...font.FontFace) *text.Shaper {
 	faces := append([]font.FontFace{}, extra...)
 	faces = append(faces, loaded...)
 	faces = append(faces, fallbackFaces()...)
-	return text.NewShaper(text.WithCollection(faces))
+	sh := text.NewShaper(text.WithCollection(faces))
+	installPlatformText(sh)
+	return sh
 }

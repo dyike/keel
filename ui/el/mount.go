@@ -39,6 +39,7 @@ func (cx *Context) Mounted(key any) bool {
 
 // renderTree renders the root view and then the mounted ones.
 func (r *RootWidget) renderTree(cx *Context) *Node {
+	cx.resetInteractionQueries()
 	tree := r.view.Render(cx).node()
 	if len(r.mounts) == 0 {
 		return tree

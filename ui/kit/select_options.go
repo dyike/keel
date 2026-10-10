@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"image/color"
 	"slices"
 	"strings"
 	"time"
@@ -197,7 +198,11 @@ func (v *SelectView) optionRow(cx *el.Context, i int) el.Element {
 	}
 	option := v.entries[row.index]
 	selected := v.picked(option.Value)
-	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(max(1, v.optionHeight()-2))).My(1).Ml(4).Mr(scrollbarGutter).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).Focusable(false).TextSize(float32(theme.BodySize) * v.sizeRatio())
+	rightMargin := float32(4)
+	if float32(len(v.rows))*v.optionHeight() > v.virtual.height {
+		rightMargin = scrollbarGutter
+	}
+	item := el.Div().Role("option").Name(option.Label).Value(option.Value).Selected(selected).Disabled(option.Disabled).H(el.Dp(max(1, v.optionHeight()-2))).My(1).Ml(4).Mr(rightMargin).Px(theme.SpaceMd).Row().Items(el.Center).Rounded(theme.RadiusSm).Focusable(false).TextSize(float32(theme.BodySize) * v.sizeRatio())
 	var content el.Element
 	if v.renderItem != nil {
 		content = v.renderItem(cx, SelectItemContext{Option: option, Index: row.index, Selected: selected, Active: i == v.active})
@@ -264,7 +269,7 @@ func (v *SelectView) list(cx *el.Context, id string) el.Element {
 	}
 	v.virtual.rowH = v.optionHeight()
 	v.virtual.Height(min(available, max(v.optionHeight(), float32(len(v.rows))*v.optionHeight())))
-	options := el.Div().ID(id + "/options").Focusable(true).Items(el.Stretch).OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) })
+	options := el.Div().ID(id + "/options").Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}); s.Bg(color.NRGBA{}) }).Items(el.Stretch).OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) })
 	if len(v.rows) == 0 {
 		empty := el.Div().MaxH(el.Dp(available)).ScrollY().Px(theme.SpaceLg).Py(theme.SpaceSm)
 		if v.empty != nil {

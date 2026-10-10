@@ -31,25 +31,80 @@ type Plugin struct {
 	Extensions []goldmark.Extender
 	Blocks     map[ast.NodeKind]func(ast.Node, []byte) el.View
 	Inlines    map[ast.NodeKind]func(ast.Node, []byte) InlineObject
+	// Local declares that the plugin's syntax never spans a blank line, as
+	// inline objects and per-block renderers do. When every plugin is local
+	// the document keeps parsing in blank-line chunks: a streaming append
+	// reparses only its last chunk instead of the whole answer.
+	Local bool
 }
 
 type pluginSet struct {
 	parser  gmparser.Parser
 	blocks  map[ast.NodeKind]func(ast.Node, []byte) el.View
 	inlines map[ast.NodeKind]func(ast.Node, []byte) InlineObject
+	local   bool // every plugin is Local
+}
+
+// Only blocks that actually embed custom views need to rebuild each frame.
+// Registering a heading/quote renderer must not disable caching for every
+// ordinary paragraph, list and table in a long document.
+func hasCustomContent(b *block) bool {
+	if b.custom != nil {
+		return true
+	}
+	objects := func(spans []span) bool {
+		for _, s := range spans {
+			if s.object != nil {
+				return true
+			}
+		}
+		return false
+	}
+	if objects(b.spans) {
+		return true
+	}
+	if b.tbl != nil {
+		for _, cell := range b.tbl.header {
+			if objects(cell) {
+				return true
+			}
+		}
+		for _, row := range b.tbl.rows {
+			for _, cell := range row {
+				if objects(cell) {
+					return true
+				}
+			}
+		}
+	}
+	for i := range b.children {
+		if hasCustomContent(&b.children[i]) {
+			return true
+		}
+	}
+	for i := range b.items {
+		for j := range b.items[i].blocks {
+			if hasCustomContent(&b.items[i].blocks[j]) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Plugins replaces this document's plugins and reparses its source. Configure
-// once, not every Render. Empty input restores the built-in parser. Registered
-// documents parse as a whole so custom block syntax can cross blank lines.
+// once, not every Render. Empty input restores the built-in parser. Documents
+// with a plugin that is not Local parse as a whole, so custom block syntax can
+// cross blank lines.
 // Factories may run again on each edit; reuse widgets/views in application code
 // when their interactive state must survive reparsing. Render runs every frame.
 func (d *Doc) Plugins(plugins ...Plugin) *Doc {
 	d.plugins = nil
 	if len(plugins) > 0 {
-		p := &pluginSet{blocks: make(map[ast.NodeKind]func(ast.Node, []byte) el.View), inlines: make(map[ast.NodeKind]func(ast.Node, []byte) InlineObject)}
+		p := &pluginSet{blocks: make(map[ast.NodeKind]func(ast.Node, []byte) el.View), inlines: make(map[ast.NodeKind]func(ast.Node, []byte) InlineObject), local: true}
 		extensions := []goldmark.Extender{extension.GFM, extension.Footnote}
 		for _, plugin := range plugins {
+			p.local = p.local && plugin.Local
 			for _, ext := range plugin.Extensions {
 				if ext != nil {
 					extensions = append(extensions, ext)

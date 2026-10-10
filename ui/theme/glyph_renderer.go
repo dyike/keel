@@ -50,6 +50,9 @@ func (r *GlyphRenderer) BeginFrame(sh *text.Shaper) {
 }
 
 func (r *GlyphRenderer) Prepare(run GlyphRun) {
+	if PlatformText(r.shaper) {
+		return // the platform rasterizer caches glyphs as it paints
+	}
 	if atlasOrigin(run.Position) {
 		r.atlas.prepare(run.Params, r.positionedGlyphs(run), run.Color, baselinePhase(run.Position.Y))
 	}
@@ -59,6 +62,10 @@ func (r *GlyphRenderer) Commit() { r.atlas.Commit() }
 
 func (r *GlyphRenderer) Paint(ops *op.Ops, run GlyphRun) {
 	if r.shaper == nil || len(run.Glyphs) == 0 {
+		return
+	}
+	if PlatformText(r.shaper) {
+		PaintGlyphs(ops, r.shaper, run.Glyphs, run.Color, run.Position)
 		return
 	}
 	position := run.Position

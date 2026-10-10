@@ -8,10 +8,9 @@ import (
 	"gioui.org/f32"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
-	"gioui.org/op"
 	"gioui.org/op/clip"
-	"gioui.org/op/paint"
 	"gioui.org/text"
+	"github.com/dyike/keel/ui/theme"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -83,15 +82,7 @@ func (e *engine) paintRangeText(n *Node, g layout.Context, size image.Point) {
 			end++
 		}
 		run := glyphs[start:end]
-		origin := f32.Pt(float32(run[0].X)/64, float32(run[0].Y))
-		offset := op.Affine(f32.AffineId().Offset(origin)).Push(g.Ops)
-		outline := clip.Outline{Path: shaper.Shape(run)}.Op().Push(g.Ops)
-		paint.Fill(g.Ops, colors[start])
-		outline.Pop()
-		if bitmap := shaper.Bitmaps(run); bitmap != (op.CallOp{}) {
-			bitmap.Add(g.Ops)
-		}
-		offset.Pop()
+		theme.PaintGlyphs(g.Ops, shaper, run, colors[start], f32.Pt(float32(run[0].X)/64, float32(run[0].Y)))
 		start = end
 	}
 }

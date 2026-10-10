@@ -18,6 +18,7 @@ const (
 	// ScrollbarSystem follows the platform's setting: macOS "Show scroll
 	// bars", Windows "Automatically hide scroll bars". Elsewhere it is Always.
 	ScrollbarSystem
+	ScrollbarHidden // never draw bars; wheel and touch scrolling remain available
 )
 
 // ScrollbarLinger is the idle delay before Scrolling mode hides the bars.
@@ -29,12 +30,13 @@ const (
 	scrollbarFadeOut = 200 * time.Millisecond
 )
 
-// Scrollbars selects the display mode for this ScrollX/ScrollY element. Invalid
-// modes are ignored. Hidden bars have no pointer hit area; scrolling and
+// Scrollbars selects the display mode for a ScrollX/ScrollY element or a
+// multiline input using Keel’s Gio viewport capability. Invalid modes are
+// ignored. Hidden bars have no pointer hit area; scrolling and
 // keyboard navigation remain available. ScrollOffset still hides all bars.
 // Elements without a mode use SetScrollbarDefault's.
 func (s *Styled[T]) Scrollbars(mode ScrollbarMode) *T {
-	if mode <= ScrollbarSystem {
+	if mode <= ScrollbarHidden {
 		s.n.style.scrollbarMode = mode
 		s.n.style.scrollbarModeSet = true
 	}
@@ -49,7 +51,7 @@ func init() { scrollbarDefault.Store(uint32(ScrollbarSystem)) }
 // one, ScrollbarSystem by default. Pass ScrollbarAlways to keep overflowing
 // bars visible. Windows redraw on their next frame.
 func SetScrollbarDefault(mode ScrollbarMode) {
-	if mode <= ScrollbarSystem {
+	if mode <= ScrollbarHidden {
 		scrollbarDefault.Store(uint32(mode))
 	}
 }

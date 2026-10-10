@@ -6,6 +6,7 @@ import (
 	"math"
 	"strings"
 	"time"
+	"unicode"
 
 	"gioui.org/f32"
 	"gioui.org/io/key"
@@ -58,6 +59,9 @@ func textFont(ts textStyle) font.Font {
 	if ts.weight != nil {
 		f.Weight = *ts.weight
 	}
+	if ts.italic != nil && *ts.italic {
+		f.Style = font.Italic
+	}
 	return f
 }
 
@@ -76,10 +80,15 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 	if w >= inf {
 		w = e.dp(200)
 	}
+	textW := w
+	if n.input.multiline {
+		st := e.store.get(n.key)
+		textW = max(1, w-inputScrollbarWidth(&st.editor, true, e.dp(10)))
+	}
 	var objectState *elemState
 	if n.input.document != nil {
 		objectState = e.store.get(n.key)
-		e.prepareInputObjects(n, objectState, w)
+		e.prepareInputObjects(n, objectState, textW)
 		for _, dims := range objectState.inputObjects.sizes {
 			line = max(line, dims.Size.Y)
 		}
@@ -114,8 +123,10 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 				lb.Font = objectState.inputObjects.font
 				lb.LineHeightScale = n.textStyle.lineHeight
 			}
-			lb.MaxLines = spec.maxRows
-			measured := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(w, inf)}), lb).Size.Y
+			// One extra row: overflowing text then clamps to exactly maxRows
+			// rows, whatever the truncator's own line box would add.
+			lb.MaxLines = spec.maxRows + 1
+			measured := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(textW, inf)}), lb).Size.Y
 			// Measure baseline spacing rather than multiplying glyph bounds:
 			// the first line and subsequent line advances need not match.
 			one := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}), e.label(n, "M")).Size.Y
@@ -246,6 +257,23 @@ func (e *engine) paintContent(n *Node) {
 		}
 		if n.disabledStyle != nil {
 			n.disabledStyle(&st)
+		}
+	}
+	if theme.Frameless {
+		st.borderWidth = 0
+		if !n.effectiveDisabled && ((n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus) || (n.input != nil && gtx.Focused(&state.editor))) {
+			bg := theme.Highlight
+			if st.bg != nil && st.bg.A != 0 {
+				bg = *st.bg
+				bg.R = uint8((4*uint16(bg.R) + uint16(theme.Muted.R)) / 5)
+				bg.G = uint8((4*uint16(bg.G) + uint16(theme.Muted.G)) / 5)
+				bg.B = uint8((4*uint16(bg.B) + uint16(theme.Muted.B)) / 5)
+			}
+			st.Bg(bg)
+			if n.focus != nil {
+				n.focus(&st)
+			}
+			st.borderWidth = 0
 		}
 	}
 	// Visual text-color variants inherit without changing measured text metrics.
@@ -384,7 +412,11 @@ func (e *engine) paintContent(n *Node) {
 			g = g.Disabled()
 		}
 		g.Constraints = layout.Exact(inner.Size())
-		n.widget.Layout(g)
+		if w, ok := n.widget.(core.ViewportWidget); ok {
+			w.LayoutViewport(g, e.visible.Sub(e.origin.Add(inner.Min)).Intersect(image.Rectangle{Max: inner.Size()}))
+		} else {
+			n.widget.Layout(g)
+		}
 		stk.Pop()
 	case st.scrollY || st.scrollX:
 		e.paintScroll(n, state, inner)
@@ -524,7 +556,7 @@ func (e *engine) paintShadow(sh theme.Elevation, rect image.Rectangle, radius co
 
 func (e *engine) paintText(n *Node, inner image.Rectangle) {
 	gtx := e.gtx
-	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n)))).Push(gtx.Ops).Pop()
+	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n, scriptOf(n.text))))).Push(gtx.Ops).Pop()
 	g := gtx
 	g.Constraints = layout.Constraints{Max: inner.Size()}
 	if n.shimmer != nil {
@@ -556,11 +588,16 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	// A single-line box has no use for ↑ ↓ PageUp PageDown beyond jumping to
 	// its ends, so OnKey takes them before the editor sees them. Escape also
 	// reaches the handler for inline controls; modal layers handle it earlier.
-	if n.onKey != nil && !spec.multiline && gtx.Enabled() {
-		filters := []event.Filter{
-			key.Filter{Focus: ed, Name: key.NameUpArrow}, key.Filter{Focus: ed, Name: key.NameDownArrow},
-			key.Filter{Focus: ed, Name: key.NamePageUp}, key.Filter{Focus: ed, Name: key.NamePageDown},
-			key.Filter{Focus: ed, Name: key.NameEscape},
+	// A multiline box keeps those keys for editing; it gives OnKey only the
+	// keys it captures, e.g. a plain Enter to send while Shift+Enter breaks
+	// the line. An input method composing text consumes Enter first.
+	if n.onKey != nil && (!spec.multiline || len(spec.captureKeys) > 0) && gtx.Enabled() {
+		var filters []event.Filter
+		if !spec.multiline {
+			filters = append(filters,
+				key.Filter{Focus: ed, Name: key.NameUpArrow}, key.Filter{Focus: ed, Name: key.NameDownArrow},
+				key.Filter{Focus: ed, Name: key.NamePageUp}, key.Filter{Focus: ed, Name: key.NamePageDown},
+				key.Filter{Focus: ed, Name: key.NameEscape})
 		}
 		for _, name := range spec.captureKeys {
 			if name != "" {
@@ -680,14 +717,18 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		inner.Min.Y += (inner.Dy() - spec.line) / 2
 		inner.Max.Y = inner.Min.Y + spec.line
 	}
-	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n)))).Push(gtx.Ops).Pop()
+	defer op.Offset(inner.Min).Push(gtx.Ops).Pop()
 	g := gtx
-	g.Constraints = layout.Exact(inner.Size())
+	barWidth := min(inner.Dx(), inputScrollbarWidth(ed, spec.multiline, e.dp(10)))
+	textSize := image.Pt(max(0, inner.Dx()-barWidth), inner.Dy())
+	track := image.Rect(textSize.X, 0, inner.Dx(), inner.Dy())
+	e.updateInputScrollbar(n, st, inner.Size(), track)
+	g.Constraints = layout.Exact(textSize)
 	ts := n.textStyle
 	th := theme.Material
 	shaper := theme.Material.Shaper
 	if spec.document != nil {
-		e.prepareInputObjects(n, st, inner.Dx())
+		e.prepareInputObjects(n, st, textSize.X)
 		documentSyncEditor(st, spec.document)
 		if st.inputObjects.shaper != nil {
 			copy := *th
@@ -703,6 +744,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		me.Font = st.inputObjects.font
 	}
 	me.LineHeightScale = ts.lineHeight
+	editorOffset := op.Offset(image.Pt(0, e.textShift(n, scriptMixed))).Push(gtx.Ops)
 	if spec.document != nil {
 		st.caret.LayoutDecorated(g, me, shaper, func(g layout.Context) { e.paintInputTokens(n, st, g) })
 	} else {
@@ -711,6 +753,8 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	if spec.document != nil {
 		e.inputDocumentIME(n, st, g)
 	}
+	editorOffset.Pop()
+	e.paintInputScrollbar(n, st, inner.Size(), track)
 	// Keep the value in the semantic tree for agents.
 	value := ed.Text()
 	if spec.document != nil {
@@ -796,36 +840,7 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	if st.scrollX != previousX || st.scrollY != previousY || st.scrollbarX.active || st.scrollbarY.active {
 		st.scrollVisibleUntil = gtx.Now.Add(ScrollbarLinger)
 	}
-	mode := resolveScrollbars(n.style.scrollbarMode, n.style.scrollbarModeSet)
-	showBars := true
-	switch mode {
-	case ScrollbarHover:
-		showBars = viewportHovered || st.scrollbarX.active || st.scrollbarY.active
-	case ScrollbarScrolling:
-		showBars = gtx.Now.Before(st.scrollVisibleUntil) || st.scrollbarX.active || st.scrollbarY.active
-		if showBars && gtx.Enabled() && n.style.controlledScroll == nil {
-			gtx.Execute(op.InvalidateCmd{At: st.scrollVisibleUntil})
-		}
-	}
-	// Fade between shown and hidden; wanted bars take input at any opacity.
-	// Always mode does not fade, and switching away from it hides at once.
-	alpha := float32(1)
-	if mode != ScrollbarAlways {
-		if showBars {
-			if st.scrollAlpha == 0 {
-				st.scrollShownAt = gtx.Now
-			}
-			st.scrollWantedAt = gtx.Now
-		}
-		alpha = scrollbarAlpha(showBars, gtx.Now, st.scrollShownAt, st.scrollWantedAt)
-		if alpha > 0 && alpha < 1 && gtx.Enabled() {
-			gtx.Execute(op.InvalidateCmd{})
-		}
-	}
-	st.scrollAlpha = alpha
-	if mode == ScrollbarAlways {
-		st.scrollWantedAt = time.Time{}
-	}
+	mode, showBars, alpha := st.scrollbarVisibility(gtx, n, viewportHovered, n.style.controlledScroll == nil)
 
 	// The viewport is its own area with the scroll handler, so it is a node
 	// in the semantic tree and agents only see what shows through it.
@@ -936,28 +951,74 @@ type shiftKey struct {
 	px         int
 	weight     font.Weight
 	lineHeight float32
+	script     script
 }
 
 // shifts caches textShift per text style. Touched only under the frame lock.
 var shifts = map[shiftKey]int{}
 
-// textShift moves glyphs down so their ink, not the font's line box, is
-// centered in the box. Fonts differ: macOS PingFang leaves a deep empty
-// descent, so CJK text sits high; Windows YaHei fits its ink tightly. The
-// shift is measured from the font, and never pushes the lowest ink (the
-// descender of g) further out of the line box.
-func (e *engine) textShift(n *Node) int {
+// script says which faces set a text, and so which line box it gets: East
+// Asian text usually comes from a fallback face (PingFang behind SF Pro) whose
+// ascent, descent and body differ from the Latin face's. Mixed text takes the
+// taller extent of both.
+type script uint8
+
+const (
+	scriptLatin script = iota
+	scriptWide
+	scriptMixed
+)
+
+func scriptOf(s string) script {
+	var latin, wide bool
+	for _, r := range s {
+		switch {
+		case unicode.IsSpace(r):
+			// Spaces are set by the run around them.
+		case r >= 0x1100 && (unicode.In(r, unicode.Han, unicode.Hiragana, unicode.Katakana, unicode.Hangul) ||
+			r >= 0x3000 && r <= 0x303f || r >= 0xff00 && r <= 0xffef):
+			wide = true
+		default:
+			latin = true
+		}
+	}
+	switch {
+	case wide && latin:
+		return scriptMixed
+	case wide:
+		return scriptWide
+	}
+	return scriptLatin
+}
+
+// textShift moves glyphs so their ink, not the font's line box, is centered
+// in the box, matching icons beside the text. Fonts differ: macOS PingFang
+// leaves a deep empty descent, so CJK text sits high; Windows YaHei fits its
+// ink tightly. The shift is measured in the line box of the faces that set
+// the text: Latin centers its cap height, East Asian text centers 国, and mixed
+// text centers both. One mixed measurement for all text set Latin labels low
+// and Chinese labels high beside their icons. The shift never pushes the
+// lowest or highest ink further out of the line box.
+func (e *engine) textShift(n *Node, sc script) int {
 	ts := n.textStyle
 	face := textFont(ts)
 	px := e.m.Sp(ts.size)
-	key := shiftKey{face.Typeface, px, face.Weight, ts.lineHeight}
+	key := shiftKey{face.Typeface, px, face.Weight, ts.lineHeight, sc}
 	if s, ok := shifts[key]; ok {
 		return s
 	}
 	// The line box is what a Label of this style measures: Gio sizes a text
 	// box that way, and fallback fonts (国 in a Latin face) would otherwise
 	// skew metrics read from single glyphs.
-	lb := material.Label(theme.Material, ts.size, "国Ag")
+	// Bodies: A, 国, or both; g gives the lowest ink.
+	sample, body := "Ag", 1
+	switch sc {
+	case scriptWide:
+		sample = "国"
+	case scriptMixed:
+		sample, body = "国Ag", 2
+	}
+	lb := material.Label(theme.Material, ts.size, sample)
 	lb.Font = face
 	if ts.lineHeight > 0 {
 		lb.LineHeightScale = ts.lineHeight
@@ -965,10 +1026,9 @@ func (e *engine) textShift(n *Node) int {
 	dims := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}), lb)
 	boxDescent := dims.Baseline // below the baseline
 	boxAscent := dims.Size.Y - boxDescent
-	// Center the body of the text (国 and a capital); g gives the lowest ink.
 	shaper := theme.Material.Shaper
-	shaper.LayoutString(text.Parameters{Font: face, PxPerEm: fixed.I(px), MaxWidth: 1 << 20}, "国Ag")
-	bodyTop, bodyBottom, lowest := 0, 0, 0
+	shaper.LayoutString(text.Parameters{Font: face, PxPerEm: fixed.I(px), MaxWidth: 1 << 20}, sample)
+	bodyTop, bodyBottom, highest, lowest := 0, 0, 0, 0
 	found := false
 	for i := 0; ; i++ {
 		g, ok := shaper.NextGlyph()
@@ -979,8 +1039,8 @@ func (e *engine) textShift(n *Node) int {
 			continue
 		}
 		top, bottom := g.Bounds.Min.Y.Floor(), g.Bounds.Max.Y.Ceil()
-		lowest = max(lowest, bottom)
-		if i < 2 { // 国 and A
+		highest, lowest = min(highest, top), max(lowest, bottom)
+		if i < body {
 			if !found {
 				bodyTop, bodyBottom, found = top, bottom, true
 			}
@@ -990,8 +1050,10 @@ func (e *engine) textShift(n *Node) int {
 	shift := 0
 	if found {
 		// The line box runs from -boxAscent to +boxDescent around the baseline.
-		shift = ((boxDescent - boxAscent) - (bodyTop + bodyBottom)) / 2
-		shift = max(min(shift, boxDescent-lowest), 0)
+		// Round halves down (positive): truncating, or rounding -0.5 away
+		// from zero, left CJK a visible half-pixel step high at 2x.
+		shift = int(math.Floor(float64((boxDescent-boxAscent)-(bodyTop+bodyBottom))/2 + 0.5))
+		shift = max(min(shift, max(boxDescent-lowest, 0)), min(-boxAscent-highest, 0))
 	}
 	shifts[key] = shift
 	return shift

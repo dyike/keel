@@ -44,6 +44,11 @@ func DefaultFontDirectories(logger Logger) ([]string, error) {
 			"/System/Library/Assets/com_apple_MobileAsset_Font4",
 			"/System/Library/Assets/com_apple_MobileAsset_Font5",
 		}
+		// Keel patch: macOS 10.15+ keeps system fonts such as PingFang in
+		// versioned asset directories, which CoreText resolves by itself.
+		if assets, err := filepath.Glob("/System/Library/AssetsV2/com_apple_MobileAsset_Font*"); err == nil {
+			dirs = append(dirs, assets...)
+		}
 	case "linux", "openbsd", "freebsd":
 		dirs = []string{
 			"/usr/X11R6/lib/X11/fonts",

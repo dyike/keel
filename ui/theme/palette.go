@@ -10,6 +10,9 @@ import (
 // Palette contains every global color token. Start from Light or Dark when
 // customizing: Apply replaces all colors, including zero (transparent) values.
 type Palette struct {
+	// Frameless suppresses element outlines and uses a fill for keyboard focus.
+	// Explicit per-edge separators are preserved.
+	Frameless                                      bool
 	PrimaryText, DangerText, CodeBg, CodeText      color.NRGBA
 	Bg, Surface, Border, Text, Muted               color.NRGBA
 	Primary, PrimaryHover, Danger, DangerHover     color.NRGBA
@@ -67,7 +70,7 @@ func Current() Palette {
 		Primary: Primary, PrimaryHover: PrimaryHover, Danger: Danger, DangerHover: DangerHover,
 		Success: Success, Warning: Warning, Info: Info, Subtle: Subtle, SubtleHover: SubtleHover,
 		OnColor: OnColor, Highlight: Highlight, Scrim: Scrim, Shadow: Shadow, Chart: Chart,
-		BgGradient: BgGradient, PrimaryGradient: PrimaryGradient}
+		BgGradient: BgGradient, PrimaryGradient: PrimaryGradient, Frameless: Frameless}
 }
 
 var revision uint64
@@ -98,6 +101,7 @@ func Scope(p Palette) (restore func()) {
 }
 
 func set(p Palette) {
+	Frameless = p.Frameless
 	BgGradient, PrimaryGradient = p.BgGradient, p.PrimaryGradient
 	PrimaryText, DangerText, CodeBg, CodeText = p.PrimaryText, p.DangerText, p.CodeBg, p.CodeText
 	Bg, Surface, Border, Text, Muted = p.Bg, p.Surface, p.Border, p.Text, p.Muted
