@@ -45,6 +45,53 @@ type pluginSet struct {
 	local   bool // every plugin is Local
 }
 
+// Only blocks that actually embed custom views need to rebuild each frame.
+// Registering a heading/quote renderer must not disable caching for every
+// ordinary paragraph, list and table in a long document.
+func hasCustomContent(b *block) bool {
+	if b.custom != nil {
+		return true
+	}
+	objects := func(spans []span) bool {
+		for _, s := range spans {
+			if s.object != nil {
+				return true
+			}
+		}
+		return false
+	}
+	if objects(b.spans) {
+		return true
+	}
+	if b.tbl != nil {
+		for _, cell := range b.tbl.header {
+			if objects(cell) {
+				return true
+			}
+		}
+		for _, row := range b.tbl.rows {
+			for _, cell := range row {
+				if objects(cell) {
+					return true
+				}
+			}
+		}
+	}
+	for i := range b.children {
+		if hasCustomContent(&b.children[i]) {
+			return true
+		}
+	}
+	for i := range b.items {
+		for j := range b.items[i].blocks {
+			if hasCustomContent(&b.items[i].blocks[j]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Plugins replaces this document's plugins and reparses its source. Configure
 // once, not every Render. Empty input restores the built-in parser. Documents
 // with a plugin that is not Local parse as a whole, so custom block syntax can

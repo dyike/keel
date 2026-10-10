@@ -33,6 +33,8 @@ Configure the plugin on initialization and don't re-register it every frame. Reg
 
 The component library `text_view` demonstrates rendering the specified reference into a reminder card and replacing the `@Keel` code snippet with an inline label. Automatic testing covers document isolation, default fallback, custom syntax and nested blocks, application state reuse, inline control click/select copy, append and logout. Native window interaction is still pending acceptance.
 
+Registering a plugin does not disable the view/layout cache for ordinary completed blocks. Only blocks that contain an actual custom view or inline object (including objects nested in lists, quotes or table cells) rebuild each frame, so dynamic controls still update without rebuilding unrelated content.
+
 ## Streaming fade in
 
 `doc.StreamFade(true)` turns on the fade-in of new text, with a default of 350ms and three fade-outs; `StreamFadeDuration(500*time.Millisecond)` can be adjusted to 0–10 seconds, with zero indicating immediate display. The full text will not be animated for the first display; subsequent `Append` or `SetSource` whose content begins with the original text will be timed for the new text. The animation of consecutive clips overlaps, and previously started clips are not reset.
@@ -45,7 +47,13 @@ Passed continuous append, syntax completion, animation reduction and 1×/2× GPU
 
 Tables are as wide as their content: each column takes its widest cell's single-line width, the same in every row. A table wider than the document fits it, columns narrowing in proportion and cells wrapping.
 
+Internal row and column dividers use `theme.Border`. Column dividers span the full row height, including wrapped cells; these dividers remain visible with `Palette.Frameless`, which suppresses the table's outer outline.
+
+`doc.TableDividers(false)` hides internal row and column dividers; `TableDividers(true)` restores them (the default). It takes effect on the next frame for existing and streamed tables without changing their layout, content or selection. The outer outline follows the palette independently.
+
 `doc.MaxLines(6)` Limit the entire article height to six body lines (`theme.BodySize × 1.6`), with font scaling, headings, paragraph spacing, tables, and code cards all accounting for this budget. `MaxLines(0)` cancels the restriction; `IsClamped()` returns whether the content is indeed hidden in the previous drawing frame, and the expand button can be displayed accordingly. Limit is 1–100000 rows, negative numbers are considered cancelled.
+
+`doc.MaxHeight(dp)` uses a density-independent height budget instead of body-line counts; it replaces `MaxLines`, and calling `MaxLines` replaces the height budget. Zero, negative or non-finite heights remove the limit. `IsClamped`, whole-line clipping and full-text selection/copy follow the same rules as `MaxLines`. This lets applications match a window-relative message preview without discarding the source.
 
 For normal text, the entire line is hidden when it spans the bottom edge; for images and single lines above the entire budget, the portion that falls within the box is retained. When the next row of the table cannot even fit the first row of text, the leading border and white space of the row will be hidden. Components don't automatically add ellipses or expand buttons; custom code cards are cropped by the box. Ignore interval positioning requests during preview and call `RevealRange` after expansion. The full text remains in `RenderedText` and SELECT ALL COPY.
 

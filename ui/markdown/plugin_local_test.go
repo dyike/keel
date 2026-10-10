@@ -1,12 +1,55 @@
 package markdown
 
 import (
+	"image"
 	"strings"
 	"testing"
 
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/internal/uitest"
 	"github.com/yuin/goldmark/ast"
 )
+
+func TestLocalPluginCustomContentRemainsDynamic(t *testing.T) {
+	for _, source := range []string{
+		"# Heading\n\nplain",
+		"before `tag` after",
+		"> before `tag` after",
+		"- before `tag` after",
+		"| name | value |\n|---|---|\n| before | `tag` |",
+		"| `tag` | value |\n|---|---|\n| before | after |",
+	} {
+		t.Run(source, func(t *testing.T) {
+			height := float32(20)
+			p := Plugin{Local: true,
+				Blocks: map[ast.NodeKind]func(ast.Node, []byte) el.View{
+					ast.KindHeading: func(ast.Node, []byte) el.View {
+						return el.ViewFunc(func(*el.Context) el.Element { return el.Div().H(el.Dp(height)).Child(el.Text("custom heading")) })
+					},
+				},
+				Inlines: map[ast.NodeKind]func(ast.Node, []byte) InlineObject{
+					ast.KindCodeSpan: func(ast.Node, []byte) InlineObject {
+						return InlineObject{Text: "tag", Widget: core.Func(func(gtx core.C) core.D { return core.D{Size: gtx.Constraints.Constrain(image.Pt(60, int(height)))} })}
+					},
+				},
+			}
+			d := New(source).Plugins(p)
+			root := el.Embed(d)
+			var size image.Point
+			h := uitest.NewFunc(func(gtx core.C) { size = root.Layout(gtx).Size })
+			before, text, parses := size, d.RenderedText(), d.parses
+			height = 80
+			h.Frame()
+			if size.Y < before.Y+50 {
+				t.Fatalf("custom content froze in a cached parent: %v -> %v", before, size)
+			}
+			if d.RenderedText() != text || d.parses != parses {
+				t.Fatal("dynamic layout changed text or reparsed source")
+			}
+		})
+	}
+}
 
 // A Local plugin keeps blank-line chunking: streaming with an app's inline or
 // block renderers reparses the tail, not the whole answer on every token.

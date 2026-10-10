@@ -54,6 +54,7 @@ type Doc struct {
 	images            map[string]*imageload.Asset
 	imageLoader       imageload.Loader
 	showFrontMatter   bool
+	hideTableDividers bool
 
 	parses int // chunks parsed so far, for tests
 }
@@ -73,6 +74,18 @@ func New(src string) *Doc {
 
 // OnLink sets what happens when a link is clicked; by default nothing.
 func (d *Doc) OnLink(fn func(url string)) *Doc { d.onLink = fn; return d }
+
+// TableDividers controls the internal row and column separators. They are
+// enabled by default. Changing this on a rendered document keeps its content,
+// geometry and text selection; the next frame uses the new appearance.
+// The table's outer outline follows the palette independently.
+func (d *Doc) TableDividers(on bool) *Doc {
+	if d.hideTableDividers != !on {
+		d.hideTableDividers = !on
+		d.extensionRevision++
+	}
+	return d
+}
 
 // Source returns the Markdown as written.
 func (d *Doc) Source() string { return d.src }

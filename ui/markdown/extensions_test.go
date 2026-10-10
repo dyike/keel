@@ -357,3 +357,43 @@ func TestDocumentPluginSyntaxAndBlockState(t *testing.T) {
 		t.Fatal("default parser wasn't restored", d.RenderedText())
 	}
 }
+
+func TestDocumentHeightPreviewReflowAndExpansion(t *testing.T) {
+	for _, scale := range []float32{1, 2} {
+		source := strings.Repeat("body words 中文\n\n", 20)
+		d := New(source).MaxHeight(120)
+		root := el.Embed(d)
+		var dims core.D
+		h := uitest.NewFunc(func(gtx core.C) {
+			gtx.Metric = unit.Metric{PxPerDp: scale, PxPerSp: scale}
+			gtx.Constraints.Max = image.Pt(int(300*scale), int(1200*scale))
+			dims = root.Layout(gtx)
+		})
+		if !d.IsClamped() || dims.Size.Y != int(120*scale) {
+			t.Fatal("height budget not applied", scale, dims)
+		}
+		full := d.RenderedText()
+		if !strings.HasSuffix(full, "body words 中文") || d.Source() != source {
+			t.Fatal("preview discarded text")
+		}
+		d.MaxHeight(0)
+		h.Frame()
+		if d.IsClamped() || dims.Size.Y <= int(120*scale) || d.RenderedText() != full {
+			t.Fatal("expansion lost content")
+		}
+		d.MaxHeight(60)
+		h.Frame()
+		if !d.IsClamped() || dims.Size.Y != int(60*scale) {
+			t.Fatal("changed budget ignored")
+		}
+		d.SetSource("short")
+		h.Frame()
+		if d.IsClamped() || dims.Size.Y >= int(60*scale) {
+			t.Fatal("short message retained disclosure")
+		}
+		d.MaxLines(1)
+		if d.preview.maxHeight != 0 {
+			t.Fatal("MaxLines retained height budget")
+		}
+	}
+}
