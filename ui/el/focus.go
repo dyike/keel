@@ -270,6 +270,7 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 					continue
 				}
 				st.pointerFocus = false
+				r.keyboardModality = true
 				handled := false
 				for node := st; node != nil; node = node.keyParent {
 					if node.onKey != nil {

@@ -153,6 +153,10 @@ type RootWidget struct {
 
 	pointerDispatch  bool
 	focusFromPointer bool
+	// keyboardModality is whether the last press came from the keyboard. Focus
+	// returned by a closing overlay shows its ring only then, like
+	// :focus-visible.
+	keyboardModality bool
 }
 
 // Root makes v the whole content of a window: it fills the window, with the
@@ -240,6 +244,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 				break
 			}
 			if k, ok := ev.(key.Event); ok && k.State == key.Press {
+				r.keyboardModality = true
 				core.Call(gtx, s.fn)
 			}
 		}
@@ -312,6 +317,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 				if ev, ok := ev.(pointer.Event); !ok || ev.Kind != pointer.Press {
 					continue
 				}
+				r.keyboardModality = false
 				if st.pressEditor {
 					editorTarget = st
 				} else {
@@ -370,9 +376,12 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			if !ok {
 				break
 			}
-			if ev.Kind == gesture.KindPress && st.focusable {
-				st.pointerFocus = true
-				focusTarget = st
+			if ev.Kind == gesture.KindPress {
+				r.keyboardModality = false
+				if st.focusable {
+					st.pointerFocus = true
+					focusTarget = st
+				}
 			}
 			if ev.Kind != gesture.KindClick {
 				continue
@@ -405,6 +414,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			switch ev.Kind {
 			case pointer.Press:
 				kind = DragStart
+				r.keyboardModality = false
 				if st.focusable {
 					st.pointerFocus = true
 					focusTarget = st
