@@ -403,7 +403,11 @@ func (e *engine) paintContent(n *Node) {
 			g = g.Disabled()
 		}
 		g.Constraints = layout.Exact(inner.Size())
-		n.widget.Layout(g)
+		if w, ok := n.widget.(core.ViewportWidget); ok {
+			w.LayoutViewport(g, e.visible.Sub(e.origin.Add(inner.Min)).Intersect(image.Rectangle{Max: inner.Size()}))
+		} else {
+			n.widget.Layout(g)
+		}
 		stk.Pop()
 	case st.scrollY || st.scrollX:
 		e.paintScroll(n, state, inner)

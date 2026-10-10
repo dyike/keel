@@ -312,6 +312,8 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 - **在 el 里放 Gio 代码**：`el.Widget(w)` 嵌入任意 `core.Widget`，比如用 `core.Func` 包起来的一段 Gio 布局。
 - **把 el 放进 Gio 布局**：`el.Embed(view)` 得到一个按内容定尺寸的 `core.Widget`。
 
+`el.Root` 和 `el.Embed` 实现 `core.ViewportWidget`：el 容器以组件本地像素坐标传递父级滚动裁剪区，长内容只绘制可见子节点，完整自然高度保持不变。包装时用 `core.ViewportFunc`，将矩形传给 `root.LayoutViewport(gtx, visible)`。普通 `core.Func` 包装保留原有行为。空矩形表示只测量、不绘制，不会缩小布局约束或内容尺寸。
+
 ## Agent 能看到什么
 
 不用额外写代码：

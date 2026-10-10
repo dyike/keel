@@ -195,6 +195,13 @@ func (r *RootWidget) SetTextAtlas(atlas *theme.GlyphAtlas) {
 }
 
 func (r *RootWidget) Layout(gtx core.C) core.D {
+	return r.LayoutViewport(gtx, image.Rectangle{Max: gtx.Constraints.Max})
+}
+
+// LayoutViewport retains natural layout while painting only the visible area.
+// Embed implements core.ViewportWidget, so el containers propagate their clip
+// automatically. Wrappers should retain it with core.ViewportFunc.
+func (r *RootWidget) LayoutViewport(gtx core.C, visible image.Rectangle) core.D {
 	// A missing input source can mean measurement or a disabled parent.
 	// Both render real state without advancing its lifecycle.
 	live := gtx.Enabled()
@@ -277,7 +284,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	cx.resetInteractionQueries()
 	e.layout(tree, max.X, max.Y, base)
 	e.place(tree)
-	e.origin, e.visible = image.Point{}, image.Rectangle{Max: max}
+	e.origin, e.visible = image.Point{}, visible.Intersect(image.Rectangle{Max: max})
 	e.prepareTextAtlas(tree)
 	// Everything is painted inside an area that sees every press, so a click
 	// on empty space can take focus away from inputs and selected text.

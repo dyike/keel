@@ -312,6 +312,8 @@ Elements cached with `cx.Cache` are invalid according to the global theme versio
 - **Put Gio code in el**: `el.Widget(w)` embeds any `core.Widget`, such as a Gio layout wrapped in `core.Func`.
 - **Put el into Gio layout**: `el.Embed(view)` Get a `core.Widget` sized by content.
 
+`el.Root` and `el.Embed` implement `core.ViewportWidget`: el containers pass the parent scroll clip in widget-local pixels, so a long embedded tree paints only visible children while retaining its full natural height. A wrapper should use `core.ViewportFunc` and forward the rectangle to `root.LayoutViewport(gtx, visible)`. Ordinary `core.Func` wrappers keep their existing behavior. An empty rectangle requests measurement without painting; it does not reduce layout constraints or content dimensions.
+
 ## What can Agent see?
 
 No need to write additional code:

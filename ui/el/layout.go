@@ -568,5 +568,9 @@ func (e *engine) measureWidget(n *Node, innerW, innerH, limW, limH int) image.Po
 	if innerH >= 0 {
 		cs.Min.Y, cs.Max.Y = innerH, innerH
 	}
-	return n.widget.Layout(e.measureGtx(cs)).Size
+	gtx := e.measureGtx(cs)
+	if w, ok := n.widget.(core.ViewportWidget); ok {
+		return w.LayoutViewport(gtx, image.Rectangle{}).Size
+	}
+	return n.widget.Layout(gtx).Size
 }

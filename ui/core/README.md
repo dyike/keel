@@ -8,6 +8,7 @@ The foundation for all interface modules:
 | --- | --- |
 | `Widget` | Interface: Something that can `Layout`. All components and containers implement it |
 | `Func` | Use a Gio layout function as a component |
+| `ViewportWidget`, `ViewportFunc` | Keep the parent's visible rectangle when embedding or wrapping a widget; skip offscreen paint while retaining full content dimensions |
 | `DecodeImage(ctx, source)` | Read local/HTTP/data images, limit encoding size and number of pixels; must be called in the background and manage timeout. `ReadImageSource` / `DecodeImageBytes` are two steps of disassembly. The Image of the kit is used to decode SVG and GIF animations at the same time |
 | `Update(fn)` | Modify the interface from any goroutine: `fn` is executed in the next frame |
 | `Call(gtx, fn)` | For those who write components: execute user callbacks and let all windows redraw |

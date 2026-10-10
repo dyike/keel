@@ -8,6 +8,7 @@
 | --- | --- |
 | `Widget` | 接口：能 `Layout` 的东西。所有组件、容器都实现它 |
 | `Func` | 把一段 Gio 布局函数当组件用 |
+| `ViewportWidget`、`ViewportFunc` | 嵌入或包装组件时保留父级可见区域，跳过屏外绘制，同时保留完整内容尺寸 |
 | `DecodeImage(ctx, source)` | 读取本地/HTTP/data 图片，限制编码大小与像素数；须在后台调用并管理超时。`ReadImageSource` / `DecodeImageBytes` 是它拆开的两步，kit 的 Image 用来另外解码 SVG、GIF 动图 |
 | `Update(fn)` | 从任意 goroutine 修改界面：`fn` 在下一帧执行 |
 | `Call(gtx, fn)` | 给写组件的人用：执行用户回调并让所有窗口重绘 |

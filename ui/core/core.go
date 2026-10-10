@@ -9,6 +9,7 @@ package core
 import (
 	"gioui.org/layout"
 	"gioui.org/op"
+	"image"
 
 	"github.com/dyike/keel/ui/internal/loop"
 )
@@ -22,6 +23,22 @@ type (
 type Widget interface {
 	Layout(gtx C) D
 }
+
+// ViewportWidget can avoid painting content outside its parent's visible area.
+// Bounds are in widget-local pixels, independent of its full layout constraints.
+// An empty viewport requests measurement only; layout dimensions stay natural.
+type ViewportWidget interface {
+	Widget
+	LayoutViewport(gtx C, visible image.Rectangle) D
+}
+
+// ViewportFunc adapts a layout function that retains the parent's visible area.
+type ViewportFunc func(gtx C, visible image.Rectangle) D
+
+func (f ViewportFunc) Layout(gtx C) D {
+	return f(gtx, image.Rectangle{Max: gtx.Constraints.Max})
+}
+func (f ViewportFunc) LayoutViewport(gtx C, visible image.Rectangle) D { return f(gtx, visible) }
 
 // Func adapts a plain Gio layout function to Widget.
 type Func func(gtx C) D
