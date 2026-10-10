@@ -81,27 +81,8 @@ func (cx *Context) FocusWithin(id string) bool {
 		return false
 	}
 	r := cx.root
-	var find func(*Node) *Node
-	find = func(n *Node) *Node {
-		if n == nil || n.style.hidden {
-			return nil
-		}
-		if n.id == id {
-			return n
-		}
-		for _, c := range n.children {
-			if f := find(c.node()); f != nil {
-				return f
-			}
-		}
-		return nil
-	}
-	n := find(r.mainTree)
-	for _, st := range r.layers {
-		if n == nil {
-			n = find(st.tree)
-		}
-	}
+	cx.prepareInteractionNodes()
+	n := cx.queryNodes[id]
 	var focused func(*Node) bool
 	focused = func(n *Node) bool {
 		if st := r.store.states[n.key]; st != nil && !st.disabled && (r.source.Focused(st) || r.source.Focused(&st.editor)) {
@@ -152,8 +133,9 @@ func (cx *Context) FocusVisible(id string) bool {
 	if id == "" {
 		return false
 	}
-	for _, st := range cx.root.store.states {
-		if st.id == id && !st.disabled && cx.root.source.Focused(st) && !st.pointerFocus {
+	cx.prepareInteractionQueries()
+	for _, st := range cx.queryFocus[id] {
+		if !st.disabled && !st.pointerFocus && cx.root.source.Focused(st) {
 			return true
 		}
 	}

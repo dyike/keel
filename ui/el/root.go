@@ -39,12 +39,15 @@ func (f ViewFunc) Render(cx *Context) Element { return f(cx) }
 
 // Context is passed to Render.
 type Context struct {
-	layers         []overlayDecl
-	shortcuts      []viewShortcut
-	actions        []scopedAction
-	globalActions  map[string]func() // by name, for Perform
-	bindingTargets map[string]actionBindingTarget
-	root           *RootWidget
+	queryRevision          uint64
+	queryHover, queryFocus map[string][]*elemState
+	queryNodes             map[string]*Node
+	layers                 []overlayDecl
+	shortcuts              []viewShortcut
+	actions                []scopedAction
+	globalActions          map[string]func() // by name, for Perform
+	bindingTargets         map[string]actionBindingTarget
+	root                   *RootWidget
 }
 
 // ClickModifiers reports modifier keys during the current pointer click
@@ -130,6 +133,7 @@ func (cx *Context) Action(name string, fn func()) {
 
 // RootWidget renders a View as a core.Widget.
 type RootWidget struct {
+	queryRevision  uint64
 	mounts         []mount // views rendered after the root view; see Mount
 	clickModifiers key.Modifiers
 	requestedFocus event.Tag
@@ -218,9 +222,11 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 	r.prepareLayers(&cx)
 	r.callbacks = false
 	r.requestedFocus = nil
+	cx.resetInteractionQueries()
 	if live {
 		r.dispatchLayers(&cx)
 		r.dispatchHover(gtx)
+		cx.resetInteractionQueries()
 		r.blur(gtx)
 		r.dispatchTab(&cx)
 		r.dispatchKeys(gtx)
@@ -268,6 +274,7 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 			tree.style.BgGradient(theme.BgGradient)
 		}
 	}
+	cx.resetInteractionQueries()
 	e.layout(tree, max.X, max.Y, base)
 	e.place(tree)
 	e.origin, e.visible = image.Point{}, image.Rectangle{Max: max}

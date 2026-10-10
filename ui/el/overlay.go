@@ -143,8 +143,9 @@ func (cx *Context) Hovered(id string) bool {
 	if id == "" {
 		return false
 	}
-	for _, s := range cx.root.store.states {
-		if s.id == id && !s.disabled && !s.blocked && s.hovered {
+	cx.prepareInteractionQueries()
+	for _, st := range cx.queryHover[id] {
+		if st.hovered && !st.disabled && !st.blocked {
 			return true
 		}
 	}
