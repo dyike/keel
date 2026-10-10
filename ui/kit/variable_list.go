@@ -192,7 +192,15 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 		off = max(total-view, 0)
 	}
 	off = min(max(off, 0), max(total-view, 0))
-	if v.restore || v.reveal != "" || atEnd {
+	switch {
+	case atEnd && v.followEnd && painted && v.end == v.endApplied:
+		// Following: StickToBottom pins the view to the laid-out end. An
+		// offset from total, last frame's measurements, fell short whenever
+		// a streaming row grew again, and following then stopped.
+	case atEnd:
+		// An explicit jump: ask for past the end; painting clamps it.
+		virtualScroll(cx, id, v.horizontal, total+view)
+	case v.restore || v.reveal != "":
 		virtualScroll(cx, id, v.horizontal, off)
 	}
 	if !painted {
