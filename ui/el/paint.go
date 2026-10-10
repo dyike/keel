@@ -115,7 +115,9 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 				lb.Font = objectState.inputObjects.font
 				lb.LineHeightScale = n.textStyle.lineHeight
 			}
-			lb.MaxLines = spec.maxRows
+			// One extra row: overflowing text then clamps to exactly maxRows
+			// rows, whatever the truncator's own line box would add.
+			lb.MaxLines = spec.maxRows + 1
 			measured := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(w, inf)}), lb).Size.Y
 			// Measure baseline spacing rather than multiplying glyph bounds:
 			// the first line and subsequent line advances need not match.
