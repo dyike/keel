@@ -55,6 +55,8 @@ const (
 	IconBan
 	IconRetry
 	IconChevronUp
+	IconPhone
+	IconComputer
 )
 
 // IconView wraps a Gio vector icon. Labels belong to its containing control.
@@ -91,6 +93,8 @@ var iconData = [...][]byte{
 	IconCalendar:     icons.ActionDateRange,
 	IconClock:        icons.ActionSchedule,
 	IconSettings:     icons.ActionSettings,
+	IconPhone:        icons.HardwareSmartphone,
+	IconComputer:     icons.HardwareComputer,
 	IconBell:         icons.SocialNotifications,
 	IconLock:         icons.ActionLock,
 	IconFolder:       icons.FileFolder,

@@ -87,3 +87,5 @@ chart.BarGradient(func(d kit.ChartBarDatum, r kit.ChartBarRange) []kit.ChartColo
 ```
 
 自动验证覆盖追加时固定刻度、两种点位配置切换、超额数据、区间外插值、输入副本、非法停靠点、极值映射、正负堆叠端点；GPU 像素测试覆盖双倍率、四向正负柱、半透明整图映射在不同柱高上的颜色一致性。原生窗口仍待验收。
+
+`Controls(false)` 隐藏图例与图表/表格切换按钮，适合紧凑的嵌入图表；仍可悬停查看提示。

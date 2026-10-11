@@ -87,3 +87,5 @@ chart.BarGradient(func(d kit.ChartBarDatum, r kit.ChartBarRange) []kit.ChartColo
 ```
 
 Automatic verification covers fixed scale when appending, switching between two point configurations, excess data, interval extrapolation, input copies, illegal stops, extreme value mapping, positive and negative stacking endpoints; GPU pixel test covers the color consistency of double rate, four-way positive and negative columns, and translucent whole image mapping on different column heights. Native windows are still pending acceptance.
+
+`Controls(false)` hides the legend and chart/table toggle for compact embedded charts. Hover tooltips remain available.

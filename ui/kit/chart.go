@@ -44,6 +44,7 @@ const axisWidth = 52 // dp for the y-axis labels
 // crosshair and a tooltip with every series' value; the data-table toggle
 // shows the same numbers as a Table. Two or more series get a legend.
 type ChartView struct {
+	hideControls       bool
 	hoverMotion        chartHoverMotion
 	noHoverAnimation   bool
 	options            chartOptions
@@ -219,7 +220,9 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 		toggle = text.ShowChart
 	}
 	head.Child(Button(toggle, func() { v.table = !v.table }).Variant(ButtonGhost).Size(24).Render(cx))
-	root.Child(head)
+	if !v.hideControls {
+		root.Child(head)
+	}
 	if v.table {
 		return root.Child(v.dataTable(cx))
 	}
@@ -597,3 +600,6 @@ func (v *ChartView) drawBars(gtx core.C, band float32, y func(float64) float32, 
 		}
 	}
 }
+
+// Controls shows or hides the chart legend and table toggle. Controls are shown by default.
+func (v *ChartView) Controls(show bool) *ChartView { v.hideControls = !show; return v }

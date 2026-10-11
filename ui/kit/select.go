@@ -16,6 +16,7 @@ import (
 // and focus returns to the field. Searchable adds a filter box on top; ↓
 // moves from it into the list.
 type SelectView struct {
+	menuAlign                                el.Align
 	renderItem                               func(*el.Context, SelectItemContext) el.Element
 	renderValue                              func(*el.Context, []SelectOption) el.Element
 	empty                                    el.View
@@ -233,7 +234,7 @@ func (v *SelectView) Render(cx *el.Context) el.Element {
 		field.CursorPointer()
 	}
 	if v.open {
-		layer := el.Anchored(id+"/frame", v.list(cx, id)).Modal().TrapFocus().OnDismiss(func() { v.open, v.query = false, "" })
+		layer := el.Anchored(id+"/frame", v.list(cx, id)).Placement(el.Bottom, v.menuAlign).Modal().TrapFocus().OnDismiss(func() { v.open, v.query = false, "" })
 		if v.menuWidth == 0 {
 			layer.MatchAnchorWidth()
 		}

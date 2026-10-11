@@ -35,3 +35,5 @@ Search for matching tags or values. List virtualization only builds rows near th
 `MenuWidth(dp)` sets the menu width, 0 follows the field; `MenuMaxHeight(dp)` sets the height budget including search/blank space, 0 defaults to 240dp, the minimum positive number is 64dp, and the window available space takes priority. `Size(dp)` scales fields, text, spacing and default line height, recommended 28/36/48, minimum positive number is 20; `RowHeight(dp)` independently sets unified options/group height, minimum positive number is 16, 0 follows Size. The custom content must fit within the row height, and the excess part will be clipped by the virtual list. The above interface ignores negative numbers and non-finite values.
 
 `Appearance(false)` Removes field background and borders, retaining labels, error text, keyboard, options, and disabled behavior. The menu still uses the theme overlay appearance.
+
+`MenuAlign(el.End)` aligns the popup with the right edge of the field, useful for wider menus in right-aligned settings controls. The default is `el.Start`.

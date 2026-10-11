@@ -94,3 +94,9 @@ func (v *SelectView) clearSelection() {
 		v.onChange("")
 	}
 }
+
+// MenuAlign aligns the popup to the field; el.End keeps wider menus inside the field’s right edge.
+func (v *SelectView) MenuAlign(align el.Align) *SelectView {
+	v.menuAlign = align
+	return v
+}
