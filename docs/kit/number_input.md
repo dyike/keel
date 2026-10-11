@@ -54,3 +54,5 @@ price.SetValue(12345.6) // Showing 12,345.60
 Normalize use of `el.Input().Transform`: process text and map selection before writing Bind / OnChange. This mode saves undo status once per user modification, up to 100 times; format changes after programmatic assignment or submission reset this history. When a group symbol is deleted it is regenerated numerically, and numbers can be continued to be deleted after the cursor is mapped to the previous number. Input boxes that do not have a Transform set continue to use the original editor history.
 
 Automatic testing covers instant full-width conversion, grouping, intermediate replacement, undo/redo, malformed input rejection, different delimiters, stepping and range endpoint accuracy; real device input method combination and visual acceptance have not yet been completed.
+
+`VerticalButtons(true)` places stacked up/down buttons on the right while preserving text editing and keyboard stepping.

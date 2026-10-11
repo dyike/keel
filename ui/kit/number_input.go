@@ -36,6 +36,7 @@ type NumberStepEvent struct {
 // range and applies the configured decimal precision. ↑ ↓ step like the buttons; PageUp and
 // PageDown move ten steps.
 type NumberInputView struct {
+	verticalButtons   bool
 	name              string // accessible name from a Form row when label is empty
 	label, text, err  string
 	value, step       float64
@@ -308,8 +309,10 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 			return true
 		})
 	// Keep the text and stable step-button identities while changing appearance.
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(theme.SpaceXs * ratio).P(padding).MinH(el.Dp(height)).
-		Child(minus.Render(cx))
+	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(theme.SpaceXs * ratio).P(padding).MinH(el.Dp(height))
+	if !v.verticalButtons {
+		box.Child(minus.Render(cx))
+	}
 	if v.height > 0 {
 		box.TextSize(float32(theme.BodySize) * ratio)
 	}
@@ -323,7 +326,13 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 	if v.suffix != nil {
 		box.Child(el.Div().ID(id + "/suffix").Child(v.suffix.Render(cx)))
 	}
-	box.Child(plus.Render(cx))
+	if v.verticalButtons {
+		plus.Icon(IconChevronUp).Size(max(12, buttonHeight/2))
+		minus.Icon(IconChevronDown).Size(max(12, buttonHeight/2))
+		box.Child(el.Div().NoShrink().Child(plus.Render(cx), minus.Render(cx)))
+	} else {
+		box.Child(plus.Render(cx))
+	}
 	return labelled(v.label, box, v.err)
 }
 
@@ -340,3 +349,6 @@ func (v *NumberInputView) commitForm() {
 		v.commit()
 	}
 }
+
+// VerticalButtons places stacked increment/decrement arrows to the right of the field.
+func (v *NumberInputView) VerticalButtons(on bool) *NumberInputView { v.verticalButtons = on; return v }
