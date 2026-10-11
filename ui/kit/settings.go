@@ -26,6 +26,7 @@ type SettingItem struct {
 }
 
 type settingsSection struct {
+	category   string
 	title      string
 	items      []SettingItem
 	groups     []SettingGroup
@@ -44,6 +45,8 @@ type SettingGroup struct {
 
 // SettingPage is one navigation destination. Titles must be unique.
 type SettingPage struct {
+	// Category groups pages in the sidebar. Empty keeps the ungrouped layout.
+	Category    string
 	Title       string
 	Icon        IconName
 	Groups      []SettingGroup
@@ -57,6 +60,9 @@ type SettingPage struct {
 type SettingsView struct {
 	size            SettingsSize
 	groupNavigation bool
+	searchInSidebar bool
+	hidePageHeading bool
+	availableWidth  float32
 	groupTargets    map[string]settingsGroupTarget
 	pendingGroup    *settingsGroupTarget
 	sections        []settingsSection
@@ -98,7 +104,7 @@ func (v *SettingsView) Page(page SettingPage) *SettingsView {
 			groups[i].Variant = &variant
 		}
 	}
-	v.sections = append(v.sections, settingsSection{title: page.Title, groups: groups, suffix: page.TitleSuffix, resettable: page.Resettable})
+	v.sections = append(v.sections, settingsSection{category: page.Category, title: page.Title, groups: groups, suffix: page.TitleSuffix, resettable: page.Resettable})
 	v.icons = append(v.icons, page.Icon)
 	if v.Value() == "" {
 		v.SetValue(page.Title)
@@ -128,6 +134,29 @@ func (v *SettingsView) RowSpacing(dp float32) *SettingsView {
 	}
 	return v
 }
+
+// SearchInSidebar places search above desktop navigation; compact layouts keep it in content.
+func (v *SettingsView) SearchInSidebar(on bool) *SettingsView {
+	v.searchInSidebar = on
+	v.nav.Collapsible(!on)
+	if on {
+		v.nav.SetCollapsed(false)
+		v.nav.Width(210)
+	} else {
+		v.nav.Width(180)
+	}
+	return v
+}
+
+// AvailableWidth sets the containing panel width in dp for responsive layout.
+// Zero uses the window viewport. It does not change the view's requested size.
+func (v *SettingsView) AvailableWidth(dp float32) *SettingsView {
+	v.availableWidth = max(0, dp)
+	return v
+}
+
+// PageHeading controls the page heading above groups, enabled by default.
+func (v *SettingsView) PageHeading(on bool) *SettingsView { v.hidePageHeading = !on; return v }
 
 // Query returns the current search text. SetQuery also reconciles page selection.
 func (v *SettingsView) Query() string         { return v.query }
@@ -243,17 +272,27 @@ func (v *SettingsView) row(cx *el.Context, it SettingItem, narrow bool) el.Eleme
 func (v *SettingsView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
 	width, _ := cx.ViewportSize()
+	if v.availableWidth > 0 {
+		width = v.availableWidth
+	}
 	narrow := width < 600
+	horizontal := narrow || v.searchInSidebar && width < 800
 	v.reconcileSearch()
 	q := strings.ToLower(strings.TrimSpace(v.query))
 	pageValue := v.Value()
 	oldSelection := v.nav.Value()
 	v.groupTargets = make(map[string]settingsGroupTarget)
 	nav := sidebarSection{}
+	var navigationSections []sidebarSection
 	for i, s := range v.sections {
 		if q != "" && !s.matches(q) {
 			continue
 		}
+		if len(nav.items) > 0 && nav.title != s.category {
+			navigationSections = append(navigationSections, nav)
+			nav = sidebarSection{}
+		}
+		nav.title = s.category
 		nav.items = append(nav.items, SidebarItem{ID: s.title, Label: s.title, Icon: v.icons[i]})
 		if v.groupNavigation {
 			for gi, g := range s.allGroups() {
@@ -272,13 +311,25 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 			v.pendingGroup = nil
 		}
 	}
-	v.nav.sections = []sidebarSection{nav}
+	if len(nav.items) > 0 {
+		navigationSections = append(navigationSections, nav)
+	}
+	v.nav.sections = navigationSections
 	id := autoID("settings", v)
 	content := el.Div().ID(id + "/content").Grow().W(el.Dp(0)).ScrollY().Px(theme.Space2xl).Py(theme.SpaceXl).Items(el.Stretch)
 	search := searchField(cx, id+"/searchbox", id+"/search", el.Input().ID(id+"/search").Name(text.SearchSettings).Placeholder(text.SearchSettings).Bind(&v.query)).Mb(8)
-	content.Child(search)
+	if v.searchInSidebar {
+		content.Pt(56).Pr(32).Pl(28)
+		if horizontal {
+			content.Pt(20).Px(24)
+		}
+	}
+	if !v.searchInSidebar {
+		content.Child(search)
+	}
 	var pendingElement el.Element
 	found := false
+	fixedGroupTitle := ""
 	for pi, s := range v.sections {
 		if s.title != v.Value() {
 			continue
@@ -303,7 +354,14 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 			if g.Variant != nil {
 				variant = *g.Variant
 			}
-			group := GroupBox(g.Title).Variant(variant).Footer(g.Footer).Child(el.ViewFunc(func(*el.Context) el.Element { return el.Div().Items(el.Stretch).Children(rows) }))
+			groupTitle := g.Title
+			if v.searchInSidebar && v.hidePageHeading && len(groups) == 0 {
+				fixedGroupTitle, groupTitle = groupTitle, ""
+			}
+			group := GroupBox(groupTitle).Variant(variant).Footer(g.Footer).Child(el.ViewFunc(func(*el.Context) el.Element { return el.Div().Items(el.Stretch).Children(rows) }))
+			if v.searchInSidebar && variant == GroupBoxNormal {
+				group.ContentStyle(func(d *el.DivEl) { d.P(0) })
+			}
 			target := settingsGroupTarget{s.title, gi}
 			groupElement := el.Div().ID(pageID + "/group/" + strconv.Itoa(gi)).Items(el.Stretch).Child(group.Render(cx))
 			if v.pendingGroup != nil && *v.pendingGroup == target {
@@ -322,7 +380,11 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 		if s.resettable {
 			header.Child(Button(text.ResetSettings, func() { v.ResetPage(s.title) }).Variant(ButtonGhost).Render(cx))
 		}
-		content.Child(el.Div().ID(pageID).Role("group").Name(s.title).Items(el.Stretch).Gap(theme.SpaceLg).Child(header).Children(groups))
+		page := el.Div().ID(pageID).Role("group").Name(s.title).Items(el.Stretch).Gap(theme.SpaceLg)
+		if !v.hidePageHeading || s.suffix != nil || s.resettable {
+			page.Child(header)
+		}
+		content.Child(page.Children(groups))
 	}
 	content.Decorate(func(gtx core.C, draw func()) {
 		draw()
@@ -338,9 +400,31 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 	if !found {
 		content.Child(el.Div().Py(theme.Space2xl).Child(el.Text(text.NoMatches).TextColor(theme.Muted)))
 	}
-	if narrow {
-		links := el.Div().Role("navigation").Wrap().Gap(theme.SpaceXs).P(theme.SpaceLg)
-		for i, s := range v.sections {
+	var body el.Element = content
+	if v.searchInSidebar && v.hidePageHeading {
+		// Keep the top strip empty and pin the content heading below it.
+		content.Pt(0).WFull().H(el.Dp(0))
+		inset := float32(28)
+		if horizontal {
+			inset = 24
+		}
+		topSpace := float32(64)
+		_, height := cx.ViewportSize()
+		if height < 700 {
+			topSpace = 32
+		}
+		if horizontal {
+			topSpace = 8
+		}
+		column := el.Div().Grow().W(el.Dp(0)).HFull().Items(el.Stretch).Child(el.Div().H(el.Dp(topSpace)).NoShrink())
+		if fixedGroupTitle != "" {
+			column.Child(el.Div().ID(id + "/fixed-title").H(el.Dp(40)).NoShrink().Pl(inset).Pr(32).Justify(el.Center).Child(el.Text(fixedGroupTitle).TextSize(theme.TextLg).Bold()))
+		}
+		body = column.Child(content)
+	}
+	if horizontal {
+		links := el.Div().ID(id + "/tabs").Role("tablist").Row().ScrollX().Scrollbars(el.ScrollbarHidden).Gap(theme.SpaceXs).Px(20).Py(10).NoShrink()
+		for _, s := range v.sections {
 			if q != "" && !s.matches(q) {
 				continue
 			}
@@ -349,7 +433,7 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 			if title == v.Value() {
 				variant = ButtonSecondary
 			}
-			links.Child(Button(title, func() { v.SetValue(title) }).Icon(v.icons[i]).Variant(variant).Render(cx))
+			links.Child(Button(title, func() { v.SetValue(title) }).Variant(variant).Render(cx).(*el.DivEl).Role("tab").NoShrink())
 		}
 		if v.groupNavigation {
 			for _, s := range v.sections {
@@ -363,7 +447,21 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 				}
 			}
 		}
-		return el.Div().Grow().Items(el.Stretch).Child(links, content.WFull().H(el.Dp(0)))
+		compact := el.Div().Grow().HFull().Items(el.Stretch)
+		if v.searchInSidebar {
+			search.Mb(0).H(el.Dp(32)).W(el.Dp(220)).MaxW(el.Full).Bg(theme.Subtle).Rounded(8)
+			compact.Child(el.Div().H(el.Dp(56)).NoShrink().Row().Items(el.Center).Gap(16).Pl(24).Pr(56).Child(el.Text("Settings").TextSize(20).Medium(), el.Div().Grow().W(el.Dp(0)).Items(el.End).Child(search)))
+		}
+		return compact.Child(links, el.Div().H(el.Dp(1)).Bg(theme.Border).NoShrink(), body.(*el.DivEl).WFull().H(el.Dp(0)))
 	}
-	return el.Div().Row().Items(el.Stretch).Grow().Child(v.nav.Render(cx), content)
+	navigation := v.nav.Render(cx)
+	if v.searchInSidebar {
+		search.Bg(theme.Subtle).Rounded(8).H(el.Dp(36)).Mb(0)
+		navigation = el.Div().W(el.Dp(210)).NoShrink().HFull().Items(el.Stretch).Child(el.Div().P(14).NoShrink().Child(search), el.Div().Grow().H(el.Dp(0)).Items(el.Stretch).Child(navigation.(*el.DivEl).HFull()))
+	}
+	root := el.Div().Row().Items(el.Stretch).Grow().HFull().Child(navigation)
+	if v.searchInSidebar {
+		root.Child(el.Div().W(el.Dp(1)).HFull().Bg(theme.Border).NoShrink())
+	}
+	return root.Child(body)
 }

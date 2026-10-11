@@ -76,3 +76,60 @@ func settingsHarness(v *SettingsView) *uitest.Harness {
 	root := el.Root(v)
 	return uitest.NewFunc(func(gtx core.C) { gtx.Constraints = layout.Exact(image.Pt(800, 1000)); root.Layout(gtx) })
 }
+
+func TestSettingsSidebarSearchFiltersPages(t *testing.T) {
+	v := Settings().SearchInSidebar(true).Section("General", IconSettings, SettingItem{Label: "Theme"}).Section("Connection", IconUser, SettingItem{Label: "Remote address"})
+	h := settingsHarness(v)
+	if !shown(h, locale.Current().SearchSettings) || !shown(h, "Theme") {
+		t.Fatal("missing initial search or page")
+	}
+	v.SetQuery("Remote")
+	h.Frame()
+	if v.Value() != "Connection" || !shown(h, "Remote address") || shown(h, "Theme") {
+		t.Fatal("sidebar search failed to select matching page")
+	}
+	v.SetQuery("")
+	h.Frame()
+	if !shown(h, "General") {
+		t.Fatal("clearing search did not restore navigation")
+	}
+}
+
+func TestSettingsNavigationCategories(t *testing.T) {
+	v := Settings().SearchInSidebar(true).Page(SettingPage{Title: "General", Category: "Settings", Groups: []SettingGroup{{Items: []SettingItem{{Label: "Theme"}}}}}).Page(SettingPage{Title: "Phone", Category: "Remote", Groups: []SettingGroup{{Items: []SettingItem{{Label: "Pair device"}}}}})
+	h := settingsHarness(v)
+	if len(v.nav.sections) != 2 || v.nav.sections[0].title != "Settings" || v.nav.sections[1].title != "Remote" {
+		t.Fatal("missing navigation categories")
+	}
+	v.SetQuery("Pair")
+	h.Frame()
+	if len(v.nav.sections) != 1 || v.nav.sections[0].title != "Remote" {
+		t.Fatal("empty category retained after filtering")
+	}
+}
+
+func TestSettingsHorizontalNavigationPreservesDraftAndQuery(t *testing.T) {
+	value := "draft"
+	v := Settings().SearchInSidebar(true).AvailableWidth(700).
+		Section("General", IconSettings, SettingItem{Label: "Name", Control: el.ViewFunc(func(*el.Context) el.Element { return el.Input().Bind(&value) })}).
+		Section("Connection", IconUser, SettingItem{Label: "Remote address"})
+	h := settingsHarness(v)
+	v.SetValue("Connection")
+	v.SetQuery("Remote")
+	h.Frame()
+	for _, width := range []float32{1100, 700, 460, 1100} {
+		v.AvailableWidth(width)
+		h.Frame()
+		if v.Value() != "Connection" || v.Query() != "Remote" || value != "draft" || !shown(h, "Remote address") {
+			t.Fatalf("layout change reset state at %v", width)
+		}
+	}
+	v.SetQuery("")
+	v.AvailableWidth(700)
+	h.Frame()
+	click(t, h, "General")
+	h.Frame()
+	if v.Value() != "General" || !shown(h, "Name") {
+		t.Fatal("horizontal tab did not select page")
+	}
+}

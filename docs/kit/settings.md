@@ -45,3 +45,19 @@ Usually the window is filled directly with `el.Root(settings)`. Run `go run ./ex
 `GroupNavigation(true)` Add the group with title and hit search to the navigation; the narrow window displays the group button of the current page. `ShowGroup(page, groupTitle)` switches pages and locates groups, and can be used independently of the navigation switch. If the group is missing, has the same name, or is searched and filtered, false will be returned and the query will not be cleared. The target position is calculated by the layout, and off-screen grouping is supported. `Value()` always returns the page title, `SetValue` cancels pending group targeting.
 
 Automatic testing covers double-ratio wide and narrow windows, off-screen positioning, group clicks, search filtering, duplicate name rejection and size switching to retain control values; the component library displays Small and group navigation by default. Native vision is not accepted.
+
+`SearchInSidebar(true)` places search above the desktop navigation. Compact layouts keep search above the content.
+
+`PageHeading(false)` hides the page heading when the groups already supply headings. Sidebar-search layouts align unfilled group bodies with their headings and keep navigation expanded.
+
+`SettingPage.Category` groups navigation pages under sidebar headings; empty categories preserve the ungrouped layout.
+
+Use `AvailableWidth(dp)` when Settings is inside a bounded panel: responsive
+layout uses this width instead of the window viewport (zero restores the
+viewport). With sidebar search enabled, widths below 800dp switch to a single
+horizontally scrollable tab row. Below 600dp, controls stack below their labels.
+Resizing preserves the selected page, query and application-owned field values.
+
+With `SearchInSidebar(true).PageHeading(false)`, the top strip stays blank. The first visible group heading is fixed below it, outside the scrolling content; the page name is not repeated.
+
+In the horizontal layout, sidebar search moves beside Settings in the compact header, using a 32dp field. Top spacing shrinks on short and narrow windows.
