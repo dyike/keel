@@ -74,3 +74,11 @@ replace (
 - `typesetting/fontscan`（macOS）：额外扫描 `/System/Library/AssetsV2/com_apple_MobileAsset_Font*`，当前 macOS 把苹方等系统字体放在这里。否则"PingFang SC"永远解析不到，中文回退到冬青黑 W3，且没有 Medium、Semibold。`fontscan/scan_darwin_test.go` 验证三种字重都能解析。
 - `gio/text`、`gio/font`、`gio/widget`、`gio/widget/material`：平台字形光栅化。`Shaper.GlyphFile(id)` 返回字形所在的字体文件、集合内序号、字号和字形 id（实现 `font.FaceSource` 的字体保留路径；内置字体、可变字体实例和设置了变体坐标的字体返回 false）。`Shaper.SetRasterHook` 注册绘制一行纯色字形的函数；`Label`、`Editor`、`Selectable` 新增可选的 `Color`（由 `material.LabelStyle` 和 `EditorStyle` 设置），有挂钩时每行按整像素平移并把小数部分交给挂钩，挂钩返回 false 时回退到轮廓。Keel 的 theme 在 macOS 上设置挂钩，用 CoreText 绘制；两个接口只用上游类型，Keel 通过接口断言检测，仍可在上游 Gio 上编译。
 - `gio/gpu`：不透明全窗口背景清除已覆盖的绘制操作时，同时清除已完成的透明度图层。旧图层索引否则会替换前景中无关的绘制操作，导致全屏覆盖页面缺字。回归测试覆盖旧图层清理、后续新图层、局部覆盖和活动透明度组内的填充。
+
+## Wayland 销毁确认
+
+Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次调用 `Event`
+才销毁原生窗口和连接。事件入队不代表调用方已经处理：Keel 必须先在连接仍有效时
+释放滚动监听器的 pointer、seat 和私有队列。此前 `close` 立即断开连接，导致 Linux
+上的 `wlScrollWatch.close` 访问已释放的对象。
+`deferred_teardown_test.go` 覆盖通知、确认与只清理一次的顺序。

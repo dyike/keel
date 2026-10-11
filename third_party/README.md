@@ -178,3 +178,12 @@ leave nested modules out. So:
 - `typesetting/fontscan` (macOS): also scan `/System/Library/AssetsV2/com_apple_MobileAsset_Font*`, where current macOS keeps system fonts such as PingFang. Without it, "PingFang SC" never resolved and Chinese fell back to Hiragino Sans GB W3, with no Medium or Semibold. `fontscan/scan_darwin_test.go` resolves all three weights.
 - `gio/text`, `gio/font`, `gio/widget`, `gio/widget/material`: platform glyph rasterizers. `Shaper.GlyphFile(id)` reports a glyph's font file, face index, size and glyph id (faces from `font.FaceSource` keep their path; built-in, variable-instance and varied faces report false). `Shaper.SetRasterHook` registers a function that draws a solid-color line of glyphs; `Label`, `Editor` and `Selectable` take an optional `Color` (set by `material.LabelStyle` and `EditorStyle`) and, with a hook, translate each line by whole pixels and pass the fraction to it, falling back to outlines when it reports false. Keel's theme sets the hook on macOS to draw with CoreText; both APIs use only upstream types, so Keel detects them with interface assertions and still builds against upstream Gio.
 - `gio/gpu`: an opaque full-window clear discards completed opacity layers together with their covered paint operations. Stale layer indexes otherwise replace unrelated foreground operations, causing missing glyphs in fullscreen overlays. Regression tests cover discarded layers, subsequent layers, partial covers and fills inside active opacity groups.
+
+## Wayland teardown acknowledgment
+
+The Wayland backend defers surface/display destruction until the next `Event`
+call after returning the invalid `WaylandViewEvent`. Queuing that event is not
+an acknowledgment: Keel must first release its scroll-watch pointer, seat and
+private queue while the display is still alive. Previously `close` disconnected
+immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
+`deferred_teardown_test.go` covers notification, acknowledgment and single cleanup.
