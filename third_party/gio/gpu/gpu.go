@@ -1117,6 +1117,9 @@ loop:
 				// The image is a uniform opaque color and takes up the whole screen.
 				// Scrap images up to and including this image and set clear color.
 				d.imageOps = d.imageOps[:0]
+				// Completed layers refer to the discarded image indexes. Keeping
+				// them would composite unrelated operations from the new scene.
+				d.layers = d.layers[:0]
 				d.clearColor = mat.color.Opaque()
 				d.clear = true
 				continue
