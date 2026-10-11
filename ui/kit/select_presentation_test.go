@@ -119,3 +119,20 @@ func TestSelectClearInheritedDisabled(t *testing.T) {
 		t.Fatal("own disabled")
 	}
 }
+
+func TestSelectMenuEndAlignment(t *testing.T) {
+	v := Select("Permission").MenuWidth(320).MenuAlign(el.End)
+	v.SetEntries(SelectOption{Value: "read", Label: "Read only"})
+	h := render(func(cx *el.Context) el.Element {
+		return el.Div().Pl(200).Child(v.Render(cx).(*el.DivEl).W(el.Dp(148)))
+	})
+	clickRole(t, h, "select", "Permission")
+	h.Frame()
+	end := bounds(h, "Read only")
+	v.MenuAlign(el.Start)
+	h.Frame()
+	start := bounds(h, "Read only")
+	if end.Empty() || start.Empty() || end.Min.X >= start.Min.X {
+		t.Fatalf("end-aligned menu should extend left: end=%v start=%v", end, start)
+	}
+}
