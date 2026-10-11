@@ -222,6 +222,7 @@ type window struct {
 	wakeups chan struct{}
 
 	closing    bool
+	teardown   deferredTeardown
 	closeEvent *ClosingEvent
 	delivered  *ClosingEvent
 }
@@ -1400,11 +1401,18 @@ func gio_onFrameDone(data unsafe.Pointer, callback *C.struct_wl_callback, t C.ui
 }
 
 func (w *window) close(err error) {
-	w.ProcessEvent(WaylandViewEvent{})
-	w.ProcessEvent(DestroyEvent{Err: err})
-	w.destroy()
-	w.disp.destroy()
-	w.disp = nil
+	// View events are queued. Keep the connection alive until the caller has
+	// handled the invalid view and calls Event again to acknowledge it.
+	w.teardown.begin(func() {
+		w.ProcessEvent(WaylandViewEvent{})
+	}, func() {
+		// Destroy the GPU before the native surface, but deliver DestroyEvent
+		// only after all native resources have been released.
+		w.ProcessEvent(DestroyEvent{Err: err})
+		w.destroy()
+		w.disp.destroy()
+		w.disp = nil
+	})
 }
 
 func (w *window) dispatch() {
@@ -1432,6 +1440,7 @@ func (w *window) ProcessEvent(e event.Event) {
 }
 
 func (w *window) Event() event.Event {
+	w.teardown.complete()
 	for {
 		if w.delivered != nil {
 			e := w.delivered
@@ -1449,6 +1458,9 @@ func (w *window) Event() event.Event {
 		if e, ok := evt.(*ClosingEvent); ok && e == w.closeEvent {
 			w.delivered = w.closeEvent
 			w.closeEvent = nil
+		}
+		if view, ok := evt.(WaylandViewEvent); ok && !view.Valid() {
+			w.teardown.viewReturned()
 		}
 		return evt
 	}
