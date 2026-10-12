@@ -82,3 +82,5 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
 释放滚动监听器的 pointer、seat 和私有队列。此前 `close` 立即断开连接，导致 Linux
 上的 `wlScrollWatch.close` 访问已释放的对象。
 `deferred_teardown_test.go` 覆盖通知、确认与只清理一次的顺序。
+
+- `gio/app`（Wayland）：`Run` 回调排队到原生事件线程执行。此前后台最大化、配置窗口与收集帧指令并发，可能在 GPU 读取时重置录制指令。关闭时先停止队列唤醒，再关闭原生管道，并让等待中的 `Window.Run` 返回。回归测试在执行排队重置前解码当前帧。

@@ -219,7 +219,10 @@ type window struct {
 
 	clipReads chan transfer.DataEvent
 
-	wakeups chan struct{}
+	wakeups   chan struct{}
+	runFuncs  eventFuncs
+	runWakeup func()
+	done      chan struct{}
 
 	closing    bool
 	teardown   deferredTeardown
@@ -272,6 +275,7 @@ func newWLWindow(callbacks *callbacks, options []Option) error {
 		d.destroy()
 		return err
 	}
+	w.runWakeup = d.wakeup
 	w.w = callbacks
 	w.w.SetDriver(w)
 
@@ -360,6 +364,7 @@ func (d *wlDisplay) createNativeWindow(options []Option) (*window, error) {
 		ppdp:      ppdp,
 		ppsp:      ppdp,
 		wakeups:   make(chan struct{}, 1),
+		done:      make(chan struct{}),
 		clipReads: make(chan transfer.DataEvent, 1),
 	}
 	w.surf = C.wl_compositor_create_surface(d.compositor)
@@ -1408,6 +1413,8 @@ func (w *window) close(err error) {
 	}, func() {
 		// Destroy the GPU before the native surface, but deliver DestroyEvent
 		// only after all native resources have been released.
+		w.runFuncs.close()
+		close(w.done)
 		w.ProcessEvent(DestroyEvent{Err: err})
 		w.destroy()
 		w.disp.destroy()
@@ -1442,6 +1449,7 @@ func (w *window) ProcessEvent(e event.Event) {
 func (w *window) Event() event.Event {
 	w.teardown.complete()
 	for {
+		w.runFuncs.drain()
 		if w.delivered != nil {
 			e := w.delivered
 			w.delivered = nil
@@ -1485,8 +1493,10 @@ func (w *window) Invalidate() {
 }
 
 func (w *window) Run(f func()) {
-	f()
+	w.runFuncs.add(f, w.runWakeup)
 }
+
+func (w *window) Done() <-chan struct{} { return w.done }
 
 func (w *window) Frame(frame *op.Ops) {
 	w.w.ProcessFrame(frame, nil)

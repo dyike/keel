@@ -344,16 +344,24 @@ func (w *Window) Option(opts ...Option) {
 // Note that most programs should not call Run; configuring a Window with
 // [CustomRenderer] is a notable exception.
 func (w *Window) Run(f func()) {
-	if w.driver == nil {
+	driver := w.driver
+	if driver == nil {
 		f()
 		return
 	}
 	done := make(chan struct{})
-	w.driver.Run(func() {
+	driver.Run(func() {
 		defer close(done)
 		f()
 	})
-	<-done
+	if d, ok := driver.(interface{ Done() <-chan struct{} }); ok {
+		select {
+		case <-done:
+		case <-d.Done():
+		}
+	} else {
+		<-done
+	}
 }
 
 func (w *Window) updateAnimation() {
