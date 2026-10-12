@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"strconv"
@@ -190,6 +191,7 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 		}
 		r := st.cell(key, spans, bold, align, d.followLink)
 		d.bindImages(r, spans)
+		r.table = st
 		r.separator = "\t"
 		if i == 0 {
 			r.separator = "\n"
@@ -197,7 +199,7 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 				r.separator = "\n\n"
 			}
 		}
-		box := el.Div().W(el.Dp(st.basis(t)[i])).Px(10).Py(8).Child(el.Widget(r))
+		box := el.Div().NoShrink().Px(10).Py(8).Child(el.Div().W(el.Sp(st.basis(t)[i])).Child(el.Widget(r)))
 		if i < cols-1 && !d.hideTableDividers {
 			// A separator, rather than a cell outline: keep it visible in a
 			// frameless palette and span the tallest (possibly wrapped) cell.
@@ -207,8 +209,9 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 	}
 	// Columns take their widest cell's natural width, the same in every row,
 	// so they line up and the table is as wide as its content, as in a web
-	// page. Wider than the document, rows shrink alike and cells wrap.
-	grid := el.Div().Role("table").Value(locale.Current().Rows(len(t.rows))).Border(1, theme.Border).Rounded(6)
+	// page. Font-scaled widths grow with the text; wide tables scroll instead
+	// of shrinking columns and wrapping short labels.
+	grid := el.Div().NoShrink().Role("table").Value(locale.Current().Rows(len(t.rows))).Border(1, theme.Border).Rounded(6)
 	head := el.Div().Row().Items(el.Stretch).Bg(theme.Subtle).Role("row").Name(joinCells(t.header))
 	for i := range cols {
 		head.Child(cell("h"+strconv.Itoa(i), t.header[i], i, true))
@@ -229,7 +232,14 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 	}
 	d.guardPreview(cx, grid)
 	// A row keeps the column from stretching the table to its width.
-	return el.Div().Row().Child(grid)
+	id := fmt.Sprintf("markdown-table/%p", st)
+	return el.Div().ID(id).Row().ScrollX().Child(el.Div().NoShrink().Pb(10).Child(grid)).Decorate(func(gtx core.C, draw func()) {
+		draw()
+		if gtx.Enabled() {
+			offset, _, _ := cx.ScrollStateX(id)
+			st.scrollX = int(offset * cx.PixelScale())
+		}
+	})
 }
 
 func joinCells(cells [][]span) string {
@@ -242,15 +252,16 @@ func joinCells(cells [][]span) string {
 
 // tableView keeps each cell's rich text state across frames.
 type tableView struct {
-	cells  map[string]*richBlock
-	widths []float32 // column widths in dp, cell padding included
+	scrollX int
+	cells   map[string]*richBlock
+	widths  []float32 // text widths in sp; padding stays in dp
 }
 
 // tableTextScale measures cell text at this many pixels per em, then scales.
 const tableTextScale = 100
 
-// basis returns each column's width: its widest single-line cell plus the
-// cell's horizontal padding. Measured once; a table's cells do not change.
+// basis returns each column's text width: its widest single-line cell plus
+// rounding room. Padding is added separately in dp. A table's cells do not change.
 func (st *tableView) basis(t *tableData) []float32 {
 	if len(st.widths) == len(t.header) {
 		return st.widths
@@ -276,7 +287,7 @@ func (st *tableView) basis(t *tableData) []float32 {
 				w = max(w, measure(row[i], false))
 			}
 		}
-		st.widths[i] = w + 20 + 2 // Px(10) each side, and rounding room
+		st.widths[i] = w + 2 // rounding room; outer cell adds Px(10) on each side
 	}
 	return st.widths
 }
@@ -310,6 +321,7 @@ func (d *Doc) rich(b *block, spans []span, size unit.Sp, bold bool, c color.NRGB
 
 // richBlock draws styled runs with clickable links; see text.go.
 type richBlock struct {
+	table         *tableView
 	measured      [8]measurement // recent measurements by constraints, see Layout
 	nextSlot      int
 	runs          []run
