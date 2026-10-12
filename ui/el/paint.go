@@ -412,8 +412,12 @@ func (e *engine) paintContent(n *Node) {
 			g = g.Disabled()
 		}
 		g.Constraints = layout.Exact(inner.Size())
+		// Embedded roots inherit the widget's content origin, including padding.
+		origin := e.origin
+		e.origin = e.origin.Add(inner.Min)
+		defer func() { e.origin = origin }()
 		if w, ok := n.widget.(core.ViewportWidget); ok {
-			w.LayoutViewport(g, e.visible.Sub(e.origin.Add(inner.Min)).Intersect(image.Rectangle{Max: inner.Size()}))
+			w.LayoutViewport(g, e.visible.Sub(e.origin).Intersect(image.Rectangle{Max: inner.Size()}))
 		} else {
 			n.widget.Layout(g)
 		}

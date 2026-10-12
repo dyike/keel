@@ -77,6 +77,7 @@ type Node struct {
 }
 
 type layoutMemo struct {
+	metric unit.Metric
 	ok     bool
 	in     [4]int
 	parent textStyle

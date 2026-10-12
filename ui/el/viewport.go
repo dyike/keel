@@ -15,11 +15,12 @@ func (cx *Context) PixelScale() float32 {
 }
 
 // PaintGeometry reports the current element's origin and clipped viewport in
-// root coordinates. Use it only from Decorate, while the element is painted.
-// It lets input handlers keep a pointer stationary as ancestors scroll.
+// enclosing root coordinates. Roots connected with LayoutIn share that space.
+// Use it only from Decorate, while the element is painted. It lets input
+// handlers keep a pointer stationary as ancestors scroll.
 func (cx *Context) PaintGeometry() (origin image.Point, viewport image.Rectangle) {
 	e := &cx.root.e
-	return e.origin, e.visible
+	return e.origin.Add(e.paintOffset), e.visible.Add(e.paintOffset)
 }
 
 // ScrollBy schedules a pixel delta on the nearest enclosing ScrollY container
