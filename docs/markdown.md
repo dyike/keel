@@ -184,3 +184,28 @@ Mathematical typesetting covers common TeX in daily life and textbooks, but it i
 The two types of callbacks only construct elements during rendering and should not modify the Doc; application state modifications are placed in the event handling function. Containing blocks such as lists and references where the code block is located will also be rebuilt to refresh the custom control state; the rest of the document continues to use the block cache. Presentation IDs are stable while the parser retains code block state and are not persistent document identifiers.
 
 Example: `go run ./examples/components -section text_view`. Automated tests verify nested action clicks, wrap state and ID retention, cache updates after replace/logout, and default replication recovery. See above for the general parsing plug-in; the complete interaction with the native window has not yet been accepted.
+
+## Selection across documents
+
+A `Doc` has an independent selection by default. Keep a `SelectionGroup` to join
+separate messages into one text flow, including messages in embedded roots or
+a virtual list:
+
+```go
+var selection markdown.SelectionGroup // retain across frames
+selection.SetDocuments(first, second, third) // complete reading order
+// Inside Render, after constructing the common ancestor:
+return selection.Decorate(cx, el.Div().Child(first.Render(cx), second.Render(cx), third.Render(cx)))
+```
+
+The ancestor must stay mounted during the drag; put the virtual scroller inside
+it. Embedded roots must use `LayoutIn` to inherit coordinates and scroll parents.
+Pass each document once, and omit collapsed details and controls. Dragging and
+Cmd/Ctrl+A/C work across document boundaries, with blank lines between messages.
+Selection stays attached to its documents when history is prepended or appended.
+`Append` retains endpoints; `SetSource` on a member clears the shared selection.
+
+Idle rendering still mounts only visible rows. On selection, previously unseen
+documents are measured once offscreen to obtain their rendered text for copying.
+Text and document offsets are cached until content changes. Custom rendered
+controls are not part of the Markdown selection.

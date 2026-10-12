@@ -78,7 +78,7 @@ func (d *Doc) Render(cx *el.Context) el.Element {
 	root.Decorate(func(gtx core.C, draw func()) {
 		d.beginPreview(cx, root, gtx)
 		d.navigate(cx, root, gtx)
-		d.selection.paint(gtx, cx, root, func() {
+		d.paintSelection(gtx, cx, root, func() {
 			d.syncStreamFade(gtx)
 			d.syncRanges()
 			d.paintPreview(gtx, draw)

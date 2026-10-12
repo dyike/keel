@@ -48,6 +48,7 @@ type Doc struct {
 	chunks            []chunk
 	onLink            func(url string)
 	selection         documentSelection
+	selectionGroup    *SelectionGroup
 	contextual        bool
 	parsedContext     string
 	pendingAnchor     string
@@ -98,6 +99,10 @@ func (d *Doc) Streaming() bool { return d.streaming }
 func (d *Doc) SetSource(src string) {
 	if d.src != src {
 		d.selection.clear()
+		if d.selectionGroup != nil {
+			d.selectionGroup.selection.clear()
+			d.selectionGroup.distribute()
+		}
 		d.ranges.reveal = nil
 	}
 	d.src = src
