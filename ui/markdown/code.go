@@ -149,7 +149,9 @@ func codeTooltip(gtx core.C, label string) {
 	tm := op.Record(gtx.Ops)
 	g := gtx
 	g.Constraints = layout.Constraints{Max: image.Pt(gtx.Dp(160), gtx.Dp(40))}
-	dims := codeLabel(g, label, 12, theme.OnColor)
+	// The tooltip has a fixed dark background; button foreground colors
+	// can be dark in themes with light primary buttons.
+	dims := codeLabel(g, label, 12, theme.RGB(0xfafafa))
 	call := tm.Stop()
 	padX, padY := gtx.Dp(10), gtx.Dp(5)
 	w, h := dims.Size.X+2*padX, dims.Size.Y+2*padY
