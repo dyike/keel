@@ -369,16 +369,19 @@ func newRich(spans []span, size unit.Sp, bold bool, c color.NRGBA, onLink func(s
 }
 
 func (r *richBlock) Layout(gtx core.C) core.D {
+	return r.LayoutViewport(gtx, image.Rectangle{Max: gtx.Constraints.Max})
+}
+
+func (r *richBlock) LayoutViewport(gtx core.C, visible image.Rectangle) core.D {
 	revision := r.imagesRevision()
 	if revision != r.imageRevision {
 		r.imageRevision = revision
 		clear(r.measured[:])
 	}
-	// el measures an element by laying it out with input disabled, often
-	// several times a frame, then paints it. Laying out rich text is costly
-	// and a block's text does not change, so a repeated measurement returns
-	// the size from before.
-	if !gtx.Enabled() && !r.hasInlineObjects() {
+	// An empty viewport explicitly requests measurement. Disabled input also
+	// occurs when a menu blocks the document; that frame must still paint.
+	measuring := visible.Empty()
+	if measuring && !r.hasInlineObjects() {
 		for _, m := range r.measured {
 			if m.ok && m.cs == gtx.Constraints && m.caret == r.caret {
 				return core.D{Size: m.size}
@@ -408,7 +411,7 @@ func (r *richBlock) Layout(gtx core.C) core.D {
 	d := core.Semantic(gtx, func(gtx core.C) core.D {
 		return r.rt.Layout(gtx, theme.Material.Shaper)
 	}, sem...)
-	if !gtx.Enabled() {
+	if measuring {
 		r.measured[r.nextSlot] = measurement{gtx.Constraints, r.caret, d.Size, true}
 		r.nextSlot = (r.nextSlot + 1) % len(r.measured)
 	}
