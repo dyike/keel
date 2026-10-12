@@ -29,7 +29,12 @@ func documentSyncEditor(st *elemState, d *InputDocument) {
 	visible := InputRange{Start: p.DisplayOffset(r.Start, 0), End: p.DisplayOffset(r.End, 0)}
 	runes, err := inputcontent.RuneRange(p.Text, visible)
 	if err == nil {
-		st.editor.SetCaret(runes.Start, runes.End)
+		// SetCaret requests caret scrolling and stops wheel inertia. Reading
+		// the same document selection must leave the viewport alone.
+		start, end := st.editor.Selection()
+		if start != runes.Start || end != runes.End {
+			st.editor.SetCaret(runes.Start, runes.End)
+		}
 	}
 	st.lastText = p.Text
 	st.inputDocument, st.inputDocumentRevision = d, d.revision
