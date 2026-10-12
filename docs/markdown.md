@@ -45,7 +45,7 @@ Passed continuous append, syntax completion, animation reduction and 1×/2× GPU
 
 ## Collapse preview
 
-Tables are as wide as their content: each column takes its widest cell's single-line width, the same in every row. A table wider than the document fits it, columns narrowing in proportion and cells wrapping.
+Tables are as wide as their content: each column takes its widest cell's single-line width, the same in every row. Column widths follow the text scale (sp). Tables wider than the document scroll horizontally instead of shrinking columns; the scrollbar has space below the last row.
 
 Internal row and column dividers use `theme.Border`. Column dividers span the full row height, including wrapped cells; these dividers remain visible with `Palette.Frameless`, which suppresses the table's outer outline.
 

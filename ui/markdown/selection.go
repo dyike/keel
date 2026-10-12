@@ -90,6 +90,10 @@ func (s *documentSelection) collect(root el.Element, gtx core.C) {
 		switch w := w.(type) {
 		case *richBlock:
 			r = w
+			if r.table != nil {
+				rect = rect.Sub(image.Pt(r.table.scrollX, 0))
+				visible = rect
+			}
 		case *codeBody:
 			r = w.view.rich
 			rect, visible = w.selectionBounds(rect)
