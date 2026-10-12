@@ -36,6 +36,7 @@ type engine struct {
 	dragScopes             []dragScope
 	horizontalView         *image.Rectangle
 	scratch                op.Ops          // measuring passes record here and discard
+	paintOffset            image.Point     // enclosing root origin for embedded widget input
 	origin                 image.Point     // absolute position of the node being painted's parent
 	visible                image.Rectangle // absolute area that can show anything
 }
@@ -52,11 +53,11 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 	n.reused = false
 	if n.cached {
 		in := [4]int{availW, availH, n.forceW, n.forceH}
-		if m := &n.memo; m.ok && m.in == in && m.parent == parent {
+		if m := &n.memo; m.ok && m.metric == e.m && m.in == in && m.parent == parent {
 			n.size, n.reused = m.size, true
 			return
 		}
-		defer func() { n.memo = layoutMemo{true, in, parent, n.size} }()
+		defer func() { n.memo = layoutMemo{metric: e.m, ok: true, in: in, parent: parent, size: n.size} }()
 	}
 	s := &n.style
 	n.textStyle = s.text.inherit(parent)

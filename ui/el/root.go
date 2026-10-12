@@ -202,6 +202,26 @@ func (r *RootWidget) Layout(gtx core.C) core.D {
 // Embed implements core.ViewportWidget, so el containers propagate their clip
 // automatically. Wrappers should retain it with core.ViewportFunc.
 func (r *RootWidget) LayoutViewport(gtx core.C, visible image.Rectangle) core.D {
+	return r.layoutViewport(gtx, visible, image.Point{}, nil)
+}
+
+// LayoutIn paints an embedded root from a widget in parent's element tree.
+// It retains the enclosing root's coordinates and scroll ancestors so text
+// selection can follow scrolling and scroll the outer viewport while dragging.
+// Call from the widget's Layout with the Context that built that widget.
+func (r *RootWidget) LayoutIn(gtx core.C, visible image.Rectangle, parent *Context) core.D {
+	if parent == nil {
+		return r.LayoutViewport(gtx, visible)
+	}
+	e := &parent.root.e
+	return r.layoutViewport(gtx, visible, e.origin.Add(e.paintOffset), e.scrollParents)
+}
+
+func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin image.Point, parents []*elemState) core.D {
+	e := &r.e
+	priorOffset, priorParents := e.paintOffset, e.scrollParents
+	e.paintOffset, e.scrollParents = origin, parents
+	defer func() { e.paintOffset, e.scrollParents = priorOffset, priorParents }()
 	// A missing input source can mean measurement or a disabled parent.
 	// Both render real state without advancing its lifecycle.
 	live := gtx.Enabled()
@@ -210,7 +230,6 @@ func (r *RootWidget) LayoutViewport(gtx core.C, visible image.Rectangle) core.D 
 		st.frame++
 		theme.BeginTextFrame()
 	}
-	e := &r.e
 	e.beginTextMeasurements()
 	e.gtx, e.m, e.store = gtx, gtx.Metric, st
 

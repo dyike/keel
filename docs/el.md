@@ -316,6 +316,18 @@ Elements cached with `cx.Cache` are invalid according to the global theme versio
 
 `el.Root` and `el.Embed` implement `core.ViewportWidget`: el containers pass the parent scroll clip in widget-local pixels, so a long embedded tree paints only visible children while retaining its full natural height. A wrapper should use `core.ViewportFunc` and forward the rectangle to `root.LayoutViewport(gtx, visible)`. Ordinary `core.Func` wrappers keep their existing behavior. An empty rectangle requests measurement without painting; it does not reduce layout constraints or content dimensions.
 
+When an embedded root is wrapped in a widget inside another el tree, call `root.LayoutIn(gtx, visible, cx)` with the `Context` that built that widget. It carries the enclosing scroll containers and the widget's content origin into the embedded root. A Markdown selection can then follow outer scrolling and scroll the parent viewport when dragged to its edge, including when the widget has padding. Keep the embedded root as view state rather than recreating it each frame:
+
+```go
+// nested is a retained el.Embed(view).
+return el.Widget(core.ViewportFunc(func(gtx core.C, visible image.Rectangle) core.D {
+    return nested.LayoutIn(gtx, visible, cx)
+}))
+```
+
+Use `LayoutViewport` when embedding directly in native Gio without a parent el context. Layout and Markdown measurement caches include the display metric, so changing font scale or pixel density remeasures wrapping and selection geometry.
+
+
 ## What can Agent see?
 
 No need to write additional code:

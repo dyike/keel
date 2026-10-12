@@ -383,7 +383,7 @@ func (r *richBlock) LayoutViewport(gtx core.C, visible image.Rectangle) core.D {
 	measuring := visible.Empty()
 	if measuring && !r.hasInlineObjects() {
 		for _, m := range r.measured {
-			if m.ok && m.cs == gtx.Constraints && m.caret == r.caret {
+			if m.ok && m.metric == gtx.Metric && m.cs == gtx.Constraints && m.caret == r.caret {
 				return core.D{Size: m.size}
 			}
 		}
@@ -412,7 +412,7 @@ func (r *richBlock) LayoutViewport(gtx core.C, visible image.Rectangle) core.D {
 		return r.rt.Layout(gtx, theme.Material.Shaper)
 	}, sem...)
 	if measuring {
-		r.measured[r.nextSlot] = measurement{gtx.Constraints, r.caret, d.Size, true}
+		r.measured[r.nextSlot] = measurement{metric: gtx.Metric, cs: gtx.Constraints, caret: r.caret, size: d.Size, ok: true}
 		r.nextSlot = (r.nextSlot + 1) % len(r.measured)
 	}
 	return d
@@ -497,10 +497,11 @@ func keyForBlock(b *block) blockKey {
 }
 
 type measurement struct {
-	cs    layout.Constraints
-	caret bool
-	size  image.Point
-	ok    bool
+	metric unit.Metric
+	cs     layout.Constraints
+	caret  bool
+	size   image.Point
+	ok     bool
 }
 
 // listView keeps a list's marker text across frames.

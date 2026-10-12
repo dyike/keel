@@ -53,19 +53,22 @@ type selectionPart struct {
 
 func (s *documentSelection) paint(gtx core.C, cx *el.Context, root el.Element, draw func()) {
 	origin, viewport := cx.PaintGeometry()
-	inputOrigin := s.origin
-	movedOrigin := origin != inputOrigin
-	s.origin = origin
 	s.collect(root, gtx)
-	s.update(gtx, inputOrigin)
-	if s.dragging && s.dragged {
-		pt := s.pointerRoot.Sub(origin)
-		if movedOrigin {
-			s.extend(pt)
+	// Measurement must not replace the last event transform or advance a drag.
+	// The next live paint translates queued events from that retained origin.
+	if gtx.Enabled() {
+		inputOrigin := s.origin
+		movedOrigin := origin != inputOrigin
+		s.origin = origin
+		s.update(gtx, inputOrigin)
+		if s.dragging && s.dragged {
+			if movedOrigin {
+				s.extend(s.pointerRoot.Sub(origin))
+			}
+			s.autoScroll(gtx, cx, viewport)
+		} else {
+			s.lastScroll = time.Time{}
 		}
-		s.autoScroll(gtx, cx, viewport)
-	} else {
-		s.lastScroll = time.Time{}
 	}
 	// Keep the area open around children: it receives their presses as an
 	// ancestor, including presses on links. A drag then grabs the pointer to

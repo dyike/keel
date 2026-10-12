@@ -316,6 +316,18 @@ cx.Themed(nord, sidebar).Bg(nord.Bg)
 
 `el.Root` 和 `el.Embed` 实现 `core.ViewportWidget`：el 容器以组件本地像素坐标传递父级滚动裁剪区，长内容只绘制可见子节点，完整自然高度保持不变。包装时用 `core.ViewportFunc`，将矩形传给 `root.LayoutViewport(gtx, visible)`。普通 `core.Func` 包装保留原有行为。空矩形表示只测量、不绘制，不会缩小布局约束或内容尺寸。
 
+在另一个 el 树中用 widget 包装嵌入 root 时，调用 `root.LayoutIn(gtx, visible, cx)`，传入构建该 widget 的 `Context`。它会把外层滚动容器和 widget 的内容原点传给嵌入 root。Markdown 选区随外层滚动更新，拖到视口边缘时也能滚动父容器；widget 带内边距时坐标仍保持一致。嵌入 root 应保存在视图状态中，避免每帧重建：
+
+```go
+// nested 是保存在视图状态中的 el.Embed(view)。
+return el.Widget(core.ViewportFunc(func(gtx core.C, visible image.Rectangle) core.D {
+    return nested.LayoutIn(gtx, visible, cx)
+}))
+```
+
+直接嵌入原生 Gio、没有父级 el Context 时使用 `LayoutViewport`。布局和 Markdown 测量缓存包含显示度量，字号缩放或像素密度变化后会重新计算换行和选区尺寸。
+
+
 ## Agent 能看到什么
 
 不用额外写代码：
