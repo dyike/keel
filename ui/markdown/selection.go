@@ -41,6 +41,7 @@ type documentSelection struct {
 	mode        int
 	anchor      [2]int
 	pointerRoot image.Point
+	scrollCarry float64
 	lastScroll  time.Time
 	origin      image.Point
 }
@@ -70,6 +71,7 @@ func (s *documentSelection) paint(gtx core.C, cx *el.Context, root el.Element, d
 			s.autoScroll(gtx, cx, viewport)
 		} else {
 			s.lastScroll = time.Time{}
+			s.scrollCarry = 0
 		}
 	}
 	// Keep the area open around children: it receives their presses as an
@@ -143,6 +145,7 @@ func (s *documentSelection) collect(root el.Element, gtx core.C) {
 }
 
 func (s *documentSelection) update(gtx core.C, inputOrigin image.Point) {
+	claimedFocus := false
 	for {
 		ev, ok := gtx.Event(
 			pointer.Filter{Target: s, Kinds: pointer.Press | pointer.Drag | pointer.Release | pointer.Cancel},
@@ -164,6 +167,8 @@ func (s *documentSelection) update(gtx core.C, inputOrigin image.Point) {
 					break
 				}
 				s.all = false
+				s.lastScroll = time.Time{}
+				s.scrollCarry = 0
 				i := s.hit(pt)
 				rootPoint := pt.Add(s.origin)
 				delta := rootPoint.Sub(s.clickPoint)
@@ -184,6 +189,7 @@ func (s *documentSelection) update(gtx core.C, inputOrigin image.Point) {
 				s.anchor = s.sel
 				s.dragging, s.moved = true, s.mode > 1
 				s.pointer, s.press = e.PointerID, pt
+				claimedFocus = true
 				gtx.Execute(key.FocusCmd{Tag: s})
 			case pointer.Drag:
 				if !s.dragging || e.PointerID != s.pointer {
@@ -212,8 +218,9 @@ func (s *documentSelection) update(gtx core.C, inputOrigin image.Point) {
 			}
 		case key.FocusEvent:
 			// The root blurs on every press before we claim focus again.
-			// Ignore that queued blur if this press already refocused us.
-			if !e.Focus && !gtx.Focused(s) {
+			// Focus commands may take effect next frame. Ignore a queued blur
+			// when this event batch has already requested focus for a new drag.
+			if !e.Focus && !claimedFocus && !gtx.Focused(s) {
 				s.clear()
 			}
 		case key.Event:
@@ -239,6 +246,7 @@ func (s *documentSelection) clear() {
 	s.dragging, s.moved = false, false
 	s.clicks = 0
 	s.lastScroll = time.Time{}
+	s.scrollCarry = 0
 }
 
 func (s *documentSelection) selRange() (int, int) {
@@ -309,6 +317,9 @@ func (s *documentSelection) extend(pt image.Point) {
 }
 
 func (s *documentSelection) autoScroll(gtx core.C, cx *el.Context, viewport image.Rectangle) {
+	if scroll := cx.ScrollViewport(); !scroll.Empty() {
+		viewport = scroll
+	}
 	if viewport.Empty() {
 		return
 	}
@@ -323,14 +334,17 @@ func (s *documentSelection) autoScroll(gtx core.C, cx *el.Context, viewport imag
 	}
 	if speed == 0 {
 		s.lastScroll = time.Time{}
+		s.scrollCarry = 0
 		return
 	}
 	dt := time.Second / 60
 	if !s.lastScroll.IsZero() {
-		dt = min(gtx.Now.Sub(s.lastScroll), 50*time.Millisecond)
+		dt = max(0, min(gtx.Now.Sub(s.lastScroll), 50*time.Millisecond))
 	}
 	s.lastScroll = gtx.Now
-	delta := int(float64(speed) * dt.Seconds())
+	s.scrollCarry += float64(speed) * dt.Seconds()
+	delta := int(s.scrollCarry)
+	s.scrollCarry -= float64(delta)
 	if delta == 0 {
 		gtx.Execute(op.InvalidateCmd{At: gtx.Now.Add(time.Second / 60)})
 		return

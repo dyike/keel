@@ -325,6 +325,8 @@ return el.Widget(core.ViewportFunc(func(gtx core.C, visible image.Rectangle) cor
 }))
 ```
 
+`cx.ScrollViewport()` returns the nearest enclosing vertical scroll container’s visible bounds in enclosing-root coordinates during `Decorate`. Unlike `PaintGeometry`, these bounds do not shrink to a partially clipped child. Embedded roots using `LayoutIn` inherit them, so drag-edge scrolling can use a stable viewport while messages enter and leave it.
+
 Use `LayoutViewport` when embedding directly in native Gio without a parent el context. Layout and Markdown measurement caches include the display metric, so changing font scale or pixel density remeasures wrapping and selection geometry.
 
 

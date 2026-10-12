@@ -860,6 +860,7 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	e.visible = e.visible.Intersect(viewport.Add(e.origin))
 	e.origin = e.origin.Add(image.Pt(-st.scrollX, -st.scrollY))
 	if n.style.scrollY {
+		st.scrollBounds = savedVis.Intersect(viewport.Add(savedOrigin)).Add(e.paintOffset)
 		e.scrollParents = append(e.scrollParents, st)
 	}
 	savedHorizontal := e.horizontalView

@@ -98,8 +98,9 @@ type elemState struct {
 	scroll                                                           gesture.Scroll
 	scrollPending                                                    int
 	scrollY                                                          int
-	scrollMax                                                        int // maxScroll at the last frame, for StickToBottom
-	scrollView                                                       int // viewport and content height at the last frame, for ScrollState
+	scrollMax                                                        int             // maxScroll at the last frame, for StickToBottom
+	scrollBounds                                                     image.Rectangle // enclosing-root coordinates, before child clipping
+	scrollView                                                       int             // viewport and content height at the last frame, for ScrollState
 	scrollContent                                                    int
 	scrolled                                                         bool // painted before: a first frame starts at the bottom
 	version                                                          int  // ScrollToEndOn's value last frame
