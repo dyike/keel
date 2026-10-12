@@ -325,6 +325,8 @@ return el.Widget(core.ViewportFunc(func(gtx core.C, visible image.Rectangle) cor
 }))
 ```
 
+`cx.ScrollViewport()` 在 `Decorate` 中返回最近一层纵向滚动容器的可见边界，坐标相对于外层根。它不会像 `PaintGeometry` 那样收窄到局部可见的子元素。使用 `LayoutIn` 的嵌入根会继承这个边界，拖选到边缘时可据此滚动，避免消息进出视口导致速度变化。
+
 直接嵌入原生 Gio、没有父级 el Context 时使用 `LayoutViewport`。布局和 Markdown 测量缓存包含显示度量，字号缩放或像素密度变化后会重新计算换行和选区尺寸。
 
 

@@ -23,6 +23,19 @@ func (cx *Context) PaintGeometry() (origin image.Point, viewport image.Rectangle
 	return e.origin.Add(e.paintOffset), e.visible.Add(e.paintOffset)
 }
 
+// ScrollViewport reports the visible bounds of the nearest enclosing ScrollY
+// container in enclosing-root coordinates. Unlike PaintGeometry, its bounds do
+// not shrink to the currently painted child. Call during Decorate; embedded
+// roots inherit it through LayoutIn. It returns an empty rectangle without a
+// scrolling ancestor.
+func (cx *Context) ScrollViewport() image.Rectangle {
+	e := &cx.root.e
+	if len(e.scrollParents) == 0 {
+		return image.Rectangle{}
+	}
+	return e.scrollParents[len(e.scrollParents)-1].scrollBounds
+}
+
 // ScrollBy schedules a pixel delta on the nearest enclosing ScrollY container
 // and returns the amount it can scroll. Call during Decorate. The next frame
 // applies it before drawing children, so their input and painting agree.
