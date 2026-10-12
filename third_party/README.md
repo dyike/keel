@@ -187,3 +187,5 @@ an acknowledgment: Keel must first release its scroll-watch pointer, seat and
 private queue while the display is still alive. Previously `close` disconnected
 immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
 `deferred_teardown_test.go` covers notification, acknowledgment and single cleanup.
+
+- `gio/app` (Wayland): queue `Run` callbacks for the native event thread instead of executing them on a background caller. Asynchronous maximize/configure otherwise races frame collection and can reset recorded operations while the GPU reads them. Shutdown stops queue wakeups before closing the native pipe and releases waiting `Window.Run` callers. A regression decodes a frame before draining a queued reset.
