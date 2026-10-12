@@ -22,6 +22,8 @@ import (
 // one Doc. Bounds are in the document's coordinate system, including text
 // outside the viewport, so selection also works in a scrolling chat.
 type documentSelection struct {
+	all         bool
+	bounded     bool // virtualized groups clamp drags to mounted text
 	fade        *streamFadeState
 	revision    uint64
 	highlights  []runeHighlight
@@ -157,6 +159,7 @@ func (s *documentSelection) update(gtx core.C, inputOrigin image.Point) {
 				if !e.Buttons.Contain(pointer.ButtonPrimary) || s.dragging || !s.contains(pt) {
 					break
 				}
+				s.all = false
 				i := s.hit(pt)
 				rootPoint := pt.Add(s.origin)
 				delta := rootPoint.Sub(s.clickPoint)
@@ -215,6 +218,7 @@ func (s *documentSelection) update(gtx core.C, inputOrigin image.Point) {
 			}
 			switch e.Name {
 			case "A":
+				s.all = true
 				s.sel = [2]int{0, len(s.text)}
 			case "C":
 				if text := s.selectedText(); text != "" {
@@ -226,6 +230,7 @@ func (s *documentSelection) update(gtx core.C, inputOrigin image.Point) {
 }
 
 func (s *documentSelection) clear() {
+	s.all = false
 	s.sel = [2]int{}
 	s.dragging, s.moved = false, false
 	s.clicks = 0
@@ -268,9 +273,15 @@ func (s *documentSelection) hit(pt image.Point) int {
 		}
 	}
 	if pt.Y < top {
+		if s.bounded {
+			return s.parts[0].start
+		}
 		return 0
 	}
 	if pt.Y >= bottom {
+		if s.bounded {
+			return s.parts[len(s.parts)-1].end
+		}
 		return len(s.text)
 	}
 	p := s.parts[nearest]

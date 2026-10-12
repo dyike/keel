@@ -184,3 +184,25 @@ d.ShowFrontMatter(true)  // 在文档顶部显示为键值表
 两类回调只在渲染时构造元素，不应修改 Doc；应用状态修改放在事件处理函数中。代码块所在的列表、引用等包含块也会重新构建，以刷新自定义控件状态；其余文档继续使用块缓存。展示 ID 在解析器保留代码块状态期间稳定，不是持久文档标识。
 
 示例：`go run ./examples/components -section text_view`。自动测试验证嵌套操作点击、换行状态及 ID 保留、替换/注销后的缓存更新与默认复制恢复。通用解析插件见上文；原生窗口完整交互尚未验收。
+
+## 跨文档选择
+
+`Doc` 默认各自管理选区。需要跨消息拖选时，保留一个 `SelectionGroup`，
+把不同消息连接为同一段可选文本；消息可以位于嵌入根或虚拟列表内：
+
+```go
+var selection markdown.SelectionGroup // 跨帧保留
+selection.SetDocuments(first, second, third) // 完整的阅读顺序
+// 在 Render 中构造共同父元素后调用：
+return selection.Decorate(cx, el.Div().Child(first.Render(cx), second.Render(cx), third.Render(cx)))
+```
+
+共同父元素必须在拖选期间保持挂载，虚拟滚动列表放在它内部。嵌入根使用
+`LayoutIn` 继承坐标和滚动父级。每个文档只传入一次，折叠详情和控件不加入。
+拖选及 Cmd/Ctrl+A/C 可以跨文档操作，复制时消息之间保留空行。
+前插历史、追加消息时，选区端点仍绑定原文档；`Append` 保留端点，
+对组内文档调用 `SetSource` 会清除共享选区。
+
+平时仍只挂载可见行。开始选择后，尚未展示过的文档会在屏幕外测量一次，
+取得用于复制的渲染文本；文本和文档偏移缓存到内容变化为止。
+自定义控件不属于 Markdown 选区。
