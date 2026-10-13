@@ -62,7 +62,7 @@ func TestCaretFollowsEditingAndViewport(t *testing.T) {
 				t.Fatal("focused editor has no caret")
 			}
 			pos := ed.CaretCoords().Round()
-			if caret.bounds.Min.X > pos.X || caret.bounds.Max.X < pos.X || caret.bounds.Min.Y != pos.Y+caret.top {
+			if caret.bounds.Min.X > pos.X || caret.bounds.Max.X < pos.X || caret.bounds.Min.Y != pos.Y+caret.caretTop-1 { // 1dp past the body at 1x
 				t.Fatalf("caret %v diverges from editor %v", caret.bounds, pos)
 			}
 			if caret.bounds.Dy() > 19 || caret.bounds.Dy() < 12 {
@@ -198,11 +198,12 @@ func TestEmptyCaretAlignsWithPlaceholderPixels(t *testing.T) {
 					style.Color = color.NRGBA{R: 255, A: 255}
 					style.HintColor = color.NRGBA{B: 255, A: 255}
 					// Like a real field: the editor sits inside 10dp of padding,
-					// where the empty caret is drawn.
+					// where the empty caret is drawn and the caret reaches 1dp
+					// above the characters.
 					pad := 10 * scale
-					off := op.Offset(image.Pt(pad, 0)).Push(&ops)
+					off := op.Offset(image.Pt(pad, pad)).Push(&ops)
 					inner := gtx
-					inner.Constraints = layout.Exact(image.Pt(size.X-pad, size.Y))
+					inner.Constraints = layout.Exact(image.Pt(size.X-pad, size.Y-pad))
 					caret.Layout(inner, style, theme.Material.Shaper)
 					off.Pop()
 					router.Frame(&ops)
@@ -239,8 +240,10 @@ func TestEmptyCaretAlignsWithPlaceholderPixels(t *testing.T) {
 				if gap := blueLeft - redRight - 1; gap < 2*scale {
 					t.Fatalf("caret ends at x=%d, %dpx from hint ink at x=%d; want at least %d", redRight, gap, blueLeft, 2*scale)
 				}
+				// The caret centers on the body of 国 and A, as the text does,
+				// not on this hint's own ink: within 1dp of it.
 				delta := (redTop + redBottom) - (blueTop + blueBottom)
-				if delta < -2 || delta > 2 {
+				if delta < -2*scale || delta > 2*scale {
 					t.Fatalf("painted centers differ: caret y=%d..%d hint y=%d..%d", redTop, redBottom, blueTop, blueBottom)
 				}
 			})

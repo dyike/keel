@@ -24,6 +24,7 @@ type Caret struct {
 	pixels                        int
 	shaper                        *text.Shaper
 	top, bottom                   int
+	caretTop, caretBottom         int // the body of 国 and A, which text centers
 	focused                       bool
 	start, end, length            int
 	blink                         time.Time
@@ -61,6 +62,7 @@ func (c *Caret) LayoutDecorated(gtx layout.Context, style material.EditorStyle, 
 	if c.shaper != shaper || c.font != style.Font || c.pixels != pixels {
 		c.shaper, c.font, c.pixels = shaper, style.Font, pixels
 		c.top, c.bottom = inkBounds(shaper, style.Font, pixels)
+		c.caretTop, c.caretBottom = bodyBounds(shaper, style.Font, pixels)
 		c.selectionText = ""
 	}
 	if decorate != nil {
@@ -87,25 +89,35 @@ func (c *Caret) LayoutDecorated(gtx layout.Context, style material.EditorStyle, 
 	}
 	c.focused, c.start, c.end, c.length = true, start, end, ed.Len()
 	pos := ed.CaretCoords().Round()
-	top, bottom := pos.Y+c.top, pos.Y+c.bottom
+	baseline := pos.Y
 	if ed.Len() == 0 && style.Hint != "" {
 		// Material paints the hint as a separate Label. Empty editor shaping
 		// may use a different fallback font/baseline, so align with the hint's
 		// first visible line rather than the empty buffer's caret baseline.
-		if hintTop, hintBottom, ok := hintInk(gtx, style, shaper); ok {
-			top, bottom = hintTop, hintBottom
+		if hint, ok := hintBaseline(gtx, style, shaper); ok {
+			baseline = hint
 		}
 	}
-	half := max(1, gtx.Dp(1)/2)
-	x0, x1 := pos.X-half, pos.X+half
-	area := image.Rectangle{Max: dims.Size}
+	// The caret spans the body of 国 and A, 1dp beyond each end: centered
+	// where the text's ink is centered, so it sits evenly on Chinese and on
+	// Latin capitals rather than reaching down to descenders, as one spanning
+	// 国 to g did (1.5dp low beside Chinese). 1.5dp wide: 1dp read as thin.
+	pad := max(1, gtx.Dp(1))
+	top, bottom := baseline+c.caretTop-pad, baseline+c.caretBottom+pad
+	width := max(2, gtx.Dp(1.5))
+	x0 := pos.X - width/2
+	x1 := x0 + width
+	// The line's box hugs the ink at its top, so the caret's 1dp above the
+	// body would be cut off and the caret would sit low: let it reach a
+	// little past the editor vertically. The field's own clip still applies.
+	area := image.Rect(0, -2*pad, dims.Size.X, dims.Size.Y+2*pad)
 	if ed.Len() == 0 && style.Hint != "" {
 		// A caret centered on the hint's first glyph merges with its strokes
 		// (a dark bar beside 搜 reads as 锼). Draw it just before the hint,
 		// in the field's padding, the way native text fields do. Platform
 		// text (CoreText) darkens stems past the outline by about a pixel.
-		x1 = pos.X - gtx.Dp(1) - half
-		x0 = x1 - 2*half
+		x1 = pos.X - gtx.Dp(1)
+		x0 = x1 - width
 		area.Min.X = x0
 	}
 	c.bounds = image.Rect(x0, top, x1, bottom).Intersect(area)
@@ -172,7 +184,9 @@ func (c *Caret) paintSelection(gtx layout.Context, style material.EditorStyle, d
 	}
 }
 
-func hintInk(gtx layout.Context, style material.EditorStyle, shaper *text.Shaper) (top, bottom int, found bool) {
+// hintBaseline is the baseline of the hint's first line, where Material
+// draws it.
+func hintBaseline(gtx layout.Context, style material.EditorStyle, shaper *text.Shaper) (int, bool) {
 	maxLines := 0
 	if style.Editor.SingleLine {
 		maxLines = 1
@@ -183,24 +197,39 @@ func hintInk(gtx layout.Context, style material.EditorStyle, shaper *text.Shaper
 		MaxLines: maxLines, Alignment: style.Editor.Alignment, Locale: gtx.Locale,
 		LineHeight: fixed.I(gtx.Sp(style.LineHeight)), LineHeightScale: style.LineHeightScale,
 	}, style.Hint)
-	for {
+	g, ok := shaper.NextGlyph()
+	if !ok {
+		return 0, false
+	}
+	for _, more := shaper.NextGlyph(); more; _, more = shaper.NextGlyph() {
+	}
+	return int(g.Y), true
+}
+
+// bodyBounds is the ink of 国 and A around the baseline: the body that
+// text centers (el's textShift), and the caret with it.
+func bodyBounds(shaper *text.Shaper, face font.Font, pixels int) (top, bottom int) {
+	shaper.LayoutString(text.Parameters{Font: face, PxPerEm: fixed.I(pixels), MaxWidth: 1 << 20}, "国Ag")
+	found := false
+	for i := 0; ; i++ {
 		g, ok := shaper.NextGlyph()
 		if !ok {
 			break
 		}
-		if g.Bounds.Max.Y > g.Bounds.Min.Y {
-			a, b := int(g.Y)+g.Bounds.Min.Y.Floor(), int(g.Y)+g.Bounds.Max.Y.Ceil()
-			if !found {
-				top, bottom, found = a, b, true
-			} else {
-				top, bottom = min(top, a), max(bottom, b)
-			}
+		if i >= 2 || g.Bounds.Min.Y == g.Bounds.Max.Y {
+			continue
 		}
-		if g.Flags&text.FlagLineBreak != 0 {
-			break
+		t, b := g.Bounds.Min.Y.Floor(), g.Bounds.Max.Y.Ceil()
+		if !found {
+			top, bottom, found = t, b, true
+		} else {
+			top, bottom = min(top, t), max(bottom, b)
 		}
 	}
-	return
+	if !found {
+		return -pixels * 7 / 10, 0
+	}
+	return top, bottom
 }
 
 // Use representative capitals, descenders and CJK ink so the height is stable
