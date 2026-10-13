@@ -25,7 +25,7 @@ generate applications with `-replace <checkout>`.
 | `config.go` | `keel.json` Reading, writing and verification |
 | `new.go` | New project, template in `template/` |
 | `resolve.go` | Resolve the exact Keel release (isolated or offline) and validate local checkouts |
-| `internal/gogio/` | The packager, run in-process |
+| `../../internal/gogio/` | The packager, shared with `cmd/gogio` and run in-process |
 | `run.go`, `run_bundle_*.go` | `keel run` flags, development icons and macOS app bundles |
 | `run_watch.go`, `run_process_*.go` | File watching, rebuilds and process lifecycle |
 | `build.go` | Packaging for each platform, Windows resources, Info.plist, Linux desktop files |

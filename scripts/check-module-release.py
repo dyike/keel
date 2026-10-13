@@ -237,7 +237,7 @@ def check_release(root, temporary):
         native_env = dict(env, CGO_ENABLED="1")
         architecture = run(["go", "env", "GOARCH"], app, native_env, capture=True).strip()
         bundle = temporary / "Identity Probe.app"
-        run(["go", "run", "-mod=mod", ROOT_MODULE + "/cmd/keel/internal/gogio/cmd",
+        run(["go", "run", "-mod=mod", ROOT_MODULE + "/cmd/gogio",
              "-target", "macos", "-arch", architecture, "-appid", "dev.keel.releaseprobe",
              "-o", bundle, ".", "fixture-launch-argument"], app, native_env)
         executable = bundle / "Contents" / "MacOS" / "Identity Probe"

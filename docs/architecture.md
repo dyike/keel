@@ -33,9 +33,10 @@ github.com/dyike/keel
 │   └── native.go         shared error value
 ├── cmd/
 │   ├── keel/             Scaffolding: Create a new project, run it, generate icons for each platform and package it
-│   │   └── internal/gogio/ Keel's in-process Gio packager; no GUI imports
+│   ├── gogio/            Standalone Gio packaging command; no keel.json required
 │   └── keel-mcp/         MCP server：Agent Use it for end-to-end testing of your application
 ├── internal/
+│   ├── gogio/            Gio packager shared by keel and gogio; no GUI imports
 │   ├── deps/             Module bounds checking
 │   ├── svgicon/          Draw SVG icons to PNG (common to site and scaffolding)
 │   ├── appicon/          Cut out application icons according to macOS, Windows, and GNOME specifications (shared by scaffolding and ui/window)
@@ -82,7 +83,9 @@ There are only three rules:
 
 `cmd/keel-mcp` does not reference any Keel package, nor does it reference Gio: it only drives the automation mode of `ui/window` through the JSON protocol on the socket, see [Automation](automation.md#principle).
 
-`cmd/keel` does not reference the interface package: it uses `internal/svgicon` and `internal/appicon` for icons, `golang.org/x/image` and `tc-hib/winres` for scaling and Windows resources, and `cmd/keel/internal/gogio` for macOS, Android and browser packaging. The packager calls Go and platform tools and uses the relocated Gio package root for linker symbols, permissions and resource discovery. It imports neither Gio nor Keel's UI/native packages. iOS packaging calls Go and Xcode tools directly; macOS signing uses `codesign`. See [Quick Start·Packaging](getting-started.md#package).
+`cmd/gogio` calls `internal/gogio` directly to package applications without `keel.json`, including the site's component gallery. It shares the packager with `cmd/keel` and imports no GUI packages.
+
+`cmd/keel` does not reference the interface package: it uses `internal/svgicon` and `internal/appicon` for icons, `golang.org/x/image` and `tc-hib/winres` for scaling and Windows resources, and `internal/gogio` for macOS, Android and browser packaging. The packager calls Go and platform tools and uses the relocated Gio package root for linker symbols, permissions and resource discovery. It imports neither Gio nor Keel's UI/native packages. iOS packaging calls Go and Xcode tools directly; macOS signing uses `codesign`. See [Quick Start·Packaging](getting-started.md#package).
 
 Gio and go-text are ordinary packages of Keel's single root module, imported as `github.com/dyike/keel/gio/...` and `github.com/dyike/keel/typesetting/...`. Gio may depend on typesetting; typesetting may not depend on Gio. Neither foundation may import other Keel packages. UI packages may use both foundations, while native and CLI packages must work without them. `gioui.org/shader` remains an external module. `internal/deps` checks these boundaries, including transitive dependencies. See [One module](single-module.md) for application import migration.
 
@@ -110,7 +113,7 @@ These rules are enforced by the test of `internal/deps`: it writes the packages 
 | `ui/internal/imageload` | Image source analysis, asynchronous loading, size restrictions, loading and failed placeholder | Component appearance, click and other interactions |
 | `gio` | Gio windows, layout, input and GPU implementation; typesetting dependencies | Keel UI/native/CLI packages |
 | `typesetting` | Font parsing, shaping and rasterization | Gio or other Keel packages |
-| `cmd/keel/internal/gogio` | Packaging commands, linker symbols, platform resources | GUI imports or application components |
+| `internal/gogio` | Packaging commands, linker symbols, platform resources | GUI imports or application components |
 
 ### When to create a new module
 

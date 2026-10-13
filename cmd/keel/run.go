@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/dyike/keel/cmd/keel/internal/gogio"
+	"github.com/dyike/keel/internal/gogio"
 )
 
 // runProject runs the project's main package; arguments after -- go to

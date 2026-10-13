@@ -7,7 +7,7 @@
 本地预览：
 
 ```sh
-go run ./cmd/keel/internal/gogio/cmd -target js -tags osusergo -o /tmp/demo ./examples/components
+go run ./cmd/gogio -target js -tags osusergo -o /tmp/demo ./examples/components
 python3 internal/site/subset_font.py . NotoSansSC-Regular.otf /tmp/demo/font.otf
 go run ./internal/site -out _site -demo /tmp/demo
 python3 -m http.server --directory _site
