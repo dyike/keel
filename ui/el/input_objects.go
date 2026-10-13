@@ -75,17 +75,37 @@ func (e *engine) tokenWidget(n *Node, g core.C, t InputToken) core.D {
 	if fn := n.input.tokenRenderer; fn != nil {
 		return fn(g, t)
 	}
-	rec := op.Record(g.Ops)
-	dims := layout.Inset{Left: 4, Right: 4}.Layout(g, func(g layout.Context) layout.Dimensions {
-		label := e.label(n, t.Display())
-		label.MaxLines = 1
-		return label.Layout(g)
-	})
-	call := rec.Stop()
+	padX, padY := g.Dp(4), g.Dp(2)
+	labelContext := g
+	labelContext.Constraints = layout.Constraints{Max: image.Pt(max(1, g.Constraints.Max.X-2*padX), 4096)}
+	label := e.label(n, t.Display())
+	label.MaxLines = 1
+	dims := e.measureLabel(labelContext, label)
+	baseline := dims.Size.Y - dims.Baseline
+	// A font's line box includes leading and fallback descent. Center the
+	// background around the glyph ink instead; retain the label's baseline so
+	// Keel's inline placement keeps references aligned with surrounding text.
+	label.Shaper.LayoutString(labelParameters(labelContext, label), label.Text)
+	var ink image.Rectangle
+	for glyph, ok := label.Shaper.NextGlyph(); ok; glyph, ok = label.Shaper.NextGlyph() {
+		if !glyph.Bounds.Empty() {
+			ink = ink.Union(image.Rect((glyph.X + glyph.Bounds.Min.X).Floor(), glyph.Bounds.Min.Y.Floor(), (glyph.X + glyph.Bounds.Max.X).Ceil(), glyph.Bounds.Max.Y.Ceil()))
+		}
+	}
+	if ink.Empty() {
+		ink = image.Rect(0, -baseline, dims.Size.X, dims.Baseline)
+	}
+	size := image.Pt(dims.Size.X+2*padX, ink.Dy()+2*padY)
 	r := g.Dp(3)
-	paint.FillShape(g.Ops, theme.Subtle, clip.RRect{Rect: image.Rectangle{Max: dims.Size}, NE: r, NW: r, SE: r, SW: r}.Op(g.Ops))
-	call.Add(g.Ops)
-	return dims
+	paint.FillShape(g.Ops, theme.Subtle, clip.UniformRRect(image.Rectangle{Max: size}, r).Op(g.Ops))
+	offset := image.Pt(padX, padY-ink.Min.Y-baseline)
+	stack := op.Offset(offset).Push(g.Ops)
+	// Paint with the measured label bounds, not the tall measurement context:
+	// label semantics and token activation must retain their visible geometry.
+	labelContext.Constraints = layout.Exact(dims.Size)
+	label.Layout(labelContext)
+	stack.Pop()
+	return core.D{Size: size, Baseline: size.Y - (offset.Y + baseline)}
 }
 
 func (e *engine) prepareInputObjects(n *Node, st *elemState, maxW int) {
