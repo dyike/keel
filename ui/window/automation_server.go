@@ -126,9 +126,9 @@ func serveConn(conn net.Conn) {
 		auto.mu.Lock()
 		empty := len(auto.windows) == 0
 		auto.mu.Unlock()
-		if empty && offScreen() { // like a real app: the last window closed, so exit
+		if empty && offScreen() && !application.keepAlive.Load() { // like a real app: the last window closed, so exit
 			os.Remove(auto.addr)
-			os.Exit(0)
+			Quit()
 		}
 		// On screen, Window.destroy exits a moment later instead: exiting
 		// while AppKit is still tearing the window down can crash.

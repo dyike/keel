@@ -27,6 +27,7 @@ github.com/dyike/keel
 │   ├── input/            合成鼠标、键盘事件
 │   ├── hotkey/           全局快捷键
 │   ├── notification/     系统通知（不依赖 UI）
+│   ├── tray/               托盘图标与原生菜单（不依赖 UI）
 │   ├── clipboard/        异步读取文本、编码图片和文件路径（不依赖 UI）
 │   ├── internal/sys/     平台绑定；macOS 通过 purego 调用 Objective-C，不用 cgo
 │   ├── internal/wlclip/  通过 purego 读取 Linux Wayland 剪贴板（只有 clipboard 引用）
@@ -180,7 +181,7 @@ kit.Button("刷新", func() {
 
 - **所有窗口串行渲染。** 一个回调卡 2 秒，所有窗口都卡 2 秒。回调里只做改状态这类微秒级的事，I/O 和计算放 goroutine。
 - **`core.Update` 是异步的。** 调用返回时 `fn` 还没执行。在回调里等 `core.Update` 的结果（比如用 channel 等它执行完）会死锁：回调持有锁，`fn` 要等锁。
-- **没有窗口在画帧，队列就不会被执行。** 程序开窗前 `core.Update` 的函数会在第一个窗口的第一帧执行。
+- **没有窗口在画帧，队列就不会被执行。** 程序开窗前 `core.Update` 的函数会在第一个窗口的第一帧执行。驻留模式 `window.MainWithOptions(window.MainOptions{KeepAlive: true})` 使用事件唤醒的更新执行器，在同一个 frame lock 下消费队列，不依赖窗口绘制，也不轮询。
 
 为什么选一把大锁而不是给每个组件加锁，见[设计决策](decisions.zh-CN.md#一把全局帧锁)。
 
@@ -206,7 +207,7 @@ kit.Button("刷新", func() {
 - `window.Open` 立即返回；原生窗口在它自己的 goroutine 里异步创建。
 - `Close`、`Raise` 会等窗口画出第一帧后才真正执行。Gio v0.10.3 在 macOS 上有个 bug：原生窗口还没建好就被关闭，进程会崩溃。人手点不了这么快，Agent 可以，所以 Keel 在这里等一下。回归测试是 `ui/window/testdata/reopen`。
 - 关闭窗口（用户点关闭，或调用 `w.Close()`）后，`OnClose` 在锁内执行，`w.Closed()` 变成 `true`。关闭的窗口不能重新打开，需要时重新 `window.Open`。
-- 最后一个窗口关闭后，进程调用 `os.Exit(0)` 退出。`main` 里 `window.Main()` 之后的代码不会执行，要做清理放进 `OnClose`。
+- 默认最后一个窗口关闭后，进程调用 `os.Exit(0)` 退出。`KeepAlive` 模式继续驻留，使用 `window.Quit()` 显式退出。`Quit` 在 frame lock 下依次执行仍打开窗口的 `OnClose` 和应用的 `MainOptions.OnQuit`，各执行一次。`Main` 不返回，退出清理放在这些回调中。
 
 `native/notification` 仅依赖 `native` 和 `native/internal/sys`，通过异步完成回调返回权限/投递结果，不引用 UI 或 Gio。macOS 系统调用由主队列发起，Go 完成回调在独立 goroutine 执行；UI 回写使用 `core.Update`。kit.Notifier 通过公开 NoticeSystemBackend 接口接入，由应用层适配 native/notification，模块之间不直接引用。
 
@@ -217,3 +218,5 @@ kit.Button("刷新", func() {
 SVG 图标由 `ui/kit` 内的 `oksvg` 与 `rasterx` 解析并按物理像素栅格化，仍通过 Gio 绘制；不新增 Keel 模块依赖。入口、格式子集和缓存上限见 [Icon](kit/icon.zh-CN.md)。
 
 `native/process` 仅依赖 `native` 和 `native/internal/sys`，不引用 UI 或 Gio。终端前台进程组和进程工作目录的平台绑定位于 `native/internal/sys`，业务项目通过 Go API 调用。
+
+`native/tray` 仅依赖 `native` 和 `native/internal/sys`，不引用 UI 或 Gio。macOS 使用 purego/AppKit，Windows 使用 Win32，Linux 使用纯 Go 的 SNI/DBusMenu。原生事件进入独立的队列，由每个托盘的 Go goroutine 串行执行回调；写 UI 状态仍经过 `core.Update`。驻留策略由应用显式设置，创建托盘不会自动改变窗口生命周期。

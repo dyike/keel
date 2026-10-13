@@ -17,6 +17,8 @@ func TestRealWindows(t *testing.T) {
 		t.Skip("set KEEL_DESKTOP=1 to open real windows")
 	}
 	cases := [][]string{
+		{"./testdata/resident"},
+		{"./testdata/resident", "quit-open"},
 		{"./testdata/raise"},                   // Raise/Close from UI code must not deadlock
 		{"./testdata/reopen", "update", "now"}, // closing right after opening must not crash
 		{"./testdata/reopen", "locked", "now"},

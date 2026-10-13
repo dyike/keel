@@ -60,3 +60,16 @@ w.SetTrafficLightLayout(window.TrafficLightLayout{Height: 64, Left: 20})
 应用菜单和系统外观通过 Go API 配置：`NewMenuBar`、`SetApplicationMenu`、`SystemAppearance`、`SetNativeAppearance`。自定义方式和平台能力见[窗口与应用](../../docs/app.zh-CN.md#应用菜单与系统外观)。
 
 菜单后端：macOS 使用 AppKit，Windows 使用 Win32，Linux（X11/Wayland）由 Keel 绘制窗口内菜单。`Options.MenuDisplay` 可选择窗口内菜单或应用自行绘制；自定义编辑器通过 `core.NextEditAction` 处理标准编辑操作。
+
+## 驻留应用
+
+`window.Main()` 默认在最后一个窗口关闭后退出。托盘或其他后台应用可以显式开启驻留，所有窗口关闭后仍消费 `core.Update`，包括最小化或遮挡时的更新；执行器由事件唤醒，空闲时不轮询。
+
+```go
+window.MainWithOptions(window.MainOptions{
+    KeepAlive: true,
+    OnQuit: func() { /* application cleanup */ },
+})
+```
+
+通过 `window.Quit()` 显式退出，可以在 UI 回调、后台 goroutine 或没有窗口时调用。它依次执行仍打开窗口的 `OnClose` 和应用 `OnQuit`，各执行一次并持有 frame lock，然后退出进程；`Main` 不返回，普通 defer 不会执行。回调中不要等待下一次 `core.Update` 或同步等待主线程。关闭后的窗口仍不能重新显示，需要重新 `window.Open`；将业务状态保存在窗口之外。`OnClose` 是销毁后的通知，不能拦截关闭。参见 `examples/tray`。

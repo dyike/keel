@@ -105,6 +105,7 @@ type Window struct {
 func Open(o Options) *Window {
 	w := newWindow(o)
 	registerDevelopmentWindow(w)
+	registerApplicationWindow(w)
 	loadRunIcon()
 	if offScreen() {
 		openVirtual(w, true)
@@ -173,7 +174,12 @@ func (w *Window) SetTrafficLightLayout(layout TrafficLightLayout) {
 // Main runs the platform event loop. The process exits after the last window
 // closes. With KEEL_AUTOMATION set it also serves automation requests, or only
 // those with KEEL_HEADLESS=1; see automation.go.
-func Main() {
+func Main() { MainWithOptions(MainOptions{}) }
+
+// MainWithOptions runs the event loop, optionally keeping a windowless app alive.
+// Configure it once on the main goroutine.
+func MainWithOptions(options MainOptions) {
+	configureApplication(options)
 	if offScreen() {
 		serveAutomation()
 		return
@@ -364,14 +370,14 @@ func (w *Window) destroy() {
 	if w.virt != nil {
 		forgetVirtual(w)
 	}
-	if remaining == 0 {
+	if remaining == 0 && !application.keepAlive.Load() {
 		if automating() {
 			// Give the automation server time to answer the request that
 			// closed the window, and AppKit time to finish tearing it down.
-			time.AfterFunc(500*time.Millisecond, func() { os.Remove(auto.addr); os.Exit(0) })
+			time.AfterFunc(500*time.Millisecond, func() { os.Remove(auto.addr); Quit() })
 			return
 		}
-		os.Exit(0)
+		Quit()
 	}
 }
 
@@ -381,14 +387,16 @@ func (w *Window) finish() int {
 		w.glassRenderer.Release()
 		w.glassRenderer = nil
 	}
-	unregisterDevelopmentWindow(w)
-	remaining := loop.Unregister(w)
 	loop.Lock()
 	w.closed = true
 	clearPlatformWindow(w)
-	if w.opts.OnClose != nil {
-		w.opts.OnClose()
+	if callback := w.opts.OnClose; callback != nil {
+		w.opts.OnClose = nil
+		callback()
 	}
+	unregisterDevelopmentWindow(w)
+	unregisterApplicationWindow(w)
+	remaining := loop.Unregister(w)
 	loop.Unlock()
 	return remaining
 }

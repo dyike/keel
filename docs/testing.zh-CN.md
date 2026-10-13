@@ -15,6 +15,8 @@ GOOS=linux GOARCH=arm64 bash scripts/check-desktop-cgo-free.sh native
 六目标 CI 矩阵在每次 push/PR 检查 native 能力及完整 Windows 构建。完整 macOS/Linux 门禁仍待迁移，可通过 workflow 的 `full` 参数执行；不使用静默容忍失败。将 CC/CXX 设为不存在的路径可防止意外调用 C 编译器，但不能代替隔离的无编译器/头文件发布验证。
 编译通过不等于运行、IME、原生 GPU、打包或性能验收；详见[桌面交付设计](desktop-cgo-free.zh-CN.md)。
 
+Ubuntu 的 `distribution` job 在脚手架测试前安装 Linux 图形开发库。`TestNewProjectCompiles` 对生成的 GUI 项目执行宿主平台 vet；Linux 上会开启 cgo，仍需要 Gio 的 Wayland、X11、xkbcommon、EGL/GLES 和 Vulkan 头文件。独立的 `compile` 矩阵继续关闭 cgo，并将 C/C++ 编译器路径设为不存在的文件。
+
 `python3 scripts/check-module-release.py` 把工作区打包成本地模块代理中的测试用 Keel 发布，用 `keel new` 创建只 require Keel 的应用，确认其 Gio 和 go-text 包来自 Keel 模块（而非上游 `gioui.org` 或 go-text），编译外部自定义组件，并从该发布 `go install` CLI。它检查默认、离线、本地生成及含空格路径，无 CGO 打包 Windows amd64/arm64 和 WebAssembly；macOS 上还用现有 CGO 后端运行打包后的应用 ID/启动参数探针。外部依赖使用当前配置的 Go 代理；合成发布由本地代理提供，使用全新模块缓存并关闭 workspace。
 
 ## 交互测试
@@ -128,3 +130,14 @@ go run ./examples/components -section button -width 320 -scale 1 -theme dark -sc
 组件示例中的固定展示宽度必须同时设置 `MaxW(el.Full)`；否则测试到的是被裁掉的宽画布，而非组件的窄布局。并列操作用 Wrap，保留需要验证横向滚动的内容宽度。Sidebar 示例在 600dp 以下初始折叠，仍可手动展开；Dock 的多列工作区需要足够宽度，不把 320dp 截图当成手机布局承诺。
 
 `cmd/keel-mcp` 的示例级回归包括：订单筛选、详情和删除、新建订单纯键盘流程；聊天流式输出、代码/表格和中断；设置页主题、搜索和语言切换；Dock 移动面板、切换后保留输入、菜单 Esc 与关闭面板。`TestOrdersKeyboardOnly` 不点击控件，从 Mod+N 开始用 Tab、方向键、Space、Enter 完成保存。
+
+## 托盘与驻留回归
+
+`go test -race ./native/tray ./ui/internal/loop` 检查菜单快照、旧事件、串行回调、关闭后丢弃排队回调，以及没有窗口时更新仍执行。Linux 的 SNI/DBusMenu 协议测试使用纯 Go 的序列化与菜单模型，不要求桌面会话。
+
+```sh
+KEEL_DESKTOP=1 go test -run RealWindows ./ui/window
+go run ./examples/tray -smoke
+```
+
+真实窗口用例从无窗口启动，关闭最后一个窗口后重新打开，再检查退出回调。托盘 smoke 额外创建、更新和移除系统图标。菜单实际点击、明暗外观、高 DPI、Windows Explorer 重启和 Linux Host 重启需要分别在对应桌面上验证；跨平台编译不代表运行验收。

@@ -45,7 +45,8 @@ type Func func(gtx C) D
 
 func (f Func) Layout(gtx C) D { return f(gtx) }
 
-// Update runs fn before the next frame, where it may change components safely.
+// Update queues fn under the frame lock, where it may change components safely.
+// Normally the next frame runs it; resident mode also drains without frames.
 // It is safe from any goroutine, including from callbacks, and returns at once.
 func Update(fn func()) { loop.Post(fn) }
 

@@ -217,3 +217,16 @@ Applications choose where and when to persist dimensions. Layout should continue
 `Options.MinWidth` and `Options.MinHeight` set client-area minimum dimensions in dp; zero leaves that axis unconstrained. For example: `window.Options{Width: 1057, Height: 639, MinWidth: 800, MinHeight: 480}`.
 
 Keel forwards limits to the macOS, Windows and Linux X11/Wayland window drivers, including frameless windows. Initial dimensions (including restored sizes) and `Resize` requests below the minimum are clamped; off-screen automation applies the same limits. Linux window managers/compositors have the final say over size hints.
+
+## Resident applications
+
+`window.Main()` exits after the last window closes by default. Tray and other background applications can explicitly keep running. Resident mode drains `core.Update` with no windows, including updates while windows are minimized or occluded. The worker wakes on events and does not poll while idle.
+
+```go
+window.MainWithOptions(window.MainOptions{
+    KeepAlive: true,
+    OnQuit: func() { /* application cleanup */ },
+})
+```
+
+Call `window.Quit()` for explicit exit, from UI callbacks, background goroutines or with no windows. It runs remaining windows' `OnClose` callbacks followed by application `OnQuit`, once each under the frame lock, then exits the process. Main does not return and ordinary defers do not run. Callbacks must not wait for another `core.Update` or synchronously wait for the main thread. Closed windows remain closed: reopen with `window.Open` and keep business state outside the window. `OnClose` reports destruction and cannot intercept closure. See `examples/tray`.

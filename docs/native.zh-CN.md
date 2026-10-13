@@ -10,6 +10,7 @@
 | `native/screen` | 列出显示器；截图 | 截图需要屏幕录制 |
 | `native/input` | 移动鼠标、点击、按键 | 读取鼠标位置以外的操作都需要辅助功能 |
 | `native/hotkey` | 全局快捷键 | 无 |
+| `native/tray` | 托盘图标、提示文字和原生菜单 | 无 |
 | `native/clipboard` | 异步读取文本、编码图片、文件路径（macOS / Windows / Linux Wayland、X11） | 无 |
 
 支持三个平台，其他平台（以及 iOS）上，所有函数返回 `native.ErrUnsupported`，程序照常编译。
@@ -140,3 +141,9 @@ Linux X11 使用独立连接读取 CLIPBOARD，支持 UTF-8/Latin-1 文本、PNG
 连接使用 DISPLAY 和 XAUTHORITY（默认 ~/.Xauthority），支持 MIT-MAGIC-COOKIE-1。
 
 Wayland 只把剪贴板交给有键盘焦点的客户端，所以不能另开连接：应用把聚焦窗口的连接交给它，`clipboard.UseWaylandDisplay(w.WaylandDisplay())`，之后 `Read` 在这个连接上开一个私有事件队列，绑定 seat 的数据设备，读取当前选区提供的类型（与 X11 相同的文本、URI 列表和图片格式及限制，5 秒期限），不干扰 Gio 自己的事件处理。没有传入连接、或合成器没有数据设备时退回 X11/XWayland。这一路径在运行时通过 purego 加载 libwayland-client 1.20+，不用 cgo，用 `-tags nowayland` 构建可去掉。它只用核心协议，用 `wl_proxy_marshal_array_flags` 按操作码编组，所有代理共用一个事件分发函数；尚未在 Wayland 桌面上运行。格式、分块协议替身、错误上限测试与交叉编译通过，Linux 桌面真实剪贴板和 XWayland 桥接仍待验收。
+
+## 托盘：tray
+
+`native/tray` 提供 macOS 菜单栏图标、Windows 通知区域图标和 Linux SNI 图标，支持勾选、禁用、分隔线与子菜单。不需要权限或 cgo，Linux 需要会话 D-Bus 和运行中的 StatusNotifierHost；没有 Host 时 `New` 返回 `native.ErrUnsupported`。iOS、Android 和 Web 不支持。
+
+回调在 Go goroutine 中按托盘串行执行，写 UI 状态使用 `core.Update`。macOS 的 `New` 同步等待主线程，放在 `window.Main` 前，或在不持有 frame lock 的后台 goroutine 中调用。更新和关闭在 macOS 主队列异步应用。详见 [tray 模块](../native/tray/README.zh-CN.md)，运行 `go run ./examples/tray`。

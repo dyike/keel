@@ -46,6 +46,7 @@ var allowed = map[string][]string{
 	"native/input":             {"native", "native/internal/sys"},
 	"native/hotkey":            {"native", "native/internal/sys"},
 	"native/notification":      {"native", "native/internal/sys"},
+	"native/tray":              {"native", "native/internal/sys"},
 	"native/clipboard":         {"native", "native/internal/sys", "native/internal/wlclip"},
 	// Talks to apps only through the automation protocol, never Keel's code.
 	"cmd/keel-mcp": {},
