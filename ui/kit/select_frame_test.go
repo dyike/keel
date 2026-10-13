@@ -3,6 +3,7 @@ package kit
 import (
 	"image"
 	"testing"
+	"time"
 
 	"gioui.org/gpu/headless"
 	"gioui.org/io/key"
@@ -152,5 +153,57 @@ func TestTextFieldsRingOnlyForKeyboardFocus(t *testing.T) {
 	h.Router.MoveFocus(key.FocusForward)
 	if inputRing() || !comboRing() {
 		t.Fatalf("Tab to the combobox: input ring %v combobox ring %v", inputRing(), comboRing())
+	}
+}
+
+// A field clicked into shows only its caret, so the caret must be there: an
+// empty field draws it just before the placeholder, in the frame's gap.
+func TestEmptyFieldShowsCaretBeforePlaceholder(t *testing.T) {
+	in := Input("搜索").Placeholder("客户名称").Prefix(el.ViewFunc(func(cx *el.Context) el.Element {
+		return Icon(IconSearch).Size(16).Render(cx)
+	}))
+	gpu, err := headless.NewWindow(320, 120)
+	if err != nil {
+		t.Skip("no headless GPU:", err)
+	}
+	defer gpu.Release()
+	root := el.Root(viewFunc(func(cx *el.Context) el.Element {
+		return el.Div().P(10).W(el.Dp(320)).Items(el.Stretch).Child(in.Render(cx))
+	}))
+	img := image.NewRGBA(image.Rect(0, 0, 320, 120))
+	now := time.Unix(1000, 0) // a fixed clock keeps the caret in its visible phase
+	h := uitest.NewFunc(func(gtx core.C) {
+		gtx.Now = now
+		gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
+		gtx.Constraints = layout.Exact(image.Pt(320, 120))
+		root.Layout(gtx)
+		if err := gpu.Frame(gtx.Ops); err != nil {
+			t.Fatal(err)
+		}
+		if err := gpu.Screenshot(img); err != nil {
+			t.Fatal(err)
+		}
+	})
+	h.Frame()
+	hint := innermost(h, "客户名称")
+	caret := func() int {
+		dark := 0
+		for y := hint.Min.Y; y < hint.Max.Y; y++ {
+			for x := hint.Min.X - 4; x < hint.Min.X; x++ {
+				if c := img.RGBAAt(x, y); (int(c.R)+int(c.G)+int(c.B))/3 < 0x90 {
+					dark++
+				}
+			}
+		}
+		return dark
+	}
+	if n := caret(); n != 0 {
+		t.Fatalf("%d caret pixels before focus", n)
+	}
+	h.Click(float32(hint.Min.X+30), float32(hint.Min.Y+hint.Max.Y)/2)
+	h.Frame()
+	h.Frame()
+	if n := caret(); n < hint.Dy()/2 {
+		t.Fatalf("%d caret pixels before the placeholder, want a caret", n)
 	}
 }
