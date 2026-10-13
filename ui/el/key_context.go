@@ -2,7 +2,7 @@ package el
 
 import (
 	"cmp"
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/io/key"
 	"slices"
 
 	"github.com/dyike/keel/ui/core"

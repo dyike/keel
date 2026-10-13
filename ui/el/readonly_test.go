@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"gioui.org/io/input"
-	"gioui.org/io/key"
-	"gioui.org/op"
+	"github.com/dyike/keel/gio/io/input"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/uitest"
 )

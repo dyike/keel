@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 
-	"gioui.org/io/clipboard"
-	"gioui.org/io/key"
-	"gioui.org/io/transfer"
-	"gioui.org/widget"
+	"github.com/dyike/keel/gio/io/clipboard"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/io/transfer"
+	"github.com/dyike/keel/gio/widget"
 	"github.com/dyike/keel/ui/core"
 )
 

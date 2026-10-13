@@ -3,11 +3,11 @@ package el
 import (
 	"image/color"
 
-	"gioui.org/font"
+	"github.com/dyike/keel/gio/font"
 	"github.com/dyike/keel/ui/theme"
 
-	"gioui.org/io/pointer"
-	"gioui.org/unit"
+	"github.com/dyike/keel/gio/io/pointer"
+	"github.com/dyike/keel/gio/unit"
 )
 
 // Length is a size along one axis: automatic, a fixed number of dp or sp, or a

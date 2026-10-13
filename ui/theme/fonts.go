@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"gioui.org/font"
-	"gioui.org/font/opentype"
-	"gioui.org/text"
-	gotext "github.com/go-text/typesetting/font"
-	ot "github.com/go-text/typesetting/font/opentype"
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/font/opentype"
+	"github.com/dyike/keel/gio/text"
+	gotext "github.com/dyike/keel/typesetting/font"
+	ot "github.com/dyike/keel/typesetting/font/opentype"
 
 	"github.com/dyike/keel/ui/internal/loop"
 )
@@ -157,7 +157,7 @@ func LoadFontFilesWhere(keep func(font.Font) bool, paths ...string) error {
 }
 
 // fontBytes is a font file's bytes with a reader over them. Keel's go-text
-// (third_party/typesetting) reads the tables of a resource with a Bytes
+// (typesetting) reads the tables of a resource with a Bytes
 // method in place instead of copying them; upstream go-text ignores it.
 // The bytes must not change afterwards.
 type fontBytes struct {

@@ -6,10 +6,10 @@ import (
 	"math"
 	"strconv"
 
-	"gioui.org/op/clip"
+	"github.com/dyike/keel/gio/op/clip"
 	"github.com/dyike/keel/ui/core"
 
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
 )

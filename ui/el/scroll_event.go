@@ -1,8 +1,8 @@
 package el
 
 import (
-	"gioui.org/io/pointer"
-	"gioui.org/unit"
+	"github.com/dyike/keel/gio/io/pointer"
+	"github.com/dyike/keel/gio/unit"
 	"math"
 )
 

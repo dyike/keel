@@ -4,9 +4,9 @@ import (
 	"io"
 	"strings"
 
-	"gioui.org/io/clipboard"
-	"gioui.org/op"
-	"gioui.org/widget"
+	"github.com/dyike/keel/gio/io/clipboard"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/widget"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/inputcontent"
 )

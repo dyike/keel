@@ -19,6 +19,10 @@ go install github.com/dyike/keel/cmd/keel@latest
 keel doctor
 ```
 
+This installation path needs a published single-module release. To test this
+checkout before publication, run `go build -o /tmp/keel ./cmd/keel` from the
+repository root, then `/tmp/keel new /tmp/my-notes -replace "$PWD"`.
+
 On macOS, `keel doctor` checks Xcode Command Line Tools and `iconutil`. On Linux, it checks window-system and font development packages. The first run or build downloads dependencies and compiles cgo code. See [the macOS `-lobjc` warning](troubleshooting.md#-lobjc-warning-when-linking) if it appears during linking.
 
 ## Create a project
@@ -37,10 +41,23 @@ The scaffold generates:
 | `app.go` | Defines the application view and its `Render` method |
 | `keel.json` | Application name, ID, version, and icon used by the packager |
 | `appicon.png` | A square 1024×1024 placeholder image without rounded corners; replace it with your own |
-| `go.mod` | Depends on the current Keel version; generation runs `go get` and `go mod tidy` |
+| `go.mod`, `go.sum` | Requires the selected Keel release, which already contains Keel's Gio and go-text; generation runs `go mod tidy` |
 | `.gitignore`, `README.md`, `README.zh-CN.md` | Project instructions and exclusions for `dist/` and build intermediates |
 
-Options: `-name "My Notes"` sets the display name, which otherwise derives from the directory (`my-notes` → `My Notes`). `-appid com.yourname.notes` sets the application ID, defaulting to `com.example.<directory>`. `-module` sets the Go module path. `-offline` writes files without downloading dependencies. The destination directory must be empty.
+Options: `-name "My Notes"` sets the display name, which otherwise derives from the directory (`my-notes` → `My Notes`). `-appid com.yourname.notes` sets the application ID, defaulting to `com.example.<directory>`. `-module` sets the Go module path. The destination directory must be empty.
+
+`-keel <version>` selects an exact Keel release (default: the CLI's own, or
+the latest). `-replace <Keel checkout>` instead requires Keel from a local
+checkout, for developing Keel; paths may contain spaces. `-offline` writes files
+without fetching dependencies: an exact `-keel vX.Y.Z` needs no cached metadata,
+while queries such as `latest` need cached resolution. Run `go mod tidy` before
+building; dependencies must then be cached or downloadable.
+
+Keel's copies of Gio and go-text are packages inside the Keel module, so the
+generated `go.mod` has a single requirement and an existing app only needs
+`go get github.com/dyike/keel@<version>`. Ordinary `go build` uses the same
+copies without CLI assistance. This does not yet mean no-cgo macOS/Linux UI
+builds; see [implementation evidence](desktop-cgo-free-validation.md).
 
 ## Write your first window
 
@@ -133,7 +150,7 @@ keel build -target android    # Android SDK + NDK + JDK; development APK
 keel build -n                 # Print commands without executing them
 ```
 
-Output goes to `dist/`; change it with `-o`. Builds strip symbols, debug information, and local paths by default (`-s -w -trimpath`), reducing size by about a quarter. Crash traces still show function names. Add `-debug` when using a debugger. Android native libraries are always stripped by gogio; see [Android](android.md). Syntax highlighting and network images each add about 4 MB and are optional: uncomment their imports in the generated `main.go` when needed. See [Optional features and binary size](kit.md#optional-features-and-binary-size). The first macOS, Android or browser build downloads Gio’s packaging tool, gogio.
+Output goes to `dist/`; change it with `-o`. Builds strip symbols, debug information, and local paths by default (`-s -w -trimpath`), reducing size by about a quarter. Crash traces still show function names. Add `-debug` when using a debugger. Android native libraries are always stripped by gogio; see [Android](android.md). Syntax highlighting and network images each add about 4 MB and are optional: uncomment their imports in the generated `main.go` when needed. See [Optional features and binary size](kit.md#optional-features-and-binary-size). macOS, Android and browser packaging use Keel's built-in copy of Gio's packager, gogio, so nothing extra is downloaded.
 
 | Target | Output | Icon | Build host |
 | --- | --- | --- | --- |
@@ -187,18 +204,16 @@ The scaffold adds a local replacement to the application’s `go.mod`. In an exi
 
 ## Keel's copy of Gio
 
-Keel draws with its own copies of Gio and go-text in `third_party/`, with fixes and speedups that cannot wait for upstream releases (lower memory, faster frames; [third_party/README.md](../third_party/README.md) lists them). Code keeps importing `gioui.org/...`; Keel's `go.mod` points those modules at the copies with `replace`.
+Keel draws with its own copies of Gio and go-text in the root-level `gio/` and `typesetting/` directories, with fixes and speedups that cannot wait for upstream releases (lower memory, faster frames; [third_party/README.md](../third_party/README.md) lists them). They are ordinary packages of the Keel module, so every app that requires Keel builds with them; no `replace` is needed.
 
-A `replace` only applies to the module that writes it. A project created with `keel new -replace <Keel checkout>` gets the same lines; any other project can add them, pointing at a Keel checkout:
+Code that uses Gio or go-text directly imports them under Keel's path:
 
-```
-replace (
-	gioui.org => /path/to/keel/third_party/gio
-	github.com/go-text/typesetting => /path/to/keel/third_party/typesetting
-)
-```
+| Upstream import | Import with Keel |
+| --- | --- |
+| `gioui.org/...` | `github.com/dyike/keel/gio/...` |
+| `github.com/go-text/typesetting/...` | `github.com/dyike/keel/typesetting/...` |
 
-Without them the project builds against upstream Gio and go-text, which Keel also supports, without those improvements.
+`gioui.org/shader` stays upstream. Mixing the two paths does not compile: a `Layout(gioui.org/layout.Context)` method is not a Keel view, because the types differ. See [One module](single-module.md).
 
 ## Next steps
 

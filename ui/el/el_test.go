@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"gioui.org/io/input"
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/io/input"
+	"github.com/dyike/keel/gio/io/key"
 
 	"github.com/dyike/keel/ui/internal/uitest"
 	"github.com/dyike/keel/ui/theme"

@@ -2,7 +2,7 @@
 
 Keel is a desktop UI framework in pure Go: no HTML, CSS, JavaScript or
 WebView. `ui/*` draws the interface on [Gio](https://gioui.org), with
-Keel's patched copy in `third_party/gio`;
+Keel's patched copy in `gio`;
 `native/*` provides system capabilities Gio lacks (permissions, screen
 capture, synthetic input, global hotkeys, notifications, rich clipboard).
 Targets: macOS, Windows, Linux, WebAssembly, iOS and Android.
@@ -38,14 +38,16 @@ window lifecycle. [docs/testing.md](docs/testing.md) and
   call later and release them after use. Never pass Go pointers to native
   code that keeps them; use a token (integer handle) instead.
 - **Gio and go-text are ours to change.** Keel's copies live in
-  `third_party/gio` and `third_party/typesetting`, keep their module paths
-  (`gioui.org`, `github.com/go-text/typesetting`) and are wired in with
-  `replace` in `go.mod`. Fix or speed them up in place, keep upstream style
-  there, and log every patch with its reason in `third_party/README.md`
-  (both languages). A patch brings its own test; each copy is its own
-  module, so test it from its directory. Apps without the `replace` build
-  against upstream: Keel's code outside `third_party` must compile against
-  upstream too (check with the `replace` lines dropped).
+  `gio` and `typesetting` as ordinary packages of
+  Keel's single module, imported as `github.com/dyike/keel/gio/...`
+  and `github.com/dyike/keel/typesetting/...` (never upstream
+  `gioui.org/...` or go-text; `gioui.org/shader` stays an external module).
+  Apps get them by requiring Keel; no `replace`, no nested `go.mod`. Fix or
+  speed them up in place, keep upstream style there, and log every patch
+  with its reason in `third_party/README.md` (both languages). A patch
+  brings its own test. The copies never import other Keel packages
+  (`internal/deps` checks this). The packager is Keel's copy of gogio in
+  `cmd/keel/internal/gogio`, which knows Gio's new path.
 - **Dependencies only go down.** `internal/deps` enforces the module table
   in the architecture guide: `ui` and `native` never import each other,
   same-layer modules never import each other, heavy dependencies (chroma,
@@ -65,12 +67,22 @@ window lifecycle. [docs/testing.md](docs/testing.md) and
 
 ## cgo inventory
 
-Gio itself needs cgo on macOS, iOS and Linux (`third_party/gio/app`,
-`third_party/gio/internal/gl`), so `CGO_ENABLED=0` is only reachable once Keel
-owns its platform layer: windows, surfaces and input through purego and
-`syscall`, its own renderers (Metal, Direct3D 11, OpenGL, or the CPU) and
-the system's text engines. Keel's own cgo was ported first, in this order,
-each step keeping behavior and tests:
+Desktop migration is not complete. Preserve Gio's UI, layout, GPU algorithms
+and performance patches; replace native bindings, not the renderers. The
+2026-10-12 darwin/arm64 dependency scan of `examples/hello` selects cgo in:
+
+- Gio: `app`, `internal/gl`, `internal/cocoainit`, `gpu/internal/metal`
+  (including pool/quads), and `gpu/headless`.
+- Keel: `ui/theme/coretext_darwin.go` (CoreText/CoreGraphics).
+- `runtime/cgo`, as a consequence of the selected bindings.
+
+Linux also needs migration of X11/Wayland, xkbcommon, EGL/GL and Vulkan
+bindings. Windows already builds without cgo. iOS/Android migration is deferred.
+`CGO_ENABLED=0 go build ./examples/hello` currently fails on macOS in Gio GL;
+`CGO_ENABLED=0 go build ./native/...` passes on the inspected macOS host.
+Neither observation establishes cross-platform runtime support.
+See [the delivery design](docs/desktop-cgo-free.md) for gates and sequencing.
+Completed Keel binding migrations, each retaining behavior and tests:
 
 1. Done: `native/internal/sys` (darwin: permissions, displays, capture, input,
    hotkeys, clipboard, notifications, process). `native/*` does not depend
@@ -87,18 +99,17 @@ each step keeping behavior and tests:
    `ui/internal/wayland`, on the connection Gio opened.
 5. Done: `ui/window/scene_ios.go`, through purego's objc package.
 
-Keel's own code has no cgo left: no `import "C"`, no `.c`/`.m`/`.h`.
-What remains is Gio's (`third_party/gio/app` and its GPU code on macOS,
-iOS and Linux). Removing it means owning the platform layer, as described
-above, now done inside `third_party/gio`.
+These completed migrations do not include Keel's CoreText binding or Gio's
+platform/GPU bindings. Since the single-module merge
+([docs/single-module.md](docs/single-module.md)) applications receive the
+patched Gio and go-text by requiring Keel alone.
 
 ## Commands
 
 ```sh
 gofmt -l .                                       # must print nothing
 go vet ./...
-(cd third_party/typesetting && go vet ./... && go test ./...)   # the copies are their own modules
-(cd third_party/gio && go vet ./...)
+go test ./gio/... ./typesetting/...                        # the Gio and go-text copies' own patch tests
 go test ./...                                    # includes internal/deps and convention checks
 go test -race ./...
 CGO_ENABLED=0 GOOS=windows go build ./...       # Windows is already cgo-free; keep it so

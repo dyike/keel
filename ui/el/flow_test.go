@@ -4,7 +4,7 @@ import (
 	"image"
 	"testing"
 
-	"gioui.org/unit"
+	"github.com/dyike/keel/gio/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/uitest"
 )

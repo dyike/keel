@@ -10,7 +10,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/go-text/typesetting/segmenter"
+	"github.com/dyike/keel/typesetting/segmenter"
 )
 
 var (

@@ -4,9 +4,9 @@ import (
 	"math"
 	"strconv"
 
-	"gioui.org/io/key"
-	"gioui.org/io/pointer"
-	"gioui.org/op"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/io/pointer"
+	"github.com/dyike/keel/gio/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"

@@ -3,59 +3,89 @@
 English | [简体中文](README.zh-CN.md)
 
 Keel carries its own copies of the libraries it draws with, so it can fix
-and speed them up without waiting for upstream releases. They keep their
-module paths and are wired in with `replace` in Keel's `go.mod`:
+and speed them up without waiting for upstream releases. They are ordinary
+packages of Keel's module, with no `go.mod` of their own, imported under
+Keel's path. Sources live in the root-level gio/ and typesetting/ directories;
+this directory keeps their attribution and patch logs:
 
-```
-replace (
-	gioui.org => ./third_party/gio
-	github.com/go-text/typesetting => ./third_party/typesetting
-)
-```
+| Upstream import prefix | Keel's import prefix |
+| --- | --- |
+| `gioui.org` (Gio's root module) | `github.com/dyike/keel/gio` |
+| `github.com/go-text/typesetting` | `github.com/dyike/keel/typesetting` |
 
-| Directory | Upstream | Base | License |
+| Directory (repository-relative) | Upstream | Base | License |
 | --- | --- | --- | --- |
 | `gio/` | [Gio](https://gioui.org) `gioui.org` | v0.10.3 | Unlicense OR MIT (`gio/LICENSE`) |
 | `typesetting/` | [go-text](https://github.com/go-text/typesetting) `github.com/go-text/typesetting` | v0.3.5 | Unlicense OR BSD-3-Clause (`typesetting/LICENSE`) |
+| `cmd/keel/internal/gogio/` | Gio's packager `gioui.org/cmd/gogio` | v0.10.0 | Unlicense OR MIT (`cmd/keel/internal/gogio/LICENSE`) |
 
-`gioui.org/shader` and the packager `gioui.org/cmd/gogio` stay upstream.
+`gioui.org/shader` (including `gioui.org/shader/gio`) is a separate module
+and stays upstream.
 
-A `replace` only applies to the module that writes it, and module zips
-leave nested modules out. So:
-
-- Keel's own builds, tests and examples use the copies.
-- Projects made with `keel new -replace <Keel checkout>` get the same
-  `replace` lines. Other apps add them, pointing at a Keel checkout, to use
-  the copies; without them they build against upstream Gio and go-text.
-- Keel's code outside `third_party` must therefore build against upstream
-  too: a patch adds no API Keel calls, or only one upstream accepts
-  unchanged (as the `Bytes` method below). Check with the `replace` lines
-  removed: `go mod edit -dropreplace gioui.org -dropreplace
-  github.com/go-text/typesetting && go build ./...`, then restore `go.mod`.
+Both copies ship in Keel's module zip and share its version, so any app that
+requires `github.com/dyike/keel` builds with them; no `replace` is needed.
+Changing the import path changes Go type identity: an app or widget that
+imports upstream `gioui.org/...` or go-text types next to Keel must switch to
+the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Rules
 
 - Keep upstream style in these directories; change what Keel needs, nothing
   cosmetic. Each change is listed below with the reason, so a rebase onto a
   newer upstream can redo it.
+- The copies are foundations, not Keel modules: Gio may import itself and
+  typesetting, typesetting only itself, and neither imports other Keel
+  packages or upstream Gio/go-text (`internal/deps` checks this).
 - Upstream tests and test data are not copied. A patch comes with its own
-  test next to it. Each copy is its own module: test it from its directory
-  (`cd third_party/typesetting && go test ./...`).
-- Updating to a newer upstream: copy the release without `*_test.go` and
-  `testdata`, keep `go.mod` (gio's also replaces go-text with `../typesetting`),
-  then reapply the patches below.
+  test next to it; run them from the root (`go test ./gio/... ./typesetting/...`).
+- Updating to a newer upstream: copy the release without `go.mod`, `go.sum`,
+  `*_test.go` and `testdata`, rewrite the two import prefixes (leaving
+  `gioui.org/shader` alone), then reapply the patches below.
 
 ## Patches
 
-- `gio/widget.Editor`: exposes optional `ScrollBounds`, `ScrollOffset` and `ScrollTo` methods for multiline scrollbar drawing and dragging. Moving the viewport preserves the selection; the next edit or caret movement resumes caret scrolling. Keel detects this capability at runtime, so upstream Gio still builds and retains native wheel scrolling. A 1×/2× regression checks clamping, selection, caret reveal and content replacement.
+For a behavior-by-behavior summary with source/test links, see
+[Changes from upstream](../docs/upstream-patches.md). Numbers below are historical
+local measurements, not fresh benchmarks or portable application guarantees.
+
+- Root-level relocation: the foundation trees now live in gio/ and typesetting/
+  with matching import prefixes. Link symbols, resource discovery, CI and release
+  fixtures follow those paths; source checks reject obsolete foundation imports.
+- Module merge: the copies' `go.mod`/`go.sum` were removed and their imports
+  rewritten to Keel's prefixes, so they no longer depend on application-level
+  `replace` lines (which Go does not propagate) to reach apps.
+- `cmd/keel/internal/gogio`: the packager runs inside `keel` instead of `go run
+  gioui.org/cmd/gogio`, because upstream gogio hard-codes Gio's import path. It
+  takes that path from `GioRoot` (for `app.ID`, the log app ID, extra args,
+  permissions and the `app/` package lookup); flags, working directory,
+  environment and output are per-run options (`Run`) rather than process
+  globals; upstream package-level state is serialized. Default outputs resolve
+  against the supplied working directory. A WebAssembly packaging regression
+  checks app ID/launch-argument linking, HTML title and output files; the release
+  fixture builds a custom widget from the real root archive. The Windows target
+  and upstream end-to-end tests are not copied: Keel writes
+  its own Windows resources. `cmd/keel/internal/gogio/cmd` runs it directly for
+  builds without `keel.json`, such as the site's gallery.
+
+- `gio/internal/nativeabi`: no-cgo macOS ABI probes call Go Objective-C IMPs
+  through the real system `objc_msgSend`. They cover range pairs/register
+  exhaustion, nested rect arguments/returns, floating point arguments, nullable
+  native-allocated out buffers and canaries. Classes/callbacks register once.
+  Scalar floating callback results are explicitly documented as unsupported by
+  purego 0.11.1. This is an M0 feasibility test, not a migrated window backend;
+  Expanded probes cover aggregate super calls and native invocation of copied
+  blocks. Native arm64 tests pass; amd64 execution and exact protocol signatures
+  remain required.
+
+- `gio/widget.Editor`: exposes optional `ScrollBounds`, `ScrollOffset` and `ScrollTo` methods for multiline scrollbar drawing and dragging. Moving the viewport preserves the selection; the next edit or caret movement resumes caret scrolling. Capability detection retains native wheel scrolling when the extension is absent; import-path compatibility still follows the migration guide. A 1×/2× regression checks clamping, selection, caret reveal and content replacement.
 
 - `gio/gpu/internal/metal`: idle trimming waits for the last submitted GPU work, then releases its command buffer, staging buffer and quad instance buffer. Live textures and pipelines remain cached; temporary buffers are recreated on the next draw or readback. This lowers retained idle memory without requesting frames. A headless regression test checks repeated trim, readback and resumed rendering.
 
 - `go vet` fixes for unkeyed struct literals in `gio/internal/f32` and
   `gio/app/internal/ibus`.
 - `typesetting/font/opentype`: resources that expose their bytes (`Shared`,
-  or any with a `Bytes() []byte` method, so callers build against upstream
-  too) hand out table slices instead of copies and never write into a
+  or any with a `Bytes() []byte` method) hand out table slices instead of
+  copies and never write into a
   caller's buffer.
   `typesetting/fontscan` maps system font files read-only (`mmap`,
   `MapViewOfFile`) and parses them as `Shared`, so a face's tables are clean
@@ -103,7 +133,7 @@ leave nested modules out. So:
   the pool to two intermittently blocked the main thread in `nextDrawable`
   for about a second. Idle trimming still shrinks spare surfaces. The native
   `TestMetalResizeWindow` regression drives 60 growing/shrinking frames and
-  rejects the compositor stall (`KEEL_DESKTOP=1 go test ./app`).
+  rejects the compositor stall (`KEEL_DESKTOP=1 go test ./gio/app`).
 - `gio/gpu`, `gio/gpu/internal/metal`: consecutive ops clipped to a plain
   rectangle and filled with a solid color or a texture are drawn as one
   instanced draw (`driver.QuadBatcher`, up to 8 textures a batch) instead of
@@ -142,7 +172,7 @@ leave nested modules out. So:
   instead of six). Metal reserves the frame's quad storage before texture
   upload, so shared tinted textures cannot enter the untinted fallback during
   a render pass. Path clips, opacity layers and unavailable batching bake the
-  tint into separately cached textures. Other builds and upstream Gio retain
+  tint into separately cached textures. Builds without the extension retain
   Keel's colored atlas pages through interface detection. Tests cover texture
   sharing, cache eviction, fallback colors, transparency, transforms, clipping
   and opacity; 8-bit coverage quantization can change edge pixels slightly.
@@ -157,7 +187,8 @@ leave nested modules out. So:
   Metal drawable pool to 1×1. Core Animation retains the displayed frame;
   the next render restores the drawable size. Compiled pipelines stay alive.
   Native tests cover repeated idle/resume and closure with a pending callback.
-  Native calls use purego v0.11.1, raising this fork's Go minimum to 1.25.
+  Native idle helpers use purego v0.11.1; the combined module's Go version
+  is specified by the root go.mod.
 - `gio/gpu`: color/texture/gradient fallback pipelines and the stencil renderer
   initialize on first use, avoiding unused shader resources in quad-only scenes.
   Headless pixel tests exercise rendering and readback before and after trimming.
@@ -176,7 +207,7 @@ leave nested modules out. So:
   reuse normalization scratch and avoid copying shaping-plan keys.
   Fast paths preserve mandatory Unicode breaks and have regression tests.
 - `typesetting/fontscan` (macOS): also scan `/System/Library/AssetsV2/com_apple_MobileAsset_Font*`, where current macOS keeps system fonts such as PingFang. Without it, "PingFang SC" never resolved and Chinese fell back to Hiragino Sans GB W3, with no Medium or Semibold. `fontscan/scan_darwin_test.go` resolves all three weights.
-- `gio/text`, `gio/font`, `gio/widget`, `gio/widget/material`: platform glyph rasterizers. `Shaper.GlyphFile(id)` reports a glyph's font file, face index, size and glyph id (faces from `font.FaceSource` keep their path; built-in, variable-instance and varied faces report false). `Shaper.SetRasterHook` registers a function that draws a solid-color line of glyphs; `Label`, `Editor` and `Selectable` take an optional `Color` (set by `material.LabelStyle` and `EditorStyle`) and, with a hook, translate each line by whole pixels and pass the fraction to it, falling back to outlines when it reports false. Keel's theme sets the hook on macOS to draw with CoreText; both APIs use only upstream types, so Keel detects them with interface assertions and still builds against upstream Gio.
+- `gio/text`, `gio/font`, `gio/widget`, `gio/widget/material`: platform glyph rasterizers. `Shaper.GlyphFile(id)` reports a glyph's font file, face index, size and glyph id (faces from `font.FaceSource` keep their path; built-in, variable-instance and varied faces report false). `Shaper.SetRasterHook` registers a function that draws a solid-color line of glyphs; `Label`, `Editor` and `Selectable` take an optional `Color` (set by `material.LabelStyle` and `EditorStyle`) and, with a hook, translate each line by whole pixels and pass the fraction to it, falling back to outlines when it reports false. Keel's theme sets the hook on macOS to draw with CoreText and detects optional hooks through interface assertions. This does not allow mixing upstream and Keel import paths.
 - `gio/gpu`: an opaque full-window clear discards completed opacity layers together with their covered paint operations. Stale layer indexes otherwise replace unrelated foreground operations, causing missing glyphs in fullscreen overlays. Regression tests cover discarded layers, subsequent layers, partial covers and fills inside active opacity groups.
 
 ## Wayland teardown acknowledgment

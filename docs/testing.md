@@ -4,6 +4,35 @@ English | [简体中文](testing.zh-CN.md)
 
 Most interface tests do not require opening a window: the `ui/internal/uitest` testing tool sends clicks, keys, and text through Gio's real input routing. The code executed by the component is exactly the same as that of the real window. `go test -race ./...` takes about 10 seconds to run on this machine.
 
+## Desktop no-cgo compilation gate
+
+```sh
+GOOS=windows GOARCH=amd64 bash scripts/check-desktop-cgo-free.sh
+GOOS=linux GOARCH=arm64 bash scripts/check-desktop-cgo-free.sh native
+```
+
+The default `all` mode checks native capabilities and then the complete
+module, which includes Keel's Gio and go-text. It disables cgo and workspaces,
+rejects selected dependency errors/CgoFiles, and fails on any build error.
+`native` mode checks only `native/*`; it does not accept desktop UI support.
+The six-target CI matrix checks native capabilities on every push/PR and full
+Windows builds. Full macOS/Linux gates are pending migration and can be run
+with the workflow's `full` input; they are not silently allowed to fail.
+Setting CC/CXX to nonexistent paths prevents accidental C compiler invocation,
+but does not substitute for an isolated compiler/header-free release build.
+Compilation is not runtime, IME, native GPU, packaging or performance acceptance;
+see [the desktop delivery design](desktop-cgo-free.md).
+
+`python3 scripts/check-module-release.py` archives the working tree as a
+fixture Keel release in a local module proxy, creates an app with `keel new`
+that requires only Keel, checks that its Gio and go-text packages come from the
+Keel module (never upstream `gioui.org` or go-text), compiles an external custom
+widget and runs `go install` of the CLI from that release. It checks default,
+offline and local scaffolds with space-containing paths, packages Windows
+amd64/arm64 without cgo and WebAssembly, and on macOS runs a packaged identity
+probe using the existing cgo backend. Dependencies use the configured Go proxy;
+the synthetic release is served locally, with a fresh module cache and no workspace.
+
 ## Interactive testing
 
 Modules under `ui/` can reference it (it is in `internal` and cannot be referenced by external projects):

@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	"gioui.org/gpu/headless"
-	"gioui.org/io/input"
-	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/unit"
+	"github.com/dyike/keel/gio/gpu/headless"
+	"github.com/dyike/keel/gio/io/input"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/unit"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/loop"

@@ -7,12 +7,12 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"gioui.org/io/clipboard"
-	"gioui.org/io/event"
-	"gioui.org/io/key"
-	"gioui.org/io/pointer"
-	"gioui.org/op"
-	"gioui.org/op/clip"
+	"github.com/dyike/keel/gio/io/clipboard"
+	"github.com/dyike/keel/gio/io/event"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/io/pointer"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/op/clip"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"

@@ -3,7 +3,7 @@ package core
 import (
 	"strings"
 
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/io/key"
 )
 
 // ShortcutLabel formats a ParseShortcut chord for goos (darwin, windows or linux).

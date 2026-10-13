@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"gioui.org/f32"
-	"gioui.org/gesture"
-	"gioui.org/io/key"
-	"gioui.org/io/pointer"
-	"gioui.org/widget"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/gesture"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/io/pointer"
+	"github.com/dyike/keel/gio/widget"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/editorstyle"

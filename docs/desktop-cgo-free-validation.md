@@ -1,0 +1,126 @@
+# Desktop no-cgo implementation evidence
+
+English | [简体中文](desktop-cgo-free-validation.zh-CN.md)
+
+Validated on 2026-10-13 with Go 1.27.1 on macOS 27.0.1, darwin/arm64.
+The single-module step D1 is implemented and validated locally. Desktop
+CGO-Free is still pending: macOS/Linux UI bindings continue to require cgo.
+The visual baseline for this run is `8d59576`.
+
+## Root-level relocation follow-up
+
+The foundation directories have physically moved to gio/ and typesetting/, with
+imports under `github.com/dyike/keel/gio` and `github.com/dyike/keel/typesetting`.
+Both `go list -json ./gio/layout ./typesetting/shaping` results report
+`github.com/dyike/keel` as Module.Path. Only the root go.mod/go.sum remain.
+Old third_party foundation paths occur only in the bilingual migration table,
+explicitly marked as unpublished intermediate paths. Upstream core references
+are historical attribution, migration explanations or rejection checks; shader
+remains external. The site excludes the relocated upstream documentation.
+
+Formatting, vet, full tests, full race tests, site tests, Windows amd64/arm64
+no-cgo gates and the real-source external release fixture were rerun successfully
+after relocation. The fixture also rejects obsolete foundation sources/modules
+and verifies the new linker symbols through a packaged native macOS identity
+probe. Native arm64 ABI probes and a byte-identical hello screenshot passed.
+
+The first real-window run timed out in reopen/update/now while full checks ran
+concurrently. An isolated rerun passed all real-window fixtures in 16.443 seconds.
+The timeout's cause was not established; no lifecycle implementation was changed.
+The 792-image matrix comparison below belongs to the earlier single-module
+validation, before this root-level relocation.
+
+## Single-module implementation (D1)
+
+Keel, Gio and typesetting share the root go.mod/go.sum. Both foundation trees
+use Keel-prefixed imports and ship inside its module archive; shader stays
+external. Source checks cover imports in all platform files, including files
+excluded by the host's build tags, and enforce foundation dependency boundaries.
+
+The scaffold writes one Keel requirement, or one Keel replacement for a local
+checkout. Exact offline versions need no release metadata or network access;
+uncached version queries fail explicitly. Local paths may contain spaces and
+must identify the module root. Staging, tidy rollback and concurrent-file
+protection remain covered. The earlier unpublished separate-fork lock manifest,
+resolver, backend mode and deps command are superseded by this implementation.
+
+The maintained gogio v0.10.0 copy uses the relocated Gio root for app IDs,
+arguments, permissions and resource discovery. Run options supply the directory,
+environment and output; calls serialize upstream package state. Default outputs
+are relative to the supplied directory. Windows resources and the iOS simulator
+shader adapter remain in the CLI. Architecture, migration instructions, patch
+logs and CI now describe the single module.
+
+## Commands and results
+
+| Check | Result |
+| --- | --- |
+| `gofmt -l .`, `git diff --check`, `go mod tidy -diff` | Passed; no formatting, whitespace or module changes needed. |
+| `go vet ./...` | Passed, including both foundation trees. |
+| `go test ./...`, `go test -race ./...` | Passed, including the MCP tests and foundation regressions. |
+| Targeted CLI, packager, boundary and site tests/race checks after follow-up edits | Passed. |
+| `python3 scripts/check-module-release.py` | Passed the real-source release fixture described below. |
+| `check-desktop-cgo-free.sh native`, six desktop OS/architecture pairs | Passed cross-builds with nonexistent CC/CXX paths. |
+| `check-desktop-cgo-free.sh all`, Windows amd64/arm64 | Passed complete root-module cross-builds with cgo disabled. |
+| `CGO_ENABLED=0 go build ./examples/hello`, darwin/arm64 | Still fails in Gio GL with `undefined: Functions`; this remains a migration gate. |
+| `CGO_ENABLED=0 go test ./gio/internal/nativeabi -count=1` | Passed on native arm64. |
+| Native ABI test binary, darwin/amd64, cgo disabled | Cross-compiled; not executed on a native Intel Mac. |
+| `KEEL_DESKTOP=1 go test -run RealWindows ./ui/window -count=1` | Passed on the native macOS host. |
+
+These are local command results. The updated CI jobs have not been executed by
+a remote runner in this session. Cross-builds do not establish native runtime
+support, and nonexistent compiler paths do not replace compiler-free isolation.
+
+## Release and packaging fixture
+
+The file proxy serves the real working-tree archive as `v0.0.0-fixture`.
+With a fresh module cache and `GOWORK=off`, the fixture verifies:
+
+- An external UI app requires only Keel and has no replacement. Both foundation
+  package trees report Keel as their Module.Path, with real source files present
+  and no nested manifests or upstream core modules in the graph.
+- An external widget implements core.Widget using the relocated Gio layout,
+  unit, clip and paint packages and compiles for Windows.
+- Ordinary versioned `go install` installs the CLI from that archive. Its
+  default scaffold selects its own release. Exact offline generation works
+  before any release is cached; local generation uses one replacement. App,
+  checkout and module-cache paths containing spaces work.
+- The installed CLI packages Windows amd64/arm64 and WebAssembly. Web outputs
+  include main.wasm, wasm.js and index.html.
+- On native macOS, the maintained packager creates a real app bundle using the
+  existing cgo backend. Its executable reports `dev.keel.releaseprobe` and
+  both the native command-line argument and linker-supplied launch argument.
+
+Focused tests also verify WebAssembly app ID/argument linking and HTML metadata,
+and discover Android/iOS resources and Android permission packages at the new
+paths. Full APK/iOS packaging was not run: this host has Command Line Tools,
+not the full mobile SDK toolchains. Production tags were not published; remote
+installation of the eventual release remains a publication gate. Only the
+synthetic fixture disables checksum-server verification.
+
+## Visual and window acceptance
+
+Hello's before/after PNGs are byte-identical. Both complete component matrices
+contain 792 PNGs (99 sections, light/dark, two widths and two scales).
+
+Animated components differ when sampled at different wall-clock times. A
+temporary Go overlay fixes only the screenshot frame context to
+`time.Unix(0, 0)` in both checkouts; it does not change production sources.
+With that same frame time, all 792 PNGs and the matrix index are byte-identical.
+The baseline overlay uses the resolved `/private/tmp` source path on macOS.
+Real-window lifecycle/multiwindow fixtures also pass.
+
+## Preserved ABI work and remaining gates
+
+D0's compile gate and M0's no-cgo Objective-C probes remain in the root module.
+Native arm64 probes cover ranges, register exhaustion, nested rects, nullable
+native out buffers, super calls and copied blocks; scalar floating callback
+returns remain explicitly unsupported. Native amd64 execution and exact
+NSTextInputClient protocol behavior are still required.
+
+Proceed with M0/M1 after single-module review: migrate AppKit, cocoainit,
+Metal/GL/headless and Keel CoreText bindings, then validate IME, lifecycle and
+GPU/performance parity on both Mac architectures. Linux X11, Wayland and Vulkan
+migration, native GPU/IME acceptance, compiler-free isolation, mobile packaging
+and production release publication remain pending. This structural change
+does not promote a no-cgo macOS/Linux backend.

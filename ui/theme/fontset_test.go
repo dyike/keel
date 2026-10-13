@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gioui.org/font"
-	"gioui.org/text"
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/text"
 	"golang.org/x/image/math/fixed"
 )
 

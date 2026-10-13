@@ -1,10 +1,10 @@
 package el
 
 import (
-	"gioui.org/font"
-	"gioui.org/unit"
-	"gioui.org/widget"
-	"gioui.org/widget/material"
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/unit"
+	"github.com/dyike/keel/gio/widget"
+	"github.com/dyike/keel/gio/widget/material"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
 	"image/color"

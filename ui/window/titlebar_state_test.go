@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"gioui.org/f32"
+	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/theme"

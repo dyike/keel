@@ -12,7 +12,11 @@ On Windows, `keel run` and `keel build` share the native resources: PerMonitorV2
 go install github.com/dyike/keel/cmd/keel@latest
 ```
 
-- **Dependencies**: `internal/svgicon` (draw the SVG of the original image into PNG), `internal/appicon` (the icon shape of each platform, `ui/window` also uses it when running), `golang.org/x/image` (scaling, vector rasterization), `github.com/tc-hib/winres` (Windows resources: icons, manifests, version information). Keel's interface package is not referenced; macOS, Android and browser packaging call Gio's gogio (fixed in v0.10.0), and macOS signature calls the system's `codesign`.
+Versioned installation requires a published single-module release. Before
+publication, build this checkout with `go build -o /tmp/keel ./cmd/keel` and
+generate applications with `-replace <checkout>`.
+
+- **Dependencies**: `internal/svgicon` (draw the SVG of the original image into PNG), `internal/appicon` (the icon shape of each platform, `ui/window` also uses it when running), `golang.org/x/image` (scaling, vector rasterization), `github.com/tc-hib/winres` (Windows resources: icons, manifests, version information). Keel's interface package is not referenced; macOS, Android and browser packaging run `internal/gogio`, Keel's copy of Gio's gogio v0.10.0 that knows the new Gio import path (patches in [third_party/README.md](../../third_party/README.md)), and macOS signature calls the system's `codesign`.
 - **Test**: `go test ./cmd/keel` generates the project, checks the packaging commands for each platform (`-n`), and compiles the generated project with Keel in this repository (`-short` skips).
 
 | File | Responsibility |
@@ -20,6 +24,8 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `main.go` | Subcommand distribution, running external commands |
 | `config.go` | `keel.json` Reading, writing and verification |
 | `new.go` | New project, template in `template/` |
+| `resolve.go` | Resolve the exact Keel release (isolated or offline) and validate local checkouts |
+| `internal/gogio/` | The packager, run in-process |
 | `run.go`, `run_bundle_*.go` | `keel run` flags, development icons and macOS app bundles |
 | `run_watch.go`, `run_process_*.go` | File watching, rebuilds and process lifecycle |
 | `build.go` | Packaging for each platform, Windows resources, Info.plist, Linux desktop files |

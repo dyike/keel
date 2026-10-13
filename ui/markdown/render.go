@@ -11,12 +11,12 @@ import (
 	"github.com/dyike/keel/ui/locale"
 	"golang.org/x/image/math/fixed"
 
-	"gioui.org/font"
-	"gioui.org/io/semantic"
-	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/text"
-	"gioui.org/unit"
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/io/semantic"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/text"
+	"github.com/dyike/keel/gio/unit"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"

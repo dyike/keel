@@ -16,6 +16,15 @@ func newCLI(dir string) (*cli, *bytes.Buffer) {
 	return &cli{out: &out, errw: &out, dir: dir}, &out
 }
 
+func testCheckout(t *testing.T) string {
+	t.Helper()
+	repo, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return repo
+}
+
 func TestNames(t *testing.T) {
 	for in, want := range map[string][2]string{
 		"my-notes":  {"my-notes", "My Notes"},
@@ -57,7 +66,7 @@ func TestConfigValidation(t *testing.T) {
 func TestNewAndBuildPlans(t *testing.T) {
 	root := t.TempDir()
 	c, out := newCLI(root)
-	if code := c.main([]string{"new", "my-notes", "-offline", "-appid", "dev.keel.notes"}); code != 0 {
+	if code := c.main([]string{"new", "my-notes", "-offline", "-replace", testCheckout(t), "-appid", "dev.keel.notes"}); code != 0 {
 		t.Fatal(out.String())
 	}
 	dir := filepath.Join(root, "my-notes")
@@ -103,7 +112,7 @@ func TestNewAndBuildPlans(t *testing.T) {
 	if p := plan("-target", "windows"); !strings.Contains(p, "zz_keel_windows_amd64.syso") || !strings.Contains(p, "-H=windowsgui") || !strings.Contains(p, "my-notes.exe") || !strings.Contains(p, "my-notes.ico") {
 		t.Fatal("windows plan:\n" + p)
 	}
-	if p := plan("-target", "linux"); !strings.Contains(p, "-X gioui.org/app.ID=dev.keel.notes") || !strings.Contains(p, "dev.keel.notes.desktop") {
+	if p := plan("-target", "linux"); !strings.Contains(p, "-X github.com/dyike/keel/gio/app.ID=dev.keel.notes") || !strings.Contains(p, "dev.keel.notes.desktop") {
 		t.Fatal("linux plan:\n" + p)
 	}
 	if p := plan("-target", "windows"); !strings.Contains(p, "go build -trimpath -ldflags -s -w -H=windowsgui") {
@@ -144,13 +153,28 @@ func TestNewProjectCompiles(t *testing.T) {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated project does not build: %v\n%s", err, b)
 	}
-	// It draws with the checkout's copies of Gio and go-text, as Keel does.
-	for _, m := range []string{"gioui.org", "github.com/go-text/typesetting"} {
-		list := exec.Command("go", "list", "-m", "-f", "{{.Replace.Dir}}", m)
-		list.Dir = cmd.Dir
-		b, err := list.Output()
-		if err != nil || !strings.Contains(filepath.ToSlash(string(b)), "third_party/") {
-			t.Fatalf("%s is not replaced by Keel's copy: %s %v", m, b, err)
+	// Gio and go-text come from the checkout's Keel module; no upstream
+	// core module is required or replaced.
+	list := exec.Command("go", "list", "-deps", "-f", "{{.ImportPath}} {{with .Module}}{{.Path}}{{end}}", ".")
+	list.Dir = cmd.Dir
+	b, err := list.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundGio := false
+	for _, line := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+		pkg, module, _ := strings.Cut(line, " ")
+		if strings.HasPrefix(pkg, "github.com/dyike/keel/gio/") {
+			foundGio = true
+			if module != "github.com/dyike/keel" {
+				t.Fatalf("%s is in module %s", pkg, module)
+			}
 		}
+		if module == "gioui.org" || module == "github.com/go-text/typesetting" {
+			t.Fatalf("app depends on upstream %s", pkg)
+		}
+	}
+	if !foundGio {
+		t.Fatal("app does not use Keel's Gio")
 	}
 }

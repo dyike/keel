@@ -33,12 +33,16 @@ github.com/dyike/keel
 │   └── native.go         shared error value
 ├── cmd/
 │   ├── keel/             Scaffolding: Create a new project, run it, generate icons for each platform and package it
+│   │   └── internal/gogio/ Keel's in-process Gio packager; no GUI imports
 │   └── keel-mcp/         MCP server：Agent Use it for end-to-end testing of your application
 ├── internal/
 │   ├── deps/             Module bounds checking
 │   ├── svgicon/          Draw SVG icons to PNG (common to site and scaffolding)
 │   ├── appicon/          Cut out application icons according to macOS, Windows, and GNOME specifications (shared by scaffolding and ui/window)
 │   └── site/             Documentation site generator
+├── gio/                 Gio foundation: windows, layout, GPU; may depend on typesetting
+├── typesetting/         go-text foundation: fonts and shaping; independent of Gio
+├── third_party/         Upstream attribution and patch logs
 ├── examples/
 └── docs/
 ```
@@ -78,7 +82,9 @@ There are only three rules:
 
 `cmd/keel-mcp` does not reference any Keel package, nor does it reference Gio: it only drives the automation mode of `ui/window` through the JSON protocol on the socket, see [Automation](automation.md#principle).
 
-`cmd/keel` does not reference the interface package: it only uses `internal/svgicon` to draw placeholder icons, uses `golang.org/x/image` and `tc-hib/winres` to generate icons and Windows resources for each platform, and calls `go`, Gio's gogio and macOS's `codesign` when packaging, see [Quick Start·Packaging](getting-started.md#package).
+`cmd/keel` does not reference the interface package: it uses `internal/svgicon` and `internal/appicon` for icons, `golang.org/x/image` and `tc-hib/winres` for scaling and Windows resources, and `cmd/keel/internal/gogio` for macOS, Android and browser packaging. The packager calls Go and platform tools and uses the relocated Gio package root for linker symbols, permissions and resource discovery. It imports neither Gio nor Keel's UI/native packages. iOS packaging calls Go and Xcode tools directly; macOS signing uses `codesign`. See [Quick Start·Packaging](getting-started.md#package).
+
+Gio and go-text are ordinary packages of Keel's single root module, imported as `github.com/dyike/keel/gio/...` and `github.com/dyike/keel/typesetting/...`. Gio may depend on typesetting; typesetting may not depend on Gio. Neither foundation may import other Keel packages. UI packages may use both foundations, while native and CLI packages must work without them. `gioui.org/shader` remains an external module. `internal/deps` checks these boundaries, including transitive dependencies. See [One module](single-module.md) for application import migration.
 
 **Large dependencies are introduced on demand.** chroma (code highlighting) and `net/http` (network pictures) are about 4 MB each, and are not placed in the dependencies of kit, markdown, el, core, and window: core defines two interfaces, `Highlighter` and `ImageFetcher`. `ui/highlight` and `ui/netimage` are registered and implemented in `init`, and are introduced when the application uses them. `internal/deps`'s `TestHeavyDependenciesAreOptIn` prevents them from being pulled back in.
 
@@ -102,6 +108,9 @@ These rules are enforced by the test of `internal/deps`: it writes the packages 
 | `ui/internal/inputcontent` | Atomic input references, grapheme boundaries, coordinate mapping and undo transactions | Gio, other Keel modules and platform events |
 | `ui/internal/editorstyle` | Input box cursor, selection drawing and glyph measurement | Specific Keel components, windows and themes |
 | `ui/internal/imageload` | Image source analysis, asynchronous loading, size restrictions, loading and failed placeholder | Component appearance, click and other interactions |
+| `gio` | Gio windows, layout, input and GPU implementation; typesetting dependencies | Keel UI/native/CLI packages |
+| `typesetting` | Font parsing, shaping and rasterization | Gio or other Keel packages |
+| `cmd/keel/internal/gogio` | Packaging commands, linker symbols, platform resources | GUI imports or application components |
 
 ### When to create a new module
 

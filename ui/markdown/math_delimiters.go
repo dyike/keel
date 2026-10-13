@@ -3,10 +3,10 @@ package markdown
 import (
 	"strings"
 
-	"gioui.org/f32"
-	"gioui.org/layout"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op/clip"
+	"github.com/dyike/keel/gio/op/paint"
 )
 
 func encloseMath(gtx layout.Context, b mathBox, pair string, em int) mathBox {

@@ -5,7 +5,7 @@
 // for the behavior and el for the look.
 package base
 
-import "gioui.org/io/key"
+import "github.com/dyike/keel/gio/io/key"
 
 // List navigates Count items, some of which may be disabled. The zero
 // Disabled enables every item. Indexes count from 0; -1 means none.

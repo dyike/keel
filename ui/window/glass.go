@@ -4,7 +4,7 @@ import (
 	"image"
 	"math"
 
-	"gioui.org/op"
+	"github.com/dyike/keel/gio/op"
 )
 
 // GlassStyle selects the macOS backdrop material.

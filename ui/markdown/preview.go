@@ -4,10 +4,10 @@ import (
 	"image"
 	"math"
 
-	"gioui.org/unit"
+	"github.com/dyike/keel/gio/unit"
 
-	"gioui.org/op"
-	"gioui.org/op/clip"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/op/clip"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 )

@@ -4,13 +4,13 @@ import (
 	"image"
 	"testing"
 
-	"gioui.org/font"
-	"gioui.org/font/gofont"
-	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/text"
-	"gioui.org/unit"
-	"gioui.org/widget"
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/font/gofont"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/text"
+	"github.com/dyike/keel/gio/unit"
+	"github.com/dyike/keel/gio/widget"
 )
 
 func TestInlineFontMetricsAndOwnership(t *testing.T) {

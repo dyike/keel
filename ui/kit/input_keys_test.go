@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/io/key"
 )
 
 func TestNumberAndTimeArrowKeys(t *testing.T) {

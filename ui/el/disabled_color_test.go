@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"testing"
 
-	"gioui.org/gpu/headless"
+	"github.com/dyike/keel/gio/gpu/headless"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/uitest"
 )

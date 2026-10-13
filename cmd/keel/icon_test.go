@@ -28,7 +28,7 @@ func alphaAt(img image.Image, x, y int) uint8 {
 func TestIconCommandAndOverrides(t *testing.T) {
 	root := t.TempDir()
 	c, out := newCLI(root)
-	if code := c.main([]string{"new", "app", "-offline"}); code != 0 {
+	if code := c.main([]string{"new", "app", "-offline", "-replace", testCheckout(t)}); code != 0 {
 		t.Fatal(out.String())
 	}
 	dir := filepath.Join(root, "app")

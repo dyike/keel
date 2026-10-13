@@ -5,8 +5,8 @@ package theme
 import (
 	"image/color"
 
-	"gioui.org/op"
-	"gioui.org/text"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/text"
 )
 
 // UsePlatformText turns platform glyph drawing on or off. Only macOS draws

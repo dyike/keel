@@ -12,7 +12,10 @@ Windows 的 `keel run` 和 `keel build` 使用同一套原生资源：PerMonitor
 go install github.com/dyike/keel/cmd/keel@latest
 ```
 
-- **依赖**：`internal/svgicon`（把占位原图的 SVG 画成 PNG）、`internal/appicon`（各平台图标形状，`ui/window` 运行时也用它）、`golang.org/x/image`（缩放、矢量光栅化）、`github.com/tc-hib/winres`（Windows 资源：图标、清单、版本信息）。不引用 Keel 的界面包；macOS、Android 和浏览器打包调用 Gio 的 gogio（固定在 v0.10.0），macOS 签名调用系统的 `codesign`。
+按版本安装需要已发布的单模块版本。发布前用 `go build -o /tmp/keel ./cmd/keel`
+构建当前检出目录，生成应用时加 `-replace <检出目录>`。
+
+- **依赖**：`internal/svgicon`（把占位原图的 SVG 画成 PNG）、`internal/appicon`（各平台图标形状，`ui/window` 运行时也用它）、`golang.org/x/image`（缩放、矢量光栅化）、`github.com/tc-hib/winres`（Windows 资源：图标、清单、版本信息）。不引用 Keel 的界面包；macOS、Android 和浏览器打包运行 `internal/gogio`，即 Keel 复制的 Gio gogio v0.10.0，已改为识别 Gio 的新导入路径（补丁见 [third_party/README.zh-CN.md](../../third_party/README.zh-CN.md)），macOS 签名调用系统的 `codesign`。
 - **测试**：`go test ./cmd/keel` 生成项目、检查各平台的打包命令（`-n`），并用本仓库的 Keel 编译生成的项目（`-short` 跳过）。
 
 | 文件 | 内容 |
@@ -20,6 +23,8 @@ go install github.com/dyike/keel/cmd/keel@latest
 | `main.go` | 子命令分发，运行外部命令 |
 | `config.go` | `keel.json` 读写与校验 |
 | `new.go` | 新建项目，模板在 `template/` |
+| `resolve.go` | 解析精确的 Keel 发布（隔离或离线），校验本地检出目录 |
+| `internal/gogio/` | 进程内运行的打包器 |
 | `run.go`、`run_bundle_*.go` | `keel run` 参数、开发图标和 macOS 应用包 |
 | `run_watch.go`、`run_process_*.go` | 文件监听、重新编译和进程管理 |
 | `build.go` | 各平台打包、Windows 资源、Info.plist、Linux 桌面文件 |

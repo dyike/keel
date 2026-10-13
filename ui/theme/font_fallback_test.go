@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-text/typesetting/font"
-	"github.com/go-text/typesetting/fontscan"
-	"github.com/go-text/typesetting/language"
+	"github.com/dyike/keel/typesetting/font"
+	"github.com/dyike/keel/typesetting/fontscan"
+	"github.com/dyike/keel/typesetting/language"
 )
 
 func TestMonoFaceSharesCJKFallback(t *testing.T) {

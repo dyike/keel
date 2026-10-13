@@ -2,12 +2,12 @@
 
 [English](README.md) | 简体中文
 
-生成 Keel 的文档站：`docs/` 下的全部文档和各模块、示例的 README 转成静态 HTML，组件页嵌入在线组件库（`examples/components` 编译成的 WebAssembly）。由 `.github/workflows/site.yml` 在每次推送到 main 后构建并发布到 GitHub Pages。
+生成 Keel 的文档站：`docs/` 下的全部文档和各模块、示例的 README 转成静态 HTML；排除 `gio/`、`typesetting/` 中的上游文档和 `third_party/` 中的补丁记录。组件页嵌入在线组件库（`examples/components` 编译成的 WebAssembly）。由 `.github/workflows/site.yml` 在每次推送到 main 后构建并发布到 GitHub Pages。
 
 本地预览：
 
 ```sh
-go run gioui.org/cmd/gogio@v0.10.0 -target js -tags osusergo -o /tmp/demo ./examples/components
+go run ./cmd/keel/internal/gogio/cmd -target js -tags osusergo -o /tmp/demo ./examples/components
 python3 internal/site/subset_font.py . NotoSansSC-Regular.otf /tmp/demo/font.otf
 go run ./internal/site -out _site -demo /tmp/demo
 python3 -m http.server --directory _site

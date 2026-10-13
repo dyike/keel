@@ -9,9 +9,9 @@ import (
 	"time"
 	"unicode"
 
-	"gioui.org/layout"
-	"gioui.org/op/paint"
-	"gioui.org/widget"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op/paint"
+	"github.com/dyike/keel/gio/widget"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"

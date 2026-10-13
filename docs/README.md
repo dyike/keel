@@ -42,5 +42,9 @@ Start with Getting started to open your first window. Use Guides to build your a
 - [Component guidelines](component-development.md): APIs, state, file organization, and acceptance criteria.
 - [Visual guidelines](visual-guidelines.md): typography, dimensions, spacing, colors, and interaction states.
 - [Design decisions](decisions.md): framework trade-offs and historical approaches.
+- [One module](single-module.md): Gio and go-text as packages of the Keel module, import prefixes, and migration.
+- [Changes from upstream](upstream-patches.md): Gio, go-text and packager changes, source locations, regression tests, and compatibility limits.
+- [Desktop CGO-free delivery design](desktop-cgo-free.md): native binding migration and acceptance gates.
+- [Desktop no-cgo implementation evidence](desktop-cgo-free-validation.md): verified build and ABI results, limitations, and pending acceptance.
 
 Module READMEs describe source responsibilities and implementation files. Read the repository’s [contribution guide](../CONTRIBUTING.md) before contributing.

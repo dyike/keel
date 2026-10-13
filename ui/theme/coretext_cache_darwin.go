@@ -9,11 +9,11 @@ import (
 	"os"
 	"sync"
 
-	"gioui.org/f32"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
-	"gioui.org/text"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/op/clip"
+	"github.com/dyike/keel/gio/op/paint"
+	"github.com/dyike/keel/gio/text"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -22,7 +22,7 @@ import (
 // linear light, look thin and grey beside them. Glyph masks come from
 // CoreText and are drawn as tinted images; text CoreText cannot draw (fonts
 // built in memory, color emoji) keeps the vector path. It needs Keel's Gio
-// copy (third_party): with upstream Gio the hooks below are absent and text
+// copy (gio/): with upstream Gio the hooks below are absent and text
 // keeps vector outlines.
 
 // rasterShaper and glyphFiler are the Keel Gio patches this uses. Upstream

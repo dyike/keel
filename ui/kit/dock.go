@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"slices"
 
-	"gioui.org/io/key"
-	"gioui.org/op"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/op"
 
-	"gioui.org/io/pointer"
+	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"

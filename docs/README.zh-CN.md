@@ -42,5 +42,9 @@
 - [组件开发规范](component-development.zh-CN.md)：API、状态、文件组织与验收要求。
 - [组件视觉规范](visual-guidelines.zh-CN.md)：字号、尺寸、留白、颜色和交互状态。
 - [设计决策](decisions.zh-CN.md)：全局取舍与历史方案。
+- [单模块](single-module.zh-CN.md)：Gio 和 go-text 作为 Keel 模块的包、导入前缀与迁移。
+- [与上游的差异](upstream-patches.zh-CN.md)：Gio、go-text 与打包器的改动、源码位置、回归测试和兼容边界。
+- [桌面端无 CGO 交付设计](desktop-cgo-free.zh-CN.md)：原生绑定迁移与验收门槛。
+- [桌面无 CGO 实现验证记录](desktop-cgo-free-validation.zh-CN.md)：已验证的构建和 ABI 结果、限制与待验收事项。
 
 各模块目录下的 README 记录源码职责和实现文件；提交贡献前阅读仓库的 [贡献说明](../CONTRIBUTING.zh-CN.md)。

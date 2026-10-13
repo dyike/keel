@@ -1,7 +1,7 @@
 package el
 
 import (
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/io/key"
 	"testing"
 
 	"github.com/dyike/keel/ui/internal/uitest"

@@ -1,0 +1,80 @@
+name: Desktop no-cgo compilation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Run the full desktop gate (macOS/Linux migration is pending)
+        type: boolean
+        default: false
+
+jobs:
+  module:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Check formatting
+        shell: bash
+        run: |
+          formatting="$(gofmt -l .)"
+          if [[ -n "$formatting" ]]; then
+            printf '%s\n' "$formatting"
+            exit 1
+          fi
+      - name: Vet the complete module, including Gio and go-text
+        run: go vet ./...
+      - name: Test the complete module, including Gio and go-text
+        run: go test ./...
+      - name: Check races in the complete module
+        run: go test -race ./...
+      - name: Execute the native macOS ABI probes without cgo
+        run: CGO_ENABLED=0 go test ./gio/internal/nativeabi -count=1
+  distribution:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check version resolution and project generation
+        run: go test ./cmd/keel -run 'TestResolve|TestNew' -count=1
+      - name: Build an external app from the real module archive
+        run: python3 scripts/check-module-release.py
+  compile:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [darwin, windows, linux]
+        arch: [amd64, arm64]
+    runs-on: ubuntu-latest
+    env:
+      GOOS: ${{ matrix.os }}
+      GOARCH: ${{ matrix.arch }}
+      CGO_ENABLED: '0'
+      GOWORK: 'off'
+      CC: /nonexistent-c-compiler
+      CXX: /nonexistent-cxx-compiler
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Compile migrated native capabilities
+        run: bash scripts/check-desktop-cgo-free.sh native
+      - name: Compile the complete desktop module
+        if: matrix.os == 'windows' || inputs.full == true
+        run: bash scripts/check-desktop-cgo-free.sh all
+      - name: Report pending desktop migration
+        if: matrix.os != 'windows' && inputs.full != true
+        run: printf 'Full %s/%s desktop gate is pending migration; trigger workflow_dispatch with full=true to inspect blockers. This job only accepts native capability compilation.\n' "$GOOS" "$GOARCH" >> "$GITHUB_STEP_SUMMARY"

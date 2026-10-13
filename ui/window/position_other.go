@@ -2,7 +2,7 @@
 
 package window
 
-import "gioui.org/io/system"
+import "github.com/dyike/keel/gio/io/system"
 
 func centerNewWindow(w *Window) {
 	w.perform(system.ActionCenter)

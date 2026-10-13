@@ -19,6 +19,10 @@ go install github.com/dyike/keel/cmd/keel@latest
 keel doctor
 ```
 
+此安装方式需要已发布的单模块版本。发布前验证当前检出目录，在仓库根目录执行
+`go build -o /tmp/keel ./cmd/keel`，再执行
+`/tmp/keel new /tmp/my-notes -replace "$PWD"`。
+
 macOS 会检查 Xcode 命令行工具和 `iconutil`；Linux 会检查窗口系统与字体相关的开发包。首次运行或打包需要下载依赖并编译 cgo。macOS 的 `-lobjc` 链接警告见 [常见问题](troubleshooting.zh-CN.md#链接时出现--lobjc-警告)。
 
 ## 新建项目
@@ -37,10 +41,14 @@ keel run
 | `app.go` | 界面：一个视图结构体和它的 `Render` |
 | `keel.json` | 应用名、ID、版本、图标，打包时读取 |
 | `appicon.png` | 1024×1024 的占位原图（满版，不带圆角），替换成自己的 |
-| `go.mod` | 依赖当前版本的 Keel，生成后自动 `go get` 和 `go mod tidy` |
+| `go.mod`、`go.sum` | require 所选 Keel 发布，其中已包含 Keel 的 Gio 和 go-text；生成后执行 `go mod tidy` |
 | `.gitignore`、`README.md` | 忽略 `dist/` 和打包中间文件 |
 
-参数：`-name "我的笔记"` 设置显示名称（默认由目录名得到，`my-notes` → `My Notes`），`-appid com.yourname.notes` 设置应用 ID（默认 `com.example.<目录名>`），`-module` 设置 Go 模块路径，`-offline` 只写文件不拉依赖。目录必须为空。
+参数：`-name "我的笔记"` 设置显示名称（默认由目录名得到，`my-notes` → `My Notes`），`-appid com.yourname.notes` 设置应用 ID（默认 `com.example.<目录名>`），`-module` 设置 Go 模块路径。目录必须为空。
+
+`-keel <版本>` 选择精确的 Keel 发布（默认为 CLI 自身版本，或最新版）。`-replace <Keel 检出目录>` 改为从本地检出目录引用 Keel，用于开发 Keel，路径可含空格。`-offline` 不拉依赖而写入文件：精确的 `-keel vX.Y.Z` 不需要缓存元数据，`latest` 等查询需要缓存解析结果。构建前执行 `go mod tidy`，届时依赖须已缓存或可下载。
+
+Keel 的 Gio 和 go-text 副本是 Keel 模块里的包，所以生成的 `go.mod` 只有一条 require，已有应用只需 `go get github.com/dyike/keel@<版本>`。直接 `go build` 即可使用同样的副本，无需 CLI 包装。这还不代表 macOS/Linux UI 可以无 CGO 构建，见[实现验证记录](desktop-cgo-free-validation.zh-CN.md)。
 
 ## 写第一个窗口
 
@@ -133,7 +141,7 @@ keel build -target android    # Android SDK + NDK + JDK，开发 APK
 keel build -n                 # 只打印要执行的命令
 ```
 
-输出在 `dist/`（`-o` 可改）。打包默认去掉符号表、调试信息和本机路径（`-s -w -trimpath`），体积约小四分之一，崩溃时仍会打印函数名；要用调试器时加 `-debug` 保留。Android 原生库会被 gogio 固定剥离符号，见 [Android](android.zh-CN.md)。代码高亮和网络图片各约 4 MB，默认不链接，生成的 `main.go` 里有两行注释，用到时取消注释，见 [kit · 可选功能与体积](kit.zh-CN.md#可选功能与体积)。macOS、Android 和浏览器第一次打包会下载 Gio 的打包工具 gogio。
+输出在 `dist/`（`-o` 可改）。打包默认去掉符号表、调试信息和本机路径（`-s -w -trimpath`），体积约小四分之一，崩溃时仍会打印函数名；要用调试器时加 `-debug` 保留。Android 原生库会被 gogio 固定剥离符号，见 [Android](android.zh-CN.md)。代码高亮和网络图片各约 4 MB，默认不链接，生成的 `main.go` 里有两行注释，用到时取消注释，见 [kit · 可选功能与体积](kit.zh-CN.md#可选功能与体积)。macOS、Android 和浏览器打包使用 Keel 内置的 Gio 打包工具 gogio 副本，无需额外下载。
 
 | 目标 | 产物 | 图标 | 能在哪里打包 |
 | --- | --- | --- | --- |
@@ -187,18 +195,16 @@ keel run
 
 ## Keel 自带的 Gio
 
-Keel 用 `third_party/` 里自带的 Gio 和 go-text 副本绘制界面，其中包含等不及上游发版的修复和优化（更低的内存、更快的帧；见 [third_party/README.zh-CN.md](../third_party/README.zh-CN.md)）。代码照常导入 `gioui.org/...`，Keel 的 `go.mod` 用 `replace` 把这些模块指向副本。
+Keel 用根级 `gio/` 和 `typesetting/` 目录中的 Gio 和 go-text 副本绘制界面，其中包含等不及上游发版的修复和优化（更低的内存、更快的帧；见 [third_party/README.zh-CN.md](../third_party/README.zh-CN.md)）。它们是 Keel 模块里的普通包，任何 require Keel 的应用都会用上，不需要 `replace`。
 
-`replace` 只对写它的模块生效。用 `keel new -replace <Keel 检出目录>` 创建的项目会自动得到同样的几行；其他项目可以自行加上，指向 Keel 检出目录：
+直接使用 Gio 或 go-text 的代码要以 Keel 的路径导入：
 
-```
-replace (
-	gioui.org => /path/to/keel/third_party/gio
-	github.com/go-text/typesetting => /path/to/keel/third_party/typesetting
-)
-```
+| 上游导入 | 配合 Keel 的导入 |
+| --- | --- |
+| `gioui.org/...` | `github.com/dyike/keel/gio/...` |
+| `github.com/go-text/typesetting/...` | `github.com/dyike/keel/typesetting/...` |
 
-不加时项目基于上游 Gio 和 go-text 构建，Keel 同样支持，只是没有这些改进。
+`gioui.org/shader` 仍用上游。两种路径混用无法编译：参数为 `gioui.org/layout.Context` 的 `Layout` 方法不是 Keel 视图，因为类型不同。见[单模块](single-module.zh-CN.md)。
 
 ## 下一步
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 	"unicode"
@@ -26,7 +27,7 @@ func (c *cli) newProject(args []string) error {
 	appID := fs.String("appid", "", "reverse-DNS app ID (default: com.example.<binary>)")
 	keel := fs.String("keel", keelVersion(), "Keel version to require")
 	replace := fs.String("replace", "", "use a local Keel checkout at this path (for developing Keel)")
-	offline := fs.Bool("offline", false, "write the files only; do not fetch dependencies")
+	offline := fs.Bool("offline", false, "use cached release metadata; write files without fetching dependencies")
 	fs.Usage = func() {
 		fmt.Fprintln(c.errw, "Usage: keel new <dir> [flags]")
 		fs.PrintDefaults()
@@ -46,8 +47,8 @@ func (c *cli) newProject(args []string) error {
 	if !filepath.IsAbs(dir) {
 		dir = filepath.Join(c.wd(), dir)
 	}
-	if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
-		return fmt.Errorf("%s is not empty", dirArg)
+	if err := checkProjectDestination(dir); err != nil {
+		return err
 	}
 	base := filepath.Base(dir)
 	binary := binaryName(base)
@@ -69,9 +70,42 @@ func (c *cli) newProject(args []string) error {
 	if err := cfg.validate(); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	gomod := "module " + strconv.Quote(*module) + "\n\ngo 1.26.1\n"
+	// Gio and go-text are packages of the Keel module: one requirement
+	// brings Keel's copies, with no replace of the app's own.
+	if *replace != "" {
+		abs := *replace
+		if !filepath.IsAbs(abs) {
+			abs = filepath.Join(c.wd(), abs)
+		}
+		abs, err := filepath.Abs(abs)
+		if err != nil {
+			return err
+		}
+		if err := validateLocalModule(abs, keelModulePath); err != nil {
+			return err
+		}
+		gomod += "\nrequire github.com/dyike/keel v0.0.0\n\nreplace github.com/dyike/keel => " + strconv.Quote(filepath.ToSlash(abs)) + "\n"
+	} else {
+		exact, err := c.resolveKeelVersion(*keel, *offline)
+		if err != nil {
+			return err
+		}
+		*keel = exact
+		gomod += "\nrequire github.com/dyike/keel " + exact + "\n"
+	}
+	target := dir
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return err
 	}
+	// Generate and resolve dependencies in an owned sibling directory. Never
+	// recursively remove the user destination, even if it was initially empty.
+	stage, err := os.MkdirTemp(filepath.Dir(target), ".keel-new-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(stage)
+	dir = stage
 	data := map[string]string{"Name": cfg.Name, "Module": *module}
 	for out, tmpl := range map[string]string{
 		"main.go": "main.go.tmpl", "app.go": "app.go.tmpl",
@@ -92,46 +126,70 @@ func (c *cli) newProject(args []string) error {
 	if err := cfg.save(dir); err != nil {
 		return err
 	}
-	gomod := "module " + *module + "\n\ngo 1.26\n"
-	if *replace != "" {
-		abs, err := filepath.Abs(*replace)
-		if err != nil {
-			return err
-		}
-		gomod += "\nrequire github.com/dyike/keel v0.0.0\n\nreplace github.com/dyike/keel => " + abs + "\n" + thirdPartyReplaces(abs)
-	}
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gomod), 0o644); err != nil {
 		return err
 	}
 	if !*offline {
-		if *replace == "" {
-			if err := c.command(dir, nil, "go", "get", "github.com/dyike/keel@"+*keel); err != nil {
-				return err
-			}
-		}
-		if err := c.command(dir, nil, "go", "mod", "tidy"); err != nil {
+		if err := c.command(dir, []string{"GOWORK=off", "GOFLAGS="}, "go", "mod", "tidy"); err != nil {
 			return err
 		}
+	} else {
+		fmt.Fprintln(c.out, "Offline: dependencies are pinned; run go mod tidy before building and commit go.mod/go.sum.")
+	}
+	if err := installProject(stage, target); err != nil {
+		return err
+	}
+	if *replace == "" {
+		fmt.Fprintf(c.out, "Keel: %s@%s\n", keelModulePath, *keel)
 	}
 	fmt.Fprintf(c.out, "Created %s (%s, %s).\n\n  cd %s\n  keel run\n", cfg.Name, cfg.AppID, *module, dirArg)
 	return nil
 }
 
-// thirdPartyReplaces points Gio and go-text at the copies in a Keel checkout,
-// as Keel's own go.mod does: a replace only applies to the module that
-// writes it. Checkouts without the copies get none.
-func thirdPartyReplaces(keel string) string {
-	var out string
-	for _, m := range []struct{ path, dir string }{
-		{"gioui.org", "third_party/gio"},
-		{"github.com/go-text/typesetting", "third_party/typesetting"},
-	} {
-		dir := filepath.Join(keel, filepath.FromSlash(m.dir))
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			out += "replace " + m.path + " => " + dir + "\n"
+func checkProjectDestination(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("read project destination %s: %w", dir, err)
+	}
+	if len(entries) != 0 {
+		return fmt.Errorf("%s is not empty", dir)
+	}
+	return nil
+}
+
+// Install with exclusive hard links, never overwriting concurrently created
+// files. Dependency failures occur before this function and leave the target
+// untouched. On an installation error, retain any installed files: deleting
+// them could race a user editing or replacing them. Report that explicitly.
+func installProject(stage, target string) error {
+	if err := checkProjectDestination(target); err != nil {
+		return err
+	}
+	created := false
+	if err := os.Mkdir(target, 0o755); err == nil {
+		created = true
+	} else if !os.IsExist(err) {
+		return err
+	}
+	entries, err := os.ReadDir(stage)
+	if err != nil {
+		if created {
+			os.Remove(target) // Removes only an empty directory, never its contents.
+		}
+		return err
+	}
+	for _, entry := range entries {
+		if err := os.Link(filepath.Join(stage, entry.Name()), filepath.Join(target, entry.Name())); err != nil {
+			if created {
+				os.Remove(target) // Preserve concurrent files and any installed files.
+			}
+			return fmt.Errorf("install project %s: %w; any installed files were retained to protect concurrent changes", target, err)
 		}
 	}
-	return out
+	return nil
 }
 
 func writeTemplate(path, name string, data any) error {
