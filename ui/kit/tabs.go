@@ -178,7 +178,7 @@ func (v *TabsView) choose(cx *el.Context, i int) {
 }
 
 func (v *TabsView) Render(cx *el.Context) el.Element {
-	bar := el.Div().Role("tablist").Row()
+	bar := el.Div().Role("tablist").Row().Items(el.Stretch)
 	if v.scrollable && len(v.pages) > 0 && v.lastSelected != v.pages[v.current].id && (v.lastSelected != 0 || v.revealID == 0) {
 		v.revealID = v.pages[v.current].id
 	}
@@ -323,7 +323,7 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 	if v.leading != nil {
 		header.Child(el.Div().ID(id + "/leading").NoShrink().Child(v.leading.Render(cx)))
 	}
-	viewport := el.Div().ID(id + "/bar").Grow().MinW(el.Dp(0)).Row()
+	viewport := el.Div().ID(id + "/bar").Grow().MinW(el.Dp(0)).Row().Items(el.Stretch)
 	if v.scrollable {
 		viewport.ScrollX().Pb(scrollbarGutter)
 	}

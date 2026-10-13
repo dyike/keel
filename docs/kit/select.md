@@ -32,6 +32,8 @@ Search for matching tags or values. List virtualization only builds rows near th
 
 `Clearable(true)` displays an independent clear button, clears selections, queries and errors and closes the menu. The focus returns to the field; the multi-select callback receives nil, and OnChange receives an empty string when the main value changes. Empty selections do not send callbacks repeatedly, the procedure SetValue/SetValues remains silent, and disabling inheritance blocks the button.
 
+The trigger behaves like a button: its frame shows the focus color only for keyboard focus. After a click or a pointer pick, focus still returns to the field for the keyboard, without the ring.
+
 `MenuWidth(dp)` sets the menu width, 0 follows the field; `MenuMaxHeight(dp)` sets the height budget including search/blank space, 0 defaults to 240dp, the minimum positive number is 64dp, and the window available space takes priority. `Size(dp)` scales fields, text, spacing and default line height, recommended 28/36/48, minimum positive number is 20; `RowHeight(dp)` independently sets unified options/group height, minimum positive number is 16, 0 follows Size. The custom content must fit within the row height, and the excess part will be clipped by the virtual list. The above interface ignores negative numbers and non-finite values.
 
 `Appearance(false)` Removes field background and borders, retaining labels, error text, keyboard, options, and disabled behavior. The menu still uses the theme overlay appearance.

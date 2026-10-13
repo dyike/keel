@@ -373,3 +373,73 @@ func TestThemeSwitchRebuildsCachedElements(t *testing.T) {
 		}
 	}
 }
+
+// Rows center children across by default, so an icon and its label line up
+// without Items(Center); columns and grids still stretch.
+func TestRowCentersByDefault(t *testing.T) {
+	icon, label := Div().W(Dp(16)).H(Dp(16)), Text("label")
+	auto, tall := Div().W(Dp(10)), Div().W(Dp(10)).H(Dp(40))
+	stretched := Div().W(Dp(10))
+	block := Div().H(Dp(10))
+	cellA, cellB := Div(), Div().H(Dp(30))
+	render(t, Div().Items(Start).Child(
+		Div().Row().H(Dp(40)).Child(icon, label),
+		Div().Row().Child(auto, tall),
+		Div().Row().Items(Stretch).Child(stretched, Div().W(Dp(10)).H(Dp(40))),
+		Div().W(Dp(100)).Child(block),
+		Div().Grid(2).W(Dp(100)).Child(cellA, cellB),
+	))
+	if r := rect(icon); r.Min.Y != 12 {
+		t.Fatalf("icon at %v, want centered in 40", r)
+	}
+	if r := rect(label); r.Min.Y != (40-r.Dy())/2 {
+		t.Fatalf("label at %v, want centered in 40", r)
+	}
+	if r := rect(auto); r.Dy() != 0 || r.Min.Y != 20 {
+		t.Fatalf("auto-height child %v, want unstretched and centered", r)
+	}
+	if r := rect(stretched); r.Dy() != 40 {
+		t.Fatalf("Items(Stretch) child %v, want height 40", r)
+	}
+	if r := rect(block); r.Dx() != 100 {
+		t.Fatalf("column child %v, want the full width", r)
+	}
+	if r := rect(cellA); r.Dy() != 30 {
+		t.Fatalf("grid cell %v, want the row's height", r)
+	}
+}
+
+// FirstLine lines up the first line of text in each child, through padding,
+// borders and nested rows, and centers children without text on that line.
+func TestRowFirstLine(t *testing.T) {
+	icon := Div().W(Dp(10)).H(Dp(10))
+	h := render(t, Div().Items(Start).Child(Div().Row().Items(FirstLine).Child(
+		Text("名称"),
+		Div().Pt(13).Border(1, theme.Border).Child(
+			Div().Row().Child(Div().W(Dp(30)).H(Dp(40)), Text("框内文字")),
+			Text("第二行")),
+		icon,
+	)))
+	top := func(label string) image.Rectangle {
+		for _, n := range h.Router.AppendSemantics(nil) {
+			if n.Desc.Label == label {
+				return n.Desc.Bounds
+			}
+		}
+		t.Fatalf("no text %q", label)
+		return image.Rectangle{}
+	}
+	label, framed := top("名称"), top("框内文字")
+	if label.Min.Y != framed.Min.Y || label.Min.Y <= 0 {
+		t.Fatalf("label %v, framed first line %v", label, framed)
+	}
+	if second := top("第二行"); second.Min.Y <= framed.Max.Y {
+		t.Fatalf("second line %v overlaps the first %v", second, framed)
+	}
+	// The icon centers on the line the texts share. Text ink is shifted by
+	// textShift; compare against the unshifted line box instead.
+	line := rect(icon).Min.Y + rect(icon).Dy()/2
+	if d := line - (label.Min.Y + label.Dy()/2); d < -4 || d > 4 {
+		t.Fatalf("icon center %d far from the label line %v", line, label)
+	}
+}

@@ -97,21 +97,27 @@ func (e *engine) rowPositions(n *Node, size image.Point) []image.Point {
 			cursor = extra / 2
 		}
 	}
+	align := n.style.crossAlign()
 	anchor := 0
-	if n.style.align == ContentBottom {
+	if align == ContentBottom {
 		anchor, _ = e.contentBottomExtents(kids)
+	}
+	if align == FirstLine {
+		anchor, _ = e.firstLineExtents(kids)
 	}
 	out := make([]image.Point, len(kids))
 	for i, c := range kids {
 		l, t, r, b := e.edges(c.style.margin)
 		y := t
-		switch n.style.align {
+		switch align {
 		case Center:
 			y = t + (size.Y-c.size.Y-t-b)/2
 		case End:
 			y = size.Y - c.size.Y - b
 		case ContentBottom:
 			y = anchor - e.contentBottom(c)
+		case FirstLine:
+			y = anchor - e.firstLineOf(c)
 		}
 		out[i] = image.Pt(cursor+l, y)
 		cursor += l + c.size.X + r + gap + extra

@@ -94,3 +94,31 @@ func formEditorBounds(h *uitest.Harness, name string) image.Rectangle {
 	}
 	return result
 }
+
+// Horizontal labels line up with the control's first line of text, whatever
+// frame or padding sits around it: a field, a checkbox or switch row, the
+// first of several options and the first line of a text area.
+func TestFormLabelsLineUpWithControlText(t *testing.T) {
+	f := Form().
+		Field("输入", Input("").Placeholder("请输入"), nil).
+		Field("选择", Select("", "选项一", "选项二"), nil).
+		Field("勾选", Checkbox("记住", true), nil).
+		Field("开关", Switch("自动", true), nil).
+		Field("单选", RadioGroup("", "甲", "乙"), nil).
+		Field("多行", TextArea("").Placeholder("多行内容"), nil)
+	h := uitest.New(el.Root(viewFunc(func(cx *el.Context) el.Element { return el.Div().P(16).Child(f.Render(cx)) })))
+	top := func(label string) int {
+		for _, n := range h.Router.AppendSemantics(nil) {
+			if n.Desc.Label == label && n.Desc.Class.String() == "Unknown" && len(n.Children) == 0 {
+				return n.Desc.Bounds.Min.Y
+			}
+		}
+		t.Fatalf("no text %q", label)
+		return 0
+	}
+	for _, pair := range [][2]string{{"输入", "请输入"}, {"选择", "请选择"}, {"勾选", "记住"}, {"开关", "自动"}, {"单选", "甲"}, {"多行", "多行内容"}} {
+		if a, b := top(pair[0]), top(pair[1]); a != b {
+			t.Errorf("label %q at y=%d, control text %q at y=%d", pair[0], a, pair[1], b)
+		}
+	}
+}

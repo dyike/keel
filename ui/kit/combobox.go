@@ -213,7 +213,9 @@ func (v *ComboboxView) Render(cx *el.Context) el.Element {
 		}
 		cx.Focus(v.FocusID())
 	}).Child(Icon(IconChevronDown).Size(16 * ratio).Color(theme.Muted).Render(cx))
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Role("combobox").Name(v.a11y()).Value(strings.Join(v.Values(), ", "))
+	// Like Input, a click or a pointer pick shows the caret alone; keyboard
+	// focus rings the field.
+	box := fieldFrame(id, focused && cx.FocusVisibleWithin(id), v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Role("combobox").Name(v.a11y()).Value(strings.Join(v.Values(), ", "))
 	box.MinH(el.Dp(float32(theme.ControlHeight) * ratio)).Px(10 * ratio).Py(theme.SpaceXs * ratio).Gap(theme.SpaceMd * ratio)
 	if v.height > 0 {
 		box.TextSize(float32(theme.BodySize) * ratio)

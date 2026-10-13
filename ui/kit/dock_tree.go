@@ -305,7 +305,7 @@ func (v *DockView) renderNode(cx *el.Context, s DockSide, n *DockNode) el.Elemen
 	// through a per-split interaction record (see splitHandle).
 	v.splitHandle(n, handle)
 	if n.Axis == DockAxisHorizontal {
-		row.Row()
+		row.Row().Items(el.Stretch)
 		left.W(el.Dp(0))
 		right.W(el.Dp(0))
 		handle.W(el.Dp(4)).Cursor(pointer.CursorColResize)

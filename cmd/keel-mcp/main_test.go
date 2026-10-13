@@ -282,14 +282,15 @@ func TestSettingsExample(t *testing.T) {
 	}
 	call, _ := startServer(t, nil)
 	got := call("launch", map[string]any{"command": "go run ./examples/components -lang zh-CN -section settings -width 320", "dir": repoRoot()})
-	expect(t, got, `button "通用"`, `button "通知"`, `select "语言 Language"`, `switch "深色模式" unchecked`)
+	// Pages are tabs in a tablist; the sections of a page are buttons.
+	expect(t, got, `tab "通用"`, `tab "通知"`, `button "语言"`, `select "语言 Language"`, `switch "深色模式" unchecked`)
 	expect(t, call("click", map[string]any{"text": "深色模式"}), `switch "深色模式" checked`)
 	got = call("type", map[string]any{"ref": refOf(got, `textbox "搜索设置"`), "text": "邮件"})
 	expect(t, got, `switch "邮件提醒" checked`)
 	expect(t, call("click", map[string]any{"text": "邮件提醒"}), `switch "邮件提醒" unchecked`)
 	// Search now filters navigation; clearing it keeps the matching page selected.
 	got = call("type", map[string]any{"ref": refOf(got, `textbox "搜索设置"`), "text": "", "clear": true})
-	expect(t, got, `button "通用"`, `switch "邮件提醒" unchecked`)
+	expect(t, got, `tab "通用"`, `switch "邮件提醒" unchecked`)
 	call("click", map[string]any{"text": "通用"})
 	expect(t, call("click", map[string]any{"text": "重置此页"}), `switch "深色模式" unchecked`)
 	call("click", map[string]any{"text": "语言 Language"})

@@ -72,6 +72,7 @@ const (
 	SpaceBetween  // main axis only
 	SpaceAround   // main axis only
 	ContentBottom // row cross axis only: align selected descendant bottoms
+	FirstLine     // row cross axis only: line up first lines of text; children without text center on it
 )
 
 // Style is everything an element can look like. Build it with the methods
@@ -92,7 +93,7 @@ type Style struct {
 	gap                     float32
 	grow, shrink            float32
 	justify, align          Align
-	alignSet                bool
+	alignSet                bool // align was set by Items; see crossAlign
 	contentBottom           *Node
 	scrollX, scrollY        bool
 	scrollbarMode           ScrollbarMode
@@ -181,3 +182,17 @@ func rgb(c uint32) color.NRGBA {
 
 // BorderDashed switches the border between dashed and solid.
 func (s *Style) BorderDashed(on bool) *Style { s.borderDashed = on; return s }
+
+// crossAlign is the cross-axis alignment in effect. Rows center their
+// children by default, so an icon beside text lines up without Items(Center):
+// stretching left text drawn at the top of a taller box. Columns and grids
+// stretch, so blocks fill the width and grid cells share a row's height.
+func (s *Style) crossAlign() Align {
+	if s.alignSet {
+		return s.align
+	}
+	if s.row && s.grid == 0 {
+		return Center
+	}
+	return Stretch
+}

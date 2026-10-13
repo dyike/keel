@@ -50,6 +50,11 @@ type elemState struct {
 	pressedKey key.Name
 	// Pointer focus keeps keyboard routing without drawing a focus ring.
 	pointerFocus bool
+	// inputRing: the editor took focus from the keyboard or a program, so its
+	// field shows a ring. A click shows only the caret, as native fields do.
+	// inputSource says el already knows the source of the pending focus;
+	// otherwise (Gio's own Tab, a press on the text) a recent press decides.
+	inputRing, inputSource bool
 
 	enabledFrame uint64 // last live, visible, enabled paint
 	frame        uint64 // last frame the element was painted in
@@ -127,7 +132,15 @@ type elemState struct {
 type store struct {
 	states map[stateKey]*elemState
 	frame  uint64
+	// pressFrame is the frame of the last pointer press anywhere in the root:
+	// an editor that gains focus right after one was clicked into.
+	pressFrame uint64
+	pressed    bool
 }
+
+// recentPress reports whether a pointer press arrived in the last two
+// frames: Gio focuses an editor on the frame after the press reaches it.
+func (s *store) recentPress() bool { return s.pressed && s.frame-s.pressFrame <= 2 }
 
 func newStore() *store { return &store{states: map[stateKey]*elemState{}} }
 
@@ -201,4 +214,10 @@ func (st *elemState) trackTouchHold(gtx core.C, e pointer.Event) {
 			h.active = false
 		}
 	}
+}
+
+// focusFrom records where focus came from: a pointer focuses quietly, the
+// keyboard or a program shows the ring, on a control or its input's field.
+func (s *elemState) focusFrom(pointer bool) {
+	s.pointerFocus, s.inputRing, s.inputSource = pointer, !pointer, true
 }

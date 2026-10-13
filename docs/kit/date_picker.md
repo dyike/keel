@@ -22,6 +22,8 @@ Verify: `go run ./examples/components -section date_picker`, add `-theme dark` t
 
 `Clearable(true)` displays an independent clear button when there is a date; clearing it with the mouse or keyboard will close the pop-up layer, discard the range draft, remove errors, and call back `OnChange(time.Time{}, time.Time{})` once, and the focus will return to the date trigger. Clearing will not open the calendar by mistake, and the disabled state is inherited to the clear button; `Clearable(false)` hides the button, and the program SetValue does not trigger a callback.
 
+The trigger behaves like a button: its frame shows the focus color only for keyboard focus. After a click or a pointer pick, focus still returns to the field for the keyboard, without the ring.
+
 `Presets(...DatePickerPreset)` displays shortcut buttons below the calendar, and the narrow layout automatically wraps and scrolls with the pop-up layer. Each item contains stable `ID`, `Label`, `Start`, `End`; the single date mode ignores End, the empty End in the range mode means the same day, and the reverse range is automatically sorted. Empty IDs/tags are ignored, duplicate IDs retain the first item; components copy input slices, `Presets()` clears all presets.
 
 The default respects Bounds and DisableDates, and the range cannot cross the disabled date; unavailable items remain displayed but disabled, and the latest configuration is rechecked when clicked. Selecting a preset cancels the range draft, clears errors, closes the popup, and calls back once, returning focus to the field. The custom disable function checks day by day and should remain fast and side-effect free. Dates are snapshots, and mobile presets like "Today" and "Last Seven Days" are updated by the app.

@@ -213,7 +213,7 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 	next.SetDisabled(v.disabled || !v.choosing && !v.monthAllowed(v.month.AddDate(0, 1, 0)))
 	title := Button(v.monthTitle(), func() { v.choosing = !v.choosing; v.chooseYear = v.month.Year(); v.yearEditing = false }).Variant(ButtonGhost).Size(v.metrics().nav)
 	head := el.Div().Row().WFull().Items(el.Center).Child(prev.Render(cx), el.Div().Grow().Items(el.Center).Child(title.Render(cx)), next.Render(cx))
-	body := el.Div().Row().Wrap().Gap(theme.SpaceXl).WFull()
+	body := el.Div().Row().Wrap().Gap(theme.SpaceXl).WFull().Items(el.Start)
 	count := max(1, v.months)
 	if v.choosing {
 		body.Child(v.yearMonths(cx))

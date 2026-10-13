@@ -386,7 +386,7 @@ func (v *CodeEditorView) searchPanel(cx *el.Context) el.Element {
 		repl := fieldText(el.Input().ID(replID).Name(text.Replace).Placeholder(text.Replace).Bind(&s.replacement).
 			OnSubmit(func(string) { v.replaceOne() }))
 		panel.Child(el.Div().Row().Items(el.Center).Gap(theme.SpaceXs).Child(
-			el.Div().W(el.Dp(220)).Child(fieldFrame(base+"/replaceframe", cx.FocusWithin(base+"/replaceframe"), false, false, false).FocusOnPress(replID).Child(repl)),
+			el.Div().W(el.Dp(220)).Child(fieldFrame(base+"/replaceframe", cx.FocusVisibleWithin(base+"/replaceframe"), false, false, false).FocusOnPress(replID).Child(repl)),
 			Button(text.Replace, v.replaceOne).Variant(ButtonSecondary).Size(24).Render(cx),
 			Button(text.ReplaceAll, v.replaceAll).Variant(ButtonSecondary).Size(24).Render(cx),
 		))

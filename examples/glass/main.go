@@ -168,7 +168,7 @@ func main() {
 	}
 	if *backdrop {
 		window.Open(window.Options{Title: "Glass backdrop reference", Width: 1100, Height: 800, Content: el.Root(el.ViewFunc(func(*el.Context) el.Element {
-			return el.Div().Row().BgGradient(theme.Gradient{From: theme.RGB(0x47bbd9), To: theme.RGB(0xc977b4), Angle: 35}).Child(
+			return el.Div().Row().Items(el.Stretch).BgGradient(theme.Gradient{From: theme.RGB(0x47bbd9), To: theme.RGB(0xc977b4), Angle: 35}).Child(
 				el.Div().Grow().BgGradient(theme.Gradient{From: theme.RGB(0x12989b), To: theme.RGB(0x3869db), Angle: 100}),
 				el.Div().Grow().BgGradient(theme.Gradient{From: theme.RGB(0xb989c4), To: theme.RGB(0xf4aa86), Angle: 100}),
 			)

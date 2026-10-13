@@ -13,7 +13,7 @@ func TestTranslateMovesCullingHitAreaAndAnchorWithoutLayout(t *testing.T) {
 	h := uitest.New(Root(ViewFunc(func(cx *Context) Element {
 		target = Div().ID("translated").Name("target").W(Dp(30)).H(Dp(20)).NoShrink().Translate(shift, 30).OnClick(func() { calls++ })
 		cx.Overlay("tip", Anchored("translated", Div().Name("tip").W(Dp(30)).H(Dp(10))).Placement(Bottom, Start))
-		return Div().Row().Child(Div().W(Dp(500)).NoShrink(), target)
+		return Div().Row().Items(Start).Child(Div().W(Dp(500)).NoShrink(), target)
 	})))
 	if rect(target).Min != image.Pt(500, 0) {
 		t.Fatal("translation changed layout", rect(target))

@@ -87,7 +87,7 @@ All elements share the same set of methods (`Styled[T]` generic implementation, 
 
 | Classification | Method |
 | --- | --- |
-| Orientation and alignment | `Row()`, `Col()` (default), `Wrap()` wrap, `Grid(columns)` equal width column grid, `ColSpan(n)` span columns, `Gap(dp)`, `Justify(Start/Center/End/SpaceBetween/SpaceAround)`, `Items(Start/Center/End/Stretch)`, `Center()` |
+| Orientation and alignment | `Row()`, `Col()` (default), `Wrap()` wrap, `Grid(columns)` equal width column grid, `ColSpan(n)` span columns, `Gap(dp)`, `Justify(Start/Center/End/SpaceBetween/SpaceAround)`, `Items(Start/Center/End/Stretch)` (cross axis: `Row`/`Wrap` default to `Center`, so icons and text line up with no extra setting; `Col`/`Grid` default to `Stretch`. Write `Items(el.Stretch)` when children must fill the row height, e.g. a sidebar shell or equal-height cards; `Items(el.FirstLine)` lines up each child's first line of text, e.g. a label beside a checkbox, field or paragraph, and centers icons on it), `Center()` |
 | Scaling | `Grow()` is equal to CSS's `flex: 1`: the initial size is calculated as 0 and the remaining space is shared; other elements shrink proportionally when there is not enough space, `NoShrink()` is prohibited from shrinking |
 | Size | `W(l)`, `H(l)`, `Size(l)`, `MinW/MinH/MaxW/MaxH(l)`, `WFull()`, `HFull()`; use `el.Dp(40)` for length, `el.Sp(40)`, `el.Frac(0.5)`, `el.Full` for font size scaling |
 | spacing | `P`, `Px`, `Py`, `Pt`, `Pb`, `Pl`, `Pr` (padding), `M`, `Mx`, `My`, `Mt`, `Mb`, `Ml`, `Mr` (margin), unit dp |
@@ -269,6 +269,8 @@ Press events outside the non-modal overlay and not on the anchor point will requ
 Esc is passed to the top layer** to set the overlay of OnDismiss**. Overlays without OnDismiss (such as notification stacks) will not swallow Esc, and the following dialog box will be closed as usual.
 
 `cx.FocusWithin(id)` Query whether this element or any of its descendants received focus in the previous frame, used by Tooltip to display a prompt when the keyboard is focused.
+
+`cx.FocusVisibleWithin(id)` is the focus-ring form of `FocusWithin`: only focus from the keyboard or a program counts, as with `cx.FocusVisible`. An input clicked into shows only its caret; reached with Tab or `cx.Focus` outside a pointer callback it also shows its ring and `FocusStyle`. Field frames use `FocusVisibleWithin` so clicks and pointer picks leave no ring.
 
 `cx.Hovered(id)` queries whether the most recently processed pointer position is within the element. Elements that are disabled or obscured by a modal layer return false. Ordinary elements with IDs can also be queried without adding a click callback. HoverCard combines the Hovered results of anchors and cards.
 

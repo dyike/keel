@@ -294,7 +294,7 @@ func (v *FormView) Render(cx *el.Context) el.Element {
 		if v.verticalLabels {
 			form.Child(row.WFull())
 		} else {
-			form.Child(el.Div().Row().Gap(theme.SpaceLg).Child(el.Div().W(el.Dp(v.labelWidth)).NoShrink(), row))
+			form.Child(el.Div().Row().Gap(theme.SpaceLg).Items(el.Start).Child(el.Div().W(el.Dp(v.labelWidth)).NoShrink(), row))
 		}
 	}
 	if v.footer != nil {
@@ -334,7 +334,9 @@ func (v *FormView) renderField(cx *el.Context, i int, f formField) *el.DivEl {
 	if v.verticalLabels {
 		field.Items(el.Stretch).Gap(theme.SpaceSm).Child(label, control.WFull())
 	} else {
-		field.Row().Child(el.Div().W(el.Dp(v.labelWidth)).NoShrink().Items(el.End).Pt(theme.SpaceMd).Child(label), control)
+		// The label lines up with the control's first line of text, whatever
+		// its frame: a field, a checkbox row or the first of several options.
+		field.Row().Items(el.FirstLine).Child(el.Div().W(el.Dp(v.labelWidth)).NoShrink().Items(el.End).Child(label), control)
 	}
 	return field
 }

@@ -97,7 +97,7 @@ func (r *RootWidget) dispatchTab(cx *Context) {
 		}
 		next = (next + len(targets)) % len(targets)
 		t := targets[next]
-		t.state.pointerFocus = false
+		t.state.focusFrom(false)
 		r.e.gtx.Execute(key.FocusCmd{Tag: t.tag})
 	}
 }

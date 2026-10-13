@@ -98,6 +98,32 @@ func (cx *Context) FocusWithin(id string) bool {
 	return n != nil && focused(n)
 }
 
+// FocusVisibleWithin is FocusWithin for focus rings: it reports focus in the
+// subtree that came from the keyboard or a program, like FocusVisible. A
+// field frame uses it so a click or a pointer pick shows no ring.
+func (cx *Context) FocusVisibleWithin(id string) bool {
+	if id == "" {
+		return false
+	}
+	r := cx.root
+	cx.prepareInteractionNodes()
+	n := cx.queryNodes[id]
+	var visible func(*Node) bool
+	visible = func(n *Node) bool {
+		if st := r.store.states[n.key]; st != nil && !st.disabled &&
+			(!st.pointerFocus && r.source.Focused(st) || st.inputRing && r.source.Focused(&st.editor)) {
+			return true
+		}
+		for _, c := range n.children {
+			if visible(c.node()) {
+				return true
+			}
+		}
+		return false
+	}
+	return n != nil && visible(n)
+}
+
 // Enabled reports whether the last declared element with id accepts input,
 // including ancestor disabled state and modal blocking. Missing IDs are false.
 // During Render this describes the previous declaration, like FocusWithin.
@@ -128,14 +154,15 @@ func (cx *Context) Focused(id string) bool {
 // FocusVisible reports whether the element with id has focus that should
 // show a ring: focus from the keyboard or a program, not from a pointer
 // press. Controls that draw their ring on a part use it with a transparent
-// FocusStyle on the focusable element.
+// FocusStyle on the focusable element. An input clicked into shows only its
+// caret, as native fields do; one reached with Tab shows its ring.
 func (cx *Context) FocusVisible(id string) bool {
 	if id == "" {
 		return false
 	}
 	cx.prepareInteractionQueries()
 	for _, st := range cx.queryFocus[id] {
-		if !st.disabled && !st.pointerFocus && cx.root.source.Focused(st) {
+		if !st.disabled && (!st.pointerFocus && cx.root.source.Focused(st) || st.inputRing && cx.root.source.Focused(&st.editor)) {
 			return true
 		}
 	}
@@ -212,6 +239,7 @@ func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
 			st := r.store.states[n.key]
 			if st != nil && st.keyFrame == r.store.frame {
 				if n.input != nil {
+					st.inputRing, st.inputSource = !r.focusFromPointer, true
 					gtx.Execute(key.FocusCmd{Tag: &st.editor})
 				} else {
 					st.pointerFocus = r.focusFromPointer
@@ -235,6 +263,11 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 		// a pointer FocusCmd may still be pending during the second preparation pass.
 		if !gtx.Focused(st) {
 			st.pointerFocus = false
+		}
+		// Clear an input's ring source only once it loses focus: Tab sets it
+		// before its FocusCmd lands, while the editor is still unfocused.
+		if st.inputFocused && !gtx.Focused(&st.editor) {
+			st.inputRing, st.inputSource = false, false
 		}
 		if !st.focusable || st.disabled || st.blocked || st.frame != r.store.frame || st.keyFrame+1 != r.store.frame {
 			continue

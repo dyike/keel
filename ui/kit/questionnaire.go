@@ -309,7 +309,7 @@ func (v *QuestionnaireView) Render(cx *el.Context) el.Element {
 	state := v.Progress()
 	progress := Progress(text.Progress(state.Current, state.Total))
 	progress.SetValue(float32(state.Current) / float32(state.Total))
-	title := el.Div().Row().Gap(theme.SpaceXs).Child(el.Text(q.Title).TextSize(metrics.title).Bold())
+	title := el.Div().Row().Gap(theme.SpaceXs).Items(el.Start).Child(el.Text(q.Title).TextSize(metrics.title).Bold())
 	if q.Required {
 		title.Child(el.Text("*").TextSize(metrics.title).TextColor(theme.DangerText))
 	}

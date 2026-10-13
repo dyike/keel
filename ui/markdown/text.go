@@ -17,6 +17,8 @@ import (
 	"unicode/utf8"
 
 	"io"
+	"math"
+	"unicode"
 
 	"gioui.org/f32"
 	"gioui.org/font"
@@ -67,6 +69,7 @@ type piece struct {
 	call     op.CallOp // the glyphs, drawn at rect.Min.X and the run's own baseline
 	ascent   int
 	descent  int
+	ink      [2]int   // visible glyph top and bottom relative to the baseline
 	start    int      // index of the piece's first rune in the whole text
 	runes    int      // runes shown
 	glyphs   []glyphX // for mapping between x positions and runes
@@ -101,13 +104,17 @@ func (p piece) xAt(n int) int {
 
 // richText lays out runs and remembers where it put them.
 type richText struct {
-	runs   []run
-	base   unit.Sp // the paragraph's text size; lines are base×lineH tall at least
-	lineH  float32 // line height as a multiple of the text size
-	align  text.Alignment
-	pieces []piece
-	links  map[int]*gesture.Click // by run index
-	size   image.Point
+	runs  []run
+	base  unit.Sp // the paragraph's text size; lines are base×lineH tall at least
+	lineH float32 // line height as a multiple of the text size
+	align text.Alignment
+	// inkCenter centers each line's own ink rather than a representative
+	// body: symbols such as ☑ come from faces whose ink sits apart from
+	// letters.
+	inkCenter bool
+	pieces    []piece
+	links     map[int]*gesture.Click // by run index
+	size      image.Point
 
 	// Selection, in rune indexes into the text of the first textRuns runs
 	// (later runs, like a streaming caret, are decoration).
@@ -156,6 +163,7 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 		size = max(size, rn.size)
 	}
 	lineH := int(float32(gtx.Sp(size))*r.lineH + 0.5)
+	sc := scriptOfRuns(r.runs)
 
 	var line []piece
 	y, width := 0, 0
@@ -170,14 +178,39 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 		for _, p := range line {
 			asc, desc = max(asc, p.ascent), max(desc, p.descent)
 		}
-		// Center the glyphs' logical box in the line; share one baseline.
+		// Share one baseline. Text lines center the glyphs' ink body, as
+		// el.Text does: centering the font's logical box set CJK text high,
+		// since PingFang reserves a deep empty descent, leaving selection
+		// and highlight backgrounds visibly below the text. Lines with
+		// objects, math or images keep centering the logical box.
 		height := lineH
+		objects := false
+		bodyTop, bodyBottom, body := 0, 0, false
 		for _, p := range line {
-			if r.runs[p.run].object != nil || r.runs[p.run].math != nil || r.runs[p.run].image != nil {
+			rn := r.runs[p.run]
+			if rn.object != nil || rn.math != nil || rn.image != nil {
+				objects = true
 				height = max(height, asc+desc+gtx.Dp(2))
+				continue
+			}
+			if rn.rise != 0 {
+				continue
+			}
+			t, b := inkBody(shaper, rn.font, gtx.Sp(rn.size), sc)
+			if r.inkCenter {
+				t, b = p.ink[0], p.ink[1]
+			}
+			if !body {
+				bodyTop, bodyBottom, body = t, b, true
+			} else {
+				bodyTop, bodyBottom = min(bodyTop, t), max(bodyBottom, b)
 			}
 		}
 		baseline := y + (height-(asc+desc))/2 + asc
+		if body && !objects {
+			// Round halves down, as el.Text does.
+			baseline = y + int(math.Floor(float64(height-(bodyTop+bodyBottom))/2+0.5))
+		}
 		pad := 0
 		switch r.align {
 		case text.Middle:
@@ -289,7 +322,7 @@ func (r *richText) Layout(gtx layout.Context, shaper *text.Shaper) layout.Dimens
 			if shown != "" {
 				count := utf8.RuneCountInString(shown)
 				line = append(line, piece{run: i, text: shown, rect: image.Rect(lineW, 0, lineW+res.width, 0),
-					call: res.call, ascent: res.ascent + gtx.Sp(rn.rise), descent: max(0, res.descent-gtx.Sp(rn.rise)), start: pos, runes: count, glyphs: res.glyphs})
+					call: res.call, ascent: res.ascent + gtx.Sp(rn.rise), descent: max(0, res.descent-gtx.Sp(rn.rise)), ink: [2]int{-res.inkAscent, res.inkDescent}, start: pos, runes: count, glyphs: res.glyphs})
 				lineW += res.width
 			}
 			pos += utf8.RuneCountInString(content[:n])
@@ -570,4 +603,86 @@ func (r *richText) selectedText() string {
 	rs := []rune(r.text())
 	lo, hi = min(lo, len(rs)), min(hi, len(rs))
 	return string(rs[lo:hi])
+}
+
+// script says which faces set a text: East Asian text usually comes from a
+// fallback face (PingFang behind SF Pro) whose body sits differently in its
+// line box. It mirrors el's text script detection.
+type script uint8
+
+const (
+	scriptLatin script = iota
+	scriptWide
+	scriptMixed
+)
+
+func scriptOfRuns(runs []run) script {
+	var latin, wide bool
+	for _, rn := range runs {
+		for _, r := range rn.text {
+			switch {
+			case unicode.IsSpace(r):
+			case r >= 0x1100 && (unicode.In(r, unicode.Han, unicode.Hiragana, unicode.Katakana, unicode.Hangul) ||
+				r >= 0x3000 && r <= 0x303f || r >= 0xff00 && r <= 0xffef):
+				wide = true
+			default:
+				latin = true
+			}
+		}
+		if latin && wide {
+			return scriptMixed
+		}
+	}
+	if wide {
+		return scriptWide
+	}
+	return scriptLatin
+}
+
+type inkBodyKey struct {
+	shaper *text.Shaper
+	font   font.Font
+	px     int
+	script script
+}
+
+// inkBodies caches inkBody. Touched only under the frame lock.
+var inkBodies = map[inkBodyKey][2]int{}
+
+// inkBody returns the top and bottom of a representative glyph body relative
+// to the baseline: the cap height for Latin, 国 for East Asian text and both
+// for mixed text, matching the bodies el.Text centers beside icons.
+func inkBody(shaper *text.Shaper, f font.Font, px int, sc script) (top, bottom int) {
+	key := inkBodyKey{shaper, f, px, sc}
+	if b, ok := inkBodies[key]; ok {
+		return b[0], b[1]
+	}
+	// The same samples as el's textShift; only the first body glyphs count.
+	sample, body := "Ag", 1
+	switch sc {
+	case scriptWide:
+		sample = "国"
+	case scriptMixed:
+		sample, body = "国Ag", 2
+	}
+	shaper.LayoutString(text.Parameters{Font: f, PxPerEm: fixed.I(px), MaxWidth: 1 << 20}, sample)
+	top, bottom = -px*7/10, 0
+	found := false
+	for i := 0; ; i++ {
+		g, ok := shaper.NextGlyph()
+		if !ok {
+			break
+		}
+		if i >= body || g.Bounds.Min.Y == g.Bounds.Max.Y {
+			continue
+		}
+		t, b := g.Bounds.Min.Y.Floor(), g.Bounds.Max.Y.Ceil()
+		if !found {
+			top, bottom, found = t, b, true
+		} else {
+			top, bottom = min(top, t), max(bottom, b)
+		}
+	}
+	inkBodies[key] = [2]int{top, bottom}
+	return top, bottom
 }

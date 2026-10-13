@@ -219,7 +219,8 @@ func (v *DatePickerView) Render(cx *el.Context) el.Element {
 	} else {
 		field.CursorPointer()
 	}
-	frame := fieldFrame(frameID, cx.FocusWithin(frameID), v.err != "", v.disabled, false).MinH(el.Dp(height)).Px(10 * ratio).Py(theme.SpaceXs * ratio).Gap(theme.SpaceMd * ratio).Child(field)
+	// As with Select, a button-like trigger rings only for keyboard focus.
+	frame := fieldFrame(frameID, cx.FocusVisibleWithin(frameID), v.err != "", v.disabled, false).MinH(el.Dp(height)).Px(10 * ratio).Py(theme.SpaceXs * ratio).Gap(theme.SpaceMd * ratio).Child(field)
 	if v.height > 0 {
 		frame.TextSize(float32(theme.BodySize) * ratio)
 	}

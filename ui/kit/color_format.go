@@ -161,7 +161,7 @@ func (p *ColorPickerView) fields(cx *el.Context, id string, focused bool) el.Ele
 	field := func(slot, name string, bind *string, filter string, maxLen int) el.Element {
 		in := fieldText(el.Input().ID(id + "/" + slot).Name(name).Bind(bind)).Filter(filter).MaxLen(maxLen).
 			OnSubmit(func(string) { p.commitDraft() })
-		frame := fieldFrame(id+"/"+slot+"box", focused && cx.FocusWithin(id+"/"+slot), false, p.disabled, false).
+		frame := fieldFrame(id+"/"+slot+"box", focused && cx.FocusVisibleWithin(id+"/"+slot), false, p.disabled, false).
 			FocusOnPress(id + "/" + slot).Grow().W(el.Dp(0))
 		(&InputView{size: InputSize(p.size)}).applySize(in, frame)
 		return frame.Child(in)

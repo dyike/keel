@@ -72,15 +72,21 @@ func fieldFrame(id string, focused, invalid, disabled, readOnly bool) *el.DivEl 
 }
 
 // fieldText strips el.Input's own box so the text sits inside a fieldFrame
-// and shows the frame's background.
+// and shows the frame's background. The input still reaches caretRoom into
+// the frame's gap, text in place: an empty field draws its caret just before
+// the placeholder, which a box starting at the text clipped away.
 func fieldText(in *el.InputEl) *el.InputEl {
-	return in.Border(0, color.NRGBA{}).Bg(color.NRGBA{}).P(0).MinH(el.Auto).Grow()
+	return in.Border(0, color.NRGBA{}).Bg(color.NRGBA{}).P(0).Pl(caretRoom).Ml(-caretRoom).MinH(el.Auto).Grow()
 }
+
+// caretRoom fits the caret drawn before a placeholder: a 1dp gap and a
+// caret one or two pixels wide.
+const caretRoom = 4
 
 // searchField is the search box of Select, Command, Settings and the like:
 // a fieldFrame with a search icon in front of the text, whose blank space
 // focuses the text (inputID, the input's ID).
 func searchField(cx *el.Context, id, inputID string, in *el.InputEl) *el.DivEl {
-	return fieldFrame(id, cx.FocusWithin(id), false, false, false).FocusOnPress(inputID).
+	return fieldFrame(id, cx.FocusVisibleWithin(id), false, false, false).FocusOnPress(inputID).
 		Child(Icon(IconSearch).Size(16).Color(theme.Muted).Render(cx), fieldText(in))
 }

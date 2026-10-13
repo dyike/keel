@@ -87,7 +87,7 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 
 | 分类 | 方法 |
 | --- | --- |
-| 方向与对齐 | `Row()`、`Col()`（默认）、`Wrap()` 自动换行、`Grid(columns)` 等宽列网格、`ColSpan(n)` 跨列、`Gap(dp)`、`Justify(Start/Center/End/SpaceBetween/SpaceAround)`、`Items(Start/Center/End/Stretch)`、`Center()` |
+| 方向与对齐 | `Row()`、`Col()`（默认）、`Wrap()` 自动换行、`Grid(columns)` 等宽列网格、`ColSpan(n)` 跨列、`Gap(dp)`、`Justify(Start/Center/End/SpaceBetween/SpaceAround)`、`Items(Start/Center/End/Stretch)`（交叉轴：`Row`/`Wrap` 默认 `Center`，图标与文字无需额外设置即可对齐；`Col`/`Grid` 默认 `Stretch`。需要子元素撑满行高时，如侧栏外壳、等高卡片，写 `Items(el.Stretch)`；`Items(el.FirstLine)` 让每个子元素的第一行文字对齐，例如 label 配 Checkbox、输入框或段落，图标居中在这一行上）、`Center()` |
 | 伸缩 | `Grow()` 等于 CSS 的 `flex: 1`：初始尺寸按 0 算，分享剩余空间；其他元素空间不够时按比例收缩，`NoShrink()` 禁止收缩 |
 | 尺寸 | `W(l)`、`H(l)`、`Size(l)`、`MinW/MinH/MaxW/MaxH(l)`、`WFull()`、`HFull()`；长度用 `el.Dp(40)`、随字号缩放的 `el.Sp(40)`、`el.Frac(0.5)`、`el.Full` |
 | 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`、`Ml`、`Mr`（外边距），单位 dp |
@@ -269,6 +269,8 @@ if v.open {
 Esc 交给最上层**设置了 OnDismiss** 的浮层。没有 OnDismiss 的浮层（例如通知栈）不会吞掉 Esc，下面的对话框照常关闭。
 
 `cx.FocusWithin(id)` 查询该元素或它的任一子孙是否在上一帧获得焦点，Tooltip 用它在键盘聚焦时显示提示。
+
+`cx.FocusVisibleWithin(id)` 是用于焦点框的 `FocusWithin`：和 `cx.FocusVisible` 一样，只统计来自键盘或程序的焦点。鼠标点进输入框只显示闪烁光标；用 Tab 键、或在非鼠标回调里调用 `cx.Focus` 聚焦时，才显示焦点框并应用 `FocusStyle`。字段外框用它判断，所以鼠标点击或用鼠标选完不会留下蓝框。
 
 `cx.Hovered(id)` 查询最近处理的指针位置是否位于元素内，禁用或被模态层遮挡的元素返回 false。普通带 ID 的元素也可查询，不必添加点击回调。HoverCard 可组合锚点和卡片的 Hovered 结果。
 

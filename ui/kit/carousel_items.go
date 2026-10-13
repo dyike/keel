@@ -126,7 +126,7 @@ func (v *CarouselView) multiStage(cx *el.Context, stage *el.DivEl, id string) {
 	if v.vertical {
 		stage.Col().ScrollY()
 	} else {
-		stage.Row().ScrollX()
+		stage.Row().ScrollX().Items(el.Stretch)
 	}
 
 	scale := cx.PixelScale()
