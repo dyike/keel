@@ -85,7 +85,7 @@ func (cx *Context) FocusWithin(id string) bool {
 	n := cx.queryNodes[id]
 	var focused func(*Node) bool
 	focused = func(n *Node) bool {
-		if st := r.store.states[n.key]; st != nil && !st.disabled && (r.source.Focused(st) || r.source.Focused(&st.editor)) {
+		if st := r.store.states[n.key]; st != nil && !st.disabled && (r.source.Focused(st) || (st.editor != nil && r.source.Focused(st.editor))) {
 			return true
 		}
 		for _, c := range n.children {
@@ -111,7 +111,7 @@ func (cx *Context) FocusVisibleWithin(id string) bool {
 	var visible func(*Node) bool
 	visible = func(n *Node) bool {
 		if st := r.store.states[n.key]; st != nil && !st.disabled &&
-			(!st.pointerFocus && r.source.Focused(st) || st.inputRing && r.source.Focused(&st.editor)) {
+			(!st.pointerFocus && r.source.Focused(st) || st.inputRing && (st.editor != nil && r.source.Focused(st.editor))) {
 			return true
 		}
 		for _, c := range n.children {
@@ -144,7 +144,7 @@ func (cx *Context) Focused(id string) bool {
 		return false
 	}
 	for _, st := range cx.root.store.states {
-		if st.id == id && !st.disabled && (cx.root.source.Focused(st) || cx.root.source.Focused(&st.editor)) {
+		if st.id == id && !st.disabled && (cx.root.source.Focused(st) || (st.editor != nil && cx.root.source.Focused(st.editor))) {
 			return true
 		}
 	}
@@ -162,7 +162,7 @@ func (cx *Context) FocusVisible(id string) bool {
 	}
 	cx.prepareInteractionQueries()
 	for _, st := range cx.queryFocus[id] {
-		if !st.disabled && (!st.pointerFocus && cx.root.source.Focused(st) || st.inputRing && cx.root.source.Focused(&st.editor)) {
+		if !st.disabled && (!st.pointerFocus && cx.root.source.Focused(st) || st.inputRing && (st.editor != nil && cx.root.source.Focused(st.editor))) {
 			return true
 		}
 	}
@@ -185,6 +185,9 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 	st := r.store.states[n.key]
 	if n.id != "" || n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() || n.onScroll != nil || n.style.scrollX || n.style.scrollY {
 		st = r.store.get(n.key)
+	}
+	if n.input != nil {
+		st.inputEditor()
 	}
 	if st != nil && r.e.gtx.Enabled() {
 		st.id = n.id
@@ -209,7 +212,7 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 			st.conditionalDrag = conditionalDrag{}
 			st.scrollbarX, st.scrollbarY = scrollbarState{}, scrollbarState{}
 			st.fresh = true
-			if r.e.gtx.Focused(st) || r.e.gtx.Focused(&st.editor) {
+			if r.e.gtx.Focused(st) || (st.editor != nil && r.e.gtx.Focused(st.editor)) {
 				r.e.gtx.Execute(key.FocusCmd{})
 			}
 		}
@@ -240,7 +243,7 @@ func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
 			if st != nil && st.keyFrame == r.store.frame {
 				if n.input != nil {
 					st.inputRing, st.inputSource = !r.focusFromPointer, true
-					gtx.Execute(key.FocusCmd{Tag: &st.editor})
+					gtx.Execute(key.FocusCmd{Tag: st.editor})
 				} else {
 					st.pointerFocus = r.focusFromPointer
 					gtx.Execute(key.FocusCmd{Tag: st})
@@ -266,7 +269,7 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 		}
 		// Clear an input's ring source only once it loses focus: Tab sets it
 		// before its FocusCmd lands, while the editor is still unfocused.
-		if st.inputFocused && !gtx.Focused(&st.editor) {
+		if st.inputFocused && !(st.editor != nil && gtx.Focused(st.editor)) {
 			st.inputRing, st.inputSource = false, false
 		}
 		if !st.focusable || st.disabled || st.blocked || st.frame != r.store.frame || st.keyFrame+1 != r.store.frame {

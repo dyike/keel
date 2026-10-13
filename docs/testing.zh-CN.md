@@ -141,3 +141,72 @@ go run ./examples/tray -smoke
 ```
 
 真实窗口用例从无窗口启动，关闭最后一个窗口后重新打开，再检查退出回调。托盘 smoke 额外创建、更新和移除系统图标。菜单实际点击、明暗外观、高 DPI、Windows Explorer 重启和 Linux Host 重启需要分别在对应桌面上验证；跨平台编译不代表运行验收。
+
+## 一键组件验证
+
+```sh
+python3 scripts/check-components.py
+# 离线运行：依赖和 Go 工具链须已缓存。
+python3 scripts/check-components.py --offline
+# CI 不显示原生窗口；仍需 GPU 后端和图形开发库。
+python3 scripts/check-components.py --offline --headless
+```
+
+标准流程串行执行：脚本回归测试、格式检查、vet、全仓库 Go 测试、race、Windows 无 CGO 构建、Linux native/CLI vet；随后运行独立进程的全组件和大数据基准、固定时间的完整 GPU 截图矩阵；最后启动 `go run ./examples/components`，遍历实际注册的全部场景并验证下面的交互。`--desktop` 还会在检查阶段运行真实窗口生命周期测试。需要 Python 3 和 Go；Python 部分只使用标准库。macOS 需要 Xcode 命令行工具；Linux 仍需 Gio 图形开发库和可用的图形/显示后端。
+
+默认产物保存在新的 `work/component-checks/<时间戳>/`：`summary.json`、由 Go 注册表导出的 `manifest.json`、各命令日志、原始基准和中位数 `benchmarks.csv`、`matrix/index.html`，以及交互报告和截图。失败立即停止并返回非零退出码；已有内容的结果目录不会被覆盖。每个基准场景启动独立进程，检查、GPU 渲染和交互不会与性能测量并行。
+
+```sh
+# 只跑指定阶段；默认每个示例场景测量 3 次，每次 200ms。
+python3 scripts/check-components.py --only benchmarks --count 3 --benchtime 1s
+python3 scripts/check-components.py --only matrix interactive --offline
+# 同机先保存基线，再修改代码并比较。
+python3 scripts/check-components.py --output work/component-baseline
+python3 scripts/check-components.py --baseline work/component-baseline
+# 快速验证流程能否跑通；1x 样本不能证明性能收益。
+python3 scripts/check-components.py --offline --count 1 --benchtime 1x --large-benchtime 1x
+```
+
+`--baseline` 要求场景集合一致，矩阵 PNG 变化会失败，并生成 `comparison.csv`（百分比为正表示回退）。基准百分比供评审使用，不自动设置耗时或分配门槛。比较时保持机器、字体、Go 版本和基准参数一致。截图时间通过生成的 Go overlay 固定，不修改生产代码。视觉变化符合预期时，应评审后建立新基线。
+
+交互检查覆盖复选框及禁用状态、开关、中文及多行输入、弹窗保存/Escape/重开、搜索和万条选项多选、十万项虚拟列表、表格排序和滚动、日历键盘跳过禁用周日、日期选择器重开后的选中状态。日历读取当前展示的日期，不硬编码月份。自动化操作的是 Gio 的影子输入路由；默认应用同时显示原生窗口，`--headless` 隐藏原生窗口。两种模式均不能验证系统输入法候选框或原生鼠标事件投递，GPU 呈现延迟和动画性能需要单独 profile。
+
+`--offline` 禁用 Go 模块、VCS 和工具链下载，未缓存的依赖会明确报错。它不会让截图变成无 CGO 构建，也不会禁用示例自身的可选网络图片请求。
+
+## 全组件帧分配基准
+
+组件示例的基准自动遍历全部注册场景，覆盖控件、输入、浮层、导航、图表和虚拟化内容：
+
+```sh
+go test ./examples/components -run '^$' -bench '^BenchmarkComponentFrame$' -benchmem -benchtime=200ms
+# 单独测一个场景；第二段表达式也加首尾锚点，避免匹配名称后缀。
+go test ./examples/components -run '^$' -bench '^BenchmarkComponentFrame$/^calendar$' -benchmem -benchtime=1s -count=3
+go test ./ui/kit -run '^$' -bench '^BenchmarkTableFrame300k$' -benchmem -benchtime=1s -count=3
+go test ./ui/kit -run '^$' -bench '^BenchmarkCodeEditorPlainLargeFileFrame$' -benchmem -benchtime=1s -count=3
+```
+
+`BenchmarkComponentFrame` 在 680×1040dp、1× 缩放下预热场景，使用真实 Gio 输入路由并固定动画时间。它测量 CPU 布局和输入注册，不包含 GPU 提交或后台更新投递。关闭浮层的静态帧不能代表打开菜单、弹窗、滚动、输入或动画的延迟；交互回归和 GPU 截图矩阵需要同时验证。
+
+比较时，用同一份基准代码分别构建基线和修改后的测试程序，每个场景启动独立进程。可选的高亮、图片加载会影响同进程中后续场景的分配计数。可以用 Go overlay 选择原始生产代码，无需撤销工作区修改。普通编辑器基准不设置语言；已有的大文件高亮基准仍包含整文件后台高亮。
+
+2026-10-13，在 darwin/arm64、Apple M5 Pro 上，99 个场景的每帧分配字节数和分配次数均下降。逐场景降幅的中位数分别为 8.7% 和 16.2%（每个场景独立进程运行三次，每次 200ms）。短测试中出现耗时回退的五个场景，延长到五次、每次 1s 后未复现稳定回退。小幅耗时差异仍受主机负载影响；这些数据是同机观察值，不是跨机器性能门槛。
+
+| 场景 | 分配字节/帧，前 → 后 | 分配次数/帧，前 → 后 |
+| --- | ---: | ---: |
+| Calendar | 1,139,345 → 959,473 | 7,085 → 5,184 |
+| Form | 92,141 → 82,192 | 467 → 348 |
+| Chart | 292,385 → 267,760 | 1,445 → 1,229 |
+| Tree | 118,003 → 104,320 | 644 → 520 |
+| VirtualList | 142,285 → 111,931 | 645 → 452 |
+| MessageScroller | 1,057,741 → 682,160 | 2,385 → 1,590 |
+
+大数据场景单独运行三次、每次 1s。表格前后使用相同的 CPU/内存 profile 参数；普通编辑器前后均不启用 profile：
+
+| 场景 | 耗时/帧，前 → 后 | 分配字节/帧，前 → 后 | 分配次数/帧，前 → 后 |
+| --- | ---: | ---: | ---: |
+| 30 万行表格滚动 | 702µs → 608µs | 1,515,575 → 1,138,768 | 6,524 → 4,522 |
+| 20 万行普通编辑器移动光标 | 2,594µs → 2,319µs | 540,302 → 250,920 | 1,745 → 1,077 |
+
+公共路径的改动包括：仅缓存节点分配布局 memo，仅输入框创建 Gio 编辑器，跳过未使用的快捷键和浮层索引，共享不可变快捷键祖先路径，小容器的布局子列表使用栈空间，构建子列表时一次预留容量，状态 ID 哈希不再拼接字符串。状态哈希保持原有身份兼容。组件自动 ID 和日历日期 ID 直接写入字节缓冲，保持原有格式；微基准中前者从 43ns 降到 19ns，后者从 94ns、3 次分配降到 43ns、1 次分配。编辑器复用字形临时缓冲，最多保留 4,096 个字形；超大行的缓冲不保留。
+
+回归覆盖缓存节点的宽度、DPI、继承字体变化，兄弟动作作用域，无处理器的快捷键提示，稳定的编辑器焦点地址和中文输入。792 张 GPU 矩阵截图与基线逐字节一致；前后均通过测试专用 overlay 固定截图时间。实际运行 `go run ./examples/components`，还验证了全部 99 个场景的导航、输入、复选框和开关状态、弹窗焦点/保存/重开、万条选项搜索、十万项虚拟列表滚动和表格排序，并检查日历跳过禁用日期的键盘导航和日期选择器重开后的选中状态。示例分类检查防止注册组件遗漏在侧栏之外。

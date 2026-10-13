@@ -471,7 +471,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 	}
 	if editorTarget != nil {
 		editorTarget.inputRing, editorTarget.inputSource = false, true
-		gtx.Execute(key.FocusCmd{Tag: &editorTarget.editor})
+		gtx.Execute(key.FocusCmd{Tag: editorTarget.editor})
 	}
 }
 

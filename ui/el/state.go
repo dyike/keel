@@ -23,15 +23,16 @@ type stateKey uint64
 
 func childKey(parent stateKey, id string, index int) stateKey {
 	h := fnv.New64a()
-	var b [8]byte
-	for i := range b {
+	var b [20]byte // also holds any signed 64-bit decimal sibling index
+	for i := range b[:8] {
 		b[i] = byte(parent >> (8 * i))
 	}
-	h.Write(b[:])
+	h.Write(b[:8])
 	if id != "" {
-		h.Write([]byte("#" + id))
+		h.Write([]byte("#"))
+		h.Write([]byte(id))
 	} else {
-		h.Write([]byte(strconv.Itoa(index)))
+		h.Write(strconv.AppendInt(b[:0], int64(index), 10))
 	}
 	return stateKey(h.Sum64())
 }
@@ -116,7 +117,7 @@ type elemState struct {
 	inputDocument         *InputDocument
 	inputDocumentRevision uint64
 	inputComposition      key.Range
-	editor                widget.Editor
+	editor                *widget.Editor
 	caret                 editorstyle.Caret
 	edInit                bool
 	inputFocused          bool
@@ -125,6 +126,15 @@ type elemState struct {
 	inputSelection        *[2]int
 	inputUndo, inputRedo  []InputEdit
 	lastText              string // what Bind last synced, to spot program changes
+}
+
+// inputEditor keeps the large native editor out of buttons, scroll containers
+// and virtual rows. Its address remains stable for Gio's focus and event tags.
+func (st *elemState) inputEditor() *widget.Editor {
+	if st.editor == nil {
+		st.editor = new(widget.Editor)
+	}
+	return st.editor
 }
 
 // store holds element state for one root. Entries not painted in a frame are

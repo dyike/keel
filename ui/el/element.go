@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"slices"
 
 	"github.com/dyike/keel/gio/font"
 	"github.com/dyike/keel/ui/theme"
@@ -72,8 +73,8 @@ type Node struct {
 	// Set on subtrees returned by Context.Cache: they are reused across
 	// frames, so a layout with the same inputs can reuse the last result.
 	cached bool
-	memo   layoutMemo
-	reused bool // this frame's layout came from memo: skip placing children
+	memo   *layoutMemo // allocated only for Context.Cache subtrees
+	reused bool        // this frame's layout came from memo: skip placing children
 }
 
 type layoutMemo struct {
@@ -111,6 +112,13 @@ func (s *Styled[T]) ID(id string) *T { s.n.id = id; return s.self }
 
 // Child appends children; nil elements are skipped.
 func (s *Styled[T]) Child(children ...Element) *T {
+	count := 0
+	for _, c := range children {
+		if c != nil {
+			count++
+		}
+	}
+	s.n.children = slices.Grow(s.n.children, count)
 	for _, c := range children {
 		if c != nil {
 			s.n.children = append(s.n.children, c)

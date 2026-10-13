@@ -161,7 +161,10 @@ func (v *CalendarView) pick(d time.Time) {
 }
 
 func (v *CalendarView) cellID(d time.Time) string {
-	return autoID("calendar", v) + "/" + d.Format("20060102")
+	var scratch [96]byte
+	id := appendAutoID(scratch[:0], "calendar", v)
+	id = append(id, '/')
+	return string(d.AppendFormat(id, "20060102"))
 }
 
 // FocusID is the element ID of the focused day, for cx.Focus.

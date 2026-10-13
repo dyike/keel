@@ -2,6 +2,8 @@ package kit
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
 
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
@@ -9,7 +11,21 @@ import (
 
 // autoID gives a view a stable element ID for anchors, focus and hover
 // queries, unique within the process for as long as the view lives.
-func autoID(kind string, v any) string { return fmt.Sprintf("kit-%s-%p", kind, v) }
+func autoID(kind string, v any) string {
+	var scratch [96]byte
+	return string(appendAutoID(scratch[:0], kind, v))
+}
+
+func appendAutoID(dst []byte, kind string, v any) []byte {
+	value := reflect.ValueOf(v)
+	if value.Kind() != reflect.Pointer {
+		return fmt.Appendf(dst, "kit-%s-%p", kind, v)
+	}
+	dst = append(dst, "kit-"...)
+	dst = append(dst, kind...)
+	dst = append(dst, "-0x"...)
+	return strconv.AppendUint(dst, uint64(value.Pointer()), 16)
+}
 
 // surface is the panel of cards that sit in the page. Colors are read on
 // every call, so theme.Apply takes effect on the next frame.

@@ -51,6 +51,9 @@ type actionBindingTarget struct {
 }
 
 func (cx *Context) prepareScopedActions() {
+	if len(cx.actions) == 0 {
+		return
+	}
 	actions := slices.Clone(cx.actions)
 	slices.SortStableFunc(actions, func(a, b scopedAction) int {
 		return cmp.Compare(cx.bindingTargets[b.target].depth, cx.bindingTargets[a.target].depth)
@@ -81,6 +84,19 @@ func (cx *Context) prepareScopedActions() {
 }
 
 func (cx *Context) prepareActionBindings(tree *Node) {
+	if len(cx.actions) == 0 && len(cx.globalActions) == 0 {
+		hints := hasKeyHint(tree)
+		for _, d := range cx.layers {
+			if d.layer.content != nil && hasKeyHint(d.layer.content.node()) {
+				hints = true
+				break
+			}
+		}
+		if !hints {
+			cx.bindingTargets = nil
+			return
+		}
+	}
 	// Collect every target before resolving any hint. A target may appear after
 	// the menu or in another overlay's declaration in this same frame.
 	cx.bindingTargets = map[string]actionBindingTarget{}
@@ -99,7 +115,9 @@ func (cx *Context) prepareActionBindings(tree *Node) {
 			contexts = append([]string{n.keyContext}, contexts...)
 		}
 		if n.id != "" {
-			cx.bindingTargets[n.id] = actionBindingTarget{slices.Clone(contexts), depth, slices.Clone(ancestors)}
+			// Each scope prepends into its own slice; descendants never mutate
+			// these paths, so targets can share them for this frame.
+			cx.bindingTargets[n.id] = actionBindingTarget{contexts, depth, ancestors}
 			ancestors = append([]string{n.id}, ancestors...)
 		}
 		for _, c := range n.children {
@@ -129,6 +147,18 @@ func (cx *Context) prepareActionBindings(tree *Node) {
 	for _, root := range roots {
 		resolve(root)
 	}
+}
+
+func hasKeyHint(n *Node) bool {
+	if n.keyHint != nil {
+		return true
+	}
+	for _, c := range n.children {
+		if hasKeyHint(c.node()) {
+			return true
+		}
+	}
+	return false
 }
 
 // Perform runs the handler a key press bound to action would run with focus

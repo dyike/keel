@@ -153,6 +153,11 @@ func (cx *Context) Hovered(id string) bool {
 }
 
 func (r *RootWidget) prepareLayers(cx *Context) {
+	if len(cx.layers) == 0 {
+		// Closing the last modal must still unblock its background controls.
+		r.blockTree(r.mainTree, false)
+		return
+	}
 	if r.layers == nil {
 		r.layers = map[any]*layerState{}
 	}
@@ -538,8 +543,8 @@ func (r *RootWidget) focusedTag() event.Tag {
 		if r.e.gtx.Focused(s) {
 			return s
 		}
-		if r.e.gtx.Focused(&s.editor) {
-			return &s.editor
+		if s.editor != nil && r.e.gtx.Focused(s.editor) {
+			return s.editor
 		}
 	}
 	return nil
@@ -549,7 +554,7 @@ func (r *RootWidget) focusTag(tag event.Tag) {
 		if s.keyFrame != r.store.frame || s.disabled || s.blocked {
 			continue
 		}
-		if tag == s || tag == &s.editor {
+		if tag == s || tag == s.editor {
 			// After a pointer close the trigger takes focus quietly, as if pressed.
 			s.focusFrom(!r.keyboardModality)
 			r.e.gtx.Execute(key.FocusCmd{Tag: tag})
@@ -573,7 +578,7 @@ func (r *RootWidget) focusFirst(n *Node) bool {
 func (r *RootWidget) focusFirstDefault(n *Node) bool {
 	if s := r.store.states[n.key]; s != nil && s.keyFrame == r.store.frame && !s.disabled && !s.blocked {
 		if n.input != nil {
-			r.e.gtx.Execute(key.FocusCmd{Tag: &s.editor})
+			r.e.gtx.Execute(key.FocusCmd{Tag: s.editor})
 			return true
 		}
 		if n.isFocusable() {

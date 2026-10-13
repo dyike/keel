@@ -161,3 +161,133 @@ go run ./examples/tray -smoke
 ```
 
 Real-window fixtures start without windows, reopen after closing the last window and check exit callbacks. Tray smoke also creates, updates and removes the native icon. Actual menu clicks, appearance, high DPI, Explorer restart and Linux host restart require verification on the respective desktop; cross-compilation does not establish runtime acceptance.
+
+## One-command component validation
+
+```sh
+python3 scripts/check-components.py
+# Offline: requires dependencies and the Go toolchain already cached.
+python3 scripts/check-components.py --offline
+# CI without visible windows (GPU backend/development libraries still required).
+python3 scripts/check-components.py --offline --headless
+```
+
+The standard workflow runs sequentially: runner regression tests, formatting, vet, all Go tests, race,
+Windows no-cgo build and Linux native/CLI vet; then isolated component and
+large-data benchmarks; the complete fixed-time GPU screenshot matrix; finally
+`go run ./examples/components`, navigation to every registered scene and the
+interaction smoke checks described below. `--desktop` also runs real-window
+lifecycle fixtures during checks. Python 3 and Go are required; Python uses only
+the standard library. macOS needs Xcode command-line tools; Linux still needs
+Gio's graphics development libraries and a suitable graphics/display backend.
+
+Default results go to a new `work/component-checks/<timestamp>/` directory:
+`summary.json`, the actual Go registry's `manifest.json`, per-command logs,
+raw benchmarks and median `benchmarks.csv`, `matrix/index.html`, and gallery
+interaction reports/screenshots. Failures stop the workflow and return a
+nonzero exit code. Existing nonempty output directories are rejected. All
+benchmark scenes run in fresh processes; checks, GPU rendering and interactions
+never run concurrently with measurements.
+
+```sh
+# Run selected phases; default benchmarks use 3 × 200ms per gallery scene.
+python3 scripts/check-components.py --only benchmarks --count 3 --benchtime 1s
+python3 scripts/check-components.py --only matrix interactive --offline
+# Save a baseline, then repeat after editing on the same host.
+python3 scripts/check-components.py --output work/component-baseline
+python3 scripts/check-components.py --baseline work/component-baseline
+# Fast workflow smoke: 1x samples validate the runner, not performance gains.
+python3 scripts/check-components.py --offline --count 1 --benchtime 1x --large-benchtime 1x
+```
+
+`--baseline` requires matching scene sets, fails on changed matrix PNGs, and
+writes `comparison.csv` (positive percentages mean regression). Benchmark
+percentages are review data, without automatic timing/allocation thresholds.
+Compare on the same machine, fonts, Go version and benchmark settings. The
+matrix clock is fixed through a generated Go overlay; production code is not
+modified. Intentional visual changes require a reviewed new baseline.
+
+The gallery smoke covers checkbox/disabled state, switch, Unicode/multiline
+input, dialog save/Escape/reopening, searchable and 10,000-option selects,
+100,000-item virtual lists, table sorting/scrolling, calendar keyboard navigation
+past disabled Sundays and date-picker selection after reopening. Calendar checks
+read displayed dates rather than hard-coding a month. The automation operates
+Gio's shadow input router while the default app has a visible native window;
+`--headless` suppresses that native window. Neither mode verifies an OS input
+method candidate panel or native mouse delivery. GPU presentation latency and
+animation performance require separate profiling.
+
+`--offline` disables Go module/VCS/toolchain downloads; an uncached dependency
+fails explicitly. It does not turn screenshots into a no-cgo build or disable
+optional network-image requests made by the example.
+
+## Component frame allocation benchmarks
+
+The gallery benchmark discovers every registered scene, including controls,
+inputs, overlays, navigation, charts and virtualized content:
+
+```sh
+go test ./examples/components -run '^$' -bench '^BenchmarkComponentFrame$' -benchmem -benchtime=200ms
+# Isolate one scene; the second anchored expression matches the whole name.
+go test ./examples/components -run '^$' -bench '^BenchmarkComponentFrame$/^calendar$' -benchmem -benchtime=1s -count=3
+go test ./ui/kit -run '^$' -bench '^BenchmarkTableFrame300k$' -benchmem -benchtime=1s -count=3
+go test ./ui/kit -run '^$' -bench '^BenchmarkCodeEditorPlainLargeFileFrame$' -benchmem -benchtime=1s -count=3
+```
+
+`BenchmarkComponentFrame` warms each scene at 680×1040dp, 1× scale, uses a
+real Gio input router and fixes animation time. It measures CPU layout and
+input registration, without GPU submission or background update delivery.
+Closed-overlay first frames do not measure open menus/dialogs, and a static
+scene does not measure scrolling, typing or animation latency. Run interactive
+regressions and the GPU screenshot matrix alongside it.
+
+For comparisons, build baseline and changed test binaries with the same
+benchmark code, then run each scene in a fresh process. Optional highlighting
+and image fetching may otherwise spill into the following scene's counters.
+A Go overlay can select baseline production files without reverting changes.
+The plain-editor benchmark leaves its language unset; the existing highlighted
+large-file benchmark still includes whole-document background highlighting.
+
+On 2026-10-13, darwin/arm64, Apple M5 Pro, all 99 gallery scenes reduced both
+allocated bytes and allocation counts per frame. The median per-scene reductions
+were 8.7% and 16.2%, respectively (three runs per scene, 200ms each, separate
+processes). The five apparent timing regressions were rechecked with five 1s
+runs; none persisted. Small timing differences remain sensitive to host load.
+These are same-host observations, not cross-machine performance thresholds.
+
+| Scene | Bytes/op, before → after | Allocations/op, before → after |
+| --- | ---: | ---: |
+| Calendar | 1,139,345 → 959,473 | 7,085 → 5,184 |
+| Form | 92,141 → 82,192 | 467 → 348 |
+| Chart | 292,385 → 267,760 | 1,445 → 1,229 |
+| Tree | 118,003 → 104,320 | 644 → 520 |
+| VirtualList | 142,285 → 111,931 | 645 → 452 |
+| MessageScroller | 1,057,741 → 682,160 | 2,385 → 1,590 |
+
+Separate large-data benchmarks use three 1s runs. Both table versions used
+identical CPU/memory profiling flags; neither plain-editor version used profiles:
+
+| Scenario | Time/op, before → after | Bytes/op, before → after | Allocations/op, before → after |
+| --- | ---: | ---: | ---: |
+| 300,000-row table scroll | 702µs → 608µs | 1,515,575 → 1,138,768 | 6,524 → 4,522 |
+| 200,000-line plain editor cursor move | 2,594µs → 2,319µs | 540,302 → 250,920 | 1,745 → 1,077 |
+
+The changes allocate layout memos only for cached nodes, create Gio editors only
+for inputs, skip unused keymap/layer indexes, share immutable keymap ancestry,
+use stack scratch for small layout child lists, reserve child capacity once,
+and hash state IDs without concatenating strings. State hashing remains
+compatible with existing identities. Component and calendar IDs write directly
+into byte scratch without changing their format. Microbenchmarks reduce ordinary
+ID generation from 43ns to 19ns and calendar cell IDs from 94ns/3 allocations to
+43ns/1 allocation. Editor glyph scratch retains at most
+4,096 glyphs; larger buffers are discarded.
+
+Regressions cover cache width/DPI/inherited font changes, independent action
+scopes, hints without handlers, stable editor focus tags and Unicode input.
+The 792-image GPU matrix remains byte-identical to the baseline; a test-only
+overlay fixed screenshot time in both runs. Running `go run ./examples/components`
+also covered navigation to all 99 scenes, input, checkbox/switch state, dialog
+focus/save/reopening, 10,000-option search, 100,000-item virtual scrolling and
+table sorting, calendar keyboard navigation past disabled dates and retained
+date-picker selection after reopening. Gallery category checks prevent registered scenes from being
+omitted from the sidebar.

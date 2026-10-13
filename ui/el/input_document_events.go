@@ -86,7 +86,7 @@ func (e *engine) inputDocumentAction(n *Node, st *elemState, action InputAction)
 }
 
 func (e *engine) inputDocumentEvents(n *Node, st *elemState) {
-	spec, d, ed := n.input, n.input.document, &st.editor
+	spec, d, ed := n.input, n.input.document, st.editor
 	prepareInputTokenHits(st, len(d.Content().Tokens()))
 	if st.inputDocument != d || st.inputDocumentRevision != d.revision {
 		documentSyncEditor(st, d)
@@ -286,14 +286,14 @@ func (e *engine) inputDocumentEvents(n *Node, st *elemState) {
 
 func (e *engine) inputDocumentIME(n *Node, st *elemState, g layout.Context) {
 	inputTokenHitAreas(st, g)
-	if !g.Enabled() || !g.Focused(&st.editor) {
+	if !g.Enabled() || !(st.editor != nil && g.Focused(st.editor)) {
 		return
 	}
 	text, start, end := documentPlatformSelection(n.input.document)
 	ca, cb := documentCompositionLayout(n.input.document, st.inputComposition.Start, st.inputComposition.End)
-	bounds := editorstyle.Composition(g, &st.editor, key.Range{Start: ca, End: cb}, *n.textStyle.color)
-	g.Execute(key.SelectionCmd{Tag: &st.editor, Range: key.Range{Start: start, End: end}, Caret: st.caret.InputMethodCaret(&st.editor), CompositionBounds: bounds})
-	g.Execute(key.SnippetCmd{Tag: &st.editor, Snippet: key.Snippet{Range: key.Range{Start: 0, End: utf8.RuneCountInString(text)}, Text: text}})
+	bounds := editorstyle.Composition(g, st.editor, key.Range{Start: ca, End: cb}, *n.textStyle.color)
+	g.Execute(key.SelectionCmd{Tag: st.editor, Range: key.Range{Start: start, End: end}, Caret: st.caret.InputMethodCaret(st.editor), CompositionBounds: bounds})
+	g.Execute(key.SnippetCmd{Tag: st.editor, Snippet: key.Snippet{Range: key.Range{Start: 0, End: utf8.RuneCountInString(text)}, Text: text}})
 }
 
 // Word navigation stops at whitespace transitions, as Gio's editor does.

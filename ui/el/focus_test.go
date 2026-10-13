@@ -379,7 +379,7 @@ func TestPointerFocusInputShowsOnlyCaret(t *testing.T) {
 	h.Click(20, 20)
 	painted = false
 	h.Frame()
-	if painted || !h.Router.Source().Focused(&root.store.states[input.node().key].editor) {
+	if painted || !h.Router.Source().Focused(root.store.states[input.node().key].editor) {
 		t.Fatal("pointer-focused input painted its focus style")
 	}
 	focus = "button"

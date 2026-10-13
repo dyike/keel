@@ -46,7 +46,8 @@ const codeHighlightDelay = 150 * time.Millisecond
 
 func (v *CodeEditorView) face() font.Font { return font.Font{Typeface: theme.MonoFace} }
 
-// shape lays out one line of text without wrapping.
+// shape lays out one line of text without wrapping. The result is borrowed
+// until the next shape call; measurement and painting consume it synchronously.
 func (v *CodeEditorView) shape(px int, s string) []gtext.Glyph {
 	return v.shapeFace(px, v.face(), s)
 }
@@ -54,10 +55,16 @@ func (v *CodeEditorView) shape(px int, s string) []gtext.Glyph {
 func (v *CodeEditorView) shapeFace(px int, face font.Font, s string) []gtext.Glyph {
 	sh := theme.Material.Shaper
 	sh.LayoutString(gtext.Parameters{Font: face, PxPerEm: fixed.I(px), MaxWidth: 1 << 24}, s)
-	var out []gtext.Glyph
+	out := v.shapeScratch[:0]
 	for {
 		g, ok := sh.NextGlyph()
 		if !ok {
+			// An exceptional long line must not retain an unbounded glyph buffer.
+			if cap(out) <= 4096 {
+				v.shapeScratch = out
+			} else {
+				v.shapeScratch = nil
+			}
 			return out
 		}
 		if g.Flags&gtext.FlagParagraphBreak != 0 && g.Runes == 0 {

@@ -30,7 +30,7 @@ func (cx *Context) prepareInteractionQueries() {
 		if st.hovered {
 			cx.queryHover[st.id] = append(cx.queryHover[st.id], st)
 		}
-		if cx.root.source.Focused(st) || cx.root.source.Focused(&st.editor) {
+		if cx.root.source.Focused(st) || (st.editor != nil && cx.root.source.Focused(st.editor)) {
 			cx.queryFocus[st.id] = append(cx.queryFocus[st.id], st)
 		}
 	}

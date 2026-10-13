@@ -6,7 +6,7 @@ import (
 )
 
 func (e *engine) inputUndoKeys(n *Node, st *elemState) {
-	ed := &st.editor
+	ed := st.editor
 	for {
 		ev, ok := e.gtx.Event(key.Filter{Focus: ed, Name: "Z", Required: key.ModShortcut, Optional: key.ModShift}, key.Filter{Focus: ed, Name: "Y", Required: key.ModShortcut})
 		if !ok {
@@ -21,7 +21,7 @@ func (e *engine) inputUndoKeys(n *Node, st *elemState) {
 }
 
 func (e *engine) inputUndoAction(n *Node, st *elemState, redo bool) {
-	ed := &st.editor
+	ed := st.editor
 	if !e.gtx.Enabled() || ed.ReadOnly {
 		return
 	}

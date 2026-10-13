@@ -83,7 +83,7 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 	textW := w
 	if n.input.multiline {
 		st := e.store.get(n.key)
-		textW = max(1, w-inputScrollbarWidth(&st.editor, true, e.dp(10)))
+		textW = max(1, w-inputScrollbarWidth(st.inputEditor(), true, e.dp(10)))
 	}
 	var objectState *elemState
 	if n.input.document != nil {
@@ -241,7 +241,7 @@ func (e *engine) paintContent(n *Node) {
 			n.focus(&st)
 		}
 	}
-	if n.input != nil && gtx.Focused(&state.editor) && state.inputRing {
+	if n.input != nil && (state.editor != nil && gtx.Focused(state.editor)) && state.inputRing {
 		st.borderColor = theme.Primary
 		if n.focus != nil {
 			n.focus(&st)
@@ -261,7 +261,7 @@ func (e *engine) paintContent(n *Node) {
 	}
 	if theme.Frameless {
 		st.borderWidth = 0
-		if !n.effectiveDisabled && ((n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus) || (n.input != nil && gtx.Focused(&state.editor) && state.inputRing)) {
+		if !n.effectiveDisabled && ((n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus) || (n.input != nil && (state.editor != nil && gtx.Focused(state.editor)) && state.inputRing)) {
 			bg := theme.Highlight
 			if st.bg != nil && st.bg.A != 0 {
 				bg = *st.bg
@@ -578,7 +578,7 @@ func (e *engine) paintText(n *Node, inner image.Rectangle) {
 func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	gtx := e.gtx
 	spec := n.input
-	ed := &st.editor
+	ed := st.inputEditor()
 	if !st.edInit {
 		ed.SingleLine, ed.Submit = !spec.multiline, !spec.multiline
 		st.edInit = true

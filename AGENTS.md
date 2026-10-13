@@ -107,6 +107,7 @@ patched Gio and go-text by requiring Keel alone.
 ## Commands
 
 ```sh
+python3 scripts/check-components.py --offline   # standard component workflow; cached dependencies required
 gofmt -l .                                       # must print nothing
 go vet ./...
 go test ./gio/... ./typesetting/...                        # the Gio and go-text copies' own patch tests

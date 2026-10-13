@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("shimmer_text", "feedback", func() core.Widget {
+	registerSection("shimmer_text", "controls", func() core.Widget {
 		normal := kit.ShimmerText(demoText("Generating content; the text remains readable…", "正在生成内容，文字仍然可以阅读……")).Size(20)
 		reverse := kit.ShimmerText(demoText("Reverse sweep", "反向扫光 · Reverse")).Size(24).Style(kit.ShimmerStyle{Duration: 3 * time.Second, Spread: .4, Reverse: true})
 		once := kit.ShimmerText(demoText("Play once", "只播放一次 · Once")).Size(20).Once(true)

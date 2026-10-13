@@ -20,7 +20,7 @@ func TestDocumentEditorKeepsWheelOffset(t *testing.T) {
 	h := uitest.New(root)
 	h.Frame()
 	st := root.store.states[field.n.key]
-	sc, ok := any(&st.editor).(editorViewport)
+	sc, ok := any(st.editor).(editorViewport)
 	if !ok {
 		t.Skip("upstream Gio has native scrolling only")
 	}

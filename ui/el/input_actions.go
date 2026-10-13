@@ -59,7 +59,7 @@ func (e *engine) inputAction(n *Node, st *elemState, action InputAction) (widget
 	if !e.gtx.Enabled() {
 		return nil, true
 	}
-	ed := &st.editor
+	ed := st.editor
 	switch action {
 	case InputCopy, InputCut:
 		if n.input.password || action == InputCut && ed.ReadOnly {
@@ -91,7 +91,7 @@ func (e *engine) inputAction(n *Node, st *elemState, action InputAction) (widget
 // Menu operations preserve the editor's focus, including rich document editors.
 func (e *engine) inputMenuActions(n *Node, st *elemState) {
 	for {
-		action, ok := core.NextEditAction(e.gtx, &st.editor)
+		action, ok := core.NextEditAction(e.gtx, st.editor)
 		if !ok {
 			return
 		}

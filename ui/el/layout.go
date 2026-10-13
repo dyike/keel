@@ -53,11 +53,16 @@ func (e *engine) layout(n *Node, availW, availH int, parent textStyle) {
 	n.reused = false
 	if n.cached {
 		in := [4]int{availW, availH, n.forceW, n.forceH}
-		if m := &n.memo; m.ok && m.metric == e.m && m.in == in && m.parent == parent {
+		if m := n.memo; m != nil && m.ok && m.metric == e.m && m.in == in && m.parent == parent {
 			n.size, n.reused = m.size, true
 			return
 		}
-		defer func() { n.memo = layoutMemo{metric: e.m, ok: true, in: in, parent: parent, size: n.size} }()
+		defer func() {
+			if n.memo == nil {
+				n.memo = new(layoutMemo)
+			}
+			*n.memo = layoutMemo{metric: e.m, ok: true, in: in, parent: parent, size: n.size}
+		}()
 	}
 	s := &n.style
 	n.textStyle = s.text.inherit(parent)
@@ -185,9 +190,9 @@ func (e *engine) clampH(n *Node, h, avail int) int {
 	return h
 }
 
-// inFlow lists the children that take part in flex layout.
-func inFlow(n *Node) []*Node {
-	var out []*Node
+// inFlow lists children that take part in layout into caller-owned scratch.
+// Small containers stay on the stack, including during recursive layout.
+func inFlow(n *Node, out []*Node) []*Node {
 	for _, c := range n.children {
 		cn := c.node()
 		if !cn.style.hidden && !cn.style.absolute {
@@ -258,7 +263,8 @@ func (n *Node) force(row bool) (main, cross int) {
 func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 	s := &n.style
 	row := s.row
-	kids := inFlow(n)
+	var scratch [16]*Node
+	kids := inFlow(n, scratch[:0])
 	gap := e.dp(s.gap)
 	align := s.crossAlign()
 	mainDef, crossDef := innerH, innerW
@@ -445,7 +451,8 @@ func (e *engine) place(n *Node) {
 	if s.scrollY {
 		inner.Y = n.contentH
 	}
-	kids := inFlow(n)
+	var scratch [16]*Node
+	kids := inFlow(n, scratch[:0])
 	gap := e.dp(s.gap)
 	align := s.crossAlign()
 

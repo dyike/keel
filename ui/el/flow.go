@@ -13,7 +13,8 @@ func (e *engine) layoutChildren(n *Node, innerW, innerH, limW, limH int) image.P
 }
 
 func (e *engine) wrap(n *Node, width, limW, limH int) image.Point {
-	kids := inFlow(n)
+	var scratch [16]*Node
+	kids := inFlow(n, scratch[:0])
 	n.flowPositions = make([]image.Point, len(kids))
 	limit := limW
 	if width >= 0 {
@@ -73,7 +74,8 @@ func (e *engine) wrap(n *Node, width, limW, limH int) image.Point {
 // rowPositions aligns a line's already measured children, without recursively
 // placing descendants; the ordinary place pass does that once afterwards.
 func (e *engine) rowPositions(n *Node, size image.Point) []image.Point {
-	kids := inFlow(n)
+	var scratch [16]*Node
+	kids := inFlow(n, scratch[:0])
 	gap := e.dp(n.style.gap)
 	used := max(len(kids)-1, 0) * gap
 	for _, c := range kids {
@@ -126,7 +128,8 @@ func (e *engine) rowPositions(n *Node, size image.Point) []image.Point {
 }
 
 func (e *engine) grid(n *Node, width, limW, limH int) image.Point {
-	kids := inFlow(n)
+	var scratch [16]*Node
+	kids := inFlow(n, scratch[:0])
 	n.flowPositions = make([]image.Point, len(kids))
 	if len(kids) == 0 {
 		return image.Point{}
