@@ -220,3 +220,37 @@ func TestCodeScrollbarWheelAndTrackInsideChat(t *testing.T) {
 		t.Fatal("scrollbar selected text")
 	}
 }
+
+func TestCodeDefaultWrapPreservesCopyAndUserChoice(t *testing.T) {
+	line := strings.Repeat("long_word ", 30)
+	d := New("```text\n" + line).CodeBlockWrap(true)
+	d.SetStreaming(true)
+	h := uitest.New(el.Root(docView{d}))
+	cv := d.chunks[0].blocks[0].view.(*codeView)
+	if !cv.wrap || codeLines(cv.rich) <= 1 {
+		t.Fatal("opt-in code did not wrap on first frame")
+	}
+	clickCodeButton(t, h, "复制")
+	_, data, ok := h.Router.WriteClipboard()
+	if !ok || string(data) != line {
+		t.Fatalf("wrapping modified copy: %q", data)
+	}
+	clickCodeButton(t, h, "取消自动换行")
+	d.Append("\nsecond line\n```")
+	d.SetStreaming(false)
+	h.Frame()
+	if d.chunks[0].blocks[0].view != cv || cv.wrap || codeLines(cv.rich) != 2 {
+		t.Fatal("streaming reset user wrap choice")
+	}
+	d.CodeBlockWrap(true)
+	h.Frame()
+	if cv.wrap {
+		t.Fatal("default overwrote existing block choice")
+	}
+	d.Append("\n\n```text\n" + line + "\n```")
+	h.Frame()
+	last := d.chunks[len(d.chunks)-1].blocks[0].view.(*codeView)
+	if !last.wrap {
+		t.Fatal("new block ignored default")
+	}
+}

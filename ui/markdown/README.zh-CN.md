@@ -33,3 +33,6 @@
 使用和设计：[Markdown](../../docs/markdown.zh-CN.md)。
 
 原子输入引用由 `el.InputDocument` 接入 `ui/internal/inputcontent`，后者只保存文本、引用范围、选区和编辑事务，不依赖 Gio 或其他 Keel 模块。kit 和 markdown 仅经 el 间接依赖它。
+
+应用可在首次渲染前调用 `markdown.New(source).CodeBlockWrap(true)`，
+让代码块默认自动换行。每个代码块仍可单独切换换行，复制保留原始文本。

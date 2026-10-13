@@ -56,6 +56,7 @@ type Doc struct {
 	imageLoader       imageload.Loader
 	showFrontMatter   bool
 	hideTableDividers bool
+	defaultCodeWrap   bool
 
 	parses int // chunks parsed so far, for tests
 }
