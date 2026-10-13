@@ -46,6 +46,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # Generated GUI projects still use Gio's cgo-based Linux bindings.
+      - name: Install Linux dependencies for generated project compilation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwayland-dev libx11-dev libx11-xcb-dev \
+            libxkbcommon-dev libxkbcommon-x11-dev \
+            libegl1-mesa-dev libgles2-mesa-dev \
+            libxcursor-dev libxfixes-dev libvulkan-dev
       - name: Check version resolution and project generation
         run: go test ./cmd/keel -run 'TestResolve|TestNew' -count=1
       - name: Build an external app from the real module archive

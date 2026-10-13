@@ -23,6 +23,12 @@ but does not substitute for an isolated compiler/header-free release build.
 Compilation is not runtime, IME, native GPU, packaging or performance acceptance;
 see [the desktop delivery design](desktop-cgo-free.md).
 
+The Ubuntu `distribution` job installs Linux graphics development libraries
+before the scaffold tests. `TestNewProjectCompiles` vets a generated GUI project
+on the host; on Linux it enables cgo and still needs Gio's Wayland, X11,
+xkbcommon, EGL/GLES and Vulkan headers. This is separate from the `compile`
+matrix, which disables cgo and uses nonexistent C/C++ compiler paths.
+
 `python3 scripts/check-module-release.py` archives the working tree as a
 fixture Keel release in a local module proxy, creates an app with `keel new`
 that requires only Keel, checks that its Gio and go-text packages come from the
