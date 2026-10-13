@@ -55,6 +55,11 @@ func unregisterDevelopmentWindow(w *Window) {
 func closeDevelopmentWindows(windows []*Window) {
 	loop.Lock()
 	defer loop.Unlock()
+	closeWindowsLocked(windows)
+}
+
+// Caller holds the frame lock. Shared by explicit exit and development reload.
+func closeWindowsLocked(windows []*Window) {
 	for _, w := range windows {
 		if w.closed {
 			continue

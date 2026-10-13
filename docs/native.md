@@ -10,6 +10,7 @@ Packages under `native/` provide system capabilities not found in Gio. They do n
 | `native/screen` | List monitors; screenshots | Screenshots require screen recording |
 | `native/input` | Moving the mouse, clicking, and pressing keys | Operations other than reading the mouse position require accessibility functions |
 | `native/hotkey` | Global shortcut keys | None |
+| `native/tray` | Status icons, tooltips and native menus | None |
 | `native/clipboard` | Asynchronously read text, encoded images, file paths (macOS / Windows / Linux Wayland, X11) | None |
 
 Three platforms are supported. On other platforms (and iOS), all functions return `native.ErrUnsupported` and the program compiles as usual.
@@ -140,3 +141,9 @@ Linux X11 uses an independent connection to read CLIPBOARD, supporting UTF-8/Lat
 Connection uses DISPLAY and XAUTHORITY (default ~/.Xauthority), supports MIT-MAGIC-COOKIE-1.
 
 Wayland only gives the clipboard to the client with keyboard focus, so it cannot open another connection: the application gives it the connection of the focused window, `clipboard.UseWaylandDisplay(w.WaylandDisplay())`, and then `Read` opens a private event queue on this connection, binds the data device of the seat, reads the type provided by the current selection (the same text, URI list and image format and restrictions as X11, 5-second period), without interfering with Gio's own event processing. Fallback to X11/XWayland when there is no incoming connection, or the compositor has no data device. This path loads libwayland-client 1.20+ at run time through purego, without cgo, and can be removed when building with `-tags nowayland`. It only uses the core protocol, marshalled by opcode with `wl_proxy_marshal_array_flags`, with one event dispatcher for every proxy; it has not yet been run on a Wayland desktop. Format, chunked protocol surrogate, error cap testing and cross-compilation passed, Linux desktop real clipboard and XWayland bridging are still pending acceptance.
+
+## Status icons: tray
+
+`native/tray` provides macOS menu-bar icons, Windows notification-area icons and Linux SNI icons, with checkmarks, disabled entries, separators and submenus. No permissions or cgo are needed. Linux requires session D-Bus and an active StatusNotifierHost; `New` returns `native.ErrUnsupported` without one. iOS, Android and Web are unsupported.
+
+Callbacks run serially per tray on a Go goroutine; write UI state through `core.Update`. macOS `New` waits for the main thread: call before `window.Main`, or from a background goroutine outside the frame lock. Updates and removal are applied asynchronously on the macOS main queue. See the [tray module](../native/tray/README.md), and run `go run ./examples/tray`.

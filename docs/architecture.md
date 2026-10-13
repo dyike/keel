@@ -27,6 +27,7 @@ github.com/dyike/keel
 │   ├── input/            Synthesize mouse and keyboard events
 │   ├── hotkey/           Global shortcut keys
 │   ├── notification/     System notification (not dependent on UI)
+│   ├── tray/               Status icons and native popup menus (independent of UI)
 │   ├── clipboard/        Asynchronously read text, encoded images and file paths (not dependent on UI)
 │   ├── internal/sys/     Platform bindings; macOS calls Objective-C through purego, without cgo
 │   ├── internal/wlclip/  Linux Wayland clipboard through purego (only clipboard reference)
@@ -180,7 +181,7 @@ The cost of this model:
 
 - **All windows are rendered serially.** One callback is stuck for 2 seconds, and all windows are stuck for 2 seconds. In the callback, only microsecond-level things such as changing the state are done, and I/O and calculation are done in goroutine.
 - **`core.Update` is asynchronous.** `fn` has not been executed when the call returns. Waiting for the result of `core.Update` in the callback (for example, using a channel to wait for it to finish executing) will cause a deadlock: the callback holds the lock, and `fn` has to wait for the lock.
-- **If there is no window drawing frames, the queue will not be executed.** The function `core.Update` will be executed in the first frame of the first window before the program opens the window.
+- **If there is no window drawing frames, the queue will not be executed.** The function `core.Update` will be executed in the first frame of the first window before the program opens the window. Resident mode (`window.MainWithOptions(window.MainOptions{KeepAlive: true})`) uses an event-woken worker under the same frame lock to drain updates without drawing or polling.
 
 Why choose one big lock instead of locking every component? See [Design Decisions](decisions.md#a-global-frame-lock).
 
@@ -206,7 +207,7 @@ When adding new window methods (setting position, sticking to top, changing titl
 - `window.Open` returns immediately; the native window is created asynchronously in its own goroutine.
 - `Close` and `Raise` will wait until the first frame of the window is drawn before they are actually executed. Gio v0.10.3 has a bug on macOS: the native window will be closed before it is built, and the process will crash. Humans can't click so fast, Agent can, so Keel waits here. The regression test is `ui/window/testdata/reopen`.
 - After closing the window (either the user clicks Close, or calls `w.Close()`), `OnClose` is executed within the lock, and `w.Closed()` becomes `true`. Closed windows cannot be reopened, reopen if necessary `window.Open`.
-- After the last window is closed, the process calls `os.Exit(0)` to exit. The code after `window.Main()` in `main` will not be executed. It needs to be cleaned up and put into `OnClose`.
+- By default the process exits after the last window closes. `KeepAlive` mode continues running until `window.Quit()`. Quit runs remaining windows' `OnClose` callbacks followed by `MainOptions.OnQuit`, once each under the frame lock, before process exit. Main does not return; put exit cleanup in these callbacks.
 
 `native/notification` relies only on `native` and `native/internal/sys`, returns permission/delivery results via asynchronous completion callbacks, and does not reference the UI or Gio. macOS system calls are initiated from the main queue, and Go completion callbacks are executed in independent goroutines; UI writeback uses `core.Update`. kit.Notifier is accessed through the public NoticeSystemBackend interface, and the application layer adapts native/notification, and there is no direct reference between modules.
 
@@ -217,3 +218,5 @@ When adding new window methods (setting position, sticking to top, changing titl
 The SVG icon is parsed by `oksvg` and `rasterx` in `ui/kit` and rasterized by physical pixels, and is still drawn by Gio; no new Keel module dependency is added. See [Icon](kit/icon.md) for entries, format subsets, and cache limits.
 
 `native/process` follows the native module boundary: only `native` and `native/internal/sys` dependencies, with no UI or Gio imports. Terminal foreground-process and working-directory bindings live in `native/internal/sys`.
+
+`native/tray` depends only on `native` and `native/internal/sys`, never UI or Gio. It uses purego/AppKit on macOS, Win32 on Windows and pure Go SNI/DBusMenu on Linux. Native events enter a separate queue and each tray serializes callbacks on a Go goroutine; UI writes still use `core.Update`. The application explicitly chooses residence; creating a tray does not alter window lifetime.

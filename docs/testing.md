@@ -144,3 +144,14 @@ The matrix generates a total of eight first-frame screenshots in light/dark, 320
 The fixed display width in the component example must also be set to `MaxW(el.Full)`; otherwise, a cropped wide canvas will be tested instead of the narrow layout of the component. Use Wrap for parallel operations to retain the content width needed to verify horizontal scrolling. The Sidebar example is initially collapsed below 600dp and can still be expanded manually; the multi-column workspace of the Dock needs to be wide enough, and the 320dp screenshot is not regarded as a mobile layout commitment.
 
 Example-level regressions of `cmd/keel-mcp` include: keyboard-only process for order filtering, details and deletion, new order; chat streaming output, code/form and interruption; settings page theme, search and language switching; Dock mobile panel, retaining input after switching, menu Esc and closing panel. `TestOrdersKeyboardOnly` Without clicking on the control, start with Mod+N and use Tab, arrow keys, Space, and Enter to complete the save.
+
+## Tray and residence regressions
+
+`go test -race ./native/tray ./ui/internal/loop` checks menu snapshots, stale events, callback serialization, discarding callbacks after close and updates without windows. SNI/DBusMenu protocol tests exercise pure Go serialization and menu models without a desktop session.
+
+```sh
+KEEL_DESKTOP=1 go test -run RealWindows ./ui/window
+go run ./examples/tray -smoke
+```
+
+Real-window fixtures start without windows, reopen after closing the last window and check exit callbacks. Tray smoke also creates, updates and removes the native icon. Actual menu clicks, appearance, high DPI, Explorer restart and Linux host restart require verification on the respective desktop; cross-compilation does not establish runtime acceptance.

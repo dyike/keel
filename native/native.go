@@ -5,6 +5,7 @@
 //	native/screen      list displays, capture screenshots
 //	native/input       synthesize mouse and keyboard input
 //	native/hotkey      system-wide shortcuts
+//	native/tray        desktop status icons and native menus
 //
 //	native/notification local notifications (macOS app bundles and Linux D-Bus)
 //

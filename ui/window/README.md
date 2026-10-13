@@ -59,3 +59,16 @@ Reserve the top-left button area in your content. Keel reapplies placement after
 Application menus and appearance are configured through Go APIs: `NewMenuBar`, `SetApplicationMenu`, `SystemAppearance` and `SetNativeAppearance`. See [Window and Application](../../docs/app.md#application-menus-and-system-appearance) for customization and platform capabilities.
 
 Menu backends: AppKit on macOS, Win32 on Windows, Keel-rendered window menus on Linux (X11/Wayland). `Options.MenuDisplay` permits a custom window menu or application renderer. Focused custom editors handle standard operations through `core.NextEditAction`.
+
+## Resident applications
+
+`window.Main()` exits after the last window closes by default. Tray and other background applications can explicitly keep running. Resident mode drains `core.Update` with no windows, including updates while windows are minimized or occluded. The worker wakes on events and does not poll while idle.
+
+```go
+window.MainWithOptions(window.MainOptions{
+    KeepAlive: true,
+    OnQuit: func() { /* application cleanup */ },
+})
+```
+
+Call `window.Quit()` for explicit exit, from UI callbacks, background goroutines or with no windows. It runs remaining windows' `OnClose` callbacks followed by application `OnQuit`, once each under the frame lock, then exits the process. Main does not return and ordinary defers do not run. Callbacks must not wait for another `core.Update` or synchronously wait for the main thread. Closed windows remain closed: reopen with `window.Open` and keep business state outside the window. `OnClose` reports destruction and cannot intercept closure. See `examples/tray`.

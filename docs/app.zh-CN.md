@@ -218,3 +218,16 @@ if err := w.Resize(960, 640); err != nil { panic(err) }
 `Options.MinWidth`、`Options.MinHeight` 设置客户区最小宽高，单位为 dp，零表示该轴不设下限。例如 `window.Options{Width: 1057, Height: 639, MinWidth: 800, MinHeight: 480}`。
 
 Keel 将下限交给 macOS、Windows、Linux X11/Wayland 的窗口驱动，限制用户拖动缩小窗口；无边框窗口也会传入同样的限制。启动尺寸（包括应用恢复的尺寸）以及 `Resize` 请求小于下限时会提升到下限，离屏自动化遵守同样的规则。Linux 窗口管理器或合成器最终决定是否执行尺寸提示。
+
+## 驻留应用
+
+`window.Main()` 默认在最后一个窗口关闭后退出。托盘或其他后台应用可以显式开启驻留，所有窗口关闭后仍消费 `core.Update`，包括最小化或遮挡时的更新；执行器由事件唤醒，空闲时不轮询。
+
+```go
+window.MainWithOptions(window.MainOptions{
+    KeepAlive: true,
+    OnQuit: func() { /* application cleanup */ },
+})
+```
+
+通过 `window.Quit()` 显式退出，可以在 UI 回调、后台 goroutine 或没有窗口时调用。它依次执行仍打开窗口的 `OnClose` 和应用 `OnQuit`，各执行一次并持有 frame lock，然后退出进程；`Main` 不返回，普通 defer 不会执行。回调中不要等待下一次 `core.Update` 或同步等待主线程。关闭后的窗口仍不能重新显示，需要重新 `window.Open`；将业务状态保存在窗口之外。`OnClose` 是销毁后的通知，不能拦截关闭。参见 `examples/tray`。

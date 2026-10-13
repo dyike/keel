@@ -128,3 +128,14 @@ go run ./examples/components -section button -width 320 -scale 1 -theme dark -sc
 组件示例中的固定展示宽度必须同时设置 `MaxW(el.Full)`；否则测试到的是被裁掉的宽画布，而非组件的窄布局。并列操作用 Wrap，保留需要验证横向滚动的内容宽度。Sidebar 示例在 600dp 以下初始折叠，仍可手动展开；Dock 的多列工作区需要足够宽度，不把 320dp 截图当成手机布局承诺。
 
 `cmd/keel-mcp` 的示例级回归包括：订单筛选、详情和删除、新建订单纯键盘流程；聊天流式输出、代码/表格和中断；设置页主题、搜索和语言切换；Dock 移动面板、切换后保留输入、菜单 Esc 与关闭面板。`TestOrdersKeyboardOnly` 不点击控件，从 Mod+N 开始用 Tab、方向键、Space、Enter 完成保存。
+
+## 托盘与驻留回归
+
+`go test -race ./native/tray ./ui/internal/loop` 检查菜单快照、旧事件、串行回调、关闭后丢弃排队回调，以及没有窗口时更新仍执行。Linux 的 SNI/DBusMenu 协议测试使用纯 Go 的序列化与菜单模型，不要求桌面会话。
+
+```sh
+KEEL_DESKTOP=1 go test -run RealWindows ./ui/window
+go run ./examples/tray -smoke
+```
+
+真实窗口用例从无窗口启动，关闭最后一个窗口后重新打开，再检查退出回调。托盘 smoke 额外创建、更新和移除系统图标。菜单实际点击、明暗外观、高 DPI、Windows Explorer 重启和 Linux Host 重启需要分别在对应桌面上验证；跨平台编译不代表运行验收。
