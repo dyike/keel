@@ -3,6 +3,7 @@ package kit
 import (
 	"image"
 	"image/color"
+	"math"
 	"sort"
 	"strconv"
 	"time"
@@ -88,6 +89,24 @@ func (v *CodeEditorView) measure(gtx core.C) {
 		break
 	}
 	m.baseline = (m.lh-(m.ascent+m.descent))/2 + m.ascent
+	// Center the ink of 国 and A, as inputs do, not the Latin face's line
+	// box: CJK comments come from a fallback face and otherwise sit high in
+	// their selection and line highlight.
+	top, bottom, body := 0, 0, false
+	for i, g := range v.shape(px, "国Ag") {
+		if i >= 2 || g.Bounds.Min.Y == g.Bounds.Max.Y {
+			continue
+		}
+		t, b := g.Bounds.Min.Y.Floor(), g.Bounds.Max.Y.Ceil()
+		if !body {
+			top, bottom, body = t, b, true
+		} else {
+			top, bottom = min(top, t), max(bottom, b)
+		}
+	}
+	if body {
+		m.baseline = int(math.Floor(float64(m.lh-(top+bottom))/2 + 0.5))
+	}
 	m.space = max(1, v.textWidth(" "))
 	if tab := v.tabSize * m.space; tab != m.tab {
 		m.tab = tab

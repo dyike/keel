@@ -32,7 +32,8 @@ func TestWrapBreaksLinesAndKeepsHitCoordinates(t *testing.T) {
 			gtx.Constraints.Max = image.Pt(400*scale, 400*scale)
 			root.Layout(gtx)
 		})
-		want := []image.Point{{5, 5}, {115, 5}, {5, 45}, {115, 45}}
+		// Rows center by default: each box is centered in its line's height.
+		want := []image.Point{{5, 10}, {115, 5}, {5, 50}, {115, 45}}
 		for i, p := range want {
 			if boxes[i].n.pos != p.Mul(scale) {
 				t.Fatalf("scale %d child %d: %v", scale, i, boxes[i].n.pos)

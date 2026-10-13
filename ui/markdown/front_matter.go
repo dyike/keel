@@ -102,7 +102,7 @@ func (d *Doc) frontMatterTable(b *block) el.Element {
 		if !ok || !known || line[0] == ' ' {
 			continue
 		}
-		table.Child(el.Div().Row().Gap(theme.SpaceMd).Child(
+		table.Child(el.Div().Row().Gap(theme.SpaceMd).Items(el.Start).Child(
 			el.Text(k).W(el.Dp(120)).NoShrink().TextColor(theme.Muted).MaxLines(1),
 			el.Text(v).Grow().W(el.Dp(0)),
 		))

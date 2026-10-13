@@ -258,7 +258,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 			el.Text(v.series[s].Name).TextSize(theme.TextSm).Bold(),
 			el.Text("x "+v.format(p.X)+"   y "+v.format(p.Y)).TextSize(theme.TextSm).TextColor(theme.Muted)))
 	}
-	xs := el.Div().Row().H(el.Dp(18))
+	xs := el.Div().Row().H(el.Dp(18)).Items(el.Start)
 	previous := 0.0
 	for _, t := range xt {
 		if t < v.x0 || t > v.x1 {
@@ -296,7 +296,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 			}
 			return ok
 		}).
-		Child(head, el.Div().Row().Child(axis, box), el.Div().Row().Child(el.Div().W(el.Dp(axisWidth)).NoShrink(), xs.Grow().W(el.Dp(0))))
+		Child(head, el.Div().Row().Items(el.Stretch).Child(axis, box), el.Div().Row().Items(el.Start).Child(el.Div().W(el.Dp(axisWidth)).NoShrink(), xs.Grow().W(el.Dp(0))))
 }
 
 func (v *PlotView) draw(gtx core.C, xt, yt []float64) core.D {

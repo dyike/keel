@@ -275,7 +275,7 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 	// Bands are flex weights, so labels line up with the plot whatever its
 	// painted width; runs of unlabeled bands collapse into one spacer. A label
 	// is centered on its band and may overhang it.
-	xs := el.Div().Row().H(el.Dp(gutter.Bottom)).Grow().W(el.Dp(0))
+	xs := el.Div().Row().H(el.Dp(gutter.Bottom)).Grow().W(el.Dp(0)).Items(el.Start)
 	if v.options.gutter != nil {
 		xs.Reveal(1)
 	}

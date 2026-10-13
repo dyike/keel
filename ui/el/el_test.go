@@ -373,3 +373,38 @@ func TestThemeSwitchRebuildsCachedElements(t *testing.T) {
 		}
 	}
 }
+
+// Rows center children across by default, so an icon and its label line up
+// without Items(Center); columns and grids still stretch.
+func TestRowCentersByDefault(t *testing.T) {
+	icon, label := Div().W(Dp(16)).H(Dp(16)), Text("label")
+	auto, tall := Div().W(Dp(10)), Div().W(Dp(10)).H(Dp(40))
+	stretched := Div().W(Dp(10))
+	block := Div().H(Dp(10))
+	cellA, cellB := Div(), Div().H(Dp(30))
+	render(t, Div().Items(Start).Child(
+		Div().Row().H(Dp(40)).Child(icon, label),
+		Div().Row().Child(auto, tall),
+		Div().Row().Items(Stretch).Child(stretched, Div().W(Dp(10)).H(Dp(40))),
+		Div().W(Dp(100)).Child(block),
+		Div().Grid(2).W(Dp(100)).Child(cellA, cellB),
+	))
+	if r := rect(icon); r.Min.Y != 12 {
+		t.Fatalf("icon at %v, want centered in 40", r)
+	}
+	if r := rect(label); r.Min.Y != (40-r.Dy())/2 {
+		t.Fatalf("label at %v, want centered in 40", r)
+	}
+	if r := rect(auto); r.Dy() != 0 || r.Min.Y != 20 {
+		t.Fatalf("auto-height child %v, want unstretched and centered", r)
+	}
+	if r := rect(stretched); r.Dy() != 40 {
+		t.Fatalf("Items(Stretch) child %v, want height 40", r)
+	}
+	if r := rect(block); r.Dx() != 100 {
+		t.Fatalf("column child %v, want the full width", r)
+	}
+	if r := rect(cellA); r.Dy() != 30 {
+		t.Fatalf("grid cell %v, want the row's height", r)
+	}
+}

@@ -260,10 +260,7 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 	row := s.row
 	kids := inFlow(n)
 	gap := e.dp(s.gap)
-	align := s.align
-	if !s.alignSet {
-		align = Stretch
-	}
+	align := s.crossAlign()
 	mainDef, crossDef := innerH, innerW
 	if row {
 		mainDef, crossDef = innerW, innerH
@@ -446,10 +443,7 @@ func (e *engine) place(n *Node) {
 	}
 	kids := inFlow(n)
 	gap := e.dp(s.gap)
-	align := s.align
-	if !s.alignSet {
-		align = Stretch
-	}
+	align := s.crossAlign()
 
 	total := 0
 	for i, c := range kids {

@@ -102,7 +102,7 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	name := g.nav.Value()
 	s, ok := g.sections[name]
 	if !ok {
-		return el.Div().Row().Grow().Child(g.nav.Render(cx))
+		return el.Div().Row().Items(el.Stretch).Grow().Child(g.nav.Render(cx))
 	}
 	w := g.built[name]
 	if w == nil {

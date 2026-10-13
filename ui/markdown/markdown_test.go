@@ -11,6 +11,7 @@ import (
 
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"
+	"github.com/dyike/keel/ui/theme"
 )
 
 func TestSplitKeepsFencesAndContinuations(t *testing.T) {
@@ -242,5 +243,24 @@ func TestSelectAndCopy(t *testing.T) {
 	h.Click(300, 280) // elsewhere: clears
 	if got := r.rt.selectedText(); got != "" {
 		t.Fatalf("selection kept after clicking elsewhere: %q", got)
+	}
+}
+
+// Line boxes, which selection and range highlights fill, center the text's
+// ink body. Centering the font's logical box set CJK text high above the
+// highlight, since fallback faces like PingFang reserve a deep descent.
+func TestLineCentersInkBody(t *testing.T) {
+	for _, src := range []string{"中文文字国家", "Latin text", "中文 Mixed 混排"} {
+		d := New(src)
+		uitest.New(el.Root(docView{d}))
+		r := d.chunks[0].blocks[0].view.(*richBlock)
+		rn := r.rt.runs[r.rt.pieces[0].run]
+		top, bottom := inkBody(theme.Material.Shaper, rn.font, int(rn.size), scriptOfRuns(r.rt.runs))
+		for _, p := range r.rt.pieces {
+			above, below := p.baseline+top-p.rect.Min.Y, p.rect.Max.Y-(p.baseline+bottom)
+			if d := above - below; d < -1 || d > 1 {
+				t.Fatalf("%q: ink body %dpx below the line top, %dpx above its bottom", src, above, below)
+			}
+		}
 	}
 }

@@ -423,7 +423,7 @@ func (v *SettingsView) Render(cx *el.Context) el.Element {
 		body = column.Child(content)
 	}
 	if horizontal {
-		links := el.Div().ID(id + "/tabs").Role("tablist").Row().ScrollX().Scrollbars(el.ScrollbarHidden).Gap(theme.SpaceXs).Px(20).Py(10).NoShrink()
+		links := el.Div().ID(id + "/tabs").Role("tablist").Row().Items(el.Stretch).ScrollX().Scrollbars(el.ScrollbarHidden).Gap(theme.SpaceXs).Px(20).Py(10).NoShrink()
 		for _, s := range v.sections {
 			if q != "" && !s.matches(q) {
 				continue

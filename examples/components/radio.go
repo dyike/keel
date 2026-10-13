@@ -22,7 +22,7 @@ func init() {
 			return el.Div().P(24).Gap(16).Items(el.Start).Child(
 				el.Text(demoText("Radio", "Radio 单选按钮")).TextSize(24).Bold(),
 				el.Text(demoText("Placed in separate cards; the application keeps them mutually exclusive in OnChange.", "分散在不同卡片里，由应用在 OnChange 中保持互斥。")).TextColor(theme.Muted),
-				el.Div().Row().Gap(12).Child(card(express, demoText("Delivery in 1–2 days", "1–2 天送达"), cx), card(pickup, demoText("Same-day pickup", "当天可取"), cx)))
+				el.Div().Row().Gap(12).Items(el.Stretch).Child(card(express, demoText("Delivery in 1–2 days", "1–2 天送达"), cx), card(pickup, demoText("Same-day pickup", "当天可取"), cx)))
 		}))
 	})
 }

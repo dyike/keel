@@ -108,7 +108,14 @@ func (d *Doc) block(cx *el.Context, b *block, last bool) el.Element {
 		for i := range b.children {
 			content.Child(d.block(cx, &b.children[i], false))
 		}
-		return el.Div().Row().Gap(6).Child(el.Text(strconv.Itoa(b.level)+".").W(el.Dp(22)).TextColor(theme.Muted), content)
+		lv, _ := b.view.(*listView)
+		if lv == nil {
+			lv = &listView{}
+			b.view = lv
+		}
+		// Drawn by rich text, like list markers, to share the first line's baseline.
+		number := el.Widget(lv.marker(0, strconv.Itoa(b.level)+"."))
+		return el.Div().Row().Gap(6).Items(el.Start).Child(el.Div().W(el.Dp(22)).Items(el.Start).NoShrink().Child(number), content)
 	case paragraph:
 		return el.Widget(d.rich(b, b.spans, theme.BodySize, false, theme.Text, last))
 	case heading:
@@ -121,7 +128,7 @@ func (d *Doc) block(cx *el.Context, b *block, last bool) el.Element {
 		for i := range b.children {
 			content.Child(d.block(cx, &b.children[i], false))
 		}
-		return el.Div().Row().Gap(12).Child(el.Div().W(el.Dp(3)).Rounded(1.5).Bg(theme.Border), content)
+		return el.Div().Row().Gap(12).Items(el.Stretch).Child(el.Div().W(el.Dp(3)).Rounded(1.5).Bg(theme.Border), content)
 	case list:
 		return d.list(cx, b)
 	case table:
@@ -233,7 +240,7 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 	d.guardPreview(cx, grid)
 	// A row keeps the column from stretching the table to its width.
 	id := fmt.Sprintf("markdown-table/%p", st)
-	return el.Div().ID(id).Row().ScrollX().Child(el.Div().NoShrink().Pb(10).Child(grid)).Decorate(func(gtx core.C, draw func()) {
+	return el.Div().ID(id).Row().Items(el.Stretch).ScrollX().Child(el.Div().NoShrink().Pb(10).Child(grid)).Decorate(func(gtx core.C, draw func()) {
 		draw()
 		if gtx.Enabled() {
 			offset, _, _ := cx.ScrollStateX(id)
@@ -527,6 +534,7 @@ func (l *listView) marker(i int, text string) *richBlock {
 	if r == nil {
 		r = newRich([]span{{text: text}}, theme.BodySize, false, theme.Muted, nil)
 		r.decoration = true
+		r.rt.inkCenter = text == "☑" || text == "☐"
 		l.markers[i] = r
 	}
 	return r

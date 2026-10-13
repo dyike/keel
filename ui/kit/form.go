@@ -294,7 +294,7 @@ func (v *FormView) Render(cx *el.Context) el.Element {
 		if v.verticalLabels {
 			form.Child(row.WFull())
 		} else {
-			form.Child(el.Div().Row().Gap(theme.SpaceLg).Child(el.Div().W(el.Dp(v.labelWidth)).NoShrink(), row))
+			form.Child(el.Div().Row().Gap(theme.SpaceLg).Items(el.Start).Child(el.Div().W(el.Dp(v.labelWidth)).NoShrink(), row))
 		}
 	}
 	if v.footer != nil {
