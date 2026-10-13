@@ -170,7 +170,9 @@ func (v *SelectView) Render(cx *el.Context) el.Element {
 		}
 	}
 	ratio := v.sizeRatio()
-	field := fieldFrame(id+"/frame", cx.FocusWithin(id), v.err != "", v.disabled, false).
+	// The trigger is a button: like one, it shows its ring only for keyboard
+	// focus, not after a click or a pointer pick returns focus to it.
+	field := fieldFrame(id+"/frame", cx.FocusVisible(id) || cx.FocusVisible(id+"/clear"), v.err != "", v.disabled, false).
 		MinH(el.Dp(float32(theme.ControlHeight) * ratio)).P(0).Gap(theme.SpaceMd * ratio)
 	if v.height > 0 {
 		field.TextSize(float32(theme.BodySize) * ratio)
