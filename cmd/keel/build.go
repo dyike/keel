@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/dyike/keel/cmd/keel/internal/gogio"
 	"github.com/dyike/keel/internal/appicon"
+	"github.com/dyike/keel/internal/gogio"
 	"github.com/tc-hib/winres"
 	"github.com/tc-hib/winres/version"
 )

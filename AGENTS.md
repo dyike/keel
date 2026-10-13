@@ -47,7 +47,7 @@ window lifecycle. [docs/testing.md](docs/testing.md) and
   with its reason in `third_party/README.md` (both languages). A patch
   brings its own test. The copies never import other Keel packages
   (`internal/deps` checks this). The packager is Keel's copy of gogio in
-  `cmd/keel/internal/gogio`, which knows Gio's new path.
+  `internal/gogio`, which knows Gio's new path.
 - **Dependencies only go down.** `internal/deps` enforces the module table
   in the architecture guide: `ui` and `native` never import each other,
   same-layer modules never import each other, heavy dependencies (chroma,

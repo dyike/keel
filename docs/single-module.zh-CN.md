@@ -52,7 +52,7 @@ github.com/dyike/keel/
 
 当前缓存中的 `gioui.org/cmd/gogio@v0.10.0` 不只硬编码 app.ID：`build_info.go` 还设置 app/internal/log.appID、app.extraArgs；`androidbuild.go` 查找 `gioui.org/app/` 和权限前缀；`iosbuild.go` 也按原路径定位 app。只额外传一个链接参数不能修复这些发现逻辑。
 
-将所需 gogio Go 打包器源码以普通包形式维护在 `cmd/keel/internal/gogio`，由现有 CLI 通过可测试入口在进程内调用。保留许可证，在双语文档记录上游版本与补丁。参数化 Gio 包根路径并设置为新路径，统一用于链接符号、资源定位和权限导入识别；打包器自身不导入 UI。必要工具依赖并入根 go.mod，不引入新模块、不改模块缓存、不增加原生源码、不重写平台打包算法。CLI 和站点脚本的外部 gogio 调用改为 Keel 打包入口，覆盖 macOS、Android、iOS、Web 产物及 Windows 资源行为。新增辅助包前更新架构与依赖表。
+将所需 gogio Go 打包器源码以普通包形式维护在 `internal/gogio`，由现有 CLI 通过可测试入口在进程内调用。保留许可证，在双语文档记录上游版本与补丁。参数化 Gio 包根路径并设置为新路径，统一用于链接符号、资源定位和权限导入识别；打包器自身不导入 UI。必要工具依赖并入根 go.mod，不引入新模块、不改模块缓存、不增加原生源码、不重写平台打包算法。CLI 和站点脚本的外部 gogio 调用改为 Keel 打包入口，覆盖 macOS、Android、iOS、Web 产物及 Windows 资源行为。新增辅助包前更新架构与依赖表。
 
 即使移动端 CGO 移除延期，此适配仍必需：Gio 路径变化不能破坏现有移动端打包。保留独立 shader 模块和 iOS shader 适配，直到其需求另行变化。验收实际 app ID、启动参数、权限和资源，不能只检查链接成功。
 

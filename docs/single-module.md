@@ -117,7 +117,7 @@ The installed `gioui.org/cmd/gogio@v0.10.0` hardcodes more than app.ID:
 flag cannot repair those lookups.
 
 Use a small maintained copy of the required gogio Go packager sources as ordinary
-packages at `cmd/keel/internal/gogio`, invoked in-process through a testable
+packages at `internal/gogio`, invoked in-process through a testable
 entrypoint by the existing CLI. Retain its license and record its upstream
 version/patches in bilingual documentation. Parameterize the Gio package root
 and set it to the new path; use it for all link symbols, resource discovery and

@@ -13,7 +13,7 @@ Keel 保留 Gio 的窗口、布局、输入和 GPU 架构，针对资源复用�
 | --- | --- | --- |
 | Gio | `gioui.org` v0.10.3 | `gio/`；`github.com/dyike/keel/gio` |
 | go-text | `github.com/go-text/typesetting` v0.3.5 | `typesetting/`；`github.com/dyike/keel/typesetting` |
-| gogio 打包器 | `gioui.org/cmd/gogio` v0.10.0 | `cmd/keel/internal/gogio/`；CLI 内部实现 |
+| gogio 打包器 | `gioui.org/cmd/gogio` v0.10.0 | `internal/gogio/`；CLI 内部实现 |
 
 两个基础库是 Keel 根模块中的普通包。删除各自的 go.mod/go.sum 后，依赖统一
 维护在根目录，内部导入、链接符号、资源查找均使用新前缀。应用只 require Keel
@@ -90,8 +90,8 @@ macOS 提供 CoreText 字形像素；Gio 基础库不导入 Keel 的 theme 或 n
 
 复制的 gogio 提供串行 Run 入口，每次运行传入工作目录、环境、参数和输出流。
 GioRoot 提供应用 ID/启动参数的链接符号、Android 权限前缀和移动端资源发现路径，
-默认输出也遵守传入的工作目录。见 [Run](../cmd/keel/internal/gogio/run.go)
-和[打包回归测试](../cmd/keel/internal/gogio/run_test.go)。
+默认输出也遵守传入的工作目录。见 [Run](../internal/gogio/run.go)
+和[打包回归测试](../internal/gogio/run_test.go)。
 
 Windows 可执行文件资源由 Keel 单独生成。iOS 模拟器 shader 适配及 SDK/签名调度
 位于 CLI。[真实模块发布夹具](../scripts/check-module-release.py)验证外部应用、

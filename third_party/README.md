@@ -17,7 +17,7 @@ this directory keeps their attribution and patch logs:
 | --- | --- | --- | --- |
 | `gio/` | [Gio](https://gioui.org) `gioui.org` | v0.10.3 | Unlicense OR MIT (`gio/LICENSE`) |
 | `typesetting/` | [go-text](https://github.com/go-text/typesetting) `github.com/go-text/typesetting` | v0.3.5 | Unlicense OR BSD-3-Clause (`typesetting/LICENSE`) |
-| `cmd/keel/internal/gogio/` | Gio's packager `gioui.org/cmd/gogio` | v0.10.0 | Unlicense OR MIT (`cmd/keel/internal/gogio/LICENSE`) |
+| `internal/gogio/` | Gio's packager `gioui.org/cmd/gogio` | v0.10.0 | Unlicense OR MIT (`internal/gogio/LICENSE`) |
 
 `gioui.org/shader` (including `gioui.org/shader/gio`) is a separate module
 and stays upstream.
@@ -54,7 +54,7 @@ local measurements, not fresh benchmarks or portable application guarantees.
 - Module merge: the copies' `go.mod`/`go.sum` were removed and their imports
   rewritten to Keel's prefixes, so they no longer depend on application-level
   `replace` lines (which Go does not propagate) to reach apps.
-- `cmd/keel/internal/gogio`: the packager runs inside `keel` instead of `go run
+- `internal/gogio`: the packager runs inside `keel` instead of `go run
   gioui.org/cmd/gogio`, because upstream gogio hard-codes Gio's import path. It
   takes that path from `GioRoot` (for `app.ID`, the log app ID, extra args,
   permissions and the `app/` package lookup); flags, working directory,
@@ -64,8 +64,13 @@ local measurements, not fresh benchmarks or portable application guarantees.
   checks app ID/launch-argument linking, HTML title and output files; the release
   fixture builds a custom widget from the real root archive. The Windows target
   and upstream end-to-end tests are not copied: Keel writes
-  its own Windows resources. `cmd/keel/internal/gogio/cmd` runs it directly for
+  its own Windows resources. `cmd/gogio` runs it directly for
   builds without `keel.json`, such as the site's gallery.
+
+- Packager relocation: the standalone entrypoint lives at `cmd/gogio` and the
+  shared implementation at `internal/gogio`, so both commands can use it without
+  nesting a command inside `cmd/keel`. Resource-discovery tests use the new
+  directory depth; CI and release fixtures invoke the standalone command.
 
 - `gio/internal/nativeabi`: no-cgo macOS ABI probes call Go Objective-C IMPs
   through the real system `objc_msgSend`. They cover range pairs/register

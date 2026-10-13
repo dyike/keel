@@ -26,7 +26,7 @@ func TestGioRoot(t *testing.T) {
 	}
 	// The root is a package of this module, with the Android and iOS
 	// sources gogio copies from it.
-	dir := filepath.Join("..", "..", "..", "..", "gio", "app")
+	dir := filepath.Join("..", "..", "gio", "app")
 	for _, f := range []string{"GioActivity.java", "framework_ios.h", "permission/camera/main.go"} {
 		if _, err := os.Stat(filepath.Join(dir, f)); err != nil {
 			t.Fatal(err)
@@ -51,7 +51,7 @@ func TestWebPackageIdentity(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds a WebAssembly package")
 	}
-	repo, err := filepath.Abs("../../../..")
+	repo, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestWebPackageIdentity(t *testing.T) {
 }
 
 func TestMobileResourceDiscovery(t *testing.T) {
-	repo, err := filepath.Abs("../../../..")
+	repo, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)
 	}

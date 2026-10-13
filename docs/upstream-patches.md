@@ -14,7 +14,7 @@ historical measurements and maintenance notes.
 | --- | --- | --- |
 | Gio | `gioui.org` v0.10.3 | `gio/`; `github.com/dyike/keel/gio` |
 | go-text | `github.com/go-text/typesetting` v0.3.5 | `typesetting/`; `github.com/dyike/keel/typesetting` |
-| gogio packager | `gioui.org/cmd/gogio` v0.10.0 | `cmd/keel/internal/gogio/`; CLI implementation detail |
+| gogio packager | `gioui.org/cmd/gogio` v0.10.0 | `internal/gogio/`; CLI implementation detail |
 
 The foundation copies are ordinary packages of Keel's root module. Their nested
 go.mod/go.sum files are removed, dependencies are maintained in the root, and
@@ -105,8 +105,8 @@ The copied gogio packager has a serialized Run entrypoint with per-run working
 directory, environment, flags and output. GioRoot supplies application-ID and
 launch-argument linker symbols, Android permission prefixes and mobile resource
 discovery. Default output paths honor the supplied working directory.
-See [Run](../cmd/keel/internal/gogio/run.go) and
-[packaging regressions](../cmd/keel/internal/gogio/run_test.go).
+See [Run](../internal/gogio/run.go) and
+[packaging regressions](../internal/gogio/run_test.go).
 
 Keel owns Windows executable resources separately. Its iOS simulator shader
 adapter and SDK/signing orchestration live in the CLI. The

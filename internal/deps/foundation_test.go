@@ -11,7 +11,7 @@ import (
 )
 
 func TestSingleModuleSources(t *testing.T) {
-	for _, tree := range []string{"ui", "native", "cmd", "gio", "typesetting", "third_party"} {
+	for _, tree := range []string{"ui", "native", "cmd", "internal", "gio", "typesetting", "third_party"} {
 		root := filepath.Join("..", "..", tree)
 		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {

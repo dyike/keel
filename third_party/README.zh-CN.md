@@ -13,7 +13,7 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 | --- | --- | --- | --- |
 | `gio/` | [Gio](https://gioui.org) `gioui.org` | v0.10.3 | Unlicense 或 MIT（`gio/LICENSE`） |
 | `typesetting/` | [go-text](https://github.com/go-text/typesetting) `github.com/go-text/typesetting` | v0.3.5 | Unlicense 或 BSD-3-Clause（`typesetting/LICENSE`） |
-| `cmd/keel/internal/gogio/` | Gio 打包器 `gioui.org/cmd/gogio` | v0.10.0 | Unlicense 或 MIT（`cmd/keel/internal/gogio/LICENSE`） |
+| `internal/gogio/` | Gio 打包器 `gioui.org/cmd/gogio` | v0.10.0 | Unlicense 或 MIT（`internal/gogio/LICENSE`） |
 
 `gioui.org/shader`（含 `gioui.org/shader/gio`）是独立模块，仍用上游。
 
@@ -33,7 +33,9 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 - 根级迁移：两个基础库实际移到 gio/ 和 typesetting/，导入前缀与目录对应。链接符号、资源发现、CI 和发布夹具同步新路径；源码检查拒绝过时的基础库导入。
 - 模块合并：删除副本的 `go.mod`/`go.sum`，把导入改写为 Keel 前缀，不再依赖应用自己写的 `replace`（Go 不会传递 replace）才能用上副本。
-- `cmd/keel/internal/gogio`：打包器在 `keel` 进程内运行，而不是 `go run gioui.org/cmd/gogio`，因为上游 gogio 写死了 Gio 的导入路径。现在从 `GioRoot` 取路径（用于 `app.ID`、日志应用 ID、额外参数、权限和 `app/` 包查找）；参数、工作目录、环境变量和输出改为每次运行的选项（`Run`），上游包级状态通过串行调用隔离，默认产物也写入指定工作目录。WebAssembly 打包回归检查应用 ID/启动参数链接、HTML 标题和产物文件；发布夹具从真实根模块归档编译外部自定义组件。未复制 Windows 目标和上游端到端测试：Keel 自己生成 Windows 资源。`cmd/keel/internal/gogio/cmd` 可直接运行它，用于没有 `keel.json` 的构建，例如站点的组件库。
+- `internal/gogio`：打包器在 `keel` 进程内运行，而不是 `go run gioui.org/cmd/gogio`，因为上游 gogio 写死了 Gio 的导入路径。现在从 `GioRoot` 取路径（用于 `app.ID`、日志应用 ID、额外参数、权限和 `app/` 包查找）；参数、工作目录、环境变量和输出改为每次运行的选项（`Run`），上游包级状态通过串行调用隔离，默认产物也写入指定工作目录。WebAssembly 打包回归检查应用 ID/启动参数链接、HTML 标题和产物文件；发布夹具从真实根模块归档编译外部自定义组件。未复制 Windows 目标和上游端到端测试：Keel 自己生成 Windows 资源。`cmd/gogio` 可直接运行它，用于没有 `keel.json` 的构建，例如站点的组件库。
+
+- 打包器迁移：独立入口放在 `cmd/gogio`，共享实现放在 `internal/gogio`，两个命令共用打包器，避免在 `cmd/keel` 内嵌套命令。资源发现测试适配新的目录深度，CI 和发布夹具改为调用独立入口。
 
 - `gio/internal/nativeabi`：无 CGO macOS ABI 探针通过系统真实 `objc_msgSend` 调用 Go Objective-C IMP，覆盖 range 参数对/寄存器耗尽、嵌套 rect 参数与返回、浮点参数、可空的原生分配出参及哨兵值。类和回调只注册一次，并明确记录 purego 0.11.1 不支持标量浮点回调返回。这是 M0 可行性测试，不是已迁移的窗口后端。扩展探针覆盖结构体 super 调用及复制 block 的原生调用，arm64 实机通过；amd64 实机和精确协议签名仍须验收。
 

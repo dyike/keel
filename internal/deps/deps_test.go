@@ -49,10 +49,10 @@ var allowed = map[string][]string{
 	"native/clipboard":         {"native", "native/internal/sys", "native/internal/wlclip"},
 	// Talks to apps only through the automation protocol, never Keel's code.
 	"cmd/keel-mcp": {},
-	"cmd/keel":     {"internal/svgicon", "internal/appicon", "cmd/keel/internal/gogio"},
-	// The packager, kept apart from the CLI's own code (cmd/keel/internal/gogio/README.md).
-	"cmd/keel/internal/gogio":     {},
-	"cmd/keel/internal/gogio/cmd": {"cmd/keel/internal/gogio"},
+	"cmd/keel":     {"internal/svgicon", "internal/appicon", "internal/gogio"},
+	"cmd/gogio":    {"internal/gogio"},
+	// The packager is shared by both commands (internal/gogio/README.md).
+	"internal/gogio": {},
 }
 
 func TestModuleBoundaries(t *testing.T) {
@@ -65,7 +65,7 @@ func TestModuleBoundaries(t *testing.T) {
 			switch {
 			case dep == mod+"/"+pkg:
 			case within(dep, gio) || within(dep, typesetting):
-				if strings.HasPrefix(pkg, "native") || strings.HasPrefix(pkg, "cmd/") {
+				if strings.HasPrefix(pkg, "native") || strings.HasPrefix(pkg, "cmd/") || pkg == "internal/gogio" {
 					t.Errorf("%s imports %s: it must work without the GUI", pkg, dep)
 				}
 			case strings.HasPrefix(dep, mod+"/"):
