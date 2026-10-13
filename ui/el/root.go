@@ -470,6 +470,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 		gtx.Execute(key.FocusCmd{Tag: focusTarget})
 	}
 	if editorTarget != nil {
+		editorTarget.inputRing, editorTarget.inputSource = false, true
 		gtx.Execute(key.FocusCmd{Tag: &editorTarget.editor})
 	}
 }
@@ -486,6 +487,7 @@ func (r *RootWidget) blur(gtx core.C) {
 			break
 		}
 		if e, ok := ev.(pointer.Event); ok && e.Kind == pointer.Press {
+			r.store.pressFrame, r.store.pressed = r.store.frame, true
 			gtx.Execute(key.FocusCmd{})
 		}
 	}

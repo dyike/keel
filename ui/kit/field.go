@@ -81,6 +81,6 @@ func fieldText(in *el.InputEl) *el.InputEl {
 // a fieldFrame with a search icon in front of the text, whose blank space
 // focuses the text (inputID, the input's ID).
 func searchField(cx *el.Context, id, inputID string, in *el.InputEl) *el.DivEl {
-	return fieldFrame(id, cx.FocusWithin(id), false, false, false).FocusOnPress(inputID).
+	return fieldFrame(id, cx.FocusVisibleWithin(id), false, false, false).FocusOnPress(inputID).
 		Child(Icon(IconSearch).Size(16).Color(theme.Muted).Render(cx), fieldText(in))
 }

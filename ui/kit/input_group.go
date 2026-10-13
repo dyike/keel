@@ -85,7 +85,7 @@ func (v *InputGroupView) Render(cx *el.Context) el.Element {
 	v.input.setName(name)
 	id := autoID("inputgroup", v)
 	disabled := v.disabled || v.input.disabled
-	field := fieldFrame(id, cx.FocusWithin(id), v.Error() != "", disabled, v.input.readOnly).Col().Items(el.Stretch).Justify(el.Center).FocusOnPress(v.input.FocusID()).Role("group").Name(name)
+	field := fieldFrame(id, cx.FocusVisibleWithin(id), v.Error() != "", disabled, v.input.readOnly).Col().Items(el.Stretch).Justify(el.Center).FocusOnPress(v.input.FocusID()).Role("group").Name(name)
 	appendAddons := func(parent *el.DivEl, alignment InputGroupAlignment) {
 		for _, addon := range v.addons {
 			if addon.alignment != alignment {

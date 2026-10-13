@@ -154,7 +154,8 @@ func (v *InputView) render(cx *el.Context, chrome bool) el.Element {
 	if v.password {
 		text.Password()
 	}
-	box := fieldFrame(id, cx.FocusWithin(id), v.err != "", v.disabled, v.readOnly).FocusOnPress(v.FocusID())
+	// A click shows the caret alone; keyboard focus also rings the field.
+	box := fieldFrame(id, cx.FocusVisibleWithin(id), v.err != "", v.disabled, v.readOnly).FocusOnPress(v.FocusID())
 	if v.multiline {
 		box.Items(el.Start).Py(theme.SpaceMd)
 	}

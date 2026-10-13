@@ -551,7 +551,7 @@ func (r *RootWidget) focusTag(tag event.Tag) {
 		}
 		if tag == s || tag == &s.editor {
 			// After a pointer close the trigger takes focus quietly, as if pressed.
-			s.pointerFocus = !r.keyboardModality
+			s.focusFrom(!r.keyboardModality)
 			r.e.gtx.Execute(key.FocusCmd{Tag: tag})
 			return
 		}
@@ -563,7 +563,7 @@ func (r *RootWidget) focusFirst(n *Node) bool {
 		if len(targets) == 0 {
 			return false
 		}
-		targets[0].state.pointerFocus = false
+		targets[0].state.focusFrom(false)
 		r.e.gtx.Execute(key.FocusCmd{Tag: targets[0].tag})
 		return true
 	}

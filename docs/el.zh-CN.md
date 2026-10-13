@@ -270,6 +270,8 @@ Esc 交给最上层**设置了 OnDismiss** 的浮层。没有 OnDismiss 的浮�
 
 `cx.FocusWithin(id)` 查询该元素或它的任一子孙是否在上一帧获得焦点，Tooltip 用它在键盘聚焦时显示提示。
 
+`cx.FocusVisibleWithin(id)` 是用于焦点框的 `FocusWithin`：和 `cx.FocusVisible` 一样，只统计来自键盘或程序的焦点。鼠标点进输入框只显示闪烁光标；用 Tab 键、或在非鼠标回调里调用 `cx.Focus` 聚焦时，才显示焦点框并应用 `FocusStyle`。字段外框用它判断，所以鼠标点击或用鼠标选完不会留下蓝框。
+
 `cx.Hovered(id)` 查询最近处理的指针位置是否位于元素内，禁用或被模态层遮挡的元素返回 false。普通带 ID 的元素也可查询，不必添加点击回调。HoverCard 可组合锚点和卡片的 Hovered 结果。
 
 ### 挂到窗口根部

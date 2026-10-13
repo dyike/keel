@@ -309,7 +309,7 @@ func (v *NumberInputView) Render(cx *el.Context) el.Element {
 			return true
 		})
 	// Keep the text and stable step-button identities while changing appearance.
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(theme.SpaceXs * ratio).P(padding).MinH(el.Dp(height))
+	box := fieldFrame(id, focused && cx.FocusVisibleWithin(id), v.err != "", v.disabled, false).FocusOnPress(v.FocusID()).Gap(theme.SpaceXs * ratio).P(padding).MinH(el.Dp(height))
 	if !v.verticalButtons {
 		box.Child(minus.Render(cx))
 	}

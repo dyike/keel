@@ -55,18 +55,16 @@ func TestSelectWholeFieldTrigger(t *testing.T) {
 	}
 }
 
-// A pointer pick returns focus to the trigger without its focus ring, as a
-// click on a button does; keyboard focus still shows the ring.
-func TestSelectRingsOnlyForKeyboardFocus(t *testing.T) {
-	v := Select("", "完全访问", "只读访问").Hint("访问权限")
+// ringHarness renders view on a headless GPU. ringed reports whether the
+// field frame whose left border passes through (x, y) shows the primary ring.
+func ringHarness(t *testing.T, view func(cx *el.Context) el.Element) (*uitest.Harness, func(x, y int) bool) {
+	t.Helper()
 	gpu, err := headless.NewWindow(320, 240)
 	if err != nil {
 		t.Skip("no headless GPU:", err)
 	}
-	defer gpu.Release()
-	root := el.Root(viewFunc(func(cx *el.Context) el.Element {
-		return el.Div().P(10).Gap(10).W(el.Dp(320)).Items(el.Stretch).Child(v.Render(cx), Button("下一步", func() {}).Render(cx))
-	}))
+	t.Cleanup(gpu.Release)
+	root := el.Root(viewFunc(view))
 	img := image.NewRGBA(image.Rect(0, 0, 320, 240))
 	h := uitest.NewFunc(func(gtx core.C) {
 		gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
@@ -80,34 +78,79 @@ func TestSelectRingsOnlyForKeyboardFocus(t *testing.T) {
 		}
 	})
 	h.Frame()
-	trigger, _ := node(h, "访问权限")
-	b := trigger.Desc.Bounds
-	// The frame's 1dp border is just outside the trigger. Rendering blends
-	// it, so tell the gray border from the primary ring by its blue.
-	ringed := func() bool {
-		// Render reads focus from the previous frame.
+	return h, func(x, y int) bool {
+		// Render reads focus from the previous frame. Rendering blends the
+		// 1dp border, so tell the gray border from the ring by its blue.
 		h.Frame()
 		h.Frame()
-		c := img.RGBAAt(b.Min.X-1, (b.Min.Y+b.Max.Y)/2)
+		c := img.RGBAAt(x, y)
 		return int(c.B)-int(c.R) > 32
 	}
-	if ringed() {
+}
+
+// A pointer pick returns focus to the trigger without its focus ring, as a
+// click on a button does; keyboard focus still shows the ring.
+func TestSelectRingsOnlyForKeyboardFocus(t *testing.T) {
+	v := Select("", "完全访问", "只读访问").Hint("访问权限")
+	h, ringed := ringHarness(t, func(cx *el.Context) el.Element {
+		return el.Div().P(10).Gap(10).W(el.Dp(320)).Items(el.Stretch).Child(v.Render(cx), Button("下一步", func() {}).Render(cx))
+	})
+	trigger, _ := node(h, "访问权限")
+	b := trigger.Desc.Bounds
+	x, y := b.Min.X-1, (b.Min.Y+b.Max.Y)/2 // the frame's border, just outside the trigger
+	if ringed(x, y) {
 		t.Fatal("ring before focus")
 	}
-	h.Click(float32(b.Min.X+b.Max.X)/2, float32(b.Min.Y+b.Max.Y)/2)
+	h.Click(center(b))
 	h.Frame()
-	option := innermost(h, "只读访问")
-	h.Click(float32(option.Min.X+option.Max.X)/2, float32(option.Min.Y+option.Max.Y)/2)
-	h.Frame()
+	h.Click(center(innermost(h, "只读访问")))
 	if v.Value() != "只读访问" || v.open {
 		t.Fatalf("pointer pick: value %q open %v", v.Value(), v.open)
 	}
-	if ringed() {
+	if ringed(x, y) {
 		t.Fatal("ring after a pointer pick")
 	}
 	h.Key(key.NameTab, 0) // to the button
 	h.Key(key.NameTab, key.ModShift)
-	if !ringed() {
+	if !ringed(x, y) {
 		t.Fatal("no ring with keyboard focus")
+	}
+}
+
+// Text fields clicked into show the caret alone, through typing and a
+// Combobox pick; reaching them with Tab rings their frame.
+func TestTextFieldsRingOnlyForKeyboardFocus(t *testing.T) {
+	in := Input("").Placeholder("名称")
+	combo := Combobox("", "苹果", "香蕉").Placeholder("水果")
+	h, ringed := ringHarness(t, func(cx *el.Context) el.Element {
+		return el.Div().P(10).Gap(10).W(el.Dp(320)).Items(el.Stretch).Child(in.Render(cx), combo.Render(cx))
+	})
+	// Left borders, 10dp in, halfway down each 36dp field.
+	inputRing := func() bool { return ringed(10, 28) }
+	comboRing := func() bool { return ringed(10, 74) }
+	field := innermost(h, "名称")
+	h.Click(float32(field.Min.X+4), float32(field.Min.Y+field.Max.Y)/2)
+	h.Type("值")
+	if in.Value() != "值" || inputRing() {
+		t.Fatalf("clicked input: value %q ring %v", in.Value(), inputRing())
+	}
+	field = innermost(h, "水果")
+	h.Click(float32(field.Min.X+4), float32(field.Min.Y+field.Max.Y)/2)
+	h.Type("香")
+	if !combo.open || comboRing() {
+		t.Fatalf("clicked combobox: open %v ring %v", combo.open, comboRing())
+	}
+	h.Click(center(innermost(h, "香蕉")))
+	if combo.Value() != "香蕉" || combo.open || comboRing() {
+		t.Fatalf("pointer pick: value %q open %v ring %v", combo.Value(), combo.open, comboRing())
+	}
+	// Without TabIndex the window moves focus on Tab itself, through Gio.
+	h.Router.MoveFocus(key.FocusBackward)
+	if !inputRing() || comboRing() {
+		t.Fatalf("Shift+Tab to the input: input ring %v combobox ring %v", inputRing(), comboRing())
+	}
+	h.Router.MoveFocus(key.FocusForward)
+	if inputRing() || !comboRing() {
+		t.Fatalf("Tab to the combobox: input ring %v combobox ring %v", inputRing(), comboRing())
 	}
 }

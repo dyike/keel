@@ -241,7 +241,7 @@ func (e *engine) paintContent(n *Node) {
 			n.focus(&st)
 		}
 	}
-	if n.input != nil && gtx.Focused(&state.editor) {
+	if n.input != nil && gtx.Focused(&state.editor) && state.inputRing {
 		st.borderColor = theme.Primary
 		if n.focus != nil {
 			n.focus(&st)
@@ -261,7 +261,7 @@ func (e *engine) paintContent(n *Node) {
 	}
 	if theme.Frameless {
 		st.borderWidth = 0
-		if !n.effectiveDisabled && ((n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus) || (n.input != nil && gtx.Focused(&state.editor))) {
+		if !n.effectiveDisabled && ((n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus) || (n.input != nil && gtx.Focused(&state.editor) && state.inputRing)) {
 			bg := theme.Highlight
 			if st.bg != nil && st.bg.A != 0 {
 				bg = *st.bg
@@ -699,6 +699,12 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		}
 	}
 	focused := gtx.Enabled() && gtx.Focused(ed)
+	if focused && !st.inputFocused {
+		if !st.inputSource {
+			st.inputRing = !e.store.recentPress()
+		}
+		st.inputSource = false
+	}
 	if focused && !st.inputFocused && spec.selectOnFocus {
 		ed.SetCaret(0, ed.Len())
 	}

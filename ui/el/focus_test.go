@@ -361,17 +361,35 @@ func TestPointerFocusRingAndKeyboardRecovery(t *testing.T) {
 	check("b", true)
 }
 
-func TestPointerFocusInputStillShowsFocusStyle(t *testing.T) {
+// A clicked input shows only its caret, as native fields do; focus from the
+// keyboard or a program also paints its focus style.
+func TestPointerFocusInputShowsOnlyCaret(t *testing.T) {
 	painted := false
+	focus := ""
 	input := Input().ID("input").W(Dp(200)).H(Dp(40)).
 		FocusStyle(func(s *Style) { painted = true })
-	root := Root(viewFunc(func(cx *Context) Element { return Div().Child(input) }))
+	root := Root(viewFunc(func(cx *Context) Element {
+		if focus != "" {
+			cx.Focus(focus)
+			focus = ""
+		}
+		return Div().Child(input, Div().ID("button").Focusable(true).H(Dp(20)))
+	}))
 	h := uitest.New(root)
 	h.Click(20, 20)
 	painted = false
 	h.Frame()
+	if painted || !h.Router.Source().Focused(&root.store.states[input.node().key].editor) {
+		t.Fatal("pointer-focused input painted its focus style")
+	}
+	focus = "button"
+	h.Frame()
+	focus = "input"
+	h.Frame()
+	painted = false
+	h.Frame()
 	if !painted {
-		t.Fatal("pointer-focused input lost its focus style")
+		t.Fatal("program-focused input lost its focus style")
 	}
 }
 

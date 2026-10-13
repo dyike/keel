@@ -270,6 +270,8 @@ Esc is passed to the top layer** to set the overlay of OnDismiss**. Overlays wit
 
 `cx.FocusWithin(id)` Query whether this element or any of its descendants received focus in the previous frame, used by Tooltip to display a prompt when the keyboard is focused.
 
+`cx.FocusVisibleWithin(id)` is the focus-ring form of `FocusWithin`: only focus from the keyboard or a program counts, as with `cx.FocusVisible`. An input clicked into shows only its caret; reached with Tab or `cx.Focus` outside a pointer callback it also shows its ring and `FocusStyle`. Field frames use `FocusVisibleWithin` so clicks and pointer picks leave no ring.
+
 `cx.Hovered(id)` queries whether the most recently processed pointer position is within the element. Elements that are disabled or obscured by a modal layer return false. Ordinary elements with IDs can also be queried without adding a click callback. HoverCard combines the Hovered results of anchors and cards.
 
 ### Hang to the root of the window

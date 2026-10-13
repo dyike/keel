@@ -93,7 +93,7 @@ func (v *TimeFieldView) renderSegments(cx *el.Context) el.Element {
 		v.partFocused = [3]bool{}
 		v.syncParts()
 	}
-	box := fieldFrame(id, focused, v.err != "", v.disabled, false).FocusOnPress(v.segmentID(0)).W(el.Auto).MinH(el.Dp(height)).Px(padding).Py(verticalPadding).TextSize(font).Gap(theme.SpaceXs * font / theme.TextControl).
+	box := fieldFrame(id, focused && cx.FocusVisibleWithin(id), v.err != "", v.disabled, false).FocusOnPress(v.segmentID(0)).W(el.Auto).MinH(el.Dp(height)).Px(padding).Py(verticalPadding).TextSize(font).Gap(theme.SpaceXs * font / theme.TextControl).
 		Child(Icon(IconClock).Size(icon).Color(theme.Muted).Render(cx))
 	text := locale.Current()
 	names := []string{text.Hour, text.Minute, text.Second}
