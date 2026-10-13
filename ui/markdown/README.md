@@ -33,3 +33,7 @@ Render Markdown into `ui/el` elements, optimized for streaming output of AI chat
 Usage and Design: [Markdown](../../docs/markdown.md).
 
 Atomic input references are connected to `ui/internal/inputcontent` by `el.InputDocument`, which only saves text, reference range, selection and editing transactions, and does not rely on Gio or other Keel modules. kit and markdown only depend on it indirectly via el.
+
+Applications can start code cards with automatic wrapping by calling
+`markdown.New(source).CodeBlockWrap(true)` before the first render. Each code
+card still has its own wrap toggle, and copying preserves the original text.

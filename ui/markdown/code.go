@@ -53,7 +53,7 @@ type codeView struct {
 func (d *Doc) code(cx *el.Context, b *block) el.Element {
 	cv, _ := b.view.(*codeView)
 	if cv == nil {
-		cv = &codeView{rich: highlight(b.lang, b.code)}
+		cv = &codeView{rich: highlight(b.lang, b.code), wrap: d.defaultCodeWrap}
 		b.view = cv
 	}
 	context := CodeBlockContext{ID: fmt.Sprintf("markdown-code-%p", cv), Language: b.lang, Text: b.code, Wrapped: cv.wrap}

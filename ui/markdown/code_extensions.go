@@ -14,6 +14,15 @@ type CodeBlockContext struct {
 	Wrapped            bool
 }
 
+// CodeBlockWrap sets the initial wrapping of code blocks first rendered after
+// this call. The default is false. Call it before rendering to start with wrapped
+// code; each block's wrap button still overrides its own presentation. Changing
+// the default does not reset existing blocks or their selection.
+func (d *Doc) CodeBlockWrap(on bool) *Doc {
+	d.defaultCodeWrap = on
+	return d
+}
+
 // CodeBlockActions appends controls to the default code header. It is called
 // each render, including for code in lists/quotes. Nil removes the extension.
 // Handlers may change application state; rendering must not mutate the document.
