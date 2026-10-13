@@ -72,6 +72,7 @@ const (
 	SpaceBetween  // main axis only
 	SpaceAround   // main axis only
 	ContentBottom // row cross axis only: align selected descendant bottoms
+	FirstLine     // row cross axis only: line up first lines of text; children without text center on it
 )
 
 // Style is everything an element can look like. Build it with the methods

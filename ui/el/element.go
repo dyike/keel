@@ -250,7 +250,9 @@ func (s *Styled[T]) Justify(a Align) *T { s.n.style.justify = a; return s.self }
 
 // Items aligns children across the main axis: Start, Center, End or Stretch.
 // Rows default to Center, so icons and text line up; columns and grids
-// default to Stretch, so children fill the width.
+// default to Stretch, so children fill the width. In rows, FirstLine lines
+// up each child's first line of text (a label beside a checkbox, a field or
+// a paragraph) and centers children without text, such as icons, on it.
 func (s *Styled[T]) Items(a Align) *T { s.n.style.align, s.n.style.alignSet = a, true; return s.self }
 
 // Center centers children on both axes.

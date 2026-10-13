@@ -87,7 +87,7 @@ el.Input().ID("q").Placeholder("搜索").Bind(&v.query).OnChange(func(s string) 
 
 | 分类 | 方法 |
 | --- | --- |
-| 方向与对齐 | `Row()`、`Col()`（默认）、`Wrap()` 自动换行、`Grid(columns)` 等宽列网格、`ColSpan(n)` 跨列、`Gap(dp)`、`Justify(Start/Center/End/SpaceBetween/SpaceAround)`、`Items(Start/Center/End/Stretch)`（交叉轴：`Row`/`Wrap` 默认 `Center`，图标与文字无需额外设置即可对齐；`Col`/`Grid` 默认 `Stretch`。需要子元素撑满行高时，如侧栏外壳、等高卡片，写 `Items(el.Stretch)`）、`Center()` |
+| 方向与对齐 | `Row()`、`Col()`（默认）、`Wrap()` 自动换行、`Grid(columns)` 等宽列网格、`ColSpan(n)` 跨列、`Gap(dp)`、`Justify(Start/Center/End/SpaceBetween/SpaceAround)`、`Items(Start/Center/End/Stretch)`（交叉轴：`Row`/`Wrap` 默认 `Center`，图标与文字无需额外设置即可对齐；`Col`/`Grid` 默认 `Stretch`。需要子元素撑满行高时，如侧栏外壳、等高卡片，写 `Items(el.Stretch)`；`Items(el.FirstLine)` 让每个子元素的第一行文字对齐，例如 label 配 Checkbox、输入框或段落，图标居中在这一行上）、`Center()` |
 | 伸缩 | `Grow()` 等于 CSS 的 `flex: 1`：初始尺寸按 0 算，分享剩余空间；其他元素空间不够时按比例收缩，`NoShrink()` 禁止收缩 |
 | 尺寸 | `W(l)`、`H(l)`、`Size(l)`、`MinW/MinH/MaxW/MaxH(l)`、`WFull()`、`HFull()`；长度用 `el.Dp(40)`、随字号缩放的 `el.Sp(40)`、`el.Frac(0.5)`、`el.Full` |
 | 间距 | `P`、`Px`、`Py`、`Pt`、`Pb`、`Pl`、`Pr`（内边距），`M`、`Mx`、`My`、`Mt`、`Mb`、`Ml`、`Mr`（外边距），单位 dp |

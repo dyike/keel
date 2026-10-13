@@ -391,6 +391,10 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 		above, below := e.contentBottomExtents(kids)
 		crossSize = above + below
 	}
+	if row && align == FirstLine {
+		above, below := e.firstLineExtents(kids)
+		crossSize = above + below
+	}
 	if crossDef >= 0 {
 		crossSize = crossDef
 	}
@@ -475,6 +479,9 @@ func (e *engine) place(n *Node) {
 	if row && align == ContentBottom {
 		anchor, _ = e.contentBottomExtents(kids)
 	}
+	if row && align == FirstLine {
+		anchor, _ = e.firstLineExtents(kids)
+	}
 	for i, c := range kids {
 		if s.wrap || s.grid > 0 {
 			c.pos = origin.Add(n.flowPositions[i])
@@ -490,6 +497,10 @@ func (e *engine) place(n *Node) {
 		case ContentBottom:
 			if row {
 				cross = anchor - e.contentBottom(c)
+			}
+		case FirstLine:
+			if row {
+				cross = anchor - e.firstLineOf(c)
 			}
 		}
 		main := cursor + ms

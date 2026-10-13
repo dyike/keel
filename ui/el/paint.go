@@ -959,8 +959,11 @@ type shiftKey struct {
 	script     script
 }
 
-// shifts caches textShift per text style. Touched only under the frame lock.
-var shifts = map[shiftKey]int{}
+// shifts caches textShift and the line box it was measured in, per text
+// style. Touched only under the frame lock.
+var shifts = map[shiftKey]textLine{}
+
+type textLine struct{ shift, box int }
 
 // script says which faces set a text, and so which line box it gets: East
 // Asian text usually comes from a fallback face (PingFang behind SF Pro) whose
@@ -1004,13 +1007,19 @@ func scriptOf(s string) script {
 // text centers both. One mixed measurement for all text set Latin labels low
 // and Chinese labels high beside their icons. The shift never pushes the
 // lowest or highest ink further out of the line box.
-func (e *engine) textShift(n *Node, sc script) int {
+func (e *engine) textShift(n *Node, sc script) int { return e.textLine(n, sc).shift }
+
+// textLineBox is the height of one line of n's text, which textShift centers
+// the ink in.
+func (e *engine) textLineBox(n *Node, sc script) int { return e.textLine(n, sc).box }
+
+func (e *engine) textLine(n *Node, sc script) textLine {
 	ts := n.textStyle
 	face := textFont(ts)
 	px := e.m.Sp(ts.size)
 	key := shiftKey{face.Typeface, px, face.Weight, ts.lineHeight, sc}
-	if s, ok := shifts[key]; ok {
-		return s
+	if l, ok := shifts[key]; ok {
+		return l
 	}
 	// The line box is what a Label of this style measures: Gio sizes a text
 	// box that way, and fallback fonts (国 in a Latin face) would otherwise
@@ -1060,8 +1069,9 @@ func (e *engine) textShift(n *Node, sc script) int {
 		shift = int(math.Floor(float64((boxDescent-boxAscent)-(bodyTop+bodyBottom))/2 + 0.5))
 		shift = max(min(shift, max(boxDescent-lowest, 0)), min(-boxAscent-highest, 0))
 	}
-	shifts[key] = shift
-	return shift
+	l := textLine{shift, dims.Size.Y}
+	shifts[key] = l
+	return l
 }
 
 // paintGradient fills a rounded rectangle with g. The stops sit where the

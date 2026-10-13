@@ -408,3 +408,38 @@ func TestRowCentersByDefault(t *testing.T) {
 		t.Fatalf("grid cell %v, want the row's height", r)
 	}
 }
+
+// FirstLine lines up the first line of text in each child, through padding,
+// borders and nested rows, and centers children without text on that line.
+func TestRowFirstLine(t *testing.T) {
+	icon := Div().W(Dp(10)).H(Dp(10))
+	h := render(t, Div().Items(Start).Child(Div().Row().Items(FirstLine).Child(
+		Text("名称"),
+		Div().Pt(13).Border(1, theme.Border).Child(
+			Div().Row().Child(Div().W(Dp(30)).H(Dp(40)), Text("框内文字")),
+			Text("第二行")),
+		icon,
+	)))
+	top := func(label string) image.Rectangle {
+		for _, n := range h.Router.AppendSemantics(nil) {
+			if n.Desc.Label == label {
+				return n.Desc.Bounds
+			}
+		}
+		t.Fatalf("no text %q", label)
+		return image.Rectangle{}
+	}
+	label, framed := top("名称"), top("框内文字")
+	if label.Min.Y != framed.Min.Y || label.Min.Y <= 0 {
+		t.Fatalf("label %v, framed first line %v", label, framed)
+	}
+	if second := top("第二行"); second.Min.Y <= framed.Max.Y {
+		t.Fatalf("second line %v overlaps the first %v", second, framed)
+	}
+	// The icon centers on the line the texts share. Text ink is shifted by
+	// textShift; compare against the unshifted line box instead.
+	line := rect(icon).Min.Y + rect(icon).Dy()/2
+	if d := line - (label.Min.Y + label.Dy()/2); d < -4 || d > 4 {
+		t.Fatalf("icon center %d far from the label line %v", line, label)
+	}
+}
