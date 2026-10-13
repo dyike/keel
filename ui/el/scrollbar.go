@@ -1,17 +1,17 @@
 package el
 
 import (
-	"gioui.org/op"
+	"github.com/dyike/keel/gio/op"
 	"image"
 	"image/color"
 	"math"
 	"time"
 
-	"gioui.org/gesture"
-	"gioui.org/io/key"
-	"gioui.org/io/pointer"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
+	"github.com/dyike/keel/gio/gesture"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/io/pointer"
+	"github.com/dyike/keel/gio/op/clip"
+	"github.com/dyike/keel/gio/op/paint"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
 )

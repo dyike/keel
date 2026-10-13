@@ -3,12 +3,12 @@ package el
 import (
 	"image"
 
-	"gioui.org/gesture"
-	"gioui.org/io/key"
-	"gioui.org/io/pointer"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/widget"
+	"github.com/dyike/keel/gio/gesture"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/io/pointer"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/op/clip"
+	"github.com/dyike/keel/gio/widget"
 )
 
 // Optional Gio capability: upstream editors keep their native wheel/caret

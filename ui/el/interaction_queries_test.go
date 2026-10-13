@@ -3,7 +3,7 @@ package el
 import (
 	"testing"
 
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/ui/internal/uitest"
 )
 

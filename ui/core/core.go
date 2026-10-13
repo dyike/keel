@@ -7,8 +7,8 @@
 package core
 
 import (
-	"gioui.org/layout"
-	"gioui.org/op"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op"
 	"image"
 
 	"github.com/dyike/keel/ui/internal/loop"

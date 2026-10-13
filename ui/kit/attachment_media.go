@@ -1,8 +1,8 @@
 package kit
 
 import (
-	"gioui.org/layout"
-	giowidget "gioui.org/widget"
+	"github.com/dyike/keel/gio/layout"
+	giowidget "github.com/dyike/keel/gio/widget"
 	"github.com/dyike/keel/ui/core"
 	"image/color"
 

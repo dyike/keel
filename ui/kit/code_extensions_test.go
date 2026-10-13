@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/io/key"
 )
 
 func TestCodeSearchSessionPublic(t *testing.T) {

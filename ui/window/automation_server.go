@@ -31,8 +31,8 @@ import (
 	"syscall"
 	"time"
 
-	"gioui.org/f32"
-	"gioui.org/io/system"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/io/system"
 
 	"github.com/dyike/keel/ui/internal/loop"
 )

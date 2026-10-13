@@ -2,8 +2,8 @@ package window
 
 import (
 	"bytes"
-	"gioui.org/f32"
-	"gioui.org/io/pointer"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"

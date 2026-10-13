@@ -8,14 +8,14 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"gioui.org/f32"
-	"gioui.org/io/clipboard"
-	"gioui.org/io/event"
-	"gioui.org/io/key"
-	"gioui.org/io/pointer"
-	"gioui.org/io/transfer"
-	"gioui.org/layout"
-	"gioui.org/op"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/io/clipboard"
+	"github.com/dyike/keel/gio/io/event"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/io/pointer"
+	"github.com/dyike/keel/gio/io/transfer"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op"
 
 	"github.com/dyike/keel/ui/core"
 )

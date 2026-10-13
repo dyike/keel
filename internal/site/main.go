@@ -93,8 +93,8 @@ type navGroup struct {
 }
 
 // excluded directories hold working notes and dependencies, not documentation.
-// third_party holds upstream code (Gio, go-text) with its own docs.
-var excluded = []string{".git", "work", "node_modules", "_site", "testdata", "third_party"}
+// gio and typesetting hold upstream code with its own docs; third_party holds patch logs.
+var excluded = []string{".git", "work", "node_modules", "_site", "testdata", "gio", "typesetting", "third_party"}
 
 // unpublished paths stay in the repository but not on the site: progress
 // reports are working records, not documentation.

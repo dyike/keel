@@ -6,13 +6,13 @@ import (
 	"image/color"
 	"testing"
 
-	"gioui.org/f32"
-	"gioui.org/font"
-	"gioui.org/font/gofont"
-	"gioui.org/gpu/headless"
-	"gioui.org/op"
-	"gioui.org/op/paint"
-	"gioui.org/text"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/font/gofont"
+	"github.com/dyike/keel/gio/gpu/headless"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/op/paint"
+	"github.com/dyike/keel/gio/text"
 	"golang.org/x/image/math/fixed"
 )
 

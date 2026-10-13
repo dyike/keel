@@ -6,12 +6,12 @@ import (
 	"math"
 	"sort"
 
-	"gioui.org/f32"
-	"gioui.org/gpu/headless"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
-	"gioui.org/text"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/gpu/headless"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/op/clip"
+	"github.com/dyike/keel/gio/op/paint"
+	"github.com/dyike/keel/gio/text"
 	"golang.org/x/image/math/fixed"
 )
 

@@ -4,11 +4,11 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/io/key"
-	"gioui.org/layout"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
-	"gioui.org/widget"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op/clip"
+	"github.com/dyike/keel/gio/op/paint"
+	"github.com/dyike/keel/gio/widget"
 )
 
 // InputMethodCaret uses the same ink metrics and baseline as the visible caret.

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"gioui.org/gpu/headless"
-	"gioui.org/unit"
+	"github.com/dyike/keel/gio/gpu/headless"
+	"github.com/dyike/keel/gio/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"

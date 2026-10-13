@@ -14,8 +14,7 @@ jobs:
       - name: Install Linux window dependencies
         run: sudo apt-get update && sudo apt-get install -y libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libegl1-mesa-dev libgles2-mesa-dev libxcursor-dev libxfixes-dev libvulkan-dev weston
       - name: Check invalid-view acknowledgment before native teardown
-        working-directory: third_party/gio
-        run: go test -race ./app -run 'TestDeferredTeardown|TestWaylandEventAcknowledges|TestWaylandRun|TestEventFuncs' -count=1 -timeout=120s
+        run: go test -race ./gio/app -run 'TestDeferredTeardown|TestWaylandEventAcknowledges|TestWaylandRun|TestEventFuncs' -count=1 -timeout=120s
       - name: Check real windows under a headless Wayland compositor
         shell: bash
         run: |

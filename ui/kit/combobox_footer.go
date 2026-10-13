@@ -1,7 +1,7 @@
 package kit
 
 import (
-	"gioui.org/op"
+	"github.com/dyike/keel/gio/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"

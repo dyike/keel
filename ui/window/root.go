@@ -1,10 +1,10 @@
 package window
 
 import (
-	"gioui.org/layout"
-	"gioui.org/op/paint"
-	"gioui.org/widget"
-	"gioui.org/widget/material"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op/paint"
+	"github.com/dyike/keel/gio/widget"
+	"github.com/dyike/keel/gio/widget/material"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"

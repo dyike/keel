@@ -2,12 +2,12 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Builds Keel’s documentation site. Guides under `docs/` and module/example READMEs become static HTML. Component pages embed the WebAssembly build of `examples/components`. `.github/workflows/site.yml` publishes the site to GitHub Pages on pushes to main and release tags.
+Builds Keel’s documentation site. Guides under `docs/` and module/example READMEs become static HTML. Upstream documentation in `gio/` and `typesetting/`, and patch logs in `third_party/`, are excluded. Component pages embed the WebAssembly build of `examples/components`. `.github/workflows/site.yml` publishes the site to GitHub Pages on pushes to main and release tags.
 
 Local preview:
 
 ```sh
-go run gioui.org/cmd/gogio@v0.10.0 -target js -tags osusergo -o /tmp/demo ./examples/components
+go run ./cmd/keel/internal/gogio/cmd -target js -tags osusergo -o /tmp/demo ./examples/components
 python3 internal/site/subset_font.py . NotoSansSC-Regular.otf /tmp/demo/font.otf
 go run ./internal/site -out _site -demo /tmp/demo
 python3 -m http.server --directory _site

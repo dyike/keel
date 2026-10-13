@@ -5,14 +5,14 @@ import (
 	"strconv"
 	"testing"
 
-	"gioui.org/font"
-	"gioui.org/font/gofont"
-	"gioui.org/io/system"
-	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/text"
-	"gioui.org/unit"
-	"gioui.org/widget/material"
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/font/gofont"
+	"github.com/dyike/keel/gio/io/system"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/text"
+	"github.com/dyike/keel/gio/unit"
+	"github.com/dyike/keel/gio/widget/material"
 	"github.com/dyike/keel/ui/core"
 )
 

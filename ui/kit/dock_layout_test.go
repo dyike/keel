@@ -2,9 +2,9 @@ package kit
 
 import (
 	"encoding/json"
-	"gioui.org/f32"
-	"gioui.org/io/key"
-	"gioui.org/io/pointer"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/ui/el"
 	"math"
 	"reflect"

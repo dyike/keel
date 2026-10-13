@@ -2,11 +2,11 @@ package kit
 
 import (
 	"errors"
-	"gioui.org/f32"
-	"gioui.org/io/input"
-	"gioui.org/io/key"
-	"gioui.org/io/pointer"
-	"gioui.org/io/transfer"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/io/input"
+	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/gio/io/pointer"
+	"github.com/dyike/keel/gio/io/transfer"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"

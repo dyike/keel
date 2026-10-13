@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"gioui.org/font"
-	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
-	"gioui.org/text"
-	"gioui.org/widget"
-	"gioui.org/widget/material"
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/op/clip"
+	"github.com/dyike/keel/gio/op/paint"
+	"github.com/dyike/keel/gio/text"
+	"github.com/dyike/keel/gio/widget"
+	"github.com/dyike/keel/gio/widget/material"
 	"golang.org/x/image/math/fixed"
 )
 

@@ -4,6 +4,19 @@
 
 界面测试大部分不需要开窗口：`ui/internal/uitest` 测试工具通过 Gio 真实的输入路由送入点击、按键、文字，组件走的代码和真实窗口完全一样。`go test -race ./...` 在本机跑完大约 10 秒。
 
+## 桌面无 CGO 编译门禁
+
+```sh
+GOOS=windows GOARCH=amd64 bash scripts/check-desktop-cgo-free.sh
+GOOS=linux GOARCH=arm64 bash scripts/check-desktop-cgo-free.sh native
+```
+
+默认 `all` 模式先检查 native 能力，再检查包含 Keel Gio 和 go-text 的完整模块。脚本关闭 CGO 和 workspace，发现依赖包错误、选中的 CgoFiles 或构建错误即失败。`native` 模式仅检查 `native/*`，不能视为桌面 UI 支持验收。
+六目标 CI 矩阵在每次 push/PR 检查 native 能力及完整 Windows 构建。完整 macOS/Linux 门禁仍待迁移，可通过 workflow 的 `full` 参数执行；不使用静默容忍失败。将 CC/CXX 设为不存在的路径可防止意外调用 C 编译器，但不能代替隔离的无编译器/头文件发布验证。
+编译通过不等于运行、IME、原生 GPU、打包或性能验收；详见[桌面交付设计](desktop-cgo-free.zh-CN.md)。
+
+`python3 scripts/check-module-release.py` 把工作区打包成本地模块代理中的测试用 Keel 发布，用 `keel new` 创建只 require Keel 的应用，确认其 Gio 和 go-text 包来自 Keel 模块（而非上游 `gioui.org` 或 go-text），编译外部自定义组件，并从该发布 `go install` CLI。它检查默认、离线、本地生成及含空格路径，无 CGO 打包 Windows amd64/arm64 和 WebAssembly；macOS 上还用现有 CGO 后端运行打包后的应用 ID/启动参数探针。外部依赖使用当前配置的 Go 代理；合成发布由本地代理提供，使用全新模块缓存并关闭 workspace。
+
 ## 交互测试
 
 `ui/` 下的模块都可以引用它（它在 `internal` 里，外部项目引用不到）：

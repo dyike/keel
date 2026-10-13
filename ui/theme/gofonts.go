@@ -3,8 +3,8 @@ package theme
 import (
 	"sync"
 
-	"gioui.org/font"
-	"gioui.org/font/gofont"
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/font/gofont"
 	"golang.org/x/image/font/gofont/gobold"
 	"golang.org/x/image/font/gofont/goitalic"
 	"golang.org/x/image/font/gofont/gomono"

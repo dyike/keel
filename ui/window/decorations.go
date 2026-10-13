@@ -3,12 +3,12 @@ package window
 import (
 	"image"
 
-	"gioui.org/io/system"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
-	gtext "gioui.org/text"
-	"gioui.org/widget/material"
+	"github.com/dyike/keel/gio/io/system"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/op/clip"
+	"github.com/dyike/keel/gio/op/paint"
+	gtext "github.com/dyike/keel/gio/text"
+	"github.com/dyike/keel/gio/widget/material"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"

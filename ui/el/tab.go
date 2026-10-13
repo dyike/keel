@@ -1,8 +1,8 @@
 package el
 
 import (
-	"gioui.org/io/event"
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/io/event"
+	"github.com/dyike/keel/gio/io/key"
 	"sort"
 )
 

@@ -4,7 +4,7 @@ package window
 
 import (
 	"encoding/json"
-	gioapp "gioui.org/app"
+	gioapp "github.com/dyike/keel/gio/app"
 	"github.com/dyike/keel/ui/core"
 	"golang.org/x/sys/windows"
 	"sync"

@@ -55,7 +55,7 @@ PY
 mkdir -p "$output"
 GOOS=ios GOARCH="$goarch" CGO_ENABLED=1 CC="$compiler" \
   CGO_CFLAGS="$flags" CGO_LDFLAGS="$flags" \
-  go build -modfile "$workdir/go.mod" -ldflags '-X gioui.org/app.ID=dev.keel.hello' \
+  go build -modfile "$workdir/go.mod" -ldflags '-X github.com/dyike/keel/gio/app.ID=dev.keel.hello' \
   -o "$output/KeelHello" ./examples/hello
 
 cat > "$output/Info.plist" <<'PLIST'

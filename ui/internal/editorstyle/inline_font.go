@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"slices"
 
-	"gioui.org/font"
-	fontapi "github.com/go-text/typesetting/font"
+	"github.com/dyike/keel/gio/font"
+	fontapi "github.com/dyike/keel/typesetting/font"
 )
 
 type InlineGlyph struct {

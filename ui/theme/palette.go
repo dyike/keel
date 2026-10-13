@@ -3,7 +3,7 @@ package theme
 import (
 	"image/color"
 
-	"gioui.org/widget/material"
+	"github.com/dyike/keel/gio/widget/material"
 	"github.com/dyike/keel/ui/internal/loop"
 )
 

@@ -1,9 +1,9 @@
 package el
 
 import (
-	"gioui.org/gesture"
-	"gioui.org/io/event"
-	"gioui.org/io/key"
+	"github.com/dyike/keel/gio/gesture"
+	"github.com/dyike/keel/gio/io/event"
+	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/ui/core"
 )
 

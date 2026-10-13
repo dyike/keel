@@ -6,7 +6,7 @@ import (
 	"sync"
 	"unsafe"
 
-	gioapp "gioui.org/app"
+	gioapp "github.com/dyike/keel/gio/app"
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/xproto"
 

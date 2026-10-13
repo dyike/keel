@@ -1,8 +1,8 @@
 package kit
 
 import (
-	"gioui.org/f32"
-	"gioui.org/io/pointer"
+	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/io/pointer"
 	"math"
 	"testing"
 )

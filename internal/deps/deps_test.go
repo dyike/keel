@@ -9,6 +9,16 @@ import (
 
 const mod = "github.com/dyike/keel"
 
+// Keel's copies of Gio and go-text are packages of this module, but they are
+// foundations, not Keel modules: ui may build on them, native and the CLI
+// must not, and they never import Keel's own packages.
+const (
+	gio         = mod + "/gio"
+	typesetting = mod + "/typesetting"
+)
+
+func within(pkg, root string) bool { return pkg == root || strings.HasPrefix(pkg, root+"/") }
+
 // allowed lists, for every module, the other Keel packages it may import,
 // including indirect imports. Changing this table changes the architecture:
 // update the module READMEs and docs/architecture.md too.
@@ -39,7 +49,10 @@ var allowed = map[string][]string{
 	"native/clipboard":         {"native", "native/internal/sys", "native/internal/wlclip"},
 	// Talks to apps only through the automation protocol, never Keel's code.
 	"cmd/keel-mcp": {},
-	"cmd/keel":     {"internal/svgicon", "internal/appicon"},
+	"cmd/keel":     {"internal/svgicon", "internal/appicon", "cmd/keel/internal/gogio"},
+	// The packager, kept apart from the CLI's own code (cmd/keel/internal/gogio/README.md).
+	"cmd/keel/internal/gogio":     {},
+	"cmd/keel/internal/gogio/cmd": {"cmd/keel/internal/gogio"},
 }
 
 func TestModuleBoundaries(t *testing.T) {
@@ -51,12 +64,17 @@ func TestModuleBoundaries(t *testing.T) {
 		for _, dep := range strings.Fields(string(out)) {
 			switch {
 			case dep == mod+"/"+pkg:
+			case within(dep, gio) || within(dep, typesetting):
+				if strings.HasPrefix(pkg, "native") || strings.HasPrefix(pkg, "cmd/") {
+					t.Errorf("%s imports %s: it must work without the GUI", pkg, dep)
+				}
 			case strings.HasPrefix(dep, mod+"/"):
 				if rel := strings.TrimPrefix(dep, mod+"/"); !slices.Contains(ok, rel) {
 					t.Errorf("%s imports %s, which it is not allowed to depend on", pkg, rel)
 				}
-			case (strings.HasPrefix(pkg, "native") || strings.HasPrefix(pkg, "cmd/")) && strings.HasPrefix(dep, "gioui.org"):
-				t.Errorf("%s imports %s: it must work without the GUI", pkg, dep)
+			case strings.HasPrefix(dep, "gioui.org/") && !strings.HasPrefix(dep, "gioui.org/shader"),
+				dep == "github.com/go-text/typesetting" || strings.HasPrefix(dep, "github.com/go-text/typesetting/"):
+				t.Errorf("%s imports upstream %s instead of Keel's root-level copy", pkg, dep)
 			}
 		}
 	}
@@ -70,11 +88,32 @@ func TestEveryModuleIsListed(t *testing.T) {
 	}
 	for _, p := range strings.Fields(string(out)) {
 		rel := strings.TrimPrefix(p, mod+"/")
-		if strings.HasPrefix(rel, "examples/") || strings.HasPrefix(rel, "internal/") || strings.HasPrefix(rel, "ui/internal/") || strings.Contains(rel, "/testdata/") {
+		if within(p, gio) || within(p, typesetting) || strings.HasPrefix(rel, "examples/") || strings.HasPrefix(rel, "internal/") || strings.HasPrefix(rel, "ui/internal/") || strings.Contains(rel, "/testdata/") {
 			continue
 		}
 		if _, ok := allowed[rel]; !ok {
 			t.Errorf("module %s is missing from the allowed table", rel)
+		}
+	}
+}
+
+// Gio may build on go-text and its own packages, go-text only on itself;
+// neither reaches into Keel, though they now share its module path.
+func TestFoundationBoundaries(t *testing.T) {
+	for _, root := range []string{gio, typesetting} {
+		out, err := exec.Command("go", "list", "-deps", "-f", "{{.ImportPath}}", root+"/...").Output()
+		if err != nil {
+			t.Fatalf("go list %s: %v", root, err)
+		}
+		for _, dep := range strings.Fields(string(out)) {
+			switch {
+			case within(dep, typesetting), root == gio && within(dep, gio):
+			case strings.HasPrefix(dep, mod+"/"):
+				t.Errorf("%s depends on %s", root, dep)
+			case strings.HasPrefix(dep, "gioui.org/") && !strings.HasPrefix(dep, "gioui.org/shader"),
+				strings.HasPrefix(dep, "github.com/go-text/typesetting"):
+				t.Errorf("%s depends on upstream %s", root, dep)
+			}
 		}
 	}
 }
@@ -87,7 +126,7 @@ func TestKitDirectDependencies(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, dep := range strings.Fields(string(out)) {
-		if strings.HasPrefix(dep, mod+"/") && !slices.Contains([]string{mod + "/ui/base", mod + "/ui/core", mod + "/ui/theme", mod + "/ui/locale", mod + "/ui/el"}, dep) {
+		if strings.HasPrefix(dep, mod+"/") && !within(dep, gio) && !within(dep, typesetting) && !slices.Contains([]string{mod + "/ui/base", mod + "/ui/core", mod + "/ui/theme", mod + "/ui/locale", mod + "/ui/el"}, dep) {
 			t.Errorf("kit directly imports %s", dep)
 		}
 	}

@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"slices"
 
-	"gioui.org/io/system"
-	"gioui.org/op/clip"
+	"github.com/dyike/keel/gio/io/system"
+	"github.com/dyike/keel/gio/op/clip"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"

@@ -33,12 +33,16 @@ github.com/dyike/keel
 │   └── native.go         共用的错误值
 ├── cmd/
 │   ├── keel/             脚手架：新建项目、运行、生成各平台图标并打包
+│   │   └── internal/gogio/ 进程内运行的 Gio 打包器，不导入 GUI
 │   └── keel-mcp/         MCP server：Agent 用它对应用做端到端测试
 ├── internal/
 │   ├── deps/             模块边界检查
 │   ├── svgicon/          把 SVG 图标画成 PNG（站点和脚手架共用）
 │   ├── appicon/          按 macOS、Windows、GNOME 规范裁出应用图标（脚手架和 ui/window 共用）
 │   └── site/             文档站生成器
+├── gio/                 Gio 基础库：窗口、布局、GPU；可依赖 typesetting
+├── typesetting/         go-text 基础库：字体与 shaping；不依赖 Gio
+├── third_party/         上游来源与补丁记录
 ├── examples/
 └── docs/
 ```
@@ -78,7 +82,9 @@ native:
 
 `cmd/keel-mcp` 不引用任何 Keel 包，也不引用 Gio：它只通过 socket 上的 JSON 协议驱动 `ui/window` 的自动化模式，见 [Agent 端到端测试](automation.zh-CN.md#原理)。
 
-`cmd/keel` 也不引用界面包：它只用 `internal/svgicon` 画占位图标，用 `golang.org/x/image` 和 `tc-hib/winres` 生成各平台图标与 Windows 资源，打包时调用 `go`、Gio 的 gogio 和 macOS 的 `codesign`，见 [快速开始 · 打包](getting-started.zh-CN.md#打包)。
+`cmd/keel` 不引用界面包：图标使用 `internal/svgicon` 和 `internal/appicon`，缩放与 Windows 资源使用 `golang.org/x/image` 和 `tc-hib/winres`，macOS、Android 和浏览器打包使用 `cmd/keel/internal/gogio`。打包器调用 Go 与平台工具，按迁移后的 Gio 包前缀设置链接符号、识别权限、查找资源，不导入 Gio 或 Keel 的 UI/native 包。iOS 打包直接调用 Go 和 Xcode 工具，macOS 签名使用 `codesign`。见 [快速开始 · 打包](getting-started.zh-CN.md#打包)。
+
+Gio 和 go-text 是 Keel 根模块内的普通包，分别通过 `github.com/dyike/keel/gio/...` 和 `github.com/dyike/keel/typesetting/...` 导入。Gio 可依赖 typesetting，反向依赖禁止；两个基础库都不能导入其他 Keel 包。UI 可使用它们，native 和 CLI 必须不依赖它们。`gioui.org/shader` 保持独立外部模块。`internal/deps` 检查这些边界及传递依赖；应用 import 迁移见[单模块](single-module.zh-CN.md)。
 
 **体积大的依赖按需引入。** chroma（代码高亮）和 `net/http`（网络图片）各约 4 MB，不放在 kit、markdown、el、core、window 的依赖里：core 定义 `Highlighter` 和 `ImageFetcher` 两个接口，`ui/highlight` 和 `ui/netimage` 在 `init` 里注册实现，应用用到时引入。`internal/deps` 的 `TestHeavyDependenciesAreOptIn` 防止它们被重新拉进来。
 
@@ -102,6 +108,9 @@ native:
 | `ui/internal/inputcontent` | 原子输入引用、字素边界、坐标映射与撤销事务 | Gio、其他 Keel 模块及平台事件 |
 | `ui/internal/editorstyle` | 输入框的光标、选区绘制和字形测量 | 具体 Keel 组件、窗口和主题 |
 | `ui/internal/imageload` | 图片来源解析、异步加载、尺寸限制、加载中和失败占位 | 组件外观、点击等交互 |
+| `gio` | Gio 窗口、布局、输入与 GPU 实现；typesetting 依赖 | Keel UI/native/CLI 包 |
+| `typesetting` | 字体解析、shaping 与栅格化 | Gio 或其他 Keel 包 |
+| `cmd/keel/internal/gogio` | 打包命令、链接符号、平台资源 | GUI 导入或应用组件 |
 
 ### 什么时候新建模块
 
