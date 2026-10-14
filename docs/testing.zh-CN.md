@@ -142,6 +142,12 @@ go run ./examples/tray -smoke
 
 真实窗口用例从无窗口启动，关闭最后一个窗口后重新打开，再检查退出回调。托盘 smoke 额外创建、更新和移除系统图标。菜单实际点击、明暗外观、高 DPI、Windows Explorer 重启和 Linux Host 重启需要分别在对应桌面上验证；跨平台编译不代表运行验收。
 
+菜单回归覆盖图标快照、非法更新的原子性、启用/禁用模板缓存（预热后图标布局零分配）、固定时间的动画进度、减弱动画和结束后的帧调度。Agent 测试检查菜单项标签、禁用/勾选状态、操作路由和控制器取消。Windows 目标平台测试验证位图挂载、预乘像素、保持宽高比的透明填充，以及替换/失败时的资源释放；交叉编译测试不代表已执行。macOS 测试创建真实 AppKit 图片和弹出菜单跟踪循环。
+
+```sh
+python3 scripts/check-components.py --offline --desktop --only checks interactive
+```
+
 ## 一键组件验证
 
 ```sh
@@ -152,7 +158,7 @@ python3 scripts/check-components.py --offline
 python3 scripts/check-components.py --offline --headless
 ```
 
-标准流程串行执行：脚本回归测试、格式检查、vet、全仓库 Go 测试、race、Windows 无 CGO 构建、Linux native/CLI vet；随后运行独立进程的全组件和大数据基准、固定时间的完整 GPU 截图矩阵；最后启动 `go run ./examples/components`，遍历实际注册的全部场景并验证下面的交互。`--desktop` 还会在检查阶段运行真实窗口生命周期测试。需要 Python 3 和 Go；Python 部分只使用标准库。macOS 需要 Xcode 命令行工具；Linux 仍需 Gio 图形开发库和可用的图形/显示后端。
+标准流程串行执行：脚本回归测试、格式检查、vet、全仓库 Go 测试、race、Windows 无 CGO 构建、Linux native/CLI vet；随后运行独立进程的全组件和大数据基准、固定时间的完整 GPU 截图矩阵；最后启动 `go run ./examples/components`，遍历实际注册的全部场景并验证下面的交互。`--desktop` 还会在检查阶段运行真实窗口生命周期测试，包含 macOS 菜单图片替换和两种原生取消模式；同时运行 macOS 原生托盘测试及 `examples/tray -smoke`。桌面托盘 smoke 需要可用的通知区域 / SNI Host。需要 Python 3 和 Go；Python 部分只使用标准库。macOS 需要 Xcode 命令行工具；Linux 仍需 Gio 图形开发库和可用的图形/显示后端。
 
 默认产物保存在新的 `work/component-checks/<时间戳>/`：`summary.json`、由 Go 注册表导出的 `manifest.json`、各命令日志、原始基准和中位数 `benchmarks.csv`、`matrix/index.html`，以及交互报告和截图。失败立即停止并返回非零退出码；已有内容的结果目录不会被覆盖。每个基准场景启动独立进程，检查、GPU 渲染和交互不会与性能测量并行。
 
@@ -169,7 +175,7 @@ python3 scripts/check-components.py --offline --count 1 --benchtime 1x --large-b
 
 `--baseline` 要求场景集合一致，矩阵 PNG 变化会失败，并生成 `comparison.csv`（百分比为正表示回退）。基准百分比供评审使用，不自动设置耗时或分配门槛。比较时保持机器、字体、Go 版本和基准参数一致。截图时间通过生成的 Go overlay 固定，不修改生产代码。视觉变化符合预期时，应评审后建立新基线。
 
-交互检查覆盖复选框及禁用状态、开关、中文及多行输入、弹窗保存/Escape/重开、搜索和万条选项多选、十万项虚拟列表、表格排序和滚动、日历键盘跳过禁用周日、日期选择器重开后的选中状态。日历读取当前展示的日期，不硬编码月份。自动化操作的是 Gio 的影子输入路由；默认应用同时显示原生窗口，`--headless` 隐藏原生窗口。两种模式均不能验证系统输入法候选框或原生鼠标事件投递，GPU 呈现延迟和动画性能需要单独 profile。
+交互检查覆盖复选框及禁用状态、开关、中文及多行输入、弹窗保存/Escape/重开、搜索和万条选项多选、十万项虚拟列表、表格排序和滚动、日历键盘跳过禁用周日、日期选择器重开后的选中状态，以及应用菜单图标、禁用项、操作路由和 Escape 关闭。日历读取当前展示的日期，不硬编码月份。自动化操作的是 Gio 的影子输入路由；默认应用同时显示原生窗口，`--headless` 隐藏原生窗口。两种模式均不能验证系统输入法候选框或原生鼠标事件投递，GPU 呈现延迟和动画性能需要单独 profile。
 
 `--offline` 禁用 Go 模块、VCS 和工具链下载，未缓存的依赖会明确报错。它不会让截图变成无 CGO 构建，也不会禁用示例自身的可选网络图片请求。
 

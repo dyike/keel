@@ -337,6 +337,14 @@ func (w *Window) run() {
 			}
 			w.markShown()
 		default:
+			// A window nobody can see (minimized, covered, screen locked)
+			// draws no frames but still wakes up on Invalidate. Run queued
+			// updates then, or they would wait until some window shows.
+			if loop.Pending() {
+				loop.Lock()
+				loop.Drain()
+				loop.Unlock()
+			}
 			platformWindowEvent(w, e)
 			platformGlassEvent(w, e)
 			iconWindowEvent(w, e)

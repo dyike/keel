@@ -31,6 +31,7 @@ var (
 		hwnd     uintptr
 		taskbar  uintptr
 		next     uint32
+		tracking *windowsTray
 		items    map[uint32]*windowsTray // locked OS thread only
 	}
 )
@@ -45,6 +46,7 @@ const (
 type windowsTray struct {
 	id         uint32
 	icon, menu uintptr
+	bitmaps    []uintptr
 	options    TrayOptions
 }
 
@@ -159,24 +161,25 @@ func (t *windowsTray) apply(options TrayOptions, add bool) error {
 	if icon == 0 {
 		return fmt.Errorf("%w: tray icon: %v", native.ErrFailed, e)
 	}
-	menu, err := makeWindowsTrayMenu(options.Menu)
+	menu, bitmaps, err := makeWindowsTrayMenu(options.Menu)
 	if err != nil {
 		trayDestroyIcon.Call(icon)
 		return err
 	}
-	oldIcon, oldMenu, oldOptions := t.icon, t.menu, t.options
-	t.icon, t.menu, t.options = icon, menu, options
+	oldIcon, oldMenu, oldOptions, oldBitmaps := t.icon, t.menu, t.options, t.bitmaps
+	t.icon, t.menu, t.options, t.bitmaps = icon, menu, options, bitmaps
 	if add {
 		err = t.add()
 	} else if r, _, e := shellNotifyIcon.Call(nimModify, uintptr(unsafe.Pointer(t.data()))); r == 0 {
 		err = fmt.Errorf("%w: tray update: %v", native.ErrFailed, e)
 	}
 	if err != nil {
-		t.icon, t.menu, t.options = oldIcon, oldMenu, oldOptions
+		t.icon, t.menu, t.options, t.bitmaps = oldIcon, oldMenu, oldOptions, oldBitmaps
 		trayDestroyIcon.Call(icon)
 		if menu != 0 {
 			trayDestroyMenu.Call(menu)
 		}
+		freeTrayMenuBitmaps(bitmaps)
 		return err
 	}
 	if oldIcon != 0 {
@@ -185,10 +188,21 @@ func (t *windowsTray) apply(options TrayOptions, add bool) error {
 	if oldMenu != 0 {
 		trayDestroyMenu.Call(oldMenu)
 	}
+	freeTrayMenuBitmaps(oldBitmaps)
 	return nil
 }
 
-func makeWindowsTrayMenu(items []TrayMenuItem) (uintptr, error) {
+func makeWindowsTrayMenu(items []TrayMenuItem) (uintptr, []uintptr, error) {
+	var bitmaps []uintptr
+	menu, err := buildWindowsTrayMenu(items, &bitmaps)
+	if err != nil {
+		freeTrayMenuBitmaps(bitmaps)
+		return 0, nil, err
+	}
+	return menu, bitmaps, nil
+}
+
+func buildWindowsTrayMenu(items []TrayMenuItem, bitmaps *[]uintptr) (uintptr, error) {
 	if len(items) == 0 {
 		return 0, nil
 	}
@@ -196,7 +210,7 @@ func makeWindowsTrayMenu(items []TrayMenuItem) (uintptr, error) {
 	if menu == 0 {
 		return 0, fmt.Errorf("%w: CreatePopupMenu: %v", native.ErrFailed, e)
 	}
-	for _, item := range items {
+	for position, item := range items {
 		flags := uintptr(0)
 		command := uintptr(item.ID)
 		var child uintptr
@@ -211,7 +225,7 @@ func makeWindowsTrayMenu(items []TrayMenuItem) (uintptr, error) {
 		}
 		if len(item.Children) != 0 {
 			var err error
-			child, err = makeWindowsTrayMenu(item.Children)
+			child, err = buildWindowsTrayMenu(item.Children, bitmaps)
 			if err != nil {
 				trayDestroyMenu.Call(menu)
 				return 0, err
@@ -226,6 +240,18 @@ func makeWindowsTrayMenu(items []TrayMenuItem) (uintptr, error) {
 			}
 			trayDestroyMenu.Call(menu)
 			return 0, fmt.Errorf("%w: AppendMenu: %v", native.ErrFailed, e)
+		}
+		if len(item.PNG) > 0 {
+			bitmap, err := createTrayMenuBitmap(item.PNG, trayMenuIconSize())
+			if err != nil {
+				trayDestroyMenu.Call(menu)
+				return 0, err
+			}
+			*bitmaps = append(*bitmaps, bitmap)
+			if !setTrayMenuBitmap(menu, uint32(position), bitmap) {
+				trayDestroyMenu.Call(menu)
+				return 0, fmt.Errorf("%w: SetMenuItemInfo", native.ErrFailed)
+			}
 		}
 	}
 	return menu, nil
@@ -251,6 +277,8 @@ func (t *windowsTray) Close() error {
 			trayDestroyMenu.Call(t.menu)
 			t.menu = 0
 		}
+		freeTrayMenuBitmaps(t.bitmaps)
+		t.bitmaps = nil
 	})
 }
 
@@ -287,7 +315,13 @@ func trayProc(hwnd, message, wParam, lParam uintptr) uintptr {
 					trayCursor.Call(uintptr(unsafe.Pointer(&point)))
 				}
 				trayForeground.Call(hwnd)
-				command, _, _ := trayTrackMenu.Call(t.menu, 0x100|0x2, uintptr(point.x), uintptr(point.y), hwnd, 0)
+				flags := uintptr(0x100 | 0x2)
+				if t.options.MenuAnimation == 1 {
+					flags |= 0x4000
+				} // TPM_NOANIMATION
+				trayThread.tracking = t
+				command, _, _ := trayTrackMenu.Call(t.menu, flags, uintptr(point.x), uintptr(point.y), hwnd, 0)
+				trayThread.tracking = nil
 				postMessage.Call(hwnd, 0, 0, 0) // shell dismissal rule
 				if command != 0 {
 					t.options.Event(uint32(command))
@@ -301,3 +335,28 @@ func trayProc(hwnd, message, wParam, lParam uintptr) uintptr {
 }
 
 func TrayMain() { select {} }
+
+func TrayMenuCapabilities() TrayMenuFeatures {
+	return TrayMenuFeatures{Icons: true, DisableOpeningAnimation: true, CancelTracking: true}
+}
+func (t *windowsTray) SetMenuAnimation(animation uint8) error {
+	return trayOnThread(func() { t.options.MenuAnimation = animation })
+}
+func (t *windowsTray) CancelMenuTracking(animated bool) error {
+	return trayOnThread(func() {
+		if trayThread.tracking == t {
+			user32.NewProc("EndMenu").Call()
+		}
+	})
+}
+
+func trayMenuIconSize() int {
+	dpi := uintptr(96)
+	proc := user32.NewProc("GetDpiForWindow")
+	if proc.Find() == nil {
+		if n, _, _ := proc.Call(trayThread.hwnd); n != 0 {
+			dpi = n
+		}
+	}
+	return max(1, int(16*dpi/96))
+}

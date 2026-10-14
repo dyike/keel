@@ -70,3 +70,21 @@ func TestDefaultUpdatesWaitForFrame(t *testing.T) {
 		t.Fatal("frame did not drain update")
 	}
 }
+
+func TestPendingReportsQueuedUpdates(t *testing.T) {
+	SetBackgroundUpdates(false)
+	Lock()
+	defer Unlock()
+	Drain()
+	if Pending() {
+		t.Fatal("empty queue reported pending")
+	}
+	Post(func() {})
+	if !Pending() {
+		t.Fatal("queued update not reported")
+	}
+	Drain()
+	if Pending() {
+		t.Fatal("drained queue reported pending")
+	}
+}

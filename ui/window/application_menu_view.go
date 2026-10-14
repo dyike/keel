@@ -15,20 +15,80 @@ import (
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
 	"image"
+	"image/color"
 	"strings"
+	"time"
 )
 
 // applicationMenuView belongs to a window, so open menus never leak between windows.
 type applicationMenuView struct {
-	buttons    map[string]*widget.Clickable
-	path       []string
-	active     string
-	positions  map[string]image.Rectangle
-	outside    struct{}
-	list       widget.List
-	listPath   string
-	bar        *MenuBar
-	generation uint64
+	buttons        map[string]*widget.Clickable
+	path           []string
+	active         string
+	positions      map[string]image.Rectangle
+	outside        struct{}
+	list           widget.List
+	listPath       string
+	bar            *MenuBar
+	generation     uint64
+	icons          map[menuViewIconKey]menuViewIcon
+	animationPath  string
+	animationStart time.Time
+}
+
+type menuViewIcon struct {
+	color color.NRGBA
+	image paint.ImageOp
+}
+
+type menuViewIconKey struct {
+	icon     *MenuIcon
+	disabled bool
+}
+
+func (v *applicationMenuView) icon(gtx core.C, icon *MenuIcon, disabled bool) core.D {
+	if icon == nil {
+		return core.D{}
+	}
+	tint := theme.Text
+	if disabled {
+		tint = theme.Muted
+	}
+	key := menuViewIconKey{icon, disabled && icon.template}
+	cached, ok := v.icons[key]
+	if !ok || icon.template && cached.color != tint {
+		pixels := icon.pixels
+		if icon.template {
+			pixels = image.NewNRGBA(icon.pixels.Bounds())
+			for i := 0; i < len(pixels.Pix); i += 4 {
+				pixels.Pix[i], pixels.Pix[i+1], pixels.Pix[i+2] = tint.R, tint.G, tint.B
+				pixels.Pix[i+3] = uint8(uint16(icon.pixels.Pix[i+3]) * uint16(tint.A) / 255)
+			}
+		}
+		cached = menuViewIcon{tint, paint.NewImageOp(pixels)}
+		if v.icons == nil {
+			v.icons = map[menuViewIconKey]menuViewIcon{}
+		}
+		v.icons[key] = cached
+	}
+	gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(16), gtx.Dp(16)))
+	return widget.Image{Src: cached.image, Fit: widget.Contain}.Layout(gtx)
+}
+
+func (v *applicationMenuView) opening(gtx core.C, path string) float32 {
+	animation := v.bar.WindowAnimation()
+	if path != v.animationPath {
+		v.animationPath, v.animationStart = path, gtx.Now
+	}
+	if animation.Duration == 0 || theme.ReducedMotion {
+		return 1
+	}
+	progress := float32(gtx.Now.Sub(v.animationStart)) / float32(animation.Duration)
+	progress = min(max(progress, 0), 1)
+	if progress < 1 && gtx.Enabled() {
+		gtx.Execute(op.InvalidateCmd{})
+	}
+	return 1 - (1-progress)*(1-progress)*(1-progress)
 }
 
 func currentMenu() (*MenuBar, uint64) {
@@ -50,6 +110,8 @@ func (v *applicationMenuView) button(id string) *widget.Clickable {
 func (v *applicationMenuView) reset() {
 	v.path = nil
 	v.active = ""
+	v.animationPath = ""
+	v.animationStart = time.Time{}
 }
 
 func (w *Window) belowApplicationMenu(gtx core.C) (core.C, func()) {
@@ -62,6 +124,7 @@ func (w *Window) belowApplicationMenu(gtx core.C) (core.C, func()) {
 	if v.bar != bar || v.generation != generation {
 		v.reset()
 		v.buttons = nil
+		v.icons = nil
 		v.bar = bar
 		v.generation = generation
 	}
@@ -98,20 +161,34 @@ func (w *Window) belowApplicationMenu(gtx core.C) (core.C, func()) {
 		}
 		cell := gtx
 		cell.Constraints = layout.Constraints{Max: image.Pt(min(max(0, gtx.Constraints.Max.X-x), gtx.Constraints.Max.X/max(1, len(items))), height)}
+		if item.Disabled {
+			cell = cell.Disabled()
+		}
 		offset := op.Offset(image.Pt(x, 0)).Push(gtx.Ops)
 		dims := b.Layout(cell, func(g core.C) core.D {
-			if item.Disabled {
-				g = g.Disabled()
+			value := ""
+			if len(item.Children) > 0 {
+				value = "submenu"
 			}
+			core.Role("menuitem", value).Add(g.Ops)
+			semantic.LabelOp(item.Title).Add(g.Ops)
 			if len(v.path) > 0 && v.path[0] == item.ID {
 				paint.FillShape(g.Ops, theme.Border, clip.Rect{Max: g.Constraints.Max}.Op())
 			}
 			return layout.Inset{Left: 8, Right: 8, Top: 5, Bottom: 5}.Layout(g, func(g core.C) core.D {
 				label := material.Label(theme.Material, theme.Material.TextSize, item.Title)
 				label.Color = theme.Text
+				if item.Disabled {
+					label.Color = theme.Muted
+				}
 				label.MaxLines = 1
 				label.Truncator = "…"
-				return label.Layout(g)
+				if item.Icon == nil {
+					return label.Layout(g)
+				}
+				return layout.Flex{Alignment: layout.Middle}.Layout(g,
+					layout.Rigid(func(g core.C) core.D { return v.icon(g, item.Icon, item.Disabled) }),
+					layout.Rigid(layout.Spacer{Width: 6}.Layout), layout.Rigid(label.Layout))
 			})
 		})
 		offset.Pop()
@@ -307,13 +384,20 @@ func (v *applicationMenuView) popup(gtx core.C, items []MenuItem, barHeight int)
 	if width <= 0 || height <= 0 {
 		return
 	}
-	offset := op.Offset(image.Pt(x, top)).Push(gtx.Ops)
+	progress := v.opening(gtx, pathKey)
+	animation := v.bar.WindowAnimation()
+	offset := op.Offset(image.Pt(x, top+gtx.Dp(unit.Dp((1-progress)*animation.Offset)))).Push(gtx.Ops)
 	defer offset.Pop()
+	if progress < 1 {
+		opacity := paint.PushOpacity(gtx.Ops, progress)
+		defer opacity.Pop()
+	}
 	rect := image.Rect(0, 0, width, height)
 	area := clip.Rect(rect).Push(gtx.Ops)
 	defer area.Pop()
 	paint.FillShape(gtx.Ops, theme.Surface, clip.Rect(rect).Op())
 	semantic.LabelOp("Application menu").Add(gtx.Ops)
+	core.Role("menu").Add(gtx.Ops)
 	popup := gtx
 	popup.Constraints = layout.Exact(rect.Size())
 	v.list.Axis = layout.Vertical
@@ -334,6 +418,15 @@ func (v *applicationMenuView) popup(gtx core.C, items []MenuItem, barHeight int)
 			g = g.Disabled()
 		}
 		return b.Layout(g, func(g core.C) core.D {
+			role, value := "menuitem", ""
+			if len(item.Children) > 0 {
+				value = "submenu"
+			}
+			if item.Checked {
+				role = "menuitemcheckbox"
+			}
+			core.Role(role, value).Add(g.Ops)
+			semantic.SelectedOp(item.Checked).Add(g.Ops)
 			if item.ID == v.active || b.Hovered() {
 				paint.FillShape(g.Ops, theme.Subtle, clip.Rect{Max: g.Constraints.Max}.Op())
 			}
@@ -349,22 +442,30 @@ func (v *applicationMenuView) popup(gtx core.C, items []MenuItem, barHeight int)
 			} else if item.Shortcut != "" {
 				suffix = menuWireShortcut(wireMenuItems([]MenuItem{item})[0])
 			}
-			return layout.Inset{Left: 10, Right: 10, Top: 6, Bottom: 6}.Layout(g, func(g core.C) core.D {
-				return layout.Flex{}.Layout(g, layout.Flexed(1, func(g core.C) core.D {
-					l := material.Label(theme.Material, theme.Material.TextSize, title)
-					l.Color = theme.Text
-					if item.Disabled {
+			dims := layout.Inset{Left: 10, Right: 10, Top: 6, Bottom: 6}.Layout(g, func(g core.C) core.D {
+				return layout.Flex{Alignment: layout.Middle}.Layout(g,
+					layout.Rigid(func(g core.C) core.D {
+						if item.Icon == nil {
+							return core.D{}
+						}
+						return layout.Inset{Right: 6}.Layout(g, func(g core.C) core.D { return v.icon(g, item.Icon, item.Disabled) })
+					}), layout.Flexed(1, func(g core.C) core.D {
+						l := material.Label(theme.Material, theme.Material.TextSize, title)
+						l.Color = theme.Text
+						if item.Disabled {
+							l.Color = theme.Muted
+						}
+						l.MaxLines = 1
+						l.Truncator = "…"
+						return l.Layout(g)
+					}), layout.Rigid(func(g core.C) core.D {
+						l := material.Label(theme.Material, theme.Material.TextSize, suffix)
 						l.Color = theme.Muted
-					}
-					l.MaxLines = 1
-					l.Truncator = "…"
-					return l.Layout(g)
-				}), layout.Rigid(func(g core.C) core.D {
-					l := material.Label(theme.Material, theme.Material.TextSize, suffix)
-					l.Color = theme.Muted
-					return l.Layout(g)
-				}))
+						return l.Layout(g)
+					}))
 			})
+			semantic.LabelOp(item.Title).Add(g.Ops)
+			return dims
 		})
 	})
 }

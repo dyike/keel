@@ -44,7 +44,11 @@ func TestTrayDBusPixmapStraightARGB(t *testing.T) {
 }
 
 func TestTrayDBusMenuLayoutAndProperties(t *testing.T) {
-	items := []TrayMenuItem{{ID: 1, Title: "Parent", Children: []TrayMenuItem{{ID: 2, Title: "Checked", Checked: true}, {ID: 3, Separator: true}}}, {ID: 4, Title: "Disabled", Disabled: true}}
+	var icon bytes.Buffer
+	if err := png.Encode(&icon, image.NewNRGBA(image.Rect(0, 0, 16, 16))); err != nil {
+		t.Fatal(err)
+	}
+	items := []TrayMenuItem{{ID: 1, Title: "Parent", Children: []TrayMenuItem{{ID: 2, Title: "Checked", Checked: true, PNG: icon.Bytes()}, {ID: 3, Separator: true}}}, {ID: 4, Title: "Disabled", Disabled: true}}
 	full, ok := trayMakeLayout(0, items, -1, nil)
 	if !ok || len(full.Children) != 2 {
 		t.Fatal("root layout incomplete")
@@ -56,6 +60,14 @@ func TestTrayDBusMenuLayoutAndProperties(t *testing.T) {
 	checked := parent.Children[0].Value().(trayLayout)
 	if checked.Properties["toggle-state"].Value() != int32(1) {
 		t.Fatal("checked state missing")
+	}
+	data := checked.Properties["icon-data"].Value().([]byte)
+	if !bytes.Equal(data, icon.Bytes()) || dbus.SignatureOf(data).String() != "ay" {
+		t.Fatal("DBusMenu icon-data missing or invalid")
+	}
+	data[0] = 0
+	if items[0].Children[0].PNG[0] != 0x89 {
+		t.Fatal("DBus properties alias the menu image")
 	}
 	subtree, ok := trayMakeLayout(1, items, 1, []string{"label"})
 	if !ok || len(subtree.Properties) != 1 || len(subtree.Children) != 2 {

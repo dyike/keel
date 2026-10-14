@@ -53,7 +53,7 @@ func runNativeTrayHelper() {
 	check(png.Encode(&data, image.NewNRGBA(image.Rect(0, 0, 32, 32))) == nil, "PNG")
 	events := []uint32{}
 	options := TrayOptions{PNG: data.Bytes(), Template: true, Tooltip: "Initial tooltip", Event: func(id uint32) { events = append(events, id) }, Menu: []TrayMenuItem{
-		{ID: 1, Title: "Action", Checked: true},
+		{ID: 1, Title: "Action", Checked: true, PNG: data.Bytes(), Template: true},
 		{ID: 2, Title: "Disabled", Disabled: true},
 		{ID: 3, Title: "Submenu", Children: []TrayMenuItem{{ID: 4, Title: "Child"}}},
 	}}
@@ -67,6 +67,7 @@ func runNativeTrayHelper() {
 	check(send(menu, "numberOfItems") == 3, "menu length")
 	action := send(menu, "itemAtIndex:", 0)
 	check(send(action, "state") == 1, "checked item")
+	check(send(action, "image") != 0 && sendBool(send(action, "image"), "isTemplate"), "menu template image")
 	check(!sendBool(send(menu, "itemAtIndex:", 1), "isEnabled"), "disabled item")
 	check(send(send(send(menu, "itemAtIndex:", 2), "submenu"), "numberOfItems") == 1, "submenu")
 	// Exercise the registered Objective-C target/action callback and tag routing.
@@ -82,6 +83,8 @@ func runNativeTrayHelper() {
 		check(!sendBool(send(button, "image"), "isTemplate"), "template update")
 		updated := send(send(tray.item, "menu"), "itemAtIndex:", 0)
 		check(goString(send(updated, "title")) == "Updated item", "menu replacement")
+		check(send(updated, "image") == 0, "removed menu image")
+		check(tray.CancelMenuTracking(false) == nil, "cancel tracking enqueue")
 		send(tray.target, "keelTrayAction:", uintptr(updated))
 		check(reflect.DeepEqual(events, []uint32{1, 0, 9}), "replacement action")
 		oldTarget := tray.target

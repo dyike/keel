@@ -15,13 +15,31 @@ import (
 
 type darwinTray struct{ item, target id }
 
+func TrayMenuCapabilities() TrayMenuFeatures {
+	return TrayMenuFeatures{Icons: true, TemplateIcons: true, DismissAnimation: true, CancelTracking: true}
+}
+func (t *darwinTray) CancelMenuTracking(animated bool) error {
+	mainAsync(func() {
+		if t.item == 0 {
+			return
+		}
+		selector := "cancelTrackingWithoutAnimation"
+		if animated {
+			selector = "cancelTracking"
+		}
+		send(send(t.item, "menu"), selector)
+	})
+	return nil
+}
+
 var darwinTrays struct {
-	once       sync.Once
-	class      objc.Class
-	err        error
-	targets    map[id]func(uint32) // AppKit main thread only
-	statusItem func(id, objc.SEL, float64) id
-	imageSize  func(id, objc.SEL, struct{ Width, Height float64 })
+	once            sync.Once
+	class           objc.Class
+	err             error
+	targets         map[id]func(uint32) // AppKit main thread only
+	statusItem      func(id, objc.SEL, float64) id
+	imageSize       func(id, objc.SEL, struct{ Width, Height float64 })
+	imageDimensions func(id, objc.SEL) struct{ Width, Height float64 }
 }
 
 func initDarwinTray() {
@@ -29,6 +47,7 @@ func initDarwinTray() {
 		load()
 		purego.RegisterFunc(&darwinTrays.statusItem, msgSendAddr)
 		purego.RegisterFunc(&darwinTrays.imageSize, msgSendAddr)
+		purego.RegisterFunc(&darwinTrays.imageDimensions, msgSendAddr)
 		darwinTrays.targets = make(map[id]func(uint32))
 		darwinTrays.class, darwinTrays.err = objc.RegisterClass("KeelTrayTarget", objc.GetClass("NSObject"), nil, nil, []objc.MethodDef{
 			{Cmd: sel("keelTrayAction:"), Fn: func(target id, _ objc.SEL, sender id) {
@@ -127,6 +146,25 @@ func (t *darwinTray) menu(items []TrayMenuItem) id {
 		}
 		send(entry, "setEnabled:", enabled)
 		send(entry, "setState:", checked)
+		if len(item.PNG) > 0 {
+			data := send(class("NSData"), "dataWithBytes:length:", uintptr(unsafe.Pointer(&item.PNG[0])), uintptr(len(item.PNG)))
+			runtime.KeepAlive(item.PNG)
+			image := send(send(class("NSImage"), "alloc"), "initWithData:", uintptr(data))
+			if image != 0 {
+				var template uintptr
+				if item.Template {
+					template = 1
+				}
+				send(image, "setTemplate:", template)
+				size := darwinTrays.imageDimensions(image, sel("size"))
+				if side := max(size.Width, size.Height); side > 0 {
+					size.Width, size.Height = size.Width*16/side, size.Height*16/side
+					darwinTrays.imageSize(image, sel("setSize:"), size)
+				}
+				send(entry, "setImage:", uintptr(image))
+				release(image)
+			}
+		}
 		if len(item.Children) != 0 {
 			child := t.menu(item.Children)
 			send(entry, "setSubmenu:", uintptr(child))

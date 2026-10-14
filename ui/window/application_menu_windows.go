@@ -37,6 +37,20 @@ type nativeMenuWindow struct {
 	w                    *Window
 	hwnd, previous, menu uintptr
 	commands             map[uintptr]nativeMenuCommand // native thread only
+	bitmaps              []uintptr                     // released after the menu that refers to them
+}
+
+func platformMenuFeatures() MenuFeatures {
+	return MenuFeatures{Native: true, Icons: true, CancelTracking: true}
+}
+func platformCancelMenuTracking(generation uint64, animated bool) {
+	winMenus.Lock()
+	defer winMenus.Unlock()
+	if winMenus.model.Generation == generation {
+		for hwnd := range winMenus.windows {
+			postMessage.Call(hwnd, 0x1f, 0, 0) // WM_CANCELMODE; no main-thread wait.
+		}
+	}
 }
 
 func platformNativeApplicationMenu() bool        { return true }
@@ -117,6 +131,13 @@ func rebuildNativeMenu(target *nativeMenuWindow) {
 		model.Items = nil
 	}
 	commands := map[uintptr]nativeMenuCommand{}
+	var bitmaps []uintptr
+	committed := false
+	defer func() {
+		if !committed {
+			freeMenuBitmaps(bitmaps)
+		}
+	}()
 	next := uintptr(1)
 	var build func([]menuWireItem, bool, bool) uintptr
 	build = func(items []menuWireItem, popup, blocked bool) uintptr {
@@ -128,7 +149,7 @@ func rebuildNativeMenu(target *nativeMenuWindow) {
 		if handle == 0 {
 			return 0
 		}
-		for _, item := range items {
+		for position, item := range items {
 			flags := uintptr(0)
 			id := next
 			next++
@@ -169,6 +190,18 @@ func rebuildNativeMenu(target *nativeMenuWindow) {
 				menuDestroy.Call(handle)
 				return 0
 			}
+			if len(item.PNG) > 0 {
+				bitmap, err := createMenuBitmap(item.PNG, nativeMenuIconSize(target.hwnd))
+				if err != nil {
+					menuDestroy.Call(handle)
+					return 0
+				}
+				bitmaps = append(bitmaps, bitmap)
+				if !setMenuBitmap(handle, uint32(position), bitmap) {
+					menuDestroy.Call(handle)
+					return 0
+				}
+			}
 		}
 		return handle
 	}
@@ -187,13 +220,16 @@ func rebuildNativeMenu(target *nativeMenuWindow) {
 		}
 		return
 	}
-	old := target.menu
+	old, oldBitmaps := target.menu, target.bitmaps
 	target.menu = handle
+	target.bitmaps = bitmaps
+	committed = true
 	target.commands = commands
 	menuDraw.Call(target.hwnd)
 	if old != 0 {
 		menuDestroy.Call(old)
 	}
+	freeMenuBitmaps(oldBitmaps)
 }
 
 func menuWindowProc(hwnd, msg, wparam, lparam uintptr) uintptr {
@@ -221,7 +257,21 @@ func menuWindowProc(hwnd, msg, wparam, lparam uintptr) uintptr {
 		winMenus.Unlock()
 	}
 	result, _, _ := menuCallProc.Call(target.previous, hwnd, msg, wparam, lparam)
+	if msg == 0x82 {
+		freeMenuBitmaps(target.bitmaps)
+		target.bitmaps = nil
+	}
 	return result
 }
 
 func platformNativeMenuShortcuts() bool { return false }
+
+func nativeMenuIconSize(hwnd uintptr) int {
+	dpi := uintptr(96)
+	if getDpiForWindow.Find() == nil {
+		if n, _, _ := getDpiForWindow.Call(hwnd); n != 0 {
+			dpi = n
+		}
+	}
+	return max(1, int(16*dpi/96))
+}

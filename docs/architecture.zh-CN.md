@@ -181,7 +181,7 @@ kit.Button("刷新", func() {
 
 - **所有窗口串行渲染。** 一个回调卡 2 秒，所有窗口都卡 2 秒。回调里只做改状态这类微秒级的事，I/O 和计算放 goroutine。
 - **`core.Update` 是异步的。** 调用返回时 `fn` 还没执行。在回调里等 `core.Update` 的结果（比如用 channel 等它执行完）会死锁：回调持有锁，`fn` 要等锁。
-- **没有窗口在画帧，队列就不会被执行。** 程序开窗前 `core.Update` 的函数会在第一个窗口的第一帧执行。驻留模式 `window.MainWithOptions(window.MainOptions{KeepAlive: true})` 使用事件唤醒的更新执行器，在同一个 frame lock 下消费队列，不依赖窗口绘制，也不轮询。
+- **还没有窗口时，队列不会被执行。** 程序开窗前 `core.Update` 的函数会在第一个窗口的第一帧执行。已打开但不画帧的窗口（最小化、被完全遮挡、锁屏）被 `core.Update` 唤醒时也会消费队列。驻留模式 `window.MainWithOptions(window.MainOptions{KeepAlive: true})` 使用事件唤醒的更新执行器，在同一个 frame lock 下消费队列，不依赖窗口绘制，也不轮询。
 
 为什么选一把大锁而不是给每个组件加锁，见[设计决策](decisions.zh-CN.md#一把全局帧锁)。
 

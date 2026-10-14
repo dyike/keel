@@ -194,6 +194,37 @@ Standard editing actions preserve editor focus. Keel inputs, text areas and rich
 
 Native test fixtures are available only with `-tags=keelnativeqa`, for menu, input-method and application-icon regression checks. Normal builds do not include those test APIs.
 
+
+### Menu icons and animation
+
+`NewMenuIcon(artwork, template)` freezes an `image.Image` (1..256 pixels per axis). Reuse the returned `*MenuIcon` in `MenuItem.Icon`; replacing or removing the pointer through `UpdateItem` updates the native menu. `Image()` returns a copy. Artwork fits a 16dp box without changing its aspect ratio; use 32px or larger sources for high DPI. Template icons use the alpha mask with the system text color on AppKit, and the current enabled/disabled text color in Keel menus. Windows displays the original pixels; query `w.MenuFeatures().TemplateIcons` before choosing artwork.
+
+```go
+icon, err := window.NewMenuIcon(artwork, true)
+if err != nil { panic(err) }
+_ = menu.UpdateItem("new-tab", func(item *window.MenuItem) { item.Icon = icon })
+_ = menu.SetWindowAnimation(window.MenuAnimation{
+    Duration: 180 * time.Millisecond,
+    Offset: 6, // dp, eased to zero while opacity rises
+})
+features := w.MenuFeatures()
+menu.CancelTracking(false) // asynchronous; also safe in a UI callback
+```
+
+`SetWindowAnimation` configures **Keel-rendered** menu opening, including submenus. Zero duration preserves immediate opening; duration must be 0..10s and offset 0..128dp. Animation respects `theme.ReducedMotion` and requests frames only while running. Shared template icons cache their enabled and disabled variants separately. Icons are copied/encoded on construction, not during layout.
+
+`MenuBar.CancelTracking(animated)` dismisses this installed controller's menus across windows; calls on an uninstalled controller do nothing. Native cancellation is posted directly to the OS thread without waiting for UI frames. Window menus and Win32 dismiss immediately; AppKit chooses [cancelTracking](https://developer.apple.com/documentation/appkit/nsmenu/canceltracking()) or [cancelTrackingWithoutAnimation](https://developer.apple.com/documentation/appkit/nsmenu/canceltrackingwithoutanimation()) according to the argument. Native opening follows the OS and is independent of `SetWindowAnimation`.
+
+| Presentation | Icons | Template tint | Opening control | Animated dismissal |
+| --- | --- | --- | --- | --- |
+| macOS AppKit application menu | Yes | Yes | OS | `CancelTracking(animated)` |
+| Windows Win32 menu bar | Yes | Original pixels | OS | Immediate |
+| Keel window menu (all desktop platforms) | Yes | Yes | `SetWindowAnimation` | Immediate |
+
+`w.MenuFeatures()` reports `Native`, `Icons`, `TemplateIcons`, `WindowAnimation`, `NativeDismissAnimation` and `CancelTracking` for the selected window presentation. Hidden window menus report no features; macOS's application-wide menu still exists independently. Tray menus use the separate [native/tray API](../native/tray/README.md).
+
+Run `go run ./examples/components`, select **Menu**, then install the native menu or open the animated window-menu preview. The preview includes template/color icons, a checkmark, a disabled item and a nested menu. Automated snapshots expose the container as `menu` and its actions as `menuitem`/`menuitemcheckbox`.
+
 ## Current window size
 
 `Window.Size()` returns the most recently observed client-area width and height in dp, or the requested initial dimensions before the first frame. It includes Keel-drawn menus and decorations, excludes the OS outer frame, and is safe to read from background goroutines.

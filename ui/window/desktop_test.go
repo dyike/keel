@@ -25,6 +25,8 @@ func TestRealWindows(t *testing.T) {
 	}
 	if runtime.GOOS == "darwin" {
 		cases = append(cases, []string{"./testdata/center"})
+		cases = append(cases, []string{"./testdata/minimized"}) // updates run while no window draws
+		cases = append(cases, []string{"./testdata/menuicons"})
 		if GlassSupported() {
 			cases = append(cases, []string{"./testdata/glass"})
 		}

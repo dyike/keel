@@ -46,14 +46,16 @@ type MenuItem struct {
 	Action                       MenuAction
 	Children                     []MenuItem
 	OnSelect                     func()
+	Icon                         *MenuIcon
 }
 
 // MenuBar owns a portable application menu model. Install uses AppKit on macOS,
 // Win32 menus on Windows, and Keel-rendered window menus on Linux X11/Wayland.
 // Items can also drive an application's own Go menu renderer.
 type MenuBar struct {
-	mu    sync.Mutex
-	items []MenuItem
+	mu        sync.Mutex
+	items     []MenuItem
+	animation MenuAnimation
 }
 
 var applicationMenu struct {
@@ -240,10 +242,13 @@ func prepareMenuItems(items []MenuItem) ([]MenuItem, error) {
 			}
 			seen[item.ID] = true
 			if item.Separator {
-				if item.OnSelect != nil || item.Action != "" || item.Shortcut != "" || len(item.Children) > 0 {
+				if item.OnSelect != nil || item.Action != "" || item.Shortcut != "" || len(item.Children) > 0 || item.Icon != nil {
 					return fmt.Errorf("window: separator %q has an action", item.ID)
 				}
 				continue
+			}
+			if item.Icon != nil && (item.Icon.pixels == nil || len(item.Icon.png) == 0) {
+				return fmt.Errorf("window: uninitialized menu icon on %q", item.ID)
 			}
 			if strings.TrimSpace(item.Title) == "" {
 				return fmt.Errorf("window: menu item %q has no title", item.ID)
@@ -290,12 +295,17 @@ type menuWireItem struct {
 	Role      MenuRole       `json:"role"`
 	Action    MenuAction     `json:"action"`
 	Children  []menuWireItem `json:"children,omitempty"`
+	PNG       []byte         `json:"png,omitempty"`
+	Template  bool           `json:"template,omitempty"`
 }
 
 func wireMenuItems(items []MenuItem) []menuWireItem {
 	out := make([]menuWireItem, len(items))
 	for i, item := range items {
 		wire := menuWireItem{ID: item.ID, Title: item.Title, Disabled: item.Disabled, Checked: item.Checked, Separator: item.Separator, Role: item.Role, Action: item.Action, Children: wireMenuItems(item.Children)}
+		if item.Icon != nil {
+			wire.PNG, wire.Template = item.Icon.png, item.Icon.template
+		}
 		if item.OnSelect != nil {
 			wire.Action = ""
 		}

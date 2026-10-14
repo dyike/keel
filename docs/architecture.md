@@ -181,7 +181,7 @@ The cost of this model:
 
 - **All windows are rendered serially.** One callback is stuck for 2 seconds, and all windows are stuck for 2 seconds. In the callback, only microsecond-level things such as changing the state are done, and I/O and calculation are done in goroutine.
 - **`core.Update` is asynchronous.** `fn` has not been executed when the call returns. Waiting for the result of `core.Update` in the callback (for example, using a channel to wait for it to finish executing) will cause a deadlock: the callback holds the lock, and `fn` has to wait for the lock.
-- **If there is no window drawing frames, the queue will not be executed.** The function `core.Update` will be executed in the first frame of the first window before the program opens the window. Resident mode (`window.MainWithOptions(window.MainOptions{KeepAlive: true})`) uses an event-woken worker under the same frame lock to drain updates without drawing or polling.
+- **Before any window opens, the queue is not executed.** Functions passed to `core.Update` before the program opens a window run in the first frame of the first window. An open window that draws no frames (minimized, fully covered, screen locked) still drains the queue when `core.Update` wakes it. Resident mode (`window.MainWithOptions(window.MainOptions{KeepAlive: true})`) uses an event-woken worker under the same frame lock to drain updates without drawing or polling.
 
 Why choose one big lock instead of locking every component? See [Design Decisions](decisions.md#a-global-frame-lock).
 

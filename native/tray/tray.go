@@ -14,21 +14,38 @@ import (
 	"github.com/dyike/keel/native/internal/sys"
 )
 
-// MenuItem is an action, submenu, or separator. Snapshots are copied. IDs are
+// MenuItem is an action, submenu, or separator. Snapshots and icon pixels are copied. IDs are
 // optional; when supplied they must be unique throughout the menu.
 type MenuItem struct {
 	ID, Title                    string
 	Disabled, Checked, Separator bool
 	Children                     []MenuItem
 	OnSelect                     func()
+	Icon                         image.Image
+	IconTemplate                 bool
 }
 
+type MenuAnimation uint8
+
+const (
+	MenuAnimationSystem MenuAnimation = iota
+	MenuAnimationNone
+)
+
+// MenuFeatures describes backend controls, not desktop-host availability.
+type MenuFeatures struct {
+	Icons, TemplateIcons, DisableOpeningAnimation, DismissAnimation, CancelTracking bool
+}
+
+func Capabilities() MenuFeatures { return MenuFeatures(sys.TrayMenuCapabilities()) }
+
 type Options struct {
-	Icon       image.Image
-	Template   bool
-	Tooltip    string
-	Menu       []MenuItem
-	OnActivate func()
+	Icon          image.Image
+	Template      bool
+	Tooltip       string
+	Menu          []MenuItem
+	OnActivate    func()
+	MenuAnimation MenuAnimation
 }
 
 // Tray owns a status icon. Methods are safe from concurrent goroutines. Callback
@@ -51,6 +68,9 @@ type Tray struct {
 func New(options Options) (*Tray, error) { return newTray(options, sys.TrayOpen) }
 
 func newTray(options Options, open func(sys.TrayOptions) (sys.TrayBackend, error)) (*Tray, error) {
+	if err := validateMenuAnimation(options.MenuAnimation); err != nil {
+		return nil, err
+	}
 	data, err := encodeIcon(options.Icon)
 	if err != nil {
 		return nil, err
@@ -65,7 +85,7 @@ func newTray(options Options, open func(sys.TrayOptions) (sys.TrayBackend, error
 	}
 	actions[0] = options.OnActivate
 	t.actions = actions
-	t.options = sys.TrayOptions{PNG: data, Template: options.Template, Tooltip: options.Tooltip, Menu: items, Event: t.event}
+	t.options = sys.TrayOptions{PNG: data, Template: options.Template, Tooltip: options.Tooltip, Menu: items, Event: t.event, MenuAnimation: uint8(options.MenuAnimation)}
 	t.backend, err = open(t.options)
 	if err != nil {
 		return nil, err
@@ -107,8 +127,11 @@ func (t *Tray) prepareMenu(items []MenuItem) ([]sys.TrayMenuItem, map[uint32]fun
 			if item.ID != "" {
 				ids[item.ID] = true
 			}
+			if item.Icon == nil && item.IconTemplate {
+				return nil, native.ErrInvalidArgument
+			}
 			if item.Separator {
-				if item.Title != "" || item.Checked || len(item.Children) != 0 || item.OnSelect != nil {
+				if item.Title != "" || item.Checked || len(item.Children) != 0 || item.OnSelect != nil || item.Icon != nil || item.IconTemplate {
 					return nil, native.ErrInvalidArgument
 				}
 			} else if strings.TrimSpace(item.Title) == "" || (len(item.Children) != 0 && item.OnSelect != nil) {
@@ -125,7 +148,17 @@ func (t *Tray) prepareMenu(items []MenuItem) ([]sys.TrayMenuItem, map[uint32]fun
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, sys.TrayMenuItem{ID: id, Title: item.Title, Disabled: item.Disabled, Checked: item.Checked, Separator: item.Separator, Children: children})
+			var icon []byte
+			if item.Icon != nil {
+				if item.Icon.Bounds().Dx() > 256 || item.Icon.Bounds().Dy() > 256 {
+					return nil, native.ErrInvalidArgument
+				}
+				icon, err = encodeIcon(item.Icon)
+				if err != nil {
+					return nil, err
+				}
+			}
+			result = append(result, sys.TrayMenuItem{ID: id, Title: item.Title, Disabled: item.Disabled, Checked: item.Checked, Separator: item.Separator, Children: children, PNG: icon, Template: item.IconTemplate})
 			if item.Disabled {
 				var disable func([]sys.TrayMenuItem)
 				disable = func(children []sys.TrayMenuItem) {
@@ -144,6 +177,57 @@ func (t *Tray) prepareMenu(items []MenuItem) ([]sys.TrayMenuItem, map[uint32]fun
 	}
 	menu, err := walk(items, 0)
 	return menu, actions, err
+}
+
+func validateMenuAnimation(animation MenuAnimation) error {
+	if animation > MenuAnimationNone {
+		return native.ErrInvalidArgument
+	}
+	if animation == MenuAnimationNone && !Capabilities().DisableOpeningAnimation {
+		return native.ErrUnsupported
+	}
+	return nil
+}
+
+// SetMenuAnimation affects future openings. Unsupported strategies return an
+// error without modifying system-wide animation preferences.
+func (t *Tray) SetMenuAnimation(animation MenuAnimation) error {
+	if err := validateMenuAnimation(animation); err != nil {
+		return err
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.closed {
+		return native.ErrFailed
+	}
+	next := t.options
+	next.MenuAnimation = uint8(animation)
+	var err error
+	if backend, ok := t.backend.(interface{ SetMenuAnimation(uint8) error }); ok {
+		// Changing a popup policy must not destroy the menu currently tracked.
+		err = backend.SetMenuAnimation(uint8(animation))
+	} else {
+		err = t.backend.Update(next)
+	}
+	if err != nil {
+		return err
+	}
+	t.options = next
+	return nil
+}
+
+// CancelMenuTracking dismisses this tray's menu. AppKit honors animated;
+// Win32 closes immediately. Linux hosts own their menu tracking.
+func (t *Tray) CancelMenuTracking(animated bool) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.closed {
+		return native.ErrFailed
+	}
+	if backend, ok := t.backend.(interface{ CancelMenuTracking(bool) error }); ok {
+		return backend.CancelMenuTracking(animated)
+	}
+	return native.ErrUnsupported
 }
 
 // SetIcon replaces the icon, keeping the Template setting supplied to New.

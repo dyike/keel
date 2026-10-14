@@ -24,7 +24,7 @@ func TestWin32MenuHandlesAndCommands(t *testing.T) {
 	defer user32.NewProc("DestroyWindow").Call(hwnd)
 	calls := 0
 	bar, e := NewMenuBar(MenuItem{ID: "file", Title: "File", Children: []MenuItem{
-		{ID: "run", Title: "Run", Checked: true, Shortcut: "ctrl+t", OnSelect: func() { calls++ }},
+		{ID: "run", Title: "Run", Checked: true, Icon: testMenuIcon(t), Shortcut: "ctrl+t", OnSelect: func() { calls++ }},
 		{ID: "blocked", Title: "Blocked", Disabled: true, OnSelect: func() { calls += 100 }},
 		{Separator: true}, {ID: "sub", Title: "Nested", Children: []MenuItem{{ID: "nested", Title: "Nested Action", OnSelect: func() { calls += 10 }}}},
 	}})
@@ -75,6 +75,28 @@ func TestWin32MenuHandlesAndCommands(t *testing.T) {
 	disabled, _, _ := user32.NewProc("GetMenuState").Call(submenu, 1, 0x400)
 	if checked&8 == 0 || disabled&3 == 0 {
 		t.Fatalf("checked=%x disabled=%x", checked, disabled)
+	}
+	if len(target.bitmaps) != 1 {
+		t.Fatal("menu icon not retained")
+	}
+	bitmap := target.bitmaps[0]
+	if kind, _, _ := menuGDI.NewProc("GetObjectType").Call(bitmap); kind != 7 {
+		t.Fatal("menu image is not a live HBITMAP")
+	}
+	info := struct {
+		Size, Mask, Type, State, ID       uint32
+		Submenu, Checked, Unchecked, Data uintptr
+		Text                              *uint16
+		Length                            uint32
+		Bitmap                            uintptr
+	}{Mask: 0x80}
+	info.Size = uint32(unsafe.Sizeof(info))
+	if ok, _, _ := user32.NewProc("GetMenuItemInfoW").Call(submenu, 0, 1, uintptr(unsafe.Pointer(&info))); ok == 0 || info.Bitmap != bitmap {
+		t.Fatal("menu did not attach its bitmap")
+	}
+	rebuildNativeMenu(target)
+	if kind, _, _ := menuGDI.NewProc("GetObjectType").Call(bitmap); kind != 0 {
+		t.Fatal("replacing menu retained the old HBITMAP")
 	}
 	send := user32.NewProc("SendMessageW")
 	for number := range target.commands {
