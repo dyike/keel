@@ -5,12 +5,10 @@
 package app
 
 import (
-	stdcontext "context"
 	"fmt"
 	"image"
 	"image/color"
 	"os"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -27,22 +25,14 @@ func TestMetalResizeWindow(t *testing.T) {
 	if os.Getenv("KEEL_DESKTOP") != "1" {
 		t.Skip("set KEEL_DESKTOP=1 for native Metal resize regression")
 	}
-	ctx, cancel := stdcontext.WithTimeout(stdcontext.Background(), 30*time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, os.Args[0])
-	cmd.Env = append(os.Environ(), "GIO_METAL_RESIZE_HELPER=1")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("%v\n%s", err, out)
-	} else {
-		t.Log(string(out))
-	}
+	runMetalHelper(t, "GIO_METAL_RESIZE_HELPER", 30*time.Second)
 }
 
 func metalResizeWindowHelper() {
 	fail := func(msg string) { fmt.Fprintln(os.Stderr, msg); os.Exit(1) }
 	frames := make(chan image.Point, 64)
 	w := new(Window)
-	w.Option(Title("Metal resize regression"), Decorated(false), Size(unit.Dp(860), unit.Dp(600)))
+	w.Option(Title("Metal resize regression"), Decorated(false), Size(unit.Dp(860), unit.Dp(600)), TopMost(true))
 	go func() {
 		var ops op.Ops
 		for {
@@ -89,6 +79,7 @@ func metalResizeWindowHelper() {
 						break wait
 					}
 				case <-deadline.C:
+					exitIfOccluded(w, fmt.Sprintf("during resize %d", i))
 					fail(fmt.Sprintf("resize %d to %v stalled waiting for a presented frame", i, want))
 				}
 			}

@@ -6,6 +6,7 @@ package app
 
 import (
 	stdcontext "context"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -39,14 +40,40 @@ func TestMetalIdleWindow(t *testing.T) {
 	if os.Getenv("KEEL_DESKTOP") != "1" {
 		t.Skip("set KEEL_DESKTOP=1 for native Metal window")
 	}
-	ctx, cancel := stdcontext.WithTimeout(stdcontext.Background(), 45*time.Second)
+	runMetalHelper(t, "GIO_METAL_IDLE_HELPER", 45*time.Second)
+}
+
+// metalHelperOccluded is the helper's exit status when its window stopped
+// showing on screen: covered, or the display asleep or locked. An occluded
+// Keel window draws nothing (window.draw), so the frames a helper waits for
+// never come; the test skips instead of hanging until its timeout.
+const metalHelperOccluded = 3
+
+// runMetalHelper runs a window helper in a child process, enabled by env.
+func runMetalHelper(t *testing.T, env string, timeout time.Duration) {
+	ctx, cancel := stdcontext.WithTimeout(stdcontext.Background(), timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, os.Args[0])
-	cmd.Env = append(os.Environ(), "GIO_METAL_IDLE_HELPER=1")
-	if out, err := cmd.CombinedOutput(); err != nil {
+	cmd.Env = append(os.Environ(), env+"=1")
+	out, err := cmd.CombinedOutput()
+	var exit *exec.ExitError
+	if errors.As(err, &exit) && exit.ExitCode() == metalHelperOccluded {
+		t.Skipf("%s", out)
+	}
+	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
-	} else {
-		t.Log(string(out))
+	}
+	t.Log(string(out))
+}
+
+// exitIfOccluded ends a helper whose window is occluded; see
+// metalHelperOccluded.
+func exitIfOccluded(w *Window, what string) {
+	var occluded bool
+	w.Run(func() { occluded = w.driver.(*window).occluded })
+	if occluded {
+		fmt.Fprintf(os.Stderr, "window occluded %s\n", what)
+		os.Exit(metalHelperOccluded)
 	}
 }
 
@@ -54,7 +81,8 @@ func metalIdleWindowHelper() {
 	fail := func(msg string) { fmt.Fprintln(os.Stderr, msg); os.Exit(1) }
 	frames := make(chan struct{}, 32)
 	w := new(Window)
-	w.Option(Title("Metal idle regression"), Size(unit.Dp(320), unit.Dp(240)))
+	// TopMost keeps other apps' windows from covering it.
+	w.Option(Title("Metal idle regression"), Size(unit.Dp(320), unit.Dp(240)), TopMost(true))
 	go func() {
 		var ops op.Ops
 		for {
@@ -106,7 +134,12 @@ func metalIdleWindowHelper() {
 			}
 			start := time.Now()
 			w.Invalidate()
-			<-frames
+			select {
+			case <-frames:
+			case <-time.After(3 * time.Second):
+				exitIfOccluded(w, fmt.Sprintf("before resume %d", i))
+				fail(fmt.Sprintf("resume %d: no frame after Invalidate", i))
+			}
 			w.Run(func() {
 				c := w.ctx.(*mtlContext)
 				sz := size(uintptr(c.layer), sel)
