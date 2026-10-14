@@ -268,3 +268,5 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
 - OneCatch's 5016×2820 comparison differed by at most 1/255 per channel. Actual
   window loading/scrolling still exceeds 300 MiB; neither pixel tests nor lower
   frame submission time establishes that memory target or end-to-end frame rate.
+
+- `typesetting/shaping`: trailing whitespace trimming now verifies the source cluster contains only Unicode whitespace. Missing outline metrics (including the installed PingFang UI face) also yield zero ink width and must not erase the final visible glyph advance. Both the fitting multi-run path and wrapped-line path use the check. Synthetic LTR/RTL/vertical tests and mixed-font label width/pixel regressions cover it.
