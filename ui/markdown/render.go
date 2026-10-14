@@ -275,7 +275,7 @@ func (st *tableView) basis(t *tableData) []float32 {
 	}
 	sh := theme.Material.Shaper
 	measure := func(spans []span, bold bool) float32 {
-		f := font.Font{Typeface: theme.Face}
+		f := font.Font{Typeface: theme.Material.Face}
 		if bold {
 			f.Weight = font.Bold
 		}
@@ -350,7 +350,7 @@ type richBlock struct {
 func newRich(spans []span, size unit.Sp, bold bool, c color.NRGBA, onLink func(string)) *richBlock {
 	r := &richBlock{plain: plain(spans), onLink: onLink, lineH: 1.6, base: size}
 	for _, s := range spans {
-		rn := run{object: s.object, text: s.text, math: s.math, display: s.display, size: size, color: c, font: font.Font{Typeface: theme.Face}, strike: s.strike, anchor: s.anchor}
+		rn := run{object: s.object, text: s.text, math: s.math, display: s.display, size: size, color: c, font: font.Font{Typeface: theme.Material.Face}, strike: s.strike, anchor: s.anchor}
 		if s.superscript {
 			rn.size = size * 0.75
 			rn.rise = size * 0.3
@@ -418,7 +418,7 @@ func (r *richBlock) LayoutViewport(gtx core.C, visible image.Rectangle) core.D {
 		if len(runs) > 0 {
 			size = runs[len(runs)-1].size
 		}
-		runs = append(runs[:len(runs):len(runs)], run{text: caret, size: size, color: theme.Primary, font: font.Font{Typeface: theme.Face}})
+		runs = append(runs[:len(runs):len(runs)], run{text: caret, size: size, color: theme.Primary, font: font.Font{Typeface: theme.Material.Face}})
 	}
 	r.rt.runs, r.rt.base, r.rt.lineH, r.rt.align = runs, r.base, r.lineH, r.align
 	r.rt.textRuns = len(r.runs) // not the caret
