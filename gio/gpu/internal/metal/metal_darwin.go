@@ -441,8 +441,9 @@ type Backend struct {
 	prog     *Program
 	topology C.MTLPrimitiveType
 
-	pool  bufferPool
-	quads quadBatcher
+	unified bool // CPU uploads avoid activating a second GPU engine on Apple silicon.
+	pool    bufferPool
+	quads   quadBatcher
 
 	stagingBuf C.CFTypeRef
 	stagingOff int
@@ -463,6 +464,8 @@ type Texture struct {
 	height  int
 	mipmap  bool
 	foreign bool
+	direct  bool // Only the initial complete upload may bypass GPU synchronization.
+	srgb    bool
 }
 
 type Shader struct {
@@ -513,6 +516,7 @@ func newMetalDevice(api driver.Metal) (driver.Device, error) {
 	C.CFRetain(queue)
 	b := &Backend{
 		dev:      dev,
+		unified:  unifiedMemory(uintptr(dev)),
 		queue:    queue,
 		pixelFmt: C.MTLPixelFormat(api.PixelFormat),
 		bufSizes: make([]uint32, bufferUnits),
@@ -652,7 +656,15 @@ func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, min
 	if mipmap {
 		mipmapped = 1
 	}
-	tex := C.newTexture(b.dev, C.NSUInteger(width), C.NSUInteger(height), mformat, usage, mipmapped)
+	direct := b.unified && bindings == driver.BufferBindingTexture && format != driver.TextureFormatFloat
+	var tex C.CFTypeRef
+	if direct {
+		tex = C.CFTypeRef(uploadTexture(uintptr(b.dev), uintptr(mformat), uintptr(width), uintptr(height), uintptr(usage), mipmap))
+	}
+	if tex == 0 {
+		direct = false
+		tex = C.newTexture(b.dev, C.NSUInteger(width), C.NSUInteger(height), mformat, usage, mipmapped)
+	}
 	if tex == 0 {
 		return nil, errors.New("metal: [MTLDevice newTextureWithDescriptor:] failed")
 	}
@@ -661,7 +673,7 @@ func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, min
 		C.CFRelease(tex)
 		return nil, errors.New("metal: [MTLDevice newSamplerStateWithDescriptor:] failed")
 	}
-	return &Texture{backend: b, texture: tex, sampler: s, width: width, height: height, mipmap: mipmap}, nil
+	return &Texture{backend: b, texture: tex, sampler: s, width: width, height: height, mipmap: mipmap, direct: direct, srgb: format == driver.TextureFormatSRGBA}, nil
 }
 
 func samplerFilterFor(f driver.TextureFilter) (C.MTLSamplerMinMagFilter, C.MTLSamplerMipFilter) {
@@ -781,6 +793,15 @@ func (b *Backend) NewBuffer(typ driver.BufferBinding, size int) (driver.Buffer, 
 }
 
 func (b *Backend) NewImmutableBuffer(typ driver.BufferBinding, data []byte) (driver.Buffer, error) {
+	// Immutable geometry is initialized before its first GPU use. Keep mutable
+	// buffers on the ordered upload path, including later Upload calls on this buffer.
+	if b.unified && (len(data) > 4096 || typ&driver.BufferBindingIndices != 0) {
+		buf := C.newBuffer(b.dev, C.NSUInteger(len(data)), C.MTLResourceStorageModeShared)
+		if buf != 0 {
+			copy(bufferStore(buf), data)
+			return &Buffer{backend: b, size: len(data), buffer: buf}, nil
+		}
+	}
 	buf, err := b.NewBuffer(typ, len(data))
 	if err != nil {
 		return nil, err
@@ -942,6 +963,16 @@ func (t *Texture) Upload(offset, size image.Point, pixels []byte, stride int) {
 	}
 	if stride == 0 {
 		stride = size.X * 4
+	}
+	// A later or partial write must remain ordered against encoded GPU reads.
+	direct := t.direct
+	t.direct = false
+	if direct && offset == (image.Point{}) && size == image.Pt(t.width, t.height) {
+		directUpload(uintptr(t.texture), offset, size, pixels, stride, 0)
+		if t.mipmap {
+			uploadMipmaps(uintptr(t.texture), size, pixels, stride, t.srgb)
+		}
+		return
 	}
 	dstStride := size.X * 4
 	n := size.Y * dstStride

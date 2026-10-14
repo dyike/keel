@@ -94,6 +94,9 @@ window lifecycle. [docs/testing.md](docs/testing.md) and
   first-frame stalls even when P95 improves. Record whether a fix is published
   or supplied only by a local workspace; never attribute local patches to an
   existing release. Revert experiments without reproducible benefit.
+  Sample several idle seconds after GPU completion: driver-owned memory may
+  reclaim later than application resources. Immediate post-release footprint
+  alone is not evidence of a leak.
 
 ## cgo inventory
 

@@ -44,6 +44,18 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- Share identical stencil masks within each frame without adding GPU textures. Preserve absolute transform inputs and parent intersection behavior; tested with native pixel comparisons. See [rendering memory](../docs/rendering-memory.md).
+
+- `gio/gpu/internal/metal`: unified-memory devices initialize immutable geometry and
+  the first complete sampled-image upload directly in shared resources. This avoids
+  activating GPU copy work for ordinary UI uploads, which added about 57 MiB in a
+  minimal local Metal experiment. CPU-generated mip levels retain linear-light sRGB
+  filtering; native comparisons cover odd sizes, strides and all levels (maximum
+  observed channel difference 2/255). Partial/repeated uploads, mutable buffers,
+  render targets, non-unified devices and allocation failures retain the ordered
+  GPU path. No per-frame GC, frame-rate cap or drawable-count change. See
+  [rendering memory and reuse](../docs/rendering-memory.md) for scope and limitations.
+
 For a behavior-by-behavior summary with source/test links, see
 [Changes from upstream](../docs/upstream-patches.md). Numbers below are historical
 local measurements, not fresh benchmarks or portable application guarantees.

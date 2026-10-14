@@ -60,6 +60,7 @@ type gpu struct {
 }
 
 type renderer struct {
+	stencilPlaces map[stencilMaskKey]placement
 	ctx           driver.Device
 	blitter       *blitter
 	pather        *pather
@@ -431,6 +432,7 @@ func (g *gpu) Trim() {
 	g.drawOps.pathCache.release()
 	g.drawOps = drawOps{pathCache: newOpCache()}
 	r := g.renderer
+	r.stencilPlaces = nil
 	r.quads, r.quadOps, r.quadTexs = nil, nil, nil
 	r.pather.stenciler.fbos.delete(g.ctx, 0)
 	r.pather.stenciler.intersections.delete(g.ctx, 0)
@@ -791,28 +793,42 @@ func (r *renderer) packIntersections(ops []imageOp) {
 	}
 }
 
+// stencilMaskKey includes the absolute transform inputs so sharing preserves
+// the stencil shader's floating-point evaluation exactly. Parent clips are
+// combined later by the intersection pass, not when rasterizing this mask.
+type stencilMaskKey struct {
+	path opKey
+	clip image.Rectangle
+	off  f32.Point
+}
+
 func (r *renderer) packStencils(pops *[]*pathOp) {
 	r.packer.clear()
-	ops := *pops
-	// Allocate atlas space for cover textures.
-	var i int
-	for i < len(ops) {
-		p := ops[i]
+	if r.stencilPlaces == nil {
+		r.stencilPlaces = make(map[stencilMaskKey]placement)
+	}
+	clear(r.stencilPlaces)
+	paths := *pops
+	unique := paths[:0]
+	for _, p := range paths {
 		if p.clip.Empty() {
-			ops[i] = ops[len(ops)-1]
-			ops = ops[:len(ops)-1]
+			continue
+		}
+		key := stencilMaskKey{p.pathKey, p.clip, p.off}
+		if place, ok := r.stencilPlaces[key]; ok {
+			p.place = place
 			continue
 		}
 		place, ok := r.packer.add(p.clip.Size())
 		if !ok {
-			// The clip area is at most the entire screen. Hopefully no
-			// screen is larger than GL_MAX_TEXTURE_SIZE.
 			panic(fmt.Errorf("clip area %v is larger than maximum texture size %v", p.clip, r.packer.maxDims))
 		}
 		p.place = place
-		i++
+		r.stencilPlaces[key] = place
+		unique = append(unique, p)
 	}
-	*pops = ops
+	clear(paths[len(unique):])
+	*pops = unique
 }
 
 func (r *renderer) packLayers(layers []opacityLayer) []opacityLayer {
