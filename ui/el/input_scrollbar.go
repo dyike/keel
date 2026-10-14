@@ -27,7 +27,7 @@ func inputScrollbarWidth(ed *widget.Editor, multiline bool, width int) int {
 }
 
 func (e *engine) updateInputScrollbar(n *Node, st *elemState, size image.Point, track image.Rectangle) {
-	sc, ok := any(&st.editor).(editorViewport)
+	sc, ok := any(st.editor).(editorViewport)
 	if !ok || !n.input.multiline {
 		return
 	}
@@ -43,7 +43,7 @@ func (e *engine) updateInputScrollbar(n *Node, st *elemState, size image.Point, 
 	wasActive := st.scrollbarY.active
 	next := st.scrollbarY.update(e.gtx, track, false, offset.Y, size.Y, total, e.dp(24), nil)
 	if !wasActive && st.scrollbarY.active {
-		e.gtx.Execute(key.FocusCmd{Tag: &st.editor})
+		e.gtx.Execute(key.FocusCmd{Tag: st.editor})
 	}
 	if next != offset.Y {
 		sc.ScrollTo(image.Pt(offset.X, next))
@@ -52,7 +52,7 @@ func (e *engine) updateInputScrollbar(n *Node, st *elemState, size image.Point, 
 }
 
 func (e *engine) paintInputScrollbar(n *Node, st *elemState, size image.Point, track image.Rectangle) {
-	sc, ok := any(&st.editor).(editorViewport)
+	sc, ok := any(st.editor).(editorViewport)
 	if !ok || !n.input.multiline {
 		return
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/gesture"
 	"github.com/dyike/keel/gio/io/key"
+	gtext "github.com/dyike/keel/gio/text"
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
@@ -48,6 +49,7 @@ type CodeCompletion struct {
 //
 // Tab indents; press Esc first to move focus on with Tab.
 type CodeEditorView struct {
+	shapeScratch  []gtext.Glyph // borrowed by one synchronous shape/paint call
 	onPaste       func(core.ClipboardData) bool
 	pasteReader   core.ClipboardReader
 	onPasteError  func(error)

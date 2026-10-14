@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("label", "basic", func() core.Widget {
+	registerSection("label", "controls", func() core.Widget {
 		masked := kit.Label(demoText("Account balance ¥12,345", "账户余额 ¥12,345")).Masked(true).Secondary(demoText("(masks the primary text only)", "（仅遮罩主文案）"))
 		hidden := true
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {

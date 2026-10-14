@@ -46,7 +46,7 @@ func (r *RootWidget) collectTabTargets(roots []*Node) ([]tabTarget, bool) {
 		}
 		if s := r.store.states[n.key]; s != nil && !s.blocked && s.keyFrame+1 >= r.store.frame && s.keyFrame > 0 && !n.tabSkip && n.tabIndex >= 0 {
 			if n.input != nil {
-				targets = append(targets, tabTarget{&s.editor, s, n.tabIndex})
+				targets = append(targets, tabTarget{s.editor, s, n.tabIndex})
 			} else if n.isFocusable() {
 				targets = append(targets, tabTarget{s, s, n.tabIndex})
 			}
@@ -113,7 +113,7 @@ func (r *RootWidget) focusedContainerTrap(roots []*Node) *Node {
 		if n.focusTrap {
 			scope = n
 		}
-		if state := r.store.states[n.key]; state != nil && !state.blocked && (r.source.Focused(state) || r.source.Focused(&state.editor)) {
+		if state := r.store.states[n.key]; state != nil && !state.blocked && (r.source.Focused(state) || (state.editor != nil && r.source.Focused(state.editor))) {
 			return scope, true
 		}
 		for _, child := range n.children {

@@ -73,7 +73,7 @@ func (e *engine) inputPasteKeys(n *Node, st *elemState) {
 		return
 	}
 	for {
-		ev, ok := e.gtx.Event(key.Filter{Focus: &st.editor, Name: "V", Required: key.ModShortcut})
+		ev, ok := e.gtx.Event(key.Filter{Focus: st.editor, Name: "V", Required: key.ModShortcut})
 		if !ok {
 			return
 		}
