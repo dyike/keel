@@ -145,7 +145,7 @@ When writing your own Gio drawing code, you can use `theme.Scope(p)` to temporar
 
 ### Platform text (macOS)
 
-With Keel's Gio and go-text copies (see `third_party/README.md`), macOS draws solid-color text with CoreText, as native and WebKit apps do: the same antialiasing, stem darkening and gamma, where Gio's vector outlines blended in linear light looked thin and grey. Shaping, layout and metrics stay Gio's; only glyph pixels change. Labels, inputs, rich ranges, markdown, the code editor, shimmer and `GlyphRenderer` use it. Text CoreText cannot draw — fonts built in memory, color emoji, sizes over 160 px — keeps vector outlines. Masks are cached in up to eight 1024×1024 pages (32 MiB).
+With Keel's Gio and go-text copies (see `third_party/README.md`), macOS draws solid-color text with CoreText, as native and WebKit apps do: the same antialiasing, stem darkening and gamma, where Gio's vector outlines blended in linear light looked thin and grey. Shaping, layout and metrics stay Gio's; only glyph pixels change. Labels, inputs, rich ranges, markdown, the code editor, shimmer and `GlyphRenderer` use it. Text CoreText cannot draw — fonts built in memory, color emoji, sizes over 160 px — keeps vector outlines. Masks are cached in up to 128 256×256 pages (32 MiB). Smaller pages limit each fallback color copy to 256 KiB when path clipping or opacity requires a tinted texture.
 
 `theme.PaintGlyphs(ops, shaper, glyphs, color, origin)` draws one shaped line the same way from custom code; `theme.PlatformText(shaper)` reports whether a shaper uses it. `theme.UsePlatformText(false)`, or `KEEL_TEXT=vector` in the environment, keeps vector outlines for comparison. With upstream Gio the hooks are absent and text keeps vector outlines.
 

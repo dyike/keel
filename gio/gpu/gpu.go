@@ -153,6 +153,8 @@ type imageOp struct {
 	// layerOps is the number of operations this
 	// operation replaces.
 	layerOps int
+	// inLayer requires the offscreen fallback, whose shader cannot apply tint.
+	inLayer bool
 }
 
 func decodeStrokeOp(data []byte) float32 {
@@ -467,7 +469,7 @@ func (g *gpu) frame(target RenderTarget) error {
 	g.renderer.intersect(g.drawOps.imageOps)
 	g.stencilTimer.end()
 	g.coverTimer.begin()
-	g.renderer.uploadImages(g.cache, g.drawOps.imageOps, len(g.drawOps.layers) == 0)
+	g.renderer.uploadImages(g.cache, g.drawOps.imageOps)
 	g.renderer.prepareDrawOps(g.drawOps.imageOps)
 	g.drawOps.layers = g.renderer.packLayers(g.drawOps.layers)
 	g.renderer.drawLayers(g.drawOps.layers, g.drawOps.imageOps)
@@ -1128,6 +1130,7 @@ loop:
 				path:     state.cpath,
 				clip:     bounds,
 				material: mat,
+				inLayer:  len(d.opacityStack) > 0,
 			}
 			if n := len(d.opacityStack); n > 0 {
 				idx := d.opacityStack[n-1]
@@ -1211,13 +1214,13 @@ func (d *drawState) materialFor(rect f32.Rectangle, off f32.Point, partTrans f32
 
 var whiteTint = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
 
-func (r *renderer) uploadImages(cache *textureCache, ops []imageOp, noLayers bool) {
+func (r *renderer) uploadImages(cache *textureCache, ops []imageOp) {
 	// Reserve all instance storage before choosing shared tinted textures. A
 	// successful preparation guarantees that DrawQuads cannot fall back midway.
 	tintedQuads := false
-	if !r.noQuads && noLayers {
+	if !r.noQuads {
 		for _, img := range ops {
-			if img.material.material == materialTexture && img.material.data.tint != whiteTint && img.clipType == clipTypeNone {
+			if img.material.material == materialTexture && img.material.data.tint != whiteTint && img.clipType == clipTypeNone && !img.inLayer {
 				if b, ok := r.ctx.(driver.TintedQuadBatcher); ok {
 					tintedQuads = b.PrepareQuads(len(ops))
 				}
@@ -1233,7 +1236,7 @@ func (r *renderer) uploadImages(cache *textureCache, ops []imageOp, noLayers boo
 		}
 		data := m.data
 		m.color = f32color.RGBA{R: 1, G: 1, B: 1, A: 1}
-		if tintedQuads && img.clipType == clipTypeNone {
+		if tintedQuads && img.clipType == clipTypeNone && !img.inLayer {
 			m.color = f32color.LinearFromSRGB(data.tint)
 			data.tint = whiteTint
 		}

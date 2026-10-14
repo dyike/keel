@@ -145,7 +145,7 @@ kit 的间距都已改用这套刻度；剩下的 10、14、20dp 是刻意的视
 
 ### 平台文字渲染（macOS）
 
-使用 Keel 的 Gio 和 go-text 副本时（见 `third_party/README.zh-CN.md`），macOS 上纯色文字由 CoreText 绘制，与原生应用和 WebKit 一致：同样的抗锯齿、笔画加粗和 gamma。此前 Gio 的矢量轮廓在线性光空间混合，看起来偏细、发灰。字形排版、布局和度量仍由 Gio 负责，只改变字形像素。标签、输入框、富文本区间、Markdown、代码编辑器、闪光文字和 `GlyphRenderer` 都会使用它。CoreText 画不了的文字（内存中构建的字体、彩色表情、超过 160 px 的字号）仍用矢量轮廓。字形缓存最多 8 页 1024×1024（32 MiB）。
+使用 Keel 的 Gio 和 go-text 副本时（见 `third_party/README.zh-CN.md`），macOS 上纯色文字由 CoreText 绘制，与原生应用和 WebKit 一致：同样的抗锯齿、笔画加粗和 gamma。此前 Gio 的矢量轮廓在线性光空间混合，看起来偏细、发灰。字形排版、布局和度量仍由 Gio 负责，只改变字形像素。标签、输入框、富文本区间、Markdown、代码编辑器、闪光文字和 `GlyphRenderer` 都会使用它。CoreText 画不了的文字（内存中构建的字体、彩色表情、超过 160 px 的字号）仍用矢量轮廓。字形缓存最多 128 页 256×256（32 MiB）。路径裁剪或透明度图层需要独立着色纹理时，小页面将每份颜色副本限制在 256 KiB。
 
 自定义绘制可用 `theme.PaintGlyphs(ops, shaper, glyphs, color, origin)` 以同样方式绘制一行已排版的字形；`theme.PlatformText(shaper)` 报告某个排版器是否使用它。`theme.UsePlatformText(false)` 或环境变量 `KEEL_TEXT=vector` 可切回矢量轮廓做对比。使用上游 Gio 时没有这些挂钩，文字保持矢量轮廓。
 

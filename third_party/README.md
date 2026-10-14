@@ -225,3 +225,5 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
 `deferred_teardown_test.go` covers notification, acknowledgment and single cleanup.
 
 - `gio/app` (Wayland): queue `Run` callbacks for the native event thread instead of executing them on a background caller. Asynchronous maximize/configure otherwise races frame collection and can reset recorded operations while the GPU reads them. Shutdown stops queue wakeups before closing the native pipe and releases waiting `Window.Run` callers. A regression decodes a frame before draining a queued reset.
+
+- `gio/gpu`: track opacity membership per image operation. An unrelated opacity layer no longer disables shared tinted textures for the whole frame; path clips and images inside layers retain baked colors. Texture-count and native pixel tests cover unrelated and nested opacity. CoreText uses 256×256 pages with the same 32 MiB pixel budget to reduce whole-page color copies in the fallback path; cache tests cover eviction and pages used in the current frame.
