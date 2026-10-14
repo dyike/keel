@@ -154,6 +154,8 @@ type Texture interface {
 // patch.
 type Quad struct {
 	Transform, UV0, UV1, Color [4]float32
+	// Cover maps unit UV to coverage UV; UV1[3] is its texture slot + 1, or 0.
+	Cover [4]float32
 }
 
 // MaxQuadTextures is how many textures one QuadBatcher call may sample.
@@ -174,6 +176,13 @@ type QuadBatcher interface {
 type TintedQuadBatcher interface {
 	QuadBatcher
 	PrepareQuads(count int) bool
+}
+
+// CoveredQuadBatcher also supports coverage masks with the same absolute,
+// clamped winding coverage as the portable cover shader.
+type CoveredQuadBatcher interface {
+	TintedQuadBatcher
+	SupportsCoverageQuads() bool
 }
 
 // Volatile is implemented by textures whose memory the system may reclaim

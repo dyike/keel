@@ -88,3 +88,50 @@ func TestPendingReportsQueuedUpdates(t *testing.T) {
 		t.Fatal("drained queue reported pending")
 	}
 }
+
+func TestConditionalBackgroundUpdateOnlyRedrawsChanges(t *testing.T) {
+	SetBackgroundUpdates(true)
+	t.Cleanup(func() { SetBackgroundUpdates(false) })
+	var draws atomic.Int32
+	key := new(int)
+	Register(key, func() { draws.Add(1) })
+	t.Cleanup(func() { Unregister(key) })
+	for _, changed := range []bool{false, true, false} {
+		done := make(chan struct{})
+		PostIf(func() bool { close(done); return changed })
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			t.Fatal("conditional update stalled")
+		}
+		Lock()
+		Unlock()
+	}
+	if got := draws.Load(); got != 1 {
+		t.Fatalf("redraws = %d, want only the changed update", got)
+	}
+}
+
+func TestConditionalCheckDoesNotPostponeIdleReclaim(t *testing.T) {
+	SetBackgroundUpdates(true)
+	SetIdleMemoryReclaim(true)
+	t.Cleanup(func() { SetBackgroundUpdates(false); SetIdleMemoryReclaim(false) })
+	memoryActivity()
+	memoryIdle.mu.Lock()
+	before := memoryIdle.last
+	memoryIdle.mu.Unlock()
+	done := make(chan struct{})
+	PostIf(func() bool { close(done); return false })
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("check stalled")
+	}
+	frame.Lock()
+	defer frame.Unlock()
+	memoryIdle.mu.Lock()
+	defer memoryIdle.mu.Unlock()
+	if !memoryIdle.last.Equal(before) {
+		t.Fatal("unchanged background check postponed reclamation")
+	}
+}

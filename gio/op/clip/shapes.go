@@ -107,7 +107,12 @@ func (rr RRect) Path(ops *op.Ops) PathSpec {
 		f32.Point{X: w + nw*iq, Y: n},
 		f32.Point{X: w + nw, Y: n})
 
-	return p.End()
+	spec := p.End()
+	r := max(rr.SE, rr.SW, rr.NW, rr.NE)
+	if min(rr.SE, rr.SW, rr.NW, rr.NE) >= 0 && 2*r < min(rr.Rect.Dx(), rr.Rect.Dy()) {
+		spec.interior = rr.Rect.Inset(r)
+	}
+	return spec
 }
 
 // Ellipse represents the largest axis-aligned ellipse that

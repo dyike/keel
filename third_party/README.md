@@ -227,3 +227,44 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
 - `gio/app` (Wayland): queue `Run` callbacks for the native event thread instead of executing them on a background caller. Asynchronous maximize/configure otherwise races frame collection and can reset recorded operations while the GPU reads them. Shutdown stops queue wakeups before closing the native pipe and releases waiting `Window.Run` callers. A regression decodes a frame before draining a queued reset.
 
 - `gio/gpu`: track opacity membership per image operation. An unrelated opacity layer no longer disables shared tinted textures for the whole frame; path clips and images inside layers retain baked colors. Texture-count and native pixel tests cover unrelated and nested opacity. CoreText uses 256×256 pages with the same 32 MiB pixel budget to reduce whole-page color copies in the fallback path; cache tests cover eviction and pages used in the current frame.
+
+- `typesetting/fontscan` (macOS): scan the system FontServices `Resources/Reserved` directory. Current macOS stores PingFangUI.ttc there; omitting it silently falls back to another CJK family. A native font-resolution test covers Helvetica Neue and PingFang SC.
+
+- `ui/theme` native glyph rendering: resolve the selected TTC face by its PostScript identity through purego. CoreText descriptor indexes differ from TTC face indexes after named-instance expansion. Native tests inspect the created PingFang SC Medium and SF Regular objects; this prevents the former from being drawn as HK Thin. No new cgo bindings.
+
+- `typesetting/font/opentype/tables`: fix `fvar` named-instance record strides and bound each record so an absent PostScript name cannot consume the next record. `fontscan` indexes named weights with default non-weight axes, loads their coordinates, and bumps the disk cache to version 7. `gio/text.Shaper.GlyphFileInstance` exposes the selected instance to CoreText; native tests verify Regular and Semibold identities from shaping through rasterization.
+
+### 2026-10-14: retained framebuffer and variable-font tables
+
+- `gio/gpu/path.go`: calculate framebuffer waste as retained area / requested
+  area. The inverse ratio never shrank an oversized framebuffer after a smaller
+  frame. `TestFramebuffersReleaseOversizedStorage` covers shrinking, stable reuse
+  and release.
+- `typesetting/fontscan`: named instances of the same file and TTC index share
+  immutable parsed font tables. Each instance retains a distinct `Font` identity
+  and `Face`, preserving location metadata and independent variation coordinates.
+  The Darwin PingFang instance test checks shared GSUB storage and distinct weights.
+- `typesetting/font`: retain glyph headers and variation point counts at load
+  time, then cache full TrueType contours only when an outline is requested.
+  This avoids retaining every CJK contour merely for native text rendering.
+  Shared caches are synchronized; the public Face scratch state remains separate.
+  Tests compare every Go Regular outline and representative PingFang glyphs at
+  four weights against eager decoding, including concurrent cache access.
+
+### 2026-10-14: covered quad batching and conservative clip interiors
+
+- Metal batches path/intersection-covered color and image quads with coverage
+  textures in the existing eight-slot table. Coverage uses the original
+  `min(abs(value), 1)` operation. Clipped tinted glyphs can share atlas textures;
+  opacity layers and unsupported devices keep their existing fallback. Tests
+  cover texture-slot exhaustion, ordering, tint, allocation fallback, and native
+  pixels for rounded/nested clips.
+- Rounded rectangle path operations carry a conservative interior rectangle.
+  A paint can skip coverage only when every path ancestor contains its complete
+  pixel bounds; an extra pixel margin protects antialiased edges. Unknown paths,
+  strokes, rotations and unsupported transformed rectangles retain coverage.
+  Collection tests cover these cases. The internal clip operation encoding grew
+  by 16 bytes; all readers use the updated length.
+- OneCatch's 5016×2820 comparison differed by at most 1/255 per channel. Actual
+  window loading/scrolling still exceeds 300 MiB; neither pixel tests nor lower
+  frame submission time establishes that memory target or end-to-end frame rate.

@@ -70,6 +70,9 @@ func (f *Face) getPointsForGlyphRec(gid tables.GlyphID, currentDepth int, curren
 	}
 
 	g := f.glyf[gid]
+	if f.glyfOutlines != nil {
+		g = f.glyfOutlines.glyph(gid)
+	}
 
 	var points []contourPoint
 	if data, ok := g.Data.(tables.SimpleGlyph); ok {

@@ -23,3 +23,8 @@ The foundation for all interface modules:
 Threading rules: Modify components directly in callbacks; modify components in other goroutines and package them into `core.Update`. See [Architecture · Threading Rules](../../docs/architecture.md#threading) for the reason.
 
 `ClipboardData`, `ClipboardImage`, `ClipboardReader` define rich paste exchange data and asynchronous reading interface; core does not read the system clipboard and does not reference native. The application adaptation platform reads the results and is dispatched back to the UI thread by the input component.
+
+For resident applications, `UpdateIf(func() bool)` runs a background check under
+the frame lock and requests redraw only when the callback returns true. Return
+false for unchanged polling results so idle GPU and Go memory reclamation can
+finish. Non-resident applications still need a frame to drain the callback.

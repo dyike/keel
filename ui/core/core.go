@@ -50,6 +50,11 @@ func (f Func) Layout(gtx C) D { return f(gtx) }
 // It is safe from any goroutine, including from callbacks, and returns at once.
 func Update(fn func()) { loop.Post(fn) }
 
+// UpdateIf queues a check under the frame lock. Return true when visible
+// state changed. Resident apps can process unchanged checks without drawing
+// or postponing idle memory reclamation; other apps run it on the next frame.
+func UpdateIf(fn func() bool) { loop.PostIf(fn) }
+
 // Call runs a user callback from inside Layout and redraws every window,
 // because the callback may have changed components that were already drawn.
 // Components must route every user callback through it.

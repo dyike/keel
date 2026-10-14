@@ -103,9 +103,10 @@ type StackKind uint8
 
 // ClipOp is the shadow of clip.Op.
 type ClipOp struct {
-	Bounds  image.Rectangle
-	Outline bool
-	Shape   Shape
+	Interior image.Rectangle
+	Bounds   image.Rectangle
+	Outline  bool
+	Shape    Shape
 }
 
 const (
@@ -142,7 +143,7 @@ const (
 	TypeSaveLen             = 1 + 4
 	TypeLoadLen             = 1 + 4
 	TypeAuxLen              = 1
-	TypeClipLen             = 1 + 4*4 + 1 + 1
+	TypeClipLen             = 1 + 4*4 + 1 + 1 + 4*4
 	TypePopClipLen          = 1
 	TypeCursorLen           = 2
 	TypePathLen             = 8 + 1
@@ -167,6 +168,10 @@ func (op *ClipOp) Decode(data []byte) {
 	op.Bounds.Max.Y = int(int32(bo.Uint32(data[13:])))
 	op.Outline = data[17] == 1
 	op.Shape = Shape(data[18])
+	op.Interior.Min.X = int(int32(bo.Uint32(data[19:])))
+	op.Interior.Min.Y = int(int32(bo.Uint32(data[23:])))
+	op.Interior.Max.X = int(int32(bo.Uint32(data[27:])))
+	op.Interior.Max.Y = int(int32(bo.Uint32(data[31:])))
 }
 
 func Reset(o *Ops) {

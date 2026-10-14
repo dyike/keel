@@ -53,8 +53,8 @@ type gvar struct {
 	sharedTupleActiveIdx []int              // with length tupleCount
 }
 
-func newGvar(table tables.Gvar, glyf tables.Glyf) (gvar, error) {
-	if len(table.GlyphVariationDatas) != len(glyf) {
+func newGvar(table tables.Gvar, pointCounts []int) (gvar, error) {
+	if len(table.GlyphVariationDatas) != len(pointCounts) {
 		return gvar{}, fmt.Errorf("invalid 'gvar' table: mismatch in glyphs count")
 	}
 
@@ -72,7 +72,7 @@ func newGvar(table tables.Gvar, glyf tables.Glyf) (gvar, error) {
 			tvs[j].TupleVariationHeader = header
 		}
 
-		pointsNumberCountAll := pointNumbersCount(glyf[i]) + phantomCount
+		pointsNumberCountAll := pointCounts[i] + phantomCount
 		err := parseGlyphVariationSerializedData(vs.SerializedData,
 			vs.HasSharedPointNumbers(), pointsNumberCountAll, false, tvs)
 		if err != nil {
