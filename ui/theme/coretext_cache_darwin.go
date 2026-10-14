@@ -79,9 +79,12 @@ func platformPaintRun(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.N
 }
 
 const (
-	ctPageSize   = 1024
-	ctMaxPages   = 8 // 32 MiB of page pixels at most
-	ctPhases     = 4 // horizontal subpixel positions per pixel
+	// Small pages bound the per-color copies needed by path-clipped and
+	// opacity-layer text. A 1024px page costs 4 MiB for every fallback tint,
+	// even when that color only draws a few glyphs. Keep the total pixel budget.
+	ctPageSize   = 256
+	ctMaxPages   = 128 // 32 MiB of page pixels at most
+	ctPhases     = 4   // horizontal subpixel positions per pixel
 	ctMaxPPEM    = 160
 	ctPagePadded = 1 // gap between masks so sampling never bleeds
 )

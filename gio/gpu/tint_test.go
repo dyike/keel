@@ -3,6 +3,9 @@
 package gpu
 
 import (
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/op/clip"
+	"github.com/dyike/keel/gio/op/paint"
 	"image"
 	"image/color"
 	"testing"
@@ -68,12 +71,15 @@ func TestTintedImageTextureSharingAndFallback(t *testing.T) {
 			defer cache.release()
 			handle := new(int)
 			ops := []imageOp{{material: material{material: materialTexture, data: imageOpData{src: src, handle: handle, tint: red}}}, {material: material{material: materialTexture, data: imageOpData{src: src, handle: handle, tint: blue}}}}
+			for i := range ops {
+				ops[i].inLayer = tc.layers
+			}
 			if tc.clipped {
 				for i := range ops {
 					ops[i].clipType = clipTypePath
 				}
 			}
-			r.uploadImages(cache, ops, !tc.layers)
+			r.uploadImages(cache, ops)
 			shared := tc.prepared && !tc.layers && !tc.clipped && !tc.disabled && !tc.portable
 			if shared {
 				if len(dev.textures) != 1 || ops[0].material.tex != ops[1].material.tex {
@@ -101,7 +107,7 @@ func TestTintedImageTextureSharingAndFallback(t *testing.T) {
 			}
 			n := len(dev.textures)
 			cache.frame()
-			r.uploadImages(cache, ops, !tc.layers)
+			r.uploadImages(cache, ops)
 			if len(dev.textures) != n {
 				t.Fatal("cache miss on unchanged image and colors")
 			}
@@ -118,5 +124,33 @@ func TestTintedImageTextureSharingAndFallback(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestUnrelatedOpacityKeepsAtlasTextureShared(t *testing.T) {
+	dev := &tintTestDevice{prepared: true}
+	r := renderer{ctx: dev}
+	cache := newTextureCache()
+	defer cache.release()
+	var frame op.Ops
+	src := image.NewRGBA(image.Rect(0, 0, 1024, 1024))
+	img := paint.NewImageOp(src)
+	for i := range 8 {
+		tr := op.Offset(image.Pt(i*12, 0)).Push(&frame)
+		c := clip.Rect(image.Rect(0, 0, 10, 10)).Push(&frame)
+		img.AddTinted(&frame, color.NRGBA{R: uint8(20 + i*20), A: 255})
+		paint.PaintOp{}.Add(&frame)
+		c.Pop()
+		tr.Pop()
+	}
+	opacity := paint.PushOpacity(&frame, .5)
+	paint.FillShape(&frame, color.NRGBA{A: 255}, clip.Rect(image.Rect(0, 20, 10, 30)).Op())
+	opacity.Pop()
+	d := drawOps{pathCache: newOpCache()}
+	d.reset(image.Pt(100, 100))
+	d.collect(&frame, image.Pt(100, 100))
+	r.uploadImages(cache, d.imageOps)
+	if len(dev.textures) != 1 {
+		t.Fatalf("unrelated opacity duplicated atlas into %d textures; want 1", len(dev.textures))
 	}
 }

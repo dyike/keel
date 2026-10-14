@@ -34,14 +34,23 @@ func TestTintedImagePixels(t *testing.T) {
 				colored.SetRGBA(x, y, f32color.NRGBAToRGBA(c))
 			}
 		}
-		for _, mode := range []string{"quad", "path", "opacity", "transform"} {
+		for _, mode := range []string{"quad", "path", "opacity", "transform", "unrelated opacity", "nested opacity"} {
 			var shots [2]*image.RGBA
 			for i := range shots {
 				var ops op.Ops
 				paint.Fill(&ops, color.NRGBA{R: 40, G: 50, B: 60, A: 255})
+				if mode == "unrelated opacity" {
+					layer := paint.PushOpacity(&ops, .4)
+					paint.FillShape(&ops, color.NRGBA{G: 180, A: 255}, clip.Rect(image.Rect(0, 0, 10, 10)).Op())
+					layer.Pop()
+				}
+				var outer paint.OpacityStack
+				if mode == "nested opacity" {
+					outer = paint.PushOpacity(&ops, .7)
+				}
 				tr := op.Offset(image.Pt(20, 20)).Push(&ops)
 				var opacity paint.OpacityStack
-				if mode == "opacity" {
+				if mode == "opacity" || mode == "nested opacity" {
 					opacity = paint.PushOpacity(&ops, .5)
 				}
 				var transform op.TransformStack
@@ -68,10 +77,13 @@ func TestTintedImagePixels(t *testing.T) {
 				if mode == "transform" {
 					transform.Pop()
 				}
-				if mode == "opacity" {
+				if mode == "opacity" || mode == "nested opacity" {
 					opacity.Pop()
 				}
 				tr.Pop()
+				if mode == "nested opacity" {
+					outer.Pop()
+				}
 				if err := w.Frame(&ops); err != nil {
 					t.Fatal(err)
 				}

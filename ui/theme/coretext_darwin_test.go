@@ -69,3 +69,35 @@ func TestCoreTextPageCopyOnWrite(t *testing.T) {
 		t.Fatal("copy-on-write lost or leaked pixels")
 	}
 }
+
+func TestCoreTextSmallPagesKeepBudgetAndEvictSafely(t *testing.T) {
+	ct.Lock()
+	defer ct.Unlock()
+	pages, glyphs, frame := ct.pages, ct.glyphs, ct.frame
+	defer func() { ct.pages, ct.glyphs, ct.frame = pages, glyphs, frame }()
+	ct.pages, ct.glyphs, ct.frame = nil, map[ctGlyphKey]*ctGlyph{}, 1
+	if ctPageSize*ctPageSize*4 > 256<<10 {
+		t.Fatal("one fallback tint exceeds 256 KiB")
+	}
+	if ctMaxPages*ctPageSize*ctPageSize*4 != 32<<20 {
+		t.Fatal("changed total atlas budget")
+	}
+	for i := range ctMaxPages {
+		key := ctGlyphKey{phaseX: uint8(i)}
+		page, r, ok := ctPlace(image.Pt(ctPageSize-1, ctPageSize-1), key)
+		if !ok || page != i || r.Dx() != ctPageSize-1 {
+			t.Fatal("could not fill atlas", i, page, r)
+		}
+		ct.glyphs[key] = &ctGlyph{page: page}
+		ct.pages[page].used = ct.frame
+	}
+	if _, _, ok := ctPlace(image.Pt(4, 4), ctGlyphKey{phaseY: 1}); ok {
+		t.Fatal("evicted a page used by the current frame")
+	}
+	old := ct.pages[0].img
+	ct.frame++
+	page, _, ok := ctPlace(image.Pt(4, 4), ctGlyphKey{phaseY: 1})
+	if !ok || page != 0 || ct.pages[0].img == old || ct.glyphs[ctGlyphKey{}] != nil {
+		t.Fatal("eviction retained glyphs or mutated a published page")
+	}
+}
