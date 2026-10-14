@@ -65,6 +65,36 @@ window lifecycle. [docs/testing.md](docs/testing.md) and
   and glyph resources. Measure before and after with benchmarks
   (`go test -bench`) or screenshots, not by intuition.
 
+## Memory and rendering hard rules
+
+- **No redraw for unchanged resident checks.** Use `core.UpdateIf` to compare
+  visible state under the frame lock. Return true only for a visible change.
+  An unchanged check must not restart idle reclamation. Do not animate a static
+  status indicator just because a background task is running.
+- **Measure the actual client.** Compare the same content, window pixel size
+  and interaction. Record startup/loading, continuous scrolling, resizing and
+  idle physical footprint and process peaks separately. RSS, Go heap size,
+  headless tests and forced-GC snapshots do not establish total client memory.
+  Frame submission timings do not establish end-to-end frame rate.
+- **Preserve rendering and responsiveness.** Do not meet a memory target by
+  reducing resolution, capping scroll frame rate or forcing GC every frame.
+  Changes to drawable count, synchronization or reclamation require real-window
+  scroll and resize checks; reducing triple buffering previously caused a
+  resize wait. Preserve antialiasing, clipping, opacity, text selection and copy.
+- **Shared tables, distinct font identities.** Cache immutable tables by file
+  and TTC index, but keep named-instance metadata, variation coordinates and
+  Face scratch state independent. Synchronize shared lazy caches. Match native
+  fonts by exact face/instance identity, never by CoreText descriptor position.
+- **Keep GPU fallback correct.** Reserve resources before selecting a shared
+  texture path; unsupported devices, allocation failures and opacity layers
+  must retain correct tint and coverage. Clip shortcuts require containment by
+  every ancestor, including antialiased boundaries. Add pixel and fallback tests.
+- **Report evidence without overstating it.** Separate observed allocations
+  from unexplained driver memory, and idle success from peak success. Document
+  first-frame stalls even when P95 improves. Record whether a fix is published
+  or supplied only by a local workspace; never attribute local patches to an
+  existing release. Revert experiments without reproducible benefit.
+
 ## cgo inventory
 
 Desktop migration is not complete. Preserve Gio's UI, layout, GPU algorithms
