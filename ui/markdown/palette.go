@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"github.com/dyike/keel/gio/font"
 	"github.com/dyike/keel/ui/theme"
 	"image/color"
 )
@@ -9,6 +10,8 @@ type paletteKey struct {
 	revision uint64
 	colors   [5]color.NRGBA
 	style    string
+	face     font.Typeface
+	monoFace font.Typeface
 }
 
 func followColor(c, fallback color.NRGBA) color.NRGBA {
@@ -27,7 +30,7 @@ func codeStyle() string {
 	return "github"
 }
 func currentPaletteKey() paletteKey {
-	return paletteKey{theme.Revision(), [5]color.NRGBA{CodeBg, CodeBorder, CodeHover, InlineCode, InlineCodeBg}, CodeStyle}
+	return paletteKey{theme.Revision(), [5]color.NRGBA{CodeBg, CodeBorder, CodeHover, InlineCode, InlineCodeBg}, CodeStyle, theme.Material.Face, MonoFace}
 }
 func (d *Doc) refreshPalette() {
 	k := currentPaletteKey()

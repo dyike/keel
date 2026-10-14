@@ -155,7 +155,7 @@ func (r *richText) paintFadedPiece(gtx core.C, p piece, draw func()) {
 			draw()
 			return
 		}
-		x0, x1 := p.rect.Min.X+p.xAt(at-begin), p.rect.Min.X+p.xAt(next-begin)
+		x0, x1 := p.rect.Min.X+p.fadeXAt(at-begin), p.rect.Min.X+p.fadeXAt(next-begin)
 		if at == begin {
 			x0 = -codeWidth
 		}
@@ -177,4 +177,20 @@ func (r *richText) paintFadedPiece(gtx core.C, p piece, draw func()) {
 		}
 		at = next
 	}
+}
+
+// Put a fade boundary inside a following space. Glyph ink can extend beyond
+// its rounded advance; clipping at the space's start would shave settled text.
+// Both adjacent spans use the same boundary, so they never overlap.
+func (p piece) fadeXAt(n int) int {
+	x := p.xAt(n)
+	for i, ch := range []rune(p.text) {
+		if i == n {
+			if ch == ' ' {
+				return x + (p.xAt(n+1)-x)/2
+			}
+			break
+		}
+	}
+	return x
 }

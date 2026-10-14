@@ -46,10 +46,30 @@ func InvalidateAll() {
 
 // Post queues fn, wakes every window and signals the optional resident worker.
 func Post(fn func()) {
+	memoryActivity()
 	mu.Lock()
 	pending = append(pending, fn)
 	mu.Unlock()
 	InvalidateAll()
+	wakeBackground()
+}
+
+// PostIf runs a background check under the frame lock. In resident mode it
+// redraws only when fn reports a visible change. Without resident mode, a
+// frame is still needed to run the check, just like Post.
+func PostIf(fn func() bool) {
+	mu.Lock()
+	pending = append(pending, func() {
+		if fn() {
+			memoryActivity()
+			InvalidateAll()
+		}
+	})
+	resident := background
+	mu.Unlock()
+	if !resident {
+		InvalidateAll()
+	}
 	wakeBackground()
 }
 
@@ -92,13 +112,13 @@ func wakeBackground() {
 
 func runBackgroundUpdates() {
 	for range wake {
-		Lock()
+		frame.Lock()
 		mu.Lock()
 		enabled := background
 		mu.Unlock()
 		if enabled {
 			Drain()
 		}
-		Unlock()
+		frame.Unlock()
 	}
 }

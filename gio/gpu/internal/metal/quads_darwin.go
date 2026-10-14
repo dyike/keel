@@ -79,6 +79,7 @@ struct Quad {
 	float4 uv0;       // first row of the UV affine transform (xyz), texture slot (w, -1: color)
 	float4 uv1;       // second row
 	float4 color;     // premultiplied, opacity applied; for textures the opacity
+	float4 cover;
 };
 
 struct Varyings {
@@ -86,6 +87,8 @@ struct Varyings {
 	float2 uv;
 	float4 color;
 	int slot [[flat]];
+	float2 coverUV;
+	int coverSlot [[flat]];
 };
 
 constant float2 corners[4] = {float2(-1, -1), float2(1, -1), float2(-1, 1), float2(1, 1)};
@@ -101,14 +104,16 @@ vertex Varyings quad_vert(uint vid [[vertex_id]], uint iid [[instance_id]], cons
 	out.uv = float2(dot(q.uv0.xyz, v), dot(q.uv1.xyz, v));
 	out.color = q.color;
 	out.slot = int(q.uv0.w);
+	out.coverUV = uvs[vid] * q.cover.xy + q.cover.zw;
+	out.coverSlot = int(q.uv1.w) - 1;
 	return out;
 }
 
 fragment float4 quad_frag(Varyings in [[stage_in]], array<texture2d<float>, 8> texs [[texture(0)]], array<sampler, 8> smps [[sampler(0)]]) {
-	if (in.slot < 0) {
-		return in.color;
-	}
-	return in.color * texs[in.slot].sample(smps[in.slot], in.uv);
+	float4 color = in.color;
+	if (in.slot >= 0) color *= texs[in.slot].sample(smps[in.slot], in.uv);
+	if (in.coverSlot >= 0) color *= min(abs(texs[in.coverSlot].sample(smps[in.coverSlot], in.coverUV).r), 1.0);
+	return color;
 }
 `
 
@@ -221,3 +226,5 @@ func (b *Backend) PrepareQuads(count int) bool {
 	q.buf, q.off = buf, 0
 	return true
 }
+
+func (b *Backend) SupportsCoverageQuads() bool { return true }

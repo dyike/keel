@@ -23,3 +23,5 @@
 线程规则：回调里直接改组件；其他 goroutine 改组件包进 `core.Update`。原因见 [架构 · 线程规则](../../docs/architecture.zh-CN.md#线程规则)。
 
 `ClipboardData`、`ClipboardImage`、`ClipboardReader` 定义富粘贴交换数据与异步读取接口；core 不读取系统剪贴板，不引用 native。应用适配平台读取结果，由输入组件调度回 UI 线程。
+
+常驻应用可以用 `UpdateIf(func() bool)` 在帧锁下执行后台检查，仅在回调返回 true 时请求重绘。轮询结果不变时返回 false，让 GPU 和 Go 的空闲回收能够完成。非驻留应用仍需通过一帧执行回调。

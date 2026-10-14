@@ -11,7 +11,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/dyike/keel/typesetting/font"
 	ot "github.com/dyike/keel/typesetting/font/opentype"
+	"github.com/dyike/keel/typesetting/font/opentype/tables"
 )
 
 // DefaultFontDirectories return the OS-dependent usual directories for
@@ -37,6 +39,8 @@ func DefaultFontDirectories(logger Logger) ([]string, error) {
 	case "darwin":
 		dirs = []string{
 			"/System/Library/Fonts",
+			// Newer macOS keeps UI fonts, including PingFang, here.
+			"/System/Library/PrivateFrameworks/FontServices.framework/Resources/Reserved",
 			"/Library/Fonts",
 			"~/Library/Fonts",
 			"/Network/Library/Fonts",
@@ -268,9 +272,10 @@ func (fa *footprintScanner) consume(path string, info os.FileInfo) error {
 
 		fp.Location.File = path
 		fp.Location.Index = uint16(i)
-		// TODO: for now, we do not handle variable fonts
+		// Named weight instances use their own location and shaping coordinates.
 
 		ff.footprints = append(ff.footprints, fp)
+		ff.footprints = append(ff.footprints, namedWeightFootprints(ld, fp)...)
 	}
 
 	// newFootprintFromLoader still uses file, do not close earlier
@@ -304,4 +309,38 @@ func scanFontFootprints(logger Logger, currentIndex systemFontsIndex, dirs ...st
 		}
 	}
 	return accu.dst, nil
+}
+
+// Only vary weight; other axes retain the face defaults, so width/optical
+// variants cannot accidentally win an ordinary family query.
+func namedWeightFootprints(ld *ot.Loader, base Footprint) []Footprint {
+	raw, err := ld.RawTable(ot.MustNewTag("fvar"))
+	if err != nil {
+		return nil
+	}
+	fv, _, err := tables.ParseFvar(raw)
+	if err != nil {
+		return nil
+	}
+	var out []Footprint
+	for i, instance := range fv.Instances {
+		weight := float32(0)
+		eligible := true
+		for j, axis := range fv.Axis {
+			value := instance.Coordinates[j]
+			if axis.Tag == ot.MustNewTag("wght") {
+				weight = value
+			} else if value != axis.Default {
+				eligible = false
+			}
+		}
+		if !eligible || weight <= 0 || weight == float32(base.Aspect.Weight) {
+			continue
+		}
+		fp := base
+		fp.Location.Instance = uint16(i + 1)
+		fp.Aspect.Weight = font.Weight(weight)
+		out = append(out, fp)
+	}
+	return out
 }

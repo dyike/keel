@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/dyike/keel/gio/f32"
-	"github.com/dyike/keel/gio/font"
 	"github.com/dyike/keel/gio/gesture"
 	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/gio/io/semantic"
@@ -19,6 +18,7 @@ import (
 	"github.com/dyike/keel/gio/op/paint"
 	"github.com/dyike/keel/gio/unit"
 	"github.com/dyike/keel/gio/widget"
+	"github.com/dyike/keel/gio/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 
 	"github.com/dyike/keel/ui/core"
@@ -104,17 +104,12 @@ func (d *Doc) code(cx *el.Context, b *block) el.Element {
 	)
 }
 
-// Center the visible ink, not the font's line box: CJK fallback fonts
-// reserve different descent space than Latin fonts and square icons.
-func codeLabel(gtx core.C, label string, size unit.Sp, color color.NRGBA) core.D {
-	rn := run{size: size, font: font.Font{Typeface: theme.Face}, color: color}
-	res := shapeLine(gtx, theme.Material.Shaper, rn, label, gtx.Constraints.Max.X, false)
-	height := res.inkAscent + res.inkDescent
-	dims := gtx.Constraints.Constrain(image.Pt(res.width, height))
-	off := op.Offset(image.Pt(0, (dims.Y-height)/2+res.inkAscent-res.ascent)).Push(gtx.Ops)
-	res.call.Add(gtx.Ops)
-	off.Pop()
-	return core.D{Size: dims}
+// Use the same label path as controls, including system-font baseline handling.
+func codeLabel(gtx core.C, label string, size unit.Sp, ink color.NRGBA) core.D {
+	style := material.Label(theme.Material, size, label)
+	style.Color = ink
+	style.MaxLines = 1
+	return style.Layout(gtx)
 }
 
 func iconElement(icon *widget.Icon, size float32, color color.NRGBA) el.Element {

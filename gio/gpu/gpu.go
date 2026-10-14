@@ -124,7 +124,8 @@ type drawState struct {
 }
 
 type pathOp struct {
-	off f32.Point
+	interior image.Rectangle
+	off      f32.Point
 	// rect tracks whether the clip stack can be represented by a
 	// pixel-aligned rectangle.
 	rect bool
@@ -1064,6 +1065,16 @@ loop:
 				quads.key = quads.key.SetTransform(trans)
 			}
 			d.addClipPath(&state, quads.aux, quads.key, bounds, off)
+			if !op.Interior.Empty() && op.Outline {
+				sx, hx, _, hy, sy, _ := trans.Elems()
+				if hx == 0 && hy == 0 && sx > 0 && sy > 0 {
+					inner := f32.FRect(op.Interior)
+					inner.Min = f32.Pt(inner.Min.X*sx, inner.Min.Y*sy).Add(off)
+					inner.Max = f32.Pt(inner.Max.X*sx, inner.Max.Y*sy).Add(off)
+					// Keep the full pixel footprint away from the antialiased boundary.
+					state.cpath.interior = image.Rect(int(math.Ceil(float64(inner.Min.X)))+1, int(math.Ceil(float64(inner.Min.Y)))+1, int(math.Floor(float64(inner.Max.X)))-1, int(math.Floor(float64(inner.Max.Y)))-1)
+				}
+			}
 			quads = quadsOp{}
 		case ops.TypePopClip:
 			state.cpath = state.cpath.parent
@@ -1126,8 +1137,12 @@ loop:
 				d.clear = true
 				continue
 			}
+			paintPath := state.cpath
+			if clipContainsPaint(paintPath, bounds) {
+				paintPath = nil
+			}
 			img := imageOp{
-				path:     state.cpath,
+				path:     paintPath,
 				clip:     bounds,
 				material: mat,
 				inLayer:  len(d.opacityStack) > 0,
@@ -1156,6 +1171,17 @@ loop:
 			state.t = d.states[id]
 		}
 	}
+}
+
+// All rounded-path ancestors must contain the entire painted pixel rectangle.
+// Unknown paths, strokes and transformed curves retain normal coverage.
+func clipContainsPaint(path *pathOp, bounds image.Rectangle) bool {
+	for p := path; p != nil; p = p.parent {
+		if p.path && (p.interior.Empty() || !bounds.In(p.interior)) {
+			return false
+		}
+	}
+	return true
 }
 
 func expandPathOp(p *pathOp, clip image.Rectangle) {
@@ -1218,9 +1244,13 @@ func (r *renderer) uploadImages(cache *textureCache, ops []imageOp) {
 	// Reserve all instance storage before choosing shared tinted textures. A
 	// successful preparation guarantees that DrawQuads cannot fall back midway.
 	tintedQuads := false
+	coveredQuads := false
+	if b, ok := r.ctx.(driver.CoveredQuadBatcher); ok {
+		coveredQuads = b.SupportsCoverageQuads()
+	}
 	if !r.noQuads {
 		for _, img := range ops {
-			if img.material.material == materialTexture && img.material.data.tint != whiteTint && img.clipType == clipTypeNone && !img.inLayer {
+			if img.material.material == materialTexture && img.material.data.tint != whiteTint && (img.clipType == clipTypeNone || coveredQuads) && !img.inLayer {
 				if b, ok := r.ctx.(driver.TintedQuadBatcher); ok {
 					tintedQuads = b.PrepareQuads(len(ops))
 				}
@@ -1236,7 +1266,7 @@ func (r *renderer) uploadImages(cache *textureCache, ops []imageOp) {
 		}
 		data := m.data
 		m.color = f32color.RGBA{R: 1, G: 1, B: 1, A: 1}
-		if tintedQuads && img.clipType == clipTypeNone && !img.inLayer {
+		if tintedQuads && (img.clipType == clipTypeNone || coveredQuads) && !img.inLayer {
 			m.color = f32color.LinearFromSRGB(data.tint)
 			data.tint = whiteTint
 		}
@@ -1288,12 +1318,17 @@ func (r *renderer) prepareDrawOps(ops []imageOp) {
 }
 
 // drawOps draws ops in order. Keel patch: consecutive ops clipped to a plain
-// rectangle and filled with a solid color or a texture go to the device as
+// rectangle (or a coverage mask when supported) and filled with a solid
+// color or a texture go to the device as
 // one batch when it implements driver.QuadBatcher, up to
 // driver.MaxQuadTextures textures a batch, instead of a draw call each
 // (thousands a frame for a screen of text from a glyph atlas's pages).
 func (r *renderer) drawOps(isFBO bool, opOff, viewport image.Point, ops []imageOp) {
 	batcher, ok := r.ctx.(driver.QuadBatcher)
+	coveredQuads := false
+	if b, ok := r.ctx.(driver.CoveredQuadBatcher); ok {
+		coveredQuads = b.SupportsCoverageQuads()
+	}
 	if !ok || isFBO || r.noQuads {
 		r.drawEachOp(isFBO, opOff, viewport, ops, nil)
 		return
@@ -1314,28 +1349,44 @@ func (r *renderer) drawOps(isFBO bool, opOff, viewport image.Point, ops []imageO
 		img := ops[i]
 		next := i + img.layerOps
 		m := img.material
-		if img.clipType != clipTypeNone || m.material != materialColor && m.material != materialTexture {
+		if img.clipType != clipTypeNone && !coveredQuads || m.material != materialColor && m.material != materialTexture {
 			flush()
 			r.drawEachOp(isFBO, opOff, viewport, ops[i:next+1], nil)
 			i = next
 			continue
 		}
-		slot := -1
-		if m.material == materialTexture {
-			for s, t := range r.quadTexs {
-				if t == m.tex {
-					slot = s
-					break
-				}
-			}
-			if slot < 0 {
-				if len(r.quadTexs) == driver.MaxQuadTextures {
-					flush()
-				}
-				slot = len(r.quadTexs)
-				r.quadTexs = append(r.quadTexs, m.tex)
+		var cover FBO
+		switch img.clipType {
+		case clipTypePath:
+			cover = r.pather.stenciler.cover(img.place.Idx)
+		case clipTypeIntersection:
+			cover = r.pather.stenciler.intersections.fbos[img.place.Idx]
+		}
+		needed := 0
+		for _, tex := range []driver.Texture{m.tex, cover.tex} {
+			if tex != nil && !slices.Contains(r.quadTexs, tex) {
+				needed++
 			}
 		}
+		if len(r.quadTexs)+needed > driver.MaxQuadTextures {
+			flush()
+		}
+		addTexture := func(tex driver.Texture) int {
+			if tex == nil {
+				return -1
+			}
+			if i := slices.Index(r.quadTexs, tex); i >= 0 {
+				return i
+			}
+			i := len(r.quadTexs)
+			r.quadTexs = append(r.quadTexs, tex)
+			return i
+		}
+		slot := -1
+		if m.material == materialTexture {
+			slot = addTexture(m.tex)
+		}
+		coverSlot := addTexture(cover.tex)
 		scale, off := clipSpaceTransform(img.clip.Add(opOff), viewport)
 		q := driver.Quad{Transform: [4]float32{scale.X, scale.Y, off.X, off.Y}}
 		if m.material == materialColor {
@@ -1346,6 +1397,12 @@ func (r *renderer) drawOps(isFBO bool, opOff, viewport image.Point, ops []imageO
 			t1, t2, t3, t4, t5, t6 := m.uvTrans.Elems()
 			q.UV0, q.UV1 = [4]float32{t1, t2, t3, float32(slot)}, [4]float32{t4, t5, t6, 0}
 			q.Color = [4]float32{m.color.R * m.opacity, m.color.G * m.opacity, m.color.B * m.opacity, m.color.A * m.opacity}
+		}
+		if coverSlot >= 0 {
+			uv := image.Rectangle{Min: img.place.Pos, Max: img.place.Pos.Add(img.clip.Size())}
+			cs, co := texSpaceTransform(f32.FRect(uv), cover.size)
+			q.UV1[3] = float32(coverSlot + 1)
+			q.Cover = [4]float32{cs.X, cs.Y, co.X, co.Y}
 		}
 		r.quads = append(r.quads, q)
 		r.quadOps = append(r.quadOps, i)

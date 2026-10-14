@@ -117,6 +117,12 @@ func (fp *Footprint) isMonoHint() bool {
 
 // loadFromDisk assume the footprint location refers to the file system
 func (fp *Footprint) loadFromDisk() (*font.Face, error) {
+	return fp.loadFromDiskWithFont(nil)
+}
+
+// Named instances share immutable tables, but keep distinct Font identities
+// for metadata/native-font lookup and independent Face variation state.
+func (fp *Footprint) loadFromDiskWithFont(shared *font.Font) (*font.Face, error) {
 	location := fp.Location
 
 	// Keel patch: map the file and parse it in place, so the face's tables
@@ -139,10 +145,37 @@ func (fp *Footprint) loadFromDisk() (*font.Face, error) {
 		return nil, fmt.Errorf("invalid font index in collection: %d >= %d", index, len(loaders))
 	}
 
-	ft, err := font.NewFont(loaders[location.Index])
-	if err != nil {
-		return nil, fmt.Errorf("reading font at %s: %s", location.File, err)
+	ft := shared
+	if ft == nil {
+		ft, err = font.NewFont(loaders[location.Index])
+		if err != nil {
+			return nil, fmt.Errorf("reading font at %s: %s", location.File, err)
+		}
+	} else {
+		copy := *ft
+		ft = &copy
 	}
 
-	return font.NewFace(ft), nil
+	face := font.NewFace(ft)
+	if location.Instance != 0 {
+		raw, err := loaders[location.Index].RawTable(ot.MustNewTag("fvar"))
+		if err != nil {
+			return nil, err
+		}
+		fv, _, err := tables.ParseFvar(raw)
+		if err != nil {
+			return nil, err
+		}
+		index := int(location.Instance) - 1
+		if index >= len(fv.Instances) {
+			return nil, fmt.Errorf("invalid named font instance %d", location.Instance)
+		}
+		values := fv.Instances[index].Coordinates
+		variations := make([]font.Variation, len(fv.Axis))
+		for i, axis := range fv.Axis {
+			variations[i] = font.Variation{Tag: axis.Tag, Value: values[i]}
+		}
+		face.SetVariations(variations)
+	}
+	return face, nil
 }

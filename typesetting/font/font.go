@@ -152,11 +152,12 @@ type Font struct {
 	post post         // optional
 	svg  svg          // optional
 
-	glyf   tables.Glyf
-	hmtx   tables.Hmtx
-	vmtx   tables.Vmtx
-	bitmap bitmap
-	sbix   sbix
+	glyf         tables.Glyf
+	glyfOutlines *glyphOutlineCache
+	hmtx         tables.Hmtx
+	vmtx         tables.Vmtx
+	bitmap       bitmap
+	sbix         sbix
 
 	STAT *STAT // optional
 
@@ -256,8 +257,17 @@ func NewFont(ld *ot.Loader) (*Font, error) {
 	raw, _ = ld.RawTable(ot.MustNewTag("glyf"))
 	locaRaw, _ := ld.RawTable(ot.MustNewTag("loca"))
 	loca, err := tables.ParseLoca(locaRaw, out.nGlyphs, out.head.IndexToLocFormat == 1)
+	var glyphPointCounts []int
 	if err == nil { // ParseGlyf panics if len(loca) == 0
 		out.glyf, _ = tables.ParseGlyf(raw, loca)
+		if out.glyf != nil {
+			glyphPointCounts = make([]int, len(out.glyf))
+			for i := range out.glyf {
+				glyphPointCounts[i] = pointNumbersCount(out.glyf[i])
+				out.glyf[i].Data = nil
+			}
+			out.glyfOutlines = &glyphOutlineCache{raw: raw, offsets: loca}
+		}
 	}
 
 	out.bitmap = selectBitmapTable(ld)
@@ -305,7 +315,7 @@ func NewFont(ld *ot.Loader) (*Font, error) {
 
 		raw, _ = ld.RawTable(ot.MustNewTag("gvar"))
 		gvar, _, _ := tables.ParseGvar(raw)
-		out.gvar, _ = newGvar(gvar, out.glyf)
+		out.gvar, _ = newGvar(gvar, glyphPointCounts)
 
 		raw, _ = ld.RawTable(ot.MustNewTag("HVAR"))
 		hvar, _, err := tables.ParseHVAR(raw)

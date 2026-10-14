@@ -673,3 +673,10 @@ func (l *Shaper) Bitmaps(gs []Glyph) op.CallOp {
 	l.bitmapShapeCache.Put(key, gs, call)
 	return call
 }
+
+// GlyphFileInstance also reports the one-based fvar named instance, or zero
+// for the base face. A platform renderer must use that exact instance.
+func (l *Shaper) GlyphFileInstance(id GlyphID) (path string, index, instance int, ppem fixed.Int26_6, gid uint16, ok bool) {
+	l.init()
+	return l.shaper.glyphFileInstance(id)
+}

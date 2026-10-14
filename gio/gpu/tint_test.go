@@ -50,19 +50,25 @@ func TestTintedImageTextureSharingAndFallback(t *testing.T) {
 	before := append([]byte(nil), src.Pix...)
 	red, blue := color.NRGBA{R: 255, A: 255}, color.NRGBA{B: 255, A: 128}
 	for _, tc := range []struct {
-		name                                          string
-		prepared, layers, clipped, disabled, portable bool
+		name                                                    string
+		prepared, layers, clipped, disabled, portable, coverage bool
 	}{
 		{name: "shared", prepared: true},
 		{name: "allocation failure"},
 		{name: "opacity layer", prepared: true, layers: true},
 		{name: "path clip", prepared: true, clipped: true},
+		{name: "coverage shared", prepared: true, clipped: true, coverage: true},
+		{name: "coverage allocation failure", clipped: true, coverage: true},
+		{name: "coverage opacity", prepared: true, clipped: true, coverage: true, layers: true},
 		{name: "disabled batching", prepared: true, disabled: true},
 		{name: "portable device", portable: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dev := &tintTestDevice{prepared: tc.prepared}
 			var device driver.Device = dev
+			if tc.coverage {
+				device = &coverageTintDevice{dev}
+			}
 			if tc.portable {
 				device = struct{ driver.Device }{dev}
 			}
@@ -80,7 +86,7 @@ func TestTintedImageTextureSharingAndFallback(t *testing.T) {
 				}
 			}
 			r.uploadImages(cache, ops)
-			shared := tc.prepared && !tc.layers && !tc.clipped && !tc.disabled && !tc.portable
+			shared := tc.prepared && !tc.layers && (!tc.clipped || tc.coverage) && !tc.disabled && !tc.portable
 			if shared {
 				if len(dev.textures) != 1 || ops[0].material.tex != ops[1].material.tex {
 					t.Fatal("colors duplicated the texture")
@@ -154,3 +160,7 @@ func TestUnrelatedOpacityKeepsAtlasTextureShared(t *testing.T) {
 		t.Fatalf("unrelated opacity duplicated atlas into %d textures; want 1", len(dev.textures))
 	}
 }
+
+type coverageTintDevice struct{ *tintTestDevice }
+
+func (*coverageTintDevice) SupportsCoverageQuads() bool { return true }

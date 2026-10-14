@@ -101,6 +101,12 @@ func (p Op) add(o *op.Ops) {
 		data[17] = byte(1)
 	}
 	data[18] = byte(path.shape)
+	if p.outline && p.width == 0 {
+		bo.PutUint32(data[19:], uint32(path.interior.Min.X))
+		bo.PutUint32(data[23:], uint32(path.interior.Min.Y))
+		bo.PutUint32(data[27:], uint32(path.interior.Max.X))
+		bo.PutUint32(data[31:], uint32(path.interior.Max.Y))
+	}
 }
 
 func (s Stack) Pop() {
@@ -114,6 +120,7 @@ type PathSpec struct {
 	// hasSegments tracks whether there are any segments in the path.
 	hasSegments bool
 	bounds      image.Rectangle
+	interior    image.Rectangle
 	shape       ops.Shape
 	hash        uint64
 }

@@ -209,3 +209,7 @@ Idle rendering still mounts only visible rows. On selection, previously unseen
 documents are measured once offscreen to obtain their rendered text for copying.
 Text and document offsets are cached until content changes. Custom rendered
 controls are not part of the Markdown selection.
+
+Body text, headings, table measurements and code labels follow `theme.Material.Face`, matching standard controls. Code retains `markdown.MonoFace`. Changing either font invalidates cached document views without changing source text.
+
+Streaming fade boundaries before a space fall inside that space, preserving the preceding glyph’s overhanging ink when the font changes. Adjacent fade spans share the same boundary.

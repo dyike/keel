@@ -269,7 +269,7 @@ func (s *fboSet) resize(ctx driver.Device, format driver.TextureFormat, sizes []
 		// Resizing or recreating FBOs can introduce rendering stalls.
 		// Avoid if the space waste is not too high.
 		resize := sz.X > f.size.X || sz.Y > f.size.Y
-		waste := float32(sz.X*sz.Y) / float32(f.size.X*f.size.Y)
+		waste := float32(f.size.X*f.size.Y) / float32(sz.X*sz.Y)
 		resize = resize || waste > 1.2
 		if resize {
 			if f.tex != nil {

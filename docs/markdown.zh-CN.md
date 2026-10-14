@@ -206,3 +206,7 @@ return selection.Decorate(cx, el.Div().Child(first.Render(cx), second.Render(cx)
 平时仍只挂载可见行。开始选择后，尚未展示过的文档会在屏幕外测量一次，
 取得用于复制的渲染文本；文本和文档偏移缓存到内容变化为止。
 自定义控件不属于 Markdown 选区。
+
+正文、标题、表格测量和代码语言标签跟随 `theme.Material.Face`，与普通控件一致；代码保留 `markdown.MonoFace`。修改字体会使文档视图缓存失效，不改变原文。
+
+流式渐显在空格前分段时，裁剪边界放在空格内部，避免换字体后切掉前一个字形超出逻辑宽度的笔画；相邻渐显片段共用同一边界。
