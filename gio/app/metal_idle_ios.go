@@ -6,5 +6,5 @@ package app
 
 type metalIdleState struct{}
 
-func (c *mtlContext) stopIdle()   {}
-func (c *mtlContext) resumeIdle() {}
+func (c *mtlContext) stopIdle()        {}
+func (c *mtlContext) resumeIdle() bool { return false }
