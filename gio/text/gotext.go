@@ -838,18 +838,23 @@ func toLine(faceToIndex map[*font.Font]int, o shaping.Line, dir system.TextDirec
 
 // glyphFile reports the font file of id's face. Keel patch.
 func (s *shaperImpl) glyphFile(id GlyphID) (string, int, fixed.Int26_6, uint16, bool) {
+	path, index, instance, ppem, gid, ok := s.glyphFileInstance(id)
+	return path, index, ppem, gid, ok && instance == 0
+}
+
+func (s *shaperImpl) glyphFileInstance(id GlyphID) (string, int, int, fixed.Int26_6, uint16, bool) {
 	ppem, faceIdx, gid := splitGlyphID(id)
 	if faceIdx >= len(s.faces) || s.faces[faceIdx] == nil {
-		return "", 0, 0, 0, false
+		return "", 0, 0, 0, 0, false
 	}
 	face := s.faces[faceIdx]
 	loc, collection := s.sources[face.Font]
 	if !collection {
 		loc = s.fontMap.FontLocation(face.Font)
 	}
-	// Variable instances and coordinates would draw a different design.
-	if loc.File == "" || loc.Instance != 0 || len(face.Coords()) != 0 || gid > 0xffff {
-		return "", 0, 0, 0, false
+	// Only known named instances can reproduce variation coordinates natively.
+	if loc.File == "" || loc.Instance == 0 && len(face.Coords()) != 0 || gid > 0xffff {
+		return "", 0, 0, 0, 0, false
 	}
-	return loc.File, int(loc.Index), ppem, uint16(gid), true
+	return loc.File, int(loc.Index), int(loc.Instance), ppem, uint16(gid), true
 }

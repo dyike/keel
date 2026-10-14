@@ -9,26 +9,6 @@ package theme
 #include <CoreText/CoreText.h>
 #include <CoreGraphics/CoreGraphics.h>
 
-// keelCTFont opens face index of the font file at path, at size pixels.
-// The caller releases it with CFRelease.
-static CTFontRef keelCTFont(const char *path, int index, double size) {
-	CFStringRef p = CFStringCreateWithCString(NULL, path, kCFStringEncodingUTF8);
-	if (!p) return NULL;
-	CFURLRef url = CFURLCreateWithFileSystemPath(NULL, p, kCFURLPOSIXPathStyle, false);
-	CFRelease(p);
-	if (!url) return NULL;
-	CFArrayRef descs = CTFontManagerCreateFontDescriptorsFromURL(url);
-	CFRelease(url);
-	if (!descs) return NULL;
-	CTFontRef font = NULL;
-	if (index >= 0 && index < CFArrayGetCount(descs)) {
-		CTFontDescriptorRef d = (CTFontDescriptorRef)CFArrayGetValueAtIndex(descs, index);
-		font = CTFontCreateWithFontDescriptor(d, size, NULL);
-	}
-	CFRelease(descs);
-	return font;
-}
-
 // keelCTColorGlyphs reports whether font draws color glyphs, such as emoji.
 static int keelCTColorGlyphs(CTFontRef font) {
 	return (CTFontGetSymbolicTraits(font) & kCTFontTraitColorGlyphs) != 0;
@@ -92,9 +72,10 @@ import (
 
 // ctFontKey identifies an opened CoreText font.
 type ctFontKey struct {
-	path  string
-	index int
-	px    float64
+	path     string
+	index    int
+	instance int
+	px       float64
 }
 
 var (
@@ -102,16 +83,18 @@ var (
 	ctFonts   = map[ctFontKey]C.CTFontRef{}
 )
 
-func ctFont(path string, index int, px float64) C.CTFontRef {
+func ctFont(path string, index int, px float64, instance ...int) C.CTFontRef {
 	ctFontsMu.Lock()
 	defer ctFontsMu.Unlock()
-	k := ctFontKey{path, index, px}
+	var inst int
+	if len(instance) > 0 {
+		inst = instance[0]
+	}
+	k := ctFontKey{path: path, index: index, px: px, instance: inst}
 	if f, ok := ctFonts[k]; ok {
 		return f
 	}
-	cpath := C.CString(path)
-	defer C.free(unsafe.Pointer(cpath))
-	f := C.keelCTFont(cpath, C.int(index), C.double(px))
+	f := C.CTFontRef(openCTFontFace(path, index, px, inst))
 	// A bounded set of sizes is used by an app; keep fonts for its lifetime.
 	ctFonts[k] = f
 	return f
@@ -126,8 +109,8 @@ const ctPad = 2
 // fraction of a pixel, right and down. bounds is relative to the origin,
 // y down. dark selects dark text on a light background, otherwise light on
 // dark: CoreText's antialiasing differs, and so does the conversion.
-func coreTextMask(path string, index int, px float64, gid uint16, phaseX, phaseY float64, dark bool) (bounds image.Rectangle, alpha []byte, ok bool) {
-	f := ctFont(path, index, px)
+func coreTextMask(path string, index int, px float64, gid uint16, phaseX, phaseY float64, dark bool, instance ...int) (bounds image.Rectangle, alpha []byte, ok bool) {
+	f := ctFont(path, index, px, instance...)
 	if f == 0 || C.keelCTColorGlyphs(f) != 0 {
 		return image.Rectangle{}, nil, false
 	}
@@ -170,8 +153,8 @@ func coreTextMask(path string, index int, px float64, gid uint16, phaseX, phaseY
 // coreTextColorGlyph draws a color glyph (emoji) as CoreText shows it, in
 // premultiplied sRGB, the format image textures use. bounds is relative to the
 // glyph origin, y down. ok is false for fonts without color glyphs.
-func coreTextColorGlyph(path string, index int, px float64, gid uint16, phaseX, phaseY float64) (bounds image.Rectangle, pix []byte, ok bool) {
-	f := ctFont(path, index, px)
+func coreTextColorGlyph(path string, index int, px float64, gid uint16, phaseX, phaseY float64, instance ...int) (bounds image.Rectangle, pix []byte, ok bool) {
+	f := ctFont(path, index, px, instance...)
 	if f == 0 || C.keelCTColorGlyphs(f) == 0 {
 		return image.Rectangle{}, nil, false
 	}

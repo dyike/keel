@@ -31,6 +31,10 @@ type rasterShaper interface {
 	SetRasterHook(func(ops *op.Ops, gs []text.Glyph, col color.NRGBA, fracX float32) bool)
 }
 
+type glyphInstanceFiler interface {
+	GlyphFileInstance(id text.GlyphID) (path string, index, instance int, ppem fixed.Int26_6, gid uint16, ok bool)
+}
+
 type glyphFiler interface {
 	GlyphFile(id text.GlyphID) (path string, index int, ppem fixed.Int26_6, gid uint16, ok bool)
 }
@@ -218,8 +222,12 @@ func ctGlyphFor(sh *text.Shaper, g text.Glyph, phaseX, phaseY uint8, dark bool) 
 	}
 	gl := &ctGlyph{vector: true}
 	path, index, ppem, gid, ok := any(sh).(glyphFiler).GlyphFile(g.ID)
+	instance := 0
+	if f, exists := any(sh).(glyphInstanceFiler); exists {
+		path, index, instance, ppem, gid, ok = f.GlyphFileInstance(g.ID)
+	}
 	if ok && ppem > 0 && ppem <= fixed.I(ctMaxPPEM) {
-		if b, pix, isColor := coreTextColorGlyph(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases); isColor {
+		if b, pix, isColor := coreTextColorGlyph(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases, instance); isColor {
 			// Emoji are few: each keeps its own image. The key's dark flag
 			// duplicates them per ink tone, which is harmless.
 			if pix == nil {
@@ -232,7 +240,7 @@ func ctGlyphFor(sh *text.Shaper, g text.Glyph, phaseX, phaseY uint8, dark bool) 
 			ct.glyphs[key] = gl
 			return gl
 		}
-		bounds, alpha, ok := coreTextMask(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases, dark)
+		bounds, alpha, ok := coreTextMask(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases, dark, instance)
 		switch {
 		case !ok:
 		case alpha == nil:

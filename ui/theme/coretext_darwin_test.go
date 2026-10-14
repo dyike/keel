@@ -3,8 +3,12 @@
 package theme
 
 import (
+	"github.com/dyike/keel/gio/font"
+	"github.com/dyike/keel/gio/text"
+	"golang.org/x/image/math/fixed"
 	"image"
 	"image/color"
+	"os"
 	"testing"
 )
 
@@ -99,5 +103,101 @@ func TestCoreTextSmallPagesKeepBudgetAndEvictSafely(t *testing.T) {
 	page, _, ok := ctPlace(image.Pt(4, 4), ctGlyphKey{phaseY: 1})
 	if !ok || page != 0 || ct.pages[0].img == old || ct.glyphs[ctGlyphKey{}] != nil {
 		t.Fatal("eviction retained glyphs or mutated a published page")
+	}
+}
+
+func TestCoreTextCollectionUsesFaceIdentity(t *testing.T) {
+	const path = "/System/Library/PrivateFrameworks/FontServices.framework/Resources/Reserved/PingFangUI.ttc"
+	if _, err := os.Stat(path); err != nil {
+		t.Skip("reserved PingFang collection is unavailable")
+	}
+	// TTC face 20 is SC Medium; CoreText descriptor 20 is HK Thin on current
+	// macOS. Test the actual native font, not just the requested family.
+	if got := fontPostScriptName(path, 20); got != "PingFangSC-Medium" {
+		t.Skipf("different system collection layout: %q", got)
+	}
+	for _, size := range []float64{14, 28} {
+		f := ctFont(path, 20, size)
+		if f == 0 {
+			t.Fatal("failed to open the exact PingFang face")
+		}
+		actual := ctIdentity.name(uintptr(f))
+		wanted := ctIdentity.stringNew(0, "PingFangSC-Medium", 0x08000100)
+		equal := actual != 0 && ctIdentity.equal(actual, wanted)
+		if actual != 0 {
+			ctIdentity.release(actual)
+		}
+		ctIdentity.release(wanted)
+		if !equal {
+			t.Fatal("rendering selected another region or weight")
+		}
+	}
+	if openCTFontFace(path, 999, 14) != 0 {
+		t.Fatal("invalid TTC index selected a substitute")
+	}
+}
+
+func TestCoreTextSFUsesExactPostScriptFace(t *testing.T) {
+	const path = "/System/Library/Fonts/SFNS.ttf"
+	if _, err := os.Stat(path); err != nil {
+		t.Skip("SFNS is unavailable")
+	}
+	name := fontPostScriptName(path, 0)
+	if name != ".SFNS-Regular" {
+		t.Skipf("different system font: %q", name)
+	}
+	f := ctFont(path, 0, 28)
+	if f == 0 {
+		t.Fatal("SF regular could not be matched")
+	}
+	actual := ctIdentity.name(uintptr(f))
+	wanted := ctIdentity.stringNew(0, name, 0x08000100)
+	equal := actual != 0 && ctIdentity.equal(actual, wanted)
+	if actual != 0 {
+		ctIdentity.release(actual)
+	}
+	ctIdentity.release(wanted)
+	if !equal {
+		t.Fatal("SF rendered a different named instance")
+	}
+}
+
+func TestCoreTextPingFangRegularAndSemiboldInstances(t *testing.T) {
+	const path = "/System/Library/PrivateFrameworks/FontServices.framework/Resources/Reserved/PingFangUI.ttc"
+	if _, err := os.Stat(path); err != nil {
+		t.Skip("variable PingFang unavailable")
+	}
+	sh := new(text.Shaper)
+	for _, tc := range []struct {
+		weight font.Weight
+		name   string
+	}{{font.Normal, "PingFangSC-Regular"}, {font.SemiBold, "PingFangSC-Semibold"}} {
+		sh.LayoutString(text.Parameters{Font: font.Font{Typeface: "PingFang SC", Weight: tc.weight}, PxPerEm: fixed.I(28), MaxWidth: 1000}, "中文")
+		g, ok := sh.NextGlyph()
+		if !ok {
+			t.Fatal("no glyph")
+		}
+		file, index, instance, ppem, gid, ok := sh.GlyphFileInstance(g.ID)
+		if !ok || instance == 0 {
+			t.Fatalf("no named instance for %s", tc.name)
+		}
+		f := ctFont(file, index, float64(ppem)/64, instance)
+		if f == 0 {
+			t.Fatal("native font missing", tc.name)
+		}
+		actual := ctIdentity.name(uintptr(f))
+		wanted := ctIdentity.stringNew(0, tc.name, 0x08000100)
+		equal := actual != 0 && ctIdentity.equal(actual, wanted)
+		if actual != 0 {
+			ctIdentity.release(actual)
+		}
+		ctIdentity.release(wanted)
+		if !equal {
+			t.Fatal("wrong native weight", tc.name)
+		}
+		b, mask, ok := coreTextMask(file, index, 28, gid, 0, 0, true, instance)
+		if !ok || b.Empty() || len(mask) == 0 {
+			t.Fatal("named glyph rendered blank", tc.name)
+		}
 	}
 }

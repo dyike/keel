@@ -57,9 +57,10 @@ func SystemFonts(logger Logger, cacheDir string) ([]Footprint, error) {
 type FontMap struct {
 	logger Logger
 	// caches of already loaded faceCache : the two maps are updated conjointly
-	firstFace *font.Face
-	faceCache map[Location]*font.Face
-	metaCache map[*font.Font]cacheEntry
+	firstFace   *font.Face
+	faceCache   map[Location]*font.Face
+	parsedFonts map[Location]*font.Font
+	metaCache   map[*font.Font]cacheEntry
 
 	// the database to query, either loaded from an index
 	// or populated with the [UseSystemFonts], [AddFont], and/or [AddFace] method.
@@ -665,11 +666,17 @@ func (fm *FontMap) loadFont(fp Footprint) (*font.Face, error) {
 
 	// since user provided fonts are added to `faceCache`
 	// we may now assume the font is stored on the file system
-	face, err := fp.loadFromDisk()
+	base := fp.Location
+	base.Instance = 0
+	face, err := fp.loadFromDiskWithFont(fm.parsedFonts[base])
 	if err != nil {
 		return nil, err
 	}
 
+	if fm.parsedFonts == nil {
+		fm.parsedFonts = make(map[Location]*font.Font)
+	}
+	fm.parsedFonts[base] = face.Font
 	// add the face to the cache
 	fm.cache(fp, face)
 
