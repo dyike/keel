@@ -13,6 +13,31 @@ import (
 )
 
 func platformNativeApplicationMenu() bool { return true }
+func platformMenuFeatures() MenuFeatures {
+	return MenuFeatures{Native: true, Icons: true, TemplateIcons: true, NativeDismissAnimation: true, CancelTracking: true}
+}
+func platformCancelMenuTracking(generation uint64, animated bool) {
+	appkit.MainAsync(func() {
+		if menuTargets[currentMenuTarget] != generation {
+			return
+		}
+		selector := "cancelTrackingWithoutAnimation"
+		if animated {
+			selector = "cancelTracking"
+		}
+		cancelAppKitMenu(appkit.Send(appkit.App(), "mainMenu"), selector)
+	})
+}
+
+// A submenu can be tracked independently (including a contextual popup).
+func cancelAppKitMenu(menu appkit.ID, selector string) {
+	for i, n := uintptr(0), uintptr(appkit.Send(menu, "numberOfItems")); i < n; i++ {
+		if sub := appkit.Send(appkit.Send(menu, "itemAtIndex:", i), "submenu"); sub != 0 {
+			cancelAppKitMenu(sub, selector)
+		}
+	}
+	appkit.Send(menu, selector)
+}
 func platformInstallApplicationMenu(data []byte) {
 	var model menuWire
 	if json.Unmarshal(data, &model) != nil {
@@ -153,6 +178,19 @@ func buildAppKitMenu(app appkit.ID, title string, items []menuWireItem, target a
 			state = nsControlStateValueOn
 		}
 		appkit.Send(item, "setState:", state)
+		if len(entry.PNG) > 0 {
+			image := appkit.Send(appkit.Send(appkit.Class("NSImage"), "alloc"), "initWithData:", uintptr(appkit.Data(entry.PNG)))
+			if image != 0 {
+				appkit.Send(image, "setTemplate:", appkit.Bool(entry.Template))
+				size := appkit.MsgSize(image, appkit.Sel("size"))
+				if side := max(size.Width, size.Height); side > 0 {
+					size.Width, size.Height = size.Width*16/side, size.Height*16/side
+					appkit.MsgSetSize(image, appkit.Sel("setSize:"), size)
+				}
+				appkit.Send(item, "setImage:", uintptr(image))
+				appkit.Release(image)
+			}
+		}
 		if len(entry.Children) > 0 {
 			sub := buildAppKitMenu(app, entry.Title, entry.Children, target)
 			appkit.Send(item, "setSubmenu:", uintptr(sub))

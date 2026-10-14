@@ -40,3 +40,21 @@ window.MainWithOptions(window.MainOptions{
 独立 macOS 应用在 `main` 开始时调用 `runtime.LockOSThread()`，在该线程创建托盘并运行 `tray.Main()`。Windows / Linux 的 `tray.Main()` 保持进程运行，后端处理原生事件。不要与 `window.Main` 同时运行。独立应用自己管理退出与清理；tray 不引入 UI 生命周期管理器。
 
 运行 `go run ./examples/tray`，默认只有托盘，通过菜单打开窗口，关闭后再打开。`-smoke` 自动验证图标与菜单更新、无窗口重开和显式退出。`-screenshot <path>` 仅渲染配套窗口。Windows / Linux 运行验收仍需要对应桌面；macOS smoke 与跨平台编译是不同的检查。
+
+
+## 菜单图标与动画
+
+`MenuItem.Icon` 接受每个轴 1..256 像素的 `image.Image`；`New` 和 `SetMenu` 将图片复制为 PNG，之后修改源图不会影响已安装菜单。`IconTemplate` 在 macOS 上按透明度遮罩着色；Windows、Linux 使用原始像素。模板标记必须有图片，分隔线不接受图标。AppKit / Win32 保持宽高比，放入 16 逻辑像素区域；Linux 通过 DBusMenu `icon-data` 交给 Host 决定位置与缩放。子菜单和勾选项也支持图标；替换、移除图片时，原生图片/位图资源随菜单释放。
+
+`Options.MenuAnimation` 和 `SetMenuAnimation` 接受 `MenuAnimationSystem`（零值，跟随桌面）和 `MenuAnimationNone`。Windows 通过 [TPM_NOANIMATION](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-trackpopupmenu) 禁用之后弹出的菜单动画，不改系统全局设置。macOS / Linux 对此策略返回 `native.ErrUnsupported`；非法枚举返回 `native.ErrInvalidArgument`，保留原有配置。
+
+`CancelMenuTracking(animated)` 关闭当前托盘的活动菜单。macOS 遵守动画参数，Windows 立即关闭；Linux 的菜单跟踪由 Host 管理，返回 `native.ErrUnsupported`。macOS 操作进入主队列，完成是异步的。`Capabilities()` 返回 `Icons`、`TemplateIcons`、`DisableOpeningAnimation`、`DismissAnimation` 和 `CancelTracking`；这些表示后端控制能力，不代表当前存在托盘 Host。
+
+```go
+if tray.Capabilities().DisableOpeningAnimation {
+    if err := icon.SetMenuAnimation(tray.MenuAnimationNone); err != nil { panic(err) }
+}
+if tray.Capabilities().CancelTracking {
+    if err := icon.CancelMenuTracking(false); err != nil { panic(err) }
+}
+```

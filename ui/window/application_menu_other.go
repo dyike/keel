@@ -11,4 +11,6 @@ func platformMenuEdit(MenuAction) bool      { return false }
 func platformDrawApplicationMenu(*Window) bool { return false }
 func applicationMenuWindowEvent(*Window, any)  {}
 
-func platformNativeMenuShortcuts() bool { return false }
+func platformNativeMenuShortcuts() bool       { return false }
+func platformMenuFeatures() MenuFeatures      { return MenuFeatures{} }
+func platformCancelMenuTracking(uint64, bool) {}

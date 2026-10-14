@@ -9,4 +9,6 @@ func platformInstallApplicationMenu([]byte)    {}
 func platformMenuEdit(action MenuAction) bool  { return requestMenuEdit(action) }
 func applicationMenuWindowEvent(*Window, any)  {}
 
-func platformNativeMenuShortcuts() bool { return false }
+func platformNativeMenuShortcuts() bool       { return false }
+func platformMenuFeatures() MenuFeatures      { return MenuFeatures{} }
+func platformCancelMenuTracking(uint64, bool) {}

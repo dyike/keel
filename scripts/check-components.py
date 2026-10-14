@@ -198,6 +198,35 @@ def interactions(gallery, output):
     require(g.find(selected, "gridcell")["selected"], "date picker lost selection")
     g.call("press", key="esc")
     passed.append("calendar keyboard navigation and date-picker reopening")
+    g.select("Menu")
+    g.click("Install native menu with icons")
+    g.click("Preview animated window menu")
+    deadline = time.monotonic() + 10
+    while True:
+        preview = next((w for w in g.call("windows") if w["title"] == "Menu icons and animation"), None)
+        if preview:
+            break
+        require(time.monotonic() < deadline, "menu preview did not open")
+        time.sleep(0.05)
+    def preview_elements():
+        return g.call("snapshot", window=preview["id"])["elements"]
+    g.call("press", window=preview["id"], key="f10")
+    rows = preview_elements()
+    action = next((e for e in rows if e.get("name") == "Action with icon" and e["role"] == "menuitem"), None)
+    disabled = next((e for e in rows if e.get("name") == "Unavailable icon" and e["role"] == "menuitem"), None)
+    require(action and disabled, "application menu items are missing from the snapshot")
+    require(disabled.get("disabled"), "menu lost disabled state beside its icon")
+    image = base64.b64decode(g.call("screenshot", window=preview["id"]), validate=True)
+    require(image.startswith(b"\x89PNG\r\n\x1a\n"), "menu screenshot is not PNG")
+    (output / "menu-icons.png").write_bytes(image)
+    g.call("click", window=preview["id"], ref=action["ref"])
+    require(any(e.get("name") == "Executed: native icon action" for e in preview_elements()),
+            "icon menu action did not run")
+    g.call("press", window=preview["id"], key="f10")
+    g.call("press", window=preview["id"], key="esc")
+    require(not any(e.get("name") == "Application menu" for e in preview_elements()), "icon menu did not dismiss")
+    g.call("close", window=preview["id"])
+    passed.append("application menu icons, disabled state, keyboard opening, action and dismissal")
     return passed
 
 
@@ -260,6 +289,10 @@ class Runner:
         if self.args.desktop:
             self.run(["go", "test", "-count=1", "-run", "RealWindows", "./ui/window"],
                      "checks/real-windows.log", dict(self.env, KEEL_DESKTOP="1"))
+            if sys.platform == "darwin":
+                self.run(["go", "test", "-count=1", "-run", "RealTrayDarwin", "./native/internal/sys"],
+                         "checks/native-tray.log", dict(self.env, KEEL_DESKTOP="1"))
+            self.run(["go", "run", "./examples/tray", "-smoke"], "checks/tray-smoke.log")
 
     def benchmarks(self):
         rows = []

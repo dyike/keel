@@ -40,3 +40,21 @@ window.MainWithOptions(window.MainOptions{
 For a standalone macOS app, call `runtime.LockOSThread()` at the start of `main`, create the tray there and call `tray.Main()` on that same main thread. On Windows/Linux, `tray.Main()` keeps the process alive while the backend handles native events. Do not run `tray.Main` together with `window.Main`. Standalone applications own their exit policy and cleanup; tray does not import a UI lifecycle manager.
 
 Run `go run ./examples/tray`. It starts without a window; use the menu to open one, close it and reopen it. `-smoke` automatically exercises icon/menu updates, windowless reopening and explicit exit. `-screenshot <path>` renders only its companion window. Windows/Linux runtime acceptance still requires those desktops; macOS smoke and cross-compilation are separate checks.
+
+
+## Menu icons and animation
+
+`MenuItem.Icon` accepts `image.Image` artwork (1..256 pixels per axis); `New` and `SetMenu` copy it as PNG. Mutation of the caller's image cannot change an installed menu. `IconTemplate` uses its alpha mask on macOS; Windows and Linux use the original pixels. It requires an icon, and separators cannot have icons. AppKit/Win32 fit the artwork into 16 logical pixels with its aspect ratio preserved; Linux hosts choose placement and scale through DBusMenu `icon-data`. Icons also work in submenus and beside checkmarks. Replacing/removing menu images releases native image/bitmap resources with their menus.
+
+`Options.MenuAnimation` and `SetMenuAnimation` accept `MenuAnimationSystem` (zero, follows the desktop) or `MenuAnimationNone`. Windows implements the latter through [TPM_NOANIMATION](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-trackpopupmenu), affecting future openings without changing global settings. macOS/Linux return `native.ErrUnsupported` for this strategy; invalid values return `native.ErrInvalidArgument` and preserve the current options.
+
+`CancelMenuTracking(animated)` closes this tray's active menu. macOS honors the argument; Windows closes immediately; Linux returns `native.ErrUnsupported` because the host owns menu tracking. macOS posts to the main queue, so completion is asynchronous. Call `Capabilities()` to inspect `Icons`, `TemplateIcons`, `DisableOpeningAnimation`, `DismissAnimation` and `CancelTracking`; these describe backend controls, not whether a tray host is running.
+
+```go
+if tray.Capabilities().DisableOpeningAnimation {
+    if err := icon.SetMenuAnimation(tray.MenuAnimationNone); err != nil { panic(err) }
+}
+if tray.Capabilities().CancelTracking {
+    if err := icon.CancelMenuTracking(false); err != nil { panic(err) }
+}
+```

@@ -78,7 +78,7 @@ func main() {
 	var menu func() []tray.MenuItem
 	menu = func() []tray.MenuItem {
 		return []tray.MenuItem{
-			{ID: "open", Title: "Open window", OnSelect: func() { core.Update(open) }},
+			{ID: "open", Title: "Open window", Icon: art, IconTemplate: true, OnSelect: func() { core.Update(open) }},
 			{ID: "pause", Title: "Pause", Checked: paused, OnSelect: func() {
 				core.Update(func() {
 					paused = !paused
@@ -97,6 +97,11 @@ func main() {
 		log.Fatal(err)
 	}
 	if *smoke {
+		if tray.Capabilities().DisableOpeningAnimation {
+			if err := statusIcon.SetMenuAnimation(tray.MenuAnimationNone); err != nil {
+				log.Fatal(err)
+			}
+		}
 		if err = statusIcon.SetTooltip("Keel tray smoke"); err != nil {
 			log.Fatal(err)
 		}

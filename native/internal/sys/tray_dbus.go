@@ -223,6 +223,9 @@ func trayMenuProps(item TrayMenuItem) map[string]dbus.Variant {
 	if item.Separator {
 		values["type"] = dbus.MakeVariant("separator")
 	}
+	if len(item.PNG) > 0 {
+		values["icon-data"] = dbus.MakeVariant(append([]byte(nil), item.PNG...))
+	}
 	if item.Checked {
 		values["toggle-type"] = dbus.MakeVariant("checkmark")
 		values["toggle-state"] = dbus.MakeVariant(int32(1))

@@ -162,6 +162,12 @@ go run ./examples/tray -smoke
 
 Real-window fixtures start without windows, reopen after closing the last window and check exit callbacks. Tray smoke also creates, updates and removes the native icon. Actual menu clicks, appearance, high DPI, Explorer restart and Linux host restart require verification on the respective desktop; cross-compilation does not establish runtime acceptance.
 
+Menu regressions cover frozen icon snapshots, atomic invalid updates, enabled/disabled template caches with zero warmed icon-layout allocations, fixed-time animation progress, reduced motion and stopped frame scheduling. Agent tests check menu-item labels, disabled/check states, action routing and controller cancellation. Windows target tests verify bitmap attachment, premultiplied pixels, aspect-ratio padding and cleanup on replacement/failure; cross-compiling these tests does not execute them. macOS fixtures create real AppKit images and popup tracking loops.
+
+```sh
+python3 scripts/check-components.py --offline --desktop --only checks interactive
+```
+
 ## One-command component validation
 
 ```sh
@@ -177,7 +183,7 @@ Windows no-cgo build and Linux native/CLI vet; then isolated component and
 large-data benchmarks; the complete fixed-time GPU screenshot matrix; finally
 `go run ./examples/components`, navigation to every registered scene and the
 interaction smoke checks described below. `--desktop` also runs real-window
-lifecycle fixtures during checks. Python 3 and Go are required; Python uses only
+lifecycle fixtures during checks, including macOS menu image replacement and both native cancellation modes; it also runs the macOS native tray fixture and `examples/tray -smoke`. Desktop tray smoke requires a working notification area/SNI host. Python 3 and Go are required; Python uses only
 the standard library. macOS needs Xcode command-line tools; Linux still needs
 Gio's graphics development libraries and a suitable graphics/display backend.
 
@@ -210,7 +216,7 @@ modified. Intentional visual changes require a reviewed new baseline.
 The gallery smoke covers checkbox/disabled state, switch, Unicode/multiline
 input, dialog save/Escape/reopening, searchable and 10,000-option selects,
 100,000-item virtual lists, table sorting/scrolling, calendar keyboard navigation
-past disabled Sundays and date-picker selection after reopening. Calendar checks
+past disabled Sundays, date-picker selection after reopening, and application-menu icons, disabled items, action routing and Escape. Calendar checks
 read displayed dates rather than hard-coding a month. The automation operates
 Gio's shadow input router while the default app has a visible native window;
 `--headless` suppresses that native window. Neither mode verifies an OS input

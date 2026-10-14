@@ -195,6 +195,37 @@ _ = menu.UpdateItem("new-tab", func(item *window.MenuItem) {
 
 原生测试桥只在 `-tags=keelnativeqa` 下编译，供开发测试调用菜单、输入法和图标校验；正常构建不包含这些测试接口。
 
+
+### 菜单图标与动画
+
+`NewMenuIcon(artwork, template)` 复制并冻结 `image.Image`，每个轴允许 1..256 像素。返回的 `*MenuIcon` 可以在多个 `MenuItem.Icon` 中复用；通过 `UpdateItem` 替换或清空指针即可更新原生菜单。`Image()` 返回副本。图标保持宽高比，放入 16dp 区域；高 DPI 建议提供 32px 或更大的源图。AppKit 根据系统文字颜色绘制模板图标，Keel 窗口菜单根据当前启用/禁用文字颜色绘制其透明度遮罩。Windows 使用原始像素，选择图片前可查询 `w.MenuFeatures().TemplateIcons`。
+
+```go
+icon, err := window.NewMenuIcon(artwork, true)
+if err != nil { panic(err) }
+_ = menu.UpdateItem("new-tab", func(item *window.MenuItem) { item.Icon = icon })
+_ = menu.SetWindowAnimation(window.MenuAnimation{
+    Duration: 180 * time.Millisecond,
+    Offset: 6, // dp；位移归零，同时逐渐显现
+})
+features := w.MenuFeatures()
+menu.CancelTracking(false) // 异步；可以在 UI 回调中调用
+```
+
+`SetWindowAnimation` 控制 **Keel 绘制的窗口菜单**及子菜单的展开。持续时间为零时立即展开；允许 0..10s、0..128dp 位移。动画遵守 `theme.ReducedMotion`，只在播放期间请求新帧。同一个模板图标分别缓存启用、禁用两种颜色。图片只在创建时复制和编码，布局期间不会重复处理。
+
+`MenuBar.CancelTracking(animated)` 关闭当前安装控制器在各窗口中的菜单；未安装的控制器调用无效。原生取消操作直接异步投递到系统线程，不等待 UI 帧。窗口菜单和 Win32 立即关闭；AppKit 根据参数选择 [cancelTracking](https://developer.apple.com/documentation/appkit/nsmenu/canceltracking()) 或 [cancelTrackingWithoutAnimation](https://developer.apple.com/documentation/appkit/nsmenu/canceltrackingwithoutanimation())。原生展开动画跟随系统，不受 `SetWindowAnimation` 影响。
+
+| 展示方式 | 图标 | 模板着色 | 展开控制 | 关闭动画 |
+| --- | --- | --- | --- | --- |
+| macOS AppKit 应用菜单 | 支持 | 支持 | 系统控制 | `CancelTracking(animated)` |
+| Windows Win32 菜单栏 | 支持 | 使用原始像素 | 系统控制 | 立即关闭 |
+| Keel 窗口菜单（各桌面平台） | 支持 | 支持 | `SetWindowAnimation` | 立即关闭 |
+
+`w.MenuFeatures()` 返回当前窗口展示方式的 `Native`、`Icons`、`TemplateIcons`、`WindowAnimation`、`NativeDismissAnimation` 和 `CancelTracking`。隐藏窗口菜单时返回空能力；macOS 的应用级菜单仍独立存在。托盘菜单使用独立的 [native/tray 接口](../native/tray/README.zh-CN.md)。
+
+运行 `go run ./examples/components`，选择 **Menu**，点击安装原生菜单或打开窗口菜单动画预览。预览包含模板/彩色图标、勾选、禁用项与嵌套子菜单。自动化快照将容器暴露为 `menu`，操作项暴露为 `menuitem` / `menuitemcheckbox`。
+
 ## 当前窗口尺寸
 
 `Window.Size()` 返回最近一帧实际观察到的客户区宽高，单位为 dp，首帧前返回初始请求尺寸。它包含 Keel 绘制的窗口内菜单和标题栏，不包含操作系统的外框；调整大小、缩放、最大化后都会更新，后台读取也安全。

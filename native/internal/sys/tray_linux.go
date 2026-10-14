@@ -11,6 +11,8 @@ import (
 	"github.com/godbus/dbus/v5"
 )
 
+func TrayMenuCapabilities() TrayMenuFeatures { return TrayMenuFeatures{Icons: true} }
+
 func TrayOpen(options TrayOptions) (TrayBackend, error) {
 	conn, err := dbus.ConnectSessionBus()
 	if err != nil {

@@ -53,6 +53,13 @@ func Post(fn func()) {
 	wakeBackground()
 }
 
+// Pending reports whether updates are queued. It does not take the frame lock.
+func Pending() bool {
+	mu.Lock()
+	defer mu.Unlock()
+	return len(pending) > 0
+}
+
 // Drain runs queued functions. Call it with Lock held.
 func Drain() {
 	mu.Lock()

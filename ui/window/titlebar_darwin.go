@@ -13,12 +13,16 @@ import (
 )
 
 var nativeWindows sync.Map // uintptr NSView -> *Window; never pass Go pointers to native code
+// Gio guarantees a view only until the next AppKitViewEvent is generated, and
+// that may happen long before it is delivered: a detach event can arrive after
+// AppKit has freed the view. Keep our own reference instead. Taking it here is
+// safe: AppKit's main thread waits while this event is being handled.
 func platformWindowEvent(w *Window, event any) {
 	if e, ok := event.(gioapp.AppKitViewEvent); ok {
 		loop.Lock()
 		defer loop.Unlock()
 		clearPlatformWindow(w)
-		w.nativeView = e.View
+		w.nativeView = uintptr(appkit.Retain(appkit.ID(e.View)))
 		w.nativeTrafficLightsDirty = true
 		if e.View != 0 {
 			nativeWindows.Store(e.View, w)
@@ -27,8 +31,11 @@ func platformWindowEvent(w *Window, event any) {
 }
 func clearPlatformWindow(w *Window) {
 	if w.nativeView != 0 {
+		view := appkit.ID(w.nativeView)
 		nativeWindows.Delete(w.nativeView)
 		setTitleBarArea(w.nativeView, appkit.Rect{})
+		// A view's last release must happen on the main thread.
+		appkit.MainAsync(func() { appkit.Release(view) })
 		w.nativeView, w.lastTitleView = 0, 0
 	}
 }
