@@ -3,6 +3,7 @@ package shaping
 import (
 	"math"
 	"sort"
+	"unicode"
 
 	"github.com/dyike/keel/typesetting/di"
 	"github.com/dyike/keel/typesetting/segmenter"
@@ -755,7 +756,8 @@ func (w *wrapBuffer) finalizeBest() []Output {
 // LineWrappers for multiple paragraphs should improve performance.
 type LineWrapper struct {
 	// config holds the current line wrapping settings.
-	config WrapConfig
+	config    WrapConfig
+	paragraph []rune
 	// truncating tracks whether the wrapper should be performing truncation.
 	truncating bool
 	// seg is an internal storage used to initiate the breaker iterator.
@@ -783,6 +785,7 @@ type LineWrapper struct {
 // lines previously returned by this wrapper.
 func (l *LineWrapper) Prepare(config WrapConfig, paragraph []rune, runs RunIterator) {
 	l.config = config
+	l.paragraph = paragraph
 	l.truncating = l.config.TruncateAfterLines > 0
 	l.breaker = newBreaker(&l.seg, paragraph)
 	l.glyphRuns = runs
@@ -836,7 +839,7 @@ func (l *LineWrapper) WrapParagraphF(config WrapConfig, maxWidth fixed.Int26_6, 
 				if line, ok := l.scratch.fittingLine(firstRun, runs, maxWidth); ok {
 					computeBidiOrdering(config.Direction, line)
 					if !config.DisableTrailingWhitespaceTrim {
-						trimTrailingWhitespace(config.Direction, line)
+						trimTrailingWhitespace(config.Direction, line, paragraph)
 					}
 					l.scratch.paragraphAppend(line)
 					return l.scratch.finalParagraph(), 0
@@ -975,7 +978,7 @@ func computeBidiOrdering(dir di.Direction, finalLine Line) {
 // trimTrailingWhitespace zeroes the advance of the last visual glyph of a
 // line ordered by computeBidiOrdering, if it is whitespace, and returns the
 // advance removed.
-func trimTrailingWhitespace(dir di.Direction, finalLine Line) (trimmed fixed.Int26_6) {
+func trimTrailingWhitespace(dir di.Direction, finalLine Line, paragraph []rune) (trimmed fixed.Int26_6) {
 	// Here we find the last visual run in the line.
 	goalIdx := len(finalLine) - 1
 	if dir.Progression() == di.TowardTopLeft {
@@ -997,6 +1000,18 @@ func trimTrailingWhitespace(dir di.Direction, finalLine Line) (trimmed fixed.Int
 			finalVisualGlyph = &finalVisualRun.Glyphs[L-1]
 		} else {
 			finalVisualGlyph = &finalVisualRun.Glyphs[0]
+		}
+
+		// Keel patch: missing outline metrics are also reported as zero ink.
+		// Only trim clusters whose source text is actually whitespace.
+		start, count := finalVisualGlyph.TextIndex(), finalVisualGlyph.RunesCount()
+		if start < 0 || count <= 0 || start > len(paragraph)-count {
+			return 0
+		}
+		for _, r := range paragraph[start : start+count] {
+			if !unicode.IsSpace(r) {
+				return 0
+			}
 		}
 
 		if finalVisualRun.Direction.IsVertical() {
@@ -1022,7 +1037,7 @@ func (l *LineWrapper) postProcessLine(finalLine Line, done bool) (WrappedLine, b
 	if len(finalLine) > 0 {
 		computeBidiOrdering(l.config.Direction, finalLine)
 		if !l.config.DisableTrailingWhitespaceTrim {
-			trimmed = trimTrailingWhitespace(l.config.Direction, finalLine)
+			trimmed = trimTrailingWhitespace(l.config.Direction, finalLine, l.paragraph)
 		}
 
 		finalLogicalRun := finalLine[len(finalLine)-1]
