@@ -201,8 +201,17 @@ func (w *Window) validateAndProcess(size image.Point, sync bool, frame *op.Ops, 
 		var err error
 		if w.gpu != nil {
 			err = w.ctx.Present()
-			w.idleGPU()
+			if err == nil {
+				w.idleGPU()
+			}
 			w.ctx.Unlock()
+			if errors.Is(err, gpu.ErrDeviceLost) {
+				// The frame is already released to the client and can't be
+				// retried. Re-create the GPU context in the next frame.
+				w.destroyGPU()
+				w.setNextFrame(time.Time{})
+				return nil
+			}
 		}
 		return err
 	}

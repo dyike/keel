@@ -282,3 +282,8 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
   frame submission time establishes that memory target or end-to-end frame rate.
 
 - `typesetting/shaping`: trailing whitespace trimming now verifies the source cluster contains only Unicode whitespace. Missing outline metrics (including the installed PingFang UI face) also yield zero ink width and must not erase the final visible glyph advance. Both the fitting multi-run path and wrapped-line path use the check. Synthetic LTR/RTL/vertical tests and mixed-font label width/pixel regressions cover it.
+
+### 2026-10-14: presentation device-loss recovery
+
+- `gio/app`: port upstream Gio commit [bf9f995](https://github.com/gioui/gio/commit/bf9f995d86c22d555d7ce2db154395bca94541b7). When `Present` reports `gpu.ErrDeviceLost` (including wrapped errors), release the GPU context and schedule an immediate new frame. The acknowledged frame cannot be retried. Keel only runs idle GPU reclamation after successful presentation, while the context remains locked.
+- Regression tests cover success, direct/wrapped device loss, unrelated errors, acknowledgment count, and context lock/release ordering. The Windows cross-build passes; Windows client behavior has not been verified on hardware. Metal currently returns no presentation error, so this patch does not reduce macOS memory peaks.
