@@ -44,6 +44,16 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/gpu`, `gio/internal/stroke`: cache stroke outlines in path coordinates,
+  before the existing affine transform and vertex splitting. Rotation no longer
+  rebuilds the same outline; width/content changes remain distinct. Exact input
+  comparison prevents hash-collision reuse. Owned entries expire after an unused
+  frame and are bounded to 128 entries/1 MiB; oversized paths bypass caching.
+  Renderer trim/release drops the cache. Reusable, independently owned stroking
+  scratch also reduces changing-path misses and discards oversized arrays.
+  Tests compare the old algorithm's curves and affine vertices byte-for-byte,
+  check ownership/eviction/allocation bounds, and compare warmed/fresh GPU pixels
+  under rotation, nested rounded clipping and opacity. No shader or GC changes.
 - `typesetting/font`: validate TrueType contours and collect variation point
   counts without first allocating every outline and discarding it. Full
   contours remain lazily decoded under the existing shared cache lock. Tests
