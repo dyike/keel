@@ -78,6 +78,39 @@ func TestInputSubmit(t *testing.T) {
 
 ## 截图对比
 
+### 覆盖表解码与图标回调复用（本地后续优化）
+
+磁盘索引在解码时就复用相同字符覆盖表，不再先分配重复切片。去重表只属于一次读取，命中哈希后完整比较页号和位图；解码结果不引用复用的记录缓冲。命名实例元数据仍独立，版本 7 缓存继续有效。
+IconView 只缓存一个不可变的渲染器与颜色快照，更换缓存不会修改旧元素捕获的颜色；复制视图会建立自己的渲染器。元素句柄和 Context.Cache 生命周期不变。参照的是本地 mygo 保留图标栅格回调的做法，不借用帧 scratch，也不改 Keel 的指针 API。
+
+```sh
+go test ./typesetting/fontscan -run 'Test(IndexDecode|RuneSetDecode)'
+go test ./ui/kit -run 'TestIcon(RenderReuses|CachedElement)'
+go test ./typesetting/fontscan -run '^$' -bench BenchmarkFontIndexDeserialize -benchmem -count=3
+go test ./ui/kit -run '^$' -bench 'Benchmark(IconRender|RetainedIconFrame)' -benchmem -count=3
+```
+
+Apple M4、Go 1.27.1，以 main `afe213c` 为基线，各跑三次 500ms，取中位数：64 文件、每文件四字体、512 页共享覆盖表的合成索引，分配从 4,959,613 B / 888 次降到 259,418 B / 633 次，CPU 时间 2.01ms → 1.48ms。
+所有覆盖表都不同时，去重表带来代价：4,959,578 → 4,996,580 B、886 → 899 次，2.05ms → 2.29ms；不能只报告共享场景的收益。
+稳定保留的 IconView.Render 从 944 B / 3 次降到 920 B / 2 次；每次新建视图从 992 B / 4 次降到 984 B / 4 次。这些数字包含独立元素、节点，不只是回调，完整帧仍非零分配。
+792 张固定时间 GPU 截图全部逐字节一致。短基准中三个场景的字节回退，在交错的五轮独立进程复测中未持续复现。微基准不能证明真实窗口 footprint、峰值或 FPS 改善。
+
+相同卡片客户端以 main `afe213c`、尚未发布的本地后续优化、最新本地 mygo `fefd36a5` 各跑三轮独立进程，交错顺序。窗口为 800×600dp、原生 2×（1600×1200px），保留已有 v7 字体索引。滚动、缩放各 10 秒，空闲 12 秒；每 100ms 采样，启动为 50ms，空闲取最后三秒。仅测试客户端关闭空闲主动回收，与 mygo 对齐；GOGC/GOMEMLIMIT 和库默认值不变。强制 GC 全部为零，profile、截图另开进程。
+
+| 原生窗口三轮中位数 | 改前 | 本地后续优化 | Mygo |
+| --- | ---: | ---: | ---: |
+| 启动 TotalAlloc / MiB | 26.74 | 21.62 | 20.03 |
+| 启动 HeapSys / MiB | 27.22 | 19.25 | 23.22 |
+| 滚动分配 / MiB/s | 4.88 | 4.07 | 45.33 |
+| 滚动分配次数 / 绘制调用 | 693 | 93 | 2,568 |
+| 滚动 GC 次数 | 7 | 6 | 38 |
+| 缩放分配 / MiB/s | 2.33 | 1.93 | 15.30 |
+| 缩放 GC 次数 | 3 | 3 | 12 |
+| 空闲末三秒 footprint / MiB | 58.80 | 57.24 | 73.30 |
+| 内核全程峰值 / MiB | 159.10 | 164.06 | 163.67 |
+
+峰值未改善：改前 157.86–162.45 MiB、改后 158.10–165.38 MiB，全部进程在缩放时达到峰值，中位数观察值升高约 5 MiB。三轮范围重叠，空闲小幅差异也不是已确认收益。单轮启动 GC 可能在分配减少后反而增加。Mygo 的无障碍工作显著影响分配速度；这不是框架排名或端到端 FPS，也不能证明 controls 分类峰值改善。独立 profile 中 IconView.Render 滚动自分配为零采样，指针 frameHandles 仍占约 57% 采样字节；启动 RuneSet 解码采样约 1 MiB，而非原来的约 6 MiB。采样和 GC 统计滞后使 profile 总量不能替代阶段实际分配或物理存活内存。
+
 ### 绘制分配后续优化（2026-10-15）
 
 本地后续改动保留颜色指针 API 和元素生命周期。Material 标签改用新增的颜色值布局方法，可选中文本自己保存颜色。anchors 在绘制开始时 clear，Render 仍能通过 LastSize 读取上一帧；超过 4,096 项的 map 在下一次绘制时丢弃。描边只有连续两帧出现才准入缓存，候选表只存哈希；正式条目不借用可变 Ops 或描边 scratch。参考本地 mygo 的有界 scratch 和清理边界，不改其对应的公开句柄 API。本次不改 drawable、分辨率、GC 或默认空闲回收。

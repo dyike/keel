@@ -67,6 +67,7 @@ type IconView struct {
 	icon           *giowidget.Icon
 	size           float32
 	color          *color.NRGBA
+	renderer       *iconRenderer
 }
 
 var iconData = [...][]byte{
@@ -152,18 +153,32 @@ func (i *IconView) Render(*el.Context) el.Element {
 	if i.color != nil {
 		c = *i.color
 	}
-	return el.Widget(core.Func(func(gtx core.C) core.D {
-		if i.icon == nil && i.svg == nil {
-			return core.D{}
-		}
-		size := gtx.Constraints.Constrain(image.Pt(gtx.Dp(unit.Dp(i.size)), gtx.Dp(unit.Dp(i.size))))
-		gtx.Constraints.Min, gtx.Constraints.Max = size, size
-		if i.rotation != 0 {
-			defer op.Affine(f32.Affine2D{}.Rotate(f32.Pt(float32(size.X)/2, float32(size.Y)/2), i.rotation*math.Pi/180)).Push(gtx.Ops).Pop()
-		}
-		if i.svg != nil {
-			return i.svg.layout(gtx, size, c, i.originalColors)
-		}
-		return i.icon.Layout(gtx, c)
-	})).Size(el.Dp(i.size))
+	// Keep the color captured by this Render, as the old closure did. A
+	// replacement never overwrites a renderer held by a cached/older element.
+	// Check the owner too: copying an IconView must not draw the original view.
+	if i.renderer == nil || i.renderer.view != i || i.renderer.color != c {
+		i.renderer = &iconRenderer{view: i, color: c}
+	}
+	return el.Widget(i.renderer).Size(el.Dp(i.size))
+}
+
+type iconRenderer struct {
+	view  *IconView
+	color color.NRGBA
+}
+
+func (r *iconRenderer) Layout(gtx core.C) core.D {
+	i, c := r.view, r.color
+	if i.icon == nil && i.svg == nil {
+		return core.D{}
+	}
+	size := gtx.Constraints.Constrain(image.Pt(gtx.Dp(unit.Dp(i.size)), gtx.Dp(unit.Dp(i.size))))
+	gtx.Constraints.Min, gtx.Constraints.Max = size, size
+	if i.rotation != 0 {
+		defer op.Affine(f32.Affine2D{}.Rotate(f32.Pt(float32(size.X)/2, float32(size.Y)/2), i.rotation*math.Pi/180)).Push(gtx.Ops).Pop()
+	}
+	if i.svg != nil {
+		return i.svg.layout(gtx, size, c, i.originalColors)
+	}
+	return i.icon.Layout(gtx, c)
 }

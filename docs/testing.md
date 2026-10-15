@@ -98,6 +98,69 @@ There are two layers of related tests in the repository, both run with `go test 
 
 ## Screenshot comparison
 
+### Coverage decode and icon callback reuse (local follow-up)
+
+The disk-index decoder interns identical rune coverage before allocating a
+second slice. Its table belongs to one read; full page/bitmap comparisons
+check hash hits, and decoded data never aliases the reused record buffer.
+Named-instance metadata stays independent and version-7 caches remain valid.
+IconView reuses one immutable renderer/color snapshot. Replacing the cached
+renderer never changes an older element's captured color; copied views get
+their own renderer. Element handles and Context.Cache lifetimes are unchanged.
+Local mygo's retained icon raster callback is the reference, not borrowed
+frame scratch or a change to Keel's pointer API.
+
+```sh
+go test ./typesetting/fontscan -run 'Test(IndexDecode|RuneSetDecode)'
+go test ./ui/kit -run 'TestIcon(RenderReuses|CachedElement)'
+go test ./typesetting/fontscan -run '^$' -bench BenchmarkFontIndexDeserialize -benchmem -count=3
+go test ./ui/kit -run '^$' -bench 'Benchmark(IconRender|RetainedIconFrame)' -benchmem -count=3
+```
+
+Apple M4, Go 1.27.1, medians of three 500ms samples, against main `afe213c`:
+the synthetic 64-file/four-face/512-page shared index changes from
+4,959,613 B / 888 allocations to 259,418 B / 633; CPU time is 2.01ms → 1.48ms.
+With every coverage distinct, the lookup table costs 4,959,578 → 4,996,580 B,
+886 → 899 allocations and 2.05ms → 2.29ms. Keep this worst-case cost visible.
+Warm retained IconView.Render changes from 944 B / 3 allocations to 920 B / 2;
+fresh views change from 992 B / 4 to 984 B / 4. These include independent
+element/node storage, not just callbacks; whole frames are not zero-allocation.
+All 792 fixed-time GPU screenshots are byte-identical. Three short-run gallery
+byte regressions did not persist in five interleaved fresh-process rechecks.
+Microbenchmarks do not establish native footprint, peak memory or FPS.
+
+Three fresh interleaved native card clients per version, 800×600dp at native
+2× (1600×1200px), compare main `afe213c`, this unpublished local follow-up,
+and current local mygo `fefd36a5`. The existing v7 font index is retained.
+Scroll/resize last 10s each, idle 12s; footprint sampling is 100ms (50ms at
+startup), with idle values from the last 3s. Only the fixture disables idle
+active reclamation to match mygo; GOGC/GOMEMLIMIT and library defaults are
+unchanged. Forced GC is zero; profiles/screenshots run separately.
+
+| Native three-run median | Before | Local follow-up | Mygo |
+| --- | ---: | ---: | ---: |
+| Startup TotalAlloc / MiB | 26.74 | 21.62 | 20.03 |
+| Startup HeapSys / MiB | 27.22 | 19.25 | 23.22 |
+| Scroll allocation / MiB/s | 4.88 | 4.07 | 45.33 |
+| Scroll allocations / draw call | 693 | 93 | 2,568 |
+| Scroll GC cycles | 7 | 6 | 38 |
+| Resize allocation / MiB/s | 2.33 | 1.93 | 15.30 |
+| Resize GC cycles | 3 | 3 | 12 |
+| Idle footprint, final 3s / MiB | 58.80 | 57.24 | 73.30 |
+| Kernel lifetime peak / MiB | 159.10 | 164.06 | 163.67 |
+
+Peak does not improve: before 157.86–162.45 MiB, after 158.10–165.38 MiB;
+all processes peak during resizing. The observed median increases about 5 MiB.
+Three-run footprint ranges overlap, and small idle differences are not an
+established benefit. Startup GC can increase in an individual run despite
+less allocation. Mygo's accessibility work materially affects its allocation
+rate; this is not a framework ranking or an end-to-end FPS result. No controls
+category peak improvement is established. A separate profile reports no
+IconView.Render self-allocation in scrolling; pointer frameHandles remain
+about 57% of sampled bytes. Startup RuneSet decoding is about 1 MiB sampled,
+not the old approximately 6 MiB. Sampling/GC lag prevents treating profile
+totals as exact phase allocation or live physical memory.
+
 ### Paint-allocation follow-up (2026-10-15)
 
 The local follow-up keeps the pointer-color API and element lifetimes. Material
