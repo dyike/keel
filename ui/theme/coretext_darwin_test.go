@@ -5,6 +5,9 @@ package theme
 import (
 	"github.com/dyike/keel/gio/font"
 	"github.com/dyike/keel/gio/text"
+	gotext "github.com/dyike/keel/typesetting/font"
+	ot "github.com/dyike/keel/typesetting/font/opentype"
+	"github.com/dyike/keel/typesetting/font/opentype/tables"
 	"golang.org/x/image/math/fixed"
 	"image"
 	"image/color"
@@ -164,8 +167,75 @@ func TestCoreTextSFUsesExactPostScriptFace(t *testing.T) {
 
 func TestCoreTextPingFangRegularAndSemiboldInstances(t *testing.T) {
 	const path = "/System/Library/PrivateFrameworks/FontServices.framework/Resources/Reserved/PingFangUI.ttc"
-	if _, err := os.Stat(path); err != nil {
+	file, err := os.Open(path)
+	if err != nil {
 		t.Skip("variable PingFang unavailable")
+	}
+	defer file.Close()
+	loaders, err := ot.NewLoaders(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"PingFangSC-Regular", "PingFangSC-Semibold"} {
+		index, instance := -1, 0
+		for i, ld := range loaders {
+			raw, err := ld.RawTable(ot.MustNewTag("fvar"))
+			if err != nil {
+				continue
+			}
+			fv, _, err := tables.ParseFvar(raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for j := range fv.Instances {
+				if fontPostScriptName(path, i, j+1) == name {
+					index, instance = i, j+1
+					break
+				}
+			}
+			if index >= 0 {
+				break
+			}
+		}
+		if index < 0 {
+			t.Skipf("reserved fixture lacks named instance %s", name)
+		}
+		ft, err := gotext.NewFont(loaders[index])
+		if err != nil {
+			t.Fatal(err)
+		}
+		gid, ok := gotext.NewFace(ft).NominalGlyph('中')
+		if !ok {
+			t.Fatal("fixture lacks Chinese glyph")
+		}
+		f := ctFont(path, index, 28, instance)
+		if f == 0 {
+			t.Fatal("native font missing", name)
+		}
+		actual := ctIdentity.name(uintptr(f))
+		wanted := ctIdentity.stringNew(0, name, 0x08000100)
+		equal := actual != 0 && ctIdentity.equal(actual, wanted)
+		if actual != 0 {
+			ctIdentity.release(actual)
+		}
+		ctIdentity.release(wanted)
+		if !equal {
+			t.Fatal("wrong native weight", name)
+		}
+		b, mask, ok := coreTextMask(path, index, 28, uint16(gid), 0, 0, true, instance)
+		if !ok || b.Empty() || len(mask) == 0 {
+			t.Fatal("named glyph rendered blank", name)
+		}
+	}
+}
+
+// Installed MobileAsset fonts can legitimately be static TTC faces and take
+// precedence over the variable UI collection. Preserve this integration check
+// without requiring a named-instance index for a non-variable font.
+func TestCoreTextSystemPingFangWeights(t *testing.T) {
+	const path = "/System/Library/PrivateFrameworks/FontServices.framework/Resources/Reserved/PingFangUI.ttc"
+	if _, err := os.Stat(path); err != nil {
+		t.Skip("PingFang unavailable")
 	}
 	sh := new(text.Shaper)
 	for _, tc := range []struct {
@@ -178,8 +248,8 @@ func TestCoreTextPingFangRegularAndSemiboldInstances(t *testing.T) {
 			t.Fatal("no glyph")
 		}
 		file, index, instance, ppem, gid, ok := sh.GlyphFileInstance(g.ID)
-		if !ok || instance == 0 {
-			t.Fatalf("no named instance for %s", tc.name)
+		if !ok {
+			t.Fatal("missing exact native face identity")
 		}
 		f := ctFont(file, index, float64(ppem)/64, instance)
 		if f == 0 {
@@ -193,11 +263,11 @@ func TestCoreTextPingFangRegularAndSemiboldInstances(t *testing.T) {
 		}
 		ctIdentity.release(wanted)
 		if !equal {
-			t.Fatal("wrong native weight", tc.name)
+			t.Fatal("wrong installed native weight", tc.name)
 		}
 		b, mask, ok := coreTextMask(file, index, 28, gid, 0, 0, true, instance)
 		if !ok || b.Empty() || len(mask) == 0 {
-			t.Fatal("named glyph rendered blank", tc.name)
+			t.Fatal("installed glyph rendered blank", tc.name)
 		}
 	}
 }

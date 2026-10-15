@@ -47,14 +47,12 @@ func (c *mtlContext) stopIdle() {
 	}
 }
 
-// resumeIdle restores a trimmed drawable and reports whether it resized.
-func (c *mtlContext) resumeIdle() bool {
+func (c *mtlContext) resumeIdle() {
 	c.stopIdle()
-	if !c.idle.trimmed {
-		return false
+	if c.idle.trimmed {
+		resizeDrawable(c.view, c.layer)
+		c.idle.trimmed = false
 	}
-	c.idle.trimmed = false
-	return resizeDrawable(c.view, c.layer)
 }
 
 var metalTrimOnce sync.Once

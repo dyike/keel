@@ -116,7 +116,8 @@ func (c *Caret) LayoutDecorated(gtx layout.Context, style material.EditorStyle, 
 		// (a dark bar beside 搜 reads as 锼). Draw it just before the hint,
 		// in the field's padding, the way native text fields do. Platform
 		// text (CoreText) darkens stems past the outline by about a pixel.
-		x1 = pos.X - gtx.Dp(1)
+		// Reserve 2dp so that expansion cannot close the gap at 2x scale.
+		x1 = pos.X - gtx.Dp(2)
 		x0 = x1 - width
 		area.Min.X = x0
 	}

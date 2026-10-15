@@ -5,17 +5,49 @@ import (
 	"testing"
 
 	"github.com/dyike/keel/typesetting/font"
+	ot "github.com/dyike/keel/typesetting/font/opentype"
 )
 
-func TestNamedInstancesShareImmutableTables(t *testing.T) {
+// Isolate the variable fixture from installed static PingFang asset faces.
+// Normal system fallback tests still exercise the full system font index.
+func pingFangUIFixture(t *testing.T) *FontMap {
+	t.Helper()
 	const path = "/System/Library/PrivateFrameworks/FontServices.framework/Resources/Reserved/PingFangUI.ttc"
-	if _, err := os.Stat(path); err != nil {
+	f, err := os.Open(path)
+	if err != nil {
 		t.Skip("variable PingFang unavailable")
 	}
-	fm := NewFontMap(nil)
-	if err := fm.UseSystemFonts(t.TempDir()); err != nil {
+	defer f.Close()
+	loaders, err := ot.NewLoaders(f)
+	if err != nil {
 		t.Fatal(err)
 	}
+	fm := NewFontMap(nil)
+	variable := false
+	for i, ld := range loaders {
+		fp, _, err := newFootprintFromLoader(ld, false, scanBuffer{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fp.Family != "pingfangsc" {
+			continue
+		}
+		if _, err := ld.RawTable(ot.MustNewTag("fvar")); err != nil {
+			continue
+		}
+		variable = true
+		fp.Location = Location{File: path, Index: uint16(i)}
+		fm.appendFootprints(fp)
+		fm.appendFootprints(namedWeightFootprints(ld, fp)...)
+	}
+	if !variable {
+		t.Skip("reserved PingFang SC fixture is not variable on this OS")
+	}
+	return fm
+}
+
+func TestNamedInstancesShareImmutableTables(t *testing.T) {
+	fm := pingFangUIFixture(t)
 	resolve := func(weight font.Weight) *font.Face {
 		fm.SetQuery(Query{Families: []string{"PingFang SC"}, Aspect: font.Aspect{Weight: weight}})
 		return fm.ResolveFace('中')
