@@ -44,6 +44,16 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/widget.Icon`: retain an LRU of up to eight immutable size/color images,
+  with a 1 MiB pixel budget per icon. A larger image retains only itself, as
+  before. Alternating variants no longer rerasterize or change texture identity;
+  tests cover warm zero-allocation hits, eviction and reference release.
+- `gio/text`, `gio/widget`: labels and editor painting borrow one 32-glyph
+  scratch buffer from their shaper. CoreText opts into a synchronous, read-only
+  raster-hook contract; existing `SetRasterHook` callers keep independent
+  buffers. Overlapping borrows and hook changes cannot reuse a live lease.
+  Tests cover legacy retained slices, lease invalidation and allocation-free reuse.
+
 - Share identical stencil masks within each frame without adding GPU textures. Preserve absolute transform inputs and parent intersection behavior; tested with native pixel comparisons. See [rendering memory](../docs/rendering-memory.md).
 
 - `gio/gpu/internal/metal`: unified-memory devices initialize immutable geometry and

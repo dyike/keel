@@ -18,10 +18,20 @@ import (
 
 type Icon struct {
 	src []byte
-	// Cached values.
-	op       paint.ImageOp
-	imgSize  int
-	imgColor color.NRGBA
+	// Keel patch: one shared icon can appear at several sizes/colors in a
+	// frame. Keep a bounded MRU of immutable images, not just the last one.
+	images                 [iconCacheEntries]iconImage
+	imageCount, imageBytes int
+}
+
+const iconCacheEntries = 8
+const iconCacheBytes = 1 << 20
+
+type iconImage struct {
+	op    paint.ImageOp
+	size  int
+	color color.NRGBA
+	bytes int
 }
 
 const defaultIconSize = unit.Dp(24)
@@ -53,8 +63,13 @@ func (ic *Icon) Layout(gtx layout.Context, color color.NRGBA) layout.Dimensions 
 }
 
 func (ic *Icon) image(sz int, color color.NRGBA) paint.ImageOp {
-	if sz == ic.imgSize && color == ic.imgColor {
-		return ic.op
+	for i := 0; i < ic.imageCount; i++ {
+		cached := ic.images[i]
+		if cached.size == sz && cached.color == color {
+			copy(ic.images[1:i+1], ic.images[:i])
+			ic.images[0] = cached
+			return cached.op
+		}
 	}
 	m, _ := iconvg.DecodeMetadata(ic.src)
 	dx, dy := m.ViewBox.AspectRatio()
@@ -65,8 +80,18 @@ func (ic *Icon) image(sz int, color color.NRGBA) paint.ImageOp {
 	iconvg.Decode(&ico, ic.src, &iconvg.DecodeOptions{
 		Palette: &m.Palette,
 	})
-	ic.op = paint.NewImageOp(img)
-	ic.imgSize = sz
-	ic.imgColor = color
-	return ic.op
+	op := paint.NewImageOp(img)
+	bytes := len(img.Pix)
+	for ic.imageCount > 0 && (ic.imageCount == iconCacheEntries || ic.imageBytes > iconCacheBytes-bytes) {
+		ic.imageCount--
+		ic.imageBytes -= ic.images[ic.imageCount].bytes
+		ic.images[ic.imageCount] = iconImage{}
+	}
+	// An oversized image retains only itself, matching the old single-image
+	// cache. It must not multiply the budget by eight at unusually large DPI.
+	copy(ic.images[1:ic.imageCount+1], ic.images[:ic.imageCount])
+	ic.images[0] = iconImage{op: op, size: sz, color: color, bytes: bytes}
+	ic.imageCount++
+	ic.imageBytes += bytes
+	return op
 }

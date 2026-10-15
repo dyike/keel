@@ -267,6 +267,43 @@ A Go overlay can select baseline production files without reverting changes.
 The plain-editor benchmark leaves its language unset; the existing highlighted
 large-file benchmark still includes whole-document background highlighting.
 
+### Paint-path allocation checks, 2026-10-15
+
+`BenchmarkCategoryFrame` uses the actual `-section` compositions at 1360×1720
+pixels (680×860dp, 2×), a real input router and animation time advancing at
+60 Hz. Run each category in a fresh process, without other benchmarks running:
+
+```sh
+go test ./examples/components -run '^$' -bench '^BenchmarkCategoryFrame$/^controls$' -benchmem -benchtime=1s -count=3
+```
+
+On Apple M4, darwin/arm64, Go 1.27.1, three one-second samples per category
+gave these medians. The baseline already contains the node arena. Both binaries
+use the same benchmark; the changed binary adds bounded icon variants, borrowed
+glyph scratch and retained views in the status-marker/theme demos.
+
+| Category | Before B/frame | After B/frame | Before allocs/frame | After allocs/frame |
+| --- | ---: | ---: | ---: | ---: |
+| controls | 334,888 | 152,289 | 2,169 | 2,050 |
+| inputs | 484,933 | 183,947 | 2,176 | 2,021 |
+| overlays | 175,744 | 38,832 | 558 | 487 |
+| data | 726,864 | 599,584 | 3,262 | 3,191 |
+| shell | 384,267 | 94,172 | 1,339 | 1,182 |
+
+This measures CPU layout and paint-op generation, not GPU execution, native
+footprint, scrolling latency or end-to-end FPS. No GC or drawable policy changed.
+The icon cache trades bounded retention (eight variants and 1 MiB of pixels per
+icon, except one oversized current image) for fewer rasterizations and uploads.
+
+Set `KEEL_STATE_STATS=1` to log state creation/removal per root and frame, with
+the first eight new element IDs, roles and names. Stable root IDs distinguish
+recreated roots from unstable element keys. Logging is opt-in and never requests
+a redraw; new visible rows legitimately create state. This identified 21 and four
+state replacements per warmed controls frame in the status-marker and theme
+demos respectively: both constructed pointer-identified views during rendering.
+Retaining those views removed the churn in a follow-up trace. The theme inputs
+now also retain their editing state across renders.
+
 ### Further allocation reductions, 2026-10-15
 
 On Apple M4, darwin/arm64, Go 1.27.1, the next pass used the completed node

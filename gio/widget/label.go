@@ -83,8 +83,8 @@ func (l Label) LayoutDetailed(gtx layout.Context, lt *text.Shaper, font font.Fon
 		color:    l.Color,
 	}
 	semantic.LabelOp(txt).Add(gtx.Ops)
-	var glyphs [32]text.Glyph
-	line := glyphs[:0]
+	line, token := lt.BorrowGlyphBuffer()
+	defer lt.ReleaseGlyphBuffer(line, token)
 	for g, ok := lt.NextGlyph(); ok; g, ok = lt.NextGlyph() {
 		var ok bool
 		if line, ok = it.paintGlyph(gtx, lt, g, line); !ok {
@@ -207,8 +207,8 @@ func fixedToFloat(i fixed.Int26_6) float32 {
 // a backing array of sufficient size to buffer multiple glyphs.
 // A modified slice will be returned with each invocation, and is
 // expected to be passed back in on the following invocation.
-// This design is awkward, but prevents the line slice from escaping
-// to the heap.
+// The backing buffer belongs to the shaper while painting. Raster hooks that
+// do not opt into borrowing still receive independent per-layout storage.
 func (it *textIterator) paintGlyph(gtx layout.Context, shaper *text.Shaper, glyph text.Glyph, line []text.Glyph) ([]text.Glyph, bool) {
 	visibleOrBefore := it.processGlyph(glyph, true)
 	if it.visible {

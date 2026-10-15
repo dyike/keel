@@ -251,6 +251,8 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	// Both render real state without advancing its lifecycle.
 	live := gtx.Enabled()
 	st := r.store
+	st.beginStateStats()
+	defer st.endStateStats()
 	if live {
 		st.frame++
 		theme.BeginTextFrame()

@@ -144,8 +144,10 @@ func (st *elemState) inputEditor() *widget.Editor {
 // store holds element state for one root. Entries not painted in a frame are
 // dropped after it, so state never outlives its element by more than a frame.
 type store struct {
-	states map[stateKey]*elemState
-	frame  uint64
+	states  map[stateKey]*elemState
+	frame   uint64
+	created uint64
+	stats   *stateStats
 	// pressFrame is the frame of the last pointer press anywhere in the root:
 	// an editor that gains focus right after one was clicked into.
 	pressFrame uint64
@@ -156,13 +158,23 @@ type store struct {
 // frames: Gio focuses an editor on the frame after the press reaches it.
 func (s *store) recentPress() bool { return s.pressed && s.frame-s.pressFrame <= 2 }
 
-func newStore() *store { return &store{states: map[stateKey]*elemState{}} }
+func newStore() *store {
+	s := &store{states: map[stateKey]*elemState{}}
+	if stateStatsEnabled {
+		s.stats = &stateStats{id: stateStatsSequence.Add(1), labels: make(map[stateKey]stateLabel)}
+	}
+	return s
+}
 
 func (s *store) get(k stateKey) *elemState {
 	st := s.states[k]
 	if st == nil {
 		st = &elemState{fresh: true}
 		s.states[k] = st
+		s.created++
+		if s.stats != nil {
+			s.stats.note(k)
+		}
 	}
 	st.frame = s.frame
 	return st
@@ -172,6 +184,9 @@ func (s *store) sweep() {
 	for k, st := range s.states {
 		if st.frame != s.frame {
 			delete(s.states, k)
+			if s.stats != nil {
+				s.stats.removed++
+			}
 		}
 	}
 }
@@ -180,6 +195,9 @@ func (s *store) sweep() {
 // element in the tree alive, painted or not (it may be scrolled out of view).
 func (s *store) assignKeys(n *Node, key stateKey) {
 	n.key = key
+	if s.stats != nil {
+		s.stats.labels[key] = labelState(n)
+	}
 	if st := s.states[key]; st != nil {
 		st.frame = s.frame
 	}
