@@ -54,34 +54,14 @@ static CFTypeRef drawableTexture(CFTypeRef drawableRef) {
 	}
 }
 
-static void presentDrawable(CFTypeRef queueRef, CFTypeRef drawableRef, int transaction) {
+static void presentDrawable(CFTypeRef queueRef, CFTypeRef drawableRef) {
 	@autoreleasepool {
 		id<MTLDrawable> drawable = (__bridge id<MTLDrawable>)drawableRef;
 		id<MTLCommandQueue> queue = (__bridge id<MTLCommandQueue>)queueRef;
 		id<MTLCommandBuffer> cmdBuffer = [queue commandBuffer];
-		if (!transaction) {
-			// Present once the GPU has drawn it, without waiting here.
-			[cmdBuffer presentDrawable:drawable];
-			[cmdBuffer commit];
-			return;
-		}
 		[cmdBuffer commit];
 		[cmdBuffer waitUntilScheduled];
 		[drawable present];
-	}
-}
-
-static BOOL layerPresentsWithTransaction(CFTypeRef layerRef) {
-	@autoreleasepool {
-		CAMetalLayer *layer = (__bridge CAMetalLayer *)layerRef;
-		return layer.presentsWithTransaction;
-	}
-}
-
-static void setLayerPresentsWithTransaction(CFTypeRef layerRef, BOOL on) {
-	@autoreleasepool {
-		CAMetalLayer *layer = (__bridge CAMetalLayer *)layerRef;
-		layer.presentsWithTransaction = on;
 	}
 }
 
@@ -102,13 +82,6 @@ type mtlContext struct {
 	queue    C.CFTypeRef
 	drawable C.CFTypeRef
 	texture  C.CFTypeRef
-	// transaction is whether the layer was made to present with the Core
-	// Animation transaction; onDemand limits that to frames that resize.
-	transaction, onDemand bool
-	// resized is set by a size change until the next frame presents.
-	resized bool
-	// synced is whether the current frame presents with the transaction.
-	synced bool
 }
 
 func newMtlContext(w *window) (*mtlContext, error) {
@@ -135,28 +108,13 @@ func newMtlContext(w *window) (*mtlContext, error) {
 		layer: layer,
 		queue: queue,
 	}
-	c.transaction = bool(C.layerPresentsWithTransaction(layer))
-	c.onDemand = c.transaction && metalPresentOnDemand
-	c.synced, c.resized = c.transaction, true
 	return c, nil
 }
 
 func (c *mtlContext) RenderTarget() (gpu.RenderTarget, error) {
-	if c.resumeIdle() {
-		c.resized = true
-	}
+	c.resumeIdle()
 	if c.drawable != 0 || c.texture != 0 {
 		return nil, errors.New("metal:a previous RenderTarget wasn't Presented")
-	}
-	if c.onDemand {
-		// A frame that resizes the layer shows with the window's other
-		// changes, as during a live resize. Others present as soon as the
-		// GPU has them, so the display returns drawables without waiting
-		// for a transaction, and two of them suffice.
-		if sync := c.resized; sync != c.synced {
-			C.setLayerPresentsWithTransaction(c.layer, C.BOOL(sync))
-			c.synced = sync
-		}
 	}
 	c.drawable = C.nextDrawable(c.layer)
 	if c.drawable == 0 {
@@ -196,14 +154,7 @@ func (c *mtlContext) Release() {
 func (c *mtlContext) Present() error {
 	C.CFRelease(c.texture)
 	c.texture = 0
-	// Only on-demand layers present without the transaction's sequence;
-	// others keep the original wait-then-present.
-	transaction := 1
-	if c.onDemand && !c.synced {
-		transaction = 0
-	}
-	C.presentDrawable(c.queue, c.drawable, C.int(transaction))
-	c.resized = false
+	C.presentDrawable(c.queue, c.drawable)
 	C.CFRelease(c.drawable)
 	c.drawable = 0
 	return nil
@@ -216,9 +167,7 @@ func (c *mtlContext) Lock() error {
 func (c *mtlContext) Unlock() {}
 
 func (c *mtlContext) Refresh() error {
-	if resizeDrawable(c.view, c.layer) {
-		c.resized = true
-	}
+	resizeDrawable(c.view, c.layer)
 	return nil
 }
 

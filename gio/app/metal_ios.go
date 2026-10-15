@@ -45,11 +45,6 @@ func getMetalLayer(view C.CFTypeRef) C.CFTypeRef {
 	return C.getMetalLayer(view)
 }
 
-// resizeDrawable reports a change of size. iOS always presents with the
-// Core Animation transaction, so every frame counts as one.
-func resizeDrawable(view, layer C.CFTypeRef) bool {
+func resizeDrawable(view, layer C.CFTypeRef) {
 	C.resizeDrawable(view, layer)
-	return true
 }
-
-const metalPresentOnDemand = false
