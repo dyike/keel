@@ -342,7 +342,9 @@ func (e *textView) paintText(gtx layout.Context, material op.CallOp, col *color.
 	it := textIterator{
 		viewport: viewport,
 		material: material,
-		color:    col,
+	}
+	if col != nil {
+		it.color, it.colorSet = *col, true
 	}
 
 	startGlyph := 0

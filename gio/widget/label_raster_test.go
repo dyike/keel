@@ -59,6 +59,17 @@ func TestLabelRasterHookAndGlyphFile(t *testing.T) {
 	if calls != 0 {
 		t.Fatal("a label without a solid color used the hook")
 	}
+	// Presence is distinct from transparent black. The explicit value method
+	// overrides Color, whereas legacy pointers are read again on every layout.
+	Label{Color: &col}.LayoutWithColor(gtx, sh, face.Font, 13, "Hello", op.CallOp{}, color.NRGBA{})
+	if calls == 0 || got != (color.NRGBA{}) {
+		t.Fatal("transparent value color lost")
+	}
+	col = color.NRGBA{G: 40, A: 200}
+	Label{Color: &col}.Layout(gtx, sh, face.Font, 13, "Hello", op.CallOp{})
+	if got != col {
+		t.Fatal("legacy pointer precedence changed")
+	}
 	// A shaper without a hook reports no file for built-in faces.
 	plain := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Regular()))
 	plain.LayoutString(text.Parameters{Font: face.Font, PxPerEm: 13 << 6, MaxWidth: 1000}, "H")

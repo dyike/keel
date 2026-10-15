@@ -334,7 +334,7 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	// on empty space can take focus away from inputs and selected text.
 	area := clip.Rect{Max: max}.Push(gtx.Ops)
 	event.Op(gtx.Ops, &r.bg)
-	e.anchors = map[string]image.Rectangle{}
+	e.beginAnchors()
 	e.blockInput, e.blockFocus = false, false
 	for _, d := range cx.layers {
 		e.blockInput = e.blockInput || (d.eligible && d.layer.modal)

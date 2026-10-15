@@ -98,6 +98,100 @@ There are two layers of related tests in the repository, both run with `go test 
 
 ## Screenshot comparison
 
+### Paint-allocation follow-up (2026-10-15)
+
+The local follow-up keeps the pointer-color API and element lifetimes. Material
+labels use an additive value-color layout method; selectable labels own their
+color. Anchors are cleared at paint start (after Render can read LastSize), with
+maps above 4,096 entries discarded on the following paint. Stroke admission
+keeps only hashes until a key occurs in consecutive frames. Cache entries never
+borrow mutable Ops or stroke scratch. No drawable, resolution, GC or idle-reclaim
+default changes are included. Local mygo's bounded scratch and explicit reset
+ownership are the reference, not its public handle API.
+
+Isolated 99-scene benchmarks, three samples of 50 warmed frames per scene:
+1,402,961 → 1,086,720 B/frame and 11,144 → 9,876 allocations/frame summed over
+the scenarios; none regressed. These measure layout/op generation, not GPU
+execution. Warm ordinary material labels change from 128 B/1 allocation to
+zero; selectable labels change from 133 B/2 to 5 B/1. Reusing 512 anchors changes
+111,288 B/17 allocations to zero. The 792 fixed-time GPU screenshots are identical.
+
+The native controls comparison uses five fresh interleaved processes per build:
+main `3b88f26`, font+stroke (`af8d7dd` + `b45e325`, now main `6ab9dae`) and the
+local follow-up. At 800×600 native 1×, scroll and resize last 10s each, followed
+by 12s without input; controls animations continue in that last phase.
+
+| Controls, five-run median | Main before | Font+stroke | Local follow-up |
+| --- | ---: | ---: | ---: |
+| Startup TotalAlloc / MiB | 245.54 | 131.75 | 123.01 |
+| Scroll allocation / MiB/s | 22.88 | 14.40 | 10.51 |
+| Scroll GC cycles | 9 | 6 | 4 |
+| Resize allocation / MiB/s | 86.80 | 39.53 | 28.41 |
+| Resize GC cycles | 32 | 14 | 10 |
+| No-input footprint, final 3s / MiB | 162.38 | 162.33 | 162.47 |
+| Kernel lifetime peak / MiB | 187.39 | 175.72 | 188.36 |
+
+Peak ranges are 180.60–193.42, 170.08–187.38 and 175.70–209.03 MiB.
+The follow-up reduces garbage but does not reduce physical peak: its median
+is higher than font+stroke alone. All five follow-up processes first reach
+their lifetime peak during initial scrolling, not resizing. In contrast, all
+five old-main processes reach it during startup. Phase timing depends on the
+client and natural GC; a previous run's resize peak is not a universal cause.
+
+Existing category snapshots show approximately 51 MiB unmapped graphics,
+8.3 MiB IOAccelerator graphics and 5.7 MiB IOSurface in all three controls
+builds. Startup Untagged medians are about 70 → 87 → 98 MiB, while no-input
+values return to about 73–74 MiB. Untagged is not synonymous with Go heap.
+However, the follow-up's run 1 trace shows the heap reaching 101 MB before
+natural GC at 3.501s (107 MB goal), then 29 MB live. This is evidence against
+attributing the peak variation solely to GPU resources or calling it a leak.
+Category tools round values and snapshots need not coincide with a brief peak.
+
+Physical footprint is sampled every 100ms (50ms startup), separately from the
+kernel lifetime peak. Every formal phase has zero forced GC. Only the fixture
+disables Keel's active idle reclamation to match mygo; GOGC/GOMEMLIMIT are unset.
+Builds, tests, profiles and extra category sampling are excluded from formal
+runs. A warmed font index is used. The latest merged font/stroke changes are
+not attributed to an existing release; this follow-up remains local.
+
+The matching 600-card client uses three interleaved runs per build, including
+local mygo `7e868828`; all forced-GC counts remain zero:
+
+| Cards, three-run median | Font+stroke | Local follow-up | Local mygo |
+| --- | ---: | ---: | ---: |
+| Startup TotalAlloc / MiB | 26.65 | 26.58 | 19.20 |
+| Startup footprint / MiB | 47.13 | 47.66 | 54.52 |
+| Scroll footprint / MiB | 105.17 | 103.31 | 124.91 |
+| Resize footprint / MiB | 107.47 | 107.63 | 126.25 |
+| Idle footprint, final 3s / MiB | 50.10 | 50.19 | 63.88 |
+| Kernel lifetime peak / MiB | 115.97 | 115.83 | 131.33 |
+| Scroll allocation / MiB/s | 4.91 | 4.88 | 45.21 |
+| Resize allocation / MiB/s | 2.29 | 2.42 | 15.42 |
+| Scroll / resize GC cycles | 7 / 3 | 7 / 3 | 38 / 12 |
+
+All card processes peak during resizing. Card peak ranges overlap:
+114.42–116.08 versus 115.56–116.74 MiB for the two Keel builds. The card
+client barely exercises these controls hotspots; its resize allocation rate
+does not improve. Resize frame-event counts vary despite the same 20 size
+requests per second. These are not end-to-end FPS measurements. Mygo's local
+macOS accessibility work materially affects its allocation rate; do not
+generalize this single client into a framework-wide ranking.
+
+Separate 64 KiB-sampled allocs profiles show no LabelStyle self-allocation or
+stroke-cache put hotspot after the change. Text shaping plus toGioGlyphs account
+for about 36% of the controls resize sample; frameHandles account for about
+57% of card scrolling. Controls scroll writeVertCache accounts for 15.18 MiB
+but only four sampled growth allocations, not a per-frame leak. Profile
+accounting can lag natural GC by about two cycles; use MemStats differences
+for phase totals and treat these shares as approximate.
+
+A separate single-pair frame-statistics check (not the formal memory series)
+records first-frame layout+submission 124.67 → 141.49ms. After excluding the
+first 20 frames, P95 is 8.56 → 7.57ms. A first-frame stall remains and this
+pair does not establish presentation FPS or a repeatable first-frame change.
+Two-frame admission may recompute newly stable geometry twice; hash collisions
+can prevent admission. These are cache-hit/CPU tradeoffs, not safety shortcuts.
+
 ### Font startup allocation checks (2026-10-15)
 
 Run the font initialization and index microbenchmarks independently:
@@ -124,8 +218,10 @@ All 792 fixed-time component screenshots matched main byte-for-byte.
 The unlocked native follow-up used 600 matching nonvirtualized cards at
 800×600 pixels, native 1×, three interleaved fresh processes per version.
 The baseline is main `3b88f26`; the local changed build combines font patch
-`af8d7dd` with stroke patch `b45e325` through a Go overlay. Neither patch is
-published. The font index already existed. Local mygo is `7e868828`.
+`af8d7dd` with stroke patch `b45e325` through a Go overlay. Those measurements
+preceded publication; the patches are now merged as PRs #35 and #36, not
+attributed to a released version. The font index already existed. Local mygo
+is `7e868828`.
 
 | Native metric, three-run median | Keel before | Local changed build | Local mygo |
 | --- | ---: | ---: | ---: |
@@ -350,7 +446,9 @@ The microbenchmark is CPU vertex construction, not a whole frame or FPS.
 An unlocked native follow-up compared the actual controls category at 800×600
 pixels, native 1×, three interleaved fresh processes per version. Main
 `3b88f26` is the baseline; the changed binary combines local `af8d7dd` font
-and `b45e325` stroke patches through an overlay. Neither patch is published.
+and `b45e325` stroke patches through an overlay. Those measurements preceded
+publication; both patches are now merged as PRs #35 and #36, not attributed
+to a released version.
 
 | Native controls phase | Before MiB/s | After MiB/s | GC before → after |
 | --- | ---: | ---: | ---: |

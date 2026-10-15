@@ -140,7 +140,7 @@ func (l LabelStyle) Layout(gtx layout.Context) layout.Dimensions {
 		l.State.WrapPolicy = l.WrapPolicy
 		l.State.LineHeight = l.LineHeight
 		l.State.LineHeightScale = l.LineHeightScale
-		l.State.Color = &l.Color
+		l.State.SetColor(l.Color)
 		return l.State.Layout(gtx, l.Shaper, l.Font, l.TextSize, textColor, selectColor)
 	}
 	tl := widget.Label{
@@ -150,7 +150,6 @@ func (l LabelStyle) Layout(gtx layout.Context) layout.Dimensions {
 		WrapPolicy:      l.WrapPolicy,
 		LineHeight:      l.LineHeight,
 		LineHeightScale: l.LineHeightScale,
-		Color:           &l.Color,
 	}
-	return tl.Layout(gtx, l.Shaper, l.Font, l.TextSize, l.Text, textColor)
+	return tl.LayoutWithColor(gtx, l.Shaper, l.Font, l.TextSize, l.Text, textColor, l.Color)
 }

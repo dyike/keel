@@ -1683,7 +1683,9 @@ func (d *drawOps) buildVerts(pathData []byte, tr f32.Affine2D, outline bool, str
 		quads, ok := d.strokeCache.get(pathData, strWidth)
 		if !ok {
 			quads = d.strokeScratch.Commands(ss, pathData)
-			d.strokeCache.put(pathData, strWidth, quads)
+			if d.strokeCache.admit(pathData, strWidth) {
+				d.strokeCache.put(pathData, strWidth, quads)
+			}
 		}
 		for _, quad := range quads {
 			d.qs.contour = quad.Contour

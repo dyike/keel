@@ -58,6 +58,22 @@ type TextInfo struct {
 
 // Layout the label with the given shaper, font, size, text, and material, returning metadata about the shaped text.
 func (l Label) LayoutDetailed(gtx layout.Context, lt *text.Shaper, font font.Font, size unit.Sp, txt string, textMaterial op.CallOp) (layout.Dimensions, TextInfo) {
+	var col color.NRGBA
+	if l.Color != nil {
+		col = *l.Color
+	}
+	return l.layoutDetailed(gtx, lt, font, size, txt, textMaterial, col, l.Color != nil)
+}
+
+// LayoutWithColor lays out a solid-colored label without retaining a color
+// pointer. col overrides Color, including transparent black. The existing
+// Layout and LayoutDetailed methods retain their pointer-based behavior.
+func (l Label) LayoutWithColor(gtx layout.Context, lt *text.Shaper, font font.Font, size unit.Sp, txt string, textMaterial op.CallOp, col color.NRGBA) layout.Dimensions {
+	dims, _ := l.layoutDetailed(gtx, lt, font, size, txt, textMaterial, col, true)
+	return dims
+}
+
+func (l Label) layoutDetailed(gtx layout.Context, lt *text.Shaper, font font.Font, size unit.Sp, txt string, textMaterial op.CallOp, col color.NRGBA, colorSet bool) (layout.Dimensions, TextInfo) {
 	cs := gtx.Constraints
 	textSize := fixed.I(gtx.Sp(size))
 	lineHeight := fixed.I(gtx.Sp(l.LineHeight))
@@ -80,7 +96,8 @@ func (l Label) LayoutDetailed(gtx layout.Context, lt *text.Shaper, font font.Fon
 		viewport: viewport,
 		maxLines: l.MaxLines,
 		material: textMaterial,
-		color:    l.Color,
+		color:    col,
+		colorSet: colorSet,
 	}
 	semantic.LabelOp(txt).Add(gtx.Ops)
 	line, token := lt.BorrowGlyphBuffer()
@@ -115,7 +132,8 @@ type textIterator struct {
 	// text contains color glyphs.
 	material op.CallOp
 	// color is the material's solid color, when known. Keel patch.
-	color *color.NRGBA
+	color    color.NRGBA
+	colorSet bool
 	// truncated tracks the count of truncated runes in the text.
 	truncated int
 	// linesSeen tracks the quantity of line endings this iterator has seen.
@@ -218,11 +236,11 @@ func (it *textIterator) paintGlyph(gtx layout.Context, shaper *text.Shaper, glyp
 		line = append(line, glyph)
 	}
 	if glyph.Flags&text.FlagLineBreak != 0 || cap(line)-len(line) == 0 || !visibleOrBefore {
-		if hook := shaper.Raster(); it.color != nil && hook != nil && len(line) > 0 {
+		if hook := shaper.Raster(); it.colorSet && hook != nil && len(line) > 0 {
 			// Keep raster glyphs on the pixel grid; the hook places the fraction.
 			x, y := math.Floor(float64(it.lineOff.X)), math.Round(float64(it.lineOff.Y))
 			t := op.Offset(image.Pt(int(x), int(y))).Push(gtx.Ops)
-			drawn := hook(gtx.Ops, line, *it.color, it.lineOff.X-float32(x))
+			drawn := hook(gtx.Ops, line, it.color, it.lineOff.X-float32(x))
 			t.Pop()
 			if drawn {
 				return line[:0], visibleOrBefore
