@@ -30,6 +30,17 @@ func TestLazyVariableFontContoursMatchEager(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	headers, counts, err := tables.ParseGlyfHeaders(raw, ft.glyfOutlines.offsets)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, glyph := range eager {
+		count := pointNumbersCount(glyph)
+		glyph.Data = nil
+		if headers[i] != glyph || counts[i] != count {
+			t.Fatalf("variable glyph %d header/point count changed", i)
+		}
+	}
 	old := *ft
 	old.glyf, old.glyfOutlines = eager, nil
 	for _, weight := range []float32{300, 400, 600, 900} {

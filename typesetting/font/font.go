@@ -259,13 +259,8 @@ func NewFont(ld *ot.Loader) (*Font, error) {
 	loca, err := tables.ParseLoca(locaRaw, out.nGlyphs, out.head.IndexToLocFormat == 1)
 	var glyphPointCounts []int
 	if err == nil { // ParseGlyf panics if len(loca) == 0
-		out.glyf, _ = tables.ParseGlyf(raw, loca)
+		out.glyf, glyphPointCounts, _ = tables.ParseGlyfHeaders(raw, loca)
 		if out.glyf != nil {
-			glyphPointCounts = make([]int, len(out.glyf))
-			for i := range out.glyf {
-				glyphPointCounts[i] = pointNumbersCount(out.glyf[i])
-				out.glyf[i].Data = nil
-			}
 			out.glyfOutlines = &glyphOutlineCache{raw: raw, offsets: loca}
 		}
 	}
