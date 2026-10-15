@@ -158,12 +158,27 @@ func (qs StrokeQuads) stroke(stroke StrokeStyle) StrokeQuads {
 // the half-width hw.
 // The stroke handles how segments are joined and ends are capped.
 func (qs StrokeQuads) offset(hw float32, stroke StrokeStyle) (rhs, lhs StrokeQuads) {
+	return qs.offsetReuse(hw, stroke, nil)
+}
+
+func (qs StrokeQuads) offsetReuse(hw float32, stroke StrokeStyle, scratch *Scratch) (rhs, lhs StrokeQuads) {
 	var (
 		states []strokeState
 		beg    = qs[0].Quad.From
 		end    = qs[len(qs)-1].Quad.To
 		closed = beg == end
 	)
+	if scratch != nil {
+		states = scratch.states[:0]
+		rhs, lhs = scratch.rhs[:0], scratch.lhs[:0]
+		defer func() {
+			scratch.states, scratch.rhs = states, rhs
+			// Open paths return a nil lhs, but its backing array is reusable.
+			if lhs != nil {
+				scratch.lhs = lhs
+			}
+		}()
+	}
 	for i := range qs {
 		q := qs[i].Quad
 
@@ -185,8 +200,15 @@ func (qs StrokeQuads) offset(hw float32, stroke StrokeStyle) (rhs, lhs StrokeQua
 	}
 
 	for i, state := range states {
-		rhs = rhs.append(strokeQuadBezier(state, +hw, strokeTolerance))
-		lhs = lhs.append(strokeQuadBezier(state, -hw, strokeTolerance))
+		if scratch == nil {
+			rhs = rhs.append(strokeQuadBezier(state, +hw, strokeTolerance))
+			lhs = lhs.append(strokeQuadBezier(state, -hw, strokeTolerance))
+		} else {
+			scratch.curve = flattenQuadBezier(scratch.curve[:0], state.p0, state.ctl, state.p1, +hw, strokeTolerance)
+			rhs = appendStrokeCopy(rhs, scratch.curve)
+			scratch.curve = flattenQuadBezier(scratch.curve[:0], state.p0, state.ctl, state.p1, -hw, strokeTolerance)
+			lhs = appendStrokeCopy(lhs, scratch.curve)
+		}
 
 		// join the current and next segments
 		if hasNext := i+1 < len(states); hasNext || closed {
@@ -213,7 +235,12 @@ func (qs StrokeQuads) offset(hw float32, stroke StrokeStyle) (rhs, lhs StrokeQua
 	qend := &states[len(states)-1]
 
 	// Default to counter-clockwise direction.
-	lhs = lhs.reverse()
+	if scratch == nil {
+		lhs = lhs.reverse()
+	} else {
+		reverseStroke(lhs)
+		scratch.lhs = lhs
+	}
 	strokePathCap(stroke, &rhs, hw, qend.p1, qend.n1)
 
 	rhs = rhs.append(lhs)
@@ -636,6 +663,11 @@ func StrokePathCommands(style StrokeStyle, scene []byte) StrokeQuads {
 func decodeToStrokeQuads(pathData []byte) StrokeQuads {
 	quads := make(StrokeQuads, 0, 2*len(pathData)/(scene.CommandSize+4))
 	scratch := make([]QuadSegment, 0, 10)
+	quads, _ = decodeStrokeQuads(pathData, quads, scratch)
+	return quads
+}
+
+func decodeStrokeQuads(pathData []byte, quads StrokeQuads, scratch []QuadSegment) (StrokeQuads, []QuadSegment) {
 	for len(pathData) >= scene.CommandSize+4 {
 		contour := binary.LittleEndian.Uint32(pathData)
 		cmd := ops.DecodeCommand(pathData[4:])
@@ -674,7 +706,7 @@ func decodeToStrokeQuads(pathData []byte) StrokeQuads {
 		}
 		pathData = pathData[scene.CommandSize+4:]
 	}
-	return quads
+	return quads, scratch
 }
 
 func SplitCubic(from, ctrl0, ctrl1, to f32.Point, quads []QuadSegment) []QuadSegment {

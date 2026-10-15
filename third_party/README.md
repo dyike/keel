@@ -55,6 +55,16 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
   at record EOF. The version-7 format, font identities and fallback validation
   remain unchanged. Tests cover cache invalidation, format compatibility,
   storage reuse and truncated records. No GC policy changes.
+- `gio/gpu`, `gio/internal/stroke`: cache stroke outlines in path coordinates,
+  before the existing affine transform and vertex splitting. Rotation no longer
+  rebuilds the same outline; width/content changes remain distinct. Exact input
+  comparison prevents hash-collision reuse. Owned entries expire after an unused
+  frame and are bounded to 128 entries/1 MiB; oversized paths bypass caching.
+  Renderer trim/release drops the cache. Reusable, independently owned stroking
+  scratch also reduces changing-path misses and discards oversized arrays.
+  Tests compare the old algorithm's curves and affine vertices byte-for-byte,
+  check ownership/eviction/allocation bounds, and compare warmed/fresh GPU pixels
+  under rotation, nested rounded clipping and opacity. No shader or GC changes.
 
 - `gio/widget.Icon`: retain an LRU of up to eight immutable size/color images,
   with a 1 MiB pixel budget per icon. A larger image retains only itself, as

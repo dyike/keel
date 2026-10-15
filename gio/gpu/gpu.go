@@ -77,20 +77,22 @@ type renderer struct {
 }
 
 type drawOps struct {
-	reader       ops.Reader
-	states       []f32.Affine2D
-	transStack   []f32.Affine2D
-	layers       []opacityLayer
-	opacityStack []int
-	vertCache    []byte
-	viewport     image.Point
-	clear        bool
-	clearColor   f32color.RGBA
-	imageOps     []imageOp
-	pathOps      []*pathOp
-	pathOpCache  []pathOp
-	qs           quadSplitter
-	pathCache    *opCache
+	reader        ops.Reader
+	states        []f32.Affine2D
+	transStack    []f32.Affine2D
+	layers        []opacityLayer
+	opacityStack  []int
+	vertCache     []byte
+	viewport      image.Point
+	clear         bool
+	clearColor    f32color.RGBA
+	imageOps      []imageOp
+	pathOps       []*pathOp
+	pathOpCache   []pathOp
+	qs            quadSplitter
+	pathCache     *opCache
+	strokeCache   strokeCache
+	strokeScratch stroke.Scratch
 }
 
 type opacityLayer struct {
@@ -400,6 +402,8 @@ func (g *gpu) Clear(col color.NRGBA) {
 func (g *gpu) Release() {
 	g.renderer.release()
 	g.drawOps.pathCache.release()
+	g.drawOps.strokeCache = strokeCache{}
+	g.drawOps.strokeScratch = stroke.Scratch{}
 	g.cache.release()
 	if g.timers != nil {
 		g.timers.Release()
@@ -491,6 +495,7 @@ func (g *gpu) frame(target RenderTarget) error {
 	g.cleanupTimer.begin()
 	g.cache.frame()
 	g.drawOps.pathCache.frame()
+	g.drawOps.strokeCache.frame()
 	g.cleanupTimer.end()
 	if false && g.timers.ready() {
 		st, covt, cleant := g.stencilTimer.Elapsed, g.coverTimer.Elapsed, g.cleanupTimer.Elapsed
@@ -1673,13 +1678,20 @@ func (d *drawOps) buildVerts(pathData []byte, tr f32.Affine2D, outline bool, str
 		ss := stroke.StrokeStyle{
 			Width: strWidth,
 		}
-		quads := stroke.StrokePathCommands(ss, pathData)
+		// Stroke in path coordinates once; the existing transform and splitter
+		// still run per raster transform, including nonuniform scale and shear.
+		quads, ok := d.strokeCache.get(pathData, strWidth)
+		if !ok {
+			quads = d.strokeScratch.Commands(ss, pathData)
+			d.strokeCache.put(pathData, strWidth, quads)
+		}
 		for _, quad := range quads {
 			d.qs.contour = quad.Contour
 			quad.Quad = quad.Quad.Transform(tr)
 
 			d.qs.splitAndEncode(quad.Quad)
 		}
+		d.strokeScratch.Trim()
 
 	case outline:
 		decodeToOutlineQuads(&d.qs, tr, pathData)
