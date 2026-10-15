@@ -48,6 +48,7 @@ func TestStrokeCachePreservesAffineVertices(t *testing.T) {
 	}
 	for _, width := range []float32{.5, 3, 7} {
 		for _, tr := range transforms {
+			cached.strokeCache.frame()
 			cached.vertCache, original.vertCache = cached.vertCache[:0], original.vertCache[:0]
 			a, ab := cached.buildVerts(path, tr, false, width)
 			b, bb := originalStrokeVerts(&original, path, tr, width)
@@ -56,8 +57,13 @@ func TestStrokeCachePreservesAffineVertices(t *testing.T) {
 			}
 		}
 	}
-	if len(cached.strokeCache.index) != 3 {
-		t.Fatalf("transforms created %d stroke entries, want 3 widths", len(cached.strokeCache.index))
+	if len(cached.strokeCache.index) != 1 {
+		t.Fatalf("transforms created %d stroke entries, want only the current width", len(cached.strokeCache.index))
+	}
+	for range 2 {
+		cached.strokeCache.frame()
+		cached.vertCache = cached.vertCache[:0]
+		cached.buildVerts(path, f32.AffineId(), false, 3)
 	}
 	i := 0
 	if n := testing.AllocsPerRun(120, func() {
@@ -135,6 +141,7 @@ func BenchmarkRotatingStrokeVertices(b *testing.B) {
 		b.Run(name, func(b *testing.B) {
 			var d drawOps
 			for i := range 120 {
+				d.strokeCache.frame()
 				d.vertCache = d.vertCache[:0]
 				d.buildVerts(path, f32.AffineId().Rotate(f32.Point{}, float32(i)*.01), false, 3)
 			}
@@ -154,6 +161,45 @@ func BenchmarkRotatingStrokeVertices(b *testing.B) {
 	}
 }
 
+func TestStrokeCacheAdmission(t *testing.T) {
+	var d drawOps
+	path := testStrokePath()
+	tr := f32.AffineId()
+	d.buildVerts(path, tr, false, 3)
+	if len(d.strokeCache.index) != 0 {
+		t.Fatal("one-frame path was copied into the cache")
+	}
+	d.strokeCache.frame()
+	d.vertCache = d.vertCache[:0]
+	d.buildVerts(path, tr, false, 3)
+	if len(d.strokeCache.index) != 1 {
+		t.Fatal("stable path was not admitted on its second frame")
+	}
+	// Warm all scratch sizes, then vary actual path bytes every frame. No
+	// candidate retains those mutable bytes, and one-off paths are not copied.
+	var changing drawOps
+	i := uint32(0)
+	if n := testing.AllocsPerRun(1000, func() {
+		binary.LittleEndian.PutUint32(path[4+5*4:], math.Float32bits(90+float32(i)*.001))
+		changing.vertCache = changing.vertCache[:0]
+		changing.buildVerts(path, tr, false, 3)
+		changing.strokeCache.frame()
+		i++
+	}); n != 0 {
+		t.Fatalf("changing paths allocated %g times", n)
+	}
+	if len(changing.strokeCache.index) != 0 {
+		t.Fatal("one-off changing paths were cached")
+	}
+	var cache strokeCache
+	cache.admit(path, 3)
+	cache.frame()
+	cache.frame()
+	if cache.admit(path, 3) {
+		t.Fatal("nonconsecutive path was admitted")
+	}
+}
+
 func BenchmarkChangingStrokeVertices(b *testing.B) {
 	path := testStrokePath()
 	for _, cached := range []bool{false, true} {
@@ -163,9 +209,7 @@ func BenchmarkChangingStrokeVertices(b *testing.B) {
 		}
 		b.Run(name, func(b *testing.B) {
 			var d drawOps
-			b.ReportAllocs()
-			i := uint32(0)
-			for b.Loop() {
+			draw := func(i uint32) {
 				// The final cubic control coordinate changes every frame. This
 				// measures cache misses rather than rotation-only reuse.
 				binary.LittleEndian.PutUint32(path[4+5*4:], math.Float32bits(90+float32(i%10000)*.001))
@@ -176,6 +220,16 @@ func BenchmarkChangingStrokeVertices(b *testing.B) {
 				} else {
 					originalStrokeVerts(&d, path, f32.AffineId(), 3)
 				}
+			}
+			// Warm every geometry size in the cycle; report steady misses,
+			// not the first growth of the independent scratch buffers.
+			for i := range 10000 {
+				draw(uint32(i))
+			}
+			b.ReportAllocs()
+			i := uint32(0)
+			for b.Loop() {
+				draw(i)
 				i++
 			}
 		})

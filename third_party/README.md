@@ -44,6 +44,19 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/widget`, `gio/widget/material`: carry the solid label color by value
+  plus presence internally, with an additive `Label.LayoutWithColor` method.
+  Existing structs and pointer-color methods remain available. Selectable
+  material labels keep their color in the selection state, not a temporary
+  LabelStyle. Tests cover transparent colors, legacy pointers, selection and
+  cross-layout ownership; ordinary warmed material labels allocate nothing.
+- `gio/gpu`: admit path-space stroke geometry only after observing its key in
+  consecutive frames. A fixed-size hash-only candidate table avoids copying
+  one-frame resize paths; collisions may prevent admission but cannot return
+  wrong geometry. Admitted entries still own their path and quads and retain
+  the existing exact-byte check, expiry and 1 MiB/128-entry limits. Tests cover
+  stable admission, changing-path allocations, skipped frames and affine pixels.
+
 - `gio/gpu`, `gio/internal/stroke`: cache stroke outlines in path coordinates,
   before the existing affine transform and vertex splitting. Rotation no longer
   rebuilds the same outline; width/content changes remain distinct. Exact input

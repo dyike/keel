@@ -36,6 +36,26 @@ type strokeCache struct {
 	entries []strokeEntry
 	bytes   int
 	clock   uint64
+	frameID uint64
+	// Admission retains hashes only, never frame-owned path or scratch data.
+	// Collisions can delay admission, but get still compares complete paths.
+	candidates [maxStrokeEntries]strokeCandidate
+}
+
+type strokeCandidate struct {
+	key   strokeKey
+	frame uint64
+	valid bool
+}
+
+func (s *strokeCache) admit(path []byte, width float32) bool {
+	k := strokeKey{maphash.Bytes(pathSeed, path), width}
+	c := &s.candidates[k.content%uint64(len(s.candidates))]
+	if c.valid && c.key == k && c.frame+1 == s.frameID {
+		return true
+	}
+	*c = strokeCandidate{key: k, frame: s.frameID, valid: true}
+	return false
 }
 
 func (s *strokeCache) get(path []byte, width float32) (stroke.StrokeQuads, bool) {
@@ -109,6 +129,7 @@ func (s *strokeCache) remove(i int) {
 }
 
 func (s *strokeCache) frame() {
+	s.frameID++
 	for i := range s.entries {
 		e := &s.entries[i]
 		if e.path == nil {

@@ -57,7 +57,8 @@ type Selectable struct {
 	Alignment text.Alignment
 	// Color, when set, is the solid color the text material paints. It lets
 	// the shaper's text.RasterHook draw the glyphs. Keel patch.
-	Color *color.NRGBA
+	Color      *color.NRGBA
+	colorValue color.NRGBA
 	// MaxLines is the maximum number of lines of text to be displayed.
 	MaxLines int
 	// Truncator is the symbol to use at the end of the final line of text
@@ -86,6 +87,15 @@ type Selectable struct {
 	dragger   gesture.Drag
 
 	clicker gesture.Click
+}
+
+// SetColor sets a solid text material color without retaining a caller's
+// pointer. Color remains available for callers using the pointer-based API.
+// The pointer exposed through Color belongs to l and later SetColor calls
+// update its value. A caller can still replace Color with external storage.
+func (l *Selectable) SetColor(col color.NRGBA) {
+	l.colorValue = col
+	l.Color = &l.colorValue
 }
 
 // initialize must be called at the beginning of any exported method that
