@@ -121,10 +121,37 @@ variation point counts, outlines and metrics are compared with the eager
 parser; malformed-record fuzzing checks matching validation results.
 All 792 fixed-time component screenshots matched main byte-for-byte.
 
-These are isolated allocation results, not native footprint or peak evidence.
-The four-phase native comparison is pending an unlocked, visible desktop;
-the locked-window pilot did not scroll and is excluded. No library GC,
-drawable or idle-reclamation policy changed.
+The unlocked native follow-up used 600 matching nonvirtualized cards at
+800×600 pixels, native 1×, three interleaved fresh processes per version.
+The baseline is main `3b88f26`; the local changed build combines font patch
+`af8d7dd` with stroke patch `b45e325` through a Go overlay. Neither patch is
+published. The font index already existed. Local mygo is `7e868828`.
+
+| Native metric, three-run median | Keel before | Local changed build | Local mygo |
+| --- | ---: | ---: | ---: |
+| Startup TotalAlloc / MiB | 95.38 | 26.65 | 19.17 |
+| Startup GC cycles | 10 | 5 | 4 |
+| Startup HeapSys / MiB | 83.22 | 27.22 | 23.22 |
+| Whole-process kernel peak / MiB | 115.36 | 115.55 | 132.41 |
+
+Startup allocation falls 72.1%, but physical peak reduction is not established.
+Keel's three-run kernel-peak ranges overlap: 114.75–124.24 before,
+112.70–115.58 after. Startup kernel-peak medians are 106.86 → 106.00 MiB;
+later resizing raises the lifetime peak. HeapSys includes released pages and
+is not physical footprint. Card scrolling remains about 4.91 MiB/s, with
+GC 6 → 7; fewer startup allocations do not imply fewer cycles in every phase.
+
+Each process ran startup/loading, 10s scroll, 10s continuous resizing and 12s
+idle. Physical footprint was sampled at 100ms (50ms startup), separately from
+the kernel lifetime peak, with idle values taken over the final three seconds.
+Forced GC was zero throughout. Only the fixture disables Keel's idle active
+reclamation to match mygo; library defaults and GOGC/GOMEMLIMIT are unchanged.
+Locked-window pilots, profiles and screenshots are excluded from these medians.
+The native scroll/resize workflows completed without unresponsive timeouts.
+
+A separate single-pair frame-statistics diagnostic reports first-frame
+layout+submission 104.00 → 60.89ms: a first-frame stall remains. These are
+not presentation latency, three-run timing medians or end-to-end FPS.
 
 After changing the theme, spacing, and fonts, take screenshots before and after rendering to confirm that only the expected changes have occurred:
 
