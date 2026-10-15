@@ -210,7 +210,10 @@ func refreshSystemFontsIndex(logger Logger, cachePath string) (systemFontsIndex,
 		return nil, fmt.Errorf("searching font directories: %s", err)
 	}
 	logger.Printf("using system font dirs %q", fontDirectories)
+	return refreshFontIndex(logger, cachePath, fontDirectories...)
+}
 
+func refreshFontIndex(logger Logger, cachePath string, fontDirectories ...string) (systemFontsIndex, error) {
 	currentIndex, _ := deserializeIndexFile(cachePath)
 	// if an error occured (the cache file does not exists or is invalid), we start from scratch
 
@@ -227,13 +230,31 @@ func refreshSystemFontsIndex(logger Logger, cachePath string) (systemFontsIndex,
 		return nil, fmt.Errorf("loading system fonts: %s", err)
 	}
 
-	// write back the index in the cache file
-	err = updatedIndex.serializeToFile(cachePath)
-	if err != nil {
-		return nil, fmt.Errorf("updating cache: %s", err)
+	// Unchanged files reuse their footprints in scanFontFootprints. Avoid
+	// serializing the entire index on every application startup.
+	if !sameFontFiles(currentIndex, updatedIndex) {
+		err = updatedIndex.serializeToFile(cachePath)
+		if err != nil {
+			return nil, fmt.Errorf("updating cache: %s", err)
+		}
 	}
 
 	return updatedIndex, nil
+}
+
+// Scanning has deterministic directory order, and reuses entries only when
+// both path and modification time match. Additions, removals and changes all
+// require a new cache; a failed cache read has an empty current index.
+func sameFontFiles(a, b systemFontsIndex) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].path != b[i].path || a[i].modTime != b[i].modTime {
+			return false
+		}
+	}
+	return true
 }
 
 // [AddFont] loads the faces contained in [fontFile] and add them to

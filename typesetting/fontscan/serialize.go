@@ -1,7 +1,6 @@
 package fontscan
 
 import (
-	"bytes"
 	"compress/gzip"
 	"encoding/binary"
 	"errors"
@@ -187,38 +186,30 @@ func (ff *fileFootprints) deserializeFrom(src []byte) error {
 
 const cacheFormatVersion = 7 // include named weight instances
 
-func max(i, j int) int {
-	if i > j {
-		return i
-	}
-	return j
-}
-
 // serialize into binary format, compressed with gzip
 func (index systemFontsIndex) serializeTo(w io.Writer) error {
-	// version as uint16 + len as uint32 + somewhat the minimum size for a footprint
-	buffer := make([]byte, 6, max(6, 4+len(index)*(aspectSize+1+2)))
-	binary.BigEndian.PutUint16(buffer[:], cacheFormatVersion)
-	binary.BigEndian.PutUint32(buffer[2:], uint32(len(index)))
-
-	for _, ff := range index {
-		// add buffer to store the length of the encoded fileFootprints,
-		// needed when decoding from a stream
-		n := len(buffer)
-		buffer = append(buffer, make([]byte, 4)...)
-
-		buffer = ff.serializeTo(buffer)
-
-		size := len(buffer) - n - 4
-		binary.BigEndian.PutUint32(buffer[n:], uint32(size))
-	}
 	wr := gzip.NewWriter(w)
-	_, err := wr.Write(buffer)
-	if err != nil {
-		return fmt.Errorf("serializing font footprints: %s", err)
+	defer wr.Close()
+	var header [6]byte
+	binary.BigEndian.PutUint16(header[:], cacheFormatVersion)
+	binary.BigEndian.PutUint32(header[2:], uint32(len(index)))
+	if _, err := wr.Write(header[:]); err != nil {
+		return err
 	}
-	err = wr.Close()
-	if err != nil {
+	// The format is already record-based. Stream each file rather than
+	// growing a second in-memory copy of the entire uncompressed index.
+	var buffer []byte
+	for _, ff := range index {
+		buffer = ff.serializeTo(buffer[:0])
+		binary.BigEndian.PutUint32(header[:4], uint32(len(buffer)))
+		if _, err := wr.Write(header[:4]); err != nil {
+			return err
+		}
+		if _, err := wr.Write(buffer); err != nil {
+			return fmt.Errorf("serializing font footprints: %s", err)
+		}
+	}
+	if err := wr.Close(); err != nil {
 		return fmt.Errorf("compressing serialized font footprints: %s", err)
 	}
 	return nil
@@ -235,7 +226,7 @@ func deserializeIndex(src io.Reader) (systemFontsIndex, error) {
 	var (
 		buf    [6]byte
 		out    systemFontsIndex
-		buffer bytes.Buffer
+		buffer []byte
 	)
 
 	// read the expected length
@@ -254,14 +245,13 @@ func deserializeIndex(src io.Reader) (systemFontsIndex, error) {
 		}
 		size := binary.BigEndian.Uint32(buf[:4])
 		// buffer the fileFootprints segment
-		buffer.Reset()
-		_, err := io.CopyN(&buffer, r, int64(size))
+		buffer, err = readIndexRecord(r, size, buffer)
 		if err != nil {
 			return nil, fmt.Errorf("invalid index: %s", err)
 		}
 
 		var fp fileFootprints
-		err = fp.deserializeFrom(buffer.Bytes())
+		err = fp.deserializeFrom(buffer)
 		if err != nil {
 			return nil, fmt.Errorf("invalid index: %s", err)
 		}
@@ -270,6 +260,28 @@ func deserializeIndex(src io.Reader) (systemFontsIndex, error) {
 	}
 
 	return out, nil
+}
+
+// Read into retained storage without bytes.Buffer.ReadFrom's extra growth to
+// discover EOF at each record boundary. Grow only as data arrives: an invalid
+// length prefix must not cause a multi-gigabyte allocation for truncated input.
+func readIndexRecord(r io.Reader, size uint32, buffer []byte) ([]byte, error) {
+	buffer = buffer[:0]
+	for uint64(len(buffer)) < uint64(size) {
+		n := int(min(uint64(size)-uint64(len(buffer)), 32<<10))
+		start := len(buffer)
+		// After reading a prefix, reserve ordinary records once instead of
+		// repeatedly growing and copying a multi-megabyte CJK record. Bound
+		// speculative allocation; very large/truncated lengths stay incremental.
+		if start != 0 && size <= 16<<20 {
+			n = int(size) - start
+		}
+		buffer = append(buffer, make([]byte, n)...)
+		if _, err := io.ReadFull(r, buffer[start:]); err != nil {
+			return nil, err
+		}
+	}
+	return buffer, nil
 }
 
 func deserializeIndexFile(cachePath string) (systemFontsIndex, error) {
