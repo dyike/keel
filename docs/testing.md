@@ -269,6 +269,33 @@ large-file benchmark still includes whole-document background highlighting.
 
 ### Paint-path allocation checks, 2026-10-15
 
+The path-space stroke cache has separate renderer microbenchmarks:
+
+```sh
+go test ./gio/gpu -run '^$' -bench 'Benchmark(Rotating|Changing)StrokeVertices' -benchmem -benchtime=500ms -count=3
+```
+
+Apple M4, darwin/arm64, Go 1.27.1, medians of three isolated samples:
+
+| Cubic stroke vertex build | Before time | After time | Before → after bytes | Before → after allocations |
+| --- | ---: | ---: | ---: | ---: |
+| Same path, rotating transform | 17.88 µs | 5.29 µs | 42,648 → 0 | 103 → 0 |
+| Changing path content | 18.53 µs | 16.44 µs | 42,939 → 8,232 | 103 → 2 |
+
+The first case warms storage; the second changes a control coordinate every
+frame and includes cache misses and ownership copies. Scratch buffers do not
+alias cached geometry or recorded Ops. The cache retains at most 128 outlines
+and 1 MiB of path/quad data, expires unused entries and bypasses oversized paths.
+It is released on renderer trim/release. Affine vertices and bounds match the
+original stroker exactly, including shear and reflection. Warm/fresh GPU pixels
+match under rotation, rounded ancestor clips and opacity; all 792 fixed-time
+component screenshots match main byte-for-byte.
+
+This is CPU vertex construction, not a whole frame, end-to-end FPS or native
+memory result. Native scrolling/resizing and four-phase footprint/GC comparison
+remain pending an unlocked desktop. Shaders, drawable count, GC and idle
+reclamation are unchanged.
+
 `BenchmarkCategoryFrame` uses the actual `-section` compositions at 1360×1720
 pixels (680×860dp, 2×), a real input router and animation time advancing at
 60 Hz. Run each category in a fresh process, without other benchmarks running:
