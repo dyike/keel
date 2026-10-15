@@ -44,6 +44,12 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `typesetting/fontscan` tests isolate the variable PingFang UI collection
+  when checking named instances and immutable-table sharing. Installed static
+  MobileAsset faces can legitimately win system fallback. CoreText tests cover
+  both the explicit variable fixture and actual installed weight resolution,
+  retaining exact PostScript-identity and nonblank-glyph assertions.
+
 - Share identical stencil masks within each frame without adding GPU textures. Preserve absolute transform inputs and parent intersection behavior; tested with native pixel comparisons. See [rendering memory](../docs/rendering-memory.md).
 
 - `gio/gpu/internal/metal`: unified-memory devices initialize immutable geometry and

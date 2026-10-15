@@ -58,14 +58,7 @@ func TestDarwinReservedUIFonts(t *testing.T) {
 }
 
 func TestDarwinPingFangNamedWeights(t *testing.T) {
-	const file = "/System/Library/PrivateFrameworks/FontServices.framework/Resources/Reserved/PingFangUI.ttc"
-	if _, err := os.Stat(file); err != nil {
-		t.Skip("variable PingFang unavailable")
-	}
-	fm := NewFontMap(nil)
-	if err := fm.UseSystemFonts(t.TempDir()); err != nil {
-		t.Fatal(err)
-	}
+	fm := pingFangUIFixture(t)
 	for _, w := range []font.Weight{font.WeightNormal, font.WeightMedium, font.WeightSemibold} {
 		fm.SetQuery(Query{Families: []string{"PingFang SC"}, Aspect: font.Aspect{Weight: w}})
 		face := fm.ResolveFace('中')
