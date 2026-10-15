@@ -44,6 +44,7 @@ Start with Getting started to open your first window. Use Guides to build your a
 - [Design decisions](decisions.md): framework trade-offs and historical approaches.
 - [One module](single-module.md): Gio and go-text as packages of the Keel module, import prefixes, and migration.
 - [Changes from upstream](upstream-patches.md): Gio, go-text and packager changes, source locations, regression tests, and compatibility limits.
+- [Rendering memory and reuse](rendering-memory.md): renderer allocation changes, native measurements, regression coverage and limitations.
 - [Desktop CGO-free delivery design](desktop-cgo-free.md): native binding migration and acceptance gates.
 - [Desktop no-cgo implementation evidence](desktop-cgo-free-validation.md): verified build and ABI results, limitations, and pending acceptance.
 

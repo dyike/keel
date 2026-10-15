@@ -44,6 +44,7 @@
 - [设计决策](decisions.zh-CN.md)：全局取舍与历史方案。
 - [单模块](single-module.zh-CN.md)：Gio 和 go-text 作为 Keel 模块的包、导入前缀与迁移。
 - [与上游的差异](upstream-patches.zh-CN.md)：Gio、go-text 与打包器的改动、源码位置、回归测试和兼容边界。
+- [渲染内存与复用](rendering-memory.zh-CN.md)：渲染器分配改动、原生测量、回归覆盖和限制。
 - [桌面端无 CGO 交付设计](desktop-cgo-free.zh-CN.md)：原生绑定迁移与验收门槛。
 - [桌面无 CGO 实现验证记录](desktop-cgo-free-validation.zh-CN.md)：已验证的构建和 ABI 结果、限制与待验收事项。
 
