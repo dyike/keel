@@ -291,10 +291,37 @@ original stroker exactly, including shear and reflection. Warm/fresh GPU pixels
 match under rotation, rounded ancestor clips and opacity; all 792 fixed-time
 component screenshots match main byte-for-byte.
 
-This is CPU vertex construction, not a whole frame, end-to-end FPS or native
-memory result. Native scrolling/resizing and four-phase footprint/GC comparison
-remain pending an unlocked desktop. Shaders, drawable count, GC and idle
-reclamation are unchanged.
+The microbenchmark is CPU vertex construction, not a whole frame or FPS.
+An unlocked native follow-up compared the actual controls category at 800×600
+pixels, native 1×, three interleaved fresh processes per version. Main
+`3b88f26` is the baseline; the changed binary combines local `af8d7dd` font
+and `b45e325` stroke patches through an overlay. Neither patch is published.
+
+| Native controls phase | Before MiB/s | After MiB/s | GC before → after |
+| --- | ---: | ---: | ---: |
+| 10s scrolling plus component animation | 22.91 | 14.41 | 9 → 5 |
+| 10s continuous resizing | 86.17 | 39.55 | 32 → 14 |
+| 12s without input, animation continues | 23.11 | 14.50 | 10 → 6 |
+
+This is not a static-idle CPU check or a mygo gallery comparison. Native
+scroll/resize workflows completed without unresponsive timeouts, but the
+fixture has no frame counter and does not establish FPS or input latency.
+Forced GC was zero throughout; only the fixture disables idle active
+reclamation, matching mygo. Shaders, drawable count and library GC/reclamation
+defaults are unchanged.
+
+Allocation improves, but physical memory improvement is not established.
+Scrolling footprint medians are 157.45 → 159.86 MiB, resizing
+160.99 → 161.22 MiB. Kernel
+lifetime-peak medians rise 183.58 → 190.85 MiB; the three-run ranges overlap,
+176.45–194.60 → 173.08–200.31 MiB. Keep this observed cost in the report.
+
+Separate no-forced-GC profiles put LabelStyle at about 13.3% and anchors
+insertion at 9.3% of the remaining scrolling samples. During resizing, shaping
+plus Gio glyph conversion account for about 28%; the new cache's owned copies
+account for 15.8%. Changing-size paths need admission/reuse work, not unsafe
+scratch borrowing. Profile accounting can lag by roughly two GC cycles;
+these shares are approximate and sampled totals are not exact phase bytes.
 
 `BenchmarkCategoryFrame` uses the actual `-section` compositions at 1360×1720
 pixels (680×860dp, 2×), a real input router and animation time advancing at
