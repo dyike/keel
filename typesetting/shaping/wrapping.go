@@ -3,7 +3,6 @@ package shaping
 import (
 	"math"
 	"sort"
-	"unicode"
 
 	"github.com/dyike/keel/typesetting/di"
 	"github.com/dyike/keel/typesetting/segmenter"
@@ -1004,14 +1003,8 @@ func trimTrailingWhitespace(dir di.Direction, finalLine Line, paragraph []rune) 
 
 		// Keel patch: missing outline metrics are also reported as zero ink.
 		// Only trim clusters whose source text is actually whitespace.
-		start, count := finalVisualGlyph.TextIndex(), finalVisualGlyph.RunesCount()
-		if start < 0 || count <= 0 || start > len(paragraph)-count {
+		if !whitespaceCluster(*finalVisualGlyph, paragraph) {
 			return 0
-		}
-		for _, r := range paragraph[start : start+count] {
-			if !unicode.IsSpace(r) {
-				return 0
-			}
 		}
 
 		if finalVisualRun.Direction.IsVertical() {
@@ -1291,7 +1284,7 @@ func (l *LineWrapper) processBreakOption(option breakOption, config lineConfig) 
 	}
 	isFirstInLine := l.scratch.candidateLen() == 0
 	candidateRun := cutRun(run, l.mapper.mapping, l.lineStartRune, option.breakAtRune, isFirstInLine)
-	candidateLineWidth := candidateRun.advanceSpaceAware(l.config.Direction) + l.scratch.candidateAdvance()
+	candidateLineWidth := candidateRun.advanceSpaceAware(l.config.Direction, l.paragraph) + l.scratch.candidateAdvance()
 	if candidateLineWidth > config.maxWidth {
 		// The run doesn't fit on the line.
 		if !l.scratch.hasBest() {

@@ -290,6 +290,7 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
   frame submission time establishes that memory target or end-to-end frame rate.
 
 - `typesetting/shaping`: trailing whitespace trimming now verifies the source cluster contains only Unicode whitespace. Missing outline metrics (including the installed PingFang UI face) also yield zero ink width and must not erase the final visible glyph advance. Both the fitting multi-run path and wrapped-line path use the check. Synthetic LTR/RTL/vertical tests and mixed-font label width/pixel regressions cover it.
+- `typesetting/shaping`: line breaking measures candidate lines with the same check. `Output.advanceSpaceAware` left a zero-ink final glyph out of the width as if it were a space, so with PingFang (no outline metrics) every wrapped CJK line held one glyph more than its width and the last glyph was clipped. It now drops the glyph only when its source text is whitespace (`whitespaceCluster`, shared with trimming). Synthetic tests cover the wrapped line count and the width check.
 
 ### 2026-10-14: presentation device-loss recovery
 
