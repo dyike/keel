@@ -44,6 +44,12 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `typesetting/fontscan`: intern identical rune coverage while decoding each
+  disk index, before allocating another coverage slice. A read-local hash table
+  selects candidates; full page/bitmap comparisons guard collisions. Entries
+  own decoded storage, never the reused input record. Cache version 7, named
+  instances and other face metadata remain independent. Tests cover record
+  ownership, collisions, truncation, decode isolation and allocation-free hits.
 - `gio/widget`, `gio/widget/material`: carry the solid label color by value
   plus presence internally, with an additive `Label.LayoutWithColor` method.
   Existing structs and pointer-color methods remain available. Selectable

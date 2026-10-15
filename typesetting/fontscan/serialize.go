@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash/maphash"
 	"io"
 	"math"
 	"os"
@@ -94,6 +95,10 @@ func (fp Footprint) serializeTo(dst []byte) []byte {
 // deserializeFrom reads the binary format produced by serializeTo
 // it returns the number of bytes read from `data`
 func (fp *Footprint) deserializeFrom(data []byte) (int, error) {
+	return fp.deserializeWithRunes(data, nil)
+}
+
+func (fp *Footprint) deserializeWithRunes(data []byte, runes *runeSetDecoder) (int, error) {
 	n, err := deserializeString(&fp.Location.File, data)
 	if err != nil {
 		return 0, err
@@ -110,7 +115,7 @@ func (fp *Footprint) deserializeFrom(data []byte) (int, error) {
 		return 0, err
 	}
 	n += read
-	read, err = fp.Runes.deserializeFrom(data[n:])
+	read, err = runes.decode(&fp.Runes, data[n:])
 	if err != nil {
 		return 0, err
 	}
@@ -145,9 +150,13 @@ func serializeFootprintsTo(footprints []Footprint, dst []byte) []byte {
 
 // parses the format written by `serializeFootprints`
 func deserializeFootprints(src []byte) (out []Footprint, err error) {
+	return deserializeFootprintsWithRunes(src, nil)
+}
+
+func deserializeFootprintsWithRunes(src []byte, runes *runeSetDecoder) (out []Footprint, err error) {
 	for totalRead := 0; totalRead < len(src); {
 		var fp Footprint
-		read, err := fp.deserializeFrom(src[totalRead:])
+		read, err := fp.deserializeWithRunes(src[totalRead:], runes)
 		if err != nil {
 			return nil, fmt.Errorf("invalid footprints: %s", err)
 		}
@@ -168,6 +177,10 @@ func (ff fileFootprints) serializeTo(dst []byte) []byte {
 }
 
 func (ff *fileFootprints) deserializeFrom(src []byte) error {
+	return ff.deserializeWithRunes(src, nil)
+}
+
+func (ff *fileFootprints) deserializeWithRunes(src []byte, runes *runeSetDecoder) error {
 	n, err := deserializeString(&ff.path, src)
 	if err != nil {
 		return err
@@ -177,7 +190,7 @@ func (ff *fileFootprints) deserializeFrom(src []byte) error {
 	}
 	ff.modTime.deserialize(src[n:])
 	n += 8
-	ff.footprints, err = deserializeFootprints(src[n:])
+	ff.footprints, err = deserializeFootprintsWithRunes(src[n:], runes)
 	if err != nil {
 		return err
 	}
@@ -238,6 +251,7 @@ func deserializeIndex(src io.Reader) (systemFontsIndex, error) {
 		return nil, fmt.Errorf("different index version format: found %d", version)
 	}
 	L := binary.BigEndian.Uint32(buf[2:])
+	runes := runeSetDecoder{seed: maphash.MakeSeed(), sets: make(map[uint64]RuneSet)}
 	for i := uint32(0); i < L; i++ {
 		// size of the encoded footprint
 		if _, err := io.ReadFull(r, buf[:4]); err != nil {
@@ -251,7 +265,7 @@ func deserializeIndex(src io.Reader) (systemFontsIndex, error) {
 		}
 
 		var fp fileFootprints
-		err = fp.deserializeFrom(buffer)
+		err = fp.deserializeWithRunes(buffer, &runes)
 		if err != nil {
 			return nil, fmt.Errorf("invalid index: %s", err)
 		}
