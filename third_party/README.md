@@ -145,15 +145,10 @@ local measurements, not fresh benchmarks or portable application guarantees.
   display link's goroutine when the requested state changes. Windows call
   `Start` on every animated frame, and the unbuffered send blocked the main
   thread on a goroutine handoff each time.
-- `gio/app` (macOS): two `CAMetalLayer` drawables instead of three; a
-  window-sized drawable at 5016x2820 is about 53 MiB. Only frames that
-  change the drawable size present with the Core Animation transaction, so
-  they show with the window's other changes during a live resize; other
-  frames are presented by the command buffer once the GPU has drawn them.
-  With every frame presenting with the transaction, two drawables stalled a
-  resize in `nextDrawable` while Core Animation retained both. Layers
-  created without transaction presentation and iOS keep the original path.
-  Idle trimming still shrinks spare surfaces. The native
+- `gio/app` (macOS): keep three `CAMetalLayer` drawables during rendering.
+  Core Animation can retain two presented surfaces during resize; limiting
+  the pool to two intermittently blocked the main thread in `nextDrawable`
+  for about a second. Idle trimming still shrinks spare surfaces. The native
   `TestMetalResizeWindow` regression drives 60 growing/shrinking frames and
   rejects the compositor stall (`KEEL_DESKTOP=1 go test ./gio/app`). The
   native Metal tests keep their windows on top and skip, rather than hang,
