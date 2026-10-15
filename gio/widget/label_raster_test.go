@@ -67,3 +67,44 @@ func TestLabelRasterHookAndGlyphFile(t *testing.T) {
 		t.Fatal("a built-in face reported a file")
 	}
 }
+
+func TestLabelBorrowedGlyphBufferAndLegacyHookRetention(t *testing.T) {
+	face := gofont.Regular()[0]
+	sh := text.NewShaper(text.NoSystemFonts(), text.WithCollection([]font.FontFace{face}))
+	col := color.NRGBA{A: 255}
+	var ops op.Ops
+	gtx := layout.Context{Ops: &ops, Constraints: layout.Exact(image.Pt(300, 50)), Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}}
+	lb := Label{Color: &col}
+	var retained []text.Glyph
+	sh.SetRasterHook(func(_ *op.Ops, gs []text.Glyph, _ color.NRGBA, _ float32) bool {
+		if retained == nil {
+			retained = gs
+		}
+		return true
+	})
+	lb.Layout(gtx, sh, face.Font, 13, "Hello", op.CallOp{})
+	saved := append([]text.Glyph(nil), retained...)
+	ops.Reset()
+	lb.Layout(gtx, sh, face.Font, 13, "World", op.CallOp{})
+	if len(retained) != len(saved) {
+		t.Fatal("legacy run changed length")
+	}
+	for i := range saved {
+		if retained[i] != saved[i] {
+			t.Fatal("legacy hook run was overwritten by another label")
+		}
+	}
+	var first *text.Glyph
+	sh.SetBorrowedRasterHook(func(_ *op.Ops, gs []text.Glyph, _ color.NRGBA, _ float32) bool {
+		if first == nil {
+			first = &gs[0]
+		} else if first != &gs[0] {
+			t.Fatal("borrowed hook did not reuse its bounded buffer")
+		}
+		return true
+	})
+	for range 4 {
+		ops.Reset()
+		lb.Layout(gtx, sh, face.Font, 13, "Hello", op.CallOp{})
+	}
+}

@@ -352,8 +352,8 @@ func (e *textView) paintText(gtx layout.Context, material op.CallOp, col *color.
 		}
 		startGlyph += line.glyphs
 	}
-	var glyphs [32]text.Glyph
-	line := glyphs[:0]
+	line, token := e.shaper.BorrowGlyphBuffer()
+	defer e.shaper.ReleaseGlyphBuffer(line, token)
 	for _, g := range e.index.glyphs[startGlyph:] {
 		var ok bool
 		if line, ok = it.paintGlyph(gtx, e.shaper, g, line); !ok {

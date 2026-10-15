@@ -59,9 +59,17 @@ func installPlatformText(sh *text.Shaper) {
 	if _, ok := any(sh).(glyphFiler); !ok {
 		return
 	}
-	r.SetRasterHook(func(ops *op.Ops, gs []text.Glyph, col color.NRGBA, fracX float32) bool {
+	hook := func(ops *op.Ops, gs []text.Glyph, col color.NRGBA, fracX float32) bool {
 		return ctPaintRun(ops, sh, gs, col, fracX, 0)
-	})
+	}
+	// ctPaintRun consumes gs synchronously. Its atlas stores glyph IDs and
+	// image/path operations, never the supplied run slice. Vector fallback's
+	// Shape/Bitmaps caches also copy their glyph-key metadata.
+	if borrowed, ok := any(sh).(interface{ SetBorrowedRasterHook(text.RasterHook) }); ok {
+		borrowed.SetBorrowedRasterHook(hook)
+	} else {
+		r.SetRasterHook(hook)
+	}
 }
 
 // PlatformText reports whether sh draws solid text with CoreText.

@@ -222,6 +222,9 @@ type Shaper struct {
 	initialized      bool
 	shaper           shaperImpl
 	rasterHook       RasterHook // Keel patch
+	rasterBorrows    bool
+	glyphBuffer      []Glyph
+	glyphBufferEpoch uint64
 	pathCache        pathCache
 	bitmapShapeCache bitmapShapeCache
 	layoutCache      layoutCache
