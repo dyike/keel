@@ -98,6 +98,34 @@ There are two layers of related tests in the repository, both run with `go test 
 
 ## Screenshot comparison
 
+### Font startup allocation checks (2026-10-15)
+
+Run the font initialization and index microbenchmarks independently:
+
+```sh
+go test ./typesetting/font -run '^$' -bench BenchmarkGlyfInitialization -benchmem -benchtime=500ms -count=3
+go test ./typesetting/fontscan -run '^$' -bench 'BenchmarkFontIndex(RecordRead|Serialize)' -benchmem -benchtime=200ms -count=3
+```
+
+Apple M4, darwin/arm64, Go 1.27.1, median of three isolated samples:
+
+| Operation | Before bytes | After bytes | Before allocations | After allocations |
+| --- | ---: | ---: | ---: | ---: |
+| Go Regular glyf initialization | 191,033 | 30,720 | 2,125 | 2 |
+| Read a 3,143,610-byte index record | 8,388,283 | 3,178,546 | 17 | 3 |
+| Encode 64 synthetic files, four 512-page coverages each | 28,489,518 | 6,009,804 | 293 | 278 |
+
+Unchanged font files also skip index serialization entirely. Cold/updated
+indexes retain the version-7 format and stream one file at a time. Headers,
+variation point counts, outlines and metrics are compared with the eager
+parser; malformed-record fuzzing checks matching validation results.
+All 792 fixed-time component screenshots matched main byte-for-byte.
+
+These are isolated allocation results, not native footprint or peak evidence.
+The four-phase native comparison is pending an unlocked, visible desktop;
+the locked-window pilot did not scroll and is excluded. No library GC,
+drawable or idle-reclamation policy changed.
+
 After changing the theme, spacing, and fonts, take screenshots before and after rendering to confirm that only the expected changes have occurred:
 
 ```sh

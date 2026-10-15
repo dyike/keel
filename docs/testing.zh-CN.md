@@ -78,6 +78,27 @@ func TestInputSubmit(t *testing.T) {
 
 ## 截图对比
 
+### 字体启动分配检查（2026-10-15）
+
+字体初始化和索引基准单独运行：
+
+```sh
+go test ./typesetting/font -run '^$' -bench BenchmarkGlyfInitialization -benchmem -benchtime=500ms -count=3
+go test ./typesetting/fontscan -run '^$' -bench 'BenchmarkFontIndex(RecordRead|Serialize)' -benchmem -benchtime=200ms -count=3
+```
+
+Apple M4、darwin/arm64、Go 1.27.1，三个独立样本的中位数：
+
+| 操作 | 改前字节 | 改后字节 | 改前分配次数 | 改后分配次数 |
+| --- | ---: | ---: | ---: | ---: |
+| Go Regular glyf 初始化 | 191,033 | 30,720 | 2,125 | 2 |
+| 读取 3,143,610 字节索引记录 | 8,388,283 | 3,178,546 | 17 | 3 |
+| 编码 64 个合成文件，各含四组 512 页字符覆盖 | 28,489,518 | 6,009,804 | 293 | 278 |
+
+字体文件未变化时跳过索引序列化；冷启动或更新时保留版本 7 格式，逐文件流式编码。测试对照旧解析器的字形头、可变字体点数、轮廓及度量；畸形记录模糊测试检查校验结果一致。792 张固定时钟组件截图与 main 逐字节一致。
+
+这些是局部分配结果，不是原生 footprint 或峰值证据。四阶段原生对比仍待桌面解锁且窗口可见后补测；锁屏试跑没有滚动，已排除。不改变库的 GC、drawable 或空闲回收策略。
+
 改了主题、间距、字体后，渲染前后截图，确认只有预期的地方变了：
 
 ```sh

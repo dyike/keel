@@ -30,8 +30,17 @@ func TestLazyContoursMatchEagerOutlines(t *testing.T) {
 	}
 	old := *ft
 	old.glyf, old.glyfOutlines = eager, nil
+	headers, counts, err := tables.ParseGlyfHeaders(raw, ft.glyfOutlines.offsets)
+	if err != nil {
+		t.Fatal(err)
+	}
 	a, b := NewFace(ft), NewFace(&old)
 	for i := range eager {
+		header := eager[i]
+		header.Data = nil
+		if headers[i] != header || counts[i] != pointNumbersCount(eager[i]) {
+			t.Fatalf("header/point count changed for glyph %d", i)
+		}
 		if ft.glyf[i].Data != nil {
 			t.Fatal("header retained contours")
 		}
@@ -59,4 +68,35 @@ func TestLazyContoursMatchEagerOutlines(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func BenchmarkGlyfInitialization(b *testing.B) {
+	ld, err := ot.NewLoader(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		b.Fatal(err)
+	}
+	ft, err := NewFont(ld)
+	if err != nil {
+		b.Fatal(err)
+	}
+	raw, _ := ld.RawTable(ot.MustNewTag("glyf"))
+	for _, headers := range []bool{false, true} {
+		name := "eager"
+		if headers {
+			name = "headers"
+		}
+		b.Run(name, func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				if headers {
+					_, _, err = tables.ParseGlyfHeaders(raw, ft.glyfOutlines.offsets)
+				} else {
+					_, err = tables.ParseGlyf(raw, ft.glyfOutlines.offsets)
+				}
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }

@@ -44,6 +44,18 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `typesetting/font`: validate TrueType contours and collect variation point
+  counts without first allocating every outline and discarding it. Full
+  contours remain lazily decoded under the existing shared cache lock. Tests
+  compare headers, counts, outlines and metrics with the eager parser;
+  fuzzing checks malformed records against that parser.
+- `typesetting/fontscan`: skip disk-index rewrites when file paths and
+  modification times are unchanged. Stream changed indexes one file at a
+  time, and reuse exact-length read storage instead of growing a bytes.Buffer
+  at record EOF. The version-7 format, font identities and fallback validation
+  remain unchanged. Tests cover cache invalidation, format compatibility,
+  storage reuse and truncated records. No GC policy changes.
+
 - `gio/widget.Icon`: retain an LRU of up to eight immutable size/color images,
   with a 1 MiB pixel budget per icon. A larger image retains only itself, as
   before. Alternating variants no longer rerasterize or change texture identity;
