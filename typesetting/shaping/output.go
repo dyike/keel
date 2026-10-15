@@ -3,6 +3,8 @@
 package shaping
 
 import (
+	"unicode"
+
 	"github.com/dyike/keel/typesetting/di"
 	"github.com/dyike/keel/typesetting/font"
 	"golang.org/x/image/math/fixed"
@@ -209,8 +211,13 @@ func (o *Output) RecomputeAdvance() {
 // If the paragraphDir is different then o's Direction, this method has no effect
 // because the trailing space in this run will always be internal to the paragraph.
 //
+// Keel patch: a zero-ink last glyph counts as space only when its source
+// text in paragraph is whitespace. Glyphs without outline metrics (such as
+// PingFang on macOS) also report zero ink, and upstream left them out of
+// the line width, so every wrapped CJK line took one glyph too many.
+//
 // TODO: should we take into account multiple spaces ?
-func (o *Output) advanceSpaceAware(paragraphDir di.Direction) fixed.Int26_6 {
+func (o *Output) advanceSpaceAware(paragraphDir di.Direction, paragraph []rune) fixed.Int26_6 {
 	L := len(o.Glyphs)
 	if L == 0 || paragraphDir != o.Direction {
 		return o.Advance
@@ -224,15 +231,31 @@ func (o *Output) advanceSpaceAware(paragraphDir di.Direction) fixed.Int26_6 {
 		lastG = o.Glyphs[0]
 	}
 	if o.Direction.IsVertical() {
-		if lastG.Height == 0 {
+		if lastG.Height == 0 && whitespaceCluster(lastG, paragraph) {
 			return o.Advance - lastG.Advance
 		}
 	} else { // horizontal
-		if lastG.Width == 0 {
+		if lastG.Width == 0 && whitespaceCluster(lastG, paragraph) {
 			return o.Advance - lastG.Advance
 		}
 	}
 	return o.Advance - lastG.endLetterSpacing
+}
+
+// whitespaceCluster reports whether g's source text in paragraph is all
+// whitespace. Keel patch: ink extents alone cannot tell a space from a
+// glyph whose outline metrics are missing.
+func whitespaceCluster(g Glyph, paragraph []rune) bool {
+	start, count := g.TextIndex(), g.RunesCount()
+	if start < 0 || count <= 0 || start > len(paragraph)-count {
+		return false
+	}
+	for _, r := range paragraph[start : start+count] {
+		if !unicode.IsSpace(r) {
+			return false
+		}
+	}
+	return true
 }
 
 // RecalculateAll updates the all other fields of the Output
