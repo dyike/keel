@@ -50,8 +50,8 @@ func newLayerArrow(panel, anchor image.Rectangle, side Side, align Align, depth,
 
 func (a *layerArrow) paint(ops *op.Ops, style Style) {
 	c := theme.Surface
-	if style.bg != nil {
-		c = *style.bg
+	if style.bg.set {
+		c = style.bg.value
 	}
 	var p clip.Path
 	p.Begin(ops)

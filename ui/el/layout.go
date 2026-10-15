@@ -1,6 +1,7 @@
 package el
 
 import (
+	"hash/maphash"
 	"image"
 	"image/color"
 	"math"
@@ -20,7 +21,9 @@ const inf = 1 << 24
 
 // engine lays out and paints one element tree for one frame.
 type engine struct {
-	textMeasurements       map[textMeasureCacheKey]layout.Dimensions
+	textMeasurements       map[uint64]int
+	textMeasurementSeed    maphash.Seed
+	textMeasurementEntries []textMeasurement
 	textPainter            theme.GlyphPainter
 	textAtlas              *theme.GlyphAtlas
 	textAtlasActive        bool
@@ -28,7 +31,7 @@ type engine struct {
 	atlasGlyphs            []text.Glyph
 	anchors                map[string]image.Rectangle
 	blockInput, blockFocus bool
-	paintTextColor         *color.NRGBA
+	paintTextColor         optional[color.NRGBA]
 	gtx                    core.C
 	m                      unit.Metric
 	store                  *store
@@ -528,25 +531,25 @@ func (e *engine) place(n *Node) {
 		}
 		c.forceW, c.forceH = -1, -1
 		// Pinned to opposite edges with no size of its own: stretch between them.
-		if c.style.left != nil && c.style.right != nil && c.style.w.kind == autoLen {
-			c.forceW = max(padBox.X-e.dp(*c.style.left)-e.dp(*c.style.right), 0)
+		if c.style.left.set && c.style.right.set && c.style.w.kind == autoLen {
+			c.forceW = max(padBox.X-e.dp(c.style.left.value)-e.dp(c.style.right.value), 0)
 		}
-		if c.style.top != nil && c.style.bottom != nil && c.style.h.kind == autoLen {
-			c.forceH = max(padBox.Y-e.dp(*c.style.top)-e.dp(*c.style.bottom), 0)
+		if c.style.top.set && c.style.bottom.set && c.style.h.kind == autoLen {
+			c.forceH = max(padBox.Y-e.dp(c.style.top.value)-e.dp(c.style.bottom.value), 0)
 		}
 		e.layout(c, padBox.X, padBox.Y, n.textStyle)
 		x, y := bw, bw
 		switch {
-		case c.style.left != nil:
-			x += e.dp(*c.style.left)
-		case c.style.right != nil:
-			x = n.size.X - bw - e.dp(*c.style.right) - c.size.X
+		case c.style.left.set:
+			x += e.dp(c.style.left.value)
+		case c.style.right.set:
+			x = n.size.X - bw - e.dp(c.style.right.value) - c.size.X
 		}
 		switch {
-		case c.style.top != nil:
-			y += e.dp(*c.style.top)
-		case c.style.bottom != nil:
-			y = n.size.Y - bw - e.dp(*c.style.bottom) - c.size.Y
+		case c.style.top.set:
+			y += e.dp(c.style.top.value)
+		case c.style.bottom.set:
+			y = n.size.Y - bw - e.dp(c.style.bottom.value) - c.size.Y
 		}
 		c.pos = image.Pt(x, y)
 	}

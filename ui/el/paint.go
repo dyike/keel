@@ -33,10 +33,10 @@ import (
 func (e *engine) label(n *Node, value string) material.LabelStyle {
 	ts := n.textStyle
 	lb := material.Label(theme.Material, ts.size, value)
-	lb.Color = *ts.color
+	lb.Color = ts.color.or(theme.Text)
 	lb.Font = textFont(ts)
-	if ts.align != nil {
-		switch *ts.align {
+	if ts.align.set {
+		switch ts.align.value {
 		case Center:
 			lb.Alignment = text.Middle
 		case End:
@@ -53,13 +53,13 @@ func (e *engine) label(n *Node, value string) material.LabelStyle {
 // textFont is the font a text style draws with.
 func textFont(ts textStyle) font.Font {
 	f := font.Font{Typeface: theme.Material.Face}
-	if ts.mono != nil && *ts.mono {
+	if ts.mono.set && ts.mono.value {
 		f.Typeface = theme.MonoFace
 	}
-	if ts.weight != nil {
-		f.Weight = *ts.weight
+	if ts.weight.set {
+		f.Weight = ts.weight.value
 	}
-	if ts.italic != nil && *ts.italic {
+	if ts.italic.set && ts.italic.value {
 		f.Style = font.Italic
 	}
 	return f
@@ -204,6 +204,7 @@ func (e *engine) paintContent(n *Node) {
 		defer clip.Rect(image.Rectangle{Max: n.size}).Push(gtx.Ops).Pop()
 	}
 	st := n.style // a copy: hover and active variants change it for this frame only
+	var callbackStyle *Style
 	var state *elemState
 	if n.id != "" || n.interactive() || n.onScroll != nil || (n.style.scrollY || n.style.scrollX) || n.input != nil {
 		state = e.store.get(n.key)
@@ -226,10 +227,10 @@ func (e *engine) paintContent(n *Node) {
 	}
 	if state != nil && n.interactive() && !n.effectiveDisabled && !e.blockInput {
 		if n.hover != nil && state.click.Hovered() {
-			n.hover(&st)
+			st, callbackStyle = applyVisualStyle(n.hover, st, callbackStyle)
 		}
 		if n.active != nil && state.click.Pressed() {
-			n.active(&st)
+			st, callbackStyle = applyVisualStyle(n.active, st, callbackStyle)
 		}
 		if (n.hover != nil || n.active != nil) && gtx.Enabled() {
 			e.easeBackground(&st, state)
@@ -238,50 +239,53 @@ func (e *engine) paintContent(n *Node) {
 	if n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus {
 		st.borderWidth, st.borderColor = 2, theme.Primary
 		if n.focus != nil {
-			n.focus(&st)
+			st, callbackStyle = applyVisualStyle(n.focus, st, callbackStyle)
 		}
 	}
 	if n.input != nil && (state.editor != nil && gtx.Focused(state.editor)) && state.inputRing {
 		st.borderColor = theme.Primary
 		if n.focus != nil {
-			n.focus(&st)
+			st, callbackStyle = applyVisualStyle(n.focus, st, callbackStyle)
 		}
 	}
 	if n.effectiveDisabled {
 		// The disabled root picks the muted color, or its DisabledStyle
 		// does; descendants keep that choice instead of resetting it.
-		if n.disabledRoot || e.paintTextColor == nil {
-			st.text.color = &theme.Muted
+		if n.disabledRoot || !e.paintTextColor.set {
+			st.text.color = some(theme.Muted)
 		} else {
 			st.text.color = e.paintTextColor
 		}
 		if n.disabledStyle != nil {
-			n.disabledStyle(&st)
+			st, callbackStyle = applyVisualStyle(n.disabledStyle, st, callbackStyle)
 		}
 	}
 	if theme.Frameless {
 		st.borderWidth = 0
 		if !n.effectiveDisabled && ((n.isFocusable() && n.input == nil && gtx.Focused(state) && !state.pointerFocus) || (n.input != nil && (state.editor != nil && gtx.Focused(state.editor)) && state.inputRing)) {
 			bg := theme.Highlight
-			if st.bg != nil && st.bg.A != 0 {
-				bg = *st.bg
+			if st.bg.set && st.bg.value.A != 0 {
+				bg = st.bg.value
 				bg.R = uint8((4*uint16(bg.R) + uint16(theme.Muted.R)) / 5)
 				bg.G = uint8((4*uint16(bg.G) + uint16(theme.Muted.G)) / 5)
 				bg.B = uint8((4*uint16(bg.B) + uint16(theme.Muted.B)) / 5)
 			}
 			st.Bg(bg)
 			if n.focus != nil {
-				n.focus(&st)
+				st, callbackStyle = applyVisualStyle(n.focus, st, callbackStyle)
 			}
 			st.borderWidth = 0
 		}
 	}
 	// Visual text-color variants inherit without changing measured text metrics.
+	if callbackStyle != nil {
+		*callbackStyle = st
+	}
 	savedColor, savedText := e.paintTextColor, n.textStyle
-	if st.text.color != nil {
+	if st.text.color.set {
 		e.paintTextColor = st.text.color
 	}
-	if e.paintTextColor != nil {
+	if e.paintTextColor.set {
 		n.textStyle.color = e.paintTextColor
 	}
 	defer func() { e.paintTextColor = savedColor; n.textStyle = savedText }()
@@ -296,7 +300,7 @@ func (e *engine) paintContent(n *Node) {
 	}
 	// Elements that take input or report semantics get their own clip area;
 	// others do not, so their children can overflow them.
-	sem := e.semantics(n)
+	sem := hasSemantics(n)
 	if state != nil && n.id != "" && !n.effectiveDisabled && !e.blockInput {
 		// Register above children so interactive descendants cannot hide hover.
 		defer func() {
@@ -308,11 +312,11 @@ func (e *engine) paintContent(n *Node) {
 			hoverArea.Pop()
 		}()
 	}
-	if len(sem) > 0 || state != nil && (n.interactive() || (n.style.scrollY || n.style.scrollX) || n.input != nil) {
+	if sem || state != nil && (n.interactive() || (n.style.scrollY || n.style.scrollX) || n.input != nil) {
 		defer radius.rrect(rect).Push(gtx.Ops).Pop()
 
-		for _, o := range sem {
-			o.Add(gtx.Ops)
+		if sem {
+			e.addSemantics(n)
 		}
 		if state != nil && n.isFocusable() && n.input == nil && !e.blockFocus && !e.blockInput {
 			if gtx.Enabled() {
@@ -429,15 +433,33 @@ func (e *engine) paintContent(n *Node) {
 	}
 }
 
-// semantics returns the ops that describe n to agents.
-func (e *engine) semantics(n *Node) []interface{ Add(*op.Ops) } {
-	var ops []interface{ Add(*op.Ops) }
-	if n.isText && n.role == "" && n.name == "" && n.value == "" && n.selected == nil {
+// Only a callback that actually runs needs an addressable, escaping Style.
+// Keep the common resting style on the stack. All callbacks on one paint use
+// the same private copy, as before; never recycle it for another node or frame.
+func applyVisualStyle(fn func(*Style), st Style, prior *Style) (Style, *Style) {
+	if prior == nil {
+		prior = new(Style)
+	}
+	*prior = st
+	fn(prior)
+	return *prior, prior
+}
+
+// hasSemantics reports whether n needs its own semantic clip node.
+func hasSemantics(n *Node) bool {
+	if n.isText && n.role == "" && n.name == "" && n.value == "" && !n.selected.set {
 		// Plain text: the Gio label reports itself, in an area padded to
 		// cover glyphs that reach past the line box. A clip of our own would
 		// cut those (the tails of g and y in tight fonts such as YaHei).
-		return nil
+		return false
 	}
+	return n.role != "" || n.onClick != nil || n.onDoubleClick != nil || n.name != "" || n.isText && n.text != "" || n.input != nil || n.selected.set
+}
+
+// addSemantics writes n directly into the current semantic clip. Keeping the
+// concrete op types avoids a temporary interface slice and its boxing.
+func (e *engine) addSemantics(n *Node) {
+	gtx := e.gtx
 	role := n.role
 	if role == "" && (n.onClick != nil || n.onDoubleClick != nil) {
 		role = "button"
@@ -445,23 +467,24 @@ func (e *engine) semantics(n *Node) []interface{ Add(*op.Ops) } {
 	switch role {
 	case "":
 	case "button":
-		ops = append(ops, semantic.Button)
+		semantic.Button.Add(gtx.Ops)
 		if n.value != "" {
-			ops = append(ops, core.Role("button", n.value))
+			core.Role("button", n.value).Add(gtx.Ops)
 		}
 	case "link", "tab", "columnheader", "select":
-		ops = append(ops, semantic.Button, core.Role(role, n.value))
+		semantic.Button.Add(gtx.Ops)
+		core.Role(role, n.value).Add(gtx.Ops)
 	case "checkbox":
-		ops = append(ops, semantic.CheckBox)
+		semantic.CheckBox.Add(gtx.Ops)
 		if n.value != "" {
-			ops = append(ops, core.Role("checkbox", n.value)) // e.g. mixed
+			core.Role("checkbox", n.value).Add(gtx.Ops) // e.g. mixed
 		}
 	case "radio":
-		ops = append(ops, semantic.RadioButton)
+		semantic.RadioButton.Add(gtx.Ops)
 	case "switch":
-		ops = append(ops, semantic.Switch)
+		semantic.Switch.Add(gtx.Ops)
 	default:
-		ops = append(ops, core.Role(role, n.value))
+		core.Role(role, n.value).Add(gtx.Ops)
 	}
 	name := n.name
 	if n.isText && name == "" {
@@ -471,18 +494,15 @@ func (e *engine) semantics(n *Node) []interface{ Add(*op.Ops) } {
 		if name == "" {
 			name = n.input.placeholder
 		}
-		ops = append(ops, semantic.Editor)
+		semantic.Editor.Add(gtx.Ops)
 	}
 	if name != "" {
-		ops = append(ops, semantic.LabelOp(name))
+		semantic.LabelOp(name).Add(gtx.Ops)
 	}
-	if n.selected != nil {
-		ops = append(ops, semantic.SelectedOp(*n.selected))
+	if n.selected.set {
+		semantic.SelectedOp(n.selected.value).Add(gtx.Ops)
 	}
-	if len(ops) > 0 {
-		ops = append(ops, semantic.EnabledOp(!n.effectiveDisabled))
-	}
-	return ops
+	semantic.EnabledOp(!n.effectiveDisabled).Add(gtx.Ops)
 }
 
 // corners are the radii in px of a box's corners: top left, top right,
@@ -496,8 +516,8 @@ func (e *engine) cornersOf(st Style, size image.Point) corners {
 	var c corners
 	for i := range c {
 		r := st.radius
-		if st.corners != nil {
-			r = st.corners[i]
+		if st.corners.set {
+			r = st.corners.value[i]
 		}
 		c[i] = min(e.dp(r), limit)
 	}
@@ -522,8 +542,8 @@ func (e *engine) paintBox(st Style, rect image.Rectangle, radius corners) {
 	ops := e.gtx.Ops
 	if g := st.gradient; g != nil {
 		paintGradient(ops, *g, rect, radius)
-	} else if st.bg != nil {
-		paint.FillShape(ops, *st.bg, radius.rrect(rect).Op(ops))
+	} else if st.bg.set {
+		paint.FillShape(ops, st.bg.value, radius.rrect(rect).Op(ops))
 	}
 	if bw := e.dp(st.borderWidth); bw > 0 {
 		// Stroke centered on a rectangle inset by half the width, so the
@@ -748,7 +768,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		}
 	}
 	me := material.Editor(th, ed, spec.placeholder)
-	me.TextSize, me.Color, me.HintColor = ts.size, *ts.color, theme.Muted
+	me.TextSize, me.Color, me.HintColor = ts.size, ts.color.or(theme.Text), theme.Muted
 	me.Font = textFont(ts)
 	if spec.document != nil && st.inputObjects.shaper != nil {
 		me.Font = st.inputObjects.font
@@ -1104,8 +1124,8 @@ const bgEase = 120 * time.Millisecond
 // and pressed colors instead of switching at once. Reduced motion switches.
 func (e *engine) easeBackground(st *Style, state *elemState) {
 	var target color.NRGBA
-	if st.bg != nil {
-		target = *st.bg
+	if st.bg.set {
+		target = st.bg.value
 	}
 	now := e.gtx.Now
 	if !state.bgInit || theme.ReducedMotion {
@@ -1122,8 +1142,8 @@ func (e *engine) easeBackground(st *Style, state *elemState) {
 		e.gtx.Execute(op.InvalidateCmd{})
 	}
 	state.bgShown = shown
-	if shown.A != 0 || st.bg != nil {
-		st.bg = &shown
+	if shown.A != 0 || st.bg.set {
+		st.bg = some(shown)
 	}
 }
 

@@ -63,7 +63,7 @@ func (v *TableView) SetSelectedColumns(columns []int) {
 	v.columnAnchor = v.activeColumn
 }
 func (v *TableView) selectableColumns() []int {
-	return slices.DeleteFunc(v.visibleColumns(), func(c int) bool { return v.cols[c].noSelect })
+	return slices.DeleteFunc(slices.Clone(v.visibleColumns()), func(c int) bool { return v.cols[c].noSelect })
 }
 func (v *TableView) notifyColumns(before []int) {
 	after := v.SelectedColumns()

@@ -35,9 +35,14 @@ type inputSpec struct {
 
 // Input creates a single-line text box. Enter triggers OnSubmit.
 func Input() *InputEl {
-	e := &InputEl{}
-	e.n, e.self = newNode(), e
-	e.n.input = &inputSpec{}
+	var e *InputEl
+	if buildingArena.pooled() {
+		e = buildingArena.inputs.alloc()
+	} else {
+		e = new(InputEl)
+	}
+	e.init(newNode(), e)
+	e.node().input = &inputSpec{}
 	// A bordered box by default, the same as kit's fields: theme.ControlHeight
 	// tall with the line centered. Every part can be restyled; the border
 	// turns Primary while the box has focus.
@@ -48,43 +53,43 @@ func Input() *InputEl {
 // TextArea creates a multi-line text box; Enter inserts a newline.
 func TextArea() *InputEl {
 	e := Input()
-	e.n.input.multiline = true
+	e.node().input.multiline = true
 	e.Py(8).MinH(Auto)
 	return e
 }
 
 // Placeholder is shown while the box is empty; agents also see it as the
 // name when Name is not set.
-func (e *InputEl) Placeholder(s string) *InputEl { e.n.input.placeholder = s; return e }
+func (e *InputEl) Placeholder(s string) *InputEl { e.node().input.placeholder = s; return e }
 
 // Bind keeps *p and the box in sync: typing writes *p, and a program change
 // to *p shows in the box on the next frame.
-func (e *InputEl) Bind(p *string) *InputEl { e.n.input.bind = p; return e }
+func (e *InputEl) Bind(p *string) *InputEl { e.node().input.bind = p; return e }
 
 // Password masks the content.
-func (e *InputEl) Password() *InputEl { e.n.input.password = true; return e }
+func (e *InputEl) Password() *InputEl { e.node().input.password = true; return e }
 
 // OnChange runs after every edit by the user, with the new content.
-func (e *InputEl) OnChange(fn func(string)) *InputEl { e.n.input.onChange = fn; return e }
+func (e *InputEl) OnChange(fn func(string)) *InputEl { e.node().input.onChange = fn; return e }
 
 // MaxLen limits the content to n runes; 0 means no limit.
-func (e *InputEl) MaxLen(n int) *InputEl { e.n.input.maxLen = n; return e }
+func (e *InputEl) MaxLen(n int) *InputEl { e.node().input.maxLen = n; return e }
 
 // Filter accepts only the runes in chars as typed or pasted input; "" accepts all.
-func (e *InputEl) Filter(chars string) *InputEl { e.n.input.filter = chars; return e }
+func (e *InputEl) Filter(chars string) *InputEl { e.node().input.filter = chars; return e }
 
 // ReadOnly lets the user select and copy but not edit.
-func (e *InputEl) ReadOnly(on bool) *InputEl { e.n.input.readOnly = on; return e }
+func (e *InputEl) ReadOnly(on bool) *InputEl { e.node().input.readOnly = on; return e }
 
 // OnSubmit runs when Enter is pressed in a single-line box.
-func (e *InputEl) OnSubmit(fn func(string)) *InputEl { e.n.input.onSubmit = fn; return e }
+func (e *InputEl) OnSubmit(fn func(string)) *InputEl { e.node().input.onSubmit = fn; return e }
 
 // AutoGrow sizes a multiline input to its wrapped text, between minRows and
 // maxRows lines. Overflow scrolls inside the editor. Invalid ranges are ignored.
 // Passing (0, 0) restores the default height. Single-line inputs ignore this.
 func (e *InputEl) AutoGrow(minRows, maxRows int) *InputEl {
 	if minRows == 0 && maxRows == 0 || minRows > 0 && maxRows >= minRows {
-		e.n.input.minRows, e.n.input.maxRows = minRows, maxRows
+		e.node().input.minRows, e.node().input.maxRows = minRows, maxRows
 	}
 	return e
 }
@@ -99,8 +104,8 @@ type InputEdit struct {
 // selection endpoints with the new text. Programmatic Bind changes are unchanged.
 // Transformed inputs retain up to 100 user edits for undo/redo; programmatic changes reset this history.
 func (e *InputEl) Transform(fn func(InputEdit) InputEdit) *InputEl {
-	e.n.input.transform = fn
-	e.n.input.transformEdit = nil
+	e.node().input.transform = fn
+	e.node().input.transformEdit = nil
 	return e
 }
 
@@ -109,12 +114,12 @@ func (e *InputEl) Transform(fn func(InputEdit) InputEdit) *InputEl {
 // Ordinary editing shortcuts with modifiers remain with the editor, so a
 // TextArea that captures "⏎" to send still breaks lines with Shift+Enter.
 func (e *InputEl) CaptureKeys(names ...string) *InputEl {
-	e.n.input.captureKeys = append([]string(nil), names...)
+	e.node().input.captureKeys = append([]string(nil), names...)
 	return e
 }
 
 // SelectOnFocus selects the complete value when the input gains focus.
-func (e *InputEl) SelectOnFocus(on bool) *InputEl { e.n.input.selectOnFocus = on; return e }
+func (e *InputEl) SelectOnFocus(on bool) *InputEl { e.node().input.selectOnFocus = on; return e }
 
 // SelectInput schedules rune-based selection in an input after its next Bind
 // synchronization. It does not change text or focus. Missing or disabled inputs
@@ -134,6 +139,6 @@ func (cx *Context) SelectInput(id string, start, end int) {
 // TransformEdit normalizes an edit with access to the previous text and rune
 // selection. It replaces Transform; undo/redo restores normalized snapshots.
 func (e *InputEl) TransformEdit(fn func(before, after InputEdit) InputEdit) *InputEl {
-	e.n.input.transformEdit, e.n.input.transform = fn, nil
+	e.node().input.transformEdit, e.node().input.transform = fn, nil
 	return e
 }

@@ -364,7 +364,7 @@ func TestThemeSwitchRebuildsCachedElements(t *testing.T) {
 	for i, palette := range []theme.Palette{theme.Dark(), theme.Light()} {
 		theme.Apply(palette)
 		h.Frame()
-		if builds != i+2 || *cached.node().style.bg != palette.Surface {
+		if builds != i+2 || cached.node().style.bg.value != palette.Surface {
 			t.Fatal("cached element kept old theme")
 		}
 		h.Frame()

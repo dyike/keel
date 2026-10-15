@@ -31,7 +31,7 @@ func (t *TextEl) Shimmer(phase, spread float32, highlight color.NRGBA) *TextEl {
 	if math.IsNaN(float64(spread)) {
 		return t
 	}
-	t.n.shimmer = &textShimmer{min(max(phase, 0), 1), spread, highlight}
+	t.node().shimmer = &textShimmer{min(max(phase, 0), 1), spread, highlight}
 	return t
 }
 

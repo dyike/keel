@@ -10,6 +10,7 @@ GPUI-style elements and views: Views are ordinary structs, and each frame `Rende
 | File | Responsibility |
 | --- | --- |
 | `element.go` | All chain methods of `Element`, `Node`, `Styled[T]`, `Div`, `Text`, `Widget`, `Map`; `Decorate` package drawing, `VisitWidgets` reads the component coordinates after layout |
+| `arena.go` | Per-root node chunks, reusable node buffers, independent pointer handles and build-generation checks; Cache and standalone elements keep persistent storage |
 | `time.go` | Frame times, declarative timers, explicit keys and reduced animations |
 | `overlay.go` | Declarative overlay, anchor positioning, modal input isolation, focus constraints and hover query |
 | `mount.go` | `cx.Mount`: Hang the view at the root of the window (`Dialog.Show`, `Sheet.Show`, `WindowNotifier` of the kit use it) |

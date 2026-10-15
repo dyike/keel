@@ -35,6 +35,15 @@ type Content struct {
 
 func (c Content) Text() string   { return c.text }
 func (c Content) Tokens() []Span { return slices.Clone(c.spans) }
+
+// Same reports shared immutable content, not selection or composition state.
+// A separately constructed equivalent draft may return false. Readers can use
+// this to invalidate derived geometry without cloning the token slice.
+func (c Content) Same(other Content) bool {
+	return c.text == other.text && len(c.spans) == len(other.spans) && (len(c.spans) == 0 || &c.spans[0] == &other.spans[0])
+}
+
+func (c Content) TokenCount() int { return len(c.spans) }
 func (t Token) Display() string {
 	if t.Label != "" {
 		return t.Label
@@ -221,6 +230,9 @@ func LayoutPresentation(c Content, replacements []string) (Presentation, error) 
 }
 
 func (c Content) present(label func(int, Token) string) Presentation {
+	if len(c.spans) == 0 {
+		return Presentation{Text: c.text}
+	}
 	var out strings.Builder
 	result := Presentation{}
 	at := 0

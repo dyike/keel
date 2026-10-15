@@ -11,7 +11,7 @@ import (
 // KeyContext names a keymap scope inherited by descendants. Nested scopes
 // override outer ones per action; an empty name adds no scope. Pair it with
 // core.BindIn and Context.ActionAt for focused command handling.
-func (s *Styled[T]) KeyContext(name string) *T { s.n.keyContext = name; return s.self }
+func (s *Styled[T]) KeyContext(name string) *T { s.node().keyContext = name; return s.self }
 
 type actionKeyHint struct {
 	action, target string
@@ -25,7 +25,7 @@ type actionKeyHint struct {
 // must return display-only content, without declaring overlays or shortcuts.
 func KeyHint(action, targetID string, build func(chord string) Element) *DivEl {
 	e := Div()
-	e.n.keyHint = &actionKeyHint{action: action, target: targetID, build: build}
+	e.node().keyHint = &actionKeyHint{action: action, target: targetID, build: build}
 	return e
 }
 
@@ -134,6 +134,7 @@ func (cx *Context) prepareActionBindings(tree *Node) {
 			if target, ok := cx.bindingTargets[hint.target]; ok && hint.build != nil {
 				if chords := core.BindingsIn(hint.action, target.contexts...); len(chords) > 0 {
 					if content := hint.build(chords[0]); content != nil {
+						checkElementOwner(n, content.node())
 						n.children = []Element{content}
 					}
 				}

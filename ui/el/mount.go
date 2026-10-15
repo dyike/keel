@@ -39,16 +39,39 @@ func (cx *Context) Mounted(key any) bool {
 
 // renderTree renders the root view and then the mounted ones.
 func (r *RootWidget) renderTree(cx *Context) *Node {
+	prior := buildingArena
+	buildingArena = &r.arena
+	defer func() { buildingArena = prior }()
 	cx.resetInteractionQueries()
+	// Render queries the last declaration. Snapshot focus ancestry before the
+	// arena overwrites its nodes; keep no pointers into the previous tree.
+	cx.prepareInteractionNodes()
+	cx.shortcuts, cx.actions, cx.globalActions, cx.layers = nil, nil, nil, nil
+	r.mainTree = nil
+	for _, layer := range r.layers {
+		layer.tree = nil
+	}
+	r.arena.begin()
+	defer r.arena.finish()
 	tree := r.view.Render(cx).node()
 	if len(r.mounts) == 0 {
 		return tree
 	}
 	if tree.isText || tree.input != nil || tree.widget != nil {
 		tree = Div().Child(tree).node() // a leaf cannot hold children
+	} else if tree.arena == nil {
+		// Mounts belong to this pass, not to the retained view/cache node.
+		// Copy its outer box so adding mounts does not mutate a persistent tree.
+		copy := newNode()
+		children, owner := copy.children[:0], copy.arena
+		*copy = *tree
+		copy.arena, copy.cached, copy.memo, copy.reused = owner, false, nil, false
+		copy.children = append(children, tree.children...)
+		tree = copy
 	}
 	for _, m := range slices.Clone(r.mounts) { // a view may unmount itself
 		if e := m.view.Render(cx); e != nil {
+			checkElementOwner(tree, e.node())
 			tree.children = append(tree.children, e)
 		}
 	}

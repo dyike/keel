@@ -26,20 +26,20 @@ type inputPasteRequest struct {
 // to consume them. It applies to keyboard and InputPaste commands; nil restores
 // ordinary text paste. Read-only and disabled inputs do not invoke the handler.
 func (v *InputEl) OnPaste(fn func(core.ClipboardData) bool) *InputEl {
-	v.n.input.onPaste = fn
+	v.node().input.onPaste = fn
 	return v
 }
 
 // PasteReader supplies rich clipboard contents. Without one, OnPaste receives
 // Gio's text contents. Failed reads fall back to the Gio text path.
 func (v *InputEl) PasteReader(reader core.ClipboardReader) *InputEl {
-	v.n.input.pasteReader = reader
+	v.node().input.pasteReader = reader
 	return v
 }
 
 // OnPasteError reports read failures before fallback or rejection of oversized
 // text. It runs on the UI thread; nil suppresses error reporting.
-func (v *InputEl) OnPasteError(fn func(error)) *InputEl { v.n.input.onPasteError = fn; return v }
+func (v *InputEl) OnPasteError(fn func(error)) *InputEl { v.node().input.onPasteError = fn; return v }
 
 func (e *engine) requestInputPaste(n *Node, st *elemState) {
 	if !e.gtx.Enabled() || n.input.readOnly {

@@ -3,7 +3,6 @@ package el
 import (
 	"image"
 	"image/color"
-	"slices"
 
 	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/io/semantic"
@@ -24,7 +23,8 @@ type TextRange struct {
 // Ranges copies color ranges without changing text measurement or shaping.
 // Shimmer, when present, takes precedence over ranges.
 func (t *TextEl) Ranges(ranges ...TextRange) *TextEl {
-	t.n.textRanges = slices.Clone(ranges)
+	n := t.node()
+	n.textRanges = append(n.textRanges[:0], ranges...)
 	return t
 }
 

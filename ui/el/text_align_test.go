@@ -17,14 +17,14 @@ func TestTextAlignmentInheritanceAndLabel(t *testing.T) {
 		parent := Div().TextAlign(tc.align).node().style.text
 		child := Text("long first line\nshort").node()
 		child.textStyle = child.style.text.inherit(parent)
-		child.textStyle.color = &c
+		child.textStyle.color = some(c)
 		child.textStyle.size = unit.Sp(14)
 		e := engine{}
 		if got := e.label(child, child.text).Alignment; got != tc.want {
 			t.Fatal("label alignment", got, tc.want)
 		}
 		override := Text("override").TextAlign(Start).node().style.text.inherit(parent)
-		if override.align == nil || *override.align != Start {
+		if !override.align.set || override.align.value != Start {
 			t.Fatal("explicit start did not override")
 		}
 	}

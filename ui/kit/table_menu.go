@@ -1,8 +1,9 @@
 package kit
 
 import (
-	"github.com/dyike/keel/ui/el"
 	"strconv"
+
+	"github.com/dyike/keel/ui/el"
 )
 
 // RowMenu creates a menu for a source row when requested, not on every frame.
@@ -14,8 +15,42 @@ func (v *TableView) CellMenu(build func(row, column int) *MenuView) *TableView {
 	v.cellMenu = build
 	return v
 }
+
+type tableCellIDCache struct {
+	id    string
+	frame uint64
+}
+
+func (v *TableView) beginCellIDs() {
+	v.cellIDFrame++
+	for cell, cached := range v.cellIDs {
+		if cached.frame+1 < v.cellIDFrame {
+			delete(v.cellIDs, cell)
+		}
+	}
+}
+
 func (v *TableView) cellID(row, column int) string {
-	return autoID("table", v) + "/cell/" + strconv.Itoa(row) + "/" + strconv.Itoa(column)
+	cell := TableCell{row, column}
+	if cached, ok := v.cellIDs[cell]; ok {
+		cached.frame = v.cellIDFrame
+		v.cellIDs[cell] = cached
+		return cached.id
+	}
+	if v.cellIDs == nil {
+		v.cellIDs = make(map[TableCell]tableCellIDCache)
+	}
+	if v.cellIDPrefix == "" {
+		v.cellIDPrefix = autoID("table", v) + "/cell/"
+	}
+	var scratch [96]byte
+	id := append(scratch[:0], v.cellIDPrefix...)
+	id = strconv.AppendInt(id, int64(row), 10)
+	id = append(id, '/')
+	id = strconv.AppendInt(id, int64(column), 10)
+	cached := tableCellIDCache{id: string(id), frame: v.cellIDFrame}
+	v.cellIDs[cell] = cached
+	return cached.id
 }
 func (v *TableView) openMenu(cx *el.Context, row, column int) {
 	if v.disabled || row < 0 || row >= len(v.rows) {

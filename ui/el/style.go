@@ -105,11 +105,11 @@ type Style struct {
 	stickBottom             bool
 	endVersion, keepVersion int // ScrollToEndOn; jumps to the end when it changes
 	absolute                bool
-	top, right, bottom      *float32
-	left                    *float32
-	bg                      *color.NRGBA
-	corners                 *[4]float32     // per-corner radii; overrides radius
-	gradient                *theme.Gradient // painted instead of bg when set
+	top, right, bottom      optional[float32]
+	left                    optional[float32]
+	bg                      optional[color.NRGBA]
+	corners                 optional[[4]float32] // per-corner radii; overrides radius
+	gradient                *theme.Gradient      // painted instead of bg when set
 	borderWidth, radius     float32
 	borderColor             color.NRGBA
 	borderDashed            bool
@@ -121,35 +121,52 @@ type Style struct {
 	text                    textStyle
 }
 
+// Optional values stay inline. Presence is independent of the value: transparent
+// colors, Start alignment, zero offsets and normal weight override inheritance.
+// Unlike pointers into a Style, these remain independent when a style is copied.
+type optional[T any] struct {
+	value T
+	set   bool
+}
+
+func some[T any](v T) optional[T] { return optional[T]{value: v, set: true} }
+
+func (o optional[T]) or(fallback T) T {
+	if o.set {
+		return o.value
+	}
+	return fallback
+}
+
 // textStyle is inherited by descendants unless they set their own.
 type textStyle struct {
-	align      *Align
-	color      *color.NRGBA
+	align      optional[Align]
+	color      optional[color.NRGBA]
 	size       unit.Sp
-	weight     *font.Weight
-	mono       *bool
-	italic     *bool
+	weight     optional[font.Weight]
+	mono       optional[bool]
+	italic     optional[bool]
 	lineHeight float32 // multiple of the size; 0 keeps the font's own
 	lines      int
 }
 
 func (t textStyle) inherit(parent textStyle) textStyle {
-	if t.align == nil {
+	if !t.align.set {
 		t.align = parent.align
 	}
-	if t.color == nil {
+	if !t.color.set {
 		t.color = parent.color
 	}
 	if t.size == 0 {
 		t.size = parent.size
 	}
-	if t.weight == nil {
+	if !t.weight.set {
 		t.weight = parent.weight
 	}
-	if t.mono == nil {
+	if !t.mono.set {
 		t.mono = parent.mono
 	}
-	if t.italic == nil {
+	if !t.italic.set {
 		t.italic = parent.italic
 	}
 	if t.lineHeight == 0 {
@@ -162,7 +179,7 @@ func (t textStyle) inherit(parent textStyle) textStyle {
 }
 
 // Visual changes, usable in Hover and Active. They return the Style so calls chain.
-func (s *Style) Bg(c color.NRGBA) *Style { s.bg, s.gradient = &c, nil; return s }
+func (s *Style) Bg(c color.NRGBA) *Style { s.bg, s.gradient = some(c), nil; return s }
 
 // BgGradient fills the background with a linear gradient instead of a solid
 // color; a later Bg replaces it. A zero gradient changes nothing, so a
@@ -174,7 +191,7 @@ func (s *Style) BgGradient(g theme.Gradient) *Style {
 	return s
 }
 func (s *Style) BorderColor(c color.NRGBA) *Style { s.borderColor = c; return s }
-func (s *Style) TextColor(c color.NRGBA) *Style   { s.text.color = &c; return s }
+func (s *Style) TextColor(c color.NRGBA) *Style   { s.text.color = some(c); return s }
 
 func rgb(c uint32) color.NRGBA {
 	return color.NRGBA{R: uint8(c >> 16), G: uint8(c >> 8), B: uint8(c), A: 0xff}

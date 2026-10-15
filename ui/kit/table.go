@@ -85,6 +85,10 @@ type TableView struct {
 	cols                       []*ColumnSpec
 	columns                    []int // display position → source column
 	hidden                     []bool
+	visibleColumnsCache        []int
+	cellIDPrefix               string
+	cellIDs                    map[TableCell]tableCellIDCache
+	cellIDFrame                uint64
 	rows                       [][]string
 	order                      []int // display position → data index
 	sortCol                    int
@@ -471,6 +475,7 @@ func (v *TableView) row(cx *el.Context, p int) el.Element {
 }
 
 func (v *TableView) Render(cx *el.Context) el.Element {
+	v.beginCellIDs()
 	v.scrollColumnDrag(cx)
 	v.loadNearEnd(cx)
 	v.renderContextMenu(cx)

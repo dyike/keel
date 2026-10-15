@@ -131,7 +131,7 @@ func (v *TableView) SelectionText() string {
 	var out strings.Builder
 	writer := csv.NewWriter(&out)
 	writer.Comma = '\t'
-	columns := v.visibleColumns()
+	columns := slices.Clone(v.visibleColumns())
 	if v.columnMode {
 		columns = slices.DeleteFunc(columns, func(c int) bool { return !v.selectedColumns[c] })
 	}

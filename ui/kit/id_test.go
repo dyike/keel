@@ -42,3 +42,12 @@ func BenchmarkCalendarCellID(b *testing.B) {
 		benchmarkID = view.cellID(date)
 	}
 }
+
+func BenchmarkTableCellID(b *testing.B) {
+	view := Table(Col("Name"))
+	view.beginCellIDs()
+	b.ReportAllocs()
+	for b.Loop() {
+		benchmarkID = view.cellID(42, 0)
+	}
+}
