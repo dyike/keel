@@ -142,6 +142,15 @@ e.Frame(ops)                 // Submitted to GPU, executed outside lock
 
 The callback occurs in the middle of the layout. The component in front of the button has been drawn this frame, and the old value is seen. Therefore, after `core.Call` executes the callback, it will request all windows to draw another frame. The actual effect is that the callback modification is displayed on the screen one frame later, about 16ms on a 60Hz screen, which is imperceptible to the human eye.
 
+Each el root owns a node arena. Its allocator is scoped to `Render` under
+the frame lock, with the previous allocator restored for nested roots and
+on panic. A new build expires old element handles before reusing node slots;
+callbacks can trigger another build in the same frame. `Context.Cache`
+builders temporarily use persistent storage. Pointer handles are never
+overwritten, so a saved pointer cannot acquire a later build's generation.
+Focus ancestry is snapshotted before reuse so Render can query the previous
+declaration. See [element lifetime](el.md#what-happens-in-a-frame).
+
 ## Threading
 
 **One sentence: Modify components directly in the callback; components modified by other goroutines must be included in `core.Update`.**

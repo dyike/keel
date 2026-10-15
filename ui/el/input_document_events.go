@@ -15,6 +15,7 @@ import (
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/editorstyle"
 	"github.com/dyike/keel/ui/internal/inputcontent"
+	"github.com/dyike/keel/ui/theme"
 )
 
 func documentSyncEditor(st *elemState, d *InputDocument) {
@@ -87,7 +88,7 @@ func (e *engine) inputDocumentAction(n *Node, st *elemState, action InputAction)
 
 func (e *engine) inputDocumentEvents(n *Node, st *elemState) {
 	spec, d, ed := n.input, n.input.document, st.editor
-	prepareInputTokenHits(st, len(d.Content().Tokens()))
+	prepareInputTokenHits(st, d.Content().TokenCount())
 	if st.inputDocument != d || st.inputDocumentRevision != d.revision {
 		documentSyncEditor(st, d)
 	} else {
@@ -100,17 +101,7 @@ func (e *engine) inputDocumentEvents(n *Node, st *elemState) {
 	}
 	before := d.Content()
 	beforeRevision := d.revision
-	filters := []event.Filter{key.FocusFilter{Target: ed}, transfer.TargetFilter{Target: ed, Type: "application/text"}}
-	for _, name := range []key.Name{"C", "X", "V", "Z", "Y"} {
-		filters = append(filters, key.Filter{Focus: ed, Name: name, Required: key.ModShortcut, Optional: key.ModShift})
-	}
-	for _, name := range []key.Name{key.NameDeleteBackward, key.NameDeleteForward, key.NameLeftArrow, key.NameRightArrow, key.NameEnter, key.NameReturn} {
-		optional := key.ModShift
-		if name != key.NameEnter && name != key.NameReturn {
-			optional |= key.ModShortcutAlt
-		}
-		filters = append(filters, key.Filter{Focus: ed, Name: name, Optional: optional})
-	}
+	filters := documentFilters(st)
 	for {
 		ev, ok := e.gtx.Event(filters...)
 		if !ok {
@@ -291,9 +282,30 @@ func (e *engine) inputDocumentIME(n *Node, st *elemState, g layout.Context) {
 	}
 	text, start, end := documentPlatformSelection(n.input.document)
 	ca, cb := documentCompositionLayout(n.input.document, st.inputComposition.Start, st.inputComposition.End)
-	bounds := editorstyle.Composition(g, st.editor, key.Range{Start: ca, End: cb}, *n.textStyle.color)
+	bounds := editorstyle.Composition(g, st.editor, key.Range{Start: ca, End: cb}, n.textStyle.color.or(theme.Text))
 	g.Execute(key.SelectionCmd{Tag: st.editor, Range: key.Range{Start: start, End: end}, Caret: st.caret.InputMethodCaret(st.editor), CompositionBounds: bounds})
 	g.Execute(key.SnippetCmd{Tag: st.editor, Snippet: key.Snippet{Range: key.Range{Start: 0, End: utf8.RuneCountInString(text)}, Text: text}})
+}
+
+func documentFilters(st *elemState) []event.Filter {
+	if st.inputDocumentFilters != nil {
+		return st.inputDocumentFilters
+	}
+	ed := st.inputEditor()
+	filters := make([]event.Filter, 0, 13)
+	filters = append(filters, key.FocusFilter{Target: ed}, transfer.TargetFilter{Target: ed, Type: "application/text"})
+	for _, name := range []key.Name{"C", "X", "V", "Z", "Y"} {
+		filters = append(filters, key.Filter{Focus: ed, Name: name, Required: key.ModShortcut, Optional: key.ModShift})
+	}
+	for _, name := range []key.Name{key.NameDeleteBackward, key.NameDeleteForward, key.NameLeftArrow, key.NameRightArrow, key.NameEnter, key.NameReturn} {
+		optional := key.ModShift
+		if name != key.NameEnter && name != key.NameReturn {
+			optional |= key.ModShortcutAlt
+		}
+		filters = append(filters, key.Filter{Focus: ed, Name: name, Optional: optional})
+	}
+	st.inputDocumentFilters = filters
+	return filters
 }
 
 // Word navigation stops at whitespace transitions, as Gio's editor does.

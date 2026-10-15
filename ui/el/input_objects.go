@@ -26,7 +26,7 @@ import (
 type InputTokenRenderer func(core.C, InputToken) core.D
 
 func (e *InputEl) TokenRenderer(fn InputTokenRenderer) *InputEl {
-	e.n.input.tokenRenderer = fn
+	e.node().input.tokenRenderer = fn
 	return e
 }
 
@@ -41,6 +41,18 @@ type inputObjectLayout struct {
 
 func (d *InputDocument) presentation() inputcontent.Presentation {
 	c := d.Content()
+	if d.presentationValid && d.presentationObjects == d.objects && d.presentationContent.Same(c) {
+		return d.presentationCache
+	}
+	p := d.buildPresentation(c)
+	d.presentationContent, d.presentationCache = c, p
+	d.presentationObjects, d.presentationValid = d.objects, true
+	return p
+}
+
+// The cache is internal and read-only. Key by immutable content, not document
+// revision: editor/IME/undo paths can change the session directly.
+func (d *InputDocument) buildPresentation(c inputcontent.Content) inputcontent.Presentation {
 	if !d.objects {
 		return c.Presentation()
 	}

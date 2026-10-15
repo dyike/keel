@@ -17,17 +17,25 @@ func NewInputContent(text string, tokens ...InputTokenSpan) (InputContent, error
 // InputDocument retains reference metadata, selection and undo history for one
 // input. Do not attach the same document to multiple live editors.
 type InputDocument struct {
-	session  inputcontent.Session
-	revision uint64
-	objects  bool
+	session                                inputcontent.Session
+	revision                               uint64
+	objects                                bool
+	presentationContent                    inputcontent.Content
+	presentationCache                      inputcontent.Presentation
+	presentationObjects, presentationValid bool
 }
 
-func (d *InputDocument) Content() InputContent     { return d.session.Snapshot().Content }
-func (d *InputDocument) SetContent(c InputContent) { d.session.Set(c); d.revision++ }
+func (d *InputDocument) Content() InputContent { return d.session.Snapshot().Content }
+func (d *InputDocument) SetContent(c InputContent) {
+	d.session.Set(c)
+	d.invalidatePresentation()
+	d.revision++
+}
 func (d *InputDocument) SetText(text string) error {
 	if err := d.session.SetText(text); err != nil {
 		return err
 	}
+	d.invalidatePresentation()
 	d.revision++
 	return nil
 }
@@ -35,8 +43,15 @@ func (d *InputDocument) ReplaceWithToken(token InputToken) error {
 	if err := d.session.ReplaceToken(token); err != nil {
 		return err
 	}
+	d.invalidatePresentation()
 	d.revision++
 	return nil
+}
+
+func (d *InputDocument) invalidatePresentation() {
+	d.presentationContent = inputcontent.Content{}
+	d.presentationCache = inputcontent.Presentation{}
+	d.presentationValid = false
 }
 func (d *InputDocument) Selection() InputRange { return d.session.Snapshot().Selection }
 func (d *InputDocument) Select(r InputRange) error {
@@ -49,12 +64,12 @@ func (d *InputDocument) Select(r InputRange) error {
 
 // Document binds an atomic-reference draft. It owns text and undo; Bind,
 // Transform, password masks, Filter and MaxLen are not applied in this mode.
-func (e *InputEl) Document(d *InputDocument) *InputEl { e.n.input.document = d; return e }
+func (e *InputEl) Document(d *InputDocument) *InputEl { e.node().input.document = d; return e }
 
 // OnTokenActivate runs for an unmodified token click, including in read-only
 // fields. Dragging a selection and disabled fields do not activate references.
 func (e *InputEl) OnTokenActivate(fn func(InputToken)) *InputEl {
-	e.n.input.onTokenActivate = fn
+	e.node().input.onTokenActivate = fn
 	return e
 }
 

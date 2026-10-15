@@ -20,4 +20,4 @@ type DragEvent struct {
 
 // OnDrag reports presses, moves and releases on the element, e.g. for a
 // slider thumb or a splitter. A press also starts an OnClick if both are set.
-func (s *Styled[T]) OnDrag(fn func(DragEvent)) *T { s.n.onDrag = fn; return s.self }
+func (s *Styled[T]) OnDrag(fn func(DragEvent)) *T { s.node().onDrag = fn; return s.self }

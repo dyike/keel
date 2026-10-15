@@ -247,12 +247,116 @@ Closed-overlay first frames do not measure open menus/dialogs, and a static
 scene does not measure scrolling, typing or animation latency. Run interactive
 regressions and the GPU screenshot matrix alongside it.
 
+Steady-frame allocation count is a regression metric. The ordinary test suite
+keeps ceilings for the label (35), list (250), button (260), calendar (1,050),
+table (550) and input (500) gallery scenes after three warm-up frames. These ceilings are guards, not performance
+targets; benchmark bytes and counts before and after every allocation change.
+
+Set `KEEL_FRAME_STATS=all` to log every native-window frame with layout and
+submission time, allocation count and bytes observed for the process, and GC
+cycles completed. `KEEL_FRAME_STATS=1` logs frames over 8ms; another
+non-negative number is the threshold in milliseconds. Leave it unset in
+normal runs: reading runtime metrics is diagnostic work. The allocation
+counters cover the whole process during the frame, so concurrent background
+work can contribute.
+
 For comparisons, build baseline and changed test binaries with the same
 benchmark code, then run each scene in a fresh process. Optional highlighting
 and image fetching may otherwise spill into the following scene's counters.
 A Go overlay can select baseline production files without reverting changes.
 The plain-editor benchmark leaves its language unset; the existing highlighted
 large-file benchmark still includes whole-document background highlighting.
+
+### Further allocation reductions, 2026-10-15
+
+On Apple M4, darwin/arm64, Go 1.27.1, the next pass used the completed node
+arena as its baseline. All 99 gallery scenes reduced both allocation bytes
+and counts: median per-scene reductions were 42.2% and 44.2%. The unweighted
+mean fell from 57,243 to 35,420 B/frame. Each scene ran in its own process,
+three 200ms samples; neither version tuned GC settings. These archived local
+measurements used the temporary three-drawable and idle-reclaim-disabled
+workspace experiments. Neither policy change is part of the arena PR: Metal
+keeps main's policy and idle heap reclamation remains enabled by default.
+
+| Scene | Bytes/frame, before → after | Allocations/frame, before → after |
+| --- | ---: | ---: |
+| Label | 9,808 → 3,336 | 51 → 26 |
+| Button | 106,583 → 64,989 | 463 → 202 |
+| Calendar | 413,218 → 190,688 | 2,344 → 842 |
+| Table | 149,992 → 79,336 | 817 → 424 |
+| List | 58,464 → 29,848 | 374 → 200 |
+| Input | 178,293 → 122,612 | 806 → 400 |
+
+The changes inline optional style values, allocate a private visual style
+only when a callback runs, right-size independent handle batches, reuse
+frame-local measurement entries and editor filters, and cache immutable
+document presentations. Button visual callbacks share a bounded value-only
+cache; application callbacks and frame contexts are never cached there.
+Calendar grids share one disabled-style callback rather than one per day.
+Styles still distinguish absent values from transparent colors, normal font
+weight and zero offsets. Callback copies and pointer handles are never
+overwritten in a later frame.
+
+The 300,000-row scrolling table, three 300ms samples, fell from 368,397 to
+297,361 B/frame and 1,622 to 1,197 allocations/frame; median layout time was
+525µs → 506µs. Gallery layout time improved by a per-scene median of 5.0%,
+but small timing changes remain host-load sensitive. Initial short-run
+regressions in Bubble and the large plain editor did not persist in five 1s
+samples per version: 57.2µs → 55.0µs and 2.50ms → 2.33ms, respectively.
+These CPU-frame measurements do not establish end-to-end FPS, physical
+footprint, GPU memory or startup latency. The pointer API still needs fresh
+checked handles, and shaping, widget construction and application callbacks
+still allocate; this is not a zero-allocation result.
+
+The first screenshot pass caught a default text-color regression in Themed
+subtrees: an inline value captured the global color too early. Default colors
+now resolve against the paint-time palette; explicit transparent colors remain
+explicit. A root-level regression test covers both cases. After that fix,
+all 792 matrix PNGs matched byte-for-byte and all 99 scene navigations and
+interaction groups passed. Native-window lifecycle, idle resume and 60-resize
+checks also passed. Tests additionally cover zero-valued style inheritance,
+callback-copy identity, stale pointer handles, hash collisions, released text
+references, and editor content/object-mode changes. The arena does not add
+forced collections or alter idle heap reclamation thresholds.
+
+### Node arena measurements, 2026-10-15
+
+On Apple M4, darwin/arm64, Go 1.27.1, all 99 gallery scenes reduced both
+bytes and allocation counts per warmed frame. Each scene ran in its own
+process, three 200ms samples. The baseline already includes direct semantic
+ops, cached focus filters, cell IDs and visible columns. The per-scene median
+reductions from the arena were 42.4% in bytes and 37.7% in counts; the
+unweighted mean bytes per scene fell from 106,662 to 57,243.
+
+| Scene | Bytes/frame, before → after | Allocations/frame, before → after |
+| --- | ---: | ---: |
+| Button | 181,059 → 106,583 | 699 → 463 |
+| Calendar | 918,307 → 413,218 | 3,861 → 2,344 |
+| Table | 558,217 → 149,992 | 2,056 → 817 |
+| List | 162,097 → 58,464 | 679 → 374 |
+| Input | 218,070 → 178,293 | 935 → 806 |
+
+The 300,000-row scrolling table benchmark, three 300ms samples per version,
+fell from 1,121,028 to 368,397 B/frame and 3,930 to 1,622 allocations/frame.
+Its median layout time was 590µs → 525µs. Short timing regressions in Radio
+and Button did not persist in five 1s samples per version: medians were
+30.7µs → 29.8µs and 152.6µs → 147.6µs, respectively. Small timing changes
+remain sensitive to host load.
+
+All 792 GPU matrix PNGs matched byte-for-byte. The gallery smoke passed
+all 99 scene navigations and its input, overlay, list, table and calendar
+interactions. Arena tests cover stale handles before and after slot reuse,
+same-frame rerenders, root ownership, cache escape, dropped-node references,
+one-shot roots and nested roots. A warmed 101-node construction allocates at
+most six small handle batches; complete component frames still allocate for
+styles, callbacks and text work. These CPU-frame results do not measure
+native-window physical footprint, GPU memory or startup latency.
+
+Native-window checks also passed (`RealWindows`, `TestMetalIdleWindow` and
+`TestMetalResizeWindow`). Three idle resumes took 28.8–31.8ms; the slowest
+of 60 native resizes took 27.4ms. These checks do not measure end-to-end FPS.
+
+### Earlier allocation measurements, 2026-10-13
 
 On 2026-10-13, darwin/arm64, Apple M5 Pro, all 99 gallery scenes reduced both
 allocated bytes and allocation counts per frame. The median per-scene reductions

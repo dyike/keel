@@ -32,6 +32,8 @@ type CalendarView struct {
 	blocked               func(time.Time) bool
 	disabled              bool
 	onChange              func(start, end time.Time)
+	cellIDPrefix          string
+	cellIDs               map[int64]string
 }
 
 func Calendar() *CalendarView { return &CalendarView{months: 1} }
@@ -161,10 +163,23 @@ func (v *CalendarView) pick(d time.Time) {
 }
 
 func (v *CalendarView) cellID(d time.Time) string {
+	y, m, day := d.Date()
+	key := int64(y)*512 + int64(m)*32 + int64(day)
+	if id := v.cellIDs[key]; id != "" {
+		return id
+	}
+	if v.cellIDs == nil {
+		v.cellIDs = make(map[int64]string)
+	} else if len(v.cellIDs) >= 1024 {
+		clear(v.cellIDs)
+	}
+	if v.cellIDPrefix == "" {
+		v.cellIDPrefix = autoID("calendar", v) + "/"
+	}
 	var scratch [96]byte
-	id := appendAutoID(scratch[:0], "calendar", v)
-	id = append(id, '/')
-	return string(d.AppendFormat(id, "20060102"))
+	id := d.AppendFormat(append(scratch[:0], v.cellIDPrefix...), "20060102")
+	v.cellIDs[key] = string(id)
+	return v.cellIDs[key]
 }
 
 // FocusID is the element ID of the focused day, for cx.Focus.
@@ -246,6 +261,11 @@ func (v *CalendarView) Render(cx *el.Context) el.Element {
 }
 func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) el.Element {
 	text := locale.Current()
+	// All days in this month share the same immutable disabled color. Keep
+	// one callback for the grid, not a closure for every date on every frame.
+	faint := theme.Muted
+	faint.A = 0x66
+	disabledStyle := func(s *el.Style) { s.TextColor(faint) }
 	m := v.metrics()
 	cw, ch := m.width, m.height
 	week := el.Div().WFull().Row()
@@ -268,7 +288,7 @@ func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) e
 			if v.months > 1 && monthOf(d) != month {
 				row.Child(el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(ch)))
 			} else {
-				row.Child(v.cell(d, today, month, cw, ch, move))
+				row.Child(v.cell(d, today, month, cw, ch, move, disabledStyle))
 			}
 		}
 		grid.Child(row)
@@ -276,7 +296,7 @@ func (v *CalendarView) monthGrid(month, today time.Time, move func(time.Time)) e
 	return grid
 }
 
-func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func(time.Time)) el.Element {
+func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func(time.Time), disabledStyle func(*el.Style)) el.Element {
 	inMonth := monthOf(d) == month
 	ok := v.allowed(d)
 	chosen := !v.start.IsZero() && (d.Equal(v.start) || !v.end.IsZero() && d.Equal(v.end))
@@ -297,8 +317,6 @@ func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func
 	}
 	// Blocked days are fainter than days of other months, so they read as
 	// unavailable rather than merely out of range.
-	faint := theme.Muted
-	faint.A = 0x66
 	label := locale.Current().Date(d)
 	dayText := el.Text(strconv.Itoa(d.Day()))
 	if v.size != CalendarSizeMedium {
@@ -306,7 +324,7 @@ func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func
 	}
 	c := el.Div().ID(v.cellID(d)).Role("gridcell").Name(label).Selected(chosen || between).
 		W(el.Dp(0)).Grow().MaxW(el.Dp(cw)).H(el.Dp(ch)).Rounded(theme.RadiusMd).Bg(bg).TextColor(fg).Center().
-		Focusable(d.Equal(v.focus)).Disabled(!ok).DisabledStyle(func(s *el.Style) { s.TextColor(faint) }).
+		Focusable(d.Equal(v.focus)).Disabled(!ok).DisabledStyle(disabledStyle).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		Child(dayText)
 	if d.Equal(today) && !chosen {

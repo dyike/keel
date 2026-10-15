@@ -24,14 +24,20 @@ type TableLayout struct {
 }
 
 func (v *TableView) visibleColumns() []int {
+	if v.visibleColumnsCache != nil {
+		return v.visibleColumnsCache
+	}
 	columns := make([]int, 0, len(v.columns))
 	for _, c := range v.columns {
 		if !v.hidden[c] {
 			columns = append(columns, c)
 		}
 	}
-	return columns
+	v.visibleColumnsCache = columns
+	return v.visibleColumnsCache
 }
+
+func (v *TableView) invalidateVisibleColumns() { v.visibleColumnsCache = nil }
 
 // MoveColumn moves a source column to a display position (including hidden
 // columns). Invalid indexes are ignored. It never moves row data.
@@ -46,6 +52,7 @@ func (v *TableView) MoveColumn(column, position int) {
 	v.columnDrag = nil
 	v.columns = slices.Delete(v.columns, old, old+1)
 	v.columns = slices.Insert(v.columns, position, column)
+	v.invalidateVisibleColumns()
 	v.ensureFrozenWidths()
 }
 
@@ -57,6 +64,7 @@ func (v *TableView) SetColumnVisible(column int, visible bool) {
 	}
 	v.columnDrag = nil
 	v.hidden[column] = !visible
+	v.invalidateVisibleColumns()
 	v.ensureFrozenWidths()
 }
 
@@ -91,6 +99,7 @@ func (v *TableView) SetLayoutState(state TableLayout) error {
 		v.hidden[col.Column] = col.Hidden
 	}
 	v.frozenLeft, v.frozenRight = state.FrozenLeft, state.FrozenRight
+	v.invalidateVisibleColumns()
 	v.ensureFrozenWidths()
 	return nil
 }

@@ -1,6 +1,9 @@
 package el
 
-import "image"
+import (
+	"image"
+	"slices"
+)
 
 func (e *engine) layoutChildren(n *Node, innerW, innerH, limW, limH int) image.Point {
 	if n.style.grid > 0 {
@@ -15,7 +18,7 @@ func (e *engine) layoutChildren(n *Node, innerW, innerH, limW, limH int) image.P
 func (e *engine) wrap(n *Node, width, limW, limH int) image.Point {
 	var scratch [16]*Node
 	kids := inFlow(n, scratch[:0])
-	n.flowPositions = make([]image.Point, len(kids))
+	n.flowPositions = slices.Grow(n.flowPositions[:0], len(kids))[:len(kids)]
 	limit := limW
 	if width >= 0 {
 		limit = width
@@ -130,7 +133,7 @@ func (e *engine) rowPositions(n *Node, size image.Point) []image.Point {
 func (e *engine) grid(n *Node, width, limW, limH int) image.Point {
 	var scratch [16]*Node
 	kids := inFlow(n, scratch[:0])
-	n.flowPositions = make([]image.Point, len(kids))
+	n.flowPositions = slices.Grow(n.flowPositions[:0], len(kids))[:len(kids)]
 	if len(kids) == 0 {
 		return image.Point{}
 	}

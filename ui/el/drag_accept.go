@@ -17,7 +17,7 @@ import (
 // Presses on interactive descendants are left to those descendants.
 // The predicate must not mutate UI state. Use with OnDrag.
 func (s *Styled[T]) DragAccept(fn func(dx, dy float32) bool) *T {
-	s.n.dragAccept = fn
+	s.node().dragAccept = fn
 	return s.self
 }
 

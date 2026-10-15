@@ -32,6 +32,41 @@ type ButtonAppearance struct {
 	Border, Focus                     color.NRGBA
 }
 
+// Only immutable visual values are shared. Never cache user callbacks, views,
+// contexts or frame handles here; a button's appearance is still resolved on
+// every Render, including application-supplied Appearance transforms.
+type buttonStyleKey struct {
+	focus, hover, hoverText, active, activeText color.NRGBA
+	gradient                                    theme.Gradient
+}
+
+type buttonStyles struct {
+	focus, hover, active func(*el.Style)
+}
+
+var buttonStyleCache = make(map[buttonStyleKey]buttonStyles)
+
+func resolveButtonStyles(a ButtonAppearance, gradient theme.Gradient) buttonStyles {
+	key := buttonStyleKey{a.Focus, a.Hover, a.HoverForeground, a.Active, a.ActiveForeground, gradient}
+	if styles, ok := buttonStyleCache[key]; ok {
+		return styles
+	}
+	styles := buttonStyles{
+		focus:  func(s *el.Style) { s.BorderColor(key.focus) },
+		hover:  func(s *el.Style) { s.Bg(key.hover).TextColor(key.hoverText) },
+		active: func(s *el.Style) { s.Bg(key.active).TextColor(key.activeText) },
+	}
+	if !gradient.IsZero() {
+		styles.hover = func(s *el.Style) { s.BgGradient(shadeGradient(gradient, 9)) }
+		styles.active = func(s *el.Style) { s.BgGradient(shadeGradient(gradient, 8)) }
+	}
+	if len(buttonStyleCache) >= 256 {
+		clear(buttonStyleCache)
+	}
+	buttonStyleCache[key] = styles
+	return styles
+}
+
 // ButtonView is an action with pointer and keyboard activation.
 type ButtonView struct {
 	id, name          string
@@ -191,6 +226,10 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 	if v.disabled {
 		bg, fg = disabledBg, theme.Muted
 	}
+	border := appearance.Border
+	if v.disabled {
+		border = theme.Border
+	}
 	font, iconSize, padding := float32(theme.TextControl), float32(16), float32(16)
 	if v.height <= 28 {
 		font, iconSize, padding = theme.TextSm, 14, 10
@@ -207,26 +246,34 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 	if name == "" {
 		name = v.text
 	}
-	box := el.Div().ID(v.id).Role("button").Name(name).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(theme.SpaceSm).Items(el.Center).Justify(el.Center).
-		RoundedCorners(corners[0], corners[1], corners[2], corners[3]).Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
+	var gradient theme.Gradient
+	if g := theme.PrimaryGradient; v.variant == ButtonPrimary && !v.outline && v.appearance == nil && !v.disabled && !g.IsZero() {
+		gradient = g
+	}
+	styles := resolveButtonStyles(appearance, gradient)
+	box := el.Div().ID(v.id).Role("button").Name(name).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(theme.SpaceSm).Items(el.Center).Justify(el.Center)
+	if corners[0] == corners[1] && corners[0] == corners[2] && corners[0] == corners[3] {
+		box.Rounded(corners[0])
+	} else {
+		box.RoundedCorners(corners[0], corners[1], corners[2], corners[3])
+	}
+	box.Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
 		Disabled(v.disabled).
-		DisabledStyle(func(s *el.Style) { s.Bg(disabledBg).TextColor(theme.Muted).BorderColor(theme.Border) }).
-		FocusStyle(func(s *el.Style) { s.BorderColor(appearance.Focus) })
+		FocusStyle(styles.focus)
 	if v.outline || appearance.Border.A > 0 {
-		box.Border(1, appearance.Border)
+		box.Border(1, border)
 	}
 	if v.content == nil && v.text == "" && v.icon != nil {
 		box.W(el.Dp(v.height)).Px(0)
 	}
 
-	if g := theme.PrimaryGradient; v.variant == ButtonPrimary && !v.outline && v.appearance == nil && !v.disabled && !g.IsZero() {
-		box.BgGradient(g)
+	if !gradient.IsZero() {
+		box.BgGradient(gradient)
 		if !v.loading {
-			box.CursorPointer().Hover(func(s *el.Style) { s.BgGradient(shadeGradient(g, 9)) }).
-				Active(func(s *el.Style) { s.BgGradient(shadeGradient(g, 8)) })
+			box.CursorPointer().Hover(styles.hover).Active(styles.active)
 		}
 	} else if !v.loading && !v.disabled {
-		box.CursorPointer().Hover(func(s *el.Style) { s.Bg(appearance.Hover).TextColor(appearance.HoverForeground) }).Active(func(s *el.Style) { s.Bg(appearance.Active).TextColor(appearance.ActiveForeground) })
+		box.CursorPointer().Hover(styles.hover).Active(styles.active)
 	}
 	if v.loading {
 		box.Value("loading")
@@ -255,7 +302,7 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 		}
 	}
 	if v.text != "" {
-		text := el.Text(v.text).MaxLines(1).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) })
+		text := el.Text(v.text).MaxLines(1)
 		if v.loading && v.icon == nil {
 			text.TextColor(color.NRGBA{}).DisabledStyle(func(s *el.Style) { s.TextColor(color.NRGBA{}) })
 		}

@@ -24,10 +24,10 @@ type scrollHandler struct {
 // Nil removes the handler; disabled/hidden ancestors suppress delivery.
 func (s *Styled[T]) OnScroll(x, y ScrollRange, fn func(ScrollEvent)) *T {
 	if fn == nil {
-		s.n.onScroll = nil
+		s.node().onScroll = nil
 		return s.self
 	}
-	s.n.onScroll = &scrollHandler{x: x, y: y, fn: fn}
+	s.node().onScroll = &scrollHandler{x: x, y: y, fn: fn}
 	return s.self
 }
 

@@ -37,8 +37,8 @@ const (
 // Elements without a mode use SetScrollbarDefault's.
 func (s *Styled[T]) Scrollbars(mode ScrollbarMode) *T {
 	if mode <= ScrollbarHidden {
-		s.n.style.scrollbarMode = mode
-		s.n.style.scrollbarModeSet = true
+		s.node().style.scrollbarMode = mode
+		s.node().style.scrollbarModeSet = true
 	}
 	return s.self
 }

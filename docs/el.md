@@ -45,6 +45,68 @@ The ready-made components are at [ui/kit](kit.md), and they are all el views.
 
 Render will be called every frame, so it should be kept cheap: only build trees based on status, no I/O, no large calculations. Put time-consuming things into goroutine, and use `core.Update` to change the status after completion. Threading rules are the same as other modules, see [Architecture · Threading Rules](architecture.md#threading).
 
+Elements created during `Render` use that root's node arena. They remain
+valid for layout, painting and bounds queries until the root starts its next
+build pass. A callback can cause a second build in the same frame. Using an
+old element then panics, even if its slot has not yet been reused. Frame
+elements from another root cannot be attached to the tree. Keep view state and IDs
+across frames, and build elements again in `Render`.
+
+`Context.Cache` creates persistent subtrees outside the frame arena. Build
+the whole subtree inside its builder; passing in a temporary element from
+the surrounding `Render` panics. Elements constructed outside `Render` keep
+their existing persistent lifetime. Element construction and rendering share
+the UI frame lock; background goroutines publish state with `core.Update`.
+
+From the second build, the arena reuses chunks of 32 nodes and each node's
+child, flow-position and text-range buffers. A one-shot root allocates only
+the nodes it uses. Unused nodes release their references; one spare chunk
+absorbs small changes in visible row count. Pointer builders keep independent
+generation-checked handles, allocated in batches and never overwritten in a
+later pass. This preserves the pointer API but still allocates small handles.
+Batch capacity follows the previous pass's usage, bounded to 4–32 handles;
+small roots do not reserve a full batch for every element type.
+
+Optional colors, text attributes, offsets and corner radii are stored inline
+with presence bits. Explicit transparent/zero values still override inherited
+styles, and copying a Style does not alias those values. Unset text color
+resolves against the palette active at paint time, including Themed subtrees.
+Resting paint styles
+stay on the stack; an addressable copy is allocated only when a user style
+callback actually runs, shared by that node's callbacks and never recycled in
+another frame. Text measurements reuse frame-local entries and verify complete
+keys on hash collisions. Input documents cache read-only presentation mappings
+by immutable content and object mode, including edits, undo and IME changes.
+
+### Migration: do not retain frame elements
+
+The node arena is a **breaking lifetime change**, even though builder method
+signatures are unchanged. Code that saves an element built during Render and
+uses it in a later build now panics, including a second build in the same
+frame. Do not save `*DivEl`, `*TextEl`, `*InputEl`, `*WidgetEl` or `Element`
+fields for later frames; keeping an ID does not extend an element's lifetime.
+
+Keep application state in the view and rebuild its elements:
+
+```go
+func (v *Counter) Render(cx *el.Context) el.Element {
+    return el.Text(strconv.Itoa(v.count))
+}
+```
+
+For an unchanged subtree, construct the entire tree inside `Context.Cache`:
+
+```go
+return cx.Cache("static-title", func() el.Element {
+    return el.Div().Child(el.Text("Settings").Bold())
+})
+```
+
+Choose a cache key unique to the subtree and include any inputs that can
+change it. Do not pass a frame element into the cache builder. Store IDs for
+focus/scroll requests, and keep long-lived input state in a view or
+`InputDocument`, not in its temporary InputEl.
+
 ### Numeric label image cache
 
 Views with many changing numeric labels can opt into a shared glyph atlas:
@@ -171,6 +233,10 @@ for _, m := range v.msgs {
 ```
 
 The keys must be comparable, and the appearance of the element is determined only by the key: when the appearance changes, the key must also change (for example, with a version number). Cache entries that are not used in a certain frame will be deleted. This is how `ui/markdown` caches written blocks.
+
+The builder must construct its retained elements itself. Do not capture an
+element built earlier in the surrounding `Render`; capture its input data
+and construct the element inside the builder instead.
 
 `theme.Apply` causes the elements of `cx.Cache` to be rebuilt on the next visit when the theme switches. The self-built cache needs to contain `theme.Revision()`; the theme color should be read within the Render or cache construction function, and the fixed color will not be automatically converted.
 

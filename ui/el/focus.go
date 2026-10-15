@@ -29,13 +29,13 @@ const allKeyModifiers = key.ModCtrl | key.ModCommand | key.ModShift | key.ModAlt
 // frame's padding or beside the text then focuses the text. The box shows the
 // text cursor; it gets no role and no Tab stop. It needs an ID of its own.
 // An Input already does this for its own padding.
-func (s *Styled[T]) FocusOnPress(id string) *T { s.n.focusOnPress = id; return s.self }
+func (s *Styled[T]) FocusOnPress(id string) *T { s.node().focusOnPress = id; return s.self }
 
 // Focusable adds the element to the native Tab order and focuses it on press.
 // Input and TextArea already manage their native editor focus.
 func (s *Styled[T]) Focusable(on bool) *T {
-	s.n.focusSet = true
-	s.n.focusable = on
+	s.node().focusSet = true
+	s.node().focusable = on
 	return s.self
 }
 
@@ -44,35 +44,35 @@ func (s *Styled[T]) Focusable(on bool) *T {
 // Context.Focus requests can move to another scope; this does not open a modal,
 // focus on mount, or restore focus on removal. Use Layer.TrapFocus for overlays.
 // Targets belong to this el root; independently embedded widgets own their focus.
-func (s *Styled[T]) FocusTrap(on bool) *T { s.n.focusTrap = on; return s.self }
+func (s *Styled[T]) FocusTrap(on bool) *T { s.node().focusTrap = on; return s.self }
 
 // TabStop controls sequential Tab traversal without disabling pointer/programmatic
 // focus. Explicit Tab configuration is scoped to this el root and its active trap.
 func (s *Styled[T]) TabStop(on bool) *T {
-	s.n.tabConfigured, s.n.tabSkip = true, !on
+	s.node().tabConfigured, s.node().tabSkip = true, !on
 	return s.self
 }
 
 // TabIndex orders stops by ascending index, with tree order breaking ties.
 // Negative indexes skip Tab traversal. The default index is zero.
 func (s *Styled[T]) TabIndex(index int) *T {
-	s.n.tabConfigured, s.n.tabIndex = true, index
+	s.node().tabConfigured, s.node().tabIndex = true, index
 	return s.self
 }
 
 // OnKey handles keys from a focused Focusable element, bubbling through its
 // ancestors. Return true to stop bubbling and suppress default activation.
 // Tab remains platform focus navigation; use Context.Shortcut for global keys.
-func (s *Styled[T]) OnKey(fn func(KeyEvent) bool) *T { s.n.onKey = fn; return s.self }
+func (s *Styled[T]) OnKey(fn func(KeyEvent) bool) *T { s.node().onKey = fn; return s.self }
 
 // FocusStyle sets a visual keyboard/programmatic focus style, like Hover.
 // Pointer focus on non-input elements does not show it. Inputs always show it.
 // It does not change layout.
 // The default focus style is a 2dp Primary border inside the element bounds.
-func (s *Styled[T]) FocusStyle(fn func(*Style)) *T { s.n.focus = fn; return s.self }
+func (s *Styled[T]) FocusStyle(fn func(*Style)) *T { s.node().focus = fn; return s.self }
 
-func (s *Styled[T]) Disabled(v bool) *T               { s.n.disabled = v; return s.self }
-func (s *Styled[T]) DisabledStyle(fn func(*Style)) *T { s.n.disabledStyle = fn; return s.self }
+func (s *Styled[T]) Disabled(v bool) *T               { s.node().disabled = v; return s.self }
+func (s *Styled[T]) DisabledStyle(fn func(*Style)) *T { s.node().disabledStyle = fn; return s.self }
 
 // FocusWithin reports whether the element with id, or anything inside it,
 // had focus in the last painted frame. Tooltips use it for keyboard focus.
@@ -80,22 +80,8 @@ func (cx *Context) FocusWithin(id string) bool {
 	if id == "" {
 		return false
 	}
-	r := cx.root
 	cx.prepareInteractionNodes()
-	n := cx.queryNodes[id]
-	var focused func(*Node) bool
-	focused = func(n *Node) bool {
-		if st := r.store.states[n.key]; st != nil && !st.disabled && (r.source.Focused(st) || (st.editor != nil && r.source.Focused(st.editor))) {
-			return true
-		}
-		for _, c := range n.children {
-			if focused(c.node()) {
-				return true
-			}
-		}
-		return false
-	}
-	return n != nil && focused(n)
+	return cx.queryNodes[id].focused
 }
 
 // FocusVisibleWithin is FocusWithin for focus rings: it reports focus in the
@@ -105,23 +91,8 @@ func (cx *Context) FocusVisibleWithin(id string) bool {
 	if id == "" {
 		return false
 	}
-	r := cx.root
 	cx.prepareInteractionNodes()
-	n := cx.queryNodes[id]
-	var visible func(*Node) bool
-	visible = func(n *Node) bool {
-		if st := r.store.states[n.key]; st != nil && !st.disabled &&
-			(!st.pointerFocus && r.source.Focused(st) || st.inputRing && (st.editor != nil && r.source.Focused(st.editor))) {
-			return true
-		}
-		for _, c := range n.children {
-			if visible(c.node()) {
-				return true
-			}
-		}
-		return false
-	}
-	return n != nil && visible(n)
+	return cx.queryNodes[id].visible
 }
 
 // Enabled reports whether the last declared element with id accepts input,
@@ -344,22 +315,41 @@ func (r *RootWidget) dispatchKeys(gtx core.C) {
 	}
 }
 
+var scrollFocusKeys = [...]key.Name{
+	key.NameLeftArrow, key.NameRightArrow, key.NameUpArrow, key.NameDownArrow,
+	key.NamePageUp, key.NamePageDown, key.NameHome, key.NameEnd,
+}
+
+var activationFocusKeys = [...]key.Name{key.NameSpace, key.NameReturn, key.NameEnter}
+
 func focusFilters(st *elemState) []event.Filter {
-	filters := []event.Filter{key.FocusFilter{Target: st}}
-	scrolling := false
+	mode := uint8(0)
 	for p := st; p != nil; p = p.keyParent {
-		scrolling = scrolling || p.scrollableX || p.scrollableY
 		if p.onKey != nil {
-			return append(filters, key.Filter{Focus: st, Optional: allKeyModifiers})
+			mode = 2
+			break
+		}
+		if p.scrollableX || p.scrollableY {
+			mode = 1
 		}
 	}
-	if scrolling {
-		for _, name := range []key.Name{key.NameLeftArrow, key.NameRightArrow, key.NameUpArrow, key.NameDownArrow, key.NamePageUp, key.NamePageDown, key.NameHome, key.NameEnd} {
+	if st.keyFilters != nil && st.filterMode == mode {
+		return st.keyFilters
+	}
+	filters := st.keyFilters[:0]
+	filters = append(filters, key.FocusFilter{Target: st})
+	if mode == 2 {
+		filters = append(filters, key.Filter{Focus: st, Optional: allKeyModifiers})
+	} else if mode == 1 {
+		for _, name := range scrollFocusKeys {
 			filters = append(filters, key.Filter{Focus: st, Name: name, Optional: key.ModShift})
 		}
 	}
-	for _, name := range []key.Name{key.NameSpace, key.NameReturn, key.NameEnter} {
-		filters = append(filters, key.Filter{Focus: st, Name: name})
+	if mode != 2 {
+		for _, name := range activationFocusKeys {
+			filters = append(filters, key.Filter{Focus: st, Name: name})
+		}
 	}
-	return filters
+	st.keyFilters, st.filterMode = filters, mode
+	return st.keyFilters
 }

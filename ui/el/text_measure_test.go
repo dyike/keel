@@ -110,8 +110,8 @@ func TestRootClearsTextMeasurementCache(t *testing.T) {
 	value = "second label"
 	ops.Reset()
 	root.Layout(ctx)
-	for key := range root.e.textMeasurements {
-		if key.value == "first label" {
+	for _, entry := range root.e.textMeasurementEntries {
+		if entry.key.value == "first label" {
 			t.Fatal("RootWidget retained previous frame text")
 		}
 	}

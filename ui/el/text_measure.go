@@ -1,6 +1,7 @@
 package el
 
 import (
+	"hash/maphash"
 	"image"
 
 	"github.com/dyike/keel/gio/layout"
@@ -27,7 +28,11 @@ func (e *engine) measureLabel(gtx layout.Context, lb material.LabelStyle) layout
 	// Height affects visibility and constrained dimensions; measurement contexts
 	// in Keel are unbounded vertically, but preserve it in the cache as well.
 	cacheKey := textMeasureCacheKey{key, cs.Min.Y, cs.Max.Y}
-	if dims, ok := e.textMeasurements[cacheKey]; ok {
+	if e.textMeasurementSeed == (maphash.Seed{}) {
+		e.textMeasurementSeed = maphash.MakeSeed()
+	}
+	hash := maphash.Comparable(e.textMeasurementSeed, cacheKey)
+	if dims, ok := e.cachedTextMeasurement(hash, cacheKey); ok {
 		return dims
 	}
 	lb.Shaper.LayoutString(params, lb.Text)
@@ -63,10 +68,7 @@ func (e *engine) measureLabel(gtx layout.Context, lb material.LabelStyle) layout
 	}
 	size := cs.Constrain(bounds.Size())
 	dims := layout.Dimensions{Size: size, Baseline: size.Y - baseline}
-	if e.textMeasurements == nil {
-		e.textMeasurements = make(map[textMeasureCacheKey]layout.Dimensions)
-	}
-	e.textMeasurements[cacheKey] = dims
+	e.cacheTextMeasurement(hash, cacheKey, dims)
 	return dims
 }
 
@@ -75,12 +77,40 @@ type textMeasureCacheKey struct {
 	minHeight, maxHeight int
 }
 
+type textMeasurement struct {
+	key  textMeasureCacheKey
+	dims layout.Dimensions
+	next int // one-based collision chain; zero is absent
+}
+
+func (e *engine) cachedTextMeasurement(hash uint64, key textMeasureCacheKey) (layout.Dimensions, bool) {
+	for i := e.textMeasurements[hash]; i != 0; {
+		entry := &e.textMeasurementEntries[i-1]
+		if entry.key == key {
+			return entry.dims, true
+		}
+		i = entry.next
+	}
+	return layout.Dimensions{}, false
+}
+
+func (e *engine) cacheTextMeasurement(hash uint64, key textMeasureCacheKey, dims layout.Dimensions) {
+	if e.textMeasurements == nil {
+		e.textMeasurements = make(map[uint64]int)
+	}
+	e.textMeasurementEntries = append(e.textMeasurementEntries, textMeasurement{key, dims, e.textMeasurements[hash]})
+	e.textMeasurements[hash] = len(e.textMeasurementEntries)
+}
+
 // The engine belongs to RootWidget and survives frames. Release text keys at
 // every root layout, retaining only a modest reusable map allocation.
 func (e *engine) beginTextMeasurements() {
-	if len(e.textMeasurements) > 4096 {
+	if len(e.textMeasurementEntries) > 4096 {
 		e.textMeasurements = nil
+		e.textMeasurementEntries = nil
 	} else {
 		clear(e.textMeasurements)
+		clear(e.textMeasurementEntries)
+		e.textMeasurementEntries = e.textMeasurementEntries[:0]
 	}
 }

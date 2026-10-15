@@ -41,7 +41,8 @@ func (f ViewFunc) Render(cx *Context) Element { return f(cx) }
 type Context struct {
 	queryRevision          uint64
 	queryHover, queryFocus map[string][]*elemState
-	queryNodes             map[string]*Node
+	queryNodes             map[string]focusWithinState
+	queryNodesPrepared     bool
 	layers                 []overlayDecl
 	shortcuts              []viewShortcut
 	actions                []scopedAction
@@ -60,7 +61,9 @@ func (cx *Context) ClickModifiers() key.Modifiers { return cx.root.clickModifier
 // chat history, a rendered document) costs little per frame. key must be
 // comparable and change whenever the element would look different; the
 // element must not depend on anything else. Entries unused for a frame are
-// dropped. Applying a theme also rebuilds cached elements.
+// dropped. Applying a theme also rebuilds cached elements. Build the entire
+// retained subtree inside build; returning or retaining an element from the
+// surrounding Render panics because its frame storage will be reused.
 func (cx *Context) Cache(key any, build func() Element) Element {
 	c := &cx.root.cache
 	if rev := [2]uint64{theme.Revision(), locale.Revision()}; c.revision != rev {
@@ -71,10 +74,26 @@ func (cx *Context) Cache(key any, build func() Element) Element {
 		e.frame = cx.root.store.frame
 		return e.el
 	}
-	el := build()
+	prior := buildingArena
+	buildingArena = nil
+	var el Element
+	func() {
+		defer func() { buildingArena = prior }()
+		el = build()
+	}()
 	if el == nil {
 		return nil
 	}
+	var check func(*Node)
+	check = func(n *Node) {
+		if n.arena != nil {
+			panic("el: Context.Cache must build its own persistent subtree, not return a frame element")
+		}
+		for _, child := range n.children {
+			check(child.node())
+		}
+	}
+	check(el.node())
 	el.node().cached = true
 	c.entries[key] = &cacheEntry{el: el, frame: cx.root.store.frame}
 	return el
@@ -152,6 +171,7 @@ type RootWidget struct {
 	store          *store
 	cache          elementCache
 	e              engine
+	arena          nodeArena
 	focusID        string
 	focusPending   bool
 
@@ -218,6 +238,11 @@ func (r *RootWidget) LayoutIn(gtx core.C, visible image.Rectangle, parent *Conte
 }
 
 func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin image.Point, parents []*elemState) core.D {
+	// A root can be measured while another view is building. Only Render
+	// allocates from an arena; layout, paint and callbacks use no allocator.
+	priorArena := buildingArena
+	buildingArena = nil
+	defer func() { buildingArena = priorArena }()
 	e := &r.e
 	priorOffset, priorParents := e.paintOffset, e.scrollParents
 	e.paintOffset, e.scrollParents = origin, parents
@@ -261,10 +286,6 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	}
 	if r.callbacks {
 		r.beginTimers()
-		cx.shortcuts = nil
-		cx.actions = nil
-		cx.globalActions = nil
-		cx.layers = nil
 		tree = r.renderTree(&cx)
 		cx.prepareActionBindings(tree)
 	}
@@ -291,12 +312,14 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	if r.requestedFocus != nil {
 		priorFocus = r.requestedFocus
 	}
-	base := textStyle{color: &theme.Text, size: theme.BodySize}
+	// Keep the default color unresolved: a Themed subtree changes theme.Text
+	// while painting. Only explicitly declared colors override that palette.
+	base := textStyle{size: theme.BodySize}
 	max := gtx.Constraints.Max
 	if r.fill {
 		tree.forceW, tree.forceH = max.X, max.Y
-		if tree.style.bg == nil && tree.style.gradient == nil {
-			tree.style.bg = &theme.Bg
+		if !tree.style.bg.set && tree.style.gradient == nil {
+			tree.style.bg = some(theme.Bg)
 			tree.style.BgGradient(theme.BgGradient)
 		}
 	}

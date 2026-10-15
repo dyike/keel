@@ -9,6 +9,7 @@ import (
 
 	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/gesture"
+	"github.com/dyike/keel/gio/io/event"
 	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/gio/widget"
@@ -49,6 +50,8 @@ type elemState struct {
 	keyParent  *elemState
 	keyFrame   uint64
 	pressedKey key.Name
+	keyFilters []event.Filter
+	filterMode uint8
 	// Pointer focus keeps keyboard routing without drawing a focus ring.
 	pointerFocus bool
 	// inputRing: the editor took focus from the keyboard or a program, so its
@@ -116,6 +119,7 @@ type elemState struct {
 	inputTokenHits        []*inputTokenHit
 	inputDocument         *InputDocument
 	inputDocumentRevision uint64
+	inputDocumentFilters  []event.Filter
 	inputComposition      key.Range
 	editor                *widget.Editor
 	caret                 editorstyle.Caret

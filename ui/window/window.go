@@ -314,6 +314,7 @@ func (w *Window) run() {
 			}
 			loop.Unlock()
 		case gioapp.FrameEvent:
+			stats := beginFrameStats()
 			gtx := gioapp.NewContext(&ops, e)
 			if w.virt != nil { // keep the shadow the same size as the window
 				w.virt.setSize(image.Pt(int(e.Metric.PxToDp(e.Size.X)), int(e.Metric.PxToDp(e.Size.Y))))
@@ -322,6 +323,7 @@ func (w *Window) run() {
 			loop.Drain()
 			w.layout(gtx)
 			loop.Unlock()
+			stats.layoutDone()
 			if w.glassRenderer != nil {
 				if err := w.glassRenderer.Frame(gtx.Ops, e.Size); err != nil {
 					log.Printf("window: glass rendering: %v", err)
@@ -329,6 +331,7 @@ func (w *Window) run() {
 				}
 			}
 			e.Frame(gtx.Ops)
+			stats.end()
 			if !positioned {
 				positioned = true
 				loop.Lock()
