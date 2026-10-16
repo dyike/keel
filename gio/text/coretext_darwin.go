@@ -1,4 +1,6 @@
-// SPDX-License-Identifier: Unlicense OR MIT
+// SPDX-License-Identifier: MIT
+// License terms are included in coretext_bind_darwin.go.
+
 //go:build darwin && !ios
 
 package text
@@ -26,6 +28,7 @@ import (
 	"github.com/dyike/keel/typesetting/font/opentype/tables"
 	"github.com/dyike/keel/typesetting/shaping"
 	"github.com/ebitengine/purego"
+	"github.com/ebitengine/purego/objc"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -301,6 +304,155 @@ func (e *ctShaper) setQuery(f giofont.Font, families []string) {
 	e.families = append(e.families[:0], families...)
 }
 
+// Convert CSS weights to native font traits and require exact family matching.
+func ctWeight(w giofont.Weight) float64 {
+	steps := [...]float64{-.8, -.6, -.4, 0, .23, .3, .4, .56, .62}
+	f := (float64(max(100, min(int(w)+400, 900))) - 100) / 100
+	i := min(int(f), 7)
+	return steps[i] + (steps[i+1]-steps[i])*(f-float64(i))
+}
+func (e *ctShaper) descriptor(family string) uintptr {
+	if registered := e.registered[strings.ToLower(family)]; len(registered) > 0 {
+		best := registered[0]
+		score := int(^uint(0) >> 1)
+		for _, r := range registered {
+			d := absInt(int(r.meta.Weight - e.query.Weight))
+			if r.meta.Style != e.query.Style {
+				d += 10000
+			}
+			if d < score {
+				best, score = r, d
+			}
+		}
+		return ct.retain(best.desc)
+	}
+	switch strings.ToLower(family) {
+	case "sans-serif", "system-ui":
+		family = ".AppleSystemUIFont"
+	case "monospace":
+		family = "Menlo"
+	case "serif":
+		family = "Times New Roman"
+	case "emoji":
+		family = "Apple Color Emoji"
+	}
+	name := ctStringNew(family)
+	defer ct.release(name)
+	w := ctFloat(ctWeight(e.query.Weight))
+	defer ct.release(w)
+	symbolic := int32(0)
+	if e.query.Style == giofont.Italic {
+		symbolic = ctFontItalicTrait
+	}
+	sym := ct.numberCreate(0, cfNumberSInt32Type, unsafe.Pointer(&symbolic))
+	defer ct.release(sym)
+	traits := ctDict([]uintptr{ct.weightTrait, ct.symbolicTrait}, []uintptr{w, sym})
+	defer ct.release(traits)
+	attrs := ctDict([]uintptr{ct.familyNameAttribute, ct.traitsAttribute}, []uintptr{name, traits})
+	defer ct.release(attrs)
+	desc := ct.descriptorWithAttrs(attrs)
+	if desc == 0 {
+		return 0
+	}
+	defer ct.release(desc)
+	mandatory := ct.familyNameAttribute
+	set := ct.setCreate(0, &mandatory, 1, ct.setCallbacks)
+	defer ct.release(set)
+	return ct.descriptorMatching(desc, set)
+}
+func absInt(i int) int {
+	if i < 0 {
+		return -i
+	}
+	return i
+}
+
+// NSFont selects system variable-font weight and italic coordinates; a
+// family-name lookup cannot reproduce those exact native instances.
+func (e *ctShaper) systemFont(size fixed.Int26_6, mono bool) uintptr {
+	cls := objc.ID(objc.GetClass("NSFont"))
+	var native uintptr
+	if cls != 0 {
+		sel := "systemFontOfSize:weight:"
+		if mono {
+			sel = "monospacedSystemFontOfSize:weight:"
+		}
+		selector := objc.RegisterName(sel)
+		if objc.Send[bool](cls, objc.RegisterName("respondsToSelector:"), selector) {
+			native = uintptr(cls.Send(selector, float64(size)/64, ctWeight(e.query.Weight)))
+		}
+	}
+	if native == 0 {
+		native = ct.uiFontForLanguage(ctFontUIFontSystem, float64(size)/64, 0)
+	} else {
+		ct.retain(native)
+	}
+	if native != 0 && e.query.Style == giofont.Italic {
+		if with := ct.fontWithTraits(native, 0, 0, ctFontItalicTrait, ctFontItalicTrait); with != 0 {
+			ct.release(native)
+			native = with
+		}
+	}
+	return native
+}
+
+func (e *ctShaper) primaryFont(size fixed.Int26_6) uintptr {
+	key := ctStyle{strings.Join(e.families, "\x00"), size, e.query.Weight, e.query.Style}
+	if f := e.primary[key]; f != 0 {
+		return f
+	}
+	if len(e.primary) >= 256 {
+		for _, f := range e.primary {
+			e.resources.drop(f)
+		}
+		clear(e.primary)
+	}
+	var font uintptr
+	var cascade []uintptr
+	for _, family := range e.families {
+		if font == 0 {
+			switch strings.ToLower(family) {
+			case "system-ui", "sans-serif":
+				font = e.systemFont(size, false)
+				continue
+			case "monospace":
+				font = e.systemFont(size, true)
+				continue
+			}
+		}
+		if d := e.descriptor(family); d != 0 {
+			if font == 0 {
+				font = ct.fontWithDescriptor(d, float64(size)/64, 0)
+				ct.release(d)
+			} else {
+				cascade = append(cascade, d)
+			}
+		}
+	}
+	if font == 0 {
+		font = e.systemFont(size, false)
+	}
+	if font == 0 {
+		return 0
+	}
+	if len(cascade) > 0 {
+		array := ct.arrayCreate(0, &cascade[0], len(cascade), ct.arrayCallbacks)
+		attrs := ctDict([]uintptr{ct.cascadeList}, []uintptr{array})
+		desc := ct.descriptorWithAttrs(attrs)
+		if with := ct.fontWithAttrs(font, 0, 0, desc); with != 0 {
+			ct.release(font)
+			font = with
+		}
+		ct.release(desc)
+		ct.release(attrs)
+		ct.release(array)
+		for _, d := range cascade {
+			ct.release(d)
+		}
+	}
+	e.primary[key] = e.resources.own(font)
+	return font
+}
 func (e *ctShaper) faceOf(s *shaperImpl, native uintptr) *ctNativeFace {
 	h := ct.hash(native)
 	for _, i := range e.byHash[h] {

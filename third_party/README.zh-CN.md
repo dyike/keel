@@ -34,8 +34,7 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
   emoji 的字体、字形与位置；扣除 Gio 对齐偏移后误差不超过 1/64 像素。
 
 - `gio/text`、`gio/font/opentype`、`ui/theme`：macOS 平台 shaper 使用
-  CoreText 匹配、回退和排版；原生 ABI 调用由 Keel 按系统 SDK 的公开函数签名生成，
-  字重读取系统 AppKit 常量。栅格化直接借用排版得到的 CTFont，不再按路径重开。
+  CoreText 匹配、回退和排版。栅格化直接借用排版得到的 CTFont，不再按路径重开。
   字体准备只校验必需表、读取元数据，不保留第二份 Go 字形和 AAT 表；Go 回退
   首次使用时再解析。原生字体源描述符通过有上限的弱缓存在 shaper 间共享，
   字重、字号、实例身份和可变 scratch 仍独立。不透明字体、自定义变体坐标以及
