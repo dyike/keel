@@ -251,22 +251,52 @@ func (v *VariableListView) Render(cx *el.Context) el.Element {
 	}
 	box.Child(virtualSpacer(v.horizontal, total-v.sums.prefix(last)))
 	box.Decorate(func(gtx core.C, draw func()) {
-		draw()
 		if !gtx.Enabled() {
+			draw()
 			return
 		}
-		actual, _, _ := virtualState(cx, id, v.horizontal)
 		heights := make([]float32, len(built))
-		start := leading
-		// Use actual laid-out starts to preserve the visible row even when a row
-		// above it changed size in this frame, rather than trusting stale estimates.
-		found := preserveAnchor && actual == off
 		for j, row := range built {
 			width, height := cx.LayoutSize(row)
 			if v.horizontal {
 				height = width
 			}
 			heights[j] = max(height, 1)
+		}
+		// Layout has measured the mounted rows, but none have been painted yet.
+		// Correct their offset now: painting at the estimated offset and restoring
+		// the anchor next frame makes already-visible content jump and bounce back.
+		if !atEnd && v.reveal == "" && len(v.keys) > 0 {
+			i, delta := v.sums.at(off), float32(0)
+			if i < len(v.keys) {
+				delta = max(off-v.sums.prefix(i), 0)
+			}
+			if preserveAnchor {
+				i = v.indices[v.anchor]
+				delta = v.anchorDelta
+			}
+			if i >= first && i < last {
+				corrected := leading
+				for _, height := range heights[:i-first] {
+					corrected += height
+				}
+				corrected += min(delta, max(heights[i-first]-1, 0))
+				// Fractional dp sums can differ below a device pixel. Do not
+				// keep scheduling redraws for an offset that paints identically.
+				px := cx.PixelScale()
+				if int(corrected*px+.5) != int(off*px+.5) {
+					virtualScroll(cx, id, v.horizontal, corrected)
+					off = corrected
+				}
+			}
+		}
+		draw()
+		actual, _, _ := virtualState(cx, id, v.horizontal)
+		start := leading
+		// Use actual laid-out starts to preserve the visible row even when a row
+		// above it changed size in this frame, rather than trusting stale estimates.
+		found := preserveAnchor && actual == off
+		for j := range built {
 			if !found && actual >= start && actual < start+heights[j] {
 				v.anchor, v.anchorDelta = v.keys[first+j], actual-start
 				found = true
