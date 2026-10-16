@@ -110,7 +110,11 @@ const ctPad = 2
 // y down. dark selects dark text on a light background, otherwise light on
 // dark: CoreText's antialiasing differs, and so does the conversion.
 func coreTextMask(path string, index int, px float64, gid uint16, phaseX, phaseY float64, dark bool, instance ...int) (bounds image.Rectangle, alpha []byte, ok bool) {
-	f := ctFont(path, index, px, instance...)
+	return coreTextNativeMask(uintptr(ctFont(path, index, px, instance...)), gid, phaseX, phaseY, dark)
+}
+
+func coreTextNativeMask(native uintptr, gid uint16, phaseX, phaseY float64, dark bool) (bounds image.Rectangle, alpha []byte, ok bool) {
+	f := C.CTFontRef(native)
 	if f == 0 || C.keelCTColorGlyphs(f) != 0 {
 		return image.Rectangle{}, nil, false
 	}
@@ -154,7 +158,11 @@ func coreTextMask(path string, index int, px float64, gid uint16, phaseX, phaseY
 // premultiplied sRGB, the format image textures use. bounds is relative to the
 // glyph origin, y down. ok is false for fonts without color glyphs.
 func coreTextColorGlyph(path string, index int, px float64, gid uint16, phaseX, phaseY float64, instance ...int) (bounds image.Rectangle, pix []byte, ok bool) {
-	f := ctFont(path, index, px, instance...)
+	return coreTextNativeColorGlyph(uintptr(ctFont(path, index, px, instance...)), gid, phaseX, phaseY)
+}
+
+func coreTextNativeColorGlyph(native uintptr, gid uint16, phaseX, phaseY float64) (bounds image.Rectangle, pix []byte, ok bool) {
+	f := C.CTFontRef(native)
 	if f == 0 || C.keelCTColorGlyphs(f) == 0 {
 		return image.Rectangle{}, nil, false
 	}

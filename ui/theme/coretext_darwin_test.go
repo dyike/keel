@@ -8,11 +8,14 @@ import (
 	gotext "github.com/dyike/keel/typesetting/font"
 	ot "github.com/dyike/keel/typesetting/font/opentype"
 	"github.com/dyike/keel/typesetting/font/opentype/tables"
+	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/math/fixed"
 	"image"
 	"image/color"
 	"os"
+	"runtime"
 	"testing"
+	"weak"
 )
 
 const ctTestFont = "/System/Library/Fonts/Helvetica.ttc"
@@ -49,13 +52,13 @@ func TestCoreTextPageCopyOnWrite(t *testing.T) {
 	defer ct.Unlock()
 	saved := ct.pages
 	defer func() { ct.pages = saved }()
-	p := &ctPage{img: image.NewRGBA(image.Rect(0, 0, ctPageSize, ctPageSize))}
+	p := &ctPage{img: image.NewAlpha(image.Rect(0, 0, ctPageSize, ctPageSize))}
 	ct.pages = []*ctPage{p}
 	mask := []byte{255, 128, 0, 64}
 	r, _ := p.place(image.Pt(2, 2))
 	ctWrite(p, r, mask)
-	if p.img.RGBAAt(0, 0) != (color.RGBA{255, 255, 255, 255}) || p.img.RGBAAt(1, 0).A != 128 {
-		t.Fatal("mask not stored as premultiplied white")
+	if p.img.AlphaAt(0, 0) != (color.Alpha{255}) || p.img.AlphaAt(1, 0).A != 128 {
+		t.Fatal("mask not stored as linear coverage")
 	}
 	// Publish the page in this frame, then write again: same image.
 	p.opValid, p.opFrame = true, ct.frame
@@ -72,7 +75,7 @@ func TestCoreTextPageCopyOnWrite(t *testing.T) {
 	if p.img == first || p.opValid {
 		t.Fatal("a page published earlier was changed in place")
 	}
-	if first.RGBAAt(r3.Min.X, r3.Min.Y).A != 0 || p.img.RGBAAt(r3.Min.X, r3.Min.Y).A != 255 {
+	if first.AlphaAt(r3.Min.X, r3.Min.Y).A != 0 || p.img.AlphaAt(r3.Min.X, r3.Min.Y).A != 255 {
 		t.Fatal("copy-on-write lost or leaked pixels")
 	}
 }
@@ -80,13 +83,13 @@ func TestCoreTextPageCopyOnWrite(t *testing.T) {
 func TestCoreTextSmallPagesKeepBudgetAndEvictSafely(t *testing.T) {
 	ct.Lock()
 	defer ct.Unlock()
-	pages, glyphs, frame := ct.pages, ct.glyphs, ct.frame
-	defer func() { ct.pages, ct.glyphs, ct.frame = pages, glyphs, frame }()
-	ct.pages, ct.glyphs, ct.frame = nil, map[ctGlyphKey]*ctGlyph{}, 1
+	pages, glyphs, frame, extra := ct.pages, ct.glyphs, ct.frame, ct.extra
+	defer func() { ct.pages, ct.glyphs, ct.frame, ct.extra = pages, glyphs, frame, extra }()
+	ct.pages, ct.glyphs, ct.frame, ct.extra = nil, map[ctGlyphKey]*ctGlyph{}, 1, nil
 	if ctPageSize*ctPageSize*4 > 256<<10 {
 		t.Fatal("one fallback tint exceeds 256 KiB")
 	}
-	if ctMaxPages*ctPageSize*ctPageSize*4 != 32<<20 {
+	if ctMaxPages*ctPageSize*ctPageSize != 8<<20 {
 		t.Fatal("changed total atlas budget")
 	}
 	for i := range ctMaxPages {
@@ -269,5 +272,138 @@ func TestCoreTextSystemPingFangWeights(t *testing.T) {
 		if !ok || b.Empty() || len(mask) == 0 {
 			t.Fatal("installed glyph rendered blank", tc.name)
 		}
+	}
+}
+
+func TestPlatformPreparationKeepsGoTablesLazy(t *testing.T) {
+	paths := []string{"/System/Library/Fonts/Menlo.ttc", "/System/Library/Fonts/Hiragino Sans GB.ttc"}
+	set, err := PrepareFontFiles(func(f font.Font) bool { return true }, paths...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(set.faces) < 2 {
+		t.Fatal("required font faces unavailable")
+	}
+	for _, f := range set.faces {
+		p := f.Face.(*parsedFace)
+		if p.f != nil {
+			t.Fatal("preparation parsed glyph/shaping tables eagerly")
+		}
+		if path, index := p.Source(); path == "" || index < 0 {
+			t.Fatal("lost font source identity")
+		}
+	}
+	sh := set.shaper
+	sh.LayoutString(text.Parameters{Font: font.Font{Typeface: "Menlo, Hiragino Sans GB, Apple Symbols, Apple Color Emoji"}, PxPerEm: fixed.I(24), MaxWidth: 2000}, "Hello 中文 ⠋⠙⠹ 😀")
+	var gs []text.Glyph
+	for g, ok := sh.NextGlyph(); ok; g, ok = sh.NextGlyph() {
+		gs = append(gs, g)
+		if _, _, _, ok := sh.GlyphNativeFont(g.ID); !ok {
+			t.Fatal("prepared fonts did not use native shaping")
+		}
+	}
+	ct.Lock()
+	defer ct.Unlock()
+	fontsBefore := len(ctFonts)
+	if ct.glyphs == nil {
+		ct.glyphs = make(map[ctGlyphKey]*ctGlyph)
+	}
+	for _, g := range gs {
+		gl := ctGlyphFor(sh, g, 1, 0, false)
+		if gl.vector {
+			t.Fatalf("native glyph unexpectedly used vector fallback: %+v", g)
+		}
+	}
+	if len(ctFonts) != fontsBefore {
+		t.Fatal("rasterizer reopened fonts already owned by the native shaper")
+	}
+	for _, f := range set.faces {
+		if f.Face.(*parsedFace).f != nil {
+			t.Fatal("rendering caused duplicate Go font parsing")
+		}
+	}
+	// The Go-only shaper still obtains independently mutable Face scratch.
+	a, b := set.faces[0].Face.Face(), set.faces[0].Face.Face()
+	if a == nil || b == nil || a == b || a.Font != b.Font {
+		t.Fatal("Go fallback did not share tables with independent Face state")
+	}
+}
+
+func TestCoreTextExtraCacheBounded(t *testing.T) {
+	ct.Lock()
+	defer ct.Unlock()
+	glyphs, extra := ct.glyphs, ct.extra
+	defer func() { ct.glyphs, ct.extra = glyphs, extra }()
+	ct.glyphs, ct.extra = make(map[ctGlyphKey]*ctGlyph), nil
+	// Blank/fallback markers are bounded even though they occupy no atlas page.
+	for i := 0; i < ctExtraEntries*3; i++ {
+		ctRememberExtra(ctGlyphKey{id: text.GlyphID(i)}, &ctGlyph{blank: true}, 0)
+	}
+	if len(ct.glyphs) != ctExtraEntries || ct.extra.order.Len() != ctExtraEntries {
+		t.Fatal("non-atlas metadata exceeded its bound")
+	}
+	// Pixel budget bounds color images independently of the entry count.
+	for i := 0; i < 20; i++ {
+		ctRememberExtra(ctGlyphKey{id: text.GlyphID(i + 10000)}, &ctGlyph{}, 256<<10)
+	}
+	if ct.extra.bytes > ctExtraBudget {
+		t.Fatal("color glyph byte budget exceeded")
+	}
+	if ct.glyphs[ctGlyphKey{id: 10000}] != nil {
+		t.Fatal("old color glyph was not evicted")
+	}
+}
+
+func TestCoreTextCacheDoesNotRetainShaper(t *testing.T) {
+	ct.Lock()
+	defer ct.Unlock()
+	glyphs, extra := ct.glyphs, ct.extra
+	defer func() { ct.glyphs, ct.extra = glyphs, extra }()
+	ct.glyphs, ct.extra = make(map[ctGlyphKey]*ctGlyph), nil
+	put := func() weak.Pointer[text.Shaper] {
+		sh := text.NewShaper(text.WithPlatformFonts())
+		key := ctGlyphKey{sh: weak.Make(sh), id: 123}
+		ctRememberExtra(key, &ctGlyph{blank: true}, 0)
+		return key.sh
+	}
+	key := put()
+	for i := 0; i < 5; i++ {
+		runtime.GC()
+		if key.Value() == nil {
+			return
+		}
+	}
+	t.Fatal("a cached glyph kept a closed window's shaper alive")
+}
+
+func TestLoadFontsKeepsNativeMetadataAndOwnsBytes(t *testing.T) {
+	old, shaper := loaded, Material.Shaper
+	defer func() { loaded, Material.Shaper = old, shaper }()
+	loaded = nil
+	data := append([]byte(nil), goregular.TTF...)
+	if err := LoadFonts(data); err != nil {
+		t.Fatal(err)
+	}
+	clear(data)
+	if len(loaded) != 1 {
+		t.Fatal("memory collection was lost")
+	}
+	p := loaded[0].Face.(*parsedFace)
+	if p.f != nil {
+		t.Fatal("LoadFonts eagerly parsed native font tables")
+	}
+	Material.Shaper.LayoutString(text.Parameters{Font: loaded[0].Font, PxPerEm: fixed.I(18), MaxWidth: 1000}, "Hello")
+	g, ok := Material.Shaper.NextGlyph()
+	if !ok {
+		t.Fatal("memory font did not shape")
+	}
+	if _, _, _, ok := Material.Shaper.GlyphNativeFont(g.ID); !ok {
+		t.Fatal("owned memory font did not use CoreText")
+	}
+	if p.f != nil {
+		t.Fatal("native shaping loaded duplicate Go tables")
+	}
+	if err := LoadFonts([]byte("invalid")); err == nil {
+		t.Fatal("invalid font was accepted")
 	}
 }

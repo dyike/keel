@@ -9,6 +9,8 @@ import (
 	"github.com/dyike/keel/gio/text"
 )
 
+const platformFontPreparation = false
+
 // UsePlatformText turns platform glyph drawing on or off. Only macOS draws
 // text with its platform rasterizer (CoreText); elsewhere it has no effect.
 func UsePlatformText(on bool) {}

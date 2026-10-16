@@ -204,39 +204,10 @@ func NewFont(ld *ot.Loader) (*Font, error) {
 	)
 	out.Flavor = ld.Type
 
-	// 'cmap' handling depend on os2
-	raw, _ := ld.RawTable(ot.MustNewTag("OS/2"))
-	os2, _, _ := tables.ParseOs2(raw)
-	fontPage := os2.FontPage()
-	out.os2, _ = newOs2(os2)
-
-	raw, err = ld.RawTable(ot.MustNewTag("cmap"))
-	if err != nil {
+	if err := loadRequiredTables(ld, &out); err != nil {
 		return nil, err
 	}
-	tb, _, err := tables.ParseCmap(raw)
-	if err != nil {
-		return nil, err
-	}
-	out.Cmap, out.cmapVar, err = ProcessCmap(tb, fontPage)
-	if err != nil {
-		return nil, err
-	}
-
-	out.head, _, err = LoadHeadTable(ld, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	raw, err = ld.RawTable(ot.MustNewTag("maxp"))
-	if err != nil {
-		return nil, err
-	}
-	maxp, _, err := tables.ParseMaxp(raw)
-	if err != nil {
-		return nil, err
-	}
-	out.nGlyphs = int(maxp.NumGlyphs)
+	var raw []byte
 
 	// We considerer all the following tables as optional,
 	// since, in practice, users won't have much control on the
@@ -681,4 +652,48 @@ func (f *Face) SetCoords(coords []tables.Coord) {
 	f.coords = coords
 	// invalid the cache
 	f.extentsCache.reset()
+}
+
+// Validate checks the required cmap, head and maxp tables without loading
+// glyph outlines or shaping tables. Native font engines can validate a source
+// with the same rules as NewFont without retaining a second parsed font.
+func Validate(ld *ot.Loader) error { var out Font; return loadRequiredTables(ld, &out) }
+
+func loadRequiredTables(ld *ot.Loader, out *Font) error {
+	var err error
+	// 'cmap' handling depend on os2
+	raw, _ := ld.RawTable(ot.MustNewTag("OS/2"))
+	os2, _, _ := tables.ParseOs2(raw)
+	fontPage := os2.FontPage()
+	out.os2, _ = newOs2(os2)
+
+	raw, err = ld.RawTable(ot.MustNewTag("cmap"))
+	if err != nil {
+		return err
+	}
+	tb, _, err := tables.ParseCmap(raw)
+	if err != nil {
+		return err
+	}
+	out.Cmap, out.cmapVar, err = ProcessCmap(tb, fontPage)
+	if err != nil {
+		return err
+	}
+
+	out.head, _, err = LoadHeadTable(ld, nil)
+	if err != nil {
+		return err
+	}
+
+	raw, err = ld.RawTable(ot.MustNewTag("maxp"))
+	if err != nil {
+		return err
+	}
+	maxp, _, err := tables.ParseMaxp(raw)
+	if err != nil {
+		return err
+	}
+	out.nGlyphs = int(maxp.NumGlyphs)
+
+	return nil
 }

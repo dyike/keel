@@ -44,6 +44,50 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/text`, `gio/font/opentype`, `ui/theme`: macOS platform shapers use
+  CoreText for matching, fallback and shaping. The raster hook borrows the exact
+  shaped CTFont instead of reopening it from a path. Font preparation validates
+  required tables and reads metadata without retaining Go glyph/AAT tables;
+  the Go fallback parses lazily. Immutable native source descriptors are shared
+  across shapers through a bounded weak cache; style/size identities and scratch
+  remain separate. Opaque faces and custom variation coordinates retain the Go
+  engine. `NoSystemFonts` still disables native system fallback. Initialization
+  drops collection wrappers so old file-backed callers do not retain unused Go
+  fonts. `typesetting/font.Validate` shares NewFont's required-table validation.
+- `gio/op/paint`, `gio/gpu`, Metal, `ui/theme`: ordinary glyph pages retain one
+  linear coverage byte per pixel. Unified-memory Metal uses swizzled R8 textures
+  and single-channel mipmaps; unsupported devices, allocation failures, tint and
+  opacity fallbacks preserve the former sRGB RGBA representation. Immutable
+  copy-on-write pages remain necessary for queued/multiwindow GPU reads. Active CPU
+  atlas capacity is 8 MiB (formerly 32 MiB); color images and non-atlas
+  markers now have a separate 2 MiB/512-entry LRU. Weak shaper keys allow closed
+  windows' font resources to be collected. Tests cover source ownership,
+  legacy/opaque/memory fonts, exact face identities, multilingual clusters,
+  wrapping/truncation, Go fallback, cache bounds/lifetimes, native upload ordering,
+  and tinted/clipped/scaled/opacity pixels. `testdata/textcache` exercises two real
+  windows through 12 glyph/style/size/clip/opacity updates and resizes.
+  Targeted measurements: `BenchmarkSystemFontShaping` measures Go allocation,
+  not process footprint; a 256px Metal page with all mips allocates 98,304 bytes
+  as R8 versus 360,448 as RGBA on the inspected Apple M5 Pro.
+  These changes are included in Keel v0.3.2.
+
+- `typesetting/shaping`: a platform visual-order callback runs before whitespace
+  trimming and again after inserting a truncator, including fitting/wrapped
+  paths. CoreText's nested bidi order is preserved rather than recomputed from
+  direction flags alone. Independent CTLine glyph/font/position comparisons
+  cover LTR/RTL mixed Arabic, Hebrew, numbers, CJK, combining text and emoji;
+  the adapter agrees within 1/64 pixel after accounting for Gio alignment.
+
+- `gio/gpu`: bound sparse coverage-page growth. Wide corner bands and tall
+  border strips no longer expand one mostly empty atlas; growth exceeding
+  256 Ki pixels and leaving a page less than one-quarter occupied starts a
+  new page. Small/dense masks retain the existing packing. Paths, clipping,
+  paint order, resolution and drawable synchronization are unchanged. Tests
+  cover sparse/dense packing, bounds, non-overlap and reset. Native Rex
+  allocation tracing at 4000×2200 observed R16 coverage storage changing
+  from 20.55 to 2.77 MiB. This is a local allocation result, not a repeated
+  total-footprint or frame-rate result.
+
 - `typesetting/fontscan`: intern identical rune coverage while decoding each
   disk index, before allocating another coverage slice. A read-local hash table
   selects candidates; full page/bitmap comparisons guard collisions. Entries

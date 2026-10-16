@@ -12,6 +12,7 @@
 | `watch.go` | 主题目录轮询和当前主题热重载 |
 | `scale.go` | 间距、圆角、字号和阴影刻度 |
 | `fonts.go`、`fonts_*.go`、`fetch_*.go` | 字体加载、Android 系统 CJK 字体与浏览器字体下载 |
+| `coretext_*` | macOS CoreText 匹配、排版和栅格化；共享不可变字体源、8 MiB 单通道字形页及有上限的彩色缓存 |
 | `text_paint.go` | `GlyphPainter` 为已经排版的单行文字复用矢量片段；缓存有界，复杂字形回退到整段绘制 |
 | `glyph_atlas.go` | 按需启用字形图片图集；Metal 下各颜色共享覆盖掩码，其他构建保留彩色页面；缓存有界，绘制前准备，关闭时释放 |
 | `motion.go` | 系统减少动画与应用覆盖值、滚动条偏好 |

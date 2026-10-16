@@ -12,6 +12,7 @@ Color, size scale, font and system dynamics preferences. For user usage and para
 | `watch.go` | Theme directory polling and hot reloading of the current theme |
 | `scale.go` | Spacing, corner rounded corners, font size and shading scale |
 | `fonts.go`, `fonts_*.go`, `fetch_*.go` | Font loading, Android system CJK fonts and browser font download |
+| `coretext_*` | macOS CoreText matching/shaping/rasterization; shared immutable font sources, 8 MiB single-channel glyph pages and bounded color cache |
 | `text_paint.go` | `GlyphPainter` reuses vector fragments for caller-shaped single-line text; bounded caches, whole-run fallback for complex glyphs |
 | `glyph_atlas.go` | Opt-in glyph image pages with bounded masks and page storage; Metal shares coverage across colors, other builds retain colored pages; prepare before painting and release on close |
 | `motion.go` | The system reduces animation and application overlay values, scroll bar preferences |

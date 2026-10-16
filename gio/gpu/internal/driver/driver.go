@@ -211,7 +211,14 @@ const (
 	TextureFormatRGBA8
 	// TextureFormatOutput denotes the format used by the output framebuffer.
 	TextureFormatOutput
+	TextureFormatAlpha8 // optional linear coverage, sampled as (a,a,a,a)
 )
+
+// MaskTextureDevice optionally stores a coverage brush in one channel. A
+// failure falls back to the portable premultiplied RGBA upload path.
+type MaskTextureDevice interface {
+	NewMaskTexture(width, height int, min, mag TextureFilter) (Texture, error)
+}
 
 const (
 	FilterNearest TextureFilter = iota

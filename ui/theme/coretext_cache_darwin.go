@@ -3,11 +3,14 @@
 package theme
 
 import (
+	"container/list"
 	"image"
 	"image/color"
 	"math"
 	"os"
+	"runtime"
 	"sync"
+	"weak"
 
 	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/op"
@@ -17,13 +20,10 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-// macOS draws text with CoreText, as native and WebKit apps do: the same
-// antialiasing, stem darkening and gamma. Gio's vector outlines, blended in
-// linear light, look thin and grey beside them. Glyph masks come from
-// CoreText and are drawn as tinted images; text CoreText cannot draw (fonts
-// built in memory, color emoji) keeps the vector path. It needs Keel's Gio
-// copy (gio/): with upstream Gio the hooks below are absent and text
-// keeps vector outlines.
+// CoreText owns matching, shaping and rasterization for platform shapers.
+// Masks keep CoreText's antialiasing, stem darkening and gamma; color fonts
+// keep their RGBA images. Opaque custom Go faces retain the Go shaper and
+// outline fallback, with file-backed glyphs still eligible for native masks.
 
 // rasterShaper and glyphFiler are the Keel Gio patches this uses. Upstream
 // Gio lacks them; detecting them keeps Keel building against it.
@@ -90,25 +90,29 @@ func platformPaintRun(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.N
 	return ctPaintRun(ops, sh, gs, col, fracX, fracY)
 }
 
+const platformFontPreparation = true
+
 const (
-	// Small pages bound the per-color copies needed by path-clipped and
-	// opacity-layer text. A 1024px page costs 4 MiB for every fallback tint,
-	// even when that color only draws a few glyphs. Keep the total pixel budget.
+	// Small immutable pages keep linear coverage at one byte per pixel.
+	// Portable devices and opacity layers expand only the uploaded texture.
+	// Copy-on-write preserves operations queued by another window.
 	ctPageSize   = 256
-	ctMaxPages   = 128 // 32 MiB of page pixels at most
+	ctMaxPages   = 128 // 8 MiB of single-channel page pixels at most
 	ctPhases     = 4   // horizontal subpixel positions per pixel
 	ctMaxPPEM    = 160
 	ctPagePadded = 1 // gap between masks so sampling never bleeds
 )
 
 type ctGlyphKey struct {
-	sh             *text.Shaper
+	sh             weak.Pointer[text.Shaper]
 	id             text.GlyphID
 	phaseX, phaseY uint8
 	dark           bool
 }
 
 type ctGlyph struct {
+	extra *list.Element
+
 	vector bool            // drawn as an outline: no file or too large
 	blank  bool            // no ink
 	color  *paint.ImageOp  // a color glyph (emoji), drawn untinted as CoreText shows it
@@ -118,7 +122,7 @@ type ctGlyph struct {
 }
 
 type ctPage struct {
-	img        *image.RGBA
+	img        *image.Alpha
 	op         paint.ImageOp
 	tint       tintedImage
 	opValid    bool
@@ -133,6 +137,7 @@ var ct struct {
 	frame  uint64
 	glyphs map[ctGlyphKey]*ctGlyph
 	pages  []*ctPage
+	extra  *ctExtraCache
 }
 
 // BeginTextFrame marks the start of a window's layout. Glyph pages changed
@@ -206,7 +211,7 @@ func ctPaintRun(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA, 
 		p := ct.pages[gl.page]
 		p.used = ct.frame
 		if !p.opValid {
-			p.op = paint.NewImageOp(p.img)
+			p.op = paint.NewMaskOp(p.img)
 			p.tint, _ = any(p.op).(tintedImage)
 			p.opValid, p.opFrame = true, ct.frame
 		}
@@ -224,18 +229,45 @@ func ctPaintRun(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA, 
 
 // ctGlyphFor returns the cached mask of g, rasterizing it on first use.
 func ctGlyphFor(sh *text.Shaper, g text.Glyph, phaseX, phaseY uint8, dark bool) *ctGlyph {
-	key := ctGlyphKey{sh, g.ID, phaseX, phaseY, dark}
+	// Native font handles are borrowed. A weak cache key must not let their
+	// shaper be cleaned up while a raster allocation or native call runs.
+	defer runtime.KeepAlive(sh)
+	key := ctGlyphKey{weak.Make(sh), g.ID, phaseX, phaseY, dark}
 	if gl, ok := ct.glyphs[key]; ok {
+		if gl.extra != nil {
+			ct.extra.order.MoveToFront(gl.extra)
+		}
 		return gl
 	}
 	gl := &ctGlyph{vector: true}
-	path, index, ppem, gid, ok := any(sh).(glyphFiler).GlyphFile(g.ID)
-	instance := 0
-	if f, exists := any(sh).(glyphInstanceFiler); exists {
-		path, index, instance, ppem, gid, ok = f.GlyphFileInstance(g.ID)
+	var native uintptr
+	var ppem fixed.Int26_6
+	var gid uint16
+	var ok bool
+	native, ppem, gid, ok = sh.GlyphNativeFont(g.ID)
+	var path string
+	var index, instance int
+	if !ok {
+		path, index, ppem, gid, ok = any(sh).(glyphFiler).GlyphFile(g.ID)
+		if f, exists := any(sh).(glyphInstanceFiler); exists {
+			path, index, instance, ppem, gid, ok = f.GlyphFileInstance(g.ID)
+		}
 	}
+	colorGlyph := func() (image.Rectangle, []byte, bool) {
+		if native != 0 {
+			return coreTextNativeColorGlyph(native, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases)
+		}
+		return coreTextColorGlyph(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases, instance)
+	}
+	maskGlyph := func() (image.Rectangle, []byte, bool) {
+		if native != 0 {
+			return coreTextNativeMask(native, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases, dark)
+		}
+		return coreTextMask(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases, dark, instance)
+	}
+
 	if ok && ppem > 0 && ppem <= fixed.I(ctMaxPPEM) {
-		if b, pix, isColor := coreTextColorGlyph(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases, instance); isColor {
+		if b, pix, isColor := colorGlyph(); isColor {
 			// Emoji are few: each keeps its own image. The key's dark flag
 			// duplicates them per ink tone, which is harmless.
 			if pix == nil {
@@ -245,10 +277,10 @@ func ctGlyphFor(sh *text.Shaper, g text.Glyph, phaseX, phaseY uint8, dark bool) 
 				imageOp := paint.NewImageOp(img)
 				gl = &ctGlyph{color: &imageOp, bounds: b}
 			}
-			ct.glyphs[key] = gl
+			ctRememberExtra(key, gl, len(pix))
 			return gl
 		}
-		bounds, alpha, ok := coreTextMask(path, index, float64(ppem)/64, gid, float64(phaseX)/ctPhases, float64(phaseY)/ctPhases, dark, instance)
+		bounds, alpha, ok := maskGlyph()
 		switch {
 		case !ok:
 		case alpha == nil:
@@ -264,7 +296,11 @@ func ctGlyphFor(sh *text.Shaper, g text.Glyph, phaseX, phaseY uint8, dark bool) 
 			}
 		}
 	}
-	ct.glyphs[key] = gl
+	if gl.blank || gl.vector {
+		ctRememberExtra(key, gl, 0)
+	} else {
+		ct.glyphs[key] = gl
+	}
 	return gl
 }
 
@@ -281,7 +317,7 @@ func ctPlace(size image.Point, key ctGlyphKey) (int, image.Rectangle, bool) {
 		}
 	}
 	if len(ct.pages) < ctMaxPages {
-		ct.pages = append(ct.pages, &ctPage{img: image.NewRGBA(image.Rect(0, 0, ctPageSize, ctPageSize))})
+		ct.pages = append(ct.pages, &ctPage{img: image.NewAlpha(image.Rect(0, 0, ctPageSize, ctPageSize))})
 		i := len(ct.pages) - 1
 		r, _ := ct.pages[i].place(size)
 		ct.pages[i].keys = append(ct.pages[i].keys, key)
@@ -301,7 +337,7 @@ func ctPlace(size image.Point, key ctGlyphKey) (int, image.Rectangle, bool) {
 		delete(ct.glyphs, k)
 	}
 	// A fresh image: the old one may back textures drawn in earlier frames.
-	*p = ctPage{img: image.NewRGBA(image.Rect(0, 0, ctPageSize, ctPageSize))}
+	*p = ctPage{img: image.NewAlpha(image.Rect(0, 0, ctPageSize, ctPageSize))}
 	r, _ := p.place(size)
 	p.keys = append(p.keys, key)
 	return victim, r, true
@@ -321,37 +357,18 @@ func (p *ctPage) place(size image.Point) (image.Rectangle, bool) {
 	return r, true
 }
 
-// ctWhite encodes linear coverage as premultiplied white: image textures
-// store sRGB-encoded premultiplied linear colors.
-var ctWhite = func() (lut [256]byte) {
-	for i := range lut {
-		v := float64(i) / 255
-		if v <= 0.0031308 {
-			v *= 12.92
-		} else {
-			v = 1.055*math.Pow(v, 1/2.4) - 0.055
-		}
-		lut[i] = byte(math.Round(v * 255))
-	}
-	return
-}()
-
-// ctWrite stores a mask as white premultiplied coverage. A page whose image
+// ctWrite stores one linear coverage byte per pixel. A page whose image
 // backed a texture in an earlier frame is copied first.
 func ctWrite(p *ctPage, r image.Rectangle, alpha []byte) {
 	if p.opValid && p.opFrame != ct.frame {
-		img := image.NewRGBA(p.img.Rect)
+		img := image.NewAlpha(p.img.Rect)
 		copy(img.Pix, p.img.Pix)
 		p.img, p.opValid = img, false
 	}
 	w := r.Dx()
 	for y := 0; y < r.Dy(); y++ {
 		off := p.img.PixOffset(r.Min.X, r.Min.Y+y)
-		for x, a := range alpha[y*w : (y+1)*w] {
-			px := p.img.Pix[off+x*4 : off+x*4+4 : off+x*4+4]
-			v := ctWhite[a]
-			px[0], px[1], px[2], px[3] = v, v, v, a
-		}
+		copy(p.img.Pix[off:off+w], alpha[y*w:(y+1)*w])
 	}
 }
 
@@ -359,4 +376,38 @@ func ctWrite(p *ctPage, r image.Rectangle, alpha []byte) {
 // text below one half reads as dark ink, above as light.
 func textLuma(c color.NRGBA) float64 {
 	return (0.2126*float64(c.R) + 0.7152*float64(c.G) + 0.0722*float64(c.B)) / 255
+}
+
+// Glyphs outside atlas pages (color images, blanks and vector fallback
+// markers) need their own bound: atlas-page eviction never visits them.
+// Keys weakly reference shapers so closing windows can release native fonts.
+const ctExtraBudget = 2 << 20
+const ctExtraEntries = 512
+
+type ctExtraEntry struct {
+	key   ctGlyphKey
+	bytes int
+}
+type ctExtraCache struct {
+	order list.List
+	bytes int
+}
+
+func ctRememberExtra(key ctGlyphKey, gl *ctGlyph, pixels int) {
+	if ct.extra == nil {
+		ct.extra = new(ctExtraCache)
+	}
+	if pixels > ctExtraBudget {
+		return
+	} // draw oversized color glyphs uncached
+	gl.extra = ct.extra.order.PushFront(ctExtraEntry{key, pixels})
+	ct.extra.bytes += pixels
+	ct.glyphs[key] = gl
+	for ct.extra.bytes > ctExtraBudget || ct.extra.order.Len() > ctExtraEntries {
+		last := ct.extra.order.Back()
+		entry := last.Value.(ctExtraEntry)
+		delete(ct.glyphs, entry.key)
+		ct.extra.bytes -= entry.bytes
+		ct.extra.order.Remove(last)
+	}
 }
