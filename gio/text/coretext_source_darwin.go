@@ -43,7 +43,7 @@ func sharedCTFontSource(key ctFontSourceKey, data []byte) *ctFontSource {
 			array = nativeInit.descriptorsURL(u)
 			ct.release(u)
 		}
-	} else if ct.descriptorsFromData != nil && len(data) > 0 {
+	} else if len(data) > 0 {
 		d := ct.dataCreate(0, &data[0], len(data))
 		if d != 0 {
 			array = ct.descriptorsFromData(d)

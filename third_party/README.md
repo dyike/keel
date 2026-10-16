@@ -45,8 +45,9 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 ## Patches
 
 - `gio/text`, `gio/font/opentype`, `ui/theme`: macOS platform shapers use
-  CoreText for matching, fallback and shaping, following MyGo
-  `bad73d119dc8` (`third_party/mygo.LICENSE`). The raster hook borrows the exact
+  CoreText for matching, fallback and shaping. Keel generates the native ABI
+  calls from public macOS SDK signatures and reads AppKit weight constants
+  from the system framework. The raster hook borrows the exact
   shaped CTFont instead of reopening it from a path. Font preparation validates
   required tables and reads metadata without retaining Go glyph/AAT tables;
   the Go fallback parses lazily. Immutable native source descriptors are shared

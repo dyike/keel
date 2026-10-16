@@ -348,7 +348,8 @@ func TestNativePositionsMatchCoreText(t *testing.T) {
 			}
 			for i, g := range got {
 				w := want[i]
-				if g.font != w.font || g.gid != w.gid || absInt(int(g.x-w.x)) > 1 || absInt(int(g.y-w.y)) > 1 {
+				dx, dy := int(g.x-w.x), int(g.y-w.y)
+				if g.font != w.font || g.gid != w.gid || max(dx, -dx) > 1 || max(dy, -dy) > 1 {
 					t.Fatalf("dir=%v %q glyph %d: got %+v want %+v", direction, value, i, g, w)
 				}
 			}
