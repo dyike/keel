@@ -192,3 +192,64 @@ func BenchmarkCPUMipmaps(b *testing.B) {
 		})
 	}
 }
+
+func TestMaskTextureStorageAndOrderedUpload(t *testing.T) {
+	b := testBackend(t)
+	if !b.unified {
+		t.Skip("unified-memory R8 masks unavailable")
+	}
+	sz := image.Pt(256, 256)
+	tex, err := b.NewMaskTexture(sz.X, sz.Y, driver.FilterLinearMipmapLinear, driver.FilterLinear)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tex.Release()
+	mask := tex.(*Texture)
+	rgba, err := b.NewTexture(driver.TextureFormatSRGBA, sz.X, sz.Y, driver.FilterLinearMipmapLinear, driver.FilterLinear, driver.BufferBindingTexture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rgba.Release()
+	format := uintptr(objc.ID(mask.texture).Send(objc.RegisterName("pixelFormat")))
+	if format != 10 {
+		t.Fatalf("mask pixel format %d, want R8Unorm", format)
+	}
+	maskBytes := uintptr(objc.ID(mask.texture).Send(objc.RegisterName("allocatedSize")))
+	rgbaBytes := uintptr(objc.ID(rgba.(*Texture).texture).Send(objc.RegisterName("allocatedSize")))
+	t.Logf("256px mask+all mip levels: R8=%d bytes, RGBA=%d bytes", maskBytes, rgbaBytes)
+	if maskBytes*3 > rgbaBytes {
+		t.Fatal("R8 did not reduce allocated texture storage")
+	}
+	b.BeginFrame(nil, false, sz)
+	stride := sz.X + 3
+	src := make([]byte, stride*sz.Y)
+	for i := range src {
+		src[i] = byte(i*17 + i/13)
+	}
+	mask.Upload(image.Point{}, sz, src, stride)
+	if b.blitEnc != 0 {
+		t.Fatal("initial immutable mask used a staging blit")
+	}
+	mask.Upload(image.Pt(7, 9), image.Pt(1, 1), []byte{241}, 1)
+	if b.blitEnc == 0 {
+		t.Fatal("later mask writes lost GPU ordering")
+	}
+	b.endCmdBuffer(true)
+	var read func(uintptr, uintptr, unsafe.Pointer, uintptr, uploadRegion, uintptr)
+	purego.RegisterFunc(&read, uploadMsg)
+	out := make([]byte, sz.X*sz.Y)
+	read(uintptr(mask.texture), uintptr(objc.RegisterName("getBytes:bytesPerRow:fromRegion:mipmapLevel:")), unsafe.Pointer(&out[0]), uintptr(sz.X), uploadRegion{Width: 256, Height: 256, Depth: 1}, 0)
+	src[9*stride+7] = 241
+	for y := range sz.Y {
+		for x := range sz.X {
+			if out[y*sz.X+x] != src[y*stride+x] {
+				t.Fatal("R8 partial upload corrupts pixels or stride")
+			}
+		}
+	}
+	b.unified = false
+	if tex, err := b.NewMaskTexture(2, 2, driver.FilterNearest, driver.FilterNearest); err == nil {
+		tex.Release()
+		t.Fatal("unsupported mask did not choose portable fallback")
+	}
+}

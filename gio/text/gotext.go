@@ -201,6 +201,7 @@ type runLayout struct {
 // shaperImpl implements the shaping and line-wrapping of opentype fonts.
 type shaperImpl struct {
 	// Fields for tracking fonts/faces.
+	native      nativeFontShaper
 	fontMap     *fontscan.FontMap
 	faces       []*font.Face
 	faceToIndex map[*font.Font]int
@@ -248,9 +249,15 @@ func (d debugLogger) Printf(format string, args ...any) {
 	}
 }
 
-func newShaperImpl(systemFonts bool, collection []FontFace) *shaperImpl {
+func newShaperImpl(systemFonts bool, collection []FontFace, platform bool) *shaperImpl {
 	var shaper shaperImpl
 	shaper.logger = newDebugLogger()
+	if platform && systemFonts {
+		shaper.native = newNativeFontShaper(collection)
+		if shaper.native != nil {
+			return &shaper
+		}
+	}
 	shaper.fontMap = fontscan.NewFontMap(shaper.logger)
 	shaper.faceToIndex = make(map[*font.Font]int)
 	shaper.sources = make(map[*font.Font]fontscan.Location)
@@ -278,6 +285,9 @@ func newShaperImpl(systemFonts bool, collection []FontFace) *shaperImpl {
 func (s *shaperImpl) Load(f FontFace) {
 	desc := opentype.FontToDescription(f.Font)
 	face := f.Face.Face()
+	if face == nil {
+		return
+	}
 	s.fontMap.AddFace(face, fontscan.Location{File: fmt.Sprint(desc)}, desc)
 	var loc fontscan.Location
 	if src, ok := f.Face.(giofont.FaceSource); ok {
@@ -319,6 +329,9 @@ func (s *shaperImpl) ResolveFace(r rune) *font.Face {
 // shapeText invokes the text shaper and returns the raw text data in the shaper's native
 // format. It does not wrap lines.
 func (s *shaperImpl) shapeText(ppem fixed.Int26_6, lc system.Locale, txt []rune) []shaping.Output {
+	if s.native != nil {
+		return s.native.shape(s, ppem, lc, txt)
+	}
 	lcfg := langConfig{
 		Language:  language.NewLanguage(lc.Language),
 		Direction: mapDirection(lc.Direction),
@@ -416,10 +429,13 @@ func (s *shaperImpl) shapeAndWrapText(params Parameters, txt []rune) (_ []shapin
 			families = s.families
 		}
 	}
-	s.fontMap.SetQuery(fontscan.Query{
-		Families: families,
-		Aspect:   opentype.FontToDescription(params.Font).Aspect,
-	})
+	if s.native != nil {
+		s.native.setQuery(params.Font, families)
+		wc.ResolveVisualOrder = s.native.orderLine
+		defer s.native.finishShape()
+	} else {
+		s.fontMap.SetQuery(fontscan.Query{Families: families, Aspect: opentype.FontToDescription(params.Font).Aspect})
+	}
 	if wc.TruncateAfterLines > 0 {
 		if len(params.Truncator) == 0 {
 			params.Truncator = "…"
@@ -556,6 +572,9 @@ func alignWidth(minWidth int, lines []line) int {
 // Shape converts the provided glyphs into a path. The path will enclose the forms
 // of all vector glyphs.
 func (s *shaperImpl) Shape(pathOps *op.Ops, gs []Glyph) clip.PathSpec {
+	if s.native != nil {
+		return s.native.outline(pathOps, gs)
+	}
 	var lastPos f32.Point
 	var x fixed.Int26_6
 	var builder clip.Path
@@ -645,6 +664,9 @@ func floatToFixed(f float32) fixed.Int26_6 {
 // CallOp can be added at the same offset as the path data returned by Shape()
 // and will align correctly.
 func (s *shaperImpl) Bitmaps(ops *op.Ops, gs []Glyph) op.CallOp {
+	if s.native != nil {
+		return s.native.bitmaps(ops, gs)
+	}
 	var x fixed.Int26_6
 	bitmapMacro := op.Record(ops)
 	for i, g := range gs {
@@ -843,6 +865,9 @@ func (s *shaperImpl) glyphFile(id GlyphID) (string, int, fixed.Int26_6, uint16, 
 }
 
 func (s *shaperImpl) glyphFileInstance(id GlyphID) (string, int, int, fixed.Int26_6, uint16, bool) {
+	if s.native != nil {
+		return s.native.glyphFile(id)
+	}
 	ppem, faceIdx, gid := splitGlyphID(id)
 	if faceIdx >= len(s.faces) || s.faces[faceIdx] == nil {
 		return "", 0, 0, 0, 0, false

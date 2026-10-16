@@ -33,6 +33,7 @@ type ImageOp struct {
 	uniform bool
 	color   color.NRGBA
 	src     *image.RGBA
+	mask    *image.Alpha
 
 	// handle is a key to uniquely identify this ImageOp
 	// in a map of cached textures.
@@ -97,7 +98,18 @@ func NewImageOp(src image.Image) ImageOp {
 	}
 }
 
+// NewMaskOp creates a premultiplied white coverage brush. Unlike an alpha
+// image passed to NewImageOp, it keeps one linear coverage byte per pixel.
+// The backing pixels must be immutable, as with NewImageOp. Backends without
+// single-channel textures expand it when uploading, not in the text cache.
+func NewMaskOp(src *image.Alpha) ImageOp {
+	return ImageOp{mask: src, handle: new(int)}
+}
+
 func (i ImageOp) Size() image.Point {
+	if i.mask != nil {
+		return i.mask.Bounds().Size()
+	}
 	if i.src == nil {
 		return image.Point{}
 	}
@@ -117,10 +129,14 @@ func (i ImageOp) addTinted(o *op.Ops, tint color.NRGBA) {
 		}
 		ColorOp{Color: col}.Add(o)
 		return
-	} else if i.src == nil || i.src.Bounds().Empty() {
+	} else if size := i.Size(); size.X <= 0 || size.Y <= 0 {
 		return
 	}
-	data := ops.Write2(&o.Internal, ops.TypeImageLen, i.src, i.handle)
+	var src any = i.src
+	if i.mask != nil {
+		src = i.mask
+	}
+	data := ops.Write2(&o.Internal, ops.TypeImageLen, src, i.handle)
 	data[0] = byte(ops.TypeImage)
 	data[1] = byte(i.Filter)
 	data[2], data[3], data[4], data[5] = tint.R, tint.G, tint.B, tint.A

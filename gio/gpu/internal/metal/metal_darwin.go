@@ -466,6 +466,7 @@ type Texture struct {
 	foreign bool
 	direct  bool // Only the initial complete upload may bypass GPU synchronization.
 	srgb    bool
+	mask    bool
 }
 
 type Shader struct {
@@ -662,6 +663,9 @@ func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, min
 		tex = C.CFTypeRef(uploadTexture(uintptr(b.dev), uintptr(mformat), uintptr(width), uintptr(height), uintptr(usage), mipmap))
 	}
 	if tex == 0 {
+		if format == driver.TextureFormatAlpha8 {
+			return nil, errors.New("metal: single-channel masks unavailable")
+		}
 		direct = false
 		tex = C.newTexture(b.dev, C.NSUInteger(width), C.NSUInteger(height), mformat, usage, mipmapped)
 	}
@@ -673,7 +677,14 @@ func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, min
 		C.CFRelease(tex)
 		return nil, errors.New("metal: [MTLDevice newSamplerStateWithDescriptor:] failed")
 	}
-	return &Texture{backend: b, texture: tex, sampler: s, width: width, height: height, mipmap: mipmap, direct: direct, srgb: format == driver.TextureFormatSRGBA}, nil
+	return &Texture{backend: b, texture: tex, sampler: s, width: width, height: height, mipmap: mipmap, direct: direct, srgb: format == driver.TextureFormatSRGBA, mask: format == driver.TextureFormatAlpha8}, nil
+}
+
+func (b *Backend) NewMaskTexture(width, height int, min, mag driver.TextureFilter) (driver.Texture, error) {
+	if !b.unified {
+		return nil, errors.New("metal: coverage upload requires unified memory")
+	}
+	return b.NewTexture(driver.TextureFormatAlpha8, width, height, min, mag, driver.BufferBindingTexture)
 }
 
 func samplerFilterFor(f driver.TextureFilter) (C.MTLSamplerMinMagFilter, C.MTLSamplerMipFilter) {
@@ -768,6 +779,8 @@ func pixelFormatFor(f driver.TextureFormat) C.MTLPixelFormat {
 		return C.MTLPixelFormatR16Float
 	case driver.TextureFormatRGBA8:
 		return C.MTLPixelFormatRGBA8Unorm
+	case driver.TextureFormatAlpha8:
+		return C.MTLPixelFormatR8Unorm
 	case driver.TextureFormatSRGBA:
 		return C.MTLPixelFormatRGBA8Unorm_sRGB
 	default:
@@ -961,8 +974,12 @@ func (t *Texture) Upload(offset, size image.Point, pixels []byte, stride int) {
 	if len(pixels) == 0 {
 		return
 	}
+	bpp := 4
+	if t.mask {
+		bpp = 1
+	}
 	if stride == 0 {
-		stride = size.X * 4
+		stride = size.X * bpp
 	}
 	// A later or partial write must remain ordered against encoded GPU reads.
 	direct := t.direct
@@ -970,11 +987,15 @@ func (t *Texture) Upload(offset, size image.Point, pixels []byte, stride int) {
 	if direct && offset == (image.Point{}) && size == image.Pt(t.width, t.height) {
 		directUpload(uintptr(t.texture), offset, size, pixels, stride, 0)
 		if t.mipmap {
-			uploadMipmaps(uintptr(t.texture), size, pixels, stride, t.srgb)
+			if t.mask {
+				uploadMaskMipmaps(uintptr(t.texture), size, pixels, stride)
+			} else {
+				uploadMipmaps(uintptr(t.texture), size, pixels, stride, t.srgb)
+			}
 		}
 		return
 	}
-	dstStride := size.X * 4
+	dstStride := size.X * bpp
 	n := size.Y * dstStride
 	buf, off := t.backend.stagingBuffer(n)
 	store := bufferSlice(buf, off, n)
@@ -1208,7 +1229,11 @@ func (t *Texture) ReadPixels(src image.Rectangle, pixels []byte, stride int) err
 		height: C.NSUInteger(sz.Y),
 		depth:  1,
 	}
-	stageStride := sz.X * 4
+	bpp := 4
+	if t.mask {
+		bpp = 1
+	}
+	stageStride := sz.X * bpp
 	n := sz.Y * stageStride
 	buf, off := t.backend.stagingBuffer(n)
 	enc := t.backend.startBlit()
@@ -1217,9 +1242,16 @@ func (t *Texture) ReadPixels(src image.Rectangle, pixels []byte, stride int) err
 	store := bufferSlice(buf, off, n)
 	var srcOff, dstOff int
 	for y := 0; y < sz.Y; y++ {
-		dstRow := pixels[srcOff : srcOff+stageStride]
+		dstRow := pixels[srcOff : srcOff+sz.X*4]
 		srcRow := store[dstOff : dstOff+stageStride]
-		copy(dstRow, srcRow)
+		if t.mask {
+			for x, a := range srcRow {
+				j := x * 4
+				dstRow[j], dstRow[j+1], dstRow[j+2], dstRow[j+3] = a, a, a, a
+			}
+		} else {
+			copy(dstRow, srcRow)
+		}
 		dstOff += stageStride
 		srcOff += stride
 	}

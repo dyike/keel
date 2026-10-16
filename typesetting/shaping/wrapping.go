@@ -424,6 +424,10 @@ type Line []Output
 
 // WrapConfig provides line-wrapper settings.
 type WrapConfig struct {
+	// ResolveVisualOrder optionally supplies platform bidi ordering. It must set
+	// compact VisualIndex values without changing logical run/glyph order. The
+	// final run is synthetic when hasTruncator is true. Keel patch.
+	ResolveVisualOrder func(line Line, hasTruncator bool)
 	// Direction describes the text layout of the overall paragraph, rather than
 	// individual runs of text. This is used to compute the correct visual order of
 	// bidirectional text runs.
@@ -836,7 +840,7 @@ func (l *LineWrapper) WrapParagraphF(config WrapConfig, maxWidth fixed.Int26_6, 
 			// Upstream ran the full algorithm for them.
 			if hasFirst && hasSecond && config.TruncateAfterLines == 0 {
 				if line, ok := l.scratch.fittingLine(firstRun, runs, maxWidth); ok {
-					computeBidiOrdering(config.Direction, line)
+					config.resolveVisualOrder(line, false)
 					if !config.DisableTrailingWhitespaceTrim {
 						trimTrailingWhitespace(config.Direction, line, paragraph)
 					}
@@ -951,6 +955,14 @@ func swapVisualOrder(subline Line) {
 	}
 }
 
+func (c WrapConfig) resolveVisualOrder(line Line, hasTruncator bool) {
+	if c.ResolveVisualOrder != nil {
+		c.ResolveVisualOrder(line, hasTruncator)
+	} else {
+		computeBidiOrdering(c.Direction, line)
+	}
+}
+
 // computeBidiOrdering resolves the [VisualIndex] of each run.
 func computeBidiOrdering(dir di.Direction, finalLine Line) {
 	bidiStart := -1
@@ -1028,7 +1040,7 @@ func trimTrailingWhitespace(dir di.Direction, finalLine Line, paragraph []rune) 
 func (l *LineWrapper) postProcessLine(finalLine Line, done bool) (WrappedLine, bool) {
 	var trimmed fixed.Int26_6
 	if len(finalLine) > 0 {
-		computeBidiOrdering(l.config.Direction, finalLine)
+		l.config.resolveVisualOrder(finalLine, false)
 		if !l.config.DisableTrailingWhitespaceTrim {
 			trimmed = trimTrailingWhitespace(l.config.Direction, finalLine, l.paragraph)
 		}
@@ -1057,7 +1069,7 @@ func (l *LineWrapper) postProcessLine(finalLine Line, done bool) (WrappedLine, b
 			truncator.Runes.Offset = l.lineStartRune
 			finalLine = append(finalLine, truncator)
 			// We've just modified the line, we need to recompute the bidi ordering.
-			computeBidiOrdering(l.config.Direction, finalLine)
+			l.config.resolveVisualOrder(finalLine, true)
 		}
 	}
 

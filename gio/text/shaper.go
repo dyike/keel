@@ -217,6 +217,7 @@ type GlyphID uint64
 type Shaper struct {
 	config struct {
 		disableSystemFonts bool
+		nativeFonts        bool
 		collection         []FontFace
 	}
 	initialized      bool
@@ -257,6 +258,11 @@ func NoSystemFonts() ShaperOption {
 	}
 }
 
+// WithPlatformFonts uses the platform's matching and shaping engine when
+// available. Unsupported or opaque collection faces retain the Go engine.
+// Keel patch: on macOS this avoids parsing system fonts twice for CoreText.
+func WithPlatformFonts() ShaperOption { return func(s *Shaper) { s.config.nativeFonts = true } }
+
 // WithCollection can be used to provide a collection of pre-loaded fonts to the shaper.
 func WithCollection(collection []FontFace) ShaperOption {
 	return func(s *Shaper) {
@@ -280,7 +286,10 @@ func (l *Shaper) init() {
 	}
 	l.initialized = true
 	l.reader = bufio.NewReader(nil)
-	l.shaper = *newShaperImpl(!l.config.disableSystemFonts, l.config.collection)
+	l.shaper = *newShaperImpl(!l.config.disableSystemFonts, l.config.collection, l.config.nativeFonts)
+	// Initialization is one-shot. Native registration owns its source handles;
+	// keeping collection wrappers here would retain their unused Go font tables.
+	l.config.collection = nil
 }
 
 // Layout text from an io.Reader according to a set of options. Results can be retrieved by
@@ -682,4 +691,15 @@ func (l *Shaper) Bitmaps(gs []Glyph) op.CallOp {
 func (l *Shaper) GlyphFileInstance(id GlyphID) (path string, index, instance int, ppem fixed.Int26_6, gid uint16, ok bool) {
 	l.init()
 	return l.shaper.glyphFileInstance(id)
+}
+
+// GlyphNativeFont borrows the exact native font used to shape id. Its lifetime
+// is tied to this shaper; callers must neither release nor retain Go pointers
+// in native objects. Returns false when the Go engine is in use.
+func (l *Shaper) GlyphNativeFont(id GlyphID) (uintptr, fixed.Int26_6, uint16, bool) {
+	l.init()
+	if n := l.shaper.native; n != nil {
+		return n.glyphFont(id)
+	}
+	return 0, 0, 0, false
 }

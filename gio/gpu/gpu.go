@@ -220,6 +220,7 @@ const (
 type imageOpData struct {
 	tint   color.NRGBA
 	src    *image.RGBA
+	mask   *image.Alpha
 	handle any
 	filter byte
 }
@@ -236,12 +237,25 @@ func decodeImageOp(data []byte, refs []any) imageOpData {
 	if handle == nil {
 		return imageOpData{}
 	}
-	return imageOpData{
-		src:    refs[0].(*image.RGBA),
+	d := imageOpData{
 		handle: handle,
 		filter: data[1],
 		tint:   color.NRGBA{R: data[2], G: data[3], B: data[4], A: data[5]},
 	}
+	switch src := refs[0].(type) {
+	case *image.RGBA:
+		d.src = src
+	case *image.Alpha:
+		d.mask = src
+	}
+	return d
+}
+
+func (d imageOpData) size() image.Point {
+	if d.mask != nil {
+		return d.mask.Rect.Size()
+	}
+	return d.src.Rect.Size()
 }
 
 func decodeColorOp(data []byte) color.NRGBA {
@@ -286,8 +300,9 @@ type resource interface {
 }
 
 type texture struct {
-	src *image.RGBA
-	tex driver.Texture
+	src  *image.RGBA
+	mask *image.Alpha
+	tex  driver.Texture
 }
 
 type blitter struct {
@@ -524,7 +539,8 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 	t, exists := cache.get(key)
 	if !exists {
 		t = &texture{
-			src: data.src,
+			src:  data.src,
+			mask: data.mask,
 		}
 		cache.put(key, t)
 	}
@@ -541,8 +557,19 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 		minFilter, magFilter = driver.FilterNearest, driver.FilterNearest
 	}
 
+	size := data.size()
+	if data.mask != nil && data.tint == whiteTint {
+		if dev, ok := r.ctx.(driver.MaskTextureDevice); ok {
+			if handle, err := dev.NewMaskTexture(size.X, size.Y, minFilter, magFilter); err == nil {
+				src := data.mask
+				handle.Upload(image.Point{}, size, src.Pix[src.PixOffset(src.Rect.Min.X, src.Rect.Min.Y):], src.Stride)
+				tex.tex = handle
+				return handle
+			}
+		}
+	}
 	handle, err := r.ctx.NewTexture(driver.TextureFormatSRGBA,
-		data.src.Bounds().Dx(), data.src.Bounds().Dy(),
+		size.X, size.Y,
 		minFilter, magFilter,
 		driver.BufferBindingTexture,
 	)
@@ -550,6 +577,9 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 		panic(err)
 	}
 	src := data.src
+	if data.mask != nil {
+		src = expandMask(data.mask)
+	}
 	if data.tint != whiteTint {
 		src = tintImage(src, data.tint)
 	}
@@ -1123,7 +1153,7 @@ loop:
 			inf := float32(1e6)
 			dst := f32.Rect(-inf, -inf, inf, inf)
 			if state.matType == materialTexture {
-				sz := state.image.src.Rect.Size()
+				sz := state.image.size()
 				dst = f32.Rectangle{Max: layout.FPt(sz)}
 			}
 			clipData, bnd, partialTrans := d.boundsForTransformedRect(dst, t)
@@ -1237,7 +1267,7 @@ func (d *drawState) materialFor(rect f32.Rectangle, off f32.Point, partTrans f32
 	case materialTexture:
 		m.material = materialTexture
 		dr := rect.Add(off).Round()
-		sz := d.image.src.Bounds().Size()
+		sz := d.image.size()
 		sr := f32.Rectangle{
 			Max: f32.Point{
 				X: float32(sz.X),

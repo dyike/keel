@@ -45,7 +45,7 @@ func uploadInit() {
 		purego.RegisterFunc(&uploadReplace, uploadMsg)
 		uploadReplaceSel = uintptr(objc.RegisterName("replaceRegion:mipmapLevel:withBytes:bytesPerRow:"))
 		uploadSelectors = make(map[string]uintptr)
-		for _, name := range []string{"new", "release", "setPixelFormat:", "setWidth:", "setHeight:", "setUsage:", "setStorageMode:", "setMipmapLevelCount:", "newTextureWithDescriptor:", "hasUnifiedMemory", "respondsToSelector:"} {
+		for _, name := range []string{"new", "release", "setPixelFormat:", "setWidth:", "setHeight:", "setUsage:", "setStorageMode:", "setMipmapLevelCount:", "newTextureWithDescriptor:", "hasUnifiedMemory", "respondsToSelector:", "setSwizzle:"} {
 			uploadSelectors[name] = uintptr(objc.RegisterName(name))
 		}
 		uploadReady = true
@@ -68,6 +68,14 @@ func uploadTexture(dev uintptr, format, width, height, usage uintptr, mipmap boo
 	defer purego.SyscallN(uploadPoolPop, pool)
 	desc := uploadSend(uploadDescriptorClass, "new")
 	defer uploadSend(desc, "release")
+	if format == 10 { // MTLPixelFormatR8Unorm
+		if uploadSend(desc, "respondsToSelector:", uploadSelectors["setSwizzle:"]) == 0 {
+			return 0
+		}
+		// MTLTextureSwizzleChannels is four uint8_t fields. Replicate the
+		// linear red channel to premultiplied white RGBA for every shader.
+		uploadSend(desc, "setSwizzle:", 0x02020202)
+	}
 	uploadSend(desc, "setPixelFormat:", format)
 	uploadSend(desc, "setWidth:", width)
 	uploadSend(desc, "setHeight:", height)
@@ -81,6 +89,29 @@ func uploadTexture(dev uintptr, format, width, height, usage uintptr, mipmap boo
 	}
 	uploadSend(desc, "setMipmapLevelCount:", levels)
 	return uploadSend(dev, "newTextureWithDescriptor:", desc)
+}
+
+// Coverage has one linear byte, including in its mip chain. No gamma LUT,
+// RGBA expansion or retained upload copy is needed.
+func uploadMaskMipmaps(tex uintptr, size image.Point, pixels []byte, stride int) {
+	for level := 1; size.X > 1 || size.Y > 1; level++ {
+		next := image.Pt(max(1, size.X/2), max(1, size.Y/2))
+		dst := make([]byte, next.X*next.Y)
+		for y := 0; y < next.Y; y++ {
+			fy := (float64(y)+.5)*float64(size.Y)/float64(next.Y) - .5
+			y0 := int(fy)
+			dy := fy - float64(y0)
+			for x := 0; x < next.X; x++ {
+				fx := (float64(x)+.5)*float64(size.X)/float64(next.X) - .5
+				x0 := int(fx)
+				dx := fx - float64(x0)
+				v := float64(pixels[y0*stride+x0])*(1-dx)*(1-dy) + float64(pixels[y0*stride+min(x0+1, size.X-1)])*dx*(1-dy) + float64(pixels[min(y0+1, size.Y-1)*stride+x0])*(1-dx)*dy + float64(pixels[min(y0+1, size.Y-1)*stride+min(x0+1, size.X-1)])*dx*dy
+				dst[y*next.X+x] = byte(math.RoundToEven(v))
+			}
+		}
+		directUpload(tex, image.Point{}, next, dst, next.X, level)
+		pixels, stride, size = dst, next.X, next
+	}
 }
 func directUpload(tex uintptr, offset, size image.Point, pixels []byte, stride int, level int) {
 	uploadInit()

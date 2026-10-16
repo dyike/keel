@@ -24,13 +24,16 @@ import (
 // should construct a face for any given font file once, reusing it across different
 // text shapers.
 type Face struct {
-	face *fontapi.Font
-	font giofont.Font
+	face  *fontapi.Font
+	font  giofont.Font
+	data  []byte
+	index int
 }
 
 // Parse constructs a Face from source bytes.
 func Parse(src []byte) (Face, error) {
-	ld, err := opentype.NewLoader(bytes.NewReader(src))
+	src = bytes.Clone(src)
+	ld, err := opentype.NewLoader(opentype.NewShared(src))
 	if err != nil {
 		return Face{}, err
 	}
@@ -40,6 +43,7 @@ func Parse(src []byte) (Face, error) {
 	}
 	return Face{
 		face: font,
+		data: src,
 		font: md,
 	}, nil
 }
@@ -51,7 +55,7 @@ func Parse(src []byte) (Face, error) {
 // BUG(whereswaldon): the only Variant that can be detected automatically is
 // "Mono".
 func ParseCollection(src []byte) ([]giofont.FontFace, error) {
-	return parseCollection(bytes.NewReader(src))
+	return parseCollection(bytes.Clone(src))
 }
 
 // ParseCollectionShared is ParseCollection for bytes that never change while
@@ -60,11 +64,11 @@ func ParseCollection(src []byte) ([]giofont.FontFace, error) {
 //
 // Keel patch.
 func ParseCollectionShared(src []byte) ([]giofont.FontFace, error) {
-	return parseCollection(opentype.NewShared(src))
+	return parseCollection(src)
 }
 
-func parseCollection(src opentype.Resource) ([]giofont.FontFace, error) {
-	lds, err := opentype.NewLoaders(src)
+func parseCollection(src []byte) ([]giofont.FontFace, error) {
+	lds, err := opentype.NewLoaders(opentype.NewShared(src))
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +79,10 @@ func parseCollection(src opentype.Resource) ([]giofont.FontFace, error) {
 			return nil, fmt.Errorf("reading font %d of collection: %s", i, err)
 		}
 		ff := Face{
-			face: face,
-			font: md,
+			face:  face,
+			data:  src,
+			index: i,
+			font:  md,
 		}
 		out[i] = giofont.FontFace{
 			Face: ff,
@@ -201,3 +207,7 @@ func mdWeight(g giofont.Weight) fontapi.Weight {
 		return fontapi.WeightNormal
 	}
 }
+
+// FontData returns the immutable source and original TTC face index for native
+// shapers. Callers must not modify the bytes. Parse owns a copy; Shared borrows it.
+func (f Face) FontData() ([]byte, int) { return f.data, f.index }

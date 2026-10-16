@@ -28,6 +28,32 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- `typesetting/shaping`：平台可在空白裁剪前、追加截断符后提供视觉顺序，覆盖
+  单行快速路径和换行路径。CoreText 已解析的嵌套双向顺序不再由简单方向标志重算。
+  独立 CTLine 对照检查 LTR/RTL 下阿拉伯文、希伯来文、数字、中文、组合字符和
+  emoji 的字体、字形与位置；扣除 Gio 对齐偏移后误差不超过 1/64 像素。
+
+- `gio/text`、`gio/font/opentype`、`ui/theme`：macOS 平台 shaper 按 MyGo
+  `bad73d119dc8` 的方式使用 CoreText 匹配、回退和排版，授权见
+  `third_party/mygo.LICENSE`。栅格化直接借用排版得到的 CTFont，不再按路径重开。
+  字体准备只校验必需表、读取元数据，不保留第二份 Go 字形和 AAT 表；Go 回退
+  首次使用时再解析。原生字体源描述符通过有上限的弱缓存在 shaper 间共享，
+  字重、字号、实例身份和可变 scratch 仍独立。不透明字体、自定义变体坐标以及
+  `NoSystemFonts` 保留 Go 路径。初始化后释放 collection 包装，旧版文件字体调用方
+  也不会由 shaper 保留闲置 Go 字体。`typesetting/font.Validate` 与 NewFont
+  共用必需表校验，保留无效字体的报错规则。
+- `gio/op/paint`、`gio/gpu`、Metal、`ui/theme`：普通字形页改存每像素一个线性覆盖
+  字节；统一内存 Metal 使用通道重映射的 R8 纹理及单通道 mip。设备不支持、
+  分配失败、着色和透明度层回退均保持原来的 sRGB RGBA 表示。跨帧、多窗口的
+  GPU 读取仍靠不可变页和写时复制保护。活跃 CPU 图集页容量由 32 MiB 降至 8 MiB；
+  彩色图片及图集外标记另有 2 MiB、512 项 LRU，弱引用键允许关闭窗口后回收字体。
+  测试覆盖字体源所有权、旧版文件字体、内存字体、自定义字体回退、精确字体身份、
+  多语言簇、换行截断、缓存上限与生命周期、上传顺序和缩放/裁剪/着色/透明度像素。
+  `testdata/textcache` 以两个真实窗口验证 12 次字形、字号、裁剪、透明度更新和缩放。
+  `BenchmarkSystemFontShaping` 只测 Go 分配；本机 Apple M5 Pro 上，256px 页含全部
+  mip 的 Metal 实际分配为 R8 98,304 字节、RGBA 360,448 字节。这些改动包含在
+  Keel v0.3.2 中。
+
 - `gio/gpu`：限制稀疏覆盖页的扩张。宽扁的圆角边带和高窄的边框不再撑大
   同一张大部分为空的图集：面积扩张超过 256 Ki 像素、且占用不足四分之一时
   新开一页。小型、密集掩码仍沿用原有打包。路径、裁剪、绘制顺序、分辨率和

@@ -26,14 +26,16 @@ var loaded []font.FontFace
 // Call it before window.Main or from a callback; from another goroutine wrap
 // it in core.Update, like Apply.
 func LoadFonts(files ...[]byte) error {
-	var faces []font.FontFace
+	// LoadFonts owns immutable copies, unlike LoadFontsWhere's borrowed data.
+	owned := make([][]byte, len(files))
 	for i, data := range files {
-		f, err := opentype.ParseCollection(data)
-		if err != nil {
-			return fmt.Errorf("font file %d: %w", i, err)
-		}
-		faces = append(faces, f...)
+		owned[i] = bytes.Clone(data)
 	}
+	faces, err := parseFaces(nil, owned)
+	if err != nil {
+		return err
+	}
+
 	addFaces(faces)
 	return nil
 }
@@ -56,6 +58,10 @@ func LoadFontsWhere(keep func(font.Font) bool, files ...[]byte) error {
 // parseFaces parses the faces of files keep accepts, a file per goroutine.
 // Safe from any goroutine.
 func parseFaces(keep func(font.Font) bool, files [][]byte) ([]font.FontFace, error) {
+	return parseFontFaces(keep, files, nil)
+}
+
+func parseFontFaces(keep func(font.Font) bool, files [][]byte, paths []string) ([]font.FontFace, error) {
 	perFile := make([][]font.FontFace, len(files))
 	errs := make([]error, len(files))
 	var wg sync.WaitGroup
@@ -68,18 +74,26 @@ func parseFaces(keep func(font.Font) bool, files [][]byte) ([]font.FontFace, err
 				errs[i] = fmt.Errorf("font file %d: %w", i, err)
 				return
 			}
-			for _, ld := range lds {
+			for index, ld := range lds {
 				desc, _ := gotext.Describe(ld, nil)
 				f := opentype.DescriptionToFont(desc)
-				if !keep(f) {
+				if keep != nil && !keep(f) {
 					continue
 				}
-				parsed, err := gotext.NewFont(ld)
+				face := &parsedFace{loader: ld, data: data, index: index}
+				if len(paths) > i {
+					face.path = paths[i]
+				}
+				if platformFontPreparation {
+					err = gotext.Validate(ld)
+				} else {
+					face.f, err = gotext.NewFont(ld)
+				}
 				if err != nil {
 					errs[i] = fmt.Errorf("font file %d: %w", i, err)
 					return
 				}
-				perFile[i] = append(perFile[i], font.FontFace{Font: f, Face: parsedFace{parsed}})
+				perFile[i] = append(perFile[i], font.FontFace{Font: f, Face: face})
 			}
 		}()
 	}
@@ -115,11 +129,11 @@ func PrepareFontFiles(keep func(font.Font) bool, paths ...string) (*FontSet, err
 		}
 		files = append(files, b)
 	}
-	faces, err := parseFaces(keep, files)
+	faces, err := parseFontFaces(keep, files, paths)
 	if err != nil {
 		return nil, err
 	}
-	sh := text.NewShaper(text.WithCollection(append(faces[:len(faces):len(faces)], fallbackFaces()...)))
+	sh := text.NewShaper(text.WithPlatformFonts(), text.WithCollection(append(faces[:len(faces):len(faces)], fallbackFaces()...)))
 	installPlatformText(sh)
 	return &FontSet{faces: faces, shaper: sh}, nil
 }
@@ -141,9 +155,8 @@ func (s *FontSet) Use() {
 
 // LoadFontFilesWhere is LoadFontsWhere for font files by path. A file is
 // mapped into memory rather than read where the system allows, and stays
-// mapped for the process lifetime. Upstream typesetting v0.3.5 still copies
-// font tables and eagerly parses outlines; mapping the source does not eliminate
-// those heap allocations.
+// mapped for the process lifetime. On macOS, preparation reads metadata;
+// CoreText owns glyph and shaping tables. The Go fallback parses on first use.
 func LoadFontFilesWhere(keep func(font.Font) bool, paths ...string) error {
 	files := make([][]byte, 0, len(paths))
 	for _, path := range paths {
@@ -153,7 +166,12 @@ func LoadFontFilesWhere(keep func(font.Font) bool, paths ...string) error {
 		}
 		files = append(files, b)
 	}
-	return LoadFontsWhere(keep, files...)
+	faces, err := parseFontFaces(keep, files, paths)
+	if err != nil {
+		return err
+	}
+	addFaces(faces)
+	return nil
 }
 
 // fontBytes is a font file's bytes with a reader over them. Keel's go-text
@@ -168,13 +186,32 @@ type fontBytes struct {
 func (f fontBytes) Bytes() []byte { return f.data }
 
 // parsedFace is a face LoadFontsWhere parsed.
-type parsedFace struct{ f *gotext.Font }
+type parsedFace struct {
+	once   sync.Once
+	f      *gotext.Font
+	loader *ot.Loader
+	data   []byte
+	path   string
+	index  int
+}
 
-func (p parsedFace) Face() *gotext.Face { return gotext.NewFace(p.f) }
+func (p *parsedFace) Face() *gotext.Face {
+	p.once.Do(func() {
+		if p.f == nil {
+			p.f, _ = gotext.NewFont(p.loader)
+		}
+	})
+	if p.f == nil {
+		return nil
+	}
+	return gotext.NewFace(p.f)
+}
+func (p *parsedFace) NativeFontData() ([]byte, int) { return p.data, p.index }
+func (p *parsedFace) Source() (string, int)         { return p.path, p.index }
 
 func addFaces(faces []font.FontFace) {
 	loaded = append(loaded, faces...)
-	Material.Shaper = text.NewShaper(text.WithCollection(append(loaded[:len(loaded):len(loaded)], fallbackFaces()...)))
+	Material.Shaper = text.NewShaper(text.WithPlatformFonts(), text.WithCollection(append(loaded[:len(loaded):len(loaded)], fallbackFaces()...)))
 	installPlatformText(Material.Shaper)
 	revision++
 	loop.InvalidateAll()
@@ -187,7 +224,7 @@ func NewShaper(extra ...font.FontFace) *text.Shaper {
 	faces := append([]font.FontFace{}, extra...)
 	faces = append(faces, loaded...)
 	faces = append(faces, fallbackFaces()...)
-	sh := text.NewShaper(text.WithCollection(faces))
+	sh := text.NewShaper(text.WithPlatformFonts(), text.WithCollection(faces))
 	installPlatformText(sh)
 	return sh
 }
