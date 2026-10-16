@@ -14,6 +14,7 @@ type packer struct {
 
 	sizes []image.Point
 	pos   image.Point
+	area  int // occupied pixels in the current page
 }
 
 type placement struct {
@@ -34,10 +35,12 @@ func (p *packer) add(s image.Point) (placement, bool) {
 func (p *packer) clear() {
 	p.sizes = p.sizes[:0]
 	p.spaces = p.spaces[:0]
+	p.area = 0
 }
 
 func (p *packer) newPage() {
 	p.pos = image.Point{}
+	p.area = 0
 	p.sizes = append(p.sizes, image.Point{})
 	p.spaces = p.spaces[:0]
 	p.spaces = append(p.spaces, image.Rectangle{
@@ -84,6 +87,15 @@ func (p *packer) tryAdd(s image.Point) (placement, bool) {
 	if bestIdx == nil {
 		return placement{}, false
 	}
+	// Wide corner bands and tall border strips can fit together while
+	// leaving almost their entire bounding texture empty. Start a separate
+	// page before that expansion: another small texture is much cheaper.
+	// Keep small and at least quarter-full pages together to avoid creating
+	// extra targets for ordinary glyphs and icons.
+	area := p.area + s.X*s.Y
+	if bestSize.X*bestSize.Y > max(4*area, lastSize.X*lastSize.Y+256*1024) {
+		return placement{}, false
+	}
 	// Remove space.
 	bestSpace := *bestIdx
 	*bestIdx = p.spaces[len(p.spaces)-1]
@@ -105,5 +117,6 @@ func (p *packer) tryAdd(s image.Point) (placement, bool) {
 	}
 	idx := len(p.sizes) - 1
 	p.sizes[idx] = bestSize
+	p.area = area
 	return placement{Idx: idx, Pos: pos}, true
 }

@@ -44,6 +44,16 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/gpu`: bound sparse coverage-page growth. Wide corner bands and tall
+  border strips no longer expand one mostly empty atlas; growth exceeding
+  256 Ki pixels and leaving a page less than one-quarter occupied starts a
+  new page. Small/dense masks retain the existing packing. Paths, clipping,
+  paint order, resolution and drawable synchronization are unchanged. Tests
+  cover sparse/dense packing, bounds, non-overlap and reset. Native Rex
+  allocation tracing at 4000×2200 observed R16 coverage storage changing
+  from 20.55 to 2.77 MiB. This is a local allocation result, not a repeated
+  total-footprint or frame-rate result.
+
 - `typesetting/fontscan`: intern identical rune coverage while decoding each
   disk index, before allocating another coverage slice. A read-local hash table
   selects candidates; full page/bitmap comparisons guard collisions. Entries
