@@ -49,6 +49,8 @@ New projects include the configuration below. Existing projects may omit `ios` a
 
 iOS uses square, full-bleed artwork. The system applies rounded corners, and transparent pixels are composited over white; `icon_mask` does not affect iOS. Override the artwork with `"icons": {"ios": "icon-ios.png"}`. `keel icon` writes a `dist/icons/ios.png` preview; packaging compiles iPhone/iPad assets using Xcode's `actool`.
 
+`ios.info_plist` adds Info.plist keys, as described in [Getting started · keel.json](getting-started.md#keeljson). iOS refuses many capabilities without them: an app that connects to devices on the local network needs `NSLocalNetworkUsageDescription`, and one that browses Bonjour also lists its service types in `NSBonjourServices`. `"UIDeviceFamily": [2]` builds an iPad-only app.
+
 ## Device packaging
 
 Provide an Apple signing identity with its private key in Keychain and a provisioning profile matching `appid`:

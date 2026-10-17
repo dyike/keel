@@ -47,9 +47,14 @@ type Config struct {
 	Android *AndroidConfig `json:"android,omitempty"`
 }
 
-// MacOSConfig specifies whether an app starts as a menu-bar/accessory app.
+// MacOSConfig configures the macOS application bundle.
 type MacOSConfig struct {
+	// Accessory starts the app as a menu-bar/accessory app (LSUIElement).
 	Accessory bool `json:"accessory,omitempty"`
+	// InfoPlist adds keys to Info.plist, such as usage descriptions
+	// (NSLocalNetworkUsageDescription). See infoPlistReserved for keys
+	// keel writes itself.
+	InfoPlist map[string]any `json:"info_plist,omitempty"`
 }
 
 // AndroidConfig specifies API levels used by the Android packager.
@@ -73,6 +78,22 @@ func (c *Config) androidTargetSDK() int {
 
 type IOSConfig struct {
 	MinimumVersion string `json:"minimum_version,omitempty"`
+	// InfoPlist adds or overrides Info.plist keys, as MacOSConfig.InfoPlist.
+	InfoPlist map[string]any `json:"info_plist,omitempty"`
+}
+
+func (c *Config) macosInfoPlist() map[string]any {
+	if c.MacOS == nil {
+		return nil
+	}
+	return c.MacOS.InfoPlist
+}
+
+func (c *Config) iosInfoPlist() map[string]any {
+	if c.IOS == nil {
+		return nil
+	}
+	return c.IOS.InfoPlist
 }
 
 func (c *Config) iosMinimumVersion() string {
@@ -113,6 +134,8 @@ func (c *Config) validate() error {
 			errs = append(errs, fmt.Errorf("icons: unknown platform %q (darwin, windows, linux, ios, android)", platform))
 		}
 	}
+	errs = append(errs, validateInfoPlist("macos", c.macosInfoPlist())...)
+	errs = append(errs, validateInfoPlist("ios", c.iosInfoPlist())...)
 	minimum := c.iosMinimumVersion()
 	if !iosVersionPattern.MatchString(minimum) {
 		errs = append(errs, fmt.Errorf("ios.minimum_version %q: use a version such as 18.0", minimum))
