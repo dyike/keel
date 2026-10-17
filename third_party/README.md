@@ -414,3 +414,28 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
 
 - `gio/app`: port upstream Gio commit [bf9f995](https://github.com/gioui/gio/commit/bf9f995d86c22d555d7ce2db154395bca94541b7). When `Present` reports `gpu.ErrDeviceLost` (including wrapped errors), release the GPU context and schedule an immediate new frame. The acknowledged frame cannot be retried. Keel only runs idle GPU reclamation after successful presentation, while the context remains locked.
 - Regression tests cover success, direct/wrapped device loss, unrelated errors, acknowledgment count, and context lock/release ordering. The Windows cross-build passes; Windows client behavior has not been verified on hardware. Metal currently returns no presentation error, so this patch does not reduce macOS memory peaks.
+
+### 2026-10-17: mutable images and linear filtering without mipmaps
+
+- `gio/op/paint`, `gio/gpu`, new `gio/internal/dirty`: `NewMutableImageOp`
+  returns an ImageOp whose pixels the caller may change during layout, then
+  report with `Invalidate(rect)`. The op's handle is a `dirty.Tracker` keeping
+  the last 32 changed rectangles. `texHandle` uploads the union of changes
+  since the version a texture holds into that texture (`updateTexture`), or
+  the whole image when the texture is further behind. Tinted textures re-tint
+  only the changed area. Every driver already accepted offset uploads and
+  regenerates mipmaps after an upload.
+- `paint.FilterLinearNoMipmap` (filter byte 2) creates textures with linear
+  min/mag filtering and no mip chain. Every driver supported that combination;
+  the Metal CPU mipmap path (`uploadMipmaps`) allocated each level in Go on
+  every upload of a linearly filtered image.
+- Reason: a remote desktop viewer (Mirage) re-created whole tile textures for
+  each update and kept several CPU copies alive until Gio finished with them.
+  Tests cover partial uploads of a sub-image source, unions of changes in one
+  frame, clipping, catch-up after the log, tint, filter mapping, the op
+  encoding and texture release. With a 2880×1800 remote screen redrawn 30
+  times a second in a real macOS window (scale 0.44, so still mipmapped),
+  Mirage's footprint went from ~450 MB to ~324 MB and its live Go heap from
+  104 MB to 43 MB; GCs fell from 67 to 11 per minute. Only Metal has been
+  exercised in a real window; OpenGL, Direct3D 11 and Vulkan run the same
+  offset uploads but were not tested with mutable images.
