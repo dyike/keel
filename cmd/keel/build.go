@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/xml"
 	"errors"
 	"flag"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/dyike/keel/internal/appicon"
@@ -320,7 +320,8 @@ func decodePNG(path string) (image.Image, error) {
 }
 
 // writeInfoPlist replaces gogio's minimal Info.plist with a complete one:
-// an application (not a bundle) with its name, versions and minimum macOS.
+// an application (not a bundle) with its name, versions and minimum macOS,
+// plus macos.info_plist from keel.json.
 func (c *cli) writeInfoPlist(app string, cfg *Config) error {
 	if c.dryRun {
 		fmt.Fprintln(c.out, "write", filepath.Join(app, "Contents", "Info.plist"))
@@ -330,36 +331,32 @@ func (c *cli) writeInfoPlist(app string, cfg *Config) error {
 	if err != nil || len(exe) != 1 {
 		return fmt.Errorf("unexpected bundle layout in %s", app)
 	}
-	esc := func(s string) string {
-		var b bytes.Buffer
-		xml.EscapeText(&b, []byte(s))
-		return b.String()
-	}
-	accessory := ""
-	if cfg.MacOS != nil && cfg.MacOS.Accessory {
-		accessory = "\t<key>LSUIElement</key><true/>\n"
-	}
-	plist := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
-	<key>CFBundleDisplayName</key><string>%[1]s</string>
-	<key>CFBundleExecutable</key><string>%[2]s</string>
-	<key>CFBundleIconFile</key><string>icon.icns</string>
-	<key>CFBundleIdentifier</key><string>%[3]s</string>
-	<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-	<key>CFBundleName</key><string>%[1]s</string>
-	<key>CFBundlePackageType</key><string>APPL</string>
-	<key>CFBundleShortVersionString</key><string>%[4]s</string>
-	<key>CFBundleVersion</key><string>%[5]d</string>
-	<key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
-	<key>LSMinimumSystemVersion</key><string>14.0</string>
-	<key>NSHighResolutionCapable</key><true/>
-%[6]s</dict>
-</plist>
-`, esc(cfg.Name), esc(exe[0].Name()), esc(cfg.AppID), cfg.Version, max(cfg.Build, 1), accessory)
+	plist := plistDocument(macosInfoPlist(cfg, exe[0].Name()))
 	return os.WriteFile(filepath.Join(app, "Contents", "Info.plist"), []byte(plist), 0o644)
+}
+
+// macosInfoPlist lists the bundle's Info.plist keys for executable exe.
+func macosInfoPlist(cfg *Config, exe string) []plistEntry {
+	str := func(s string) string { return "<string>" + xmlText(s) + "</string>" }
+	entries := []plistEntry{
+		{"CFBundleDevelopmentRegion", str("zh_CN")},
+		{"CFBundleDisplayName", str(cfg.Name)},
+		{"CFBundleExecutable", str(exe)},
+		{"CFBundleIconFile", str("icon.icns")},
+		{"CFBundleIdentifier", str(cfg.AppID)},
+		{"CFBundleInfoDictionaryVersion", str("6.0")},
+		{"CFBundleName", str(cfg.Name)},
+		{"CFBundlePackageType", str("APPL")},
+		{"CFBundleShortVersionString", str(cfg.Version)},
+		{"CFBundleVersion", str(strconv.Itoa(max(cfg.Build, 1)))},
+		{"LSApplicationCategoryType", str("public.app-category.productivity")},
+		{"LSMinimumSystemVersion", str("14.0")},
+		{"NSHighResolutionCapable", "<true/>"},
+	}
+	if cfg.MacOS != nil && cfg.MacOS.Accessory {
+		entries = append(entries, plistEntry{"LSUIElement", "<true/>"})
+	}
+	return mergeInfoPlist(entries, cfg.macosInfoPlist())
 }
 
 // ldflags adds release stripping to extra linker flags.

@@ -129,6 +129,12 @@ Create stateful components once in `newApp` and retain them in view fields. `Ren
 - `version` follows `major.minor.patch`; `build` distinguishes builds of the same version. These values populate macOS Info.plist and Windows executable version information.
 - `binary` names the executable. `main` is the main package path relative to `keel.json`.
 - `macos: {"accessory": true}` starts a menu-bar or launcher app without a Dock icon. Both `keel run` and `keel build` write `LSUIElement` into the bundle; Gio preserves that policy before opening windows. Omit this setting for an ordinary Dock application.
+- `macos.info_plist` and `ios.info_plist` add keys to the generated Info.plist, typically usage descriptions such as `NSLocalNetworkUsageDescription` or `NSCameraUsageDescription`. Values are JSON strings, booleans, numbers (whole numbers become `<integer>`, others `<real>`), arrays and objects; `null` is rejected. Keys keel derives from keel.json (bundle ID, name, executable, versions, minimum OS, icons, `LSUIElement`, the iOS scene manifest) cannot be set here, and `keel build` reports which field controls them. Keys keel only sets as defaults, such as `LSApplicationCategoryType`, `UIDeviceFamily` or the iOS orientations, are replaced.
+
+  ```json
+  "macos": {"info_plist": {"NSLocalNetworkUsageDescription": "Connects to computers on your network."}},
+  "ios": {"info_plist": {"UIDeviceFamily": [2], "NSBonjourServices": ["_rfb._tcp"]}}
+  ```
 
 ## Run
 

@@ -120,6 +120,12 @@ func (a *app) Render(cx *el.Context) el.Element {
 - `version` 是 `主.次.修订`，`build` 是同一版本的构建号；macOS 写进 Info.plist，Windows 写进 .exe 的版本信息。
 - `binary` 是可执行文件名，`main` 是 main 包相对 `keel.json` 的路径。
 - `macos: {"accessory": true}` 让菜单栏应用或启动器从启动时就隐藏 Dock 图标。`keel run` 和 `keel build` 都会把 `LSUIElement` 写入应用包，Gio 在打开窗口前保留这个模式。普通 Dock 应用无需配置。
+- `macos.info_plist`、`ios.info_plist` 往生成的 Info.plist 里加键，常见的是用途说明，如 `NSLocalNetworkUsageDescription`、`NSCameraUsageDescription`。值可以是 JSON 字符串、布尔、数字（整数写成 `<integer>`，其余写成 `<real>`）、数组和对象，不接受 `null`。keel 按 keel.json 生成的键（Bundle ID、名称、可执行文件、版本、最低系统版本、图标、`LSUIElement`、iOS 场景清单）不能在这里改，`keel build` 会报出该改哪个字段。keel 只是给默认值的键，如 `LSApplicationCategoryType`、`UIDeviceFamily`、iOS 屏幕方向，会被替换。
+
+  ```json
+  "macos": {"info_plist": {"NSLocalNetworkUsageDescription": "连接局域网中的电脑。"}},
+  "ios": {"info_plist": {"UIDeviceFamily": [2], "NSBonjourServices": ["_rfb._tcp"]}}
+  ```
 
 ## 运行
 

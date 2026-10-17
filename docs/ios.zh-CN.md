@@ -49,6 +49,8 @@ keel run -target ios -simulator <UDID> -- --my-app-flag
 
 iOS 图标使用满版正方形原图，圆角交给系统处理，透明区域合成到白色背景；`icon_mask` 不影响 iOS。也可以用 `"icons": {"ios": "icon-ios.png"}` 指定单独原图。`keel icon` 会生成 `dist/icons/ios.png` 预览，打包时通过 Xcode `actool` 生成 iPhone/iPad 图标资源。
 
+`ios.info_plist` 往 Info.plist 里加键，规则见 [快速开始 · keel.json](getting-started.zh-CN.md#keeljson)。很多系统能力缺了对应的键 iOS 会直接拒绝：连接局域网设备需要 `NSLocalNetworkUsageDescription`，浏览 Bonjour 还要在 `NSBonjourServices` 里列出服务类型。`"UIDeviceFamily": [2]` 打出只支持 iPad 的应用。
+
 ## 真机打包
 
 需要钥匙串中带私钥的 Apple 签名身份，以及与 `appid` 匹配的 provisioning profile：

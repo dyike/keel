@@ -106,7 +106,7 @@ func (c *cli) buildIOS(dir string, cfg *Config, icons *iconSet, outDir, main, ar
 		return err
 	}
 	if c.dryRun {
-		fmt.Fprintln(c.out, "write", filepath.Join(app, "Info.plist"), "(name, bundle ID, version, KeelSceneDelegate)")
+		fmt.Fprintln(c.out, "write", filepath.Join(app, "Info.plist"), "(name, bundle ID, version, KeelSceneDelegate, ios.info_plist)")
 	} else if err := os.WriteFile(filepath.Join(app, "Info.plist"), []byte(iosInfoPlist(cfg, platform)), 0o644); err != nil {
 		return err
 	}
@@ -152,42 +152,50 @@ func xmlText(s string) string {
 	return b.String()
 }
 
+// iosInfoPlist renders the app's Info.plist, plus ios.info_plist from
+// keel.json. Icon keys are merged in later from actool's output.
 func iosInfoPlist(cfg *Config, platform string) string {
-	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>CFBundleDisplayName</key><string>%[1]s</string>
-<key>CFBundleName</key><string>%[1]s</string>
-<key>CFBundleExecutable</key><string>%[2]s</string>
-<key>CFBundleIdentifier</key><string>%[3]s</string>
-<key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>%[4]s</string>
-<key>CFBundleVersion</key><string>%[5]d</string>
-<key>CFBundleSupportedPlatforms</key><array><string>%[6]s</string></array>
-<key>MinimumOSVersion</key><string>%[7]s</string>
-<key>UIDeviceFamily</key><array><integer>1</integer><integer>2</integer></array>
-<key>UIApplicationSceneManifest</key><dict>
-<key>UIApplicationSupportsMultipleScenes</key><false/>
-<key>UISceneConfigurations</key><dict>
-<key>UIWindowSceneSessionRoleApplication</key><array><dict>
-<key>UISceneConfigurationName</key><string>Keel</string>
-<key>UISceneClassName</key><string>UIWindowScene</string>
-<key>UISceneDelegateClassName</key><string>KeelSceneDelegate</string>
-</dict></array></dict></dict>
-<key>UILaunchScreen</key><dict/>
-<key>UISupportedInterfaceOrientations</key><array>
-<string>UIInterfaceOrientationPortrait</string>
-<string>UIInterfaceOrientationLandscapeLeft</string>
-<string>UIInterfaceOrientationLandscapeRight</string>
-</array>
-<key>UISupportedInterfaceOrientations~ipad</key><array>
-<string>UIInterfaceOrientationPortrait</string>
-<string>UIInterfaceOrientationPortraitUpsideDown</string>
-<string>UIInterfaceOrientationLandscapeLeft</string>
-<string>UIInterfaceOrientationLandscapeRight</string>
-</array>
-</dict></plist>
-`, xmlText(cfg.Name), xmlText(cfg.Binary), xmlText(cfg.AppID), cfg.Version, max(cfg.Build, 1), platform, cfg.iosMinimumVersion())
+	str := func(s string) string { return "<string>" + xmlText(s) + "</string>" }
+	strs := func(ss ...string) string {
+		var b strings.Builder
+		b.WriteString("<array>")
+		for _, s := range ss {
+			b.WriteString(str(s))
+		}
+		b.WriteString("</array>")
+		return b.String()
+	}
+	entries := []plistEntry{
+		{"CFBundleDisplayName", str(cfg.Name)},
+		{"CFBundleName", str(cfg.Name)},
+		{"CFBundleExecutable", str(cfg.Binary)},
+		{"CFBundleIdentifier", str(cfg.AppID)},
+		{"CFBundlePackageType", str("APPL")},
+		{"CFBundleShortVersionString", str(cfg.Version)},
+		{"CFBundleVersion", str(strconv.Itoa(max(cfg.Build, 1)))},
+		{"CFBundleSupportedPlatforms", strs(platform)},
+		{"MinimumOSVersion", str(cfg.iosMinimumVersion())},
+		{"UIDeviceFamily", "<array><integer>1</integer><integer>2</integer></array>"},
+		{"UIApplicationSceneManifest", `<dict>` +
+			`<key>UIApplicationSupportsMultipleScenes</key><false/>` +
+			`<key>UISceneConfigurations</key><dict>` +
+			`<key>UIWindowSceneSessionRoleApplication</key><array><dict>` +
+			`<key>UISceneConfigurationName</key><string>Keel</string>` +
+			`<key>UISceneClassName</key><string>UIWindowScene</string>` +
+			`<key>UISceneDelegateClassName</key><string>KeelSceneDelegate</string>` +
+			`</dict></array></dict></dict>`},
+		{"UILaunchScreen", "<dict/>"},
+		{"UISupportedInterfaceOrientations", strs(
+			"UIInterfaceOrientationPortrait",
+			"UIInterfaceOrientationLandscapeLeft",
+			"UIInterfaceOrientationLandscapeRight")},
+		{"UISupportedInterfaceOrientations~ipad", strs(
+			"UIInterfaceOrientationPortrait",
+			"UIInterfaceOrientationPortraitUpsideDown",
+			"UIInterfaceOrientationLandscapeLeft",
+			"UIInterfaceOrientationLandscapeRight")},
+	}
+	return plistDocument(mergeInfoPlist(entries, cfg.iosInfoPlist()))
 }
 
 // toolOutput captures machine-readable output without mixing it with diagnostics.
