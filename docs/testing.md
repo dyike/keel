@@ -708,3 +708,5 @@ focus/save/reopening, 10,000-option search, 100,000-item virtual scrolling and
 table sorting, calendar keyboard navigation past disabled dates and retained
 date-picker selection after reopening. Gallery category checks prevent registered scenes from being
 omitted from the sidebar.
+
+Native glass needs a compositor check as well as transparent GPU pixels. On macOS 14.4+, run `KEEL_DESKTOP=1 go test -tags keelnativeqa -run TestNativeMaterialComposition ./ui/window`. This fixture captures its own red/blue reference and frosted window together, then asserts that both colors reach the glass. It uses current-process ScreenCaptureKit content without requesting screen recording. The filter retains system desktop layers because excluding them flattens behind-window materials; other applications' content windows are excluded, and the saved image is cropped to the test window.

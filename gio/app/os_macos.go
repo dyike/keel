@@ -32,6 +32,7 @@ import (
 #cgo LDFLAGS: -framework AppKit -framework QuartzCore
 
 #include <AppKit/AppKit.h>
+#include <objc/runtime.h>
 
 #define MOUSE_MOVE 1
 #define MOUSE_UP 2
@@ -108,7 +109,7 @@ static int isWindowVisible(CFTypeRef viewRef) {
 	@autoreleasepool {
 		NSView *view = (__bridge NSView *)viewRef;
 		NSWindow *window = view.window;
-		if (window == nil || window.contentView != view || ![window.delegate isKindOfClass:NSClassFromString(@"GioWindowDelegate")]) {
+		if (window == nil || objc_getAssociatedObject(window, @selector(gioInputView)) != view || ![window.delegate isKindOfClass:NSClassFromString(@"GioWindowDelegate")]) {
 			return 1;
 		}
 		return (window.occlusionState & NSWindowOcclusionStateVisible) != 0;
@@ -291,16 +292,21 @@ static CFTypeRef layerForView(CFTypeRef viewRef) {
 static CFTypeRef windowForView(CFTypeRef viewRef) {
 	@autoreleasepool {
 		NSView *view = (__bridge NSView *)viewRef;
-		return (__bridge CFTypeRef)view.window;
+		// Material installation briefly detaches the input view. Driver actions
+		// flushed by that callback must still reach their original window.
+		NSWindow *window = view.window;
+		if (window == nil) {
+			window = objc_getAssociatedObject(view, @selector(gioHostWindow));
+		}
+		return (__bridge CFTypeRef)window;
 	}
 }
 
 static void raiseWindow(CFTypeRef windowRef) {
 	@autoreleasepool {
-		NSRunningApplication *currentApp = [NSRunningApplication currentApplication];
-		if (![currentApp isActive]) {
-			[currentApp activateWithOptions:(NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps)];
-		}
+		// NSRunningApplication's active state can lag accessory-app transitions.
+		// Raise is an explicit activation request, even when that snapshot is stale.
+		[NSApp activateIgnoringOtherApps:YES];
 		NSWindow* window = (__bridge NSWindow *)windowRef;
 		[window makeKeyAndOrderFront:nil];
 	}

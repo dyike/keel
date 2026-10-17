@@ -62,6 +62,9 @@ type Options struct {
 	// Frameless hides the system title bar so the content can draw its own,
 	// e.g. a kit.TitleBar; the content then starts at the window's top edge.
 	Frameless bool
+	// TopMost keeps the window above ordinary application windows. It does not
+	// activate the application; use Raise when opening a resident launcher.
+	TopMost bool
 	// NativeTrafficLights keeps AppKit's standard window buttons visible over
 	// frameless content on macOS. Reserve the top-left titlebar area in Content.
 	// Other platforms ignore this option.
@@ -73,6 +76,8 @@ type Options struct {
 }
 
 type Window struct {
+	closeRequested            atomic.Bool
+	actionMu                  sync.Mutex
 	resizeVersion             atomic.Uint64
 	resizeSerial              sync.Mutex
 	size                      atomic.Uint64
@@ -150,6 +155,9 @@ func newWindow(o Options) *Window {
 func (w *Window) nativeOptions() []gioapp.Option {
 	o := w.opts
 	options := []gioapp.Option{gioapp.Title(o.Title), gioapp.Size(unit.Dp(o.Width), unit.Dp(o.Height)), gioapp.Decorated(askDecorations(o.Frameless))}
+	if o.TopMost {
+		options = append(options, gioapp.TopMost(true))
+	}
 	if w.opts.Glass != nil && GlassSupported() {
 		options = append(options, gioapp.CustomRenderer(true))
 	}
@@ -198,7 +206,11 @@ func MainWithOptions(options MainOptions) {
 }
 
 // Close closes the window as if the user clicked its close button.
-func (w *Window) Close() { w.perform(system.ActionClose) }
+func (w *Window) Close() {
+	if w.closeRequested.CompareAndSwap(false, true) {
+		w.perform(system.ActionClose)
+	}
+}
 
 // Raise brings the window to the front.
 func (w *Window) Raise() { w.perform(system.ActionRaise) }
@@ -267,13 +279,26 @@ func (w *Window) setFocused(focused bool) {
 // the position of the already released NSWindow). An agent easily closes a
 // window within milliseconds of opening it.
 func (w *Window) perform(a system.Action) {
+	if a != system.ActionClose && w.closeRequested.Load() {
+		return
+	}
 	if w.win == nil { // headless automation
 		queueAction(w, a)
 		return
 	}
 	go func() {
 		<-w.shown
+		// A queued Raise must not reopen a native window after Close. Both
+		// actions can be waiting for the same first frame of a new window.
+		w.actionMu.Lock()
+		defer w.actionMu.Unlock()
+		if a != system.ActionClose && w.closeRequested.Load() {
+			return
+		}
 		if !w.isClosed() {
+			if os.Getenv("REX_STARTUP_TRACE") != "" {
+				fmt.Fprintf(os.Stderr, "keel %d window=%q action=%v\n", time.Now().UnixMicro(), w.opts.Title, a)
+			}
 			w.win.Perform(a)
 		}
 	}()
@@ -294,7 +319,7 @@ func (w *Window) run() {
 	for {
 		ev := w.win.Event()
 		if os.Getenv("REX_STARTUP_TRACE") != "" {
-			fmt.Fprintf(os.Stderr, "keel %d event %T\n", time.Now().UnixMicro(), ev)
+			fmt.Fprintf(os.Stderr, "keel %d window=%q event %T\n", time.Now().UnixMicro(), w.opts.Title, ev)
 		}
 		switch e := ev.(type) {
 		case gioapp.DestroyEvent:

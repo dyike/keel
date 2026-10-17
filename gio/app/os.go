@@ -157,6 +157,9 @@ type eventLoop struct {
 	frameAck chan struct{}
 	// delivering avoids re-entrant event delivery.
 	delivering bool
+	// The event consumer exits after DestroyEvent; queued native wakeups can
+	// still arrive afterwards and must not wait for that consumer again.
+	terminated bool
 }
 
 type frameEvent struct {
@@ -298,12 +301,12 @@ func (e *eventLoop) Run(f func()) {
 
 // FlushEvents delivers pending events to the client.
 func (e *eventLoop) FlushEvents() {
-	if e.delivering {
+	if e.delivering || e.terminated {
 		return
 	}
 	e.delivering = true
 	defer func() { e.delivering = false }()
-	for {
+	for !e.terminated {
 		evt, ok := e.win.nextEvent()
 		if !ok {
 			break
@@ -324,8 +327,10 @@ func (e *eventLoop) deliverEvent(evt event.Event) {
 			e.win.ProcessFrame(frame, e.frameAck)
 		case e.events <- evt:
 			switch evt.(type) {
-			case flushEvent, DestroyEvent:
-				// DestroyEvents are not flushed.
+			case DestroyEvent:
+				e.terminated = true
+				return
+			case flushEvent:
 				return
 			case FrameEvent:
 				frames = e.frames

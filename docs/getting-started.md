@@ -128,6 +128,7 @@ Create stateful components once in `newApp` and retain them in view fields. `Ren
 - `appid` is a unique reverse-domain identifier. macOS uses it for permissions and system notifications; Linux uses it to match desktop icons. **Keep it stable after release.**
 - `version` follows `major.minor.patch`; `build` distinguishes builds of the same version. These values populate macOS Info.plist and Windows executable version information.
 - `binary` names the executable. `main` is the main package path relative to `keel.json`.
+- `macos: {"accessory": true}` starts a menu-bar or launcher app without a Dock icon. Both `keel run` and `keel build` write `LSUIElement` into the bundle; Gio preserves that policy before opening windows. Omit this setting for an ordinary Dock application.
 
 ## Run
 

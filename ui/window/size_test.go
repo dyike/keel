@@ -101,3 +101,16 @@ func TestWindowMinimumSingleAxis(t *testing.T) {
 		}
 	}
 }
+
+func TestWindowTopMostNativeOption(t *testing.T) {
+	for _, topMost := range []bool{false, true} {
+		w := newWindow(Options{TopMost: topMost})
+		var config gioapp.Config
+		for _, option := range w.nativeOptions() {
+			option(unit.Metric{PxPerDp: 1, PxPerSp: 1}, &config)
+		}
+		if config.TopMost != topMost {
+			t.Fatalf("TopMost=%v, native config=%v", topMost, config.TopMost)
+		}
+	}
+}

@@ -22,6 +22,7 @@ func TestRealWindows(t *testing.T) {
 		{"./testdata/raise"},                   // Raise/Close from UI code must not deadlock
 		{"./testdata/reopen", "update", "now"}, // closing right after opening must not crash
 		{"./testdata/reopen", "locked", "now"},
+		{"./testdata/reopen", "update", "now", "raise"}, // Close cancels a Raise waiting for its first frame.
 	}
 	if runtime.GOOS == "darwin" {
 		cases = append(cases, []string{"./testdata/center"})

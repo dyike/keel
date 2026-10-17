@@ -119,6 +119,7 @@ func (a *app) Render(cx *el.Context) el.Element {
 - `appid`：反向域名形式的唯一 ID。macOS 的权限授权、系统通知按它记录，Linux 桌面按它匹配图标，**发布后不要再改**。
 - `version` 是 `主.次.修订`，`build` 是同一版本的构建号；macOS 写进 Info.plist，Windows 写进 .exe 的版本信息。
 - `binary` 是可执行文件名，`main` 是 main 包相对 `keel.json` 的路径。
+- `macos: {"accessory": true}` 让菜单栏应用或启动器从启动时就隐藏 Dock 图标。`keel run` 和 `keel build` 都会把 `LSUIElement` 写入应用包，Gio 在打开窗口前保留这个模式。普通 Dock 应用无需配置。
 
 ## 运行
 

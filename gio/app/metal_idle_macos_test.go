@@ -25,6 +25,14 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	if os.Getenv("GIO_WRAPPED_VIEW_HELPER") == "1" {
+		wrappedInputViewHelper()
+		return
+	}
+	if os.Getenv("GIO_ACTIVATION_POLICY_HELPER") != "" {
+		activationPolicyWindowHelper()
+		return
+	}
 	if os.Getenv("GIO_METAL_RESIZE_HELPER") == "1" {
 		metalResizeWindowHelper()
 		return

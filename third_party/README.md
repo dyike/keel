@@ -44,6 +44,29 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app`: macOS driver actions retain window identity while the input view
+  is temporarily detached for a material wrapper. The non-owning host link is
+  cleared when the window closes. Responder reparenting no longer reports a
+  false window blur, and assigning a responder to an inactive window does not
+  claim keyboard focus. Raise explicitly activates NSApplication instead of
+  consulting the potentially stale NSRunningApplication snapshot. Void's native
+  regression exercises typing, Cmd+, and repeated inactive-app reopening.
+  The shared event loop also rejects event delivery after DestroyEvent: a
+  late native wakeup must not block the main thread on an exited consumer.
+  A channel-based regression covers that terminal transition.
+
+- `gio/app`: native window delegates keep the original Gio input view in a
+  retained Objective-C association instead of assuming it is `contentView`.
+  AppKit glass can now occupy the window root while Gio draws transparent
+  content inside it. The wrapped-view native regression covers focus, resize
+  and close; `ui/window/testdata/glass` checks the material root, hit testing,
+  minimize/restore and teardown for all three glass styles.
+
+- `gio/app`: macOS startup honors the bundle's `LSUIElement` flag instead of
+  always switching to a regular Dock application. Accessory launchers can open
+  their first window without a later policy change deactivating it. A native
+  bundle regression checks regular and accessory launch policies.
+
 - `gio/text`, `gio/font/opentype`, `ui/theme`: macOS platform shapers use
   CoreText for matching, fallback and shaping. The raster hook borrows the exact
   shaped CTFont instead of reopening it from a path. Font preparation validates

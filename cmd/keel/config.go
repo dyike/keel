@@ -40,9 +40,16 @@ type Config struct {
 	Icons map[string]string `json:"icons,omitempty"`
 	// Main is the main package, relative to keel.json.
 	Main string `json:"main"`
+	// MacOS configures desktop application bundle behavior.
+	MacOS *MacOSConfig `json:"macos,omitempty"`
 	// IOS configures the mobile build; omitted projects target iOS 18.0.
 	IOS     *IOSConfig     `json:"ios,omitempty"`
 	Android *AndroidConfig `json:"android,omitempty"`
+}
+
+// MacOSConfig specifies whether an app starts as a menu-bar/accessory app.
+type MacOSConfig struct {
+	Accessory bool `json:"accessory,omitempty"`
 }
 
 // AndroidConfig specifies API levels used by the Android packager.

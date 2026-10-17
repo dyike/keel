@@ -31,7 +31,7 @@ func checkGlass(liquid bool, width, height float64) bool {
 			if !appkit.Equal(appkit.Send(window, "title"), "glass acceptance") || !appkit.SendBool(window, "isVisible") || appkit.SendBool(window, "isMiniaturized") {
 				continue
 			}
-			gio := appkit.Send(window, "contentView")
+			gio := appkit.ID(appkit.Call(appkit.Sym("objc_getAssociatedObject"), uintptr(window), uintptr(appkit.Sel("gioInputView"))))
 			if appkit.GoString(appkit.ID(appkit.Call(appkit.Sym("NSStringFromClass"), uintptr(appkit.Send(gio, "class"))))) != "GioView" {
 				continue
 			}
@@ -43,13 +43,11 @@ func checkGlass(liquid bool, width, height float64) bool {
 			if math.Abs(bounds.Width-width) > 1 || math.Abs(bounds.Height-height) > 1 {
 				continue
 			}
-			var base appkit.ID
-			for _, child := range subviews(gio) {
-				if isKind(child, "NSVisualEffectView") {
-					base = child
-				}
+			base := appkit.Send(window, "contentView")
+			if !isKind(base, "NSVisualEffectView") || appkit.Send(window, "firstResponder") != gio {
+				continue
 			}
-			if base == 0 || appkit.Send(base, "blendingMode") != 0 { // NSVisualEffectBlendingModeBehindWindow
+			if base == 0 || appkit.Send(base, "material") != 7 || appkit.Send(base, "state") != 1 || appkit.Send(base, "blendingMode") != 0 { // NSVisualEffectBlendingModeBehindWindow
 				continue
 			}
 			var host, glass appkit.ID
@@ -71,11 +69,19 @@ func checkGlass(liquid bool, width, height float64) bool {
 			} else if glass != 0 {
 				continue
 			}
-			if host == 0 || !isKind(appkit.Send(host, "layer"), "CAMetalLayer") {
+			if host != gio || !isKind(appkit.Send(host, "layer"), "CAMetalLayer") {
 				continue
 			}
 			layer := appkit.Send(host, "layer")
 			if appkit.SendBool(layer, "isOpaque") || appkit.Send(layer, "device") == 0 || appkit.MsgRect(host, appkit.Sel("bounds")).Size != bounds {
+				continue
+			}
+			if appkit.Send(layer, "pixelFormat") != 115 {
+				continue
+			}
+			space := appkit.Send(layer, "colorspace")
+			name := appkit.ID(appkit.Call(appkit.Sym("CGColorSpaceGetName"), uintptr(space)))
+			if !appkit.Equal(name, "kCGColorSpaceExtendedLinearSRGB") {
 				continue
 			}
 			scale := appkit.MsgFloat(window, appkit.Sel("backingScaleFactor"))
@@ -86,6 +92,10 @@ func checkGlass(liquid bool, width, height float64) bool {
 			// The native effect must not consume Gio input events.
 			point := appkit.MsgPointFromView(gio, appkit.Sel("convertPoint:toView:"), appkit.Point{X: 30, Y: 80}, appkit.Send(gio, "superview"))
 			if appkit.MsgIDForPoint(gio, appkit.Sel("hitTest:"), point) != gio {
+				continue
+			}
+			rootPoint := appkit.MsgPointFromView(gio, appkit.Sel("convertPoint:toView:"), appkit.Point{X: 30, Y: 80}, appkit.Send(base, "superview"))
+			if appkit.MsgIDForPoint(base, appkit.Sel("hitTest:"), rootPoint) != gio {
 				continue
 			}
 			ok = true

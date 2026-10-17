@@ -30,6 +30,7 @@ window.Main()
 | `Shortcuts` | 窗口获得焦点时生效的快捷键，写法见下文 |
 | `OnClose` | 窗口销毁后调用，在锁内运行，可以直接改组件 |
 | `Frameless` | 隐藏系统标题栏，内容从窗口最上沿开始，由应用自己画标题栏，通常用 [kit.TitleBar](kit/title_bar.zh-CN.md)。不设时，Linux 上合成器不画标题栏（WSLg、GNOME Wayland）的情况下由 keel 画一个跟随主题和字体的标题栏 |
+| `TopMost` | 让启动器或工具窗口位于普通窗口上方。置顶不会激活应用；响应全局快捷键显示常驻窗口时，还需调用 `Raise()`。 |
 
 `window.Open` 可以在 `window.Main()` 之前调用，也可以在任何回调里调用，用来运行时开新窗口。
 
@@ -60,9 +61,9 @@ window.Main()
 
 `GlassRegular`、`GlassClear` 在 macOS 26+ 使用 `NSGlassEffectView`，构建需要 macOS 26+ SDK；旧系统或旧 SDK 自动使用 `NSVisualEffectView`。`GlassFrosted` 始终使用传统毛玻璃。`CornerRadius` 单位为 dp，零保留系统玻璃默认曲率；无效样式、负数或非有限圆角会触发 panic。
 
-玻璃窗口使用独立的透明 Metal 表面。AppKit 负责背后窗口的采样和玻璃效果，Gio 继续处理文字、布局和输入。`GlassSupported()` 查询当前构建的原生背景能力，`LiquidGlassSupported()` 查询 Liquid Glass 能力。Windows、Linux、浏览器、iOS 和 `-tags=nometal` 构建保留实色主题背景。未配置 `Glass` 的窗口使用原有渲染路径。
+AppKit 材质层位于原生窗口根部，负责采样窗口背后的画面。Gio 在内部的透明 Metal 层绘制文字和布局，并继续处理输入。线性半浮点表面保留半透明颜色和暗部精度。`GlassSupported()` 查询当前构建的原生背景能力，`LiquidGlassSupported()` 查询 Liquid Glass 能力。Windows、Linux、浏览器、iOS 和 `-tags=nometal` 构建保留实色主题背景。未配置 `Glass` 的窗口使用原有渲染路径。
 
-材质随原生外观和系统辅助功能设置变化；应用仍需为 Go 内容选择合适的调色板。此接口覆盖整个客户区，不提供单个 Go 控件的折射或玻璃融合动画。`Screenshot` 和自动化离屏图无法包含原生合成效果，应在真实窗口验证。
+材质随原生外观和系统辅助功能设置变化，窗口失去焦点后仍保持启用；应用仍需为 Go 内容选择合适的调色板。此接口覆盖整个客户区，不提供单个 Go 控件的折射或玻璃融合动画。`Screenshot` 和自动化离屏图无法包含原生合成效果，应在真实窗口验证。
 
 ```sh
 go run ./examples/glass -backdrop
