@@ -30,6 +30,7 @@ window.Main()
 | `Shortcuts` | The shortcut key that takes effect when the window gets focus, see below for the writing method |
 | `OnClose` | Called after the window is destroyed, running in the lock, you can directly modify the component |
 | `Frameless` | Hide the system title bar. The content starts from the top edge of the window. The application draws the title bar by itself, usually using [kit.TitleBar](kit/title_bar.md). When not set, if the synthesizer on Linux does not draw a title bar (WSLg, GNOME Wayland), keel will draw a title bar following the theme and font |
+| `TopMost` | Keep a launcher or utility above ordinary windows. This does not activate the app. Call `Raise()` when showing a resident app in response to a hotkey. |
 
 `window.Open` can be called before `window.Main()` or in any callback to open a new window at runtime.
 
@@ -60,9 +61,9 @@ Import `image/color` for the transparent color. `el.Root` supplies a theme backg
 
 `GlassRegular` and `GlassClear` use `NSGlassEffectView` on macOS 26+ when built with a macOS 26+ SDK. Older systems or SDKs fall back to `NSVisualEffectView`. `GlassFrosted` always uses traditional vibrancy. `CornerRadius` is in dp; zero keeps the system's default glass curvature. Invalid styles, negative radii and non-finite radii panic.
 
-Glass windows use a separate transparent Metal surface. AppKit samples windows behind the application and supplies the material; Gio retains text, layout and input handling. `GlassSupported()` reports native backdrop support in this build; `LiquidGlassSupported()` reports Liquid Glass support. Windows, Linux, browsers, iOS and `-tags=nometal` builds retain the opaque theme background. Windows without `Glass` keep their existing rendering path.
+The AppKit material occupies the native window root and samples windows behind the application. Gio draws text and layouts into its transparent Metal layer inside that root and keeps input handling. The linear half-float surface preserves translucent colors and dark-tone precision. `GlassSupported()` reports native backdrop support in this build; `LiquidGlassSupported()` reports Liquid Glass support. Windows, Linux, browsers, iOS and `-tags=nometal` builds retain the opaque theme background. Windows without `Glass` keep their existing rendering path.
 
-The material follows native appearance and system accessibility settings; choose a matching Go palette for the foreground. This API covers the window content area; it does not provide per-control refraction or glass morphing. Off-screen `Screenshot` and automation images cannot include native compositor effects. Verify those in a real window.
+The material follows native appearance and system accessibility settings and stays active when the window loses key status; choose a matching Go palette for the foreground. This API covers the window content area; it does not provide per-control refraction or glass morphing. Off-screen `Screenshot` and automation images cannot include native compositor effects. Verify those in a real window.
 
 ```sh
 go run ./examples/glass -backdrop

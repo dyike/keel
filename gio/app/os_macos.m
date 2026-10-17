@@ -3,6 +3,7 @@
 //go:build darwin && !ios
 
 #import <AppKit/AppKit.h>
+#import <objc/runtime.h>
 
 #include "_cgo_export.h"
 
@@ -19,55 +20,68 @@ __attribute__ ((visibility ("hidden"))) CALayer *gio_layerFactory(BOOL presentWi
 @property BOOL presentWithTrans;
 @end
 
+// The input view can be nested inside an AppKit material root. Keep its
+// identity independent of contentView and the changing responder chain.
+static GioView *gioWindowView(NSWindow *window) {
+    return objc_getAssociatedObject(window, @selector(gioInputView));
+}
+
 @implementation GioWindowDelegate
+- (void)windowWillClose:(NSNotification *)notification {
+	GioView *view = gioWindowView((NSWindow *)notification.object);
+	if (view != nil) {
+		// The inverse reference is non-owning; never leave a closed host behind.
+		objc_setAssociatedObject(view, @selector(gioHostWindow), nil, OBJC_ASSOCIATION_ASSIGN);
+	}
+}
 - (BOOL)windowShouldClose:(NSWindow *)window {
-	GioView *view = (GioView *)window.contentView;
-	return gio_onCloseRequest(view.handle) != 0;
+	GioView *view = gioWindowView(window);
+	return view == nil || gio_onCloseRequest(view.handle) != 0;
 }
 - (void)windowWillMiniaturize:(NSNotification *)notification {
 	NSWindow *window = (NSWindow *)[notification object];
-  GioView *view = (GioView *)window.contentView;
-	gio_onDraw(view.handle);
+  GioView *view = gioWindowView(window);
+	if (view != nil) gio_onDraw(view.handle);
 }
 - (void)windowDidDeminiaturize:(NSNotification *)notification {
 	NSWindow *window = (NSWindow *)[notification object];
-  GioView *view = (GioView *)window.contentView;
-	gio_onDraw(view.handle);
+  GioView *view = gioWindowView(window);
+	if (view != nil) gio_onDraw(view.handle);
 }
 - (void)windowWillEnterFullScreen:(NSNotification *)notification {
 	NSWindow *window = (NSWindow *)[notification object];
-  GioView *view = (GioView *)window.contentView;
-	gio_onDraw(view.handle);
+  GioView *view = gioWindowView(window);
+	if (view != nil) gio_onDraw(view.handle);
 }
 - (void)windowWillExitFullScreen:(NSNotification *)notification {
 	NSWindow *window = (NSWindow *)[notification object];
-  GioView *view = (GioView *)window.contentView;
-	gio_onDraw(view.handle);
+  GioView *view = gioWindowView(window);
+	if (view != nil) gio_onDraw(view.handle);
 }
 // Keel patch: windows nobody can see (covered, on another space, the
 // screen locked) stop drawing; see gio_onOcclusion.
 - (void)windowDidChangeOcclusionState:(NSNotification *)notification {
 	NSWindow *window = (NSWindow *)[notification object];
-	GioView *view = (GioView *)window.contentView;
-	gio_onOcclusion(view.handle, (window.occlusionState & NSWindowOcclusionStateVisible) != 0);
+	GioView *view = gioWindowView(window);
+	if (view != nil) gio_onOcclusion(view.handle, (window.occlusionState & NSWindowOcclusionStateVisible) != 0);
 }
 - (void)windowDidChangeScreen:(NSNotification *)notification {
 	NSWindow *window = (NSWindow *)[notification object];
 	CGDirectDisplayID dispID = [[[window screen] deviceDescription][@"NSScreenNumber"] unsignedIntValue];
-  GioView *view = (GioView *)window.contentView;
-	gio_onChangeScreen(view.handle, dispID);
+  GioView *view = gioWindowView(window);
+	if (view != nil) gio_onChangeScreen(view.handle, dispID);
 }
 - (void)windowDidBecomeKey:(NSNotification *)notification {
 	NSWindow *window = (NSWindow *)[notification object];
-	GioView *view = (GioView *)window.contentView;
-	if ([window firstResponder] == view) {
+	GioView *view = gioWindowView(window);
+	if (view != nil && [window firstResponder] == view) {
 		gio_onFocus(view.handle, 1);
 	}
 }
 - (void)windowDidResignKey:(NSNotification *)notification {
 	NSWindow *window = (NSWindow *)[notification object];
-	GioView *view = (GioView *)window.contentView;
-	if ([window firstResponder] == view) {
+	GioView *view = gioWindowView(window);
+	if (view != nil) {
 		gio_onFocus(view.handle, 0);
 	}
 }
@@ -228,14 +242,20 @@ static void handleMouse(GioView *view, NSEvent *event, int typ, CGFloat dx, CGFl
 	}
 }
 - (BOOL) becomeFirstResponder {
-	gio_onFocus(self.handle, 1);
-	return [super becomeFirstResponder];
+	BOOL accepted = [super becomeFirstResponder];
+	// A responder can be assigned before its accessory app is activated.
+	// Report keyboard focus only after the native window actually becomes key.
+	if (accepted && self.window.isKeyWindow) {
+		gio_onFocus(self.handle, 1);
+	}
+	return accepted;
 }
 - (BOOL)acceptsFirstResponder {
     return YES;
 }
 - (BOOL) resignFirstResponder {
-	gio_onFocus(self.handle, 0);
+	// Reparenting GioView into a glass root temporarily changes responders
+	// while the window remains key. The window delegate owns focus loss.
 	return [super resignFirstResponder];
 }
 @end
@@ -409,6 +429,8 @@ CFTypeRef gio_createWindow(CFTypeRef viewRef, CGFloat width, CGFloat height) {
 		[window setAcceptsMouseMovedEvents:YES];
 		NSView *view = (__bridge NSView *)viewRef;
 		// Keel patch: the delegate first, so the view sees it when it attaches.
+		objc_setAssociatedObject(window, @selector(gioInputView), view, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+		objc_setAssociatedObject(view, @selector(gioHostWindow), window, OBJC_ASSOCIATION_ASSIGN);
 		window.delegate = globalWindowDel;
 		[window setContentView:view];
 		return (__bridge_retained CFTypeRef)window;
@@ -444,7 +466,9 @@ void gio_viewSetHandle(CFTypeRef viewRef, uintptr_t handle) {
 
 @implementation GioAppDelegate
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-	[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+	// Keel patch: preserve accessory applications' bundle launch policy.
+	BOOL accessory = [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"LSUIElement"] boolValue];
+	[NSApp setActivationPolicy:accessory ? NSApplicationActivationPolicyAccessory : NSApplicationActivationPolicyRegular];
 	[NSApp activateIgnoringOtherApps:YES];
 }
 - (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls {

@@ -13,25 +13,19 @@ import (
 	"github.com/dyike/keel/gio/gpu"
 	"github.com/dyike/keel/gio/op"
 	"github.com/dyike/keel/ui/internal/appkit"
-	"github.com/ebitengine/purego/objc"
 )
 
-const mtlPixelFormatBGRA8UnormSRGB = 81
+const mtlPixelFormatRGBA16Float = 115
 
 func platformGlassSupported() bool { return appkit.Class("CAMetalLayer") != 0 }
 
 // Liquid Glass needs macOS 26, where NSGlassEffectView exists.
 func platformLiquidGlassSupported() bool { return appkit.Class("NSGlassEffectView") != 0 }
 
-// All input stays with GioView, including clicks on empty glass. Native
-// material views are only used for compositing, never as input responders.
+// The native effect is the window root, as in a standard AppKit glass
+// window. Its ordinary hit testing routes input to the full-size GioView.
 var glassClasses = sync.OnceValues(func() (frosted, liquid appkit.ID) {
-	hitTest := appkit.Method("hitTest:", func(_ appkit.ID, _ objc.SEL, _ appkit.Point) appkit.ID { return 0 })
-	frosted = appkit.RegisterClass("KeelFrostedBackdrop", "NSVisualEffectView", nil, []objc.MethodDef{hitTest})
-	if platformLiquidGlassSupported() {
-		liquid = appkit.RegisterClass("KeelLiquidBackdrop", "NSGlassEffectView", nil, []objc.MethodDef{hitTest})
-	}
-	return frosted, liquid
+	return appkit.Class("NSVisualEffectView"), appkit.Class("NSGlassEffectView")
 })
 
 // View events and rendering run on the window goroutine, outside the frame
@@ -41,6 +35,14 @@ func platformGlassEvent(w *Window, event any) {
 	e, ok := event.(gioapp.AppKitViewEvent)
 	if !ok || w.opts.Glass == nil || !GlassSupported() {
 		return
+	}
+	if renderer, ok := w.glassRenderer.(*metalGlassRenderer); ok && renderer.context != nil {
+		ctx := renderer.context
+		// Moving the existing GioView into its native wrapper emits temporary
+		// detach/attach events. These do not replace the view or its renderer.
+		if ctx.installing.Load() || (ctx.ready.Load() == 1 && e.View == uintptr(ctx.view) && e.Layer == uintptr(ctx.layer)) {
+			return
+		}
 	}
 	if w.glassRenderer != nil {
 		w.glassRenderer.Release()
@@ -60,6 +62,7 @@ func platformGlassEvent(w *Window, event any) {
 // ready is set and only released on the main queue after Release.
 type glassContext struct {
 	ready                                atomic.Int32
+	installing                           atomic.Bool
 	view, backdrop, layer, device, queue appkit.ID
 }
 
@@ -68,7 +71,7 @@ const (
 	nsViewHeightSizable    = 1 << 4
 	nsMaterialSidebar      = 7
 	nsBlendingBehindWindow = 0
-	nsStateFollowsWindow   = 0
+	nsStateActive          = 1
 	nsGlassEffectRegular   = 0
 	nsGlassEffectClear     = 1
 )
@@ -90,9 +93,20 @@ func newGlassContext(handle uintptr, style GlassStyle, radius float64) *glassCon
 			ctx.ready.Store(-1)
 			return
 		}
-		ctx.layer = appkit.Send(appkit.Send(appkit.Class("CAMetalLayer"), "alloc"), "init")
+		ctx.layer = appkit.Retain(appkit.Send(view, "layer"))
 		appkit.Send(ctx.layer, "setDevice:", uintptr(ctx.device))
-		appkit.Send(ctx.layer, "setPixelFormat:", mtlPixelFormatBGRA8UnormSRGB)
+		// Gio outputs linear premultiplied RGB. Let Core Animation convert the
+		// color space after compositing; an sRGB target encodes RGB before the
+		// alpha divide and washes translucent content out to white.
+		// Half floats retain dark-tone precision in this linear surface.
+		appkit.Send(ctx.layer, "setPixelFormat:", mtlPixelFormatRGBA16Float)
+		space := appkit.ID(appkit.Call(appkit.Sym("CGColorSpaceCreateWithName"), uintptr(appkit.Constant("kCGColorSpaceExtendedLinearSRGB"))))
+		if space == 0 {
+			ctx.ready.Store(-1)
+			return
+		}
+		appkit.Send(ctx.layer, "setColorspace:", uintptr(space))
+		appkit.Call(appkit.Sym("CGColorSpaceRelease"), uintptr(space))
 		appkit.Send(ctx.layer, "setOpaque:", 0)
 		appkit.Send(ctx.layer, "setPresentsWithTransaction:", 0)
 		appkit.MsgSetFloat(ctx.layer, appkit.Sel("setContentsScale:"), appkit.MsgFloat(window, appkit.Sel("backingScaleFactor")))
@@ -103,25 +117,28 @@ func newGlassContext(handle uintptr, style GlassStyle, radius float64) *glassCon
 		bounds := appkit.MsgRect(view, appkit.Sel("bounds"))
 		initWithFrame := appkit.Sel("initWithFrame:")
 		const resize = nsViewWidthSizable | nsViewHeightSizable
-		content := appkit.MsgInitRect(appkit.Send(appkit.Class("NSView"), "alloc"), initWithFrame, bounds)
-		appkit.Send(content, "setWantsLayer:", 1)
-		appkit.Send(content, "setLayer:", uintptr(ctx.layer))
-		appkit.Send(content, "setAutoresizingMask:", resize)
-
-		// Behind-window vibrancy supplies the desktop sampling surface.
-		// Liquid Glass then renders its optical treatment above that
-		// surface, with Gio inside its documented contentView slot.
+		// Behind-window sampling must live at the native window root, outside
+		// the Metal surface that draws the transparent application content.
 		frosted, liquid := glassClasses()
 		backdrop := appkit.MsgInitRect(appkit.Send(frosted, "alloc"), initWithFrame, bounds)
 		appkit.Send(backdrop, "setMaterial:", nsMaterialSidebar)
 		appkit.Send(backdrop, "setBlendingMode:", nsBlendingBehindWindow)
-		appkit.Send(backdrop, "setState:", nsStateFollowsWindow)
+		// The material is a persistent compositing surface, not inactive window chrome.
+		appkit.Send(backdrop, "setState:", nsStateActive)
 		appkit.Send(backdrop, "setWantsLayer:", 1)
 		if radius > 0 {
 			layer := appkit.Send(backdrop, "layer")
 			appkit.MsgSetFloat(layer, appkit.Sel("setCornerRadius:"), radius)
 			appkit.Send(layer, "setMasksToBounds:", 1)
 		}
+		ctx.backdrop = backdrop
+		ctx.installing.Store(true)
+		defer ctx.installing.Store(false)
+		// NSWindow retains the root; our retained view survives the temporary
+		// detach before it is installed as the effect's transparent content.
+		appkit.Send(window, "setContentView:", uintptr(backdrop))
+		appkit.MsgSetRect(view, appkit.Sel("setFrame:"), bounds)
+		appkit.Send(view, "setAutoresizingMask:", resize)
 		if liquid != 0 && style != GlassFrosted {
 			glass := appkit.MsgInitRect(appkit.Send(liquid, "alloc"), initWithFrame, bounds)
 			s := uintptr(nsGlassEffectRegular)
@@ -132,19 +149,14 @@ func newGlassContext(handle uintptr, style GlassStyle, radius float64) *glassCon
 			if radius > 0 {
 				appkit.MsgSetFloat(glass, appkit.Sel("setCornerRadius:"), radius)
 			}
-			appkit.Send(glass, "setContentView:", uintptr(content))
+			appkit.Send(glass, "setContentView:", uintptr(view))
 			appkit.Send(glass, "setAutoresizingMask:", resize)
 			appkit.Send(backdrop, "addSubview:", uintptr(glass))
 			appkit.Release(glass)
 		} else {
-			appkit.Send(backdrop, "addSubview:", uintptr(content))
+			appkit.Send(backdrop, "addSubview:", uintptr(view))
 		}
-		appkit.Release(content)
-		appkit.Send(backdrop, "setAutoresizingMask:", resize)
-		// Keep GioView as NSWindow.contentView: Gio's delegates rely on
-		// that identity for input, focus, close and fullscreen events.
-		appkit.Send(view, "addSubview:", uintptr(backdrop))
-		ctx.backdrop = backdrop
+		appkit.Send(window, "makeFirstResponder:", uintptr(view))
 		ctx.ready.Store(1)
 	})
 	return ctx
@@ -169,7 +181,7 @@ func (r *metalGlassRenderer) Frame(ops *op.Ops, size image.Point) error {
 			return errors.New("could not initialize Metal backdrop")
 		}
 		var err error
-		r.gpu, err = gpu.New(gpu.Metal{Device: uintptr(r.context.device), Queue: uintptr(r.context.queue), PixelFormat: mtlPixelFormatBGRA8UnormSRGB})
+		r.gpu, err = gpu.New(gpu.Metal{Device: uintptr(r.context.device), Queue: uintptr(r.context.queue), PixelFormat: mtlPixelFormatRGBA16Float})
 		if err != nil {
 			return err
 		}

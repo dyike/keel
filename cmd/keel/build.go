@@ -335,6 +335,10 @@ func (c *cli) writeInfoPlist(app string, cfg *Config) error {
 		xml.EscapeText(&b, []byte(s))
 		return b.String()
 	}
+	accessory := ""
+	if cfg.MacOS != nil && cfg.MacOS.Accessory {
+		accessory = "\t<key>LSUIElement</key><true/>\n"
+	}
 	plist := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -352,9 +356,9 @@ func (c *cli) writeInfoPlist(app string, cfg *Config) error {
 	<key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key><string>14.0</string>
 	<key>NSHighResolutionCapable</key><true/>
-</dict>
+%[6]s</dict>
 </plist>
-`, esc(cfg.Name), esc(exe[0].Name()), esc(cfg.AppID), cfg.Version, max(cfg.Build, 1))
+`, esc(cfg.Name), esc(exe[0].Name()), esc(cfg.AppID), cfg.Version, max(cfg.Build, 1), accessory)
 	return os.WriteFile(filepath.Join(app, "Contents", "Info.plist"), []byte(plist), 0o644)
 }
 

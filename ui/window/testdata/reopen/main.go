@@ -30,6 +30,9 @@ func main() {
 				w = window.Open(window.Options{Title: fmt.Sprint("second ", i), Width: 300, Height: 200, Content: el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 					return el.Div().Child(kit.Checkbox("c", true).Render(cx), kit.Input("i").Render(cx))
 				}))})
+				if len(os.Args) > 3 && os.Args[3] == "raise" {
+					w.Raise()
+				}
 			}
 			switch mode {
 			case "update": // from a window frame, like a button callback
