@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	gioapp "github.com/dyike/keel/gio/app"
 	"github.com/dyike/keel/gio/gpu"
@@ -163,12 +164,21 @@ func newGlassContext(handle uintptr, style GlassStyle, radius float64) *glassCon
 }
 
 type metalGlassRenderer struct {
+	// Idle reclamation runs off the event loop. Serialize it with Frame and
+	// Release; none of these operations waits for the AppKit main queue.
+	mu         sync.Mutex
+	idleTimer  *time.Timer
+	idleAt     time.Time
+	generation uint64
 	context    *glassContext
 	gpu        gpu.GPU
 	invalidate func()
 }
 
 func (r *metalGlassRenderer) Frame(ops *op.Ops, size image.Point) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.generation++
 	if r.context == nil {
 		return errors.New("could not allocate Metal backdrop")
 	}
@@ -189,6 +199,7 @@ func (r *metalGlassRenderer) Frame(ops *op.Ops, size image.Point) error {
 	if size.X <= 0 || size.Y <= 0 {
 		return nil
 	}
+	defer r.scheduleIdle()
 	var err error
 	appkit.Pool(func() {
 		layer := r.context.layer
@@ -210,7 +221,67 @@ func (r *metalGlassRenderer) Frame(ops *op.Ops, size image.Point) error {
 	return err
 }
 
+// A static glass window retains its presented frame in Core Animation.
+// Reclaim the renderer's rebuildable caches and spare full-size drawables,
+// just as Gio's ordinary Metal context does. Keep the compiled pipelines
+// and triple buffering; the next Frame restores the full drawable size.
+func (r *metalGlassRenderer) scheduleIdle() {
+	r.idleAt = time.Now().Add(time.Second)
+	// Keep one timer across a run of frames; do not allocate one per frame.
+	if r.idleTimer == nil {
+		r.idleTimer = time.AfterFunc(time.Second, r.trimIdle)
+	}
+}
+
+func (r *metalGlassRenderer) stopIdle() {
+	r.generation++
+	if r.idleTimer != nil {
+		r.idleTimer.Stop()
+		r.idleTimer = nil
+	}
+}
+
+func (r *metalGlassRenderer) trimIdle() {
+	r.mu.Lock()
+	if r.context == nil || r.gpu == nil {
+		r.mu.Unlock()
+		return
+	}
+	if delay := time.Until(r.idleAt); delay > 0 {
+		r.idleTimer.Reset(delay)
+		r.mu.Unlock()
+		return
+	}
+	generation := r.generation
+	r.idleTimer = nil
+	appkit.Pool(func() {
+		if g, ok := r.gpu.(interface{ Trim() }); ok {
+			g.Trim()
+		}
+	})
+	r.mu.Unlock()
+	appkit.MainAsync(func() {
+		// Never block AppKit on a frame (nextDrawable may itself be waiting for
+		// the compositor). A new frame cancels this generation in any case.
+		if !r.mu.TryLock() {
+			return
+		}
+		defer r.mu.Unlock()
+		if generation != r.generation || r.context == nil {
+			return
+		}
+		tx := appkit.Class("CATransaction")
+		appkit.Send(tx, "begin")
+		appkit.Send(tx, "setDisableActions:", 1)
+		appkit.MsgSetSize(r.context.layer, appkit.Sel("setDrawableSize:"), appkit.Size{Width: 1, Height: 1})
+		appkit.Send(tx, "commit")
+	})
+}
+
 func (r *metalGlassRenderer) Release() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.stopIdle()
 	if r.gpu != nil {
 		r.gpu.Release()
 		r.gpu = nil

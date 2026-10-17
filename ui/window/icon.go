@@ -8,6 +8,8 @@ import (
 	"image/png"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"sync"
 
 	"github.com/dyike/keel/internal/appicon"
@@ -71,6 +73,15 @@ func loadRunIcon() {
 		if path == "" || currentIcon() != nil {
 			return
 		}
+		// macOS development processes have a complete ICNS in their app bundle.
+		// Let AppKit load its appropriate representation instead of decoding,
+		// retaining and re-rasterizing a second full-size runtime icon.
+		if runtime.GOOS == "darwin" {
+			if executable, err := os.Executable(); err == nil && hasRunBundleIcon(executable) {
+				return
+			}
+		}
+
 		if err := readRunIcon(path); err != nil {
 			log.Printf("keel: development icon: %v", err)
 		}
@@ -100,4 +111,14 @@ func renderIcon(art image.Image, shape appicon.Shape, size int, finished bool) *
 	dst := image.NewNRGBA(image.Rect(0, 0, size, size))
 	draw.CatmullRom.Scale(dst, dst.Bounds(), art, art.Bounds(), draw.Src, nil)
 	return dst
+}
+
+func hasRunBundleIcon(executable string) bool {
+	macOS := filepath.Dir(executable)
+	contents := filepath.Dir(macOS)
+	if filepath.Base(macOS) != "MacOS" || filepath.Base(contents) != "Contents" || filepath.Ext(filepath.Dir(contents)) != ".app" {
+		return false
+	}
+	info, err := os.Stat(filepath.Join(contents, "Resources", "icon.icns"))
+	return err == nil && info.Mode().IsRegular() && info.Size() > 0
 }

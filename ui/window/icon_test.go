@@ -103,3 +103,30 @@ func TestRunIconKeepsFinishedShape(t *testing.T) {
 		t.Fatal("explicit SetIcon should restore artwork shaping")
 	}
 }
+
+func TestRunBundleIconDetection(t *testing.T) {
+	root := t.TempDir()
+	executable := filepath.Join(root, "Example.app", "Contents", "MacOS", "example")
+	icon := filepath.Join(root, "Example.app", "Contents", "Resources", "icon.icns")
+	if hasRunBundleIcon(executable) {
+		t.Fatal("missing icon must retain CLI fallback")
+	}
+	if err := os.MkdirAll(filepath.Dir(icon), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(icon, []byte("icns"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if !hasRunBundleIcon(executable) {
+		t.Fatal("development bundle icon not detected")
+	}
+	if hasRunBundleIcon(filepath.Join(root, "Contents", "MacOS", "example")) {
+		t.Fatal("plain binary must retain runtime icon")
+	}
+	if err := os.Truncate(icon, 0); err != nil {
+		t.Fatal(err)
+	}
+	if hasRunBundleIcon(executable) {
+		t.Fatal("empty icon must retain runtime icon")
+	}
+}

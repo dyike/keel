@@ -101,3 +101,32 @@ A whole-coverage-atlas cross-frame reuse experiment had zero hits across 114 cli
 Extending the native 1×1 clear experiment showed footprint falling from about 97 to 11 MiB in the second idle second, while Metal resource accounting remained about 0.875 MiB. Both runs, with and without marking the texture volatile, showed this fall. This identifies about 86 MiB of draw-related delayed reclamation on this machine. A high reading immediately after releasing objects does not establish permanent retention; no public control to force this reclamation without affecting responsiveness was identified.
 
 Footprint category snapshots of the minimal process confirmed unmapped graphics falling from about 85 MiB while active to 640 KiB while idle, with IOAccelerator mappings falling from about 3 MiB to 832 KiB. This locates delayed reclamation in driver graphics accounting rather than application texture size.
+
+## Glass idle recovery and bundled icons (2026-10-17)
+
+The custom macOS glass renderer now trims rebuildable GPU caches after one idle
+second and shrinks the drawable pool, retaining Core Animation's presented frame.
+Rendering restores the full pixel size before requesting another drawable. The
+half-float linear surface and three-drawable limit are unchanged. Reclamation is
+serialized with rendering and teardown; AppKit never waits for its lock. One timer
+is reused across a burst of frames. Native tests cover all three materials,
+full-resolution recovery, resize, minimize and early close. Compositor capture
+checks both transmitted backdrop colors and retained opaque content after idle.
+
+Development bundles already contain a multi-resolution ICNS. Keel no longer loads
+an additional runtime PNG for those bundles; explicit `SetIcon` still replaces the
+icon. Void likewise uses its packaged icon, retaining its PNG fallback for plain
+executables. On this machine, the same 1960×1360-pixel Void settings window settled
+from about 198 MiB before these changes to 72 MiB in the final normal build. The
+GPU-only change settled around 147 MiB. IOSurface residency fell from 61.6 to
+20.5 MiB; the final native CG Image allocation was 16 KiB rather than 16 MiB.
+
+The final build's startup peak was 131 MiB. Zooming that client to 5120×2820 pixels
+and restoring it reached a cumulative 620 MiB peak, then settled at 75 MiB at the
+original size. This is an idle-footprint improvement, not a 100 MiB peak ceiling.
+The zoom result has no matching old-build comparison. In the development client,
+real wheel scrolling through launcher applications reached 117 MiB cumulative peak
+and settled at 65 MiB; opening settings afterward reached 153 MiB peak and settled
+at 76 MiB. The development bundle also skipped runtime PNG generation correctly.
+These changes are supplied
+by the local Keel workspace and Void build, not a published Keel release.

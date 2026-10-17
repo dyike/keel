@@ -22,7 +22,7 @@ func isKind(obj appkit.ID, class string) bool {
 	return obj != 0 && c != 0 && appkit.SendBool(obj, "isKindOfClass:", uintptr(c))
 }
 
-func checkGlass(liquid bool, width, height float64) bool {
+func checkGlass(liquid bool, width, height float64, idle bool) bool {
 	ok := false
 	appkit.MainSync(func() {
 		windows := appkit.Send(appkit.App(), "windows")
@@ -76,7 +76,7 @@ func checkGlass(liquid bool, width, height float64) bool {
 			if appkit.SendBool(layer, "isOpaque") || appkit.Send(layer, "device") == 0 || appkit.MsgRect(host, appkit.Sel("bounds")).Size != bounds {
 				continue
 			}
-			if appkit.Send(layer, "pixelFormat") != 115 {
+			if appkit.Send(layer, "pixelFormat") != 115 || appkit.Send(layer, "maximumDrawableCount") != 3 {
 				continue
 			}
 			space := appkit.Send(layer, "colorspace")
@@ -86,7 +86,11 @@ func checkGlass(liquid bool, width, height float64) bool {
 			}
 			scale := appkit.MsgFloat(window, appkit.Sel("backingScaleFactor"))
 			drawable := appkit.MsgSize(layer, appkit.Sel("drawableSize"))
-			if math.Abs(drawable.Width-width*scale) > 2 || math.Abs(drawable.Height-height*scale) > 2 {
+			wantW, wantH := width*scale, height*scale
+			if idle {
+				wantW, wantH = 1, 1
+			}
+			if math.Abs(drawable.Width-wantW) > 0.5 || math.Abs(drawable.Height-wantH) > 0.5 {
 				continue
 			}
 			// The native effect must not consume Gio input events.

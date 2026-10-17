@@ -8,12 +8,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/window"
 )
 
 func main() {
-	time.AfterFunc(20*time.Second, func() { fmt.Println("FAIL: glass window timeout"); os.Exit(1) })
+	time.AfterFunc(30*time.Second, func() { fmt.Println("FAIL: glass window timeout"); os.Exit(1) })
 	keeper := window.Open(window.Options{Title: "glass test keeper", Width: 200, Height: 100})
 	go func() {
 		for _, style := range []window.GlassStyle{window.GlassRegular, window.GlassClear, window.GlassFrosted} {
@@ -21,10 +22,10 @@ func main() {
 				return el.Div().Bg(color.NRGBA{}).Child(el.Text("Gio content on native glass"))
 			}))})
 			liquid := style != window.GlassFrosted && window.LiquidGlassSupported()
-			wait := func(width, height int) {
+			wait := func(width, height int, idle bool) {
 				deadline := time.Now().Add(5 * time.Second)
 				for time.Now().Before(deadline) {
-					if checkGlass(liquid, float64(width), float64(height)) {
+					if checkGlass(liquid, float64(width), float64(height), idle) {
 						return
 					}
 					time.Sleep(30 * time.Millisecond)
@@ -32,15 +33,19 @@ func main() {
 				fmt.Printf("FAIL: native glass liquid=%v size=%dx%d\n", liquid, width, height)
 				os.Exit(1)
 			}
-			wait(480, 320)
+			wait(480, 320, false)
+			wait(480, 320, true)
+			core.Update(func() {})
+			wait(480, 320, false)
 			if err := w.Resize(620, 420); err != nil {
 				panic(err)
 			}
-			wait(620, 420)
+			wait(620, 420, false)
+			wait(620, 420, true)
 			w.Minimize()
 			time.Sleep(200 * time.Millisecond)
 			w.Raise()
-			wait(620, 420)
+			wait(620, 420, false)
 			w.Close()
 			time.Sleep(100 * time.Millisecond)
 		}
@@ -51,7 +56,7 @@ func main() {
 			w.Close()
 		}
 		time.Sleep(300 * time.Millisecond)
-		fmt.Println("PASS: Liquid Glass/Clear/frosted, transparent Metal surface, input hit testing, resize, minimize, teardown and early close")
+		fmt.Println("PASS: Liquid Glass/Clear/frosted, transparent Metal surface, idle trim and full-resolution recovery, triple buffering, input hit testing, resize, minimize, teardown and early close")
 		keeper.Close()
 	}()
 	window.Main()
