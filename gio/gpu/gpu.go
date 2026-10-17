@@ -23,6 +23,7 @@ import (
 	"gioui.org/shader/gio"
 	"github.com/dyike/keel/gio/gpu/internal/driver"
 	"github.com/dyike/keel/gio/internal/byteslice"
+	"github.com/dyike/keel/gio/internal/dirty"
 	"github.com/dyike/keel/gio/internal/f32"
 	"github.com/dyike/keel/gio/internal/f32color"
 	"github.com/dyike/keel/gio/internal/ops"
@@ -212,8 +213,9 @@ type material struct {
 }
 
 const (
-	filterLinear  = 0
-	filterNearest = 1
+	filterLinear         = 0
+	filterNearest        = 1
+	filterLinearNoMipmap = 2 // Keel patch: paint.FilterLinearNoMipmap.
 )
 
 // imageOpData is the shadow of paint.ImageOp.
@@ -303,6 +305,8 @@ type texture struct {
 	src  *image.RGBA
 	mask *image.Alpha
 	tex  driver.Texture
+	// version of a mutable image (paint.NewMutableImageOp) that tex holds.
+	version uint64
 }
 
 type blitter struct {
@@ -545,8 +549,17 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 		cache.put(key, t)
 	}
 	tex = t.(*texture)
+	tracker, mutable := data.handle.(*dirty.Tracker)
 	if tex.tex != nil {
+		if mutable {
+			r.updateTexture(tex, tracker, data)
+		}
 		return tex.tex
+	}
+	if mutable {
+		// Read before uploading: a change recorded during the upload is
+		// uploaded again next frame rather than lost.
+		tex.version = tracker.Version()
 	}
 
 	var minFilter, magFilter driver.TextureFilter
@@ -555,6 +568,8 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 		minFilter, magFilter = driver.FilterLinearMipmapLinear, driver.FilterLinear
 	case filterNearest:
 		minFilter, magFilter = driver.FilterNearest, driver.FilterNearest
+	case filterLinearNoMipmap:
+		minFilter, magFilter = driver.FilterLinear, driver.FilterLinear
 	}
 
 	size := data.size()
@@ -586,6 +601,29 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 	driver.UploadImage(handle, image.Pt(0, 0), src)
 	tex.tex = handle
 	return tex.tex
+}
+
+// updateTexture uploads the areas of a mutable image that changed since tex
+// was last updated, instead of creating a new texture. Keel patch.
+func (r *renderer) updateTexture(tex *texture, tracker *dirty.Tracker, data imageOpData) {
+	changed, version, ok := tracker.Since(tex.version)
+	if version == tex.version {
+		return
+	}
+	bounds := image.Rectangle{Max: data.src.Rect.Size()}
+	if !ok {
+		changed = bounds
+	}
+	changed = changed.Intersect(bounds)
+	tex.version = version
+	if changed.Empty() {
+		return
+	}
+	src := data.src.SubImage(changed.Add(data.src.Rect.Min)).(*image.RGBA)
+	if data.tint != whiteTint {
+		src = tintImage(src, data.tint)
+	}
+	driver.UploadImage(tex.tex, changed.Min, src)
 }
 
 func (t *texture) release() {

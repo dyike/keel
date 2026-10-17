@@ -185,3 +185,22 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
 
 - `gio/app`：移植上游 Gio 提交 [bf9f995](https://github.com/gioui/gio/commit/bf9f995d86c22d555d7ce2db154395bca94541b7)。`Present` 返回 `gpu.ErrDeviceLost`（包括包装后的错误）时，释放 GPU 上下文并立即安排下一帧；已经确认交付的帧不能重试。Keel 仅在呈现成功且上下文仍加锁时执行空闲 GPU 资源回收。
 - 回归测试覆盖成功、直接与包装的设备丢失错误、其他错误、帧确认次数和上下文加锁/释放顺序。Windows 交叉编译通过，尚未进行 Windows 真机验证。Metal 当前不会返回呈现错误，因此该补丁不降低 macOS 内存峰值。
+
+### 2026-10-17：可变图片与无 mipmap 线性过滤
+
+- `gio/op/paint`、`gio/gpu`，新增 `gio/internal/dirty`：`NewMutableImageOp`
+  返回的 ImageOp 允许调用方在布局阶段修改像素，再用 `Invalidate(rect)`
+  报告变化区域。它的 handle 是 `dirty.Tracker`，记录最近 32 个变化矩形。
+  `texHandle` 把纹理所持版本之后的变化区域合并后上传进原纹理
+  （`updateTexture`）；落后超过记录长度时整张上传。着色纹理只重新着色变化区域。
+  各驱动本来就支持带偏移的上传，并会在上传后重新生成 mipmap。
+- `paint.FilterLinearNoMipmap`（过滤字节 2）创建缩放都用线性过滤、不带 mip
+  层级的纹理，各驱动均支持这种组合。Metal 的 CPU mipmap 路径
+  （`uploadMipmaps`）每次上传线性过滤图片都会在 Go 里逐级分配内存。
+- 原因：远程桌面客户端 Mirage 每次更新都整张重建 tile 纹理，并且要保留多份
+  CPU 副本直到 Gio 用完。测试覆盖子图片源的局部上传、同一帧多次变化的合并、
+  越界裁剪、超出记录后的整张补传、着色、过滤映射、op 编码和纹理释放。
+  在真实 macOS 窗口中以每秒 30 次重绘 2880×1800 的远端画面（缩放 0.44，
+  仍走 mipmap 路径）：Mirage 的内存占用从约 450 MB 降到约 324 MB，Go 堆存活
+  数据从 104 MB 降到 43 MB，GC 从每分钟 67 次降到 11 次。真实窗口只验证了
+  Metal；OpenGL、Direct3D 11 和 Vulkan 走同样的偏移上传，但尚未用可变图片测试。

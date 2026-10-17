@@ -36,6 +36,7 @@ Keel 的补丁回归。本次说明已对照本机缓存中的基线源码，将
 | 图片着色 | Metal 构建提供可选 ImageOp.AddTinted 扩展，白色字形覆盖掩码只保存一份，颜色在每次绘制时传入。路径裁剪、透明度或批绘制不可用时，使用缓存的预着色纹理。覆盖掩码量化可能使边缘像素略有变化。 | [tint_darwin.go](../gio/op/paint/tint_darwin.go)、[纹理共享与回退测试](../gio/gpu/tint_test.go)、[像素测试](../gio/op/paint/tint_darwin_test.go)。 |
 | 空闲资源 | 没有近期帧请求时，Metal 的临时覆盖纹理可设为可回收。空闲清理释放缓存和临时缓冲；macOS 一秒未绘制后，还把备用 drawable 表面缩为 1×1，下次绘制恢复尺寸。编译好的 pipeline 保留。 | [path.go](../gio/gpu/path.go)、[metal_idle_macos.go](../gio/app/metal_idle_macos.go)、[恢复绘制测试](../gio/gpu/headless/trim_darwin_test.go)、[原生空闲测试](../gio/app/metal_idle_macos_test.go)。 |
 | Pipeline 创建 | 纯色、图片、渐变和 stencil 资源首次使用时才初始化，减少简单场景用不到的 shader 分配。 | [gpu.go](../gio/gpu/gpu.go)、[延迟初始化生命周期测试](../gio/gpu/lazy_pipeline_test.go)。 |
+| 可变图片 | 上游把每个 ImageOp 都视为不可变：像素一变就要新建 ImageOp，渲染器随之新建并整张上传纹理。paint.NewMutableImageOp 让一张图片只对应一张纹理；调用 Invalidate(rect) 后，各渲染器只上传自上次上传以来变化的区域，落后超过 32 次变化时整张上传。paint.FilterLinearNoMipmap 线性采样但不生成 mipmap，适合频繁变化、且不会缩到一半以下的图片。 | [paint.go](../gio/op/paint/paint.go)、[dirty.go](../gio/internal/dirty/dirty.go)、[gpu.go](../gio/gpu/gpu.go)；[局部上传、着色与过滤测试](../gio/gpu/mutable_image_test.go)。 |
 | 不透明清屏修复 | 整窗清屏时，把被覆盖的透明度图层与其绘制操作一起丢弃。此前遗留的图层索引可能替换后续前景操作，使浮层中的字形消失。 | [gpu.go](../gio/gpu/gpu.go)、[清屏回归测试](../gio/gpu/opaque_clear_test.go)。 |
 
 这些补丁扩展 Gio 的渲染器和资源策略。Metal 的批绘制、着色、可回收存储不代表

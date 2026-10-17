@@ -10,6 +10,7 @@ import (
 	"math"
 
 	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/internal/dirty"
 	"github.com/dyike/keel/gio/internal/f32color"
 	"github.com/dyike/keel/gio/internal/ops"
 	"github.com/dyike/keel/gio/op"
@@ -24,6 +25,11 @@ const (
 	FilterLinear ImageFilter = iota
 	// FilterNearest uses nearest neighbor interpolation for scaling.
 	FilterNearest
+	// FilterLinearNoMipmap uses linear interpolation without mipmaps.
+	// Uploads and updates skip building the mipmap chain, which suits
+	// images that change often and are not drawn below half size, where
+	// they would alias. Keel patch.
+	FilterLinearNoMipmap
 )
 
 // ImageOp sets the brush to an image.
@@ -96,6 +102,25 @@ func NewImageOp(src image.Image) ImageOp {
 		src:    dst,
 		handle: new(int),
 	}
+}
+
+// NewMutableImageOp creates an ImageOp whose pixels the caller may change
+// between frames. After writing pixels inside r, call Invalidate(r); a
+// renderer that already holds a texture for the image then uploads only the
+// changed area instead of creating a new texture. Write src only while no
+// frame using it is being rendered, for example during layout. Keel patch.
+func NewMutableImageOp(src *image.RGBA) ImageOp {
+	return ImageOp{src: src, handle: new(dirty.Tracker)}
+}
+
+// Invalidate records that the pixels of a mutable image inside r, in the
+// source image's coordinates, changed. It does nothing for other images.
+func (i ImageOp) Invalidate(r image.Rectangle) {
+	t, ok := i.handle.(*dirty.Tracker)
+	if !ok || i.src == nil {
+		return
+	}
+	t.Invalidate(r.Intersect(i.src.Rect).Sub(i.src.Rect.Min))
 }
 
 // NewMaskOp creates a premultiplied white coverage brush. Unlike an alpha
