@@ -13,6 +13,7 @@ import (
 	"github.com/dyike/keel/gio/internal/dirty"
 	"github.com/dyike/keel/gio/internal/f32color"
 	"github.com/dyike/keel/gio/internal/ops"
+	"github.com/dyike/keel/gio/internal/surface"
 	"github.com/dyike/keel/gio/op"
 	"github.com/dyike/keel/gio/op/clip"
 )
@@ -40,6 +41,7 @@ type ImageOp struct {
 	color   color.NRGBA
 	src     *image.RGBA
 	mask    *image.Alpha
+	surface *surface.Surface
 
 	// handle is a key to uniquely identify this ImageOp
 	// in a map of cached textures.
@@ -113,6 +115,18 @@ func NewMutableImageOp(src *image.RGBA) ImageOp {
 	return ImageOp{src: src, handle: new(dirty.Tracker)}
 }
 
+// Surface is an image held in the platform's GPU memory, an IOSurface on
+// Apple platforms, that renderers sample without copying. Its owner swaps
+// the picture with Set and keeps each surface valid until it has set two
+// later ones. Renderers without surface support draw nothing for it. Keel
+// patch.
+type Surface = surface.Surface
+
+// NewSurfaceOp creates an ImageOp that shows the current picture of s.
+func NewSurfaceOp(s *Surface) ImageOp {
+	return ImageOp{surface: s, handle: s}
+}
+
 // Invalidate records that the pixels of a mutable image inside r, in the
 // source image's coordinates, changed. It does nothing for other images.
 func (i ImageOp) Invalidate(r image.Rectangle) {
@@ -132,6 +146,10 @@ func NewMaskOp(src *image.Alpha) ImageOp {
 }
 
 func (i ImageOp) Size() image.Point {
+	if i.surface != nil {
+		_, size, _ := i.surface.Current()
+		return size
+	}
 	if i.mask != nil {
 		return i.mask.Bounds().Size()
 	}
@@ -160,6 +178,9 @@ func (i ImageOp) addTinted(o *op.Ops, tint color.NRGBA) {
 	var src any = i.src
 	if i.mask != nil {
 		src = i.mask
+	}
+	if i.surface != nil {
+		src = i.surface
 	}
 	data := ops.Write2(&o.Internal, ops.TypeImageLen, src, i.handle)
 	data[0] = byte(ops.TypeImage)

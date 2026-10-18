@@ -61,6 +61,13 @@ type LoadDesc struct {
 	ClearColor f32color.RGBA
 }
 
+// SurfaceTextureDevice is implemented by devices that can sample a platform
+// surface in place: on Apple platforms an IOSurface in 32-bit BGRA. The
+// texture shares the surface's memory. Keel patch.
+type SurfaceTextureDevice interface {
+	NewSurfaceTexture(surface uintptr, width, height int, minFilter, magFilter TextureFilter) (Texture, error)
+}
+
 type Pipeline interface {
 	Release()
 }

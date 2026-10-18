@@ -37,6 +37,7 @@ Keel 的补丁回归。本次说明已对照本机缓存中的基线源码，将
 | 空闲资源 | 没有近期帧请求时，Metal 的临时覆盖纹理可设为可回收。空闲清理释放缓存和临时缓冲；macOS 一秒未绘制后，还把备用 drawable 表面缩为 1×1，下次绘制恢复尺寸。编译好的 pipeline 保留。 | [path.go](../gio/gpu/path.go)、[metal_idle_macos.go](../gio/app/metal_idle_macos.go)、[恢复绘制测试](../gio/gpu/headless/trim_darwin_test.go)、[原生空闲测试](../gio/app/metal_idle_macos_test.go)。 |
 | Pipeline 创建 | 纯色、图片、渐变和 stencil 资源首次使用时才初始化，减少简单场景用不到的 shader 分配。 | [gpu.go](../gio/gpu/gpu.go)、[延迟初始化生命周期测试](../gio/gpu/lazy_pipeline_test.go)。 |
 | 可变图片 | 上游把每个 ImageOp 都视为不可变：像素一变就要新建 ImageOp，渲染器随之新建并整张上传纹理。paint.NewMutableImageOp 让一张图片只对应一张纹理；调用 Invalidate(rect) 后，各渲染器只上传自上次上传以来变化的区域，落后超过 32 次变化时整张上传。paint.FilterLinearNoMipmap 线性采样但不生成 mipmap，适合频繁变化、且不会缩到一半以下的图片。 | [paint.go](../gio/op/paint/paint.go)、[dirty.go](../gio/internal/dirty/dirty.go)、[gpu.go](../gio/gpu/gpu.go)；[局部上传、着色与过滤测试](../gio/gpu/mutable_image_test.go)。 |
+| Surface 图片 | 上游只能绘制自己上传的像素。paint.NewSurfaceOp 显示平台 GPU 表面（Apple 平台上是 IOSurface），由持有者用 Surface.Set 替换，例如硬件视频解码器的输出；渲染器通过 driver.SurfaceTextureDevice 把每个新画面包成纹理，不复制像素。Metal 通过 purego 实现；不支持的设备画一个透明像素。 | [surface.go](../gio/internal/surface/surface.go)、[gpu.go](../gio/gpu/gpu.go)、[surface_darwin.go](../gio/gpu/internal/metal/surface_darwin.go)；[渲染器](../gio/gpu/surface_image_test.go)、[Metal 像素](../gio/gpu/internal/metal/surface_darwin_test.go)与[无头绘制](../gio/gpu/headless/surface_darwin_test.go)测试。 |
 | 不透明清屏修复 | 整窗清屏时，把被覆盖的透明度图层与其绘制操作一起丢弃。此前遗留的图层索引可能替换后续前景操作，使浮层中的字形消失。 | [gpu.go](../gio/gpu/gpu.go)、[清屏回归测试](../gio/gpu/opaque_clear_test.go)。 |
 
 这些补丁扩展 Gio 的渲染器和资源策略。Metal 的批绘制、着色、可回收存储不代表
