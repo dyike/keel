@@ -459,3 +459,36 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
   texels read back from a real IOSurface texture, and a headless Metal window
   drawing a surface byte for byte like the same pixels in an ImageOp at three
   scales.
+- `gio/app` (macOS, iOS): idle GPU reclamation is debounced. A window
+  redrawn by frequent external updates (a remote screen at 60 updates a
+  second through `Invalidate`) asks for no next frame after each of them, so
+  every frame marked its coverage textures volatile, waited for the GPU and
+  freed the staging, pooled and quad buffers, and the next frame reversed it
+  all (`textureSetVolatile` alone was about 12% of Mirage's CPU samples). Now
+  the Metal context's timer (`idleDebounce`) calls `gpu.Idle` once the
+  window has presented nothing for 250 ms and, on macOS, `gpu.Trim` plus the
+  drawable shrink after 1 s, as before. The timer is set once and moved only
+  when an idle frame needs it earlier, not stopped and recreated per frame.
+  Other contexts keep calling `gpu.Idle` directly. Pure-Go tests drive
+  60 Hz, slow and animated frame sequences through the debounce;
+  `TestMetalIdleWindow` adds 90 frames at 60 Hz that must release nothing,
+  then a release once they stop.
+- `gio/gpu/internal/metal`: the Go-memory stores of buffers of at most 4 KiB
+  (set through `set*Bytes`, used for every rebuilt path) are pooled by
+  power-of-two class, at most 256 per class, emptied by `Trim`. `set*Bytes`
+  copies them into the encoder, so a store is reusable once its buffer is
+  released. A 60 Hz Mirage session allocated megabytes of them a second.
+  `TestSmallBufferStoresReused` checks reuse, zeroing and that a small
+  immutable buffer costs one allocation (the `*Buffer`).
+- `gio/op/paint`, `gio/gpu`, `gio/internal/dirty`: `NewSharedImageOp(src,
+  mu)` is a mutable image whose owner writes pixels outside the frame. The
+  renderer takes `mu` only while it reads `src` (texture creation, or the
+  upload of changed areas once the version moved), during the frame. A
+  remote-desktop client can hand its decoder's framebuffer, cut into tiles
+  with `SubImage` and sharing one lock, instead of copying it into tile
+  images (about 60 MB for a 5K screen). `TestSharedImageReadsUnderLock`
+  checks every upload holds the lock, unchanged tiles never take it, and,
+  under `go test -race`, a concurrent writer.
+- `gio/app` (macOS): rechecked on 2026-10-18 whether two drawables would do
+  (16.7 MB each at 2560x1680): `TestMetalResizeWindow` stalled in 3 of 3
+  runs with `maximumDrawableCount = 2`, so it stays at three.

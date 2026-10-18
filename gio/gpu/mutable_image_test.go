@@ -5,6 +5,7 @@ package gpu
 import (
 	"image"
 	"image/color"
+	"sync"
 	"testing"
 
 	"github.com/dyike/keel/gio/gpu/internal/driver"
@@ -194,4 +195,123 @@ func imageHandle(op paint.ImageOp) any {
 		}
 	}
 	return nil
+}
+
+// heldLock records whether it is held and how often it was taken.
+type heldLock struct {
+	sync.Mutex
+	held  bool
+	locks int
+}
+
+func (l *heldLock) Lock()   { l.Mutex.Lock(); l.held = true; l.locks++ }
+func (l *heldLock) Unlock() { l.held = false; l.Mutex.Unlock() }
+
+type lockCheckTexture struct {
+	mutableTestTexture
+	lock     *heldLock
+	unlocked int // uploads made without the lock
+}
+
+func (t *lockCheckTexture) Upload(offset, size image.Point, pixels []byte, stride int) {
+	if !t.lock.held {
+		t.unlocked++
+	}
+	t.mutableTestTexture.Upload(offset, size, pixels, stride)
+}
+
+type lockCheckDevice struct {
+	driver.Device
+	lock     *heldLock
+	textures []*lockCheckTexture
+}
+
+func (d *lockCheckDevice) NewTexture(driver.TextureFormat, int, int, driver.TextureFilter, driver.TextureFilter, driver.BufferBinding) (driver.Texture, error) {
+	t := &lockCheckTexture{lock: d.lock}
+	d.textures = append(d.textures, t)
+	return t, nil
+}
+
+// A shared image is read only under its owner's lock, and only when it
+// changed, so the owner can write its pixels outside the frame.
+func TestSharedImageReadsUnderLock(t *testing.T) {
+	mu := new(heldLock)
+	fb := image.NewRGBA(image.Rect(0, 0, 16, 8))
+	// Two tiles of one framebuffer share its lock and its pixels.
+	left := paint.NewSharedImageOp(fb.SubImage(image.Rect(0, 0, 8, 8)).(*image.RGBA), mu)
+	right := paint.NewSharedImageOp(fb.SubImage(image.Rect(8, 0, 16, 8)).(*image.RGBA), mu)
+	dev := &lockCheckDevice{lock: mu}
+	r := renderer{ctx: dev}
+	cache := newTextureCache()
+	defer cache.release()
+	tiles := []imageOpData{
+		{src: fb.SubImage(image.Rect(0, 0, 8, 8)).(*image.RGBA), handle: mutableTracker(t, left), tint: whiteTint},
+		{src: fb.SubImage(image.Rect(8, 0, 16, 8)).(*image.RGBA), handle: mutableTracker(t, right), tint: whiteTint},
+	}
+	frame := func() {
+		cache.frame()
+		for _, d := range tiles {
+			r.texHandle(cache, d)
+		}
+		if mu.held {
+			t.Fatal("lock still held after the frame's uploads")
+		}
+	}
+	frame()
+	if mu.locks != 2 {
+		t.Fatalf("initial uploads took the lock %d times, want 2", mu.locks)
+	}
+	frame()
+	if mu.locks != 2 {
+		t.Fatal("unchanged images took the lock")
+	}
+	mu.Lock()
+	fb.SetRGBA(9, 2, color.RGBA{B: 7, A: 255})
+	right.Invalidate(image.Rect(9, 2, 10, 3))
+	mu.Unlock()
+	frame()
+	if mu.locks != 4 { // the test's own and one upload
+		t.Fatalf("lock taken %d times, want 4", mu.locks)
+	}
+	up := dev.textures[1].uploads
+	if len(up) != 2 || up[1].offset != image.Pt(1, 2) || up[1].pixels[2] != 7 {
+		t.Fatalf("right tile uploads %+v", up)
+	}
+	if len(dev.textures[0].uploads) != 1 {
+		t.Fatal("unchanged left tile uploaded again")
+	}
+	for i, tex := range dev.textures {
+		if tex.unlocked != 0 {
+			t.Fatalf("texture %d: %d uploads without the lock", i, tex.unlocked)
+		}
+	}
+
+	// A writer on another goroutine; go test -race reports any read of the
+	// pixels outside the lock.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := range 2000 {
+			mu.Lock()
+			x := i % 16
+			fb.SetRGBA(x, i%8, color.RGBA{R: uint8(i), A: 255})
+			if x < 8 {
+				left.Invalidate(image.Rect(x, i%8, x+1, i%8+1))
+			} else {
+				right.Invalidate(image.Rect(x, i%8, x+1, i%8+1))
+			}
+			mu.Unlock()
+		}
+	}()
+	for running := true; running; {
+		select {
+		case <-done:
+			running = false
+		default:
+		}
+		cache.frame()
+		for _, d := range tiles {
+			r.texHandle(cache, d)
+		}
+	}
 }

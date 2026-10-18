@@ -574,6 +574,10 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 		return tex.tex
 	}
 	if mutable {
+		if tracker.Pixels != nil {
+			tracker.Pixels.Lock()
+			defer tracker.Pixels.Unlock()
+		}
 		// Read before uploading: a change recorded during the upload is
 		// uploaded again next frame rather than lost.
 		tex.version = tracker.Version()
@@ -665,6 +669,13 @@ func (r *renderer) blankTexture() driver.Texture {
 // updateTexture uploads the areas of a mutable image that changed since tex
 // was last updated, instead of creating a new texture. Keel patch.
 func (r *renderer) updateTexture(tex *texture, tracker *dirty.Tracker, data imageOpData) {
+	if tracker.Pixels != nil {
+		if tracker.Version() == tex.version {
+			return // unchanged: do not wait for the owner's lock
+		}
+		tracker.Pixels.Lock()
+		defer tracker.Pixels.Unlock()
+	}
 	changed, version, ok := tracker.Since(tex.version)
 	if version == tex.version {
 		return

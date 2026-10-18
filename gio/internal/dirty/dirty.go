@@ -15,6 +15,10 @@ const history = 32
 
 // Tracker is the identity of a mutable image and its change log.
 type Tracker struct {
+	// Pixels, if set, guards the image's pixels: renderers hold it while
+	// they read them, so the owner may write from any goroutine.
+	Pixels sync.Locker
+
 	mu      sync.Mutex
 	version uint64
 	log     [history]image.Rectangle // log[v%history] is the area changed by version v

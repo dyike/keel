@@ -4,7 +4,8 @@
 
 package app
 
-type metalIdleState struct{}
+// metalIdleTrims is false on iOS: an idle window only releases its scratch
+// textures and spare buffers, as it did before the debounce.
+const metalIdleTrims = false
 
-func (c *mtlContext) stopIdle()   {}
-func (c *mtlContext) resumeIdle() {}
+func trimMetalLayer(layer uintptr) {}

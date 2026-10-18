@@ -443,6 +443,7 @@ type Backend struct {
 
 	unified bool // CPU uploads avoid activating a second GPU engine on Apple silicon.
 	pool    bufferPool
+	stores  storePool
 	quads   quadBatcher
 
 	stagingBuf C.CFTypeRef
@@ -811,8 +812,8 @@ func (b *Backend) NewBuffer(typ driver.BufferBinding, size int) (driver.Buffer, 
 	// won't occur a GPU wait.
 	// We can't do this for buffers written to by the GPU and read by the client,
 	// and Metal doesn't require a buffer for indexed draws.
-	if size <= 4096 && typ&(driver.BufferBindingShaderStorageWrite|driver.BufferBindingIndices) == 0 {
-		return &Buffer{size: size, store: make([]byte, size)}, nil
+	if size <= maxStoreSize && typ&(driver.BufferBindingShaderStorageWrite|driver.BufferBindingIndices) == 0 {
+		return &Buffer{backend: b, size: size, store: b.stores.get(size)}, nil
 	}
 	class := bufferClass(size)
 	buf := b.pool.get(class)
@@ -1206,6 +1207,9 @@ func (b *Buffer) Release() {
 	if b.buffer != 0 && !b.backend.pool.put(b.class, b.buffer) {
 		C.CFRelease(b.buffer)
 	}
+	if b.store != nil && b.backend != nil {
+		b.backend.stores.put(b.store)
+	}
 	*b = Buffer{}
 }
 
@@ -1220,6 +1224,7 @@ func (b *Backend) Trim() {
 		b.lastCmdBuffer = 0
 	}
 	b.pool.trim()
+	b.stores.trim()
 	if b.stagingBuf != 0 {
 		C.CFRelease(b.stagingBuf)
 		b.stagingBuf = 0
