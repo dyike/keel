@@ -638,6 +638,23 @@ func (b *Backend) Release() {
 	*b = Backend{}
 }
 
+// NewSurfaceTexture wraps a BGRA IOSurface in a texture without copying
+// it. Keel patch.
+func (b *Backend) NewSurfaceTexture(surface uintptr, width, height int, minFilter, magFilter driver.TextureFilter) (driver.Texture, error) {
+	tex := C.CFTypeRef(surfaceTexture(uintptr(b.dev), surface, uintptr(width), uintptr(height), b.unified))
+	if tex == 0 {
+		return nil, errors.New("metal: [MTLDevice newTextureWithDescriptor:iosurface:plane:] failed")
+	}
+	min, mip := samplerFilterFor(minFilter)
+	max, _ := samplerFilterFor(magFilter)
+	s := C.newSampler(b.dev, min, max, mip)
+	if s == 0 {
+		C.CFRelease(tex)
+		return nil, errors.New("metal: [MTLDevice newSamplerStateWithDescriptor:] failed")
+	}
+	return &Texture{backend: b, texture: tex, sampler: s, width: width, height: height, srgb: true}, nil
+}
+
 func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, minFilter, magFilter driver.TextureFilter, bindings driver.BufferBinding) (driver.Texture, error) {
 	mformat := pixelFormatFor(format)
 	var usage C.MTLTextureUsage

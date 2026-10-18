@@ -439,3 +439,23 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
   104 MB to 43 MB; GCs fell from 67 to 11 per minute. Only Metal has been
   exercised in a real window; OpenGL, Direct3D 11 and Vulkan run the same
   offset uploads but were not tested with mutable images.
+
+### 2026-10-18: surface images (IOSurface textures)
+
+- `gio/op/paint`, `gio/gpu`, `gio/gpu/internal/driver`, `gio/gpu/internal/metal`,
+  new `gio/internal/surface`: `paint.NewSurfaceOp(s)` shows the current
+  picture of a `paint.Surface`, a platform surface its owner replaces with
+  `Set(ref, size)`. `texHandle` hands it to `surfaceTexture`, which asks the
+  device (`driver.SurfaceTextureDevice`) for a texture over the surface only
+  when the picture changed, without mipmaps, and releases the previous one.
+  Devices without the interface draw a transparent pixel. Metal implements it
+  with `newTextureWithDescriptor:iosurface:plane:` in BGRA8Unorm_sRGB through
+  purego (`surface_darwin.go`), so no C was added.
+- Reason: Mirage decodes macOS's HEVC screen stream with VideoToolbox, whose
+  output is an IOSurface. Each 4K frame was swizzled to RGBA, copied into tile
+  images and uploaded: about 100 MB of memory traffic per frame at 40 frames a
+  second. A surface texture shares the decoder's memory instead. Tests cover
+  wrapping once per picture, release of the previous texture, the fallback,
+  texels read back from a real IOSurface texture, and a headless Metal window
+  drawing a surface byte for byte like the same pixels in an ImageOp at three
+  scales.

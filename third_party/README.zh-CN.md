@@ -204,3 +204,19 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
   仍走 mipmap 路径）：Mirage 的内存占用从约 450 MB 降到约 324 MB，Go 堆存活
   数据从 104 MB 降到 43 MB，GC 从每分钟 67 次降到 11 次。真实窗口只验证了
   Metal；OpenGL、Direct3D 11 和 Vulkan 走同样的偏移上传，但尚未用可变图片测试。
+
+### 2026-10-18：surface 图片（IOSurface 纹理）
+
+- `gio/op/paint`、`gio/gpu`、`gio/gpu/internal/driver`、`gio/gpu/internal/metal`，
+  新增 `gio/internal/surface`：`paint.NewSurfaceOp(s)` 显示 `paint.Surface`
+  的当前画面。Surface 是平台的 GPU 表面，由持有者用 `Set(ref, size)` 替换。
+  `texHandle` 把它交给 `surfaceTexture`：只在画面变化时向设备
+  （`driver.SurfaceTextureDevice`）要一张包住该表面的纹理，不带 mipmap，
+  并释放上一张。不支持该接口的设备画一个透明像素。Metal 通过 purego
+  （`surface_darwin.go`）以 BGRA8Unorm_sRGB 调用
+  `newTextureWithDescriptor:iosurface:plane:` 实现，没有新增 C 代码。
+- 原因：Mirage 用 VideoToolbox 解码 macOS 的 HEVC 屏幕流，解码输出就是
+  IOSurface。原先每个 4K 帧要转成 RGBA、复制进 tile 图片再上传，每秒 40 帧时
+  每帧约 100 MB 内存读写。surface 纹理直接共用解码器的内存。测试覆盖每个画面
+  只包装一次、释放上一张纹理、回退路径、从真实 IOSurface 纹理读回的像素，以及
+  无头 Metal 窗口在三种缩放下把 surface 画得与同样像素的 ImageOp 逐字节一致。

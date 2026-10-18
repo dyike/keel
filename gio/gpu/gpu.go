@@ -29,6 +29,7 @@ import (
 	"github.com/dyike/keel/gio/internal/ops"
 	"github.com/dyike/keel/gio/internal/scene"
 	"github.com/dyike/keel/gio/internal/stroke"
+	"github.com/dyike/keel/gio/internal/surface"
 	"github.com/dyike/keel/gio/layout"
 	"github.com/dyike/keel/gio/op"
 
@@ -69,6 +70,8 @@ type renderer struct {
 	intersections packer
 	layers        packer
 	layerFBOs     fboSet
+	// Keel patch: drawn for a surface the device cannot show.
+	blank driver.Texture
 
 	// Keel patch: runs of quads drawn with one call, see drawOps.
 	quads    []driver.Quad
@@ -225,6 +228,11 @@ type imageOpData struct {
 	mask   *image.Alpha
 	handle any
 	filter byte
+	// A surface (paint.NewSurfaceOp) and its picture when the op was read.
+	surface     *surface.Surface
+	surfaceRef  uintptr
+	surfaceSize image.Point
+	surfaceGen  uint64
 }
 
 type linearGradientOpData struct {
@@ -249,11 +257,17 @@ func decodeImageOp(data []byte, refs []any) imageOpData {
 		d.src = src
 	case *image.Alpha:
 		d.mask = src
+	case *surface.Surface:
+		d.surface = src
+		d.surfaceRef, d.surfaceSize, d.surfaceGen = src.Current()
 	}
 	return d
 }
 
 func (d imageOpData) size() image.Point {
+	if d.surface != nil {
+		return d.surfaceSize
+	}
 	if d.mask != nil {
 		return d.mask.Rect.Size()
 	}
@@ -549,6 +563,9 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 		cache.put(key, t)
 	}
 	tex = t.(*texture)
+	if data.surface != nil {
+		return r.surfaceTexture(tex, data)
+	}
 	tracker, mutable := data.handle.(*dirty.Tracker)
 	if tex.tex != nil {
 		if mutable {
@@ -603,6 +620,48 @@ func (r *renderer) texHandle(cache *textureCache, data imageOpData) driver.Textu
 	return tex.tex
 }
 
+// surfaceTexture wraps the surface's current picture in a texture, again
+// only when the picture changed. Wrapping copies nothing, so a new picture
+// costs no upload. Devices without surface support get no texture, and the
+// image draws nothing. Keel patch.
+func (r *renderer) surfaceTexture(tex *texture, data imageOpData) driver.Texture {
+	if tex.tex != nil && tex.version == data.surfaceGen {
+		return tex.tex
+	}
+	dev, ok := r.ctx.(driver.SurfaceTextureDevice)
+	if !ok || data.surfaceRef == 0 || data.surfaceSize.X <= 0 || data.surfaceSize.Y <= 0 {
+		return r.blankTexture()
+	}
+	// No mipmaps: a surface changes too often to rebuild them.
+	minFilter, magFilter := driver.FilterLinear, driver.FilterLinear
+	if data.filter == filterNearest {
+		minFilter, magFilter = driver.FilterNearest, driver.FilterNearest
+	}
+	handle, err := dev.NewSurfaceTexture(data.surfaceRef, data.surfaceSize.X, data.surfaceSize.Y, minFilter, magFilter)
+	if err != nil {
+		return r.blankTexture()
+	}
+	if tex.tex != nil {
+		tex.tex.Release() // the GPU keeps what in-flight frames still use
+	}
+	tex.tex, tex.version = handle, data.surfaceGen
+	return handle
+}
+
+// blankTexture is a transparent pixel, drawn for a surface the device
+// cannot show.
+func (r *renderer) blankTexture() driver.Texture {
+	if r.blank == nil {
+		t, err := r.ctx.NewTexture(driver.TextureFormatSRGBA, 1, 1, driver.FilterNearest, driver.FilterNearest, driver.BufferBindingTexture)
+		if err != nil {
+			panic(err)
+		}
+		t.Upload(image.Point{}, image.Pt(1, 1), make([]byte, 4), 4)
+		r.blank = t
+	}
+	return r.blank
+}
+
 // updateTexture uploads the areas of a mutable image that changed since tex
 // was last updated, instead of creating a new texture. Keel patch.
 func (r *renderer) updateTexture(tex *texture, tracker *dirty.Tracker, data imageOpData) {
@@ -654,6 +713,9 @@ func newRenderer(ctx driver.Device) *renderer {
 }
 
 func (r *renderer) release() {
+	if r.blank != nil {
+		r.blank.Release()
+	}
 	r.pather.release()
 	r.blitter.release()
 	r.layerFBOs.delete(r.ctx, 0)
