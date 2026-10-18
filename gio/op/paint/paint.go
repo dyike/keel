@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"sync"
 
 	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/internal/dirty"
@@ -113,6 +114,18 @@ func NewImageOp(src image.Image) ImageOp {
 // frame using it is being rendered, for example during layout. Keel patch.
 func NewMutableImageOp(src *image.RGBA) ImageOp {
 	return ImageOp{src: src, handle: new(dirty.Tracker)}
+}
+
+// NewSharedImageOp is NewMutableImageOp for pixels written outside the
+// frame, such as a video decoder's framebuffer, without a second copy for
+// rendering. A renderer reads src only while holding mu: when it creates
+// the texture and when it uploads changed areas, which it does during the
+// frame, not later. Write src and call Invalidate while holding mu, from
+// any goroutine, and hold it briefly: a frame that needs to upload waits
+// for it. Images may share one mu, for example tiles cut from one
+// framebuffer with SubImage. Keel patch.
+func NewSharedImageOp(src *image.RGBA, mu sync.Locker) ImageOp {
+	return ImageOp{src: src, handle: &dirty.Tracker{Pixels: mu}}
 }
 
 // Surface is an image held in the platform's GPU memory, an IOSurface on

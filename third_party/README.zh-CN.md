@@ -220,3 +220,7 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
   每帧约 100 MB 内存读写。surface 纹理直接共用解码器的内存。测试覆盖每个画面
   只包装一次、释放上一张纹理、回退路径、从真实 IOSurface 纹理读回的像素，以及
   无头 Metal 窗口在三种缩放下把 surface 画得与同样像素的 ImageOp 逐字节一致。
+- `gio/app`（macOS、iOS）：空闲时回收 GPU 内存改为去抖。被外部频繁更新驱动重绘的窗口（远程屏幕通过 `Invalidate` 每秒 60 次更新）每帧之后都不再请求下一帧，于是每帧都把覆盖纹理标为 volatile、等 GPU 完成、释放暂存缓冲、缓冲池和 quad 缓冲，下一帧再全部恢复（仅 `textureSetVolatile` 就占 Mirage CPU 采样约 12%）。现在由 Metal context 的定时器（`idleDebounce`）在窗口 250 ms 没有提交新帧后调用 `gpu.Idle`，macOS 上 1 s 后照旧调用 `gpu.Trim` 并缩小 drawable。定时器只设置一次，只在空闲帧需要更早触发时才调整，不再每帧停止、新建。其他 context 仍直接调用 `gpu.Idle`。纯 Go 测试用 60 Hz、低频和动画帧序列驱动去抖逻辑；`TestMetalIdleWindow` 新增 60 Hz 的 90 帧，期间不得回收，停止后回收一次。
+- `gio/gpu/internal/metal`：不超过 4 KiB 的缓冲放在 Go 内存里（通过 `set*Bytes` 传给 GPU，每条重建的路径都用到），其存储按 2 的幂分级复用，每级最多 256 个，`Trim` 时清空。`set*Bytes` 会把内容复制进编码器，所以缓冲释放后存储即可复用。60 Hz 的 Mirage 会话原先每秒分配数 MB。`TestSmallBufferStoresReused` 检查复用、清零，以及一个小的不可变缓冲只分配一次（`*Buffer` 本身）。
+- `gio/op/paint`、`gio/gpu`、`gio/internal/dirty`：`NewSharedImageOp(src, mu)` 是由所有者在帧外写像素的可变图片。渲染器只在读取 `src` 时（创建纹理，或版本变化后上传变化区域）持有 `mu`，且都在帧内完成。远程桌面客户端可以把解码器的帧缓冲用 `SubImage` 切成共用一把锁的 tile 直接交给渲染器，不必再复制一份 tile 图片（5K 屏幕约 60 MB）。`TestSharedImageReadsUnderLock` 检查每次上传都持有锁、未变化的 tile 不取锁，并在 `go test -race` 下验证并发写入。
+- `gio/app`（macOS）：2026-10-18 复查两个 drawable 是否够用（2560x1680 时每个 16.7 MB）：`maximumDrawableCount = 2` 时 `TestMetalResizeWindow` 3 次运行 3 次停顿，因此保持三个。

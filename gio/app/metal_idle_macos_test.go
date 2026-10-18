@@ -133,8 +133,8 @@ func metalIdleWindowHelper() {
 					fail("not a Metal context")
 				}
 				sz := size(uintptr(c.layer), sel)
-				if !c.idle.trimmed || w.gpu == nil || sz.W != 1 || sz.H != 1 {
-					fail(fmt.Sprintf("idle resources retained: %v trimmed=%v gpu=%v", sz, c.idle.trimmed, w.gpu != nil))
+				if c.idle.stage != idleTrimmed || w.gpu == nil || sz.W != 1 || sz.H != 1 {
+					fail(fmt.Sprintf("idle resources retained: %v stage=%v gpu=%v", sz, c.idle.stage, w.gpu != nil))
 				}
 			})
 			for len(frames) > 0 {
@@ -151,12 +151,38 @@ func metalIdleWindowHelper() {
 			w.Run(func() {
 				c := w.ctx.(*mtlContext)
 				sz := size(uintptr(c.layer), sel)
-				if c.idle.trimmed || w.gpu == nil || sz.W < 320 || sz.H < 240 {
+				if c.idle.stage == idleTrimmed || w.gpu == nil || sz.W < 320 || sz.H < 240 {
 					fail(fmt.Sprintf("drawable not restored: %v", sz))
 				}
 			})
 			fmt.Printf("resume %d: %v\n", i, time.Since(start))
 		}
+		// Frequent external updates, like a remote screen's, keep the
+		// window from releasing anything between frames.
+		for len(frames) > 0 {
+			<-frames
+		}
+		for i := 0; i < 90; i++ {
+			w.Invalidate()
+			select {
+			case <-frames:
+			case <-time.After(3 * time.Second):
+				exitIfOccluded(w, "during updates")
+				fail(fmt.Sprintf("update %d: no frame after Invalidate", i))
+			}
+			w.Run(func() {
+				if s := w.ctx.(*mtlContext).idle.stage; i > 0 && s != idleActive {
+					fail(fmt.Sprintf("update %d: released between frequent frames (stage %v)", i, s))
+				}
+			})
+			time.Sleep(16 * time.Millisecond)
+		}
+		time.Sleep(gpuReleaseDelay + 100*time.Millisecond)
+		w.Run(func() {
+			if s := w.ctx.(*mtlContext).idle.stage; s != idleReleased {
+				fail(fmt.Sprintf("not released after updates stopped (stage %v)", s))
+			}
+		})
 		w.Perform(system.ActionClose) // cancels the newly armed trim timer
 	}()
 	Main()
