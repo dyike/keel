@@ -743,9 +743,14 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	}
 	// A single-line box taller than its line (theme.ControlHeight) centers
 	// the line, like a native field; the editor keeps the line's height.
-	if !spec.multiline && spec.line > 0 && inner.Dy() > spec.line {
-		inner.Min.Y += (inner.Dy() - spec.line) / 2
-		inner.Max.Y = inner.Min.Y + spec.line
+	line, textScript := spec.line, scriptMixed
+	if spec.password && ed.Len() > 0 {
+		textScript = scriptPassword
+		line = e.textLineBox(n, textScript)
+	}
+	if !spec.multiline && line > 0 && inner.Dy() > line {
+		inner.Min.Y += (inner.Dy() - line) / 2
+		inner.Max.Y = inner.Min.Y + line
 	}
 	defer op.Offset(inner.Min).Push(gtx.Ops).Pop()
 	g := gtx
@@ -774,7 +779,7 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 		me.Font = st.inputObjects.font
 	}
 	me.LineHeightScale = ts.lineHeight
-	editorOffset := op.Offset(image.Pt(0, e.textShift(n, scriptMixed))).Push(gtx.Ops)
+	editorOffset := op.Offset(image.Pt(0, e.textShift(n, textScript))).Push(gtx.Ops)
 	if spec.document != nil {
 		st.caret.LayoutDecorated(g, me, shaper, func(g layout.Context) { e.paintInputTokens(n, st, g) })
 	} else {
@@ -1001,6 +1006,7 @@ const (
 	scriptLatin script = iota
 	scriptWide
 	scriptMixed
+	scriptPassword
 )
 
 func scriptOf(s string) script {
@@ -1057,6 +1063,8 @@ func (e *engine) textLine(n *Node, sc script) textLine {
 		sample = "国"
 	case scriptMixed:
 		sample, body = "国Ag", 2
+	case scriptPassword:
+		sample = "•"
 	}
 	lb := material.Label(theme.Material, ts.size, sample)
 	lb.Font = face
