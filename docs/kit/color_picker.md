@@ -21,6 +21,8 @@ Verify: `go run ./examples/components -section color_picker`, add `-theme dark` 
 
 `SetDisabled(true)` Disables swatches, sliders, presets, and HEX input, and cancels unsubmitted HEX drafts. Drafts will not be submitted if the parent container is out of focus. `SetValue` can still update colors while disabled and does not call `OnChange`.
 
+Color swatch and format buttons are borderless; selection uses the check mark or tinted fill, and keyboard/programmatic focus uses the inset focus ring.
+
 The default width is 240dp, which will shrink to the available width when placed in a narrow container. The slider indicator ring is positioned according to the actual layout, and the black and white double strokes ensure legibility in both light and dark areas. The hue and transparency bars have a hit height of 24dp, and the focus points have independent borders.
 
 Arrow keys for fine-tuning, Shift + arrow keys accelerate ten times; the hue/transparency bar supports ten-step adjustments from Home/End to the endpoint and PageUp/PageDown. The selected state of the color block is expressed by the check icon and Agent `selected` at the same time. The icon is selected as black or white according to the synthesized background. Repeatedly clicking the current color block will not trigger the callback repeatedly. Dragging to cancel retains the last valid color without overwriting it with the coordinates of the cancel event.

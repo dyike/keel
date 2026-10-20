@@ -51,7 +51,7 @@ func (v *buttonDemo) Render(cx *el.Context) el.Element {
 		row(kit.Button(demoText("Primary", "主要"), nil), kit.Button(demoText("Secondary", "次要"), nil).Variant(kit.ButtonSecondary), kit.Button(demoText("Lightweight", "轻量"), nil).Variant(kit.ButtonGhost), kit.Button(demoText("Delete", "删除"), nil).Variant(kit.ButtonDanger)),
 		row(kit.Button(demoText("Small 28", "小 28"), nil).Size(28), kit.Button(demoText("Standard 32", "标准 32"), nil), kit.Button(demoText("Large 40", "大 40"), nil).Size(40)),
 		row(kit.Button(demoText("Link", "链接"), nil).Variant(kit.ButtonLink), kit.Button(demoText("Text", "文字"), nil).Variant(kit.ButtonText), kit.Button(demoText("Success", "成功"), nil).Variant(kit.ButtonSuccess), kit.Button(demoText("Warning", "警告"), nil).Variant(kit.ButtonWarning), kit.Button(demoText("Info", "信息"), nil).Variant(kit.ButtonInfo)),
-		row(kit.Button(demoText("Outline", "描边"), nil).Outline(true), kit.Button(demoText("Danger outline", "危险描边"), nil).Variant(kit.ButtonDanger).Outline(true), kit.Button(demoText("Compact", "紧凑"), nil).Compact(true), kit.Button("", nil).Name(demoText("Add", "添加")).Icon(kit.IconPlus)),
+		row(kit.Button(demoText("Tinted", "着色"), nil).Outline(true), kit.Button(demoText("Danger tinted", "危险着色"), nil).Variant(kit.ButtonDanger).Outline(true), kit.Button(demoText("Compact", "紧凑"), nil).Compact(true), kit.Button("", nil).Name(demoText("Add", "添加")).Icon(kit.IconPlus)),
 		row(kit.Button(demoText("Export CSV", "导出 CSV"), nil).Content(rich), kit.Button(demoText("Exporting", "正在导出"), nil).Content(rich).Loading(true), kit.Button(demoText("Custom palette", "自定义配色"), nil).Appearance(custom)),
 		row(v.save, v.toggle),
 		el.Text(fmt.Sprintf(demoText("Save count: %d", "保存次数：%d"), v.count)).TextColor(theme.Muted),
@@ -59,6 +59,6 @@ func (v *buttonDemo) Render(cx *el.Context) el.Element {
 		el.Div().W(el.Dp(140)).Child(kit.Button(demoText("Narrow container: English 123", "窄容器中文 English 123"), nil).Render(cx)),
 		el.Text(demoText("Selected state", "选中状态")).TextSize(16).Bold(),
 		row(kit.Button(demoText("Selected", "已选中"), nil).Selected(true), kit.Button(demoText("Secondary selected", "次要已选中"), nil).Variant(kit.ButtonSecondary).Selected(true),
-			kit.Button(demoText("Outline selected", "描边已选中"), nil).Outline(true).Selected(true), v.bold),
+			kit.Button(demoText("Tinted selected", "着色已选中"), nil).Outline(true).Selected(true), v.bold),
 	)
 }

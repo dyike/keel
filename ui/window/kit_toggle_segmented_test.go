@@ -104,10 +104,11 @@ func TestToggleMiddleSelectionHasBothEdges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, x := range []int{b.X, b.X + b.Width - 1} {
+	// Borderless: the selection fill reaches both edges of the middle segment.
+	for _, x := range []int{b.X + 1, b.X + b.Width - 2} {
 		got := color.NRGBAModel.Convert(im.At(x, b.Y+b.Height/2)).(color.NRGBA)
-		if int(got.B)-int(got.R) < 50 {
-			t.Fatalf("selected edge at %d: %v, want %v", x, got, theme.Primary)
+		if got != theme.Highlight {
+			t.Fatalf("selected edge at %d: %v, want %v", x, got, theme.Highlight)
 		}
 	}
 }

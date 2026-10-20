@@ -198,8 +198,8 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		main.Hidden(true)
 	}
 	if v.onOpen != nil && status.IsComplete() {
-		main.Child(el.Div().ID(id+"/open").Absolute().Top(0).Left(0).WFull().HFull().
-			Role("button").Name(v.name).Border(1, theme.Surface).Rounded(theme.RadiusSm).CursorPointer().Focusable(true).OnClick(v.onOpen).
+		main.Child(el.Div().ID(id + "/open").Absolute().Top(0).Left(0).WFull().HFull().
+			Role("button").Name(v.name).Rounded(theme.RadiusSm).CursorPointer().Focusable(true).OnClick(v.onOpen).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }))
 	}
 	main.Child(media, info)
@@ -257,8 +257,8 @@ func (v *AttachmentView) Render(cx *el.Context) el.Element {
 		// Reserve the half-disc outside the surface even while it is transparent.
 		// Keep the frame in the tree even without removal so descendants keep focus.
 		frame.Pt(metrics.action / 2).Pr(metrics.action / 2)
-		remove := el.Div().ID(id+"/remove").Absolute().Top(0).Right(0).
-			Size(el.Dp(metrics.action)).Rounded(theme.RadiusFull).Bg(theme.Surface).Border(1, theme.Border).
+		remove := el.Div().ID(id + "/remove").Absolute().Top(0).Right(0).
+			Size(el.Dp(metrics.action)).Rounded(theme.RadiusFull).Bg(theme.Surface).
 			Center().Role("button").Name(text.Name(text.Remove, v.name)).Focusable(true).CursorPointer().
 			OnClick(func() {
 				if !v.disabled && v.onRemove != nil {

@@ -281,9 +281,9 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 				head.Bg(theme.Highlight)
 			}
 		case TabsOutline:
-			head.Rounded(theme.RadiusMd).Border(1, theme.Border)
+			head.Rounded(theme.RadiusMd)
 			if on {
-				head.Border(1, theme.Primary).Bg(theme.Highlight)
+				head.Bg(theme.Highlight)
 			}
 		case TabsSegmented:
 			head.Rounded(theme.RadiusMd)

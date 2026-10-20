@@ -1,14 +1,19 @@
 package kit
 
 import (
+	"image"
+	"image/color"
+	"testing"
+
+	"github.com/dyike/keel/gio/gpu/headless"
 	"github.com/dyike/keel/gio/io/input"
 	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/gio/io/semantic"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/unit"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"
-	"image"
-	"testing"
 )
 
 func TestButtonPointerKeyboardAndState(t *testing.T) {
@@ -115,6 +120,82 @@ func TestButtonNarrowConstraint(t *testing.T) {
 		if got := buttonBounds(h, "很长的按钮 Button 123"); got != before || got.Dx() > 100*scale {
 			t.Fatalf("narrow loading bounds %v before %v", got, before)
 		}
+	}
+}
+
+func TestButtonStatesAreBorderlessAndKeyboardFocusRemainsVisible(t *testing.T) {
+	gpu, err := headless.NewWindow(240, 190)
+	if err != nil {
+		t.Skip("no headless GPU:", err)
+	}
+	t.Cleanup(gpu.Release)
+	focus := color.NRGBA{G: 255, A: 255}
+	appearance := func(a ButtonAppearance) ButtonAppearance {
+		a.Focus = focus
+		if a.Background.A > 0 {
+			a.Background = color.NRGBA{R: 30, G: 90, B: 180, A: 255}
+			a.Hover, a.Active = a.Background, a.Background
+		}
+		return a
+	}
+	buttons := []*ButtonView{
+		Button("Default", func() {}).Appearance(appearance),
+		Button("Tinted", func() {}).Outline(true).Appearance(appearance),
+		Button("Selected", func() {}).Outline(true).Selected(true).Appearance(appearance),
+		Button("Disabled", func() {}).Outline(true).Appearance(appearance),
+	}
+	buttons[3].SetDisabled(true)
+	root := el.Embed(viewFunc(func(cx *el.Context) el.Element {
+		col := el.Div().P(10).Gap(6).Items(el.Start).Bg(color.NRGBA{R: 250, G: 250, B: 250, A: 255})
+		for _, button := range buttons {
+			col.Child(button.Render(cx))
+		}
+		return col
+	}))
+	img := image.NewRGBA(image.Rect(0, 0, 240, 190))
+	h := uitest.NewFunc(func(gtx core.C) {
+		gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
+		gtx.Constraints = layout.Exact(image.Pt(240, 190))
+		root.Layout(gtx)
+		if err := gpu.Frame(gtx.Ops); err != nil {
+			t.Fatal(err)
+		}
+		if err := gpu.Screenshot(img); err != nil {
+			t.Fatal(err)
+		}
+	})
+	h.Frame()
+	edge := func(label string) (color.RGBA, color.RGBA) {
+		b := buttonBounds(h, label)
+		y := (b.Min.Y + b.Max.Y) / 2
+		return img.RGBAAt(b.Min.X+1, y), img.RGBAAt(b.Min.X+5, y)
+	}
+	closeColor := func(a, b color.RGBA) bool {
+		abs := func(n int) int {
+			if n < 0 {
+				return -n
+			}
+			return n
+		}
+		return abs(int(a.R)-int(b.R)) <= 3 && abs(int(a.G)-int(b.G)) <= 3 && abs(int(a.B)-int(b.B)) <= 3
+	}
+	for _, label := range []string{"Default", "Tinted", "Selected", "Disabled"} {
+		a, b := edge(label)
+		if !closeColor(a, b) {
+			t.Fatalf("%s has a persistent border: edge=%v inner=%v", label, a, b)
+		}
+	}
+	h.Router.MoveFocus(key.FocusForward)
+	h.Frame()
+	a, b := edge("Default")
+	if closeColor(a, b) || int(a.G) <= int(a.R)+32 {
+		t.Fatalf("keyboard focus ring missing: edge=%v inner=%v", a, b)
+	}
+	h.Click(center(buttonBounds(h, "Default")))
+	h.Frame()
+	a, b = edge("Default")
+	if !closeColor(a, b) {
+		t.Fatalf("pointer focus showed a ring: edge=%v inner=%v", a, b)
 	}
 }
 

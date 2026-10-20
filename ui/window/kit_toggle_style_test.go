@@ -91,8 +91,8 @@ func TestToggleGhostAndOutlinePixels(t *testing.T) {
 	if c := sample(10, 5); c != backdrop {
 		t.Fatal("outline has background", c)
 	}
-	if c := sample(10, 0); c == backdrop {
-		t.Fatal("outline border missing")
+	if c := sample(10, 0); c != backdrop {
+		t.Fatal("outline has border", c)
 	}
 	v.SetValue(true)
 	if c := sample(10, 5); c == backdrop {

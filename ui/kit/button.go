@@ -29,7 +29,8 @@ type ButtonAppearance struct {
 	Background, Foreground            color.NRGBA
 	Hover, Active                     color.NRGBA
 	HoverForeground, ActiveForeground color.NRGBA
-	Border, Focus                     color.NRGBA
+	// Focus colors the keyboard focus ring; buttons draw no other border.
+	Focus color.NRGBA
 }
 
 // Only immutable visual values are shared. Never cache user callbacks, views,
@@ -92,7 +93,7 @@ func (v *ButtonView) Variant(variant ButtonVariant) *ButtonView {
 	return v
 }
 
-// Outline keeps a colored border and text with a transparent background.
+// Outline uses colored text on a transparent background, with no border.
 func (v *ButtonView) Outline(on bool) *ButtonView { v.outline = on; return v }
 
 // Compact reduces horizontal padding, preserving the configured height.
@@ -190,18 +191,18 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 		appearance.HoverForeground, appearance.ActiveForeground = theme.PrimaryHover, theme.PrimaryText
 	}
 	if v.outline {
-		border, text := bg, bg
+		text := bg
 		switch v.variant {
 		case ButtonPrimary:
 			text = theme.PrimaryText
 		case ButtonDanger:
 			text = theme.DangerText
 		case ButtonSecondary, ButtonGhost, ButtonText:
-			border, text = theme.Border, theme.Text
+			text = theme.Text
 		case ButtonLink:
-			border, text = theme.PrimaryText, theme.PrimaryText
+			text = theme.PrimaryText
 		}
-		appearance = ButtonAppearance{Foreground: text, Hover: theme.Subtle, Active: theme.SubtleHover, HoverForeground: text, ActiveForeground: text, Border: border, Focus: theme.PrimaryText}
+		appearance = ButtonAppearance{Foreground: text, Hover: theme.Subtle, Active: theme.SubtleHover, HoverForeground: text, ActiveForeground: text, Focus: theme.PrimaryText}
 	}
 	if v.appearance != nil {
 		appearance = v.appearance(appearance)
@@ -213,9 +214,6 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 		} else {
 			appearance.Background, appearance.Hover, appearance.Active = theme.Highlight, theme.Highlight, theme.Highlight
 			appearance.Foreground, appearance.HoverForeground, appearance.ActiveForeground = theme.PrimaryText, theme.PrimaryText, theme.PrimaryText
-			if v.outline {
-				appearance.Border = theme.PrimaryText
-			}
 		}
 	}
 	bg, fg = appearance.Background, appearance.Foreground
@@ -225,10 +223,6 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 	}
 	if v.disabled {
 		bg, fg = disabledBg, theme.Muted
-	}
-	border := appearance.Border
-	if v.disabled {
-		border = theme.Border
 	}
 	font, iconSize, padding := float32(theme.TextControl), float32(16), float32(16)
 	if v.height <= 28 {
@@ -260,9 +254,6 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 	box.Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
 		Disabled(v.disabled).
 		FocusStyle(styles.focus)
-	if v.outline || appearance.Border.A > 0 {
-		box.Border(1, border)
-	}
 	if v.content == nil && v.text == "" && v.icon != nil {
 		box.W(el.Dp(v.height)).Px(0)
 	}

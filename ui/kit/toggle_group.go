@@ -66,7 +66,7 @@ func (v *ToggleGroupView) Render(cx *el.Context) el.Element {
 	id := autoID("togglegroup", v)
 	gap := float32(theme.SpaceXs)
 	if v.segmented {
-		gap = 0
+		gap = 1
 	}
 	if v.gap != nil {
 		gap = *v.gap
@@ -90,8 +90,8 @@ func (v *ToggleGroupView) Render(cx *el.Context) el.Element {
 		if text == "" {
 			button.Name(o)
 		}
-		if v.segmented && gap == 0 {
-			decorateToggleSegment(button, cx, itemID, i == 0, i == len(v.options)-1, on, appearance.variant)
+		if v.segmented && gap == 1 {
+			decorateToggleSegment(button, i == 0, i == len(v.options)-1, on)
 		}
 		row.Child(button)
 	}

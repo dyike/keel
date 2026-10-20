@@ -38,24 +38,19 @@ func toggleButton(cx *el.Context, id, text string, icon *IconView, on, disabled 
 
 func styledToggleButton(cx *el.Context, appearance toggleAppearance, id, text string, icon *IconView, on, disabled bool, fn func()) *el.DivEl {
 	height, font, iconSize, padding := appearance.metrics()
-	bg, fg, border := theme.Surface, theme.Text, theme.Border
-	if appearance.variant == ToggleGhost {
-		bg, border = color.NRGBA{}, color.NRGBA{}
-	}
-	if appearance.variant == ToggleOutline {
+	// Without a border, the default toggle needs a fill to read as a control.
+	bg, fg := theme.Subtle, theme.Text
+	if appearance.variant == ToggleGhost || appearance.variant == ToggleOutline {
 		bg = color.NRGBA{}
 	}
 	if on {
 		bg, fg = theme.Highlight, theme.PrimaryText
-		if appearance.variant != ToggleGhost {
-			border = theme.Primary
-		}
 	}
 	if disabled {
 		fg = theme.Muted
 	}
 	b := el.Div().ID(id).Role("toggle").Name(text).Selected(on).Disabled(disabled).
-		Row().Items(el.Center).Gap(theme.SpaceSm).H(el.Dp(height)).Px(padding).Rounded(theme.RadiusMd).Bg(bg).Border(1, border).TextColor(fg).TextSize(font).
+		Row().Items(el.Center).Gap(theme.SpaceSm).H(el.Dp(height)).Px(padding).Rounded(theme.RadiusMd).Bg(bg).TextColor(fg).TextSize(font).
 		Focusable(true).OnClick(fn).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
 	if !disabled {
 		b.CursorPointer().Hover(func(s *el.Style) {

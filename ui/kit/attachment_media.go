@@ -26,8 +26,8 @@ func (v *AttachmentView) mediaStatus(cx *el.Context, id string, status Attachmen
 		v.mediaProgress = nil
 		shade.A = 160
 		if v.onRetry != nil {
-			overlay.Child(el.Div().ID(id+"/media-retry").Role("button").Name(text.Name(text.Retry, v.name)).
-				Size(el.Dp(28)).Center().Rounded(theme.RadiusFull).Bg(color.NRGBA{A: 160}).Border(2, color.NRGBA{}).
+			overlay.Child(el.Div().ID(id + "/media-retry").Role("button").Name(text.Name(text.Retry, v.name)).
+				Size(el.Dp(28)).Center().Rounded(theme.RadiusFull).Bg(color.NRGBA{A: 160}).
 				Focusable(true).CursorPointer().OnClick(v.retry).
 				FocusStyle(func(s *el.Style) { s.BorderColor(white) }).
 				Hover(func(s *el.Style) { s.Bg(color.NRGBA{A: 220}) }).

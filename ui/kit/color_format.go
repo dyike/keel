@@ -138,9 +138,9 @@ func (p *ColorPickerView) fields(cx *el.Context, id string, focused bool) el.Ele
 	for f, name := range []string{"HEX", "RGB", "HSL"} {
 		f := ColorFormat(f)
 		on := p.format == f
-		b := el.Div().ID(id+"/format/"+name).Role("radio").Name(name+" "+text.ColorFormat).Selected(on).Px(theme.SpaceSm).Py(theme.SpaceXxs).
+		b := el.Div().ID(id + "/format/" + name).Role("radio").Name(name + " " + text.ColorFormat).Selected(on).Px(theme.SpaceSm).Py(theme.SpaceXxs).
 			Rounded(theme.RadiusSm).TextSize(theme.TextXs).Focusable(true).CursorPointer().
-			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).Border(1, color.NRGBA{}).
+			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 			OnClick(func() {
 				if !p.disabled && p.format != f {
 					p.commitDraft()

@@ -14,6 +14,6 @@ Agent: Role `toggle`, `selected` indicates whether to press or not.
 
 Verify: `go run ./examples/components -section toggle`, add `-theme dark` to check the dark theme.
 
-`Variant(kit.ToggleGhost)` sets the transparent borderless appearance when not selected; `ToggleOutline` sets the transparent background with borders. `ToggleDefault` retains the original Surface background and borders. The Highlight background color is displayed when selected; the focus border appears only when the Ghost is focused.
+All variants are borderless. `ToggleGhost` and `ToggleOutline` use a transparent background when not selected; `ToggleDefault` uses a `Subtle` fill. Selected toggles use `Highlight`, and keyboard/programmatic focus draws the inset focus ring without changing layout.
 
 `Size(...)` accepts `ToggleSizeXSmall`, `ToggleSizeSmall`, `ToggleSizeMedium`, `ToggleSizeLarge`, and adjusts the height, font size, icon and horizontal blank synchronously. The heights are 24/28/32/40dp respectively, and the default is Medium. Switching styles during operation retains the focus and selection status and does not trigger OnChange. Illegal enumeration values are ignored.

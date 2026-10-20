@@ -337,8 +337,8 @@ func (p *ColorPickerView) renderPanel(cx *el.Context) el.Element {
 	if len(p.swatches) > 0 {
 		row := el.Div().Row().Wrap().Gap(theme.SpaceSm)
 		for i, c := range p.swatches {
-			swatch := el.Div().ID(id+"/swatch/"+strconv.Itoa(i)).Role("button").Name(hexOf(c, p.alpha)).Selected(c == p.Value()).
-				Size(el.Dp(m.swatch)).NoShrink().Rounded(theme.RadiusSm).Bg(c).Border(1, theme.Border).Center().CursorPointer().Focusable(true).
+			swatch := el.Div().ID(id + "/swatch/" + strconv.Itoa(i)).Role("button").Name(hexOf(c, p.alpha)).Selected(c == p.Value()).
+				Size(el.Dp(m.swatch)).NoShrink().Rounded(theme.RadiusSm).Bg(c).Center().CursorPointer().Focusable(true).
 				FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).OnClick(func() {
 				if !p.disabled && c != p.Value() {
 					p.SetValue(c)

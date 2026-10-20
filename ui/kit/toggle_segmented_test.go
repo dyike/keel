@@ -13,7 +13,7 @@ func TestToggleSegmentedSpacing(t *testing.T) {
 			v := ToggleGroup("Alpha", "Beta", "Gamma").Segmented(true).Variant(ToggleOutline)
 			h := renderView(v, width, scale)
 			a, b := bounds(h, "Alpha"), bounds(h, "Beta")
-			if a.Empty() || b.Empty() || a.Max.X != b.Min.X {
+			if a.Empty() || b.Empty() || b.Min.X-a.Max.X != scale {
 				t.Fatalf("scale %d width %d: %v %v", scale, width, a, b)
 			}
 			v.Gap(8)
@@ -30,7 +30,7 @@ func TestToggleSegmentedSpacing(t *testing.T) {
 			v.ResetGap()
 			h.Frame()
 			a, b = bounds(h, "Alpha"), bounds(h, "Beta")
-			if a.Max.X != b.Min.X {
+			if b.Min.X-a.Max.X != scale {
 				t.Fatal("reset did not reconnect")
 			}
 		}

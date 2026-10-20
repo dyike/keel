@@ -31,7 +31,7 @@ func init() {
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			out := el.Div().P(24).Gap(theme.SpaceXl).W(el.Dp(460)).MaxW(el.Full).Child(tabs.Render(cx))
 			for i, v := range variants {
-				out.Child(el.Text([]string{demoText("Underline", "下划线"), demoText("Pill", "胶囊"), demoText("Outline", "描边"), demoText("Segmented", "分段")}[i]).TextColor(theme.Muted), v.Render(cx))
+				out.Child(el.Text([]string{demoText("Underline", "下划线"), demoText("Pill", "胶囊"), demoText("Tinted", "着色"), demoText("Segmented", "分段")}[i]).TextColor(theme.Muted), v.Render(cx))
 			}
 			out.Child(el.Text(demoText("Horizontal scrolling · Labels limited to 100dp", "横向滚动 · 标签宽度上限 100dp")).TextColor(theme.Muted), scrolling.Render(cx))
 			return out
