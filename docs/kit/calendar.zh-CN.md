@@ -14,6 +14,7 @@ span := kit.Calendar().Range().OnChange(func(start, end time.Time) { … })
 - `Bounds(min, max)` 限制可选范围，零值表示这一侧不限；`DisableDates(fn)` 禁用某些日期。
 - `Value()` 返回 `(start, end)`，单日模式下两者相同；`SetValue` 不触发回调，并跳到 start 所在的月份。`SetMonth`、`SetDisabled`。
 - 星期名、每周从哪天开始、月份标题、日期格式都来自 `ui/locale`：中文从周一开始，英文从周日开始。
+- 日期单元格和导航操作均无边框。今天使用轻量底色与主色文字；键盘或程序聚焦时显示内嵌焦点环。
 
 Agent：日历是 `grid`，每一天是 `gridcell`，名字是日期（如 2026-10-08），`selected` 表示已选或在范围内；不可选的日期报告 `disabled`。
 

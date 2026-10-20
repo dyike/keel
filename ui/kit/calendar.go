@@ -328,7 +328,7 @@ func (v *CalendarView) cell(d, today, month time.Time, cw, ch float32, move func
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		Child(dayText)
 	if d.Equal(today) && !chosen {
-		c.Border(1, theme.Border)
+		c.Bg(theme.Subtle).TextColor(theme.PrimaryText)
 	}
 	if ok && !chosen && !between {
 		c.Hover(func(s *el.Style) { s.Bg(theme.Subtle) })

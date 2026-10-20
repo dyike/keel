@@ -14,6 +14,7 @@ span := kit.Calendar().Range().OnChange(func(start, end time.Time) { … })
 - `Bounds(min, max)` limits the optional range, a value of zero means there is no limit on this side; `DisableDates(fn)` disables certain dates.
 - `Value()` returns `(start, end)`, which are the same in single-day mode; `SetValue` does not trigger a callback and jumps to the month where start is located. `SetMonth`, `SetDisabled`.
 - The week name, the day the week starts, the month title, and the date format all come from `ui/locale`: Chinese starts from Monday, English starts from Sunday.
+- Day cells and navigation actions are borderless. Today uses a subtle fill and primary text; keyboard/programmatic focus uses the inset focus ring.
 
 Agent: The calendar is `grid`, each day is `gridcell`, the name is the date (such as 2026-10-08), `selected` means selected or within the range; unselectable dates report `disabled`.
 

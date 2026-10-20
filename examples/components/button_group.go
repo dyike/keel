@@ -26,8 +26,8 @@ func buttonGroupGallery() core.Widget {
 		kit.Button(demoText("Move down", "下移"), nil).Variant(kit.ButtonSecondary)).Vertical(true).Name(demoText("Sort", "排序"))
 	return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 		return el.Div().P(24).Gap(16).Items(el.Start).Child(
-			el.Text(demoText("ButtonGroup", "ButtonGroup 按钮组")).TextSize(24).Bold(),
-			el.Text(demoText("Only outer corners are rounded. Outline buttons share borders; solid buttons have narrow gaps.", "只圆外侧的角；描边按钮共用边框，实心按钮之间留细缝。")).TextColor(theme.Muted),
+			el.Text(demoText("ButtonGroup", "按钮组")).TextSize(24).Bold(),
+			el.Text(demoText("Only outer corners are rounded, with a narrow gap between buttons.", "只圆外侧的角，按钮之间留细缝。")).TextColor(theme.Muted),
 			views.Render(cx), pages.Render(cx), save.Render(cx), order.Render(cx))
 	}))
 }

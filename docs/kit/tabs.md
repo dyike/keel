@@ -2,13 +2,13 @@
 
 English | [简体中文](tabs.zh-CN.md)
 
-Tabs with support for underline, capsule, stroke and segmented appearances.
+Tabs with underline, pill, tinted, and segmented appearances. Every variant is borderless.
 
 ```go
 tabs := kit.Tabs().Add("General", basicForm).Add("Notifications", notifySettings).OnChange(onTab)
 ```
 
-- `Variant(TabsUnderline/TabsPill/TabsOutline/TabsSegmented)` Select the appearance, retain the original underline style by default. Colors switch with the theme.
+- `Variant(TabsUnderline/TabsPill/TabsOutline/TabsSegmented)` selects the appearance and keeps underline as the default. `TabsOutline` is retained as the compatibility name for a borderless tinted tab. Colors switch with the theme.
 - `AddItem(TabItem{Title, Page, Icon, Content, Disabled})` Add an icon or rich label. Content replaces the visible title and should be a display element; Title is still used for the Agent name and overflow menu. Rich tags are laid out within a limited width, and text truncation requires the content to set MaxLines by itself.
 - `SetItem(i, item)` updates the entry and preserves stable identity; `SetItemDisabled(i, bool)` disables a single entry. Disabled items cannot be clicked, closed, or dragged, and arrow keys and overflow menus skip them. Disable the current item to automatically select the next available item; when all are disabled, the current page is retained, the tab does not enter Tab navigation, and the page content remains available. Restore selection after re-enabling an entry. Program modification does not trigger OnChange; SetValue does not select disabled items.
 - Only render the current page. Each page is a View held by the application itself, and the state remains after switching.

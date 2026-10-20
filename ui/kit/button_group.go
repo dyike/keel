@@ -7,10 +7,9 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
-// ButtonGroupView joins buttons into one control: only the outer corners
-// are rounded, outlined neighbours share a border, and filled ones are split
-// by a hairline. Each button keeps its own click, icon, loading and selected
-// state. For a set of exclusive options, use ToggleGroup instead.
+// ButtonGroupView joins buttons into one control: only the outer corners are
+// rounded and a 1dp gap separates neighbours. Each button keeps its own click,
+// icon, loading and selected state. For exclusive options, use ToggleGroup.
 type ButtonGroupView struct {
 	buttons  []*ButtonView
 	name     string
@@ -45,6 +44,7 @@ func (g *ButtonGroupView) Render(cx *el.Context) el.Element {
 	if !g.vertical {
 		box.Row()
 	}
+	box.Gap(1)
 	r := float32(theme.RadiusMd)
 	last := len(g.buttons) - 1
 	for i, b := range g.buttons {
@@ -62,19 +62,6 @@ func (g *ButtonGroupView) Render(cx *el.Context) el.Element {
 			c = [4]float32{0, r, r, 0}
 		}
 		e := b.renderCorners(cx, c)
-		if i > 0 {
-			// Outlined neighbours overlap so their borders read as one line;
-			// filled ones leave a hairline of background between them.
-			step := float32(1)
-			if b.outline {
-				step = -1
-			}
-			if g.vertical {
-				e.Mt(step)
-			} else {
-				e.Ml(step)
-			}
-		}
 		box.Child(e)
 	}
 	return box

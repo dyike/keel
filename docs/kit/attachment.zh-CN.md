@@ -114,4 +114,4 @@ photo.RetryMedia()
 a.TitleShimmer(kit.ShimmerStyle{Duration: 3*time.Second, Spread: .45, Reverse: true})
 ```
 
-`RemoveOnHover(on)` 控制内置移除按钮的显示：桌面默认开启，鼠标进入附件或键盘焦点进入其内部时显示；离开且失去焦点后隐藏。隐藏只改变绘制透明度，保留布局、语义和 Tab 停靠点，不影响取消、重试及自定义操作。Android/iOS 默认常显，触屏网页或混合输入应用可显式调用 `RemoveOnHover(false)` 常显。`ShowActions(false)` 仍会移除整个操作区的布局和交互。内置移除按钮使用 Surface 背景、细边框和圆形轮廓，中心落在卡片右上角，顶部/右侧各预留半个按钮的外伸空间；透明隐藏时仍保留这部分空间。按钮直径随尺寸档为 20/22/24/28dp，卡片宽度仍指表面宽度，整体占位额外增加半个按钮宽度，窄窗口优先缩小表面。取消/重试和自定义操作继续位于 Actions，PartStyle(Actions) 不再影响移除角标；ShowActions(false) 同时隐藏操作区和角标。PartStyle(Root) 仍配置卡片表面，Hidden 会连同角标隐藏，表面配色/圆角不改变角标自身外观。
+`RemoveOnHover(on)` 控制内置移除按钮的显示：桌面默认开启，鼠标进入附件或键盘焦点进入其内部时显示；离开且失去焦点后隐藏。隐藏只改变绘制透明度，保留布局、语义和 Tab 停靠点，不影响取消、重试及自定义操作。Android/iOS 默认常显，触屏网页或混合输入应用可显式调用 `RemoveOnHover(false)` 常显。`ShowActions(false)` 仍会移除整个操作区的布局和交互。内置移除按钮使用无边框的 Surface 圆形底色，中心落在卡片右上角，顶部/右侧各预留半个按钮的外伸空间；透明隐藏时仍保留这部分空间。按钮直径随尺寸档为 20/22/24/28dp，卡片宽度仍指表面宽度，整体占位额外增加半个按钮宽度，窄窗口优先缩小表面。取消/重试和自定义操作继续位于 Actions，PartStyle(Actions) 不再影响移除角标；ShowActions(false) 同时隐藏操作区和角标。PartStyle(Root) 仍配置卡片表面，Hidden 会连同角标隐藏，表面配色/圆角不改变角标自身外观。

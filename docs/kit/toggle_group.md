@@ -16,13 +16,13 @@ Agent: container role `group`, each button is `toggle`.
 
 Verify: `go run ./examples/components -section toggle_group`, add `-theme dark` to check the dark theme.
 
-`Variant(kit.ToggleGhost)` sets the transparent borderless appearance when not selected; `ToggleOutline` sets the transparent background with borders. `ToggleDefault` retains the original Surface background and borders. The Highlight background color is displayed when selected; the focus border appears only when the Ghost is focused.
+All variants are borderless. `ToggleGhost` and `ToggleOutline` use a transparent background when not selected; `ToggleDefault` uses a `Subtle` fill. Segmented groups give every unselected segment a `Subtle` fill and separate segments with a 1dp gap. Selected items use `Highlight`, and keyboard/programmatic focus draws the inset focus ring.
 
 `Size(...)` accepts `ToggleSizeXSmall`, `ToggleSizeSmall`, `ToggleSizeMedium`, `ToggleSizeLarge`, and adjusts the height, font size, icon and horizontal blank synchronously. The heights are 24/28/32/40dp respectively, and the default is Medium. Switching styles during operation retains the focus and selection status and does not trigger OnChange. Illegal enumeration values are ignored.
 
-`Segmented(true)` connects adjacent buttons, with the default spacing of 0, rounded corners at the beginning and end, and a single stroke at the middle seam; Ghost retains the strokeless appearance and focus outline of each item. The single-item group retains four rounded corners, and the empty group does not draw buttons.
+`Segmented(true)` groups adjacent buttons with a 1dp background gap and rounds only the outer corners. It draws no outer stroke or seam. Each item retains its keyboard focus ring. A single-item group keeps all four rounded corners; an empty group draws no buttons.
 
-`Gap(dp)` sets a limited non-negative spacing; after the segmented group is set to a positive value, each item restores the four-corner rounding. `ResetGap()` Restores the default spacing for segmented group 0, normal group SpaceXs. `Segmented(false)` Restores normal groups; explicit gaps are not lost due to mode switching. Switching mode/spacing does not change the selected value or focus, and does not trigger callbacks. The default is still single selection, you can call Multiple to enable multiple selection.
+`Gap(dp)` sets finite non-negative spacing; a value other than the segmented default 1dp restores four rounded corners on every item. `ResetGap()` restores 1dp for segmented groups and SpaceXs for ordinary groups. `Segmented(false)` restores an ordinary group; explicit gaps survive mode switching. Changing mode or spacing does not change selection or focus and does not trigger callbacks.
 
 Configure item by item using `Item(value, toggle)`:
 
