@@ -20,6 +20,7 @@ keel build          # 打包当前平台（带图标的 .app / .exe / Linux 安�
 ```sh
 go run ./examples/hello
 go run ./examples/components   # 组件库：侧栏选择、搜索
+go run ./examples/motion -section effects   # 指针原点光晕/波纹与订单彩纸
 go run ./examples/chat -sample=all
 go test -race ./...
 ```

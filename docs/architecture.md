@@ -15,6 +15,7 @@ github.com/dyike/keel
 │   ├── base/             Unstyled component behavior: keyboard navigation, initial jump, multiple selection
 │   ├── el/               GPUI Styles: views, chained style elements, flexbox
 │   ├── plot/             Public scale, graph layout and instant drawing
+│   ├── motion/           Experimental declarative animation primitives
 │   ├── kit/              Components: Button, Input, Table, Dialog, Chart... (one component, one file)
 │   ├── window/           Window: Open, Main, shortcut keys, screenshot
 │   ├── markdown/         Markdown Rendering, for AI streaming output
@@ -58,6 +59,7 @@ ui:
   kit ───────► el ──┐
   kit ───────► base（Component behavior, does not depend on other modules)
   markdown ──► el   ├──► theme、locale
+  motion ────► el   │
   plot ─────────────┤
   window ───────────┤
                     └──► core
@@ -103,6 +105,7 @@ These rules are enforced by the test of `internal/deps`: it writes the packages 
 | `ui/locale` | The framework itself displays or reports text to the Agent, switching languages at runtime | Apply its own text and translation system |
 | `ui/base` | Component behavior: keyboard navigation, initial jump, multi-select, open state | Any drawing, color, Keel dependency other than Gio |
 | `ui/plot` | Scale bar, stacked/pie chart layout, instant drawing basics | Finished charts, input processing, window management |
+| `ui/motion` | Experimental frame-time animation values, transitions and visual transforms | Components, window management, native timers |
 | `ui/kit` | el and base based components | Gio input and overlay infrastructure, window management |
 | `ui/window` | Things bound to the window: life cycle, shortcut keys, root view, screenshots | Specific components |
 | `ui/el` | Elements, styles, layout engines, element states, views | Business components (they are written as functions or views in the application) |

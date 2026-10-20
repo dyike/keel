@@ -416,7 +416,7 @@ Content outside the scroll container will not appear in the element list.
 
 - Layout is a subset of flexbox: supports wrap and simple grid; no `align-self`, min-content yet. Shrinkage is distributed proportionally to the content width.
 - The child elements in `ScrollY` are laid out every frame (those that are invisible are not drawn). For parts with unchanged content, use `cx.Cache` to skip reconstruction and rearrangement; for more than a few hundred lines, use `kit.VirtualList` or `kit.Table` to lay out only visible lines.
-- There is no package for transition animation, so you need to calculate it yourself using `Now` / `Animating`.
+- Transition experiments live in `ui/motion`; its API is not yet stable. Custom effects can still use `Now` / `Animating` directly.
 - The overlay is only fully supported in `el.Root`, and `el.Embed` is supported as best as possible according to embedding constraints.
 - Overlays do not support cross-windows.
 

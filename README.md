@@ -20,6 +20,7 @@ Start developing in the generated `app.go`. To explore the repository examples a
 ```sh
 go run ./examples/hello
 go run ./examples/components   # Component gallery: sidebar navigation and search
+go run ./examples/motion -section effects   # Cursor-origin glow/ripple and order confetti
 go run ./examples/chat -sample=all
 go test -race ./...
 ```

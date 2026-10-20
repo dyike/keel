@@ -28,6 +28,7 @@ var allowed = map[string][]string{
 	"ui/locale":                {"ui/internal/loop"},
 	"ui/base":                  {},
 	"ui/plot":                  {"ui/core", "ui/theme", "ui/internal/loop"},
+	"ui/motion":                {"ui/el", "ui/core", "ui/theme", "ui/locale", "ui/internal/loop", "ui/internal/editorstyle", "ui/internal/inputcontent"},
 	"ui/highlight":             {"ui/core", "ui/internal/loop"},
 	"ui/netimage":              {"ui/core", "ui/internal/loop"},
 	"ui/kit":                   {"ui/base", "ui/core", "ui/theme", "ui/locale", "ui/el", "ui/internal/loop", "ui/internal/editorstyle", "ui/internal/inputcontent"},
@@ -138,7 +139,7 @@ func TestKitDirectDependencies(t *testing.T) {
 // package below must never import them, directly or not.
 func TestHeavyDependenciesAreOptIn(t *testing.T) {
 	heavy := []string{"net/http", "crypto/tls", "github.com/alecthomas/chroma/v2"}
-	for _, pkg := range []string{"ui/core", "ui/el", "ui/kit", "ui/markdown", "ui/window"} {
+	for _, pkg := range []string{"ui/core", "ui/el", "ui/kit", "ui/markdown", "ui/motion", "ui/window"} {
 		out, err := exec.Command("go", "list", "-deps", "-f", "{{.ImportPath}}", mod+"/"+pkg).Output()
 		if err != nil {
 			t.Fatalf("go list %s: %v", pkg, err)

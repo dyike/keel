@@ -15,6 +15,7 @@ github.com/dyike/keel
 │   ├── base/             无样式的组件行为：键盘导航、首字母跳转、多选
 │   ├── el/               GPUI 风格：视图、链式样式元素、flexbox
 │   ├── plot/             公共比例尺、图形布局与即时绘图
+│   ├── motion/           实验性的声明式动效基础能力
 │   ├── kit/              组件：Button、Input、Table、Dialog、Chart …（一个组件一个文件）
 │   ├── window/           窗口：Open、Main、快捷键、截图
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
@@ -58,6 +59,7 @@ ui:
   kit ───────► el ──┐
   kit ───────► base（组件行为，不依赖其他模块）
   markdown ──► el   ├──► theme、locale
+  motion ────► el   │
   plot ─────────────┤
   window ───────────┤
                     └──► core
@@ -103,6 +105,7 @@ Gio 和 go-text 是 Keel 根模块内的普通包，分别通过 `github.com/dyi
 | `ui/locale` | 框架自己显示或报告给 Agent 的文字，运行时切换语言 | 应用自己的文案、翻译系统 |
 | `ui/base` | 组件的行为：键盘导航、首字母跳转、多选、打开状态 | 任何绘制、颜色、Gio 以外的 Keel 依赖 |
 | `ui/plot` | 比例尺、堆叠/饼图布局、即时绘图基础件 | 成品图表、输入处理、窗口管理 |
+| `ui/motion` | 实验性的帧时间动画值、过渡和视觉变换 | 组件、窗口管理、原生定时器 |
 | `ui/kit` | 基于 el 和 base 的组件 | Gio 输入和浮层基础设施、窗口管理 |
 | `ui/window` | 与窗口绑定的东西：生命周期、快捷键、根视图、截图 | 具体组件 |
 | `ui/el` | 元素、样式、布局引擎、元素状态、视图 | 业务组件（它们在应用里写成函数或视图） |

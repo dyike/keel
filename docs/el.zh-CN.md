@@ -384,7 +384,7 @@ return el.Widget(core.ViewportFunc(func(gtx core.C, visible image.Rectangle) cor
 
 - 布局是 flexbox 的子集：支持 wrap 和简单 grid；尚无 `align-self`、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
 - `ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行以上用 `kit.VirtualList` 或 `kit.Table`，只布局可见行。
-- 没有过渡动画的封装，需要自己用 `Now` / `Animating` 计算。
+- 过渡动画实验位于 `ui/motion`，API 尚不稳定；自定义效果仍可直接使用 `Now` / `Animating`。
 - 浮层只在 `el.Root` 中完整支持，`el.Embed` 按嵌入约束尽力支持。
 - 浮层不支持跨窗口。
 
