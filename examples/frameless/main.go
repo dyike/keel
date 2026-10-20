@@ -4,6 +4,8 @@
 package main
 
 import (
+	"flag"
+
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/theme"
@@ -20,19 +22,19 @@ type app struct {
 func newApp() *app {
 	a := &app{
 		nav: kit.Sidebar().Section("",
-			kit.SidebarItem{ID: "inbox", Label: "收件箱", Icon: kit.IconInbox, Badge: 4},
-			kit.SidebarItem{ID: "orders", Label: "订单", Icon: kit.IconReceipt},
-			kit.SidebarItem{ID: "settings", Label: "设置", Icon: kit.IconSettings}),
-		palette: kit.Command(kit.CommandItem{Title: "新建订单", Shortcut: "mod+n"}, kit.CommandItem{Title: "切换深色模式", Action: func() { theme.Apply(theme.Dark()) }}),
-		search: kit.Input("").Placeholder("搜索 ⌘K").Prefix(el.ViewFunc(func(cx *el.Context) el.Element {
+			kit.SidebarItem{ID: "inbox", Label: text("Inbox", "收件箱"), Icon: kit.IconInbox, Badge: 4},
+			kit.SidebarItem{ID: "orders", Label: text("Orders", "订单"), Icon: kit.IconReceipt},
+			kit.SidebarItem{ID: "settings", Label: text("Settings", "设置"), Icon: kit.IconSettings}),
+		palette: kit.Command(kit.CommandItem{Title: text("New order", "新建订单"), Shortcut: "mod+n"}, kit.CommandItem{Title: text("Switch to dark mode", "切换深色模式"), Action: func() { theme.Apply(theme.Dark()) }}),
+		search: kit.Input("").Placeholder(text("Search ⌘K", "搜索 ⌘K")).Prefix(el.ViewFunc(func(cx *el.Context) el.Element {
 			return kit.Icon(kit.IconSearch).Size(14).Color(theme.Muted).Render(cx)
 		})),
 	}
 	a.nav.SetValue("inbox")
-	a.bar = kit.TitleBar("Keel 无边框窗口").
-		Leading(kit.Button("", func() { a.nav.SetCollapsed(!a.nav.Collapsed()) }).Name("切换侧栏").Icon(kit.IconChevronLeft).Variant(kit.ButtonGhost).Size(26)).
+	a.bar = kit.TitleBar(text("Keel Frameless Window", "Keel 无边框窗口")).
+		Leading(kit.Button("", func() { a.nav.SetCollapsed(!a.nav.Collapsed()) }).Name(text("Toggle sidebar", "切换侧栏")).Icon(kit.IconChevronLeft).Variant(kit.ButtonGhost).Size(26)).
 		Trailing(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().W(el.Dp(200)).Child(a.search.Render(cx)) }),
-			kit.Button("命令", a.palette.Toggle).Variant(kit.ButtonSecondary).Size(26))
+			kit.Button(text("Commands", "命令"), a.palette.Toggle).Variant(kit.ButtonSecondary).Size(26))
 	return a
 }
 
@@ -42,13 +44,16 @@ func (a *app) Render(cx *el.Context) el.Element {
 		a.bar.Render(cx),
 		el.Div().Row().Grow().Items(el.Stretch).Child(a.nav.Render(cx),
 			el.Div().Grow().P(24).Gap(8).Child(
-				el.Text("拖动标题栏的空白处移动窗口").TextSize(18).Bold(),
-				el.Text("macOS 上窗口按钮在左侧，其他平台在右侧；标题栏里的搜索框和按钮照常可用。").TextColor(theme.Muted))),
+				el.Text(text("Drag an empty area of the title bar to move the window", "拖动标题栏的空白处移动窗口")).TextSize(18).Bold(),
+				el.Text(text("Window controls are on the left on macOS and on the right elsewhere. Search and buttons in the title bar remain interactive.", "macOS 上窗口按钮在左侧，其他平台在右侧；标题栏里的搜索框和按钮照常可用。")).TextColor(theme.Muted))),
 		a.palette.Render(cx),
 	)
 }
 
 func main() {
-	window.Open(window.Options{Title: "Keel 无边框窗口", Width: 820, Height: 520, Frameless: true, Content: el.Root(newApp())})
+	language := flag.String("lang", "en", "example language: en or zh-CN")
+	flag.Parse()
+	applyLanguage(*language)
+	window.Open(window.Options{Title: text("Keel Frameless Window", "Keel 无边框窗口"), Width: 820, Height: 520, Frameless: true, Content: el.Root(newApp())})
 	window.Main()
 }

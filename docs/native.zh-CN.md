@@ -146,4 +146,4 @@ Wayland 只把剪贴板交给有键盘焦点的客户端，所以不能另开连
 
 `native/tray` 提供 macOS 菜单栏图标、Windows 通知区域图标和 Linux SNI 图标，支持勾选、禁用、分隔线与子菜单。不需要权限或 cgo，Linux 需要会话 D-Bus 和运行中的 StatusNotifierHost；没有 Host 时 `New` 返回 `native.ErrUnsupported`。iOS、Android 和 Web 不支持。
 
-回调在 Go goroutine 中按托盘串行执行，写 UI 状态使用 `core.Update`。macOS 的 `New` 同步等待主线程，放在 `window.Main` 前，或在不持有 frame lock 的后台 goroutine 中调用。更新和关闭在 macOS 主队列异步应用。详见 [tray 模块](../native/tray/README.zh-CN.md)，运行 `go run ./examples/tray`。
+回调在 Go goroutine 中按托盘串行执行，写 UI 状态使用 `core.Update`。macOS 的 `New` 同步等待主线程，放在 `window.Main` 前，或在不持有 frame lock 的后台 goroutine 中调用。更新和关闭在 macOS 主队列异步应用。详见 [tray 模块](../native/tray/README.zh-CN.md)，运行 `go run ./examples/tray -lang zh-CN`。

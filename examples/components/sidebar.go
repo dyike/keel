@@ -11,7 +11,7 @@ func init() {
 	registerSection("sidebar", "shell", func() core.Widget {
 		nav := kit.Sidebar().
 			Section(demoText("Workspace", "工作台"), kit.SidebarItem{ID: "inbox", Label: demoText("Inbox", "收件箱"), Icon: kit.IconInbox, Badge: 12},
-				kit.SidebarItem{ID: "orders", Label: demoText("Orders", "订单 Orders"), Icon: kit.IconReceipt, Children: []kit.SidebarItem{
+				kit.SidebarItem{ID: "orders", Label: demoText("Orders", "订单"), Icon: kit.IconReceipt, Children: []kit.SidebarItem{
 					{ID: "pending", Label: demoText("Pending orders", "待处理订单"), Icon: kit.IconClock, Badge: 6},
 					{ID: "completed", Label: demoText("Completed orders", "已完成订单"), Icon: kit.IconCheck},
 					{ID: "archived", Label: demoText("Archive order", "归档订单"), Icon: kit.IconArchive, Disabled: true},

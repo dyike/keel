@@ -26,7 +26,7 @@ type order struct {
 	urgent                    bool
 }
 
-var statuses = []string{"待付款", "已付款", "已发货", "已完成"}
+var statuses []string
 
 type desk struct {
 	orders  []order
@@ -49,40 +49,47 @@ type desk struct {
 }
 
 func newDesk() *desk {
+	statuses = []string{text("Pending payment", "待付款"), text("Paid", "已付款"), text("Shipped", "已发货"), text("Completed", "已完成")}
 	d := &desk{dlg: kit.Dialog("")}
-	customers := []string{"华东物流", "北京百货", "深圳电子", "成都餐饮", "杭州茶业", "上海文具"}
+	customers := []string{
+		text("Northwind Logistics", "华东物流"), text("Beijing Department Store", "北京百货"),
+		text("Shenzhen Electronics", "深圳电子"), text("Chengdu Dining", "成都餐饮"),
+		text("Hangzhou Tea", "杭州茶业"), text("Shanghai Stationery", "上海文具"),
+	}
 	for i := range 36 {
 		d.orders = append(d.orders, order{
 			id: fmt.Sprintf("SO-%04d", 1001+i), customer: customers[i%len(customers)],
-			status: statuses[(i*7)%len(statuses)], pay: "转账", amount: float64(300 + (i*137)%2900),
+			status: statuses[(i*7)%len(statuses)], pay: text("Bank transfer", "转账"), amount: float64(300 + (i*137)%2900),
 		})
 	}
 	d.nextID = 1001 + len(d.orders)
-	d.filter = kit.Select("", append([]string{"全部状态"}, statuses...)...).OnChange(func(string) { d.refresh() })
-	d.filter.SetValue("全部状态")
-	d.table = kit.Table(kit.Col("单号"), kit.Col("客户").Flex(1.4), kit.Col("状态"), kit.Col("金额").Numeric()).
+	d.filter = kit.Select("", append([]string{text("All statuses", "全部状态")}, statuses...)...).OnChange(func(string) { d.refresh() })
+	d.filter.SetValue(text("All statuses", "全部状态"))
+	d.table = kit.Table(kit.Col(text("Order", "单号")), kit.Col(text("Customer", "客户")).Flex(1.4), kit.Col(text("Status", "状态")), kit.Col(text("Amount", "金额")).Numeric()).
 		Height(300).OnActivate(func(r int) {
 		o := d.orders[d.visible[r]]
-		d.dlg.Alert(o.id, fmt.Sprintf("%s · %s · ¥%.2f · %s付款", o.customer, o.status, o.amount, o.pay), nil)
+		d.dlg.Alert(o.id, fmt.Sprintf(text("%s · %s · $%.2f · %s", "%s · %s · ¥%.2f · %s付款"), o.customer, o.status, o.amount, o.pay), nil)
 	})
-	d.customer = kit.Input("").Placeholder("客户名称")
+	d.customer = kit.Input("").Placeholder(text("Customer name", "客户名称"))
 	d.amount = kit.Input("").Placeholder("0.00").Filter("0123456789.")
 	d.newStatus = kit.Select("", statuses...)
-	d.newStatus.SetValue("待付款")
-	d.pay = kit.RadioGroup("", "转账", "支票", "现金").Horizontal()
-	d.pay.SetValue("转账")
-	d.urgent = kit.Switch("加急处理", false)
+	d.newStatus.SetValue(text("Pending payment", "待付款"))
+	d.pay = kit.RadioGroup("", text("Bank transfer", "转账"), text("Check", "支票"), text("Cash", "现金")).Horizontal()
+	d.pay.SetValue(text("Bank transfer", "转账"))
+	d.urgent = kit.Switch(text("Expedite", "加急处理"), false)
 	d.form = kit.Form().LabelWidth(64).
-		Field("客户", d.customer, func() string { return kit.Required(d.customer.Value(), "请填写客户名称。") }).
-		Field("金额", d.amount, func() string {
+		Field(text("Customer", "客户"), d.customer, func() string {
+			return kit.Required(d.customer.Value(), text("Enter a customer name.", "请填写客户名称。"))
+		}).
+		Field(text("Amount", "金额"), d.amount, func() string {
 			if amt, err := strconv.ParseFloat(strings.TrimSpace(d.amount.Value()), 64); err != nil || amt <= 0 {
-				return "金额必须是大于 0 的数字。"
+				return text("Amount must be a number greater than 0.", "金额必须是大于 0 的数字。")
 			}
 			return ""
 		}).
-		Field("状态", d.newStatus, nil).
-		Field("付款方式", d.pay, nil).
-		Field("选项", d.urgent, nil)
+		Field(text("Status", "状态"), d.newStatus, nil).
+		Field(text("Payment", "付款方式"), d.pay, nil).
+		Field(text("Options", "选项"), d.urgent, nil)
 	d.refresh()
 	return d
 }
@@ -97,7 +104,7 @@ func (d *desk) refresh() {
 		if q != "" && !strings.Contains(o.customer, q) && !strings.Contains(o.id, q) {
 			continue
 		}
-		if want != "" && want != "全部状态" && o.status != want {
+		if want != "" && want != text("All statuses", "全部状态") && o.status != want {
 			continue
 		}
 		d.visible = append(d.visible, i)
@@ -121,9 +128,9 @@ func (d *desk) Render(cx *el.Context) el.Element {
 	}
 	pages := []func() el.Element{func() el.Element { return d.listPage(cx) }, func() el.Element { return d.formPage(cx) }, d.statsPage}
 	return el.Div().P(24).Gap(16).ScrollY().Child(
-		el.Text("订单管理").TextSize(22).Bold(),
+		el.Text(text("Orders", "订单管理")).TextSize(22).Bold(),
 		el.Div().Child(
-			el.Div().Row().Child(tab(d, 0, "订单列表"), tab(d, 1, "新建订单"), tab(d, 2, "统计")),
+			el.Div().Row().Child(tab(d, 0, text("Orders", "订单列表")), tab(d, 1, text("New order", "新建订单")), tab(d, 2, text("Summary", "统计"))),
 			el.Div().H(el.Dp(1)).Bg(theme.Border),
 		),
 		pages[d.tab](),
@@ -165,22 +172,22 @@ func button(label string, k kind, onClick func()) el.Element {
 }
 
 func (d *desk) listPage(cx *el.Context) el.Element {
-	shown := fmt.Sprintf("共 %d 条，显示 %d 条", len(d.orders), d.table.Len())
+	shown := fmt.Sprintf(text("%d orders, showing %d", "共 %d 条，显示 %d 条"), len(d.orders), d.table.Len())
 	return el.Div().Gap(12).Child(
 		el.Div().Row().Gap(8).Child(
-			el.Input().ID("q").Placeholder("搜索客户或单号").Bind(&d.query).OnChange(func(string) { d.refresh() }).Grow(),
+			el.Input().ID("q").Placeholder(text("Search customers or order numbers", "搜索客户或单号")).Bind(&d.query).OnChange(func(string) { d.refresh() }).Grow(),
 			el.Div().W(el.Dp(140)).Child(d.filter.Render(cx)),
 		),
 		d.table.Render(cx),
 		el.Div().Row().Gap(8).Items(el.Center).Child(
 			el.Text(shown).TextColor(theme.Muted).TextSize(13).Grow(),
-			button("标记已发货", secondary, func() {
+			button(text("Mark as shipped", "标记已发货"), secondary, func() {
 				if i, ok := d.selected(); ok {
-					d.orders[i].status = "已发货"
+					d.orders[i].status = text("Shipped", "已发货")
 					d.refresh()
 				}
 			}),
-			button("删除所选", danger, d.remove),
+			button(text("Delete selected", "删除所选"), danger, d.remove),
 		),
 	)
 }
@@ -188,10 +195,10 @@ func (d *desk) listPage(cx *el.Context) el.Element {
 func (d *desk) remove() {
 	i, ok := d.selected()
 	if !ok {
-		d.dlg.Alert("没有选中订单", "先在表格里选中一行。", nil)
+		d.dlg.Alert(text("No order selected", "没有选中订单"), text("Select a row in the table first.", "先在表格里选中一行。"), nil)
 		return
 	}
-	d.dlg.ConfirmDanger("删除订单", fmt.Sprintf("确定删除 %s（%s）？", d.orders[i].id, d.orders[i].customer), "删除", func() {
+	d.dlg.ConfirmDanger(text("Delete order", "删除订单"), fmt.Sprintf(text("Delete %s (%s)?", "确定删除 %s（%s）？"), d.orders[i].id, d.orders[i].customer), text("Delete", "删除"), func() {
 		d.orders = append(d.orders[:i], d.orders[i+1:]...)
 		d.table.SetValue(-1)
 		d.refresh()
@@ -201,7 +208,7 @@ func (d *desk) remove() {
 func (d *desk) formPage(cx *el.Context) el.Element {
 	return el.Div().Gap(16).Items(el.Start).Child(
 		el.Div().W(el.Dp(420)).Child(d.form.Render(cx)),
-		el.Div().Pl(76).Child(button("保存订单", primary, func() { d.save(cx) })),
+		el.Div().Pl(76).Child(button(text("Save order", "保存订单"), primary, func() { d.save(cx) })),
 	)
 }
 
@@ -216,7 +223,7 @@ func (d *desk) save(cx *el.Context) {
 	d.customer.SetValue("")
 	d.amount.SetValue("")
 	d.query = ""
-	d.filter.SetValue("全部状态")
+	d.filter.SetValue(text("All statuses", "全部状态"))
 	d.refresh()
 	d.table.SortBy(-1, false)
 	d.table.SetValue(d.table.Len() - 1)
@@ -230,13 +237,13 @@ func (d *desk) statsPage() el.Element {
 		total += o.amount
 		count[o.status]++
 	}
-	page := el.Div().Gap(14).Child(el.Text(fmt.Sprintf("订单 %d 笔，合计 ¥%.2f", len(d.orders), total)))
+	page := el.Div().Gap(14).Child(el.Text(fmt.Sprintf(text("%d orders, total $%.2f", "订单 %d 笔，合计 ¥%.2f"), len(d.orders), total)))
 	for _, s := range statuses {
 		frac := 0.0
 		if len(d.orders) > 0 {
 			frac = float64(count[s]) / float64(len(d.orders))
 		}
-		page.Child(progress(fmt.Sprintf("%s %d 笔", s, count[s]), frac))
+		page.Child(progress(fmt.Sprintf(text("%s: %d", "%s %d 笔"), s, count[s]), frac))
 	}
 	return page
 }
@@ -254,7 +261,9 @@ func progress(label string, frac float64) el.Element {
 
 func main() {
 	screenshot := flag.String("screenshot", "", "render a PNG to this path and exit")
+	language := flag.String("lang", "en", "example language: en or zh-CN")
 	flag.Parse()
+	applyLanguage(*language)
 	d := newDesk()
 	root := el.Root(d)
 	if *screenshot != "" {
@@ -263,6 +272,6 @@ func main() {
 		}
 		return
 	}
-	window.Open(window.Options{Title: "订单管理", Width: 760, Height: 600, Content: root})
+	window.Open(window.Options{Title: text("Orders", "订单管理"), Width: 760, Height: 600, Content: root})
 	window.Main()
 }

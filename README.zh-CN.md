@@ -24,6 +24,8 @@ go run ./examples/chat -sample=all
 go test -race ./...
 ```
 
+这些示例默认使用英文；传入 `-lang zh-CN` 可切换为中文。
+
 需要 Go 1.26+；macOS 上需要 Xcode Command Line Tools，Linux 上需要 Wayland/X11 的开发包（`keel doctor` 会检查）。在线文档和组件库：https://keel.dyike.com
 
 ## 文档

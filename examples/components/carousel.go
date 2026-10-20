@@ -18,7 +18,7 @@ func init() {
 		}
 		car := kit.Carousel(
 			slide(demoText("Welcome to Keel", "欢迎使用 Keel"), demoText("Build desktop UIs in Go without HTML.", "用 Go 写桌面界面，不需要 HTML。")),
-			slide(demoText("Components", "组件 Components"), demoText("80+ kit components with dark mode and localization.", "80 多个 kit 组件，支持深色和多语言。")),
+			slide(demoText("Components", "组件"), demoText("80+ kit components with dark mode and localization.", "80 多个 kit 组件，支持深色和多语言。")),
 			slide(demoText("Agent testing", "Agent 测试"), demoText("keel-mcp lets agents interact with the UI like users.", "keel-mcp 让 Agent 像用户一样操作界面。")),
 		).Autoplay(4*time.Second).Height(180).Loop(false).Basis(2.0/3).ItemBasis(1, 0.5).ItemSize(0, 260).ItemSize(2, 640)
 		content := car.Content()

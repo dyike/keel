@@ -23,7 +23,7 @@ type statusBarGallery struct {
 func newStatusBarGallery() *statusBarGallery {
 	g := &statusBarGallery{}
 	text := func(s string) el.View { return el.ViewFunc(func(cx *el.Context) el.Element { return el.Text(s) }) }
-	g.wide = kit.StatusBar().Left(text(demoText("Connected", "连接正常 Connected"))).Right(text(demoText("123 records", "共 123 条记录")))
+	g.wide = kit.StatusBar().Left(text(demoText("Connected", "已连接"))).Right(text(demoText("123 records", "共 123 条记录")))
 	g.narrow = kit.StatusBar().Left(text(demoText("Offline; waiting to reconnect", "离线，等待重新连接"))).Right(text(demoText("3 tasks awaiting delivery", "3 个任务待发送")))
 	act := func(s string) func() { return func() { g.last = s } }
 	g.editor = kit.StatusBar().Left(text(demoText("Ready", "就绪"))).

@@ -34,7 +34,7 @@ func init() {
 		s := kit.Settings().Size(kit.SettingsSizeSmall).GroupNavigation(true).
 			Page(kit.SettingPage{Title: demoText("General", "通用"), Icon: kit.IconSettings, Resettable: true, Groups: []kit.SettingGroup{
 				{Title: demoText("Language", "语言"), Items: []kit.SettingItem{
-					{Label: demoText("Language", "语言 Language"), Description: demoText("Framework text follows the selected language", "框架文字随之切换"), Keywords: []string{"locale", "language"}, Control: lang, Reset: func() {
+					{Label: demoText("Language", "语言"), Description: demoText("Framework text follows the selected language", "框架文字随之切换"), Keywords: []string{"locale", "language"}, Control: lang, Reset: func() {
 						if initialLanguage.Lang == "en" {
 							lang.SetValue("English")
 						} else {

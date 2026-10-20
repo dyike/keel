@@ -21,7 +21,7 @@ el.Div().Child(doc.Render(cx))
 
 `Doc` 的方法都要在 UI 锁下调用：回调里直接调，其他 goroutine 通过 `core.Update`。
 
-完整示例：[examples/chat](../examples/chat/README.zh-CN.md)，模拟流式回答，消息区跟随到底，可以中途停止。空白页提供跨段落选择、数学公式、长代码、双击与三击、脚注与引用、图片六项验证样例；`go run ./examples/chat -sample=all` 直接展示完整内容。样例说明列出了各项交互的检查方法。
+完整示例：[examples/chat](../examples/chat/README.zh-CN.md)，模拟流式回答，消息区跟随到底，可以中途停止。空白页提供跨段落选择、数学公式、长代码、双击与三击、脚注与引用、图片六项验证样例；`go run ./examples/chat -sample=all -lang zh-CN` 直接展示中文完整内容。样例说明列出了各项交互的检查方法。
 
 ## Markdown 插件
 

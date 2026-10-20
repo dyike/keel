@@ -24,7 +24,7 @@ claude mcp add keel -- keel-mcp
 
 ## 一次测试长什么样
 
-Agent 调用 `launch`，参数 `{"command": "go run ./examples/multiwindow"}`，得到：
+Agent 调用 `launch`，参数 `{"command": "go run ./examples/multiwindow -lang zh-CN"}`，得到：
 
 ```
 Window w1 "Keel 主窗口" 640×420
@@ -54,7 +54,7 @@ screenshot {"window": "w2"}           → PNG
 应用正常显示在屏幕上，你先手动操作到某个状态，再让 Agent 接着做，你看着它操作：
 
 ```sh
-KEEL_AUTOMATION=1 go run ./examples/multiwindow
+KEEL_AUTOMATION=1 go run ./examples/multiwindow -lang zh-CN
 ```
 
 应用启动后打印连接地址，比如 `keel automation: listening on /var/folders/…/T/keel/multiwindow-4821.sock`。然后让 Agent 调用 `attach`（不带参数）：

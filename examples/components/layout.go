@@ -14,7 +14,7 @@ func init() {
 		selected := demoText("Click any tag", "点击任一标签")
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			wrap := el.Div().Wrap().Gap(8).Items(el.Center)
-			for _, label := range []string{"Go", demoText("Layout", "布局 Layout"), demoText("Text label", "中文标签"), demoText("Keyboard interaction", "键盘交互"), demoText("Horizontal scrolling", "横向滚动 ScrollX"), demoText("Variable height", "可变高度"), demoText("Theme", "主题 Theme")} {
+			for _, label := range []string{"Go", demoText("Layout", "布局"), demoText("Text label", "中文标签"), demoText("Keyboard interaction", "键盘交互"), demoText("Horizontal scrolling", "横向滚动 ScrollX"), demoText("Variable height", "可变高度"), demoText("Theme", "主题")} {
 				label := label
 				wrap.Child(kit.Button(label, func() { selected = demoText("Selected: ", "已选：") + label }).Variant(kit.ButtonSecondary).Render(cx))
 			}

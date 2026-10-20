@@ -10,7 +10,7 @@ import (
 func init() {
 	registerSection("date_picker", "inputs", func() core.Widget {
 		due := kit.DatePicker(demoText("Delivery date", "交货日期")).Placeholder(demoText("Choose a date", "选择日期")).Format("2006-01-02").Clearable(true).Size(28)
-		trip := kit.DatePicker(demoText("Business trip date range", "出差日期 Range")).Range().Months(2).Placeholder(demoText("Start – End", "开始 – 结束")).Clearable(true).Size(48).Appearance(false)
+		trip := kit.DatePicker(demoText("Business trip date range", "出差日期范围")).Range().Months(2).Placeholder(demoText("Start – End", "开始 – 结束")).Clearable(true).Size(48).Appearance(false)
 		appointment := kit.DatePicker(demoText("Appointment time", "预约时间")).FirstWeekday(time.Monday).TimeSeconds().TimeHour12(false).DefaultTime(9 * time.Hour).Clearable(true)
 		today := time.Now()
 		appointment.Presets(kit.DatePickerPreset{ID: "tomorrow-morning", Label: demoText("Tomorrow 09:30", "明早 09:30"), Start: time.Date(today.Year(), today.Month(), today.Day()+1, 9, 30, 0, 0, today.Location()), IncludeTime: true})

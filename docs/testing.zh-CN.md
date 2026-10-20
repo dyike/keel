@@ -218,10 +218,10 @@ KEEL_DESKTOP=1 go test -run RealWindows ./ui/window
 
 | 场景 | 怎么验证 |
 | --- | --- |
-| 真实窗口的打开、关闭、置前 | `go run ./examples/multiwindow`，点"打开设置窗口"两次，应该只有一个设置窗口 |
+| 真实窗口的打开、关闭、置前 | `go run ./examples/multiwindow -lang zh-CN`，点"打开设置窗口"两次，应该只有一个设置窗口 |
 | 最后一个窗口关闭后退出 | 关掉所有窗口，终端里进程应结束 |
 | 窗口快捷键 | 在主窗口按 ⌘+, |
-| 全局快捷键 | `go run ./examples/hotkey`，切到别的应用按 ⌘⇧K，计数增加 |
+| 全局快捷键 | `go run ./examples/hotkey -lang zh-CN`，切到别的应用按 ⌘⇧K，计数增加 |
 | 后台 `core.Update` | hotkey 示例里的时钟每秒走 |
 | 权限、截图、合成输入 | 需要授权，按 [原生能力](native.zh-CN.md) 的说明手动测 |
 | 中文输入法 | 在输入框里用拼音输入，候选框位置正确，上屏后内容正确 |

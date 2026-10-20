@@ -18,7 +18,7 @@ func init() {
 			kit.ToolbarItem{Label: demoText("Search", "搜索"), Icon: kit.IconSearch, IconOnly: true, Action: do(demoText("Search", "搜索"))},
 			kit.ToolbarItem{Separator: true},
 			kit.ToolbarItem{Label: demoText("Zoom", "缩放"), Width: 150, Content: zoom},
-			kit.ToolbarItem{Label: demoText("Copy", "复制 Copy"), Action: do(demoText("Copy", "复制"))},
+			kit.ToolbarItem{Label: demoText("Copy", "复制"), Action: do(demoText("Copy", "复制"))},
 			kit.ToolbarItem{Label: demoText("Export", "导出"), Action: do(demoText("Export", "导出"))},
 			kit.ToolbarItem{Label: demoText("Print", "打印"), Action: do(demoText("Print", "打印"))},
 			kit.ToolbarItem{Label: demoText("Share", "分享"), Action: do(demoText("Share", "分享"))},

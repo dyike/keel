@@ -24,6 +24,8 @@ go run ./examples/chat -sample=all
 go test -race ./...
 ```
 
+These examples default to English; pass `-lang zh-CN` to run them in Chinese.
+
 Requires Go 1.26+. On macOS, install Xcode Command Line Tools. On Linux, install the Wayland/X11 development packages; `keel doctor` checks the environment. Browse the [documentation and live gallery](https://keel.dyike.com).
 
 ## Documentation

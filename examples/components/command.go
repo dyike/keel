@@ -18,14 +18,14 @@ func init() {
 			kit.CommandItem{Title: demoText("Export CSV (permission required)", "导出 CSV（暂无权限）"), Group: demoText("Orders", "订单"), Disabled: true, Action: do(demoText("Export CSV", "导出 CSV"))},
 			kit.CommandItem{Separator: true},
 			kit.CommandItem{Title: demoText("Open settings", "打开设置"), Keywords: []string{"preferences", "settings"}, Group: demoText("Preferences", "偏好"), Shortcut: "mod+,", Action: do(demoText("Open settings", "打开设置"))},
-			kit.CommandItem{Title: demoText("Toggle dark mode", "切换深色模式 Dark mode"), Group: demoText("Preferences", "偏好"), Action: func() { theme.Apply(theme.Dark()) }},
+			kit.CommandItem{Title: demoText("Toggle dark mode", "切换深色模式"), Group: demoText("Preferences", "偏好"), Action: func() { theme.Apply(theme.Dark()) }},
 			kit.CommandItem{Title: "New window", Shortcut: "mod+shift+n", Action: do("New window")},
 		}
 		for i := range 10000 {
 			title := fmt.Sprintf(demoText("Command %05d", "命令 %05d"), i)
 			items = append(items, kit.CommandItem{Title: title, Group: demoText("More", "更多"), Action: do(title)})
 		}
-		cmd := kit.Command(items...).AutoRowHeight(true).Placeholder(demoText("Search commands or settings", "搜索命令或 settings")).OnCancel(func() { msg = demoText("Command palette closed", "已关闭命令面板") }).OnConfirm(func(index int) { msg += fmt.Sprintf(demoText("(item %d)", "（条目 %d）"), index) }).Header(el.ViewFunc(func(*el.Context) el.Element {
+		cmd := kit.Command(items...).AutoRowHeight(true).Placeholder(demoText("Search commands or settings", "搜索命令或设置")).OnCancel(func() { msg = demoText("Command palette closed", "已关闭命令面板") }).OnConfirm(func(index int) { msg += fmt.Sprintf(demoText("(item %d)", "（条目 %d）"), index) }).Header(el.ViewFunc(func(*el.Context) el.Element {
 			return el.Div().P(12).Child(el.Text(demoText("Search and run commands", "搜索并执行命令")))
 		})).Footer(el.ViewFunc(func(*el.Context) el.Element {
 			return el.Div().P(12).Child(el.Text(demoText("↑↓ selects · Enter runs · Esc closes", "↑↓ 选择 · Enter 执行 · Esc 关闭")).TextColor(theme.Muted))

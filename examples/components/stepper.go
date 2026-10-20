@@ -8,7 +8,7 @@ import (
 
 func init() {
 	registerSection("stepper", "controls", func() core.Widget {
-		steps := kit.Stepper(demoText("Order details", "填写订单"), demoText("Confirm payment", "确认付款"), demoText("Ship", "发货 Ship")).TextCenter(true).Navigation(kit.StepperNavigationAll)
+		steps := kit.Stepper(demoText("Order details", "填写订单"), demoText("Confirm payment", "确认付款"), demoText("Ship", "发货")).TextCenter(true).Navigation(kit.StepperNavigationAll)
 		steps.SetValue(1)
 		vertical := kit.Stepper().Vertical().Size(32).Navigable()
 		vertical.SetEntries(

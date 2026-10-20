@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dyike/keel/ui/locale"
 	"github.com/yuin/goldmark"
 )
 
@@ -41,8 +42,8 @@ func TestAnswerForSampleRouting(t *testing.T) {
 	// Every catalogue button sends its title through the same prompt router.
 	for _, s := range demoSamples {
 		src, _ := sourceFor(s.name)
-		if answerFor(s.title) != src {
-			t.Errorf("catalogue title %q routed to another sample", s.title)
+		if answerFor(s.title()) != src {
+			t.Errorf("catalogue title %q routed to another sample", s.title())
 		}
 	}
 	if _, ok := sourceFor("unknown-sample"); ok {
@@ -105,4 +106,17 @@ func TestReferenceControlResolvesWithinItsChunk(t *testing.T) {
 		return
 	}
 	t.Fatal("missing same-chunk reference control")
+}
+
+func TestEnglishSamplesAndCatalogue(t *testing.T) {
+	previous := locale.Current()
+	locale.Apply(locale.English())
+	defer locale.Apply(previous)
+	images, ok := sourceFor("images")
+	if !ok || !strings.Contains(images, "![Red, green, and blue blocks]") {
+		t.Fatal("English image sample was not selected")
+	}
+	if got := demoSamples[0].title(); got != "Cross-block selection" {
+		t.Fatalf("English catalogue title %q", got)
+	}
 }

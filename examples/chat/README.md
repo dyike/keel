@@ -10,6 +10,8 @@ Start from the root directory of the repository. The picture example uses the re
 go run ./examples/chat
 ```
 
+The example defaults to English. Add `-lang zh-CN` for the Chinese interface and sample content.
+
 There are six samples listed on the blank page. Click on any one to display them in a streaming format. You can also send the following keywords in the input box.
 
 | Sample name | Keywords | Checking method |

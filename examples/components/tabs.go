@@ -13,7 +13,7 @@ func init() {
 		tabs := kit.Tabs().
 			Add(demoText("General", "基本"), kit.Input(demoText("Name", "名称")).Placeholder(demoText("Content is preserved after switching", "切换后内容保留"))).
 			Add(demoText("Notifications", "通知"), kit.Switch(demoText("Email reminders", "邮件提醒"), true)).
-			Add(demoText("About", "关于 About"), el.ViewFunc(func(*el.Context) el.Element {
+			Add(demoText("About", "关于"), el.ViewFunc(func(*el.Context) el.Element {
 				return el.Text(demoText("Keel component examples 1.0", "Keel 组件示例 1.0"))
 			}))
 		tabs.Closable(tabs.Remove).Reorderable(nil).Trailing(kit.Button(demoText("Add", "新增"), func() { tabs.Add(demoText("New tag", "新标签"), kit.Input(demoText("Content", "内容"))) }).Variant(kit.ButtonGhost))

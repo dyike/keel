@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"strings"
@@ -16,34 +17,37 @@ import (
 )
 
 func main() {
+	language := flag.String("lang", "en", "example language: en or zh-CN")
+	flag.Parse()
+	applyLanguage(*language)
 	hits := 0
-	counter := "按 ⌘⇧K（任何应用中都有效）"
+	counter := text("Press ⌘⇧K from any app", "按 ⌘⇧K（任何应用中都有效）")
 	clock := ""
 
 	if _, err := hotkey.Register("cmd+shift+k", func() {
 		core.Update(func() { // hotkey callbacks run off the UI; go through Update
 			hits++
-			counter = fmt.Sprintf("全局快捷键触发了 %d 次", hits)
+			counter = fmt.Sprintf(text("Global shortcut triggered %d times", "全局快捷键触发了 %d 次"), hits)
 		})
 	}); err != nil {
 		log.Print(err)
 	}
 	go func() {
 		for t := range time.Tick(time.Second) {
-			core.Update(func() { clock = "后台时钟：" + t.Format("15:04:05") })
+			core.Update(func() { clock = text("Background clock: ", "后台时钟：") + t.Format("15:04:05") })
 		}
 	}()
 
 	displays := ""
 	if ds, err := screen.Displays(); err == nil {
 		for _, d := range ds {
-			displays += fmt.Sprintf("显示器 %d：%.0f×%.0f pt，主屏=%t\n", d.ID, d.Width, d.Height, d.Primary)
+			displays += fmt.Sprintf(text("Display %d: %.0f×%.0f pt, primary=%t\n", "显示器 %d：%.0f×%.0f pt，主屏=%t\n"), d.ID, d.Width, d.Height, d.Primary)
 		}
 	} else {
 		displays = err.Error()
 	}
 
-	window.Open(window.Options{Title: "Keel 原生能力", Width: 520, Height: 320,
+	window.Open(window.Options{Title: text("Keel Native Capabilities", "Keel 原生能力"), Width: 520, Height: 320,
 		Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(12).Child(
 				el.Text(counter).TextSize(22).Bold(),

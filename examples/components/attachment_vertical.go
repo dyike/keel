@@ -29,7 +29,7 @@ func init() {
 		actions := kit.Attachment(demoText("Actions only", "只有操作"), 0).Size(kit.AttachmentSizeSmall).ShowMedia(false).ShowContent(false).Actions(kit.Button(demoText("Choose file", "选择文件"), func() {}).Size(24))
 		var encoded bytes.Buffer
 		_ = png.Encode(&encoded, pixels)
-		source := kit.Attachment(demoText("Image URL", "URL 图片"), 64000).Size(kit.AttachmentSizeSmall).Vertical(true).ShowContent(false).
+		source := kit.Attachment(demoText("Image URL", "网络图片"), 64000).Size(kit.AttachmentSizeSmall).Vertical(true).ShowContent(false).
 			MediaSource("data:image/png;base64," + base64.StdEncoding.EncodeToString(encoded.Bytes()))
 		failed := kit.Attachment(demoText("Image failed to load", "图片加载失败"), 0).Size(kit.AttachmentSizeSmall).MediaSource("data:image/png;base64,invalid")
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {

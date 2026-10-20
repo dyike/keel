@@ -13,7 +13,7 @@ func init() {
 		sales := kit.AreaChart(months,
 			kit.Series{Name: demoText("East China", "华东"), Values: []float64{120, 132, 101, 134, 190, 230, 210, 182, 191, 234, 290, 330}},
 			kit.Series{Name: demoText("North China", "华北"), Values: []float64{220, 182, 191, 234, 290, 330, 310, 201, 154, 190, 330, 410}},
-			kit.Series{Name: demoText("South China", "华南 South"), Values: []float64{150, 232, 201, 154, 190, 330, 410, 320, 332, 301, 334, 390}},
+			kit.Series{Name: demoText("South China", "华南"), Values: []float64{150, 232, 201, 154, 190, 330, 410, 320, 332, 301, 334, 390}},
 		).Title(demoText("Monthly sales (CNY 10,000) · 14 fixed points", "月度销售额（万元）· 固定 14 个点位")).PointCount(14).YDomain(0, 500).YTickCount(6).XTickCount(6).GridColumns(5).GridDashed(true).Curve(kit.ChartCurveSmooth).ReferenceLines(kit.ChartReference{Value: 300, Label: demoText("Target", "目标"), Color: theme.Success})
 		orders := kit.BarChart([]string{demoText("Monday", "周一"), demoText("Tuesday", "周二"), demoText("Wednesday", "周三"), demoText("Thursday", "周四"), demoText("Friday", "周五"), demoText("Saturday", "周六"), demoText("Sunday", "周日")},
 			kit.Series{Name: demoText("New order", "新订单"), Values: []float64{32, 41, 38, 52, 61, 24, 18}},

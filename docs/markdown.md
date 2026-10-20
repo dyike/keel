@@ -21,7 +21,7 @@ el.Div().Child(doc.Render(cx))
 
 All methods of `Doc` must be called under the UI lock: directly in the callback, and other goroutines through `core.Update`.
 
-Complete example: [examples/chat](../examples/chat/README.md), simulates streaming answers, the message area follows to the end, and can be stopped midway. The blank page provides six verification examples: cross-paragraph selection, mathematical formulas, long codes, double-click and triple-click, footnotes and references, and pictures; `go run ./examples/chat -sample=all` directly displays the complete content. The sample instructions list how to check for each interaction.
+Complete example: [examples/chat](../examples/chat/README.md), simulates streaming answers, the message area follows to the end, and can be stopped midway. The blank page provides six verification examples: cross-paragraph selection, mathematical formulas, long codes, double-click and triple-click, footnotes and references, and pictures; `go run ./examples/chat -sample=all` directly displays the complete content. Add `-lang zh-CN` for the Chinese UI and sample documents. The sample instructions list how to check for each interaction.
 
 ## Markdown plugin
 

@@ -18,7 +18,7 @@ func init() {
 		one.SetItemDisabled(2, true)
 		faq := kit.Accordion().Multiple().
 			Add(demoText("How do I use the keyboard?", "如何用键盘操作？"), txt(demoText("Tab focuses a heading; ↑ ↓ changes headings; Enter or Space expands; Home / End jumps to the first or last heading.", "Tab 聚焦标题，↑ ↓ 切换标题，Enter 或空格展开，Home / End 跳到首尾。"))).
-			Add(demoText("Can multiple items be expanded?", "可以同时展开吗？ Multiple"), txt(demoText("Multiple is enabled, so two items can be expanded at once.", "这个面板启用了 Multiple，可以同时展开两项。")))
+			Add(demoText("Can multiple items be expanded?", "可以同时展开多项吗？"), txt(demoText("Multiple is enabled, so two items can be expanded at once.", "这个面板启用了 Multiple，可以同时展开两项。")))
 		small := kit.Accordion().Size(kit.AccordionSizeSmall).Bordered(false).
 			Add(demoText("Small · Borderless", "Small · 无边框"), txt(demoText("Hide the outer border and section dividers; keep the background and rounded corners.", "隐藏外框和分节线，保留背景与圆角。"))).
 			Add(demoText("Second section", "第二节"), txt(demoText("Changing size preserves the expanded state.", "尺寸切换不改变展开状态。")))

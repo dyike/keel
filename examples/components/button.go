@@ -46,7 +46,7 @@ func (v *buttonDemo) Render(cx *el.Context) el.Element {
 	disabled := kit.Button(demoText("Disabled", "不可操作"), nil)
 	disabled.SetDisabled(true)
 	return el.Div().P(24).Gap(16).Child(
-		el.Text(demoText("Button", "Button 按钮")).TextSize(24).Bold(),
+		el.Text(demoText("Button", "按钮")).TextSize(24).Bold(),
 		el.Text(demoText("Tab focuses; Enter / Space activates. Loading and disabled buttons do not respond.", "Tab 聚焦；Enter / Space 激活。加载和禁用时不响应。")),
 		row(kit.Button(demoText("Primary", "主要"), nil), kit.Button(demoText("Secondary", "次要"), nil).Variant(kit.ButtonSecondary), kit.Button(demoText("Lightweight", "轻量"), nil).Variant(kit.ButtonGhost), kit.Button(demoText("Delete", "删除"), nil).Variant(kit.ButtonDanger)),
 		row(kit.Button(demoText("Small 28", "小 28"), nil).Size(28), kit.Button(demoText("Standard 32", "标准 32"), nil), kit.Button(demoText("Large 40", "大 40"), nil).Size(40)),

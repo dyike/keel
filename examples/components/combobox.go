@@ -13,7 +13,7 @@ import (
 func init() {
 	registerSection("combobox", "inputs", func() core.Widget {
 		customer := kit.Combobox(demoText("Customer", "客户"), demoText("East China Logistics", "华东物流"), demoText("Beijing Department Store", "北京百货"), demoText("Shenzhen Electronics", "深圳电子"), demoText("Chengdu Catering", "成都餐饮"), demoText("Hangzhou Tea", "杭州茶业"), demoText("Shanghai Stationery", "上海文具")).Placeholder(demoText("Type to filter", "输入筛选")).Clearable(true).Size(28)
-		tag := kit.Combobox(demoText("Tag", "标签 Tag"), demoText("Urgent", "紧急"), "VIP", demoText("Follow-up needed", "待跟进")).AllowCustom().Multiple().Clearable(true).Size(48).CheckIcon(kit.Icon(kit.IconCheck)).Placeholder(demoText("Enter custom tags; select again to remove", "可输入新标签；再选一次取消"))
+		tag := kit.Combobox(demoText("Tag", "标签"), demoText("Urgent", "紧急"), "VIP", demoText("Follow-up needed", "待跟进")).AllowCustom().Multiple().Clearable(true).Size(48).CheckIcon(kit.Icon(kit.IconCheck)).Placeholder(demoText("Enter custom tags; select again to remove", "可输入新标签；再选一次取消"))
 		country := kit.Combobox(demoText("Country (display name / value)", "国家（显示名称／实际值）")).Clearable(true)
 		country.RenderTrigger(func(state kit.ComboboxTriggerContext) el.View {
 			label := demoText("Choose country", "选择国家")

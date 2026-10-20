@@ -24,7 +24,7 @@ When modifying keel-mcp itself, use `go install ./cmd/keel-mcp` to install the l
 
 ## What does a test look like?
 
-Agent calls `launch` with parameter `{"command": "go run ./examples/multiwindow"}` and gets:
+Agent calls `launch` with parameter `{"command": "go run ./examples/multiwindow -lang zh-CN"}` and gets:
 
 ```
 Window w1 "Keel 主窗口" 640×420
@@ -54,7 +54,7 @@ Each operation returns the element list after the operation, and the Agent does 
 The application is displayed on the screen normally. You first manually operate it to a certain state, and then let the Agent continue to do it. You watch it operate:
 
 ```sh
-KEEL_AUTOMATION=1 go run ./examples/multiwindow
+KEEL_AUTOMATION=1 go run ./examples/multiwindow -lang zh-CN
 ```
 
 After the application starts, print the connection address, such as `keel automation: listening on /var/folders/…/T/keel/multiwindow-4821.sock`. Then have the Agent call `attach` (without parameters):

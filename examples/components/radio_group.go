@@ -9,7 +9,7 @@ import (
 
 func init() {
 	registerSection("radio_group", "inputs", func() core.Widget {
-		pay := kit.RadioGroup(demoText("Payment method", "付款方式"), demoText("Bank transfer", "转账"), demoText("Check", "支票"), demoText("Cash", "现金 Cash"))
+		pay := kit.RadioGroup(demoText("Payment method", "付款方式"), demoText("Bank transfer", "转账"), demoText("Check", "支票"), demoText("Cash", "现金"))
 		pay.SetValue(demoText("Bank transfer", "转账"))
 		pay.SetOptionDisabled(demoText("Check", "支票"), true)
 		plans := kit.RadioGroup(demoText("Plan", "套餐"), demoText("Basic", "基础"), demoText("Pro", "专业")).Size(28).TextSize(20)

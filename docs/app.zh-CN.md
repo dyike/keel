@@ -72,6 +72,8 @@ go run ./examples/glass -style frosted
 go run ./examples/glass -opaque
 ```
 
+以上命令均可加 `-lang zh-CN`，显示中文示例界面。
+
 `-backdrop` 打开一个彩色参考窗口，便于观察透光；示例支持导航、切换明暗、打开 Clear 和毛玻璃对比窗口。
 
 ## 空闲时归还堆页
