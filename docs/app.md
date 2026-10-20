@@ -72,6 +72,8 @@ go run ./examples/glass -style frosted
 go run ./examples/glass -opaque
 ```
 
+Add `-lang zh-CN` to any command above for the Chinese demo UI.
+
 `-backdrop` opens a colored reference window behind the demo. The demo supports navigation, light/dark appearance and additional Clear/frosted comparison windows.
 
 ## Idle heap reclamation

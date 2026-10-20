@@ -14,7 +14,7 @@ func init() {
 				return el.Div().Grow().P(16).Bg(theme.Surface).Child(el.Text(s).TextColor(theme.Muted))
 			})
 		}
-		inner := kit.Resizable(pane(demoText("Editor", "编辑区 Editor")), pane(demoText("Terminal", "终端 Terminal"))).Vertical().Min(60, 60).Max(240, 240)
+		inner := kit.Resizable(pane(demoText("Editor", "编辑区")), pane(demoText("Terminal", "终端"))).Vertical().Min(60, 60).Max(240, 240)
 		inner.SetValue(180)
 		outer := kit.Resizable(pane(demoText("Drag the divider, or focus it and use the arrow keys", "拖动中间的分隔条，或聚焦后按方向键")), inner).Min(120, 160).Max(260, 0)
 		outer.SetValue(220)

@@ -20,7 +20,7 @@ func init() {
 		price := kit.Input(demoText("Unit price · Digit grouping", "单价 · 数字分组")).Placeholder("0.00").NumberMask(',', 2).Suffix(el.ViewFunc(func(*el.Context) el.Element { return el.Text(demoText("CNY", "元")) }))
 		phone := kit.Input(demoText("Phone · Template mask", "电话 · 模板掩码")).Mask("(###)-###-####").Placeholder("(123)-456-7890").Clearable()
 		pass := kit.Input(demoText("Password", "密码")).Password()
-		bad := kit.Input(demoText("Email", "邮箱 Email"))
+		bad := kit.Input(demoText("Email", "邮箱"))
 		bad.SetValue("not-an-email")
 		bad.SetError(demoText("Invalid email address", "邮箱格式不正确"))
 		note := kit.TextArea(demoText("Notes", "备注")).Placeholder(demoText("Auto height: 2–6 lines; scroll internally beyond that", "自动增高：2–6 行，超出后内部滚动")).AutoGrow(2, 6)

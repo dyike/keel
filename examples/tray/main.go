@@ -20,18 +20,20 @@ import (
 func main() {
 	screenshot := flag.String("screenshot", "", "render the companion window without a tray")
 	smoke := flag.Bool("smoke", false, "exercise tray updates and windowless reopening, then exit")
+	language := flag.String("lang", "en", "example language: en or zh-CN")
 	flag.Parse()
+	applyLanguage(*language)
 	paused := false
 	page := el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-		status := "Running"
+		status := text("Running", "运行中")
 		if paused {
-			status = "Paused"
+			status = text("Paused", "已暂停")
 		}
 		return el.Div().Gap(16).Child(
-			el.Text("Keel tray").TextSize(24).Bold(),
+			el.Text(text("Keel Tray", "Keel 托盘")).TextSize(24).Bold(),
 			el.Text(status),
-			el.Text("Closing this window keeps the app running. Use the tray menu to reopen it or quit."),
-			kit.Button("Quit", window.Quit).Render(cx),
+			el.Text(text("Closing this window keeps the app running. Use the tray menu to reopen it or quit.", "关闭窗口后应用仍会运行。使用托盘菜单重新打开窗口或退出。")),
+			kit.Button(text("Quit", "退出"), window.Quit).Render(cx),
 		)
 	}))
 	if *screenshot != "" {
@@ -51,7 +53,7 @@ func main() {
 			w.Raise()
 			return
 		}
-		w = window.Open(window.Options{Title: "Keel tray", Width: 520, Height: 260, Content: page, OnClose: func() {
+		w = window.Open(window.Options{Title: text("Keel Tray", "Keel 托盘"), Width: 520, Height: 260, Content: page, OnClose: func() {
 			w = nil
 			closes++
 			if *smoke {
@@ -78,8 +80,8 @@ func main() {
 	var menu func() []tray.MenuItem
 	menu = func() []tray.MenuItem {
 		return []tray.MenuItem{
-			{ID: "open", Title: "Open window", Icon: art, IconTemplate: true, OnSelect: func() { core.Update(open) }},
-			{ID: "pause", Title: "Pause", Checked: paused, OnSelect: func() {
+			{ID: "open", Title: text("Open window", "打开窗口"), Icon: art, IconTemplate: true, OnSelect: func() { core.Update(open) }},
+			{ID: "pause", Title: text("Pause", "暂停"), Checked: paused, OnSelect: func() {
 				core.Update(func() {
 					paused = !paused
 					if err := statusIcon.SetMenu(menu()); err != nil {
@@ -88,11 +90,11 @@ func main() {
 				})
 			}},
 			{Separator: true},
-			{ID: "quit", Title: "Quit", OnSelect: window.Quit},
+			{ID: "quit", Title: text("Quit", "退出"), OnSelect: window.Quit},
 		}
 	}
 	var err error
-	statusIcon, err = tray.New(tray.Options{Icon: art, Template: true, Tooltip: "Keel tray", Menu: menu(), OnActivate: func() { core.Update(open) }})
+	statusIcon, err = tray.New(tray.Options{Icon: art, Template: true, Tooltip: text("Keel Tray", "Keel 托盘"), Menu: menu(), OnActivate: func() { core.Update(open) }})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -102,7 +104,7 @@ func main() {
 				log.Fatal(err)
 			}
 		}
-		if err = statusIcon.SetTooltip("Keel tray smoke"); err != nil {
+		if err = statusIcon.SetTooltip(text("Keel tray smoke test", "Keel 托盘冒烟测试")); err != nil {
 			log.Fatal(err)
 		}
 		if err = statusIcon.SetIcon(art); err != nil {

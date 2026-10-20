@@ -10,15 +10,15 @@ import (
 func init() {
 	registerSection("select", "inputs", func() core.Widget {
 		status := kit.Select(demoText("Status", "状态"), demoText("Awaiting payment", "待付款"), demoText("Paid", "已付款"), demoText("Shipped", "已发货"), demoText("Completed", "已完成")).Clearable(true).TitlePrefix(demoText("Status: ", "状态："))
-		city := kit.Select(demoText("City", "城市 City"), demoText("Beijing", "北京"), demoText("Shanghai", "上海"), demoText("Guangzhou", "广州"), demoText("Shenzhen", "深圳"), demoText("Hangzhou", "杭州"), demoText("Chengdu", "成都"), "Chicago").Searchable()
+		city := kit.Select(demoText("City", "城市"), demoText("Beijing", "北京"), demoText("Shanghai", "上海"), demoText("Guangzhou", "广州"), demoText("Shenzhen", "深圳"), demoText("Hangzhou", "杭州"), demoText("Chengdu", "成都"), demoText("Chicago", "芝加哥")).Searchable()
 		city.Clearable(true).MenuWidth(360).MenuMaxHeight(200).RowHeight(40).
 			RenderItem(func(cx *el.Context, row kit.SelectItemContext) el.Element {
 				return el.Div().Row().Gap(8).Child(kit.Icon(kit.IconInfo).Size(16).Render(cx), el.Text(row.Option.Label), el.Text(row.Option.Value))
 			}).
 			Empty(el.ViewFunc(func(*el.Context) el.Element {
-				return el.Text(demoText("No matching cities; try Beijing or Chicago", "没有匹配城市，试试北京或 Chicago"))
+				return el.Text(demoText("No matching cities; try Beijing or Chicago", "没有匹配的城市，试试北京或芝加哥"))
 			}))
-		city.SetEntries(kit.SelectOption{Value: "bj", Label: demoText("Beijing", "北京"), Group: demoText("China", "中国")}, kit.SelectOption{Value: "sh", Label: demoText("Shanghai (unavailable)", "上海（暂不可用）"), Group: demoText("China", "中国"), Disabled: true}, kit.SelectOption{Value: "sz", Label: demoText("Shenzhen", "深圳"), Group: demoText("China", "中国")}, kit.SelectOption{Value: "chi", Label: "Chicago", Group: demoText("United States", "美国")})
+		city.SetEntries(kit.SelectOption{Value: "bj", Label: demoText("Beijing", "北京"), Group: demoText("China", "中国")}, kit.SelectOption{Value: "sh", Label: demoText("Shanghai (unavailable)", "上海（暂不可用）"), Group: demoText("China", "中国"), Disabled: true}, kit.SelectOption{Value: "sz", Label: demoText("Shenzhen", "深圳"), Group: demoText("China", "中国")}, kit.SelectOption{Value: "chi", Label: demoText("Chicago", "芝加哥"), Group: demoText("United States", "美国")})
 		multiple := kit.Select(demoText("Multiselect · 10,000 options", "多选 · 一万条选项")).Multiple().Searchable()
 		entries := make([]kit.SelectOption, 10000)
 		for i := range entries {

@@ -25,7 +25,7 @@ func TestEndToEnd(t *testing.T) {
 
 	call, _ := startServer(t, nil)
 
-	expect(t, call("launch", map[string]any{"command": "go run ./examples/multiwindow", "dir": root}),
+	expect(t, call("launch", map[string]any{"command": "go run ./examples/multiwindow -lang zh-CN", "dir": root}),
 		`Window w1 "Keel 主窗口"`, `textbox "你的名字" value=""`, `button "打招呼"`)
 	call("type", map[string]any{"text": "小明", "ref": "e3"})
 	expect(t, call("click", map[string]any{"text": "打招呼"}), `text "你好，小明！"`)
@@ -66,7 +66,7 @@ func TestAttach(t *testing.T) {
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build: %v\n%s", err, out)
 	}
-	appCmd := exec.Command(bin)
+	appCmd := exec.Command(bin, "-lang", "zh-CN")
 	appCmd.Env = append(env, "KEEL_AUTOMATION=1", "KEEL_HEADLESS=1")
 	if err := appCmd.Start(); err != nil {
 		t.Fatal(err)
@@ -174,7 +174,7 @@ func TestVisible(t *testing.T) {
 		t.Skip("set KEEL_DESKTOP=1 to open real windows")
 	}
 	call, _ := startServer(t, nil)
-	expect(t, call("launch", map[string]any{"command": "go run ./examples/multiwindow", "dir": repoRoot(), "visible": true}),
+	expect(t, call("launch", map[string]any{"command": "go run ./examples/multiwindow -lang zh-CN", "dir": repoRoot(), "visible": true}),
 		`Window w1 "Keel 主窗口" 640×420`)
 	call("type", map[string]any{"text": "小明", "ref": "e3"})
 	expect(t, call("click", map[string]any{"text": "打招呼"}), `text "你好，小明！"`)
@@ -199,7 +199,7 @@ func TestOrders(t *testing.T) {
 		t.Skip("builds and runs the example app")
 	}
 	call, _ := startServer(t, nil)
-	got := call("launch", map[string]any{"command": "go run ./examples/orders", "dir": repoRoot()})
+	got := call("launch", map[string]any{"command": "go run ./examples/orders -lang zh-CN", "dir": repoRoot()})
 	expect(t, got, `tab "订单列表" selected`, `table "" value="36 行"`, `columnheader "金额"`, `row "SO-1001 | 华东物流 | 待付款 | 300.00"`)
 
 	expect(t, call("type", map[string]any{"text": "华东", "ref": "e5"}), "显示 6 条")
@@ -257,7 +257,7 @@ func TestChat(t *testing.T) {
 		t.Skip("builds and runs the example app")
 	}
 	call, _ := startServer(t, nil)
-	got := call("launch", map[string]any{"command": "go run ./examples/chat -delay 2ms", "dir": repoRoot()})
+	got := call("launch", map[string]any{"command": "go run ./examples/chat -lang zh-CN -delay 2ms", "dir": repoRoot()})
 	expect(t, got, `textbox "消息"`, `button "发送"`)
 	call("type", map[string]any{"text": "用 Go 写一个并发下载器", "ref": refOf(got, `textbox "消息"`)})
 	expect(t, call("press_key", map[string]any{"key": "enter"}), `"正在回答…"`, `button "停止"`)
@@ -283,7 +283,7 @@ func TestSettingsExample(t *testing.T) {
 	call, _ := startServer(t, nil)
 	got := call("launch", map[string]any{"command": "go run ./examples/components -lang zh-CN -section settings -width 320", "dir": repoRoot()})
 	// Pages are tabs in a tablist; the sections of a page are buttons.
-	expect(t, got, `tab "通用"`, `tab "通知"`, `button "语言"`, `select "语言 Language"`, `switch "深色模式" unchecked`)
+	expect(t, got, `tab "通用"`, `tab "通知"`, `button "语言"`, `select "语言"`, `switch "深色模式" unchecked`)
 	expect(t, call("click", map[string]any{"text": "深色模式"}), `switch "深色模式" checked`)
 	got = call("type", map[string]any{"ref": refOf(got, `textbox "搜索设置"`), "text": "邮件"})
 	expect(t, got, `switch "邮件提醒" checked`)
@@ -292,8 +292,9 @@ func TestSettingsExample(t *testing.T) {
 	got = call("type", map[string]any{"ref": refOf(got, `textbox "搜索设置"`), "text": "", "clear": true})
 	expect(t, got, `tab "通用"`, `switch "邮件提醒" unchecked`)
 	call("click", map[string]any{"text": "通用"})
-	expect(t, call("click", map[string]any{"text": "重置此页"}), `switch "深色模式" unchecked`)
-	call("click", map[string]any{"text": "语言 Language"})
+	got = call("click", map[string]any{"text": "重置此页"})
+	expect(t, got, `switch "深色模式" unchecked`)
+	call("click", map[string]any{"ref": refOf(got, `select "语言"`)})
 	got = call("click", map[string]any{"text": "English"})
 	expect(t, got, `textbox "Search settings"`, `value="English"`)
 }
@@ -331,7 +332,7 @@ func TestOrdersKeyboardOnly(t *testing.T) {
 		t.Skip("builds and runs the example app")
 	}
 	call, _ := startServer(t, nil)
-	call("launch", map[string]any{"command": "go run ./examples/orders", "dir": repoRoot()})
+	call("launch", map[string]any{"command": "go run ./examples/orders -lang zh-CN", "dir": repoRoot()})
 	press := func(key string) string { return call("press_key", map[string]any{"key": key}) }
 	press("mod+n")
 	expect(t, call("type", map[string]any{"text": "键盘客户"}), `textbox "客户" value="键盘客户"`)

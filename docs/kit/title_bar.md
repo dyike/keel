@@ -24,7 +24,7 @@ window.Open(window.Options{Title: "Editor", Frameless: true, Content: el.Root(ap
 
 Agent: The role of the title bar is `banner`, and the name is the title; the window buttons are named "Close", "Minimize", "Maximize" or "Restore", and the application content is listed separately.
 
-Verification: `go run ./examples/frameless` open a real borderless window, drag the title bar and click the window button; `go run ./examples/components -section title_bar` check the header style in the ordinary window.
+Verification: `go run ./examples/frameless -lang en` opens a real borderless window for dragging the title bar and clicking window buttons; `go run ./examples/components -section title_bar -lang en` shows the header style in an ordinary window.
 
 Title uses secondary text color when window is out of focus, macOS window buttons are grayed out; restored after reactivation. Slices for front and rear slots are copied, and empty slots are ignored.
 

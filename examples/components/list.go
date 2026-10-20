@@ -13,7 +13,7 @@ func init() {
 	registerSection("list", "data", func() core.Widget {
 		var items []string
 		for i := range 300 {
-			items = append(items, demoText("Contact ", "联系人 Contact ")+strconv.Itoa(i+1))
+			items = append(items, demoText("Contact ", "联系人 ")+strconv.Itoa(i+1))
 		}
 		msg := demoText("Ctrl/Cmd selects multiple items; Shift selects a range. Drag to reorder. Gray items are disabled.", "Ctrl/Cmd 多选，Shift 连选；拖动条目重排，灰色条目不可操作")
 		var l *kit.ListView

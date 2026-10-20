@@ -9,7 +9,7 @@ import (
 
 func init() {
 	registerSection("switch", "controls", func() core.Widget {
-		on, off := kit.Switch(demoText("Receive notifications", "接收通知 Notifications"), true), kit.Switch(demoText("Unavailable", "不可用"), false)
+		on, off := kit.Switch(demoText("Receive notifications", "接收通知"), true), kit.Switch(demoText("Unavailable", "不可用"), false)
 		off.SetDisabled(true)
 		small := kit.Switch(demoText("Small · Left label", "小尺寸 · 左侧标签"), true).Size(kit.SwitchSmall).LabelSide(el.Left)
 		custom := kit.Switch(demoText("Custom selection color", "自定义选中颜色"), true)

@@ -22,7 +22,7 @@ func kbdGallery() core.Widget {
 				el.Text(demoText("Confirm", "确认")), kit.Kbd("enter").Render(cx), kit.Kbd("mod+s").Plain().Render(cx))
 		}
 		return el.Div().W(el.Full).P(24).Gap(16).Child(
-			el.Text(demoText("Kbd · Keyboard shortcut", "Kbd 快捷键键帽")).TextSize(24).Bold(),
+			el.Text(demoText("Kbd · Keyboard shortcut", "Kbd · 快捷键")).TextSize(24).Bold(),
 			el.Text(demoText("Follows the parent font size; display only, without registering a shortcut.", "随父元素字号变化；仅展示，不注册快捷键。")),
 			row(12), row(16), row(24),
 			el.Div().Wrap().Gap(12).Items(el.Center).Child(kit.Kbd("mod+s").Size(12).Render(cx), kit.Kbd("mod+k").Size(24).Style(func(e *el.TextEl) { e.Bg(theme.Subtle).TextColor(theme.PrimaryText) }).Render(cx)),
