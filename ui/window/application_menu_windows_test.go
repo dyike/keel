@@ -95,7 +95,10 @@ func TestWin32MenuHandlesAndCommands(t *testing.T) {
 		t.Fatal("menu did not attach its bitmap")
 	}
 	rebuildNativeMenu(target)
-	if kind, _, _ := menuGDI.NewProc("GetObjectType").Call(bitmap); kind != 0 {
+	// GetObjectType can still report OBJ_BITMAP for a deleted handle on
+	// current Windows; GetObjectW fails once the bitmap is gone.
+	var header [32]byte
+	if n, _, _ := menuGDI.NewProc("GetObjectW").Call(bitmap, uintptr(len(header)), uintptr(unsafe.Pointer(&header))); n != 0 {
 		t.Fatal("replacing menu retained the old HBITMAP")
 	}
 	send := user32.NewProc("SendMessageW")
