@@ -34,7 +34,8 @@ func TestTableThreeHundredThousandRows(t *testing.T) {
 	h.Frame()
 	h.Key(key.NameEnd, key.ModShortcut)
 	h.Frame()
-	if d := time.Since(start); d > 5*time.Second {
+	// The plain test run checks the budget; -race varies too much to time.
+	if d := time.Since(start); d > 5*time.Second && !raceDetector {
 		t.Fatalf("300,000 rows took %v", d)
 	}
 	if !shown(h, "SO-") && tbl == nil {
