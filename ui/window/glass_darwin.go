@@ -54,6 +54,7 @@ func platformGlassEvent(w *Window, event any) {
 		w.glassRenderer = &metalGlassRenderer{
 			context:    newGlassContext(e.View, o.Style, float64(o.CornerRadius)),
 			invalidate: w.win.Invalidate,
+			run:        w.win.Run,
 		}
 	}
 }
@@ -165,7 +166,8 @@ func newGlassContext(handle uintptr, style GlassStyle, radius float64) *glassCon
 
 type metalGlassRenderer struct {
 	// Idle reclamation runs off the event loop. Serialize it with Frame and
-	// Release; none of these operations waits for the AppKit main queue.
+	// Release. Frame can wait for Window.Run outside the frame lock; AppKit
+	// must never wait for mu (idle trimming uses TryLock).
 	mu         sync.Mutex
 	idleTimer  *time.Timer
 	idleAt     time.Time
@@ -173,6 +175,8 @@ type metalGlassRenderer struct {
 	context    *glassContext
 	gpu        gpu.GPU
 	invalidate func()
+	run        func(func())
+	lastSize   image.Point // last successfully presented size, not idle drawableSize
 }
 
 func (r *metalGlassRenderer) Frame(ops *op.Ops, size image.Point) error {
@@ -203,6 +207,8 @@ func (r *metalGlassRenderer) Frame(ops *op.Ops, size image.Point) error {
 	var err error
 	appkit.Pool(func() {
 		layer := r.context.layer
+		resized := size != r.lastSize
+		appkit.Send(layer, "setPresentsWithTransaction:", appkit.Bool(resized))
 		appkit.MsgSetSize(layer, appkit.Sel("setDrawableSize:"), appkit.Size{Width: float64(size.X), Height: float64(size.Y)})
 		drawable := appkit.Send(layer, "nextDrawable")
 		if drawable == 0 {
@@ -215,7 +221,15 @@ func (r *metalGlassRenderer) Frame(ops *op.Ops, size image.Point) error {
 			buffer := appkit.Send(r.context.queue, "commandBuffer")
 			appkit.Send(buffer, "commit")
 			appkit.Send(buffer, "waitUntilScheduled")
-			appkit.Send(drawable, "present")
+			if resized {
+				// Gio services Run while displayLayer is waiting for this frame.
+				// Present in that main-thread transaction so the new bounds and
+				// pixels become visible together. GPU scheduling stays off main.
+				r.run(func() { appkit.Send(drawable, "present") })
+			} else {
+				appkit.Send(drawable, "present")
+			}
+			r.lastSize = size
 		}
 	})
 	return err

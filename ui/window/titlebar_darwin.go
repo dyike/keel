@@ -27,6 +27,9 @@ func platformWindowEvent(w *Window, event any) {
 		if e.View != 0 {
 			nativeWindows.Store(e.View, w)
 		}
+		if e.View != 0 && e.Layer != 0 {
+			configureNativeResize(e.View, e.Layer)
+		}
 	}
 }
 func clearPlatformWindow(w *Window) {

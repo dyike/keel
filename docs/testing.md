@@ -333,6 +333,28 @@ KEEL_DESKTOP=1 go test -run RealWindows ./ui/window
 
 This set of tests also covers the window being centered for the first time, immediately closed and reopened. Multi-monitor switching, window managers for each platform, and system preference changes still require manual verification.
 
+On macOS, `TestRealWindowsResize` opens ordinary and frosted-glass windows
+and grows/shrinks each through 60 Gio size requests plus 60 native frame
+changes with the window center held fixed, then four native zoom/restore
+transitions through `ToggleMaximize`. It waits for AppKit's terminal resize
+frames before testing fixed-size scrolling. It verifies the NSView uses
+`duringViewResize` redraw and `topLeft` content placement, so AppKit redraws
+animated size changes instead of scaling cached content. It records the content layer's
+`anchorPoint` separately from gravity and checks that its model X/Y transform
+scale stays at 1. It also checks non-scaling, top-left layer gravity (accounting for
+`contentsAreFlipped`), that drawable size matches layer bounds × backing
+scale, and that glass resize presentation runs on the main thread with
+`presentsWithTransaction` enabled. Each window also scrolls its text content
+through 60 programmatic offsets. Stable-size frames stay asynchronous,
+including recovery from idle drawable trimming. A static window must stop
+drawing; the probe reports process CPU over two idle seconds after trimming.
+The 600ms deadline catches stalls, not display FPS. These property
+and scheduling checks do not inspect the compositor's intermediate pixels
+or the window snapshots used by system animations. Also drag-resize and
+maximize/restore `examples/hello` and `examples/glass`, check text stays
+undistorted and correctly anchored, and check idle CPU after GPU completion.
+The fix lives in `ui/window` and adds no cgo or Gio patch.
+
 Skipped by default as it will pop up on the screen and requires a graphical interface environment. You must run it once after changing the code related to windows and locks in `ui/window` and `ui/internal/loop`. When adding a new window method, add it to the `testdata/raise` step.
 
 ## Parts that require manual verification

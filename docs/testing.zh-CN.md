@@ -210,6 +210,24 @@ KEEL_DESKTOP=1 go test -run RealWindows ./ui/window
 
 这组测试也覆盖窗口首次居中、立即关闭后重开。多显示器切换、各平台窗口管理器和系统偏好变化仍需手动验证。
 
+macOS 上，`TestRealWindowsResize` 分别打开普通窗口和磨砂玻璃窗口，各执行
+60 次 Gio 尺寸请求，再保持窗口中心不动，通过原生 frame 改变尺寸 60 次。
+随后通过 `ToggleMaximize` 执行 4 次原生最大化/还原，等 AppKit 的缩放结束帧
+完成后再检查尺寸固定的滚动。测试检查 NSView 采用 `duringViewResize` 重绘和
+`topLeft` 内容放置策略，让 AppKit 在动画各步重绘，而非缩放缓存画面。
+它分别记录内容图层的 `anchorPoint` 和 gravity，检查模型图层 X/Y 缩放值
+始终为 1，并检查图层采用不拉伸的左上锚定（按 `contentsAreFlipped`
+选择 gravity）、drawable 尺寸等于图层 bounds × backing scale，以及玻璃
+窗口缩放帧在主线程启用 `presentsWithTransaction` 提交。每个窗口还通过程序
+连续改变 60 次文字滚动位置。尺寸不变的帧保持异步提交，包括空闲 drawable
+回收后的恢复；静态窗口必须停止绘帧。
+探针在回收后采样两秒，报告进程空闲 CPU。
+600ms 超时用于发现卡顿，不代表显示 FPS。这些属性和调度检查没有读取合成器
+的中间帧或系统动画使用的整窗快照；还需拖动缩放、最大化和还原
+`examples/hello` 和 `examples/glass`，确认文字没有
+变形、锚点正确，并在 GPU 完成后检查空闲 CPU。修复位于 `ui/window`，没有
+新增 cgo，也没有修改 Gio。
+
 默认跳过，因为它会在屏幕上弹出窗口，而且需要图形界面环境。改动 `ui/window`、`ui/internal/loop` 里和窗口、锁相关的代码后必须跑一次。新增窗口方法时，把它加进 `testdata/raise` 的步骤里。
 
 ## 需要手动验证的部分
