@@ -97,6 +97,6 @@ func (v *ShimmerTextView) Render(cx *el.Context) el.Element {
 	if v.highlight != nil {
 		highlight = *v.highlight
 	}
-	cx.Animating()
+	cx.AnimatingAmbient()
 	return text.Shimmer(phase, spread, highlight)
 }

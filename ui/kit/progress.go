@@ -93,7 +93,7 @@ func (v *ProgressView) Render(cx *el.Context) el.Element {
 		phase := float32(0.3)
 		if !el.ReducedMotion() {
 			phase = float32(cx.Now().UnixMilli()%1500) / 1500
-			cx.Animating()
+			cx.AnimatingAmbient()
 		}
 		track.Child(el.Div().W(el.Frac(phase*0.7)).NoShrink(), segment(.3))
 	} else {

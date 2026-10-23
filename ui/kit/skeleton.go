@@ -45,7 +45,7 @@ func (v *SkeletonView) Render(cx *el.Context) el.Element {
 	phase := float32(0)
 	if !reduced {
 		phase = float32(cx.Now().UnixNano()%int64(1500*time.Millisecond)) / float32(1500*time.Millisecond)
-		cx.Animating()
+		cx.AnimatingAmbient()
 	}
 	base, shine := theme.Subtle, theme.SubtleHover
 	radiusDp := float32(theme.RadiusSm)

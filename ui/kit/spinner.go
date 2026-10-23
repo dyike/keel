@@ -81,7 +81,7 @@ func spinnerGraphic(cx *el.Context, size float32, c color.NRGBA, icon *giowidget
 	phase := float32(0)
 	if !el.ReducedMotion() {
 		phase = float32(cx.Now().UnixNano()%int64(period)) / float32(period)
-		cx.Animating()
+		cx.AnimatingAmbient()
 	}
 	return el.Widget(core.Func(func(gtx core.C) core.D {
 		size := gtx.Constraints.Min

@@ -63,7 +63,7 @@ func (v *ProgressCircleView) Render(cx *el.Context) el.Element {
 		value, fraction = "indeterminate", .25
 		if !el.ReducedMotion() {
 			phase = float32(cx.Now().UnixNano()%int64(time.Second)) / float32(time.Second)
-			cx.Animating()
+			cx.AnimatingAmbient()
 		}
 	}
 	if !v.indeterminate {

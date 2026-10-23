@@ -4,7 +4,7 @@ English | [简体中文](spinner.zh-CN.md)
 
 `kit.Spinner().Size(20).Label("Loading")` shows indeterminate progress. When Label is empty, only graphics are drawn, and the default name is "Loading". Agent role progressbar, value is indeterminate. No keyboard operation.
 
-The rotation phase comes from cx.Now, cx.Animating requests the next frame, no goroutine is started. Remain static after theme.SetReducedMotion(true). Fixed graphic size, text wraps according to parent container constraints.
+The rotation phase comes from cx.Now, cx.AnimatingAmbient requests the next 30 Hz tick shared by all ambient indicators, no goroutine is started. Remain static after theme.SetReducedMotion(true). Fixed graphic size, text wraps according to parent container constraints.
 
 Verification: `go run ./examples/components -section spinner -theme dark`, omit theme to see the light theme; example button switching reduces animation. Pixel testing injects different frame times, checking rotation and stillness.
 

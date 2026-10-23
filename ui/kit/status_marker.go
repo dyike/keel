@@ -165,7 +165,7 @@ func (v *StatusMarkerView) Render(cx *el.Context) el.Element {
 		if v.loading && v.loadingStyle == StatusMarkerLoadingStyleShimmer && v.text == "" && !el.ReducedMotion() {
 			phase := float64(cx.Now().UnixNano()%int64(2*time.Second)) / float64(2*time.Second)
 			content.Opacity(float32(.85 + .15*math.Cos(2*math.Pi*phase)))
-			cx.Animating()
+			cx.AnimatingAmbient()
 		}
 		row.Child(v.part(StatusMarkerPartContent, id+"/content", content))
 	}
