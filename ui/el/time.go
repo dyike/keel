@@ -30,6 +30,25 @@ func (cx *Context) Animating() {
 	}
 }
 
+// AmbientFrameInterval is the cadence of looping indicators (spinners,
+// indeterminate progress, shimmer, skeleton pulses). Every visible indicator
+// redraws the whole window, so they run below the display rate; transitions,
+// scrolling and input still draw on every display frame.
+const AmbientFrameInterval = time.Second / 30
+
+// AnimatingAmbient requests a frame at the next AmbientFrameInterval tick of
+// wall time. Ticks are aligned, so all ambient indicators share their frames,
+// and a frame already requested sooner (by a transition, say) still wins.
+func (cx *Context) AnimatingAmbient() {
+	gtx := cx.root.e.gtx
+	if !gtx.Enabled() || ReducedMotion() {
+		return
+	}
+	now := gtx.Now.UnixNano()
+	step := int64(AmbientFrameInterval)
+	gtx.Execute(op.InvalidateCmd{At: time.Unix(0, now-now%step+step)})
+}
+
 // ReducedMotion returns the application override; platforms without a native
 // preference bridge default to false. Set through theme.SetReducedMotion.
 func ReducedMotion() bool { return theme.ReducedMotion }

@@ -235,7 +235,7 @@ el.Div().ID("save").Focusable(true).
 
 ## 时间与减少动画（E3）
 
-`cx.Now()` 返回本帧时间；动画只从它计算相位。`cx.Animating()` 请求下一帧，不创建 goroutine。`el.ReducedMotion()` 查询应用偏好；`theme.SetReducedMotion(true)` 在帧锁内切换。当前没有原生系统偏好桥接，默认 false。
+`cx.Now()` 返回本帧时间；动画只从它计算相位。`cx.Animating()` 请求下一帧，不创建 goroutine。循环指示器（Spinner、不确定进度、扫光、骨架屏脉冲）改用 `cx.AnimatingAmbient()`：它请求墙钟上下一个 `el.AmbientFrameInterval`（1/30 秒）刻度的帧，所有可见指示器共用同一帧；窗口里只有指示器在动时按 30 Hz 重绘，而不是显示器刷新率。过渡动画、滚动和输入仍然每个显示帧都绘制。`el.ReducedMotion()` 查询应用偏好；`theme.SetReducedMotion(true)` 在帧锁内切换。当前没有原生系统偏好桥接，默认 false。
 
 `cx.After(key, duration, callback)` 声明一次性定时器，key 必须可比较且在当前 root 内唯一。存活期间每次 Render 声明同一个 key；某帧没有声明即取消，与调用位置和声明顺序无关。duration 变化时重新计时。触发后持续声明不会重复执行，省略一帧再声明才会重新启动。回调在帧锁内、当前树绘制完成后通过 core.Call 执行，并通知所有窗口重绘。
 
