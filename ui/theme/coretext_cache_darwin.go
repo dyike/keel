@@ -124,7 +124,6 @@ type ctGlyph struct {
 type ctPage struct {
 	img        *image.Alpha
 	op         paint.ImageOp
-	tint       tintedImage
 	opValid    bool
 	opFrame    uint64
 	x, y, rowH int
@@ -138,6 +137,8 @@ var ct struct {
 	glyphs map[ctGlyphKey]*ctGlyph
 	pages  []*ctPage
 	extra  *ctExtraCache
+	// quads is ctPaintRun's scratch for a run of masks on one page.
+	quads []paint.ImageQuad
 }
 
 // BeginTextFrame marks the start of a window's layout. Glyph pages changed
@@ -163,11 +164,22 @@ func ctPaintRun(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA, 
 		ct.glyphs = map[ctGlyphKey]*ctGlyph{}
 	}
 	dark := textLuma(col) < 0.5
+	// Masks on one page are painted with one operation; see PaintTintedQuads.
+	var quadPage *ctPage
+	quads := ct.quads[:0]
+	flushQuads := func() {
+		if len(quads) > 0 {
+			quadPage.op.PaintTintedQuads(ops, col, quads)
+			quads = quads[:0]
+		}
+	}
+	defer func() { ct.quads = quads[:0] }()
 	vectorFrom := -1 // first glyph of a pending vector sub-run
 	flushVector := func(end int) {
 		if vectorFrom < 0 {
 			return
 		}
+		flushQuads()
 		sub := gs[vectorFrom:end]
 		x := fracX + float32(sub[0].X-gs[0].X)/64
 		tr := op.Affine(f32.AffineId().Offset(f32.Pt(x, fracY))).Push(ops)
@@ -200,6 +212,7 @@ func ctPaintRun(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA, 
 			continue
 		}
 		if gl.color != nil {
+			flushQuads()
 			tr := op.Offset(image.Pt(int(ix), int(iy)).Add(gl.bounds.Min)).Push(ops)
 			cl := clip.Rect(image.Rectangle{Max: gl.bounds.Size()}).Push(ops)
 			gl.color.Add(ops)
@@ -212,18 +225,17 @@ func ctPaintRun(ops *op.Ops, sh *text.Shaper, gs []text.Glyph, col color.NRGBA, 
 		p.used = ct.frame
 		if !p.opValid {
 			p.op = paint.NewMaskOp(p.img)
-			p.tint, _ = any(p.op).(tintedImage)
 			p.opValid, p.opFrame = true, ct.frame
 		}
+		if p != quadPage {
+			flushQuads()
+			quadPage = p
+		}
 		off := image.Pt(int(ix), int(iy)).Add(gl.bounds.Min).Sub(gl.rect.Min)
-		tr := op.Offset(off).Push(ops)
-		cl := clip.Rect(gl.rect).Push(ops)
-		p.tint.AddTinted(ops, col)
-		paint.PaintOp{}.Add(ops)
-		cl.Pop()
-		tr.Pop()
+		quads = append(quads, paint.ImageQuad{Offset: off, Rect: gl.rect})
 	}
 	flushVector(len(gs))
+	flushQuads()
 	return true
 }
 

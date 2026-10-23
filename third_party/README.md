@@ -44,6 +44,26 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/op/paint`, `gio/gpu`, `gio/internal/ops`: `ImageOp.PaintQuads` (and
+  `PaintTintedQuads` on Metal builds) paints one image at many offsets, each
+  clipped to a rectangle of the image, as a single `TypeImageQuads` operation
+  whose quads follow in an Aux operation. It replaces an offset, a rectangle
+  clip, a brush and a paint per quad: seven operations that both the input
+  router and the GPU collector decoded every frame. Keel's CoreText glyph
+  atlas draws each run of masks on one page this way; text was about three
+  quarters of a typical frame's operations. Under an integer translation the
+  collector turns each quad into an image operation directly, computing the
+  same bounds, clip intersection, material and rectangle-clip parentage as the
+  separate operations. Other transforms (fractional offsets, scale, rotation)
+  replay the separate operations, keying their transformed clip paths by
+  content because all quads share one operation key. Uniform and empty images
+  always use the separate operations, and the image stays the current brush
+  afterwards. A headless test compares the pixels byte for byte against the
+  separate operations under offsets, fractional offsets, scale, rotation,
+  rectangle and rounded clips, nested opacity and a later paint; a benchmark
+  drawing 3,200 glyph quads took 0.52 instead of 0.99 ms a frame on an Apple
+  M4.
+
 - `gio/app`: macOS driver actions retain window identity while the input view
   is temporarily detached for a material wrapper. The non-owning host link is
   cleared when the window closes. Responder reparenting no longer reports a
