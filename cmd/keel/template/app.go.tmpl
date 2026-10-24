@@ -14,7 +14,7 @@ type app struct {
 	name  *kit.InputView
 	count int
 }
-
+{{if eq .Lang "zh-CN"}}
 func newApp() *app {
 	return &app{name: kit.Input("名字").Placeholder("输入你的名字")}
 }
@@ -26,9 +26,28 @@ func (a *app) Render(cx *el.Context) el.Element {
 	}
 	return el.Div().P(32).Gap(16).Items(el.Start).Child(
 		el.Text({{printf "%q" .Name}}).TextSize(24).Bold(),
-		el.Text("编辑 app.go，保存后重新运行 keel run 查看效果。").TextColor(theme.Muted),
+		el.Text("编辑 app.go 并保存，keel run 会自动重新编译并重启应用。").TextColor(theme.Muted),
 		a.name.Render(cx),
 		el.Text(greeting),
 		kit.Button("点了 "+strconv.Itoa(a.count)+" 次", func() { a.count++ }).Render(cx),
 	)
 }
+{{- else}}
+func newApp() *app {
+	return &app{name: kit.Input("Name").Placeholder("Enter your name")}
+}
+
+func (a *app) Render(cx *el.Context) el.Element {
+	greeting := "Hello!"
+	if n := a.name.Value(); n != "" {
+		greeting = "Hello, " + n + "!"
+	}
+	return el.Div().P(32).Gap(16).Items(el.Start).Child(
+		el.Text({{printf "%q" .Name}}).TextSize(24).Bold(),
+		el.Text("Edit app.go and save: keel run rebuilds and restarts the app.").TextColor(theme.Muted),
+		a.name.Render(cx),
+		el.Text(greeting),
+		kit.Button("Clicked "+strconv.Itoa(a.count)+" times", func() { a.count++ }).Render(cx),
+	)
+}
+{{- end}}

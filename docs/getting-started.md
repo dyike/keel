@@ -19,9 +19,10 @@ go install github.com/dyike/keel/cmd/keel@latest
 keel doctor
 ```
 
-This installation path needs a published single-module release. To test this
-checkout before publication, run `go build -o /tmp/keel ./cmd/keel` from the
-repository root, then `/tmp/keel new /tmp/my-notes -replace "$PWD"`.
+Releases contain Keel's Gio and go-text, so the installed CLI generates
+projects that build with Keel alone. To try unreleased changes from a Keel
+checkout, run `go build -o /tmp/keel ./cmd/keel` from the repository root,
+then `/tmp/keel new /tmp/my-notes -replace "$PWD"`.
 
 On macOS, `keel doctor` checks Xcode Command Line Tools and `iconutil`. On Linux, it checks window-system and font development packages. The first run or build downloads dependencies and compiles cgo code. See [the macOS `-lobjc` warning](troubleshooting.md#-lobjc-warning-when-linking) if it appears during linking.
 
@@ -44,7 +45,7 @@ The scaffold generates:
 | `go.mod`, `go.sum` | Requires the selected Keel release, which already contains Keel's Gio and go-text; generation runs `go mod tidy` |
 | `.gitignore`, `README.md`, `README.zh-CN.md` | Project instructions and exclusions for `dist/` and build intermediates |
 
-Options: `-name "My Notes"` sets the display name, which otherwise derives from the directory (`my-notes` → `My Notes`). `-appid com.yourname.notes` sets the application ID, defaulting to `com.example.<directory>`. `-module` sets the Go module path. The destination directory must be empty.
+Options: `-name "My Notes"` sets the display name, which otherwise derives from the directory (`my-notes` → `My Notes`). `-appid com.yourname.notes` sets the application ID, defaulting to `com.example.<directory>`. `-module` sets the Go module path. `-lang zh-CN` writes the generated app's text in Chinese instead of English. The destination directory must be empty.
 
 `-keel <version>` selects an exact Keel release (default: the CLI's own, or
 the latest). `-replace <Keel checkout>` instead requires Keel from a local

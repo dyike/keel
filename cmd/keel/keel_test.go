@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"go/format"
 	"image/png"
 	"os"
 	"os/exec"
@@ -176,5 +177,41 @@ func TestNewProjectCompiles(t *testing.T) {
 	}
 	if !foundGio {
 		t.Fatal("app does not use Keel's Gio")
+	}
+}
+
+// The generated app speaks the chosen language, tells the truth about
+// keel run's watching, and is gofmt-clean in both languages.
+func TestNewLanguage(t *testing.T) {
+	for lang, want := range map[string][]string{
+		"":      {"Enter your name", "keel run rebuilds and restarts"},
+		"en":    {"Enter your name", "keel run rebuilds and restarts"},
+		"zh-CN": {"输入你的名字", "keel run 会自动重新编译并重启"},
+	} {
+		root := t.TempDir()
+		c, out := newCLI(root)
+		args := []string{"new", "app", "-offline", "-replace", testCheckout(t)}
+		if lang != "" {
+			args = append(args, "-lang", lang)
+		}
+		if code := c.main(args); code != 0 {
+			t.Fatal(out.String())
+		}
+		src, err := os.ReadFile(filepath.Join(root, "app", "app.go"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, w := range want {
+			if !strings.Contains(string(src), w) {
+				t.Errorf("-lang %q: app.go lacks %q", lang, w)
+			}
+		}
+		if formatted, err := format.Source(src); err != nil || !bytes.Equal(formatted, src) {
+			t.Errorf("-lang %q: app.go is not gofmt-clean: %v", lang, err)
+		}
+	}
+	c, _ := newCLI(t.TempDir())
+	if c.main([]string{"new", "app", "-offline", "-lang", "fr", "-replace", testCheckout(t)}) == 0 {
+		t.Fatal("an unknown -lang must be refused")
 	}
 }

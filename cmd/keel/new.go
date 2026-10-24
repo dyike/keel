@@ -28,6 +28,7 @@ func (c *cli) newProject(args []string) error {
 	keel := fs.String("keel", keelVersion(), "Keel version to require")
 	replace := fs.String("replace", "", "use a local Keel checkout at this path (for developing Keel)")
 	offline := fs.Bool("offline", false, "use cached release metadata; write files without fetching dependencies")
+	lang := fs.String("lang", "en", "language of the generated app's text: en or zh-CN")
 	fs.Usage = func() {
 		fmt.Fprintln(c.errw, "Usage: keel new <dir> [flags]")
 		fs.PrintDefaults()
@@ -42,6 +43,9 @@ func (c *cli) newProject(args []string) error {
 	if dirArg == "" {
 		fs.Usage()
 		return errors.New("missing project directory")
+	}
+	if *lang != "en" && *lang != "zh-CN" {
+		return fmt.Errorf("unknown -lang %q: use en or zh-CN", *lang)
 	}
 	dir := dirArg
 	if !filepath.IsAbs(dir) {
@@ -106,7 +110,7 @@ func (c *cli) newProject(args []string) error {
 	}
 	defer os.RemoveAll(stage)
 	dir = stage
-	data := map[string]string{"Name": cfg.Name, "Module": *module}
+	data := map[string]string{"Name": cfg.Name, "Module": *module, "Lang": *lang}
 	for out, tmpl := range map[string]string{
 		"main.go": "main.go.tmpl", "app.go": "app.go.tmpl",
 		".gitignore": "gitignore.tmpl", "README.md": "README.md.tmpl",

@@ -12,9 +12,10 @@ On Windows, `keel run` and `keel build` share the native resources: PerMonitorV2
 go install github.com/dyike/keel/cmd/keel@latest
 ```
 
-Versioned installation requires a published single-module release. Before
-publication, build this checkout with `go build -o /tmp/keel ./cmd/keel` and
-generate applications with `-replace <checkout>`.
+Releases contain Keel's Gio and go-text, so this is all an application needs.
+To try unreleased changes, build this checkout with
+`go build -o /tmp/keel ./cmd/keel` and generate applications with
+`-replace <checkout>`.
 
 - **Dependencies**: `internal/svgicon` (draw the SVG of the original image into PNG), `internal/appicon` (the icon shape of each platform, `ui/window` also uses it when running), `golang.org/x/image` (scaling, vector rasterization), `github.com/tc-hib/winres` (Windows resources: icons, manifests, version information). Keel's interface package is not referenced; macOS, Android and browser packaging run `internal/gogio`, Keel's copy of Gio's gogio v0.10.0 that knows the new Gio import path (patches in [third_party/README.md](../../third_party/README.md)), and macOS signature calls the system's `codesign`.
 - **Test**: `go test ./cmd/keel` generates the project, checks the packaging commands for each platform (`-n`), and compiles the generated project with Keel in this repository (`-short` skips).
