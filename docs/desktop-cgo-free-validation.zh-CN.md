@@ -96,6 +96,20 @@ Hello 的前后 PNG 字节一致。两份完整组件矩阵各有 792 张 PNG：
 macOS 上基线 overlay 使用解析后的 `/private/tmp` 源码路径。
 真实窗口生命周期及多窗口夹具也通过。
 
+## M1 进展：Keel 的 CoreText 绑定（2026-10-24）
+
+`ui/theme` 通过 `coretext_cgo_darwin.go`（`cgo && !purego`）调用 CoreText 栅格化字形；不使用 cgo 时改用 `coretext_purego_darwin.go`（`!cgo || purego`）。字体缓存、留边和线性光转换为两者共用。与 cgo 代码一样，位图上下文绘制到一块 Go 缓冲区，其生命周期限定在一个函数内；改由上下文自己持有像素时实测慢三倍。整数和指针调用通过 `SyscallN` 按地址调用；两种文字颜色是一次性创建的 CGColor；只有边界查询在 amd64 上保留 `RegisterFunc` 包装，因为它返回的矩形通过隐藏指针传递。
+
+| 检查 | 结果 |
+| --- | --- |
+| `go test ./ui/theme`，带与不带 `-tags purego`；`-race -tags purego` | 通过。 |
+| 组件截图：11 个文字密集页面 × 浅色/深色 × 1x/2x，以及 `hello` | 两种绑定的 44 张和 1 张 PNG 逐字节相同。 |
+| 12 次 emoji 栅格化（Apple Color Emoji，三种尺寸）及浅色/深色文字遮罩 | 两种绑定的 SHA-256 相同。 |
+| `BenchmarkCoreTextMask`（一次字形缓存未命中），Apple M4 | cgo 2.7 µs、4 次分配；purego 3.3 µs、19 次分配。稳定帧不做栅格化。 |
+| `CGO_ENABLED=0 go vet ./ui/theme` | 仍在 Gio 的 `internal/gl` 失败：`ui/theme` 经由无头渲染器依赖它，是 M1 的后续步骤。 |
+
+在 macOS 默认切换之前，cgo 绑定仍是默认值，切换后删除。未在原生 amd64 上运行。
+
 ## 保留的 ABI 工作与待验收项
 
 D0 编译门禁和 M0 无 CGO Objective-C 探针保留在根模块中。

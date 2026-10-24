@@ -110,6 +110,29 @@ With that same frame time, all 792 PNGs and the matrix index are byte-identical.
 The baseline overlay uses the resolved `/private/tmp` source path on macOS.
 Real-window lifecycle/multiwindow fixtures also pass.
 
+## M1 progress: Keel's CoreText binding (2026-10-24)
+
+`ui/theme` rasterizes glyphs through CoreText in `coretext_cgo_darwin.go`
+(`cgo && !purego`) or, without cgo, in `coretext_purego_darwin.go`
+(`!cgo || purego`); font caching, padding and the linear-light conversion
+are shared. The bitmap context draws into a Go buffer whose lifetime is
+bounded by one function, as in the cgo code; a context owning its pixels
+measured three times slower. Integer and pointer calls go by address
+through `SyscallN`; the text colors are CGColors created once, and only the
+bounds query keeps a `RegisterFunc` wrapper on amd64, where its rect result
+uses a hidden pointer.
+
+| Check | Result |
+| --- | --- |
+| `go test ./ui/theme`, with and without `-tags purego`; `-race -tags purego` | Passed. |
+| Component screenshots, 11 text-heavy sections × light/dark × 1x/2x, plus `hello` | 44 and 1 PNGs byte-identical between bindings. |
+| 12 emoji rasterizations (Apple Color Emoji, three sizes) and text masks, light and dark | Identical SHA-256 between bindings. |
+| `BenchmarkCoreTextMask` (one glyph-cache miss), Apple M4 | cgo 2.7 µs, 4 allocs; purego 3.3 µs, 19 allocs. Steady-state frames do not rasterize. |
+| `CGO_ENABLED=0 go vet ./ui/theme` | Still fails in Gio's `internal/gl`, which `ui/theme` reaches through the headless renderer: the next M1 steps. |
+
+The cgo binding remains the default until macOS is promoted, then is removed.
+Native amd64 execution was not run.
+
 ## Preserved ABI work and remaining gates
 
 D0's compile gate and M0's no-cgo Objective-C probes remain in the root module.

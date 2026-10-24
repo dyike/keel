@@ -106,7 +106,10 @@ and performance patches; replace native bindings, not the renderers. The
 
 - Gio: `app`, `internal/gl`, `internal/cocoainit`, `gpu/internal/metal`
   (including pool/quads), and `gpu/headless`.
-- Keel: `ui/theme/coretext_darwin.go` (CoreText/CoreGraphics).
+- Keel: `ui/theme/coretext_cgo_darwin.go` (CoreText/CoreGraphics). A purego
+  rasterizer, `coretext_purego_darwin.go`, is selected by `-tags purego` or
+  `CGO_ENABLED=0` and renders byte-identical masks; the cgo file stays the
+  default until the macOS default is promoted.
 - `runtime/cgo`, as a consequence of the selected bindings.
 
 Linux also needs migration of X11/Wayland, xkbcommon, EGL/GL and Vulkan

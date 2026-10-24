@@ -407,3 +407,17 @@ func TestLoadFontsKeepsNativeMetadataAndOwnsBytes(t *testing.T) {
 		t.Fatal("invalid font was accepted")
 	}
 }
+
+// BenchmarkCoreTextMask rasterizes one glyph, as a glyph-cache miss does.
+// Compare the cgo and purego bindings with and without -tags purego.
+func BenchmarkCoreTextMask(b *testing.B) {
+	if ctFont(ctTestFont, 0, 28) == 0 {
+		b.Skip("test font unavailable")
+	}
+	b.ReportAllocs()
+	for i := 0; b.Loop(); i++ {
+		if _, _, ok := coreTextMask(ctTestFont, 0, 28, 43, float64(i%4)/4, 0, i%2 == 0); !ok {
+			b.Fatal("mask failed")
+		}
+	}
+}
