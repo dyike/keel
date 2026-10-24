@@ -145,6 +145,33 @@ under `nometal` with either binding, as on `main` (its tint test uses the
 Metal-only `AddTinted`). The no-cgo build of `hello` now stops in `gio/app`.
 Linux GL performance and runtime remain to be measured with L1.
 
+## M1 progress: Gio's Metal backend (2026-10-24)
+
+`gio/gpu/internal/metal` has a purego binding for macOS, selected by
+`CGO_ENABLED=0` or `-tags purego`; iOS keeps the cgo file, as `go list`
+confirms for iOS, macOS with cgo and macOS without it. On an Apple M4
+(darwin/arm64), comparing the two bindings:
+
+- Pixels: hello is byte-identical. Of 793 component-matrix screenshots, 721
+  are byte-identical; the other 72 are animated pages (spinner, progress,
+  skeleton, status marker, and pages containing them), and the same 72
+  differ between two runs of the cgo binding.
+- Tests: `gio/...` and `ui/...` pass with `-tags purego`, including the
+  real-window tests (`KEEL_DESKTOP=1`).
+- Allocations per frame: 6 instead of 7 (rotating path) and 4 instead of 5
+  (repeated clip). Of the purego binding's own calls, only the blocking wait
+  allocates.
+- CPU: 6,000 headless frames took 1.97 to 2.13 s of user and system time
+  with purego and 2.01 to 2.07 s with cgo over four alternating runs; the
+  difference is within noise. These frames have few draws; a call costs
+  about 55 ns, so frames with thousands of unbatched draws may cost more.
+- Leaks: Objective-C object counts by class stay constant over about 15,000
+  frames with both bindings; encoder calls run without an autorelease pool.
+
+amd64 was only compiled and vetted (Rosetta is not installed), so its
+by-value struct calls through `RegisterFunc` have not run. The no-cgo build
+of `hello` still stops in `gio/app`; `gio/gpu/headless` remains cgo.
+
 ## Preserved ABI work and remaining gates
 
 D0's compile gate and M0's no-cgo Objective-C probes remain in the root module.

@@ -104,10 +104,10 @@ Desktop migration is not complete. Preserve Gio's UI, layout, GPU algorithms
 and performance patches; replace native bindings, not the renderers. The
 2026-10-12 darwin/arm64 dependency scan of `examples/hello` selects cgo in:
 
-- Gio: `app`, `gpu/internal/metal` (including pool/quads), and
-  `gpu/headless`. `internal/cocoainit` also has a purego binding. `internal/gl` has a purego binding for
-  macOS/Linux desktop (`-tags purego` or `CGO_ENABLED=0`); cgo stays its
-  default and its only binding on iOS, Android and the BSDs.
+- Gio: `app` and `gpu/headless`. `internal/gl` (macOS/Linux desktop),
+  `internal/cocoainit` and `gpu/internal/metal` (macOS) also have purego
+  bindings, selected by `-tags purego` or `CGO_ENABLED=0`; cgo stays their
+  default and their only binding on iOS, Android and the BSDs.
 - Keel: `ui/theme/coretext_cgo_darwin.go` (CoreText/CoreGraphics). A purego
   rasterizer, `coretext_purego_darwin.go`, is selected by `-tags purego` or
   `CGO_ENABLED=0` and renders byte-identical masks; the cgo file stays the
@@ -116,7 +116,7 @@ and performance patches; replace native bindings, not the renderers. The
 
 Linux also needs migration of X11/Wayland, xkbcommon, EGL/GL and Vulkan
 bindings. Windows already builds without cgo. iOS/Android migration is deferred.
-`CGO_ENABLED=0 go build ./examples/hello` currently fails on macOS in Gio GL;
+`CGO_ENABLED=0 go build ./examples/hello` currently fails on macOS in `gio/app`;
 `CGO_ENABLED=0 go build ./native/...` passes on the inspected macOS host.
 Neither observation establishes cross-platform runtime support.
 See [the delivery design](docs/desktop-cgo-free.md) for gates and sequencing.

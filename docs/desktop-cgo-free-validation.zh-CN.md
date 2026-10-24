@@ -114,6 +114,18 @@ macOS 上基线 overlay 使用解析后的 `/private/tmp` 源码路径。
 
 `gio/internal/gl` 新增面向 macOS 和 Linux 桌面的 purego 绑定，通过 `CGO_ENABLED=0` 或 `-tags purego` 选用；iOS、Android 和 BSD 仍使用 `gl_unix.go`，`go list` 已逐个配置确认。借此，`CGO_ENABLED=0 go vet ./gio/internal/gl` 在 darwin 与 linux 的 amd64、arm64 上均通过。在 macOS 上使用 `-tags "nometal purego"` 时，无头与绘制测试经由 OpenGL 渲染并通过；`gio/gpu` 在 `nometal` 下无论哪种绑定都无法构建，与 `main` 相同（其着色测试使用仅 Metal 提供的 `AddTinted`）。`hello` 的无 cgo 构建现在止于 `gio/app`。Linux 上 GL 的性能与运行情况留待 L1 测量。
 
+## M1 进展：Gio 的 Metal 后端（2026-10-24）
+
+`gio/gpu/internal/metal` 新增面向 macOS 的 purego 绑定，通过 `CGO_ENABLED=0` 或 `-tags purego` 选用；iOS 仍使用 cgo 文件，`go list` 已对 iOS、带 cgo 的 macOS 和不带 cgo 的 macOS 分别确认。在 Apple M4（darwin/arm64）上对比两种绑定：
+
+- 像素：hello 逐字节相同。组件矩阵 793 张截图中 721 张逐字节相同；其余 72 张是动画页面（spinner、progress、skeleton、status marker 及包含它们的页面），cgo 绑定连续两次运行时同样是这 72 张不同。
+- 测试：`gio/...` 和 `ui/...` 在 `-tags purego` 下通过，包括真实窗口测试（`KEEL_DESKTOP=1`）。
+- 每帧分配：旋转路径 6 次（cgo 为 7 次），重复裁剪 4 次（cgo 为 5 次）。purego 绑定自身的调用中只有阻塞等待会分配。
+- CPU：交替运行四轮，6000 帧无头渲染的用户加系统时间 purego 为 1.97–2.13 s，cgo 为 2.01–2.07 s，差异在噪声范围内。这些帧的绘制调用很少；单次调用约 55 ns，未合批的数千次绘制可能更慢。
+- 泄漏：两种绑定在约 15000 帧中按类统计的 Objective-C 对象数保持不变；编码器调用不使用自动释放池。
+
+amd64 只做了编译和 vet（未安装 Rosetta），其经 `RegisterFunc` 按值传递结构体的调用尚未运行。`hello` 的无 cgo 构建仍止于 `gio/app`；`gio/gpu/headless` 仍使用 cgo。
+
 ## 保留的 ABI 工作与待验收项
 
 D0 编译门禁和 M0 无 CGO Objective-C 探针保留在根模块中。

@@ -2,63 +2,6 @@
 
 package metal
 
-/*
-#cgo CFLAGS: -Werror -xobjective-c -fobjc-arc
-
-#include <CoreFoundation/CoreFoundation.h>
-#include <Metal/Metal.h>
-#include <stdlib.h>
-
-static CFTypeRef quadPipeline(CFTypeRef devRef, CFTypeRef libRef, const char *frag, MTLPixelFormat format) {
-	@autoreleasepool {
-		id<MTLDevice> dev = (__bridge id<MTLDevice>)devRef;
-		id<MTLLibrary> lib = (__bridge id<MTLLibrary>)libRef;
-		MTLRenderPipelineDescriptor *desc = [MTLRenderPipelineDescriptor new];
-		desc.vertexFunction = [lib newFunctionWithName:@"quad_vert"];
-		desc.fragmentFunction = [lib newFunctionWithName:[NSString stringWithUTF8String:frag]];
-		desc.colorAttachments[0].pixelFormat = format;
-		desc.colorAttachments[0].blendingEnabled = YES;
-		desc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
-		desc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-		desc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-		desc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-		NSError *err = nil;
-		id<MTLRenderPipelineState> s = [dev newRenderPipelineStateWithDescriptor:desc error:&err];
-		return s ? CFBridgingRetain(s) : NULL;
-	}
-}
-
-static CFTypeRef quadNewBuffer(CFTypeRef devRef, NSUInteger size) {
-	@autoreleasepool {
-		id<MTLDevice> dev = (__bridge id<MTLDevice>)devRef;
-		return CFBridgingRetain([dev newBufferWithLength:size options:MTLResourceStorageModeShared|MTLResourceCPUCacheModeWriteCombined]);
-	}
-}
-
-static CFTypeRef quadLibrary(CFTypeRef devRef, const char *src) {
-	@autoreleasepool {
-		id<MTLDevice> dev = (__bridge id<MTLDevice>)devRef;
-		NSError *err = nil;
-		id<MTLLibrary> lib = [dev newLibraryWithSource:[NSString stringWithUTF8String:src] options:nil error:&err];
-		return lib ? CFBridgingRetain(lib) : NULL;
-	}
-}
-
-static void quadDraw(CFTypeRef encRef, CFTypeRef pipeRef, CFTypeRef bufRef, NSUInteger off, NSUInteger n, CFTypeRef *texs, CFTypeRef *samplers, NSUInteger ntex) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)encRef;
-		[enc setRenderPipelineState:(__bridge id<MTLRenderPipelineState>)pipeRef];
-		[enc setVertexBuffer:(__bridge id<MTLBuffer>)bufRef offset:off atIndex:0];
-		for (NSUInteger i = 0; i < ntex; i++) {
-			[enc setFragmentTexture:(__bridge id<MTLTexture>)texs[i] atIndex:i];
-			[enc setFragmentSamplerState:(__bridge id<MTLSamplerState>)samplers[i] atIndex:i];
-		}
-		[enc drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:n];
-	}
-}
-*/
-import "C"
-
 import (
 	"unsafe"
 
@@ -121,13 +64,13 @@ const quadSize = int(unsafe.Sizeof(driver.Quad{}))
 
 type quadBatcher struct {
 	failed   bool
-	lib      C.CFTypeRef
-	pipeline C.CFTypeRef
-	format   C.MTLPixelFormat
-	buf      C.CFTypeRef
+	lib      uintptr
+	pipeline uintptr
+	format   uintptr
+	buf      uintptr
 	off      int
-	texs     [driver.MaxQuadTextures]C.CFTypeRef
-	samplers [driver.MaxQuadTextures]C.CFTypeRef
+	texs     [driver.MaxQuadTextures]uintptr
+	samplers [driver.MaxQuadTextures]uintptr
 }
 
 // frameStarted runs after BeginFrame waited for the previous frame: the
@@ -135,9 +78,9 @@ type quadBatcher struct {
 func (q *quadBatcher) frameStarted() { q.off = 0 }
 
 func (q *quadBatcher) release() {
-	for _, r := range []C.CFTypeRef{q.lib, q.pipeline, q.buf} {
+	for _, r := range []uintptr{q.lib, q.pipeline, q.buf} {
 		if r != 0 {
-			C.CFRelease(r)
+			cfRelease(r)
 		}
 	}
 	*q = quadBatcher{}
@@ -151,20 +94,16 @@ func (q *quadBatcher) ready(b *Backend) bool {
 		return true
 	}
 	if q.lib == 0 {
-		src := C.CString(quadSource)
-		q.lib = C.quadLibrary(b.dev, src)
-		C.free(unsafe.Pointer(src))
+		q.lib = quadLibrary(b.dev, quadSource)
 		if q.lib == 0 {
 			q.failed = true
 			return false
 		}
 	}
 	if q.pipeline != 0 {
-		C.CFRelease(q.pipeline)
+		cfRelease(q.pipeline)
 	}
-	frag := C.CString("quad_frag")
-	q.pipeline = C.quadPipeline(b.dev, q.lib, frag, b.pixelFmt)
-	C.free(unsafe.Pointer(frag))
+	q.pipeline = quadPipeline(b.dev, q.lib, "quad_frag", b.pixelFmt)
 	q.format = b.pixelFmt
 	if q.pipeline == 0 {
 		q.failed = true
@@ -185,10 +124,10 @@ func (b *Backend) DrawQuads(textures []driver.Texture, quads []driver.Quad) bool
 		// A command buffer retains the buffers it uses: the old one stays
 		// alive until the GPU is done with it.
 		if q.buf != 0 {
-			C.CFRelease(q.buf)
+			cfRelease(q.buf)
 		}
 		size := max(64<<10, 2*(q.off+n))
-		q.buf = C.quadNewBuffer(b.dev, C.NSUInteger(size))
+		q.buf = quadNewBuffer(b.dev, uintptr(size))
 		q.off = 0
 		if q.buf == 0 {
 			q.failed = true
@@ -200,7 +139,7 @@ func (b *Backend) DrawQuads(textures []driver.Texture, quads []driver.Quad) bool
 		t := tex.(*Texture)
 		q.texs[i], q.samplers[i] = t.texture, t.sampler
 	}
-	C.quadDraw(b.renderEnc, q.pipeline, q.buf, C.NSUInteger(q.off), C.NSUInteger(len(quads)), &q.texs[0], &q.samplers[0], C.NSUInteger(len(textures)))
+	quadDraw(b.renderEnc, q.pipeline, q.buf, uintptr(q.off), uintptr(len(quads)), q.texs[:len(textures)], q.samplers[:len(textures)])
 	q.off += n
 	return true
 }
@@ -216,12 +155,12 @@ func (b *Backend) PrepareQuads(count int) bool {
 	if q.buf != 0 && len(bufferStore(q.buf)) >= size {
 		return true
 	}
-	buf := C.quadNewBuffer(b.dev, C.NSUInteger(max(64<<10, 2*size)))
+	buf := quadNewBuffer(b.dev, uintptr(max(64<<10, 2*size)))
 	if buf == 0 {
 		return false
 	}
 	if q.buf != 0 {
-		C.CFRelease(q.buf)
+		cfRelease(q.buf)
 	}
 	q.buf, q.off = buf, 0
 	return true

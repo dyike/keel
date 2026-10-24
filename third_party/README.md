@@ -44,6 +44,22 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/gpu/internal/metal`: a purego binding, `metal_purego_darwin.go`,
+  sends the backend's Metal messages without cgo on macOS, selected by
+  `CGO_ENABLED=0` or `-tags purego`; `metal_cgo_darwin.go` keeps Gio's
+  Objective-C helpers as the cgo default and the only binding on iOS. The
+  backend's Go logic, now over plain handles, is shared by both. Encoder
+  calls reuse one argument array under a mutex, because `purego.SyscallN`
+  allocates its argument slice; calls that block or point at locals use
+  `SyscallN` directly. arm64 passes `MTLOrigin`, `MTLSize` and `MTLViewport`
+  by pointer to a copy; amd64 passes them on the stack through `RegisterFunc`.
+  Render pass descriptors are kept per clear color, since a frame alternates
+  between three and setting one is a reflective call. The cgo file checks
+  the enumeration values against the SDK. Tests cover `NSError` reporting
+  and compute dispatch under both bindings; the dispatch test fails when the
+  two sizes are swapped. The headless, paint and real-window tests pass with
+  either binding.
+
 - `gio/internal/cocoainit`: `cocoa_purego_darwin.go` starts the NSThread that
   puts Cocoa in multithreaded mode without cgo (`CGO_ENABLED=0` or
   `-tags purego`), releasing the reference from `new` as ARC does; iOS keeps
