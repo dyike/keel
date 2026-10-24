@@ -26,6 +26,7 @@ import (
 
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/inputcontent"
+	"github.com/dyike/keel/ui/internal/loop"
 	"github.com/dyike/keel/ui/theme"
 	"golang.org/x/image/math/fixed"
 )
@@ -160,6 +161,9 @@ func (e *engine) paint(n *Node) {
 	pos = pos.Add(image.Pt(e.dp(n.style.translate[0]), e.dp(n.style.translate[1])))
 	abs := image.Rectangle{Min: e.origin.Add(pos), Max: e.origin.Add(pos).Add(n.size)}
 	if !n.style.absolute && !abs.Overlaps(e.visible) {
+		if loop.Accessibility() {
+			e.paintSemantics(n, pos)
+		}
 		return
 	}
 	if n.id != "" && e.anchors != nil {
@@ -317,6 +321,8 @@ func (e *engine) paintContent(n *Node) {
 
 		if sem {
 			e.addSemantics(n)
+		} else if n.style.scrollY || n.style.scrollX {
+			core.Role("scrollarea").Add(gtx.Ops)
 		}
 		if state != nil && n.isFocusable() && n.input == nil && !e.blockFocus && !e.blockInput {
 			if gtx.Enabled() {
@@ -503,6 +509,39 @@ func (e *engine) addSemantics(n *Node) {
 		semantic.SelectedOp(n.selected.value).Add(gtx.Ops)
 	}
 	semantic.EnabledOp(!n.effectiveDisabled).Add(gtx.Ops)
+}
+
+// paintSemantics describes a node that is not painted because it is out of
+// view, and what is inside it, so screen readers can reach it: semantic
+// areas only, with no drawing and no input. Only while a platform
+// accessibility client reads the window (loop.Accessibility).
+func (e *engine) paintSemantics(n *Node, pos image.Point) {
+	if n.style.hidden || n.widget != nil {
+		return
+	}
+	gtx := e.gtx
+	defer op.Offset(pos).Push(gtx.Ops).Pop()
+	scroll := n.style.scrollY || n.style.scrollX
+	if sem := hasSemantics(n); sem || scroll || n.isText && n.text != "" {
+		defer clip.Rect(image.Rectangle{Max: n.size}).Push(gtx.Ops).Pop()
+		switch {
+		case sem:
+			e.addSemantics(n)
+		case scroll:
+			core.Role("scrollarea").Add(gtx.Ops)
+		default:
+			semantic.LabelOp(n.text).Add(gtx.Ops)
+		}
+	}
+	if scroll {
+		if st := e.store.of(n); st != nil {
+			defer op.Offset(image.Pt(-st.scrollX, -st.scrollY)).Push(gtx.Ops).Pop()
+		}
+	}
+	for _, c := range n.children {
+		child := c.node()
+		e.paintSemantics(child, child.pos)
+	}
 }
 
 // corners are the radii in px of a box's corners: top left, top right,

@@ -84,20 +84,25 @@ func accessibilityHelper() {
 		os.Exit(1)
 	}
 
-	saved := 0 // frame lock
+	saved, picked := 0, -1 // frame lock
 	content := el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 		label := "Save"
 		if saved > 0 {
 			label = fmt.Sprintf("Saved %d", saved)
+		}
+		list := el.Div().H(el.Dp(100)).ScrollY()
+		for i := range 30 {
+			list.Child(el.Div().P(4).OnClick(func() { picked = i }).Child(el.Text(fmt.Sprintf("Item %d", i))))
 		}
 		return el.Div().P(24).Child(
 			el.Text("Hello"),
 			el.Div().Role("group").P(16).Child(
 				el.Div().P(8).OnClick(func() { saved++ }).Child(el.Text(label)),
 			),
+			list,
 		)
 	}))
-	w := Open(Options{Title: "accessibility", Width: 360, Height: 240, Content: content})
+	w := Open(Options{Title: "accessibility", Width: 360, Height: 340, Content: content})
 	go func() {
 		<-w.shown
 		// Ask on the main queue, as AppKit's run loop does: Gio's Run may
@@ -177,7 +182,56 @@ func accessibilityHelper() {
 				fail("after a move, text frame %v is not 24pt inside the view %v", text, viewOnScreen)
 			}
 		})
-		fmt.Println("PASS: roles, labels, nesting, frames (also after a move), hit testing and press")
+		// A row scrolled out of view is in its scroll area; scrolling it into
+		// view moves it inside the area, and a press then reaches it.
+		var item, area axNode
+		onView(func(view appkit.ID) {
+			root = axRead(view)
+			tree = root.String()
+			for _, c := range root.children {
+				if c.role == "AXScrollArea" {
+					area = c
+				}
+			}
+			found := area.find("AXButton", "Item 25")
+			if found == nil {
+				fail("Item 25 is not in the scroll area:\n%s", tree)
+			}
+			item = *found
+			if item.frame.MaxY() > area.frame.Origin.Y {
+				fail("Item 25 at %v should be below the scroll area %v", item.frame, area.frame)
+			}
+			if hit := appkit.MsgIDForPoint(view, appkit.Sel("accessibilityHitTest:"), area.frame.Origin); hit == item.obj {
+				fail("hit test found a row out of view")
+			}
+			appkit.Send(item.obj, "accessibilityPerformAction:", uintptr(appkit.String("AXScrollToVisible")))
+		})
+		inside := func(r, a appkit.Rect) bool {
+			return r.Origin.Y >= a.Origin.Y-1 && r.MaxY() <= a.MaxY()+1
+		}
+		poll("Item 25 did not scroll into view", func(view appkit.ID) bool {
+			f := appkit.MsgRect(item.obj, appkit.Sel("accessibilityFrame"))
+			return inside(f, area.frame)
+		})
+		onView(func(appkit.ID) {
+			if !appkit.SendBool(item.obj, "accessibilityPerformPress") {
+				fail("press on Item 25 refused")
+			}
+		})
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			loop.Lock()
+			p := picked
+			loop.Unlock()
+			if p == 25 {
+				break
+			}
+			if time.Now().After(deadline) {
+				fail("press after scrolling picked %d, not Item 25", p)
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		fmt.Println("PASS: roles, labels, nesting, frames (also after a move), hit testing, press, rows out of view and scrolling")
 		w.Close()
 		os.Exit(0)
 	}()

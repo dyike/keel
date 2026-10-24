@@ -50,6 +50,19 @@ func Generation() uint64 { return generation.Load() }
 // as its focus or maximized state; the caller invalidates the window.
 func Changed() { generation.Add(1) }
 
+var accessibility atomic.Bool
+
+// SetAccessibility records whether a platform accessibility client reads
+// the windows, which then also describe what is scrolled out of view.
+func SetAccessibility(on bool) {
+	if accessibility.Swap(on) != on {
+		InvalidateAll()
+	}
+}
+
+// Accessibility reports what SetAccessibility last set.
+func Accessibility() bool { return accessibility.Load() }
+
 // InvalidateAll requests a redraw of every window. It never blocks on them.
 func InvalidateAll() {
 	generation.Add(1)

@@ -20,6 +20,7 @@ import (
 	"github.com/dyike/keel/gio/io/input"
 	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/ui/internal/appkit"
+	"github.com/dyike/keel/ui/internal/loop"
 	"github.com/ebitengine/purego/objc"
 )
 
@@ -54,6 +55,7 @@ type axObject struct {
 	set    bool
 	parent appkit.ID
 	frame  appkit.Rect // in view points
+	shown  appkit.Rect // the part of it that can be seen, for hit testing
 	gen    uint64
 }
 
@@ -68,6 +70,18 @@ func installAccessibility(view uintptr) {
 		axClasses.views = map[objc.Class]bool{}
 		axClasses.element = appkit.RegisterClass("KeelAccessibilityElement", "NSAccessibilityElement", nil, []objc.MethodDef{
 			appkit.Method("accessibilityPerformPress", func(self appkit.ID, _ appkit.SEL) bool { return axPress(self) }),
+			// Scrolling has no method of its own in AppKit's element API
+			// before macOS 26: it is a named action.
+			// AppKit offers a press for every element of a class that can
+			// press; text, groups and images cannot.
+			appkit.Method("isAccessibilitySelectorAllowed:", func(self appkit.ID, _ appkit.SEL, sel appkit.SEL) bool {
+				if o := axObjects[self]; o != nil && sel == appkit.Sel("accessibilityPerformPress") {
+					return o.pressable()
+				}
+				return true
+			}),
+			appkit.Method("accessibilityActionNames", func(self appkit.ID, _ appkit.SEL) appkit.ID { return axActionNames(self) }),
+			appkit.Method("accessibilityPerformAction:", func(self appkit.ID, _ appkit.SEL, name appkit.ID) { axPerformAction(self, name) }),
 			// AppKit converts a frame in parent space to the screen once, when
 			// it is set; this one follows the window when it moves.
 			appkit.Method("accessibilityFrame", func(self appkit.ID, _ appkit.SEL) appkit.Rect { return axFrame(self) }),
@@ -132,6 +146,9 @@ func axChildren(view appkit.ID) appkit.ID {
 		v = &axView{view: appkit.Retain(view), w: w, objects: map[input.SemanticID]*axObject{}}
 		axViews[view] = v
 		w.axActive.Store(true)
+		// Describe what is scrolled out of view from the next frame on. Not
+		// here: invalidating from AppKit's callback re-enters Gio.
+		go loop.SetAccessibility(true)
 		v.refresh(false)
 	}
 	return v.children
@@ -152,7 +169,7 @@ func (v *axView) refresh(notify bool) {
 	bounds := appkit.MsgRect(v.view, appkit.Sel("bounds"))
 	size := image.Pt(int(bounds.Size.Width*scale+0.5), int(bounds.Size.Height*scale+0.5))
 	v.nodes = v.w.win.AppendSemantics(v.nodes[:0])
-	v.els = elementsOf(v.nodes, image.Rectangle{Max: size})
+	v.els = elementsOf(v.nodes, image.Rectangle{Max: size}, true)
 	v.gen++
 	layout := false
 	order := v.order[:0]
@@ -175,10 +192,14 @@ func (v *axView) refresh(notify bool) {
 			layout = true
 		}
 		// View points, origin at the bottom left (Gio's view is not flipped).
-		frame := appkit.Rect{
-			Origin: appkit.Point{X: float64(e.X) / scale, Y: bounds.Size.Height - float64(e.Y+e.Height)/scale},
-			Size:   appkit.Size{Width: float64(e.Width) / scale, Height: float64(e.Height) / scale},
+		points := func(r image.Rectangle) appkit.Rect {
+			return appkit.Rect{
+				Origin: appkit.Point{X: float64(r.Min.X) / scale, Y: bounds.Size.Height - float64(r.Max.Y)/scale},
+				Size:   appkit.Size{Width: float64(r.Dx()) / scale, Height: float64(r.Dy()) / scale},
+			}
 		}
+		frame := points(e.box())
+		o.shown = points(e.box().Intersect(e.viewport))
 		if o.frame != frame {
 			o.frame = frame
 			layout = true
@@ -341,6 +362,8 @@ func axRole(role string) (string, string) {
 		return "AXSplitter", ""
 	case "tooltip":
 		return "AXHelpTag", ""
+	case "scrollarea":
+		return "AXScrollArea", ""
 	}
 	if containerRoles[role] {
 		return "AXGroup", ""
@@ -366,27 +389,144 @@ func axFrame(obj appkit.ID) appkit.Rect {
 	if win == 0 {
 		return appkit.Rect{}
 	}
-	r := appkit.MsgRectToView(o.v.view, appkit.Sel("convertRect:toView:"), o.frame, 0)
+	return axScreen(o.v.view, o.frame)
+}
+
+// axScreen converts a rectangle of view points to the screen.
+func axScreen(view appkit.ID, r appkit.Rect) appkit.Rect {
+	win := appkit.Send(view, "window")
+	if win == 0 || r.Size.Width <= 0 || r.Size.Height <= 0 {
+		return appkit.Rect{}
+	}
+	r = appkit.MsgRectToView(view, appkit.Sel("convertRect:toView:"), r, 0)
 	return appkit.MsgRectRect(win, appkit.Sel("convertRectToScreen:"), r)
 }
 
-// axPress clicks the center of the element, as VoiceOver's press does,
-// where the latest frame drew it: the last refresh may be a frame behind.
-func axPress(obj appkit.ID) bool {
+const (
+	axPressAction       = "AXPress"
+	axScrollToVisible   = "AXScrollToVisible"
+	axScrollUpByPage    = "AXScrollUpByPage"
+	axScrollDownByPage  = "AXScrollDownByPage"
+	axScrollLeftByPage  = "AXScrollLeftByPage"
+	axScrollRightByPage = "AXScrollRightByPage"
+)
+
+// pressable reports whether a press can do something.
+func (o *axObject) pressable() bool {
+	switch role, _ := axRole(o.el.Role); role {
+	case "AXStaticText", "AXGroup", "AXScrollArea", "AXImage", "AXList", "AXTable", "AXOutline", "AXToolbar", "AXTabGroup", "AXMenu", "AXHelpTag", "AXProgressIndicator":
+		return false
+	}
+	return !o.el.Disabled
+}
+
+// axActionNames lists what an element does: every element can be scrolled
+// into view, controls can be pressed, scroll areas scroll by page.
+func axActionNames(obj appkit.ID) appkit.ID {
+	names := appkit.Send(appkit.Class("NSMutableArray"), "array")
+	add := func(s string) { appkit.Send(names, "addObject:", uintptr(appkit.String(s))) }
 	o := axObjects[obj]
 	if o == nil {
-		return false
+		return names
+	}
+	if o.pressable() {
+		add(axPressAction)
+	}
+	if o.el.Role == "scrollarea" {
+		add(axScrollUpByPage)
+		add(axScrollDownByPage)
+		add(axScrollLeftByPage)
+		add(axScrollRightByPage)
+	}
+	add(axScrollToVisible)
+	return names
+}
+
+func axPerformAction(obj appkit.ID, name appkit.ID) {
+	switch appkit.GoString(name) {
+	case axPressAction:
+		axPress(obj)
+	case axScrollToVisible:
+		axScrollTo(obj)
+	case axScrollUpByPage:
+		axScrollPage(obj, 0, -1)
+	case axScrollDownByPage:
+		axScrollPage(obj, 0, 1)
+	case axScrollLeftByPage:
+		axScrollPage(obj, -1, 0)
+	case axScrollRightByPage:
+		axScrollPage(obj, 1, 0)
+	}
+}
+
+// axLatest refreshes obj's window and reports obj's element in the
+// latest frame.
+func axLatest(obj appkit.ID) (*axObject, bool) {
+	o := axObjects[obj]
+	if o == nil {
+		return nil, false
 	}
 	if _, ok := nativeWindows.Load(uintptr(o.v.view)); !ok {
-		return false
+		return nil, false
 	}
 	o.v.refresh(true)
-	if axObjects[obj] != o || o.el.Disabled {
+	return o, axObjects[obj] == o
+}
+
+// axScrollTo scrolls the area that holds the element until the element
+// shows, its top first when it is taller than the area: a wheel scroll at
+// the area's center, as a person would.
+func axScrollTo(obj appkit.ID) {
+	o, ok := axLatest(obj)
+	if !ok {
+		return
+	}
+	b, vp := o.el.box(), o.el.viewport
+	delta := func(lo, hi, vlo, vhi int) int {
+		switch {
+		case lo < vlo:
+			return lo - vlo
+		case hi > vhi:
+			return min(hi-vhi, lo-vlo)
+		}
+		return 0
+	}
+	axScroll(o.v.w, vp, delta(b.Min.X, b.Max.X, vp.Min.X, vp.Max.X), delta(b.Min.Y, b.Max.Y, vp.Min.Y, vp.Max.Y))
+}
+
+// axScrollPage scrolls a scroll area by most of its size.
+func axScrollPage(obj appkit.ID, dx, dy int) {
+	o, ok := axLatest(obj)
+	if !ok {
+		return
+	}
+	area := o.el.box().Intersect(o.el.viewport)
+	axScroll(o.v.w, area, dx*area.Dx()*9/10, dy*area.Dy()*9/10)
+}
+
+func axScroll(w *Window, area image.Rectangle, dx, dy int) {
+	if area.Empty() || dx == 0 && dy == 0 {
+		return
+	}
+	c := area.Min.Add(area.Max).Div(2)
+	w.win.ProcessInput(pointer.Event{Kind: pointer.Scroll, Source: pointer.Mouse, Position: f32.Pt(float32(c.X), float32(c.Y)), Scroll: f32.Pt(float32(dx), float32(dy))})
+}
+
+// axPress clicks the center of the element's visible part, as VoiceOver's
+// press does, where the latest frame drew it: the last refresh may be a
+// frame behind.
+func axPress(obj appkit.ID) bool {
+	o, ok := axLatest(obj)
+	if !ok || o.el.Disabled {
 		return false // gone or disabled in the latest frame
 	}
 	w := o.v.w
-	e := o.el
-	p := f32.Pt(float32(e.X)+float32(e.Width)/2, float32(e.Y)+float32(e.Height)/2)
+	shown := o.el.box().Intersect(o.el.viewport)
+	if shown.Empty() {
+		return false // scrolled out of view: a client scrolls to it first
+	}
+	c := shown.Min.Add(shown.Max).Div(2)
+	p := f32.Pt(float32(c.X), float32(c.Y))
 	w.win.ProcessInput(pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: p})
 	w.win.ProcessInput(pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: p})
 	w.win.ProcessInput(pointer.Event{Kind: pointer.Release, Source: pointer.Mouse, Position: p})
@@ -398,7 +538,7 @@ func axPress(obj appkit.ID) bool {
 func axHitTest(view appkit.ID, p appkit.Point) appkit.ID {
 	if v := axViews[view]; v != nil {
 		for i := len(v.order) - 1; i >= 0; i-- {
-			if appkit.MsgRect(v.order[i].obj, appkit.Sel("accessibilityFrame")).Contains(p) {
+			if axScreen(v.view, v.order[i].shown).Contains(p) {
 				return v.order[i].obj
 			}
 		}
