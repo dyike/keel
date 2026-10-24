@@ -1255,75 +1255,19 @@ loop:
 			state.matType = materialTexture
 			state.image = decodeImageOp(encOp.Data, encOp.Refs)
 		case ops.TypePaint:
-			// Transform (if needed) the painting rectangle and if so generate a clip path,
-			// for those cases also compute a partialTrans that maps texture coordinates between
-			// the new bounding rectangle and the transformed original paint rectangle.
-			t, off := transformOffset(state.t)
-			// Fill the clip area, unless the material is a (bounded) image.
-			// TODO: Find a tighter bound.
-			inf := float32(1e6)
-			dst := f32.Rect(-inf, -inf, inf, inf)
-			if state.matType == materialTexture {
-				sz := state.image.size()
-				dst = f32.Rectangle{Max: layout.FPt(sz)}
+			d.paint(&state, viewport, pathKeyer{key: encOp.Key})
+		case ops.TypeImageQuads:
+			img := decodeImageOp(encOp.Data, encOp.Refs)
+			key := encOp.Key
+			encOp, ok = r.Decode()
+			if !ok {
+				break loop
 			}
-			clipData, bnd, partialTrans := d.boundsForTransformedRect(dst, t)
-			cl := viewport.Intersect(bnd.Add(off))
-			if state.cpath != nil {
-				cl = state.cpath.intersect.Intersect(cl)
-			}
-			if cl.Empty() {
-				continue
-			}
-
-			if clipData != nil {
-				// The paint operation is sheared or rotated, add a clip path representing
-				// this transformed rectangle.
-				k := opKey{Key: encOp.Key}
-				k = k.SetTransform(t)
-				d.addClipPath(&state, clipData, k, bnd, off)
-			}
-
-			bounds := cl.Round()
-			mat := state.materialFor(bnd, off, partialTrans, bounds)
-
-			rect := state.cpath == nil || state.cpath.rect
-			if bounds.Min == (image.Point{}) && bounds.Max == d.viewport && rect && mat.opaque && (mat.material == materialColor) && len(d.opacityStack) == 0 {
-				// The image is a uniform opaque color and takes up the whole screen.
-				// Scrap images up to and including this image and set clear color.
-				d.imageOps = d.imageOps[:0]
-				// Completed layers refer to the discarded image indexes. Keeping
-				// them would composite unrelated operations from the new scene.
-				d.layers = d.layers[:0]
-				d.clearColor = mat.color.Opaque()
-				d.clear = true
-				continue
-			}
-			paintPath := state.cpath
-			if clipContainsPaint(paintPath, bounds) {
-				paintPath = nil
-			}
-			img := imageOp{
-				path:     paintPath,
-				clip:     bounds,
-				material: mat,
-				inLayer:  len(d.opacityStack) > 0,
-			}
-			if n := len(d.opacityStack); n > 0 {
-				idx := d.opacityStack[n-1]
-				lb := d.layers[idx].clip
-				if lb.Empty() {
-					d.layers[idx].clip = img.clip
-				} else {
-					d.layers[idx].clip = lb.Union(img.clip)
-				}
-			}
-
-			d.imageOps = append(d.imageOps, img)
-			if clipData != nil {
-				// we added a clip path that should not remain
-				state.cpath = state.cpath.parent
-			}
+			state.matType = materialTexture
+			state.image = img
+			d.imageQuads(&state, viewport, encOp.Data[ops.TypeAuxLen:], key)
+			// As the clip operations the quads replace would.
+			quads = quadsOp{}
 		case ops.TypeSave:
 			id := ops.DecodeSave(encOp.Data)
 			d.save(id, state.t)
@@ -1332,6 +1276,163 @@ loop:
 			id := ops.DecodeLoad(encOp.Data)
 			state.t = d.states[id]
 		}
+	}
+}
+
+// pathKeyer keys the clip paths of transformed rectangles: by the operation
+// that drew them, or by their content for operations drawing several.
+type pathKeyer struct {
+	key     ops.Key
+	content bool
+}
+
+func (k pathKeyer) of(aux []byte, t f32.Affine2D) opKey {
+	key := opKey{Key: k.key}
+	if k.content && len(aux) > 0 {
+		key = pathContentKey(key, aux)
+	}
+	return key.SetTransform(t)
+}
+
+// paint fills the current clip with the current material.
+func (d *drawOps) paint(state *drawState, viewport f32.Rectangle, key pathKeyer) {
+	// Transform (if needed) the painting rectangle and if so generate a clip path,
+	// for those cases also compute a partialTrans that maps texture coordinates between
+	// the new bounding rectangle and the transformed original paint rectangle.
+	t, off := transformOffset(state.t)
+	// Fill the clip area, unless the material is a (bounded) image.
+	// TODO: Find a tighter bound.
+	inf := float32(1e6)
+	dst := f32.Rect(-inf, -inf, inf, inf)
+	if state.matType == materialTexture {
+		sz := state.image.size()
+		dst = f32.Rectangle{Max: layout.FPt(sz)}
+	}
+	clipData, bnd, partialTrans := d.boundsForTransformedRect(dst, t)
+	cl := viewport.Intersect(bnd.Add(off))
+	if state.cpath != nil {
+		cl = state.cpath.intersect.Intersect(cl)
+	}
+	if cl.Empty() {
+		return
+	}
+
+	if clipData != nil {
+		// The paint operation is sheared or rotated, add a clip path representing
+		// this transformed rectangle.
+		k := key.of(clipData, t)
+		d.addClipPath(state, clipData, k, bnd, off)
+	}
+
+	bounds := cl.Round()
+	mat := state.materialFor(bnd, off, partialTrans, bounds)
+
+	rect := state.cpath == nil || state.cpath.rect
+	if bounds.Min == (image.Point{}) && bounds.Max == d.viewport && rect && mat.opaque && (mat.material == materialColor) && len(d.opacityStack) == 0 {
+		// The image is a uniform opaque color and takes up the whole screen.
+		// Scrap images up to and including this image and set clear color.
+		d.imageOps = d.imageOps[:0]
+		// Completed layers refer to the discarded image indexes. Keeping
+		// them would composite unrelated operations from the new scene.
+		d.layers = d.layers[:0]
+		d.clearColor = mat.color.Opaque()
+		d.clear = true
+		return
+	}
+	paintPath := state.cpath
+	if clipContainsPaint(paintPath, bounds) {
+		paintPath = nil
+	}
+	img := imageOp{
+		path:     paintPath,
+		clip:     bounds,
+		material: mat,
+		inLayer:  len(d.opacityStack) > 0,
+	}
+	if n := len(d.opacityStack); n > 0 {
+		idx := d.opacityStack[n-1]
+		lb := d.layers[idx].clip
+		if lb.Empty() {
+			d.layers[idx].clip = img.clip
+		} else {
+			d.layers[idx].clip = lb.Union(img.clip)
+		}
+	}
+
+	d.imageOps = append(d.imageOps, img)
+	if clipData != nil {
+		// we added a clip path that should not remain
+		state.cpath = state.cpath.parent
+	}
+}
+
+// imageQuads paints the current image once per quad, as the operations
+// listed by paint.ImageOp.PaintQuads would: an offset, a rectangle clip and a
+// paint each. Under an integer translation, the common case of text, every
+// quad becomes an image operation directly. Other transforms replay those
+// operations, keying their clip paths by content since the quads share one
+// operation key.
+func (d *drawOps) imageQuads(state *drawState, viewport f32.Rectangle, data []byte, key ops.Key) {
+	bo := binary.LittleEndian
+	quad := func(b []byte) (image.Point, f32.Rectangle) {
+		at := func(i int) int { return int(int32(bo.Uint32(b[i:]))) }
+		return image.Pt(at(0), at(4)), f32.FRect(image.Rect(at(8), at(12), at(16), at(20)))
+	}
+	base := state.t
+	sx, hx, ox, hy, sy, oy := base.Elems()
+	if sx != 1 || sy != 1 || hx != 0 || hy != 0 || ox != float32(math.Trunc(float64(ox))) || oy != float32(math.Trunc(float64(oy))) {
+		parent := state.cpath
+		keys := pathKeyer{key: key, content: true}
+		for ; len(data) >= ops.ImageQuadLen; data = data[ops.ImageQuadLen:] {
+			qoff, clipRect := quad(data)
+			state.t = base.Mul(f32.AffineId().Offset(layout.FPt(qoff)))
+			trans, off := transformOffset(state.t)
+			aux, bounds, _ := d.boundsForTransformedRect(clipRect, trans)
+			d.addClipPath(state, aux, keys.of(aux, trans), bounds, off)
+			d.paint(state, viewport, keys)
+			state.cpath = parent
+		}
+		state.t = base
+		return
+	}
+	sz := state.image.size()
+	imgRect := f32.Rectangle{Max: layout.FPt(sz)}
+	parent := state.cpath
+	for ; len(data) >= ops.ImageQuadLen; data = data[ops.ImageQuadLen:] {
+		qoff, clipRect := quad(data)
+		off := f32.Pt(ox+float32(qoff.X), oy+float32(qoff.Y))
+		// The quad's clip, as addClipPath would intersect it.
+		intersect := clipRect.Add(off)
+		if parent != nil {
+			intersect = parent.intersect.Intersect(intersect)
+		}
+		cl := viewport.Intersect(imgRect.Add(off))
+		cl = intersect.Intersect(cl)
+		if cl.Empty() {
+			continue
+		}
+		bounds := cl.Round()
+		img := imageOp{
+			clip:     bounds,
+			material: state.materialFor(imgRect, off, f32.AffineId(), bounds),
+			inLayer:  len(d.opacityStack) > 0,
+		}
+		// A rectangle clip never needs coverage itself; its ancestors might.
+		if !clipContainsPaint(parent, bounds) {
+			d.addClipPath(state, nil, opKey{}, clipRect, off)
+			img.path = state.cpath
+			state.cpath = parent
+		}
+		if n := len(d.opacityStack); n > 0 {
+			idx := d.opacityStack[n-1]
+			lb := d.layers[idx].clip
+			if lb.Empty() {
+				d.layers[idx].clip = img.clip
+			} else {
+				d.layers[idx].clip = lb.Union(img.clip)
+			}
+		}
+		d.imageOps = append(d.imageOps, img)
 	}
 }
 

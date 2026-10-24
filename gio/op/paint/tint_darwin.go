@@ -16,3 +16,8 @@ import (
 // This optional Keel extension is available on Metal builds. Other builds
 // retain the ordinary ImageOp API so atlas callers can keep colored pages.
 func (i ImageOp) AddTinted(o *op.Ops, tint color.NRGBA) { i.addTinted(o, tint) }
+
+// PaintTintedQuads is PaintQuads with an AddTinted brush. Keel patch.
+func (i ImageOp) PaintTintedQuads(o *op.Ops, tint color.NRGBA, quads []ImageQuad) {
+	i.paintQuads(o, tint, quads)
+}

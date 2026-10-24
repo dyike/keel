@@ -188,6 +188,12 @@ func (i ImageOp) addTinted(o *op.Ops, tint color.NRGBA) {
 	} else if size := i.Size(); size.X <= 0 || size.Y <= 0 {
 		return
 	}
+	i.write(o, ops.TypeImage, tint)
+}
+
+// write encodes a non-uniform, non-empty image brush as an operation of type
+// t: TypeImage, or TypeImageQuads (Keel patch).
+func (i ImageOp) write(o *op.Ops, t ops.OpType, tint color.NRGBA) {
 	var src any = i.src
 	if i.mask != nil {
 		src = i.mask
@@ -196,7 +202,7 @@ func (i ImageOp) addTinted(o *op.Ops, tint color.NRGBA) {
 		src = i.surface
 	}
 	data := ops.Write2(&o.Internal, ops.TypeImageLen, src, i.handle)
-	data[0] = byte(ops.TypeImage)
+	data[0] = byte(t)
 	data[1] = byte(i.Filter)
 	data[2], data[3], data[4], data[5] = tint.R, tint.G, tint.B, tint.A
 }
