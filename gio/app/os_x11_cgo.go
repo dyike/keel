@@ -299,8 +299,13 @@ func xSetWMHints(d unsafe.Pointer, w xWindow, h *xWMHints) {
 }
 
 // xSetClassHint takes NUL-terminated strings.
+// The strings are copied to C memory: cgo rejects a struct of Go pointers.
 func xSetClassHint(d unsafe.Pointer, w xWindow, name, class []byte) {
-	h := C.XClassHint{cchar(name), cchar(class)}
+	cname := C.CString(string(name[:len(name)-1]))
+	defer C.free(unsafe.Pointer(cname))
+	cclass := C.CString(string(class[:len(class)-1]))
+	defer C.free(unsafe.Pointer(cclass))
+	h := C.XClassHint{cname, cclass}
 	C.XSetClassHint(dpy(d), C.Window(w), &h)
 }
 
@@ -314,8 +319,11 @@ func xStoreName(d unsafe.Pointer, w xWindow, name []byte) {
 }
 
 func xSetTextProperty(d unsafe.Pointer, w xWindow, value []byte, encoding xAtom, format int32, prop xAtom) {
+	// Copied to C memory: cgo rejects a struct holding a Go pointer.
+	cvalue := C.CString(string(value))
+	defer C.free(unsafe.Pointer(cvalue))
 	p := C.XTextProperty{
-		value:    (*C.uchar)(unsafe.Pointer(unsafe.SliceData(value))),
+		value:    (*C.uchar)(unsafe.Pointer(cvalue)),
 		encoding: C.Atom(encoding),
 		format:   C.int(format),
 		nitems:   C.ulong(len(value)),
