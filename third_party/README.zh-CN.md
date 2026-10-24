@@ -28,6 +28,8 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- `gio/app`（Wayland）：`os_wayland.go` 保留 Gio 的 Wayland 窗口逻辑，改为操作不透明的 proxy 指针；请求在 `wayland_requests.go` 中用 `wl_proxy_marshal_array_flags` 编组（wayland-scanner 的内联函数用的是 `wl_proxy_marshal_flags`），事件交给共用的 `wlOn*` 处理函数。`os_wayland_cgo.go` 保留 Gio 的监听表（os_wayland.c）和生成的协议代码，配以 `//export` 转接函数，并在初始化时对照头文件检查每个操作码、协议常量和光标结构体。`os_wayland_purego.go` 不使用 cgo 加载 libwayland-client 和 libwayland-cursor，按 `wayland_protocols_purego.go`（由 scanner 代码生成）在 C 内存中构建 xdg-shell、xdg-decoration 和 text-input 接口，并用一个 `wl_proxy_add_dispatcher` 回调分发所有 proxy 的事件。`egl_wayland_purego.go` 加载 libwayland-egl。
+
 - `gio/app`（X11）：`os_x11.go` 保留 Gio 的 X11 窗口逻辑，改为操作自己定义的 X 结构体（Window、Atom、Time 用 uintptr，C long 用 int）；`os_x11_cgo.go` 保留经 cgo 调用的 Xlib，并在初始化时对照头文件检查每个字段偏移、结构体大小和常量；`os_x11_purego.go` 不使用 cgo 加载 libX11、libX11-xcb、libXcursor、libXfixes 和 libxkbcommon-x11。Linux 上 Wayland 和 Vulkan 文件暂时只用 cgo。Perform 和 Configure 末尾调用 XFlush：它们在事件循环之外运行，而事件循环阻塞在 poll 上，Xlib 一直缓存着它们发出的请求（关闭、置前或调整大小）。此前在 Xvfb 下，resident 和 reopen 真实窗口测试在两种绑定下都会超时，raise 偶尔死锁；修复后整套测试在两种绑定、amd64 和 arm64 上都通过。
 
 - `gio/app/internal/xkb`：按键分发逻辑和 keysym 表移入 `xkb.go`，操作 libxkbcommon 的不透明指针；`xkb_cgo.go` 保留 cgo 调用（并对照头文件检查 keysym 和枚举值），`xkb_purego_linux.go` 不使用 cgo 加载 `libxkbcommon.so.0`。测试在两种绑定下编译默认键位表，检查 KEY_A 的 keysym、文本、Shift 和按键重复。

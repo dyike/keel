@@ -44,6 +44,20 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app` (Wayland): `os_wayland.go` keeps Gio's Wayland window logic
+  over opaque proxy pointers; its requests are marshalled in
+  `wayland_requests.go` with `wl_proxy_marshal_array_flags`, as
+  wayland-scanner's inline functions do with `wl_proxy_marshal_flags`, and
+  events arrive at shared `wlOn*` handlers. `os_wayland_cgo.go` keeps
+  Gio's listener tables (os_wayland.c) and generated protocol code, with
+  `//export` shims, and checks every opcode, protocol value and cursor
+  structure against the headers at init. `os_wayland_purego.go` loads
+  libwayland-client and libwayland-cursor without cgo, builds the
+  xdg-shell, xdg-decoration and text-input interfaces in C memory from
+  `wayland_protocols_purego.go` (generated from the scanner code), and
+  routes every proxy's events through one `wl_proxy_add_dispatcher`
+  callback. `egl_wayland_purego.go` loads libwayland-egl.
+
 - `gio/app` (X11): `os_x11.go` keeps Gio's X11 window logic over Go
   definitions of the X structures it uses (Window, Atom and Time as uintptr,
   C long as int); `os_x11_cgo.go` keeps Xlib through cgo and checks every
