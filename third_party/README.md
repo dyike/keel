@@ -44,6 +44,16 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/internal/ops`: op writes extend the data buffer in place when it
+  has room, instead of `append(o.data, make([]byte, n)...)`. The compiler
+  turns that idiom into an in-place extension only in ordinary builds;
+  under `-race` every write allocated the temporary slice, which pushed
+  the gallery's allocation ceilings over (label 40 per frame against 26)
+  and made `go test -race ./...` fail. Ordinary builds are unchanged: the
+  same allocations, and op writes and gallery frames within noise. A test
+  checks that a frame of op writes allocates nothing and returns zeroed
+  bytes; under `-race` it fails without the patch.
+
 - `gio/io/input`, `gio/app`: `Router.FocusSemantic(id)` gives keyboard
   focus to a semantic node, through its focusable handler or the nearest
   one inside it (a text field's editor), and `Window.QueueFocus(id)` does

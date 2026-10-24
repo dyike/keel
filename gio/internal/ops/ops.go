@@ -197,12 +197,28 @@ func Reset(o *Ops) {
 	o.version++
 }
 
+// extend appends n zero bytes to the op data and returns them. Keel patch:
+// append(o.data, make([]byte, n)...) extends in place only when the
+// compiler recognizes it, which it does not under -race, where every op
+// write allocated the temporary slice. A buffer with room is resliced;
+// growing, which allocates in every build, keeps the idiom.
+func (o *Ops) extend(n int) []byte {
+	l := len(o.data)
+	if l+n <= cap(o.data) {
+		o.data = o.data[:l+n]
+		data := o.data[l:]
+		clear(data)
+		return data
+	}
+	o.data = append(o.data, make([]byte, n)...)
+	return o.data[l:]
+}
+
 func Write(o *Ops, n int) []byte {
 	if o.multipOp {
 		panic("cannot mix multi ops with single ones")
 	}
-	o.data = append(o.data, make([]byte, n)...)
-	return o.data[len(o.data)-n:]
+	return o.extend(n)
 }
 
 func BeginMulti(o *Ops) {
@@ -223,8 +239,7 @@ func WriteMulti(o *Ops, n int) []byte {
 	if !o.multipOp {
 		panic("cannot use multi ops in single ops")
 	}
-	o.data = append(o.data, make([]byte, n)...)
-	return o.data[len(o.data)-n:]
+	return o.extend(n)
 }
 
 func PushMacro(o *Ops) StackID {
@@ -268,35 +283,35 @@ func PopOp(o *Ops, kind StackKind, sid StackID, macroID uint32) {
 }
 
 func Write1(o *Ops, n int, ref1 any) []byte {
-	o.data = append(o.data, make([]byte, n)...)
+	data := o.extend(n)
 	o.refs = append(o.refs, ref1)
-	return o.data[len(o.data)-n:]
+	return data
 }
 
 func Write1String(o *Ops, n int, ref1 string) []byte {
-	o.data = append(o.data, make([]byte, n)...)
+	data := o.extend(n)
 	o.stringRefs = append(o.stringRefs, ref1)
 	o.refs = append(o.refs, &o.stringRefs[len(o.stringRefs)-1])
-	return o.data[len(o.data)-n:]
+	return data
 }
 
 func Write2(o *Ops, n int, ref1, ref2 any) []byte {
-	o.data = append(o.data, make([]byte, n)...)
+	data := o.extend(n)
 	o.refs = append(o.refs, ref1, ref2)
-	return o.data[len(o.data)-n:]
+	return data
 }
 
 func Write2String(o *Ops, n int, ref1 any, ref2 string) []byte {
-	o.data = append(o.data, make([]byte, n)...)
+	data := o.extend(n)
 	o.stringRefs = append(o.stringRefs, ref2)
 	o.refs = append(o.refs, ref1, &o.stringRefs[len(o.stringRefs)-1])
-	return o.data[len(o.data)-n:]
+	return data
 }
 
 func Write3(o *Ops, n int, ref1, ref2, ref3 any) []byte {
-	o.data = append(o.data, make([]byte, n)...)
+	data := o.extend(n)
 	o.refs = append(o.refs, ref1, ref2, ref3)
-	return o.data[len(o.data)-n:]
+	return data
 }
 
 func PCFor(o *Ops) PC {
