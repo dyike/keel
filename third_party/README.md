@@ -44,6 +44,16 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app` (X11): `os_x11.go` keeps Gio's X11 window logic over Go
+  definitions of the X structures it uses (Window, Atom and Time as uintptr,
+  C long as int); `os_x11_cgo.go` keeps Xlib through cgo and checks every
+  field offset, size and constant against the headers at init;
+  `os_x11_purego.go` loads libX11, libX11-xcb, libXcursor, libXfixes and
+  libxkbcommon-x11 without cgo. Wayland and Vulkan files are cgo-only on
+  Linux for now. The X11 real-window tests give the same results through
+  both bindings under Xvfb: raise passes; resident and reopen time out
+  either way, an X11 issue tracked apart from the migration.
+
 - `gio/app/internal/xkb`: the key dispatch logic and keysym table move to
   `xkb.go`, over libxkbcommon's opaque pointers; `xkb_cgo.go` keeps the cgo
   calls (and checks the keysyms and enums against the headers) and

@@ -114,8 +114,9 @@ and performance patches; replace native bindings, not the renderers. The
   default until the macOS default is promoted.
 - `runtime/cgo`, as a consequence of the selected bindings.
 
-Linux also needs migration of X11/Wayland, xkbcommon, EGL/GL and Vulkan
-bindings. Windows already builds without cgo. iOS/Android migration is deferred.
+On Linux, EGL, GL, xkbcommon and the X11 window have purego bindings (CI:
+"Linux without cgo", amd64 and arm64); Wayland and Vulkan still need cgo, so
+the no-cgo Linux build is X11 with EGL. Windows already builds without cgo. iOS/Android migration is deferred.
 On the inspected Apple silicon host, `CGO_ENABLED=0 go build ./examples/hello`
 passes and `CGO_ENABLED=0 go test ./...` passes, including real windows
 (`KEEL_DESKTOP=1`). The macOS default stays cgo until the promotion gate in the

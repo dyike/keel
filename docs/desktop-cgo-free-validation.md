@@ -218,6 +218,29 @@ Not done: amd64 execution, a real Chinese input method with candidate
 windows across scale changes, display sleep/wake and full screen by hand,
 and the pixel check of the OpenGL window. The macOS default stays cgo.
 
+## L1 progress: EGL, xkbcommon and X11 on Linux (2026-10-24)
+
+The "Linux without cgo" workflow runs on GitHub's ubuntu-24.04 (amd64) and
+ubuntu-24.04-arm runners with no C compiler and runtime libraries only, on
+Mesa's software renderers. With `CGO_ENABLED=0`:
+
+- EGL and OpenGL ES: a new headless pixel test renders fills, a clip and a
+  blended ellipse through surfaceless EGL and reads them back correctly on
+  both architectures; the GL binding's symbol and string tests pass.
+- xkbcommon: a new test compiles the default keymap and checks KEY_A's
+  keysym, text, Shift and repeat; the cgo job runs it too and its header
+  checks pass.
+- X11: `examples/hello` builds and its window opens under Xvfb. The cgo job
+  checks the Go X structure layouts and constants against the headers.
+  Under Xvfb the ui/window raise test passes with both bindings; resident
+  and reopen time out with both, so they are excluded from both gates and
+  tracked as an X11 issue. CI found two cgo regressions of the refactor
+  (structs holding Go pointers passed to C), fixed before this note.
+
+Wayland and Vulkan are still cgo-only on Linux; the no-cgo build uses X11
+and EGL. IBus input, keyboard layouts beyond the default and real desktops
+were not exercised.
+
 ## Preserved ABI work and remaining gates
 
 D0's compile gate and M0's no-cgo Objective-C probes remain in the root module.

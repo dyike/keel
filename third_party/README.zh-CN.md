@@ -28,6 +28,8 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- `gio/app`（X11）：`os_x11.go` 保留 Gio 的 X11 窗口逻辑，改为操作自己定义的 X 结构体（Window、Atom、Time 用 uintptr，C long 用 int）；`os_x11_cgo.go` 保留经 cgo 调用的 Xlib，并在初始化时对照头文件检查每个字段偏移、结构体大小和常量；`os_x11_purego.go` 不使用 cgo 加载 libX11、libX11-xcb、libXcursor、libXfixes 和 libxkbcommon-x11。Linux 上 Wayland 和 Vulkan 文件暂时只用 cgo。Xvfb 下 X11 真实窗口测试在两种绑定下结果一致：raise 通过；resident 和 reopen 两种绑定都超时，属于 X11 自身的问题，与本次迁移分开跟踪。
+
 - `gio/app/internal/xkb`：按键分发逻辑和 keysym 表移入 `xkb.go`，操作 libxkbcommon 的不透明指针；`xkb_cgo.go` 保留 cgo 调用（并对照头文件检查 keysym 和枚举值），`xkb_purego_linux.go` 不使用 cgo 加载 `libxkbcommon.so.0`。测试在两种绑定下编译默认键位表，检查 KEY_A 的 keysym、文本、Shift 和按键重复。
 
 - `gio/internal/egl`：在 Linux 桌面上，`CGO_ENABLED=0` 或 `-tags purego` 时 `egl_purego_linux.go` 通过 purego 加载 libEGL，句柄与 `egl_windows.go` 一样使用 uintptr；`egl_unix.go` 仍是 cgo 默认实现，也是 Android 和 BSD 的唯一绑定。EGLBoolean 返回值只取低 32 位。`gio/gpu/headless` 新增在所有平台运行的像素测试（设置 `GIO_HEADLESS_REQUIRED=1` 时无法创建上下文即失败而非跳过）；`gio/gpu` 中使用 `AddTinted` 的测试移入 `!nometal` 的 darwin 文件，使该包的测试能在 Linux 和 `nometal` 下构建。

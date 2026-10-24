@@ -142,6 +142,16 @@ amd64 只做了编译和 vet（未安装 Rosetta），其经 `RegisterFunc` 按�
 
 未完成：amd64 实际运行，真实中文输入法及其候选窗在缩放变化下的位置，手动验证显示器睡眠/唤醒和全屏，以及 OpenGL 窗口的像素检查。macOS 默认仍为 cgo。
 
+## L1 进展：Linux 上的 EGL、xkbcommon 和 X11（2026-10-24）
+
+"Linux without cgo" 工作流在 GitHub 的 ubuntu-24.04（amd64）和 ubuntu-24.04-arm 运行器上执行，不装 C 编译器，只装运行库，使用 Mesa 的软件渲染。在 `CGO_ENABLED=0` 下：
+
+- EGL 和 OpenGL ES：新的无头像素测试经 surfaceless EGL 渲染填充、裁剪和混合的椭圆，两种架构上读回的像素都正确；GL 绑定的符号和字符串测试通过。
+- xkbcommon：新测试编译默认键位表，检查 KEY_A 的 keysym、文本、Shift 和重复；cgo 任务也运行该测试，头文件检查通过。
+- X11：`examples/hello` 能构建，窗口能在 Xvfb 下打开。cgo 任务对照头文件检查 Go 定义的 X 结构体布局和常量。Xvfb 下 ui/window 的 raise 测试在两种绑定下都通过；resident 和 reopen 在两种绑定下都超时，因此从两边的门禁中排除，作为 X11 问题单独跟踪。CI 发现了重构引入的两处 cgo 回归（向 C 传递含 Go 指针的结构体），已在本记录前修复。
+
+Linux 上 Wayland 和 Vulkan 仍只能用 cgo；无 cgo 构建使用 X11 和 EGL。IBus 输入、默认之外的键盘布局以及真实桌面均未验证。
+
 ## 保留的 ABI 工作与待验收项
 
 D0 编译门禁和 M0 无 CGO Objective-C 探针保留在根模块中。

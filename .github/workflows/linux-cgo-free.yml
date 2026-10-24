@@ -45,7 +45,7 @@ jobs:
       # window there never completes); they are tracked apart from the
       # migration, and the cgo job runs the same set.
       - name: Real X11 windows under Xvfb
-        run: xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run 'TestRealWindows/^\./testdata/raise$' -count=1 -timeout=300s -v
+        run: xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run 'TestRealWindows/./testdata/^raise$' -count=1 -timeout=300s -v
       - name: Gio app tests and hello on X11
         shell: bash
         run: |
