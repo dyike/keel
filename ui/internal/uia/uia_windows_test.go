@@ -70,9 +70,14 @@ func TestMatchesSDK(t *testing.T) {
 	}
 	client := string(sdkHeader(t, "UIAutomationClient.h"))
 	defines := map[string]int{}
-	for _, m := range regexp.MustCompile(`#define\s+(UIA_\w+)\s+\(\s*(\d+)\s*\)`).FindAllStringSubmatch(client, -1) {
-		v, _ := strconv.Atoi(m[2])
-		defines[m[1]] = v
+	// "#define UIA_X ( 1 )" in older SDKs, "const long UIA_X = 1;" in newer.
+	for _, m := range regexp.MustCompile(`(?:#define\s+(UIA_\w+)\s+\(\s*(\d+)\s*\))|(?:const\s+\w+\s+(UIA_\w+)\s*=\s*(\d+)\s*;)`).FindAllStringSubmatch(client, -1) {
+		name, value := m[1], m[2]
+		if name == "" {
+			name, value = m[3], m[4]
+		}
+		v, _ := strconv.Atoi(value)
+		defines[name] = v
 	}
 	for name, value := range map[string]int{
 		"UIA_InvokePatternId": patternInvoke, "UIA_ValuePatternId": patternValue,
