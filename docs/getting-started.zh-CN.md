@@ -19,7 +19,8 @@ go install github.com/dyike/keel/cmd/keel@latest
 keel doctor
 ```
 
-此安装方式需要已发布的单模块版本。发布前验证当前检出目录，在仓库根目录执行
+发布版本已包含 Keel 的 Gio 和 go-text，安装的 CLI 生成的项目只依赖 Keel 即可构建。
+要试用 Keel 检出目录中尚未发布的改动，在仓库根目录执行
 `go build -o /tmp/keel ./cmd/keel`，再执行
 `/tmp/keel new /tmp/my-notes -replace "$PWD"`。
 
@@ -44,7 +45,7 @@ keel run
 | `go.mod`、`go.sum` | require 所选 Keel 发布，其中已包含 Keel 的 Gio 和 go-text；生成后执行 `go mod tidy` |
 | `.gitignore`、`README.md` | 忽略 `dist/` 和打包中间文件 |
 
-参数：`-name "我的笔记"` 设置显示名称（默认由目录名得到，`my-notes` → `My Notes`），`-appid com.yourname.notes` 设置应用 ID（默认 `com.example.<目录名>`），`-module` 设置 Go 模块路径。目录必须为空。
+参数：`-name "我的笔记"` 设置显示名称（默认由目录名得到，`my-notes` → `My Notes`），`-appid com.yourname.notes` 设置应用 ID（默认 `com.example.<目录名>`），`-module` 设置 Go 模块路径，`-lang zh-CN` 让生成应用里的文字使用中文（默认英文）。目录必须为空。
 
 `-keel <版本>` 选择精确的 Keel 发布（默认为 CLI 自身版本，或最新版）。`-replace <Keel 检出目录>` 改为从本地检出目录引用 Keel，用于开发 Keel，路径可含空格。`-offline` 不拉依赖而写入文件：精确的 `-keel vX.Y.Z` 不需要缓存元数据，`latest` 等查询需要缓存解析结果。构建前执行 `go mod tidy`，届时依赖须已缓存或可下载。
 
