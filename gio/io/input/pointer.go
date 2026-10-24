@@ -528,6 +528,12 @@ func (q *pointerQueue) appendSemanticChildren(nodes []SemanticNode, areaIdx int)
 }
 
 func (q *pointerQueue) semanticIDFor(content semanticContent) SemanticID {
+	// Keel patch: an ID follows what the node says, not which handler it
+	// has (its tag and the gestures that handler accepts), so a node keeps
+	// its ID when it gains or loses input handlers, such as a row scrolled
+	// into view that was only described while out of view. Nodes that say
+	// the same thing get IDs in order, as before.
+	content.tag, content.gestures = nil, 0
 	ids := q.semantic.contentIDs[content]
 	for i, id := range ids {
 		if !id.used {
