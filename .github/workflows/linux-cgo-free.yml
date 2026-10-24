@@ -41,3 +41,14 @@ jobs:
         run: GIO_HEADLESS_REQUIRED=1 go test -tags novulkan ./gio/internal/egl ./gio/internal/gl ./gio/gpu/... -count=1 -v -timeout=300s
       - name: xkbcommon keymaps and key dispatch
         run: GIO_XKB_REQUIRED=1 go test ./gio/app/internal/xkb -count=1 -v
+      - name: Real X11 windows under Xvfb
+        run: |
+          xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run TestRealWindows -count=1 -timeout=300s -v 2>&1 | tail -60
+          test "${PIPESTATUS[0]}" = 0
+        shell: bash
+      - name: Gio app tests and hello on X11
+        shell: bash
+        run: |
+          xvfb-run -a -s "-screen 0 1280x1024x24" go test ./gio/app -count=1 -timeout=180s
+          go build -o /tmp/hello ./examples/hello
+          ldd /tmp/hello || true
