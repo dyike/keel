@@ -42,19 +42,21 @@ type axView struct {
 	els      []Element
 	objects  map[input.SemanticID]*axObject
 	order    []*axObject // in element order: containers before what they hold
+	focus    *axObject   // the element holding keyboard focus, or nil
 	children appkit.ID   // retained NSArray of the top-level objects
 	gen      uint64
 }
 
 type axObject struct {
-	obj    appkit.ID // owned
-	v      *axView
-	el     Element // as last applied
-	set    bool
-	parent appkit.ID
-	frame  appkit.Rect // in view points
-	shown  appkit.Rect // the part of it that can be seen, for hit testing
-	gen    uint64
+	obj     appkit.ID // owned
+	v       *axView
+	el      Element // as last applied
+	set     bool
+	parent  appkit.ID
+	frame   appkit.Rect // in view points
+	shown   appkit.Rect // the part of it that can be seen, for hit testing
+	focused bool
+	gen     uint64
 }
 
 // installAccessibility gives the class of a Gio content view its
@@ -87,6 +89,7 @@ func installAccessibility(view uintptr) {
 		axImps.children = objc.NewIMP(func(self appkit.ID, _ appkit.SEL) appkit.ID { return axChildren(self) })
 		axImps.role = objc.NewIMP(func(self appkit.ID, _ appkit.SEL) appkit.ID { return appkit.String("AXGroup") })
 		axImps.hitTest = objc.NewIMP(func(self appkit.ID, _ appkit.SEL, p appkit.Point) appkit.ID { return axHitTest(self, p) })
+		axImps.focused = objc.NewIMP(func(self appkit.ID, _ appkit.SEL) appkit.ID { return axFocused(self) })
 	}
 	if axClasses.views[cls] {
 		return
@@ -95,9 +98,18 @@ func installAccessibility(view uintptr) {
 	cls.AddMethod(appkit.Sel("accessibilityChildren"), axImps.children, "@@:")
 	cls.AddMethod(appkit.Sel("accessibilityRole"), axImps.role, "@@:")
 	cls.AddMethod(appkit.Sel("accessibilityHitTest:"), axImps.hitTest, "@@:{CGPoint=dd}")
+	cls.AddMethod(appkit.Sel("accessibilityFocusedUIElement"), axImps.focused, "@@:")
 }
 
-var axImps struct{ children, role, hitTest objc.IMP }
+var axImps struct{ children, role, hitTest, focused objc.IMP }
+
+// axFocused returns the element holding keyboard focus, or the view.
+func axFocused(view appkit.ID) appkit.ID {
+	if v := axViews[view]; v != nil && v.focus != nil {
+		return v.focus.obj
+	}
+	return view
+}
 
 func accessibilityOpen(*Window)        {}
 func accessibilityFocus(*Window, bool) {}
@@ -174,6 +186,7 @@ func (v *axView) refresh(notify bool) {
 	v.els = elementsOf(v.nodes, image.Rectangle{Max: size}, true)
 	v.gen++
 	layout := false
+	var focus *axObject
 	order := v.order[:0]
 	for _, e := range v.els {
 		o := v.objects[e.id]
@@ -213,10 +226,27 @@ func (v *axView) refresh(notify bool) {
 				postAX(o.obj, "NSAccessibilityValueChangedNotification", "AXValueChanged")
 			}
 		}
+		if o.focused != e.focused {
+			o.focused = e.focused
+			appkit.Send(o.obj, "setAccessibilityFocused:", appkit.Bool(e.focused))
+		}
+		if e.focused {
+			focus = o
+		}
 		o.el = e
 		order = append(order, o)
 	}
 	v.order = order
+	if focus != v.focus {
+		v.focus = focus
+		if notify {
+			target := v.view
+			if focus != nil {
+				target = focus.obj
+			}
+			postAX(target, "NSAccessibilityFocusedUIElementChangedNotification", "AXFocusedUIElementChanged")
+		}
+	}
 	for id, o := range v.objects {
 		if o.gen != v.gen {
 			delete(v.objects, id)

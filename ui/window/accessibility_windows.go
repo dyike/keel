@@ -92,7 +92,7 @@ func (a *uiaWindow) observe(nodes []input.SemanticNode, size image.Point) {
 		key := strconv.FormatUint(uint64(e.id), 10)
 		byKey[key] = e
 		a.buf = append(a.buf, uia.Node{Key: key, Role: e.Role, Name: e.Name, Value: e.Value,
-			Checked: e.Checked, Selected: e.Selected, Disabled: e.Disabled,
+			Checked: e.Checked, Selected: e.Selected, Disabled: e.Disabled, Focused: e.focused,
 			Bounds: e.box(), Viewport: e.viewport, Parent: e.parent})
 	}
 	a.mu.Lock()

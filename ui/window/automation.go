@@ -217,6 +217,7 @@ type Element struct {
 	// viewport is the part of the window that can show it: the window, or
 	// the scroll area or clip that holds it.
 	viewport image.Rectangle
+	focused  bool // it, or a node it absorbs, holds keyboard focus
 }
 
 func (e Element) box() image.Rectangle { return image.Rect(e.X, e.Y, e.X+e.Width, e.Y+e.Height) }
@@ -249,9 +250,11 @@ func (w *Window) window() image.Rectangle { return image.Rectangle{Max: w.virt.g
 // areas become elements of their own.
 func elementsOf(nodes []input.SemanticNode, visible image.Rectangle, ax bool) []Element {
 	var out []Element
-	var walk func(n input.SemanticNode, inControl bool, visible image.Rectangle, parent int, inScroll bool)
-	walk = func(n input.SemanticNode, inControl bool, visible image.Rectangle, parent int, inScroll bool) {
+	// owner is the element absorbing n, or -1.
+	var walk func(n input.SemanticNode, owner int, visible image.Rectangle, parent int, inScroll bool)
+	walk = func(n input.SemanticNode, owner int, visible image.Rectangle, parent int, inScroll bool) {
 		d := n.Desc
+		inControl := owner >= 0
 		if d.Description == "el-inert" {
 			return
 		}
@@ -269,8 +272,13 @@ func elementsOf(nodes []input.SemanticNode, visible image.Rectangle, ax bool) []
 		if ax {
 			box = d.Bounds
 		}
+		if role == "" && d.Focused && owner >= 0 {
+			out[owner].focused = true // e.g. Gio's editor inside el's textbox
+		}
+		self := -1
 		if role != "" {
-			e := Element{Role: role, Name: d.Label, Value: value, Disabled: d.Disabled,
+			self = len(out)
+			e := Element{Role: role, Name: d.Label, Value: value, Disabled: d.Disabled, focused: d.Focused,
 				X: box.Min.X, Y: box.Min.Y, Width: box.Dx(), Height: box.Dy(), parent: parent, id: n.ID, viewport: visible}
 			state := d.Selected
 			switch role {
@@ -299,12 +307,15 @@ func elementsOf(nodes []input.SemanticNode, visible image.Rectangle, ax bool) []
 			visible = b // an element or clip area bounds what is inside it
 		}
 		inScroll = inScroll || custom(d) == "scrollarea"
+		if absorb {
+			owner = self
+		}
 		for _, c := range n.Children {
-			walk(c, inControl || absorb, visible, parent, inScroll)
+			walk(c, owner, visible, parent, inScroll)
 		}
 	}
 	if len(nodes) > 0 {
-		walk(nodes[0], false, visible, -1, false)
+		walk(nodes[0], -1, visible, -1, false)
 	}
 	return out
 }

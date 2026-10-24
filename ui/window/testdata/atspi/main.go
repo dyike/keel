@@ -85,7 +85,9 @@ func main() {
 			fail("Item 25 shows before scrolling")
 		}
 		c.call(save, "org.a11y.atspi.Action.DoAction", nil, int32(0))
-		c.poll("Saved 1", func() (ref, bool) { return c.find(win, 43, "Saved 1") })
+		saved := c.poll("Saved 1", func() (ref, bool) { return c.find(win, 43, "Saved 1") })
+		// The press also gave the button keyboard focus.
+		c.poll("the pressed button focused", func() (ref, bool) { return saved, c.state(saved, 12) })
 		c.call(item, "org.a11y.atspi.Component.ScrollTo", nil, uint32(0))
 		c.poll("Item 25 showing", func() (ref, bool) { return item, c.showing(item) })
 		c.call(item, "org.a11y.atspi.Action.DoAction", nil, int32(0))
@@ -101,7 +103,7 @@ func main() {
 			}
 			time.Sleep(50 * time.Millisecond)
 		}
-		fmt.Println("PASS: AT-SPI registration, roles, names, scroll pane, press, scroll into view")
+		fmt.Println("PASS: AT-SPI registration, roles, names, scroll pane, press, focus, scroll into view")
 	}()
 	window.Main()
 }
@@ -164,11 +166,13 @@ func (c *checker) name(r ref) string {
 	return s
 }
 
-func (c *checker) showing(r ref) bool {
+func (c *checker) state(r ref, bit uint) bool {
 	var s []uint32
 	c.call(r, access+".GetState", &s)
-	return len(s) == 2 && s[0]&(1<<25) != 0
+	return len(s) == 2 && s[bit/32]&(1<<(bit%32)) != 0
 }
+
+func (c *checker) showing(r ref) bool { return c.state(r, 25) }
 
 func (c *checker) findApp(name string) ref {
 	desktop := ref{"org.a11y.atspi.Registry", "/org/a11y/atspi/accessible/root"}

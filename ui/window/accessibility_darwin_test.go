@@ -171,6 +171,12 @@ func accessibilityHelper() {
 			}
 		})
 		poll("press did not click the button", func(appkit.ID) bool { return root.find("AXButton", "Saved 1") != nil })
+		// The press also gave the button keyboard focus.
+		poll("the pressed button is not the focused element", func(view appkit.ID) bool {
+			f := appkit.Send(view, "accessibilityFocusedUIElement")
+			saved := root.find("AXButton", "Saved 1")
+			return saved != nil && f == saved.obj && appkit.SendBool(f, "isAccessibilityFocused")
+		})
 		// Frames follow the window when it moves without a new frame.
 		onView(func(view appkit.ID) {
 			win := appkit.Send(view, "window")
@@ -231,7 +237,7 @@ func accessibilityHelper() {
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
-		fmt.Println("PASS: roles, labels, nesting, frames (also after a move), hit testing, press, rows out of view and scrolling")
+		fmt.Println("PASS: roles, labels, nesting, frames (also after a move), hit testing, press, focus, rows out of view and scrolling")
 		w.Close()
 		os.Exit(0)
 	}()

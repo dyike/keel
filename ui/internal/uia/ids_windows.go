@@ -88,6 +88,8 @@ const (
 	toggleIndeterminate = 2
 
 	structureChildrenInvalidated = 2
+
+	eventFocusChanged = 20005 // UIA_AutomationFocusChangedEventId
 )
 
 // HRESULTs.

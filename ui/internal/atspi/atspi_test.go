@@ -245,13 +245,14 @@ func TestBridge(t *testing.T) {
 	}
 	acts.mu.Unlock()
 
-	// Check the box, drop a row: clients hear both.
+	// Check and focus the box, drop a row: clients hear all three.
 	for len(signals) > 0 {
 		<-signals
 	}
 	nodes[1].Checked = ptr(true)
+	nodes[1].Focused = true
 	b.Update(1, "Orders", nodes[:4])
-	want := map[string]bool{"StateChanged checked 1": false, "ChildrenChanged remove 1": false}
+	want := map[string]bool{"StateChanged checked 1": false, "StateChanged focused 1": false, "ChildrenChanged remove 1": false}
 	deadline := time.After(2 * time.Second)
 	for {
 		done := true
@@ -271,5 +272,9 @@ func TestBridge(t *testing.T) {
 		case <-deadline:
 			t.Fatalf("signals missing: %v", want)
 		}
+	}
+	call(top[1].Path, ifaceAccess+".GetState", &states)
+	if !has(states, stateFocused) || !has(states, stateChecked) {
+		t.Fatalf("focused checked box states %x", states)
 	}
 }

@@ -43,7 +43,9 @@ try {
     $button = Find $win $CT::Button 'Say hello'
     $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
     Wait-For { Find $win $CT::Text 'Enter your name first.' } 'the status text' | Out-Null
-    'PASS: UI Automation reads the tree, toggles the checkbox and invokes the button'
+    # The press also gave the button keyboard focus.
+    Wait-For { (Find $win $CT::Button 'Say hello').Current.HasKeyboardFocus } 'the button to hold focus' | Out-Null
+    'PASS: UI Automation reads the tree, toggles the checkbox, invokes the button and sees its focus'
   } else {
     $link = Wait-For { Find $win $CT::Hyperlink 'Tree' } 'the Tree link'
     if (-not $link.Current.IsOffscreen) { throw 'FAIL: Tree link shows before scrolling' }

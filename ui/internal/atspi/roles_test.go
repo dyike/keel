@@ -56,7 +56,7 @@ func TestConstantsMatchHeader(t *testing.T) {
 	for name, value := range map[string]uint32{
 		"ACTIVE": stateActive, "CHECKABLE": stateCheckable, "CHECKED": stateChecked,
 		"EDITABLE": stateEditable, "ENABLED": stateEnabled, "EXPANDABLE": stateExpandable,
-		"EXPANDED": stateExpanded, "FOCUSABLE": stateFocusable, "INDETERMINATE": stateIndeterminate,
+		"EXPANDED": stateExpanded, "FOCUSABLE": stateFocusable, "FOCUSED": stateFocused, "INDETERMINATE": stateIndeterminate,
 		"RESIZABLE": stateResizable, "SELECTABLE": stateSelectable, "SELECTED": stateSelected,
 		"SENSITIVE": stateSensitive, "SHOWING": stateShowing, "SINGLE_LINE": stateSingleLine,
 		"VISIBLE": stateVisible,

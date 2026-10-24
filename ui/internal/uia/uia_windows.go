@@ -31,6 +31,7 @@ type Node struct {
 	Checked  *bool
 	Selected *bool
 	Disabled bool
+	Focused  bool            // holds keyboard focus
 	Bounds   image.Rectangle // client pixels
 	Viewport image.Rectangle // the part of the window that can show it
 	Parent   int             // index of the enclosing node, or -1
@@ -49,6 +50,7 @@ var (
 	procHostFromHwnd     = uiacore.NewProc("UiaHostProviderFromHwnd")
 	procRaiseStructure   = uiacore.NewProc("UiaRaiseStructureChangedEvent")
 	procRaiseProperty    = uiacore.NewProc("UiaRaiseAutomationPropertyChangedEvent")
+	procRaiseEvent       = uiacore.NewProc("UiaRaiseAutomationEvent")
 	procClientsListening = uiacore.NewProc("UiaClientsAreListening")
 	procDisconnect       = uiacore.NewProc("UiaDisconnectProvider")
 	user32               = windows.NewLazySystemDLL("user32.dll")
@@ -131,6 +133,16 @@ func (w *Window) Update(nodes []Node) {
 		w.kids[p] = append(w.kids[p], i)
 	}
 	structure := len(old) != len(nodes)
+	focusKey := func(ns []Node) string {
+		for _, n := range ns {
+			if n.Focused {
+				return n.Key
+			}
+		}
+		return ""
+	}
+	newFocus := focusKey(nodes)
+	focusMoved := newFocus != focusKey(old)
 	type change struct {
 		key      string
 		prop     int32
@@ -155,7 +167,7 @@ func (w *Window) Update(nodes []Node) {
 		}
 	}
 	mu.Unlock()
-	if !structure && len(changes) == 0 {
+	if !structure && len(changes) == 0 && !(focusMoved && newFocus != "") {
 		return
 	}
 	go func() {
@@ -171,6 +183,21 @@ func (w *Window) Update(nodes []Node) {
 			mu.Lock()
 			w.root.release()
 			mu.Unlock()
+		}
+		if focusMoved && newFocus != "" {
+			mu.Lock()
+			var p uintptr
+			o := w.element(newFocus)
+			if o != nil {
+				p = o.as(ifSimple)
+			}
+			mu.Unlock()
+			if p != 0 {
+				procRaiseEvent.Call(p, eventFocusChanged)
+				mu.Lock()
+				o.release()
+				mu.Unlock()
+			}
 		}
 		for _, c := range changes {
 			mu.Lock()
@@ -371,7 +398,7 @@ func simplePropertyValue(o *object, prop, out uintptr) uintptr {
 	case propIsKeyboardFocusable:
 		variantBool(out, pressable(n.Role) && !n.Disabled)
 	case propHasKeyboardFocus:
-		variantBool(out, false)
+		variantBool(out, n.Focused)
 	case propIsOffscreen:
 		variantBool(out, n.Bounds.Intersect(n.Viewport).Empty())
 	case propIsControlElement, propIsContentElement:
@@ -547,6 +574,17 @@ func rootElementFromPoint(o *object, args [5]uintptr) uintptr {
 
 func rootFocus(o *object, out uintptr) uintptr {
 	put(out, 0)
+	if o.win.closed {
+		return uiaElementNotAvailable
+	}
+	for _, n := range o.win.nodes {
+		if n.Focused {
+			if e := o.win.element(n.Key); e != nil {
+				put(out, e.as(ifFragment))
+			}
+			break
+		}
+	}
 	return sOK
 }
 

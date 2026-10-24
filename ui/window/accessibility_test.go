@@ -58,3 +58,41 @@ func TestAccessibilityElementsOutOfView(t *testing.T) {
 		t.Fatalf("agent snapshot changed with accessibility on: %d elements, was %d", len(again), len(agent))
 	}
 }
+
+// The element holding keyboard focus is marked: a button reached with Tab,
+// and a text field through the editor node inside it.
+func TestAccessibilityFocus(t *testing.T) {
+	w := openTest(t, Options{Width: 300, Height: 200, Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
+		return el.Div().Col().Child(
+			el.Div().P(4).OnClick(func() {}).Child(el.Text("One")),
+			el.Div().P(4).OnClick(func() {}).Child(el.Text("Two")),
+			el.Input().Placeholder("Name"),
+		)
+	}))})
+	focused := func() []string {
+		t.Helper()
+		w.render()
+		var names []string
+		for _, e := range elementsOf(w.virt.router.AppendSemantics(nil), w.window(), true) {
+			if e.focused {
+				names = append(names, e.Role+" "+e.Name)
+			}
+		}
+		return names
+	}
+	if f := focused(); len(f) != 0 {
+		t.Fatalf("focused before any input: %v", f)
+	}
+	for _, want := range []string{"button One", "button Two"} {
+		if err := w.press("tab"); err != nil {
+			t.Fatal(err)
+		}
+		if f := focused(); len(f) != 1 || f[0] != want {
+			t.Fatalf("after Tab, focused %v, want %s", f, want)
+		}
+	}
+	w.click(element(t, w, "Name").center())
+	if f := focused(); len(f) != 1 || f[0] != "textbox Name" {
+		t.Fatalf("after clicking the field, focused %v", f)
+	}
+}

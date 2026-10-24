@@ -30,6 +30,7 @@ type Node struct {
 	Checked  *bool
 	Selected *bool
 	Disabled bool
+	Focused  bool            // holds keyboard focus
 	Bounds   image.Rectangle // window pixels
 	Viewport image.Rectangle // the part of the window that can show it
 	Parent   int             // index of the enclosing node, or -1
@@ -283,6 +284,9 @@ func (b *Bridge) Update(id int, title string, nodes []Node) {
 			signals = append(signals, signal{path, "StateChanged", "enabled", boolInt(!n.Disabled), 0, dbus.MakeVariant(int32(0))},
 				signal{path, "StateChanged", "sensitive", boolInt(!n.Disabled), 0, dbus.MakeVariant(int32(0))})
 		}
+		if o.Focused != n.Focused {
+			signals = append(signals, signal{path, "StateChanged", "focused", boolInt(n.Focused), 0, dbus.MakeVariant(int32(0))})
+		}
 		if o.showing() != n.showing() {
 			signals = append(signals, signal{path, "StateChanged", "showing", boolInt(n.showing()), 0, dbus.MakeVariant(int32(0))})
 		}
@@ -484,6 +488,9 @@ func (b *Bridge) states(o object) stateSet {
 	}
 	if pressable(n.Role) {
 		s.add(stateFocusable)
+	}
+	if n.Focused {
+		s.add(stateFocused)
 	}
 	if n.Checked != nil {
 		s.add(stateCheckable)

@@ -141,6 +141,7 @@ const (
 	stateExpandable    = 9
 	stateExpanded      = 10
 	stateFocusable     = 11
+	stateFocused       = 12
 	stateIndeterminate = 32
 	stateResizable     = 21
 	stateSelectable    = 22

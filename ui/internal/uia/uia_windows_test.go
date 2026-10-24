@@ -104,7 +104,7 @@ func TestMatchesSDK(t *testing.T) {
 		"UIA_TreeItemControlTypeId": ctTreeItem, "UIA_GroupControlTypeId": ctGroup,
 		"UIA_DataItemControlTypeId": ctDataItem, "UIA_PaneControlTypeId": ctPane,
 		"UIA_HeaderItemControlTypeId": ctHeaderItem, "UIA_TableControlTypeId": ctTable,
-		"UIA_SeparatorControlTypeId": ctSeparator,
+		"UIA_SeparatorControlTypeId": ctSeparator, "UIA_AutomationFocusChangedEventId": eventFocusChanged,
 	} {
 		if got, ok := defines[name]; !ok || got != value {
 			t.Errorf("%s = %d, SDK %d (%v)", name, value, got, ok)
@@ -161,7 +161,7 @@ func TestProviders(t *testing.T) {
 	w.Update([]Node{
 		{Key: "1", Role: "checkbox", Name: "Paid", Checked: ptr(true), Bounds: image.Rect(10, 10, 200, 30), Viewport: view, Parent: -1},
 		{Key: "2", Role: "scrollarea", Bounds: area, Viewport: view, Parent: -1},
-		{Key: "3", Role: "button", Name: "Order 1", Bounds: image.Rect(0, 60, 400, 90), Viewport: area, Parent: 1},
+		{Key: "3", Role: "button", Name: "Order 1", Bounds: image.Rect(0, 60, 400, 90), Viewport: area, Parent: 1, Focused: true},
 		{Key: "4", Role: "button", Name: "Order 99", Bounds: image.Rect(0, 3000, 400, 3030), Viewport: area, Parent: 1},
 	})
 	mu.Lock()
@@ -196,6 +196,18 @@ func TestProviders(t *testing.T) {
 	if vt, v := readVariant(t, simple(first), propIsOffscreen); vt != vtBool || v != 0 {
 		t.Fatalf("visible row: offscreen %d %#x", vt, v)
 	}
+	if vt, v := readVariant(t, simple(first), propHasKeyboardFocus); vt != vtBool || v == 0 {
+		t.Fatalf("focused row: HasKeyboardFocus %d %#x", vt, v)
+	}
+	if vt, v := readVariant(t, simple(box), propHasKeyboardFocus); vt != vtBool || v != 0 {
+		t.Fatalf("checkbox: HasKeyboardFocus %d %#x", vt, v)
+	}
+	var focus uintptr
+	rootIface := root + (ifRoot-ifFragment)*ptrSize
+	if vcall(rootIface, 4, uintptr(unsafe.Pointer(&focus))) != sOK || focus != first {
+		t.Fatalf("GetFocus %#x, want the focused row %#x", focus, first)
+	}
+	vcall(focus, 2)
 	parent := navigate(first, navParent)
 	if parent != pane {
 		t.Fatalf("row's parent %#x, want the pane %#x", parent, pane)
