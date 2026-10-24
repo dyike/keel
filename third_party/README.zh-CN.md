@@ -28,6 +28,8 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- `gio/internal/gl`：新增 purego 绑定 `gl_purego_unix.go`，不使用 cgo 即可在 macOS 上加载 OpenGL、在 Linux 上加载 OpenGL ES，通过 `CGO_ENABLED=0` 或 `-tags purego` 选用；`gl_unix.go` 仍是 cgo 默认实现，也是 iOS、Android 和 BSD 的唯一绑定。它逐个翻译 cgo 绑定的全部方法，包括两个改写签名的跳板（`glGetVertexAttribPointerv` 返回输出参数，缺少 `glInvalidateFramebuffer` 时跳过）以及上游 `Flush` 实际调用 `glFinish` 的行为。整数和指针调用通过带 `go:uintptrescapes` 的辅助函数按地址调用；六个浮点调用使用 `RegisterFunc`。`GLint`、`GLuint` 和 `GLboolean` 返回值先截断再扩展，因此值为 `-1` 的 uniform 位置不会出错。测试加载全部符号并检查 C 字符串辅助函数；在 macOS 上使用 `-tags "nometal purego"` 时无头测试通过，渲染经由该绑定完成。
+
 - `gio/gpu/internal/metal`：统一内存的 macOS 和 iOS 设备上，不可变顶点缓冲现在
   复用已有的、有上限的 2 的幂 Metal 缓冲池。大路径原来绕过缓冲池，每次缓存
   未命中都调用 `newBuffer`，旋转加载指示器因此每帧都会新建缓冲。共享存储和

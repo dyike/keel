@@ -133,6 +133,18 @@ uses a hidden pointer.
 The cgo binding remains the default until macOS is promoted, then is removed.
 Native amd64 execution was not run.
 
+## M1 progress: Gio's GL binding (2026-10-24)
+
+`gio/internal/gl` has a purego binding for macOS and Linux desktop,
+selected by `CGO_ENABLED=0` or `-tags purego`; iOS, Android and the BSDs
+keep `gl_unix.go`, as `go list` confirms for each configuration. With it,
+`CGO_ENABLED=0 go vet ./gio/internal/gl` passes for darwin and linux, amd64
+and arm64. On macOS the headless and paint tests pass with
+`-tags "nometal purego"`, rendering through OpenGL; `gio/gpu` fails to build
+under `nometal` with either binding, as on `main` (its tint test uses the
+Metal-only `AddTinted`). The no-cgo build of `hello` now stops in `gio/app`.
+Linux GL performance and runtime remain to be measured with L1.
+
 ## Preserved ABI work and remaining gates
 
 D0's compile gate and M0's no-cgo Objective-C probes remain in the root module.

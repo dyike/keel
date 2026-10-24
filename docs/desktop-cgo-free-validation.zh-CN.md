@@ -110,6 +110,10 @@ macOS 上基线 overlay 使用解析后的 `/private/tmp` 源码路径。
 
 在 macOS 默认切换之前，cgo 绑定仍是默认值，切换后删除。未在原生 amd64 上运行。
 
+## M1 进展：Gio 的 GL 绑定（2026-10-24）
+
+`gio/internal/gl` 新增面向 macOS 和 Linux 桌面的 purego 绑定，通过 `CGO_ENABLED=0` 或 `-tags purego` 选用；iOS、Android 和 BSD 仍使用 `gl_unix.go`，`go list` 已逐个配置确认。借此，`CGO_ENABLED=0 go vet ./gio/internal/gl` 在 darwin 与 linux 的 amd64、arm64 上均通过。在 macOS 上使用 `-tags "nometal purego"` 时，无头与绘制测试经由 OpenGL 渲染并通过；`gio/gpu` 在 `nometal` 下无论哪种绑定都无法构建，与 `main` 相同（其着色测试使用仅 Metal 提供的 `AddTinted`）。`hello` 的无 cgo 构建现在止于 `gio/app`。Linux 上 GL 的性能与运行情况留待 L1 测量。
+
 ## 保留的 ABI 工作与待验收项
 
 D0 编译门禁和 M0 无 CGO Objective-C 探针保留在根模块中。

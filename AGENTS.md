@@ -104,8 +104,10 @@ Desktop migration is not complete. Preserve Gio's UI, layout, GPU algorithms
 and performance patches; replace native bindings, not the renderers. The
 2026-10-12 darwin/arm64 dependency scan of `examples/hello` selects cgo in:
 
-- Gio: `app`, `internal/gl`, `internal/cocoainit`, `gpu/internal/metal`
-  (including pool/quads), and `gpu/headless`.
+- Gio: `app`, `internal/cocoainit`, `gpu/internal/metal` (including
+  pool/quads), and `gpu/headless`. `internal/gl` has a purego binding for
+  macOS/Linux desktop (`-tags purego` or `CGO_ENABLED=0`); cgo stays its
+  default and its only binding on iOS, Android and the BSDs.
 - Keel: `ui/theme/coretext_cgo_darwin.go` (CoreText/CoreGraphics). A purego
   rasterizer, `coretext_purego_darwin.go`, is selected by `-tags purego` or
   `CGO_ENABLED=0` and renders byte-identical masks; the cgo file stays the

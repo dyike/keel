@@ -44,6 +44,20 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/internal/gl`: a purego binding, `gl_purego_unix.go`, loads OpenGL on
+  macOS and OpenGL ES on Linux without cgo, selected by `CGO_ENABLED=0` or
+  `-tags purego`; `gl_unix.go` stays the cgo default and the only binding for
+  iOS, Android and the BSDs. It translates every method of the cgo binding,
+  including the two trampolines that adapt signatures
+  (`glGetVertexAttribPointerv` returns its out-parameter, an absent
+  `glInvalidateFramebuffer` is skipped) and upstream's `Flush` calling
+  `glFinish`. Integer and pointer calls go by address through a
+  `go:uintptrescapes` helper; the six float calls use `RegisterFunc`.
+  `GLint`, `GLuint` and `GLboolean` results are narrowed before widening, so
+  `-1` uniform locations survive. Tests load every symbol and check the C
+  string helpers; the headless tests pass with `-tags "nometal purego"` on
+  macOS, rendering through the binding.
+
 - `gio/gpu/internal/metal`: immutable vertex buffers on unified-memory Macs
   and iOS devices now use the existing bounded, power-of-two Metal buffer pool.
   Large paths previously bypassed that pool and called `newBuffer` for every
