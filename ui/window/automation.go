@@ -211,21 +211,33 @@ type Element struct {
 	Y        int    `json:"y"`
 	Width    int    `json:"width"`
 	Height   int    `json:"height"`
+
+	parent int              // index of the enclosing container element, or -1
+	id     input.SemanticID // the node it came from
 }
 
 func (e Element) center() f32.Point {
 	return f32.Pt(float32(e.X)+float32(e.Width)/2, float32(e.Y)+float32(e.Height)/2)
 }
 
-// snapshot renders and flattens the semantic tree into elements. An element
-// absorbs the nodes inside it, so a button with a label is one element, not two.
+// snapshot renders the twin and lists its elements.
 func (w *Window) snapshot() []Element {
 	w.render()
 	v := w.virt
-	nodes := v.router.AppendSemantics(nil)
+	out := elementsOf(v.router.AppendSemantics(nil), image.Rectangle{Max: v.getSize()})
+	v.refs = out
+	return out
+}
+
+// elementsOf flattens a semantic tree into elements, the model shared by
+// automation and platform accessibility. An element absorbs the nodes inside
+// it, so a button with a label is one element, not two; containers keep
+// their elements, which record them as parent. visible is the window, in
+// the tree's units.
+func elementsOf(nodes []input.SemanticNode, visible image.Rectangle) []Element {
 	var out []Element
-	var walk func(n input.SemanticNode, inControl bool, visible image.Rectangle)
-	walk = func(n input.SemanticNode, inControl bool, visible image.Rectangle) {
+	var walk func(n input.SemanticNode, inControl bool, visible image.Rectangle, parent int)
+	walk = func(n input.SemanticNode, inControl bool, visible image.Rectangle, parent int) {
 		d := n.Desc
 		if d.Description == "el-inert" {
 			return
@@ -239,7 +251,7 @@ func (w *Window) snapshot() []Element {
 		role, value := roleOf(d, inControl)
 		if role != "" {
 			e := Element{Role: role, Name: d.Label, Value: value, Disabled: d.Disabled,
-				X: b.Min.X, Y: b.Min.Y, Width: b.Dx(), Height: b.Dy()}
+				X: b.Min.X, Y: b.Min.Y, Width: b.Dx(), Height: b.Dy(), parent: parent, id: n.ID}
 			state := d.Selected
 			switch role {
 			case "checkbox", "radio", "switch", "menuitemcheckbox":
@@ -255,6 +267,9 @@ func (w *Window) snapshot() []Element {
 				e.Name = childText(n)
 			}
 			e.Ref = fmt.Sprintf("e%d", len(out)+1)
+			if containerRoles[role] {
+				parent = len(out)
+			}
 			out = append(out, e)
 		}
 		// An element absorbs the nodes inside it (a button's label), except
@@ -264,13 +279,12 @@ func (w *Window) snapshot() []Element {
 			visible = b // an element or clip area bounds what is inside it
 		}
 		for _, c := range n.Children {
-			walk(c, inControl || absorb, visible)
+			walk(c, inControl || absorb, visible, parent)
 		}
 	}
 	if len(nodes) > 0 {
-		walk(nodes[0], false, image.Rectangle{Max: w.virt.getSize()})
+		walk(nodes[0], false, visible, -1)
 	}
-	v.refs = out
 	return out
 }
 
