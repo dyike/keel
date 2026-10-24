@@ -176,6 +176,26 @@ func (q *Router) Source() Source {
 	return Source{r: q}
 }
 
+// Pending reports whether the router holds events or commands for the next
+// frame: input that arrived since the last frame, events the last frame
+// produced (focus, pointer enter and leave), or queued commands. Keel patch:
+// a frame without any can repaint retained content instead of rebuilding it.
+func (s Source) Pending() bool {
+	return s.r != nil && s.r.pending()
+}
+
+func (q *Router) pending() bool {
+	if len(q.commands) > 0 || len(q.transfers) > 0 || q.deferring || len(q.changes) > 1 {
+		return true
+	}
+	for _, ch := range q.changes {
+		if len(ch.events) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // Execute a command.
 func (s Source) Execute(c Command) {
 	if !s.Enabled() {

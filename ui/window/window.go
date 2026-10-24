@@ -265,6 +265,7 @@ func (w *Window) setFocused(focused bool) {
 	if w.focused != focused {
 		w.focused = focused
 		if w.win != nil {
+			loop.Changed()
 			w.win.Invalidate()
 		}
 	}
@@ -332,9 +333,11 @@ func (w *Window) run() {
 			w.setFocused(e.Config.Focused)
 			if m := e.Config.Mode == gioapp.Maximized; m != w.maximized {
 				w.maximized = m
+				loop.Changed()
 				w.win.Invalidate() // title bars show maximize or restore
 			}
 			if w.updateDecorations(e.Config.Decorated, e.Config.Mode == gioapp.Fullscreen) {
+				loop.Changed()
 				w.win.Invalidate()
 			}
 			loop.Unlock()

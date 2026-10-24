@@ -44,6 +44,12 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/io/input`: `Source.Pending` reports whether the router holds events
+  or commands for the next frame (input since the last frame, events the
+  last frame produced, queued commands). Keel's `ui/el` repaints a frame
+  from its retained tree only when none are pending. A test checks it
+  before input, while input waits and after a still frame delivered it.
+
 - `gio/internal/vk`: `vulkan_purego.go` (with `vulkan_x11_purego.go` and
   `vulkan_wayland_purego.go`) implements vk's API without cgo on Linux:
   libvulkan is loaded at run time and every function is called through
