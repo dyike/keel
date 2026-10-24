@@ -24,6 +24,7 @@
 - [Markdown](markdown.zh-CN.md)：流式输出、代码块、缓存和定制。
 - [原生能力](native.zh-CN.md)：权限、截图、键鼠、全局快捷键、通知和剪贴板。
 - [无样式基础层](base.zh-CN.md)：复用键盘导航与多选行为，自定义控件外观。
+- [无障碍](accessibility.zh-CN.md)：VoiceOver 在 Keel 窗口里能读到和按下什么。
 
 ## 组件参考
 

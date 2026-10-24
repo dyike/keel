@@ -28,6 +28,49 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- `gio/internal/ops`：写入操作时，数据缓冲区有余量就原地扩展，不再用 `append(o.data, make([]byte, n)...)`。编译器只在普通构建中把这种写法变成原地扩展；在 `-race` 下每次写入都会分配临时切片，组件画廊的分配上限因此超标（label 每帧 40 次，普通构建 26 次），`go test -race ./...` 失败。普通构建不变：分配次数相同，操作写入和画廊帧耗时都在噪声范围内。测试检查一帧操作写入不分配内存且返回清零的字节；在 `-race` 下去掉补丁时失败。
+
+- `gio/io/input`、`gio/app`：`Router.FocusSemantic(id)` 把键盘焦点交给一个语义节点，即它自己的可聚焦处理器或其内部最近的一个（例如输入框的编辑器）；`Window.QueueFocus(id)` 可以从任意协程调用，在驱动线程上于下一个事件之前完成。无障碍客户端借此把焦点移到它按节点认识的元素上。`QueueInput` 和 `QueueFocus` 在协程里唤醒窗口：在 macOS 主线程的原生回调里，`Invalidate` 会内联运行 Gio。测试按 ID 聚焦节点（其中一个通过内部区域），拒绝未知 ID，并在竞态检测下从另一个协程排队焦点。
+
+- `gio/io/input`：`SemanticDesc.Focused` 标出持有键盘焦点的节点，即区域包含获得焦点的处理器区域的最内层节点，供平台无障碍桥报告焦点。另外，处理器的手势不再让一个自我描述的区域失去语义：上游把区域的语义设为“处理器是否接受点击或滚动”，于是带类别和标签、但处理器只接受键盘焦点的节点会从树中消失。测试依次聚焦两个按钮（其中一个通过没有语义的内部区域），检查标记；去掉任一改动都会失败。
+
+- `gio/app`：`Window.ObserveSemantics(fn)` 在驱动线程上处理完每一帧后调用 fn，传入这一帧的语义树和尺寸，此时没有其他代码读取窗口的输入状态；`Window.QueueInput` 从任意协程接收输入，在驱动线程上于下一个事件之前投递。在 Windows 上，UI Automation 在它自己的线程上调用提供者，而 Gio 的路由器属于窗口线程；Keel 的桥从观察者回调里复制元素，并把按下转成排队的输入（Linux 的桥也这样排队输入）。测试观察一帧，从另一个协程排队一次点击，并在竞态检测下确认处理器收到。
+
+- `gio/io/input`：语义 ID 跟随节点。有输入处理器的节点沿用其处理器标签上次的 ID，标签或状态变化时（复选框切换、“保存”变成“已保存”）不变。其他节点按表达的内容（类别、标签、描述、状态）匹配，不含处理器，因此 Keel 在视野外不带处理器描述的行，滚进视野、获得处理器后 ID 不变。内容相同的节点按顺序得到不同的 ID，同一帧内不会重复分配。只有分配过 ID 的帧之后才会遗忘旧 ID：上游在某帧没有调用 `AppendSemantics` 时会全部丢弃。这些情况下读屏软件都不会丢失位置。测试覆盖每种情况，去掉补丁时失败。
+
+- `gio/app`：`Window.AppendSemantics` 返回最近一帧的语义树，`Window.ProcessInput` 像平台上报一样投递一个事件，两者都在驱动线程调用。Keel 的平台无障碍桥（`ui/window`）在原生回调里用这棵树回答读屏软件的询问，并把它的“按下”转成一次点击。测试在树中找到一个按钮并按下它。
+
+- `gio/io/input`：`Source.Pending` 报告路由器是否还有留给下一帧的事件或命令（上一帧之后到达的输入、上一帧产生的事件、排队的命令）。Keel 的 `ui/el` 只在没有待处理项时，才用保留的元素树重绘一帧。测试分别在输入之前、输入等待中以及静止帧送达输入之后检查它。
+
+- `gio/internal/vk`：`vulkan_purego.go`（及 `vulkan_x11_purego.go`、`vulkan_wayland_purego.go`）在 Linux 上不使用 cgo 实现 vk 的 API：运行时加载 libvulkan，所有函数都通过函数指针以整数、句柄和指针参数调用。Vulkan 结构体和常量由 `cgo -godefs` 从 Vulkan-Headers v1.3.275 生成到 `vulkan_types.go` 和 `vulkan_consts.go`（amd64 与 arm64 完全一致），字段名按头文件恢复为 C 的名字，因此 vulkan.go 的 Go 代码得以复用，只替换其中的 C 类型和辅助函数；88 个 C 辅助函数改为生成的 Go 函数。`vulkan_layout_cgo.go` 在 cgo 构建中对照已安装的头文件检查所有字段偏移、结构体大小和 157 个常量。新的无头测试在两种绑定下都经 Vulkan 备用上下文渲染（CI 中为 lavapipe）。
+
+- `gio/app`（Wayland）：`os_wayland.go` 保留 Gio 的 Wayland 窗口逻辑，改为操作不透明的 proxy 指针；请求在 `wayland_requests.go` 中用 `wl_proxy_marshal_array_flags` 编组（wayland-scanner 的内联函数用的是 `wl_proxy_marshal_flags`），事件交给共用的 `wlOn*` 处理函数。`os_wayland_cgo.go` 保留 Gio 的监听表（os_wayland.c）和生成的协议代码，配以 `//export` 转接函数，并在初始化时对照头文件检查每个操作码、协议常量和光标结构体。`os_wayland_purego.go` 不使用 cgo 加载 libwayland-client 和 libwayland-cursor，按 `wayland_protocols_purego.go`（由 scanner 代码生成）在 C 内存中构建 xdg-shell、xdg-decoration 和 text-input 接口，并用一个 `wl_proxy_add_dispatcher` 回调分发所有 proxy 的事件。`egl_wayland_purego.go` 加载 libwayland-egl。
+
+- `gio/app`（X11）：`os_x11.go` 保留 Gio 的 X11 窗口逻辑，改为操作自己定义的 X 结构体（Window、Atom、Time 用 uintptr，C long 用 int）；`os_x11_cgo.go` 保留经 cgo 调用的 Xlib，并在初始化时对照头文件检查每个字段偏移、结构体大小和常量；`os_x11_purego.go` 不使用 cgo 加载 libX11、libX11-xcb、libXcursor、libXfixes 和 libxkbcommon-x11。Linux 上 Wayland 和 Vulkan 文件暂时只用 cgo。Perform 和 Configure 末尾调用 XFlush：它们在事件循环之外运行，而事件循环阻塞在 poll 上，Xlib 一直缓存着它们发出的请求（关闭、置前或调整大小）。此前在 Xvfb 下，resident 和 reopen 真实窗口测试在两种绑定下都会超时，raise 偶尔死锁；修复后整套测试在两种绑定、amd64 和 arm64 上都通过。
+
+- `gio/app/internal/xkb`：按键分发逻辑和 keysym 表移入 `xkb.go`，操作 libxkbcommon 的不透明指针；`xkb_cgo.go` 保留 cgo 调用（并对照头文件检查 keysym 和枚举值），`xkb_purego_linux.go` 不使用 cgo 加载 `libxkbcommon.so.0`。测试在两种绑定下编译默认键位表，检查 KEY_A 的 keysym、文本、Shift 和按键重复。
+
+- `gio/internal/egl`：在 Linux 桌面上，`CGO_ENABLED=0` 或 `-tags purego` 时 `egl_purego_linux.go` 通过 purego 加载 libEGL，句柄与 `egl_windows.go` 一样使用 uintptr；`egl_unix.go` 仍是 cgo 默认实现，也是 Android 和 BSD 的唯一绑定。EGLBoolean 返回值只取低 32 位。`gio/gpu/headless` 新增在所有平台运行的像素测试（设置 `GIO_HEADLESS_REQUIRED=1` 时无法创建上下文即失败而非跳过）；`gio/gpu` 中使用 `AddTinted` 的测试移入 `!nometal` 的 darwin 文件，使该包的测试能在 Linux 和 `nometal` 下构建。
+
+- `gio/app`（macOS）：在 `CGO_ENABLED=0` 或 `-tags purego` 时，purego 绑定取代 `os_macos.m`、`os_darwin.m`、cgo 辅助函数以及 Metal 和 OpenGL 窗口上下文；cgo 文件仍是默认实现，iOS 不变。`os_macos.go` 保留 Gio 的窗口逻辑，改为操作普通句柄，由两种绑定共用；`displaylink_darwin.go` 存放 display link 状态机。`os_macos_purego.go` 以相同的名称、方法和关联对象注册 `GioView`、`GioWindowDelegate`、`GioAppDelegate` 和 `AppListener`（Keel 通过 `gioInputView` 和类名找到输入视图）；视图通过以视图指针为键的映射找到所属窗口。super 调用指定实现方法的类，而不是对象的动态类。`NSTextInputClient` 方法经 purego 回调以结构体形式收发 `NSRange`、`NSRect` 和 `NSPoint`；浮点和结构体消息使用只注册一次的包装函数（amd64 上用 `objc_msgSend_stret`）。`runOnMain` 通过一个 `dispatch_async_f` 回调投递令牌，display link 使用一个 `CVDisplayLink` 回调。`os_macos_cgo.go` 对照 SDK 检查 AppKit 常量。新测试在两种绑定下经 `objc_msgSend` 驱动标记文本、提交、取消、代理对范围、子串和光标矩形；去掉协议或改动返回范围时测试失败。nometal 测试打开并缩放一个 OpenGL 窗口。
+
+- `gio/gpu/headless`：`headless_purego_darwin.go` 在 macOS 上不使用 cgo（`CGO_ENABLED=0` 或 `-tags purego`）创建 Metal 设备和命令队列，与 cgo 辅助函数一样在锁定线程的自动释放池中完成；iOS 仍使用 `headless_darwin.go`。测试在每种绑定下检查队列属于返回的设备，两者交换时失败。配合 purego Metal 后端，`CGO_ENABLED=0 go test ./gio/gpu/...` 在 macOS 上通过。
+
+- `gio/gpu/internal/metal`：新增 purego 绑定 `metal_purego_darwin.go`，在 macOS 上不使用 cgo 发送后端的 Metal 消息，通过 `CGO_ENABLED=0` 或 `-tags purego` 选用；`metal_cgo_darwin.go` 保留 Gio 的 Objective-C 辅助函数，仍是 cgo 默认实现，也是 iOS 的唯一绑定。后端的 Go 逻辑改为操作普通句柄，由两种绑定共用。`purego.SyscallN` 会分配参数切片，因此编码器调用在互斥锁下复用同一个参数数组；会阻塞或指向局部变量的调用直接使用 `SyscallN`。arm64 把 `MTLOrigin`、`MTLSize` 和 `MTLViewport` 以指向副本的指针传递，amd64 通过 `RegisterFunc` 放在栈上传递。一帧会在三种清屏色之间切换，而设置清屏色需要一次反射调用，所以按清屏色保留渲染通道描述符。cgo 文件对照 SDK 检查各枚举值。测试在两种绑定下覆盖 `NSError` 报错和计算调度；交换两个尺寸参数时调度测试会失败。无头、绘制和真实窗口测试在两种绑定下均通过。
+
+- `gio/internal/cocoainit`：`cocoa_purego_darwin.go` 不使用 cgo（`CGO_ENABLED=0` 或 `-tags purego`）启动让 Cocoa 进入多线程模式的 NSThread，并像 ARC 那样释放 `new` 返回的引用；iOS 仍使用 cgo 文件。测试在两种绑定下检查 `+[NSThread isMultiThreaded]`，线程未启动时失败。
+
+- `gio/internal/gl`：新增 purego 绑定 `gl_purego_unix.go`，不使用 cgo 即可在 macOS 上加载 OpenGL、在 Linux 上加载 OpenGL ES，通过 `CGO_ENABLED=0` 或 `-tags purego` 选用；`gl_unix.go` 仍是 cgo 默认实现，也是 iOS、Android 和 BSD 的唯一绑定。它逐个翻译 cgo 绑定的全部方法，包括两个改写签名的跳板（`glGetVertexAttribPointerv` 返回输出参数，缺少 `glInvalidateFramebuffer` 时跳过）以及上游 `Flush` 实际调用 `glFinish` 的行为。整数和指针调用通过带 `go:uintptrescapes` 的辅助函数按地址调用；六个浮点调用使用 `RegisterFunc`。`GLint`、`GLuint` 和 `GLboolean` 返回值先截断再扩展，因此值为 `-1` 的 uniform 位置不会出错。测试加载全部符号并检查 C 字符串辅助函数；在 macOS 上使用 `-tags "nometal purego"` 时无头测试通过，渲染经由该绑定完成。
+
+- `gio/gpu/internal/metal`：统一内存的 macOS 和 iOS 设备上，不可变顶点缓冲现在
+  复用已有的、有上限的 2 的幂 Metal 缓冲池。大路径原来绕过缓冲池，每次缓存
+  未命中都调用 `newBuffer`，旋转加载指示器因此每帧都会新建缓冲。共享存储和
+  私有存储使用不同的池键；只有 `BeginFrame` 等待上一条命令缓冲完成后，已释放
+  存储才可复用，`Trim` 仍会释放池。渲染器继续为每条路径保留独立缓冲，顶点、
+  覆盖率、裁剪和透明度计算均不变。没有仅按局部路径几何复用 GPU 顶点，因为
+  曲线细分、x 单调拆分、边界和轮廓 `MaxY` 都在非平移变换之后计算。原生测试
+  验证共享缓冲须经完成栅栏才能复用，并把连续 24 帧旋转路径与每帧清空缓冲池、
+  路径缓存的渲染器逐字节比较；整帧 benchmark 覆盖持续旋转。
 - `gio/op/paint`、`gio/gpu`、`gio/internal/ops`：`ImageOp.PaintQuads`（Metal 构建另有 `PaintTintedQuads`）把同一张图片按多个偏移绘制、每处裁剪到图片中的一个矩形，编码成一个 `TypeImageQuads` 操作，quad 数据放在随后的 Aux 操作里。它取代每个 quad 的偏移、矩形裁剪、画刷和绘制共七个操作；输入路由和 GPU 收集每帧都要把它们各解码一遍。Keel 的 CoreText 字形图集把同一页上连续的字形遮罩这样绘制；典型一帧里文字约占四分之三的操作。整数平移下，收集阶段直接把每个 quad 变成图片操作，边界、裁剪交集、材质和矩形裁剪父节点与分开的操作完全一致。其他变换（小数偏移、缩放、旋转）回放分开的操作；所有 quad 共用一个操作键，所以变换后的裁剪路径按内容作键。纯色和空图片始终使用分开的操作，绘制后图片仍是当前画刷。无头测试在偏移、小数偏移、缩放、旋转、矩形与圆角裁剪、嵌套不透明度和后续绘制下逐字节比较像素；在 Apple M4 上绘制 3200 个字形 quad 的基准从每帧 0.99 ms 降到 0.52 ms。
 
 - `gio/app`：macOS 输入视图为安装材质包装而临时脱离窗口时，驱动操作仍能找到原窗口；窗口关闭时清除不持有对象的反向引用。视图重新挂载不再误报窗口失焦，为非活动窗口指定响应者也不会提前报告键盘焦点。Raise 直接请求 NSApplication 激活，不再依赖可能滞后的 NSRunningApplication 状态。Void 的原生回归覆盖输入、Cmd+, 和应用处于后台时的连续重新唤起。共享事件循环在投递 DestroyEvent 后停止发送事件，避免延迟到达的原生唤醒等待已经退出的接收者而阻塞主线程；通道回归测试覆盖此终止状态。

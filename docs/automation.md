@@ -155,6 +155,8 @@ Except for `launch`, `attach`, `logs` and `stop`, `window` (such as `w2`) can be
 | `search` | Find panel for `kit.CodeEditor` | Input boxes and buttons listed separately |
 | `code` | Markdown code block | The name is the language; the code text and "Copy" button inside are listed separately |
 
+Screen readers on macOS see the same elements; see [Accessibility](accessibility.md).
+
 Other roles declared by the component through `core.Role` or el's `Role` will be listed as they are, and do not need to be registered in the automation code. You only need to supplement the above table. By default, an element will absorb the text inside it; if the child elements need to be listed separately (containers such as dialog boxes and menus), add the role of `ui/window/automation.go` to `containerRoles`.
 
 In automation mode (`KEEL_AUTOMATION` is set), "reduced motion" is turned on by default when the application starts: overlays such as Sheet that slide in directly appear at the final position, and the coordinates read by the Agent are the clicked coordinates. The application can change it back by itself using `theme.SetReducedMotion(false)`.

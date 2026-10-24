@@ -24,6 +24,7 @@ Start with Getting started to open your first window. Use Guides to build your a
 - [Markdown](markdown.md): streaming, code blocks, caching, and customization.
 - [Native APIs](native.md): permissions, screenshots, keyboard and mouse input, global hotkeys, notifications, and the clipboard.
 - [Primitives](base.md): reuse keyboard navigation and selection behavior with your own appearance.
+- [Accessibility](accessibility.md): what VoiceOver reads and presses in a Keel window.
 
 ## Components
 

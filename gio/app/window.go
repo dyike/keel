@@ -88,7 +88,16 @@ type Window struct {
 		ids      map[input.SemanticID]input.SemanticNode
 	}
 	imeState editorState
-	driver   driver
+	// Keel patch: platform accessibility outside this package; see
+	// ObserveSemantics and QueueInput.
+	observe struct {
+		sync.Mutex
+		fn    func(nodes []input.SemanticNode, size image.Point)
+		nodes []input.SemanticNode
+		input []event.Event
+		focus []input.SemanticID
+	}
+	driver driver
 	// gpuErr tracks the GPU error that is to be reported when
 	// the window is closed.
 	gpuErr error
@@ -268,6 +277,75 @@ func (w *Window) processFrame(frame *op.Ops, ack chan<- struct{}) {
 	}
 	w.updateState()
 	w.updateCursor()
+	w.observeFrame()
+}
+
+// observeFrame hands the frame's semantic tree to the observer, if any.
+func (w *Window) observeFrame() {
+	w.observe.Lock()
+	fn := w.observe.fn
+	w.observe.Unlock()
+	if fn != nil {
+		w.observe.nodes = w.queue.AppendSemantics(w.observe.nodes[:0])
+		fn(w.observe.nodes, w.lastFrame.size)
+	}
+}
+
+// ObserveSemantics calls fn after each frame with the frame's semantic
+// tree, root first, and the window size in pixels; nil stops it. fn runs on
+// the window's driver thread while nothing else reads the window's input
+// state, and must not keep nodes or call into the window. Keel patch: a
+// platform accessibility bridge copies what it serves from here.
+func (w *Window) ObserveSemantics(fn func(nodes []input.SemanticNode, size image.Point)) {
+	w.observe.Lock()
+	w.observe.fn = fn
+	w.observe.Unlock()
+}
+
+// QueueInput delivers events as if the platform had reported them, on the
+// driver thread before the next event; it may be called from any goroutine,
+// including inside a native callback on the driver thread, and wakes the
+// window without waiting. Keel patch: an accessibility client's press,
+// which arrives on its own threads, acts as a click.
+func (w *Window) QueueInput(events ...event.Event) {
+	w.observe.Lock()
+	w.observe.input = append(w.observe.input, events...)
+	w.observe.Unlock()
+	go w.Invalidate() // on macOS's main thread, Invalidate runs Gio inline
+}
+
+// QueueFocus gives keyboard focus to the semantic node id of the latest
+// frame (see input.Router.FocusSemantic), on the driver thread before the
+// next event; like QueueInput, it may be called from any goroutine and
+// wakes the window without waiting. Keel patch: an accessibility client
+// moves focus.
+func (w *Window) QueueFocus(id input.SemanticID) {
+	w.observe.Lock()
+	w.observe.focus = append(w.observe.focus, id)
+	w.observe.Unlock()
+	go w.Invalidate()
+}
+
+func (w *Window) processQueuedInput() {
+	w.observe.Lock()
+	events, focus := w.observe.input, w.observe.focus
+	w.observe.input, w.observe.focus = nil, nil
+	w.observe.Unlock()
+	if w.driver == nil {
+		return // destroyed
+	}
+	for _, e := range events {
+		w.processEvent(e)
+	}
+	for _, id := range focus {
+		if w.queue.FocusSemantic(id) {
+			// Deliver the focus change in a frame, as processEvent does.
+			if t, handled := w.queue.WakeupTime(); handled {
+				w.setNextFrame(t)
+				w.updateAnimation()
+			}
+		}
+	}
 }
 
 func (w *Window) updateState() {
@@ -473,6 +551,23 @@ func (c *callbacks) SemanticAt(pos f32.Point) (input.SemanticID, bool) {
 	return c.w.queue.SemanticAt(pos)
 }
 
+// AppendSemantics appends the semantic tree of the latest frame to nodes,
+// root first. Call it only on the window's driver thread (the main thread
+// on macOS) from a native callback, such as an accessibility request: not
+// from a function passed to Run, which may run while the client lays out a
+// frame that reads the same input state. Keel patch: a platform
+// accessibility bridge outside this package reads the tree.
+func (w *Window) AppendSemantics(nodes []input.SemanticNode) []input.SemanticNode {
+	return w.queue.AppendSemantics(nodes)
+}
+
+// ProcessInput delivers e as if the platform had reported it, and reports
+// whether a handler wants it. Same thread rule as AppendSemantics. Keel
+// patch: an accessibility client's press acts as a click.
+func (w *Window) ProcessInput(e event.Event) bool {
+	return w.processEvent(e)
+}
+
 func (c *callbacks) EditorState() editorState {
 	return c.w.imeState
 }
@@ -605,6 +700,7 @@ func (c *callbacks) nextEvent() (event.Event, bool) {
 }
 
 func (w *Window) nextEvent() (event.Event, bool) {
+	w.processQueuedInput()
 	s := &w.coalesced
 	defer func() {
 		// Every event counts as a wakeup.

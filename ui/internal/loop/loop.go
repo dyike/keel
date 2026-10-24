@@ -3,7 +3,10 @@
 // windows to redraw. UI infrastructure uses it; theme only requests redraws.
 package loop
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 var (
 	frame sync.Mutex
@@ -35,8 +38,34 @@ func Unregister(key any) int {
 	return len(windows)
 }
 
+// generation counts changes made outside a frame: every InvalidateAll (so
+// every Post) and every Changed.
+var generation atomic.Uint64
+
+// Generation reports the count of changes made outside frames. A root that
+// sees the same count, and no input, may repaint its retained content.
+func Generation() uint64 { return generation.Load() }
+
+// Changed records a change made outside a frame that a window draws, such
+// as its focus or maximized state; the caller invalidates the window.
+func Changed() { generation.Add(1) }
+
+var accessibility atomic.Bool
+
+// SetAccessibility records whether a platform accessibility client reads
+// the windows, which then also describe what is scrolled out of view.
+func SetAccessibility(on bool) {
+	if accessibility.Swap(on) != on {
+		InvalidateAll()
+	}
+}
+
+// Accessibility reports what SetAccessibility last set.
+func Accessibility() bool { return accessibility.Load() }
+
 // InvalidateAll requests a redraw of every window. It never blocks on them.
 func InvalidateAll() {
+	generation.Add(1)
 	mu.Lock()
 	defer mu.Unlock()
 	for _, fn := range windows {

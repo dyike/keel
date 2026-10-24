@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build darwin || linux || freebsd || openbsd
+//go:build (darwin || linux || freebsd || openbsd) && (ios || android || freebsd || openbsd || (cgo && !purego))
 
 package gl
 

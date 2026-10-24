@@ -217,7 +217,7 @@ func (r *RootWidget) blockTree(n *Node, blocked bool) {
 	if !r.e.gtx.Enabled() {
 		return
 	}
-	if s := r.store.states[n.key]; s != nil {
+	if s := r.store.of(n); s != nil {
 		s.blocked = blocked
 		if blocked {
 			// Blocked handlers ask for no events, so Gio drops their areas;
@@ -576,7 +576,7 @@ func (r *RootWidget) focusFirst(n *Node) bool {
 }
 
 func (r *RootWidget) focusFirstDefault(n *Node) bool {
-	if s := r.store.states[n.key]; s != nil && s.keyFrame == r.store.frame && !s.disabled && !s.blocked {
+	if s := r.store.of(n); s != nil && s.keyFrame == r.store.frame && !s.disabled && !s.blocked {
 		if n.input != nil {
 			r.e.gtx.Execute(key.FocusCmd{Tag: s.editor})
 			return true

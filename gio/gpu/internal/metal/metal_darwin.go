@@ -12,441 +12,74 @@ import (
 	"github.com/dyike/keel/gio/gpu/internal/driver"
 )
 
-/*
-#cgo CFLAGS: -Werror -xobjective-c -fobjc-arc
-#cgo LDFLAGS: -framework CoreGraphics -framework Metal -framework Foundation
+// The Metal calls themselves live in metal_cgo_darwin.go (Gio's Objective-C)
+// and metal_purego_darwin.go (the same messages sent through purego).
+// Keel patch: this file holds the logic both share, over plain handles.
 
-#include <CoreFoundation/CoreFoundation.h>
-#include <Metal/Metal.h>
+// Metal enumeration values; metal_cgo_darwin.go checks them against the
+// SDK headers at compile time.
+const (
+	mtlPixelFormatR8Unorm         = 10
+	mtlPixelFormatR16Float        = 25
+	mtlPixelFormatRGBA8Unorm      = 70
+	mtlPixelFormatRGBA8Unorm_sRGB = 71
 
-typedef struct {
-	void *addr;
-	NSUInteger size;
-} slice;
+	mtlTextureUsageShaderRead   = 1
+	mtlTextureUsageShaderWrite  = 2
+	mtlTextureUsageRenderTarget = 4
 
-typedef struct {
-	CFTypeRef obj;
-	char *err;
-} CFTypeAndError;
+	mtlSamplerMinMagFilterNearest   = 0
+	mtlSamplerMinMagFilterLinear    = 1
+	mtlSamplerMipFilterNotMipmapped = 0
+	mtlSamplerMipFilterLinear       = 2
 
-static CFTypeAndError error(NSError *err) {
-	char *errStr = strdup(err.localizedDescription.UTF8String);
-	if (errStr == NULL) {
-		abort();
-	}
-	CFTypeAndError res = {
-		.err = errStr,
-	};
-	return res;
-}
+	mtlBlendFactorZero                = 0
+	mtlBlendFactorOne                 = 1
+	mtlBlendFactorOneMinusSourceAlpha = 5
+	mtlBlendFactorDestinationColor    = 6
 
-static CFTypeAndError ok(id obj) {
-	CFTypeAndError res = {
-		.obj = CFBridgingRetain(obj),
-	};
-	return res;
-}
+	mtlVertexFormatFloat  = 28
+	mtlVertexFormatFloat2 = 29
+	mtlVertexFormatFloat3 = 30
+	mtlVertexFormatFloat4 = 31
 
-static void textureSetVolatile(CFTypeRef texRef, int volatile_) {
-	@autoreleasepool {
-		id<MTLTexture> tex = (__bridge id<MTLTexture>)texRef;
-		[tex setPurgeableState:volatile_ ? MTLPurgeableStateVolatile : MTLPurgeableStateNonVolatile];
-	}
-}
+	mtlLoadActionDontCare = 0
+	mtlLoadActionLoad     = 1
+	mtlLoadActionClear    = 2
 
-static CFTypeRef queueNewBuffer(CFTypeRef queueRef) {
-	@autoreleasepool {
-		id<MTLCommandQueue> queue = (__bridge id<MTLCommandQueue>)queueRef;
-		return CFBridgingRetain([queue commandBuffer]);
-	}
-}
+	mtlPrimitiveTypeTriangle      = 3
+	mtlPrimitiveTypeTriangleStrip = 4
 
-static void cmdBufferCommit(CFTypeRef cmdBufRef) {
-	@autoreleasepool {
-		id<MTLCommandBuffer> cmdBuf = (__bridge id<MTLCommandBuffer>)cmdBufRef;
-		[cmdBuf commit];
-	}
-}
+	mtlResourceCPUCacheModeWriteCombined = 1
+	mtlResourceStorageModeShared         = 0 << 4
+	mtlResourceStorageModePrivate        = 2 << 4
+)
 
-static void cmdBufferWaitUntilCompleted(CFTypeRef cmdBufRef) {
-	@autoreleasepool {
-		id<MTLCommandBuffer> cmdBuf = (__bridge id<MTLCommandBuffer>)cmdBufRef;
-		[cmdBuf waitUntilCompleted];
-	}
-}
-
-static CFTypeRef cmdBufferRenderEncoder(CFTypeRef cmdBufRef, CFTypeRef textureRef, MTLLoadAction act, float r, float g, float b, float a) {
-	@autoreleasepool {
-		id<MTLCommandBuffer> cmdBuf = (__bridge id<MTLCommandBuffer>)cmdBufRef;
-		MTLRenderPassDescriptor *desc = [MTLRenderPassDescriptor new];
-		desc.colorAttachments[0].texture = (__bridge id<MTLTexture>)textureRef;
-		desc.colorAttachments[0].loadAction = act;
-		desc.colorAttachments[0].clearColor = MTLClearColorMake(r, g, b, a);
-		return CFBridgingRetain([cmdBuf renderCommandEncoderWithDescriptor:desc]);
-	}
-}
-
-static CFTypeRef cmdBufferComputeEncoder(CFTypeRef cmdBufRef) {
-	@autoreleasepool {
-		id<MTLCommandBuffer> cmdBuf = (__bridge id<MTLCommandBuffer>)cmdBufRef;
-		return CFBridgingRetain([cmdBuf computeCommandEncoder]);
-	}
-}
-
-static CFTypeRef cmdBufferBlitEncoder(CFTypeRef cmdBufRef) {
-	@autoreleasepool {
-		id<MTLCommandBuffer> cmdBuf = (__bridge id<MTLCommandBuffer>)cmdBufRef;
-		return CFBridgingRetain([cmdBuf blitCommandEncoder]);
-	}
-}
-
-static void renderEncEnd(CFTypeRef renderEncRef) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		[enc endEncoding];
-	}
-}
-
-static void renderEncViewport(CFTypeRef renderEncRef, MTLViewport viewport) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		[enc setViewport:viewport];
-	}
-}
-
-static void renderEncSetFragmentTexture(CFTypeRef renderEncRef, NSUInteger index, CFTypeRef texRef) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		id<MTLTexture> tex = (__bridge id<MTLTexture>)texRef;
-		[enc setFragmentTexture:tex atIndex:index];
-	}
-}
-
-static void renderEncSetFragmentSamplerState(CFTypeRef renderEncRef, NSUInteger index, CFTypeRef samplerRef) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		id<MTLSamplerState> sampler = (__bridge id<MTLSamplerState>)samplerRef;
-		[enc setFragmentSamplerState:sampler atIndex:index];
-	}
-}
-
-static void renderEncSetVertexBuffer(CFTypeRef renderEncRef, CFTypeRef bufRef, NSUInteger idx, NSUInteger offset) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		id<MTLBuffer> buf = (__bridge id<MTLBuffer>)bufRef;
-		[enc setVertexBuffer:buf offset:offset atIndex:idx];
-	}
-}
-
-static void renderEncSetFragmentBuffer(CFTypeRef renderEncRef, CFTypeRef bufRef, NSUInteger idx, NSUInteger offset) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		id<MTLBuffer> buf = (__bridge id<MTLBuffer>)bufRef;
-		[enc setFragmentBuffer:buf offset:offset atIndex:idx];
-	}
-}
-
-static void renderEncSetFragmentBytes(CFTypeRef renderEncRef, const void *bytes, NSUInteger length, NSUInteger idx) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		[enc setFragmentBytes:bytes length:length atIndex:idx];
-	}
-}
-
-static void renderEncSetVertexBytes(CFTypeRef renderEncRef, const void *bytes, NSUInteger length, NSUInteger idx) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		[enc setVertexBytes:bytes length:length atIndex:idx];
-	}
-}
-
-static void renderEncSetRenderPipelineState(CFTypeRef renderEncRef, CFTypeRef pipeRef) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		id<MTLRenderPipelineState> pipe = (__bridge id<MTLRenderPipelineState>)pipeRef;
-		[enc setRenderPipelineState:pipe];
-	}
-}
-
-static void renderEncDrawPrimitives(CFTypeRef renderEncRef, MTLPrimitiveType type, NSUInteger start, NSUInteger count) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		[enc drawPrimitives:type vertexStart:start vertexCount:count];
-	}
-}
-
-static void renderEncDrawIndexedPrimitives(CFTypeRef renderEncRef, MTLPrimitiveType type, CFTypeRef bufRef, NSUInteger offset, NSUInteger count) {
-	@autoreleasepool {
-		id<MTLRenderCommandEncoder> enc = (__bridge id<MTLRenderCommandEncoder>)renderEncRef;
-		id<MTLBuffer> buf = (__bridge id<MTLBuffer>)bufRef;
-		[enc drawIndexedPrimitives:type indexCount:count indexType:MTLIndexTypeUInt16 indexBuffer:buf indexBufferOffset:offset];
-	}
-}
-
-static void computeEncSetPipeline(CFTypeRef computeEncRef, CFTypeRef pipeRef) {
-	@autoreleasepool {
-		id<MTLComputeCommandEncoder> enc = (__bridge id<MTLComputeCommandEncoder>)computeEncRef;
-		id<MTLComputePipelineState> pipe = (__bridge id<MTLComputePipelineState>)pipeRef;
-		[enc setComputePipelineState:pipe];
-	}
-}
-
-static void computeEncSetTexture(CFTypeRef computeEncRef, NSUInteger index, CFTypeRef texRef) {
-	@autoreleasepool {
-		id<MTLComputeCommandEncoder> enc = (__bridge id<MTLComputeCommandEncoder>)computeEncRef;
-		id<MTLTexture> tex = (__bridge id<MTLTexture>)texRef;
-		[enc setTexture:tex atIndex:index];
-	}
-}
-
-static void computeEncEnd(CFTypeRef computeEncRef) {
-	@autoreleasepool {
-		id<MTLComputeCommandEncoder> enc = (__bridge id<MTLComputeCommandEncoder>)computeEncRef;
-		[enc endEncoding];
-	}
-}
-
-static void computeEncSetBuffer(CFTypeRef computeEncRef, NSUInteger index, CFTypeRef bufRef) {
-	@autoreleasepool {
-		id<MTLComputeCommandEncoder> enc = (__bridge id<MTLComputeCommandEncoder>)computeEncRef;
-		id<MTLBuffer> buf = (__bridge id<MTLBuffer>)bufRef;
-		[enc setBuffer:buf offset:0 atIndex:index];
-	}
-}
-
-static void computeEncDispatch(CFTypeRef computeEncRef, MTLSize threadgroupsPerGrid, MTLSize threadsPerThreadgroup) {
-	@autoreleasepool {
-		id<MTLComputeCommandEncoder> enc = (__bridge id<MTLComputeCommandEncoder>)computeEncRef;
-		[enc dispatchThreadgroups:threadgroupsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
-	}
-}
-
-static void computeEncSetBytes(CFTypeRef computeEncRef, const void *bytes, NSUInteger length, NSUInteger index) {
-	@autoreleasepool {
-		id<MTLComputeCommandEncoder> enc = (__bridge id<MTLComputeCommandEncoder>)computeEncRef;
-		[enc setBytes:bytes length:length atIndex:index];
-	}
-}
-
-static void blitEncEnd(CFTypeRef blitEncRef) {
-	@autoreleasepool {
-		id<MTLBlitCommandEncoder> enc = (__bridge id<MTLBlitCommandEncoder>)blitEncRef;
-		[enc endEncoding];
-	}
-}
-
-static void blitEncCopyFromTexture(CFTypeRef blitEncRef, CFTypeRef srcRef, MTLOrigin srcOrig, MTLSize srcSize, CFTypeRef dstRef, MTLOrigin dstOrig) {
-	@autoreleasepool {
-		id<MTLBlitCommandEncoder> enc = (__bridge id<MTLBlitCommandEncoder>)blitEncRef;
-		id<MTLTexture> src = (__bridge id<MTLTexture>)srcRef;
-		id<MTLTexture> dst = (__bridge id<MTLTexture>)dstRef;
-		[enc copyFromTexture:src
-				 sourceSlice:0
-				 sourceLevel:0
-			    sourceOrigin:srcOrig
-				  sourceSize:srcSize
-				   toTexture:dst
-			destinationSlice:0
-			destinationLevel:0
-		   destinationOrigin:dstOrig];
-	}
-}
-
-static void blitEncCopyBufferToTexture(CFTypeRef blitEncRef, CFTypeRef bufRef, CFTypeRef texRef, NSUInteger offset, NSUInteger stride, NSUInteger length, MTLSize dims, MTLOrigin orig) {
-	@autoreleasepool {
-		id<MTLBlitCommandEncoder> enc = (__bridge id<MTLBlitCommandEncoder>)blitEncRef;
-		id<MTLBuffer> src = (__bridge id<MTLBuffer>)bufRef;
-		id<MTLTexture> dst = (__bridge id<MTLTexture>)texRef;
-		[enc copyFromBuffer:src
-			   sourceOffset:offset
-		  sourceBytesPerRow:stride
-		sourceBytesPerImage:length
-				 sourceSize:dims
-				  toTexture:dst
-		   destinationSlice:0
-		   destinationLevel:0
-		  destinationOrigin:orig];
-	}
-}
-
-static void blitEncGenerateMipmapsForTexture(CFTypeRef blitEncRef, CFTypeRef texRef) {
-	@autoreleasepool {
-		id<MTLBlitCommandEncoder> enc = (__bridge id<MTLBlitCommandEncoder>)blitEncRef;
-		id<MTLTexture> tex = (__bridge id<MTLTexture>)texRef;
-		[enc generateMipmapsForTexture: tex];
-	}
-}
-
-static void blitEncCopyTextureToBuffer(CFTypeRef blitEncRef, CFTypeRef texRef, CFTypeRef bufRef, NSUInteger offset, NSUInteger stride, NSUInteger length, MTLSize dims, MTLOrigin orig) {
-	@autoreleasepool {
-		id<MTLBlitCommandEncoder> enc = (__bridge id<MTLBlitCommandEncoder>)blitEncRef;
-		id<MTLTexture> src = (__bridge id<MTLTexture>)texRef;
-		id<MTLBuffer> dst = (__bridge id<MTLBuffer>)bufRef;
-		[enc		 copyFromTexture:src
-						 sourceSlice:0
-						 sourceLevel:0
-						sourceOrigin:orig
-						  sourceSize:dims
-							toBuffer:dst
-				   destinationOffset:offset
-			  destinationBytesPerRow:stride
-			destinationBytesPerImage:length];
-	}
-}
-
-static void blitEncCopyBufferToBuffer(CFTypeRef blitEncRef, CFTypeRef srcRef, CFTypeRef dstRef, NSUInteger srcOff, NSUInteger dstOff, NSUInteger size) {
-	@autoreleasepool {
-		id<MTLBlitCommandEncoder> enc = (__bridge id<MTLBlitCommandEncoder>)blitEncRef;
-		id<MTLBuffer> src = (__bridge id<MTLBuffer>)srcRef;
-		id<MTLBuffer> dst = (__bridge id<MTLBuffer>)dstRef;
-		[enc   copyFromBuffer:src
-				 sourceOffset:srcOff
-					 toBuffer:dst
-			destinationOffset:dstOff
-						 size:size];
-	}
-}
-
-static CFTypeRef newTexture(CFTypeRef devRef, NSUInteger width, NSUInteger height, MTLPixelFormat format, MTLTextureUsage usage, int mipmapped) {
-	@autoreleasepool {
-		id<MTLDevice> dev = (__bridge id<MTLDevice>)devRef;
-		MTLTextureDescriptor *mtlDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat: format
-																						   width: width
-																						  height: height
-																				   	   mipmapped: mipmapped ? YES : NO];
-		mtlDesc.usage = usage;
-		mtlDesc.storageMode =  MTLStorageModePrivate;
-		return CFBridgingRetain([dev newTextureWithDescriptor:mtlDesc]);
-	}
-}
-
-static CFTypeRef newSampler(CFTypeRef devRef, MTLSamplerMinMagFilter minFilter, MTLSamplerMinMagFilter magFilter, MTLSamplerMipFilter mipFilter) {
-	@autoreleasepool {
-		id<MTLDevice> dev = (__bridge id<MTLDevice>)devRef;
-		MTLSamplerDescriptor *desc = [MTLSamplerDescriptor new];
-		desc.minFilter = minFilter;
-		desc.magFilter = magFilter;
-		desc.mipFilter = mipFilter;
-		return CFBridgingRetain([dev newSamplerStateWithDescriptor:desc]);
-	}
-}
-
-static CFTypeRef newBuffer(CFTypeRef devRef, NSUInteger size, MTLResourceOptions opts) {
-	@autoreleasepool {
-		id<MTLDevice> dev = (__bridge id<MTLDevice>)devRef;
-		id<MTLBuffer> buf = [dev newBufferWithLength:size
-											 options:opts];
-		return CFBridgingRetain(buf);
-	}
-}
-
-static slice bufferContents(CFTypeRef bufRef) {
-	@autoreleasepool {
-		id<MTLBuffer> buf = (__bridge id<MTLBuffer>)bufRef;
-		slice s = {.addr = [buf contents], .size = [buf length]};
-		return s;
-	}
-}
-
-static CFTypeAndError newLibrary(CFTypeRef devRef, char *name, void *mtllib, size_t size) {
-	@autoreleasepool {
-		id<MTLDevice> dev = (__bridge id<MTLDevice>)devRef;
-		dispatch_data_t data = dispatch_data_create(mtllib, size, DISPATCH_TARGET_QUEUE_DEFAULT, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
-		NSError *err = NULL;
-		id<MTLLibrary> lib = [dev newLibraryWithData:data error:&err];
-		if (lib == nil) {
-			return error(err);
-		}
-		lib.label = [NSString stringWithUTF8String:name];
-		return ok(lib);
-	}
-}
-
-static CFTypeRef libraryNewFunction(CFTypeRef libRef, char *funcName) {
-	@autoreleasepool {
-		id<MTLLibrary> lib = (__bridge id<MTLLibrary>)libRef;
-		NSString *name = [NSString stringWithUTF8String:funcName];
-		return CFBridgingRetain([lib newFunctionWithName:name]);
-	}
-}
-
-static CFTypeAndError newComputePipeline(CFTypeRef devRef, CFTypeRef funcRef) {
-	@autoreleasepool {
-		id<MTLDevice> dev = (__bridge id<MTLDevice>)devRef;
-		id<MTLFunction> func = (__bridge id<MTLFunction>)funcRef;
-		NSError *err = NULL;
-		id<MTLComputePipelineState> s = [dev newComputePipelineStateWithFunction:func error:&err];
-		if (s == nil) {
-			return error(err);
-		}
-		return ok(s);
-	}
-}
-
-static CFTypeAndError newRenderPipeline(CFTypeRef devRef, CFTypeRef vertFunc, CFTypeRef fragFunc, MTLPixelFormat pixelFormat, NSUInteger bufIdx, NSUInteger nverts, MTLVertexFormat *fmts, NSUInteger *offsets, NSUInteger stride, int blend, MTLBlendFactor srcFactor, MTLBlendFactor dstFactor, NSUInteger nvertBufs, NSUInteger nfragBufs) {
-	@autoreleasepool {
-		id<MTLDevice> dev = (__bridge id<MTLDevice>)devRef;
-		id<MTLFunction> vfunc = (__bridge id<MTLFunction>)vertFunc;
-		id<MTLFunction> ffunc = (__bridge id<MTLFunction>)fragFunc;
-		MTLVertexDescriptor *vdesc = [MTLVertexDescriptor vertexDescriptor];
-		vdesc.layouts[bufIdx].stride = stride;
-		for (NSUInteger i = 0; i < nverts; i++) {
-			vdesc.attributes[i].format = fmts[i];
-			vdesc.attributes[i].offset = offsets[i];
-			vdesc.attributes[i].bufferIndex = bufIdx;
-		}
-		MTLRenderPipelineDescriptor *desc = [MTLRenderPipelineDescriptor new];
-		desc.vertexFunction = vfunc;
-		desc.fragmentFunction = ffunc;
-		desc.vertexDescriptor = vdesc;
-		for (NSUInteger i = 0; i < nvertBufs; i++) {
-			if (@available(iOS 11.0, *)) {
-				desc.vertexBuffers[i].mutability = MTLMutabilityImmutable;
-			}
-		}
-		for (NSUInteger i = 0; i < nfragBufs; i++) {
-			if (@available(iOS 11.0, *)) {
-				desc.fragmentBuffers[i].mutability = MTLMutabilityImmutable;
-			}
-		}
-		desc.colorAttachments[0].pixelFormat = pixelFormat;
-		desc.colorAttachments[0].blendingEnabled = blend ? YES : NO;
-		desc.colorAttachments[0].sourceAlphaBlendFactor = srcFactor;
-		desc.colorAttachments[0].sourceRGBBlendFactor = srcFactor;
-		desc.colorAttachments[0].destinationAlphaBlendFactor = dstFactor;
-		desc.colorAttachments[0].destinationRGBBlendFactor = dstFactor;
-		NSError *err = NULL;
-		id<MTLRenderPipelineState> s = [dev newRenderPipelineStateWithDescriptor:desc
-											error:&err];
-		if (s == nil) {
-			return error(err);
-		}
-		return ok(s);
-	}
-}
-*/
-import "C"
+// MTLOrigin, MTLSize and MTLViewport.
+type mtlOrigin struct{ X, Y, Z uintptr }
+type mtlSize struct{ Width, Height, Depth uintptr }
+type mtlViewport struct{ OriginX, OriginY, Width, Height, ZNear, ZFar float64 }
 
 type Backend struct {
-	dev      C.CFTypeRef
-	queue    C.CFTypeRef
-	pixelFmt C.MTLPixelFormat
+	dev      uintptr
+	queue    uintptr
+	pixelFmt uintptr
 
-	cmdBuffer     C.CFTypeRef
-	lastCmdBuffer C.CFTypeRef
-	renderEnc     C.CFTypeRef
-	computeEnc    C.CFTypeRef
-	blitEnc       C.CFTypeRef
+	cmdBuffer     uintptr
+	lastCmdBuffer uintptr
+	renderEnc     uintptr
+	computeEnc    uintptr
+	blitEnc       uintptr
 
 	prog     *Program
-	topology C.MTLPrimitiveType
+	topology uintptr
 
 	unified bool // CPU uploads avoid activating a second GPU engine on Apple silicon.
 	pool    bufferPool
 	stores  storePool
 	quads   quadBatcher
 
-	stagingBuf C.CFTypeRef
+	stagingBuf uintptr
 	stagingOff int
 
 	indexBuf *Buffer
@@ -459,8 +92,8 @@ type Backend struct {
 
 type Texture struct {
 	backend *Backend
-	texture C.CFTypeRef
-	sampler C.CFTypeRef
+	texture uintptr
+	sampler uintptr
 	width   int
 	height  int
 	mipmap  bool
@@ -471,25 +104,25 @@ type Texture struct {
 }
 
 type Shader struct {
-	function C.CFTypeRef
+	function uintptr
 	inputs   []shader.InputLocation
 }
 
 type Program struct {
-	pipeline  C.CFTypeRef
+	pipeline  uintptr
 	groupSize [3]int
 }
 
 type Pipeline struct {
-	pipeline C.CFTypeRef
-	topology C.MTLPrimitiveType
+	pipeline uintptr
+	topology uintptr
 }
 
 type Buffer struct {
 	backend *Backend
 	size    int
-	buffer  C.CFTypeRef
-	class   int // capacity of buffer, a size class of the pool
+	buffer  uintptr
+	poolKey bufferPoolKey
 
 	// store is the buffer contents for buffers not allocated on the GPU.
 	store []byte
@@ -512,15 +145,18 @@ func init() {
 }
 
 func newMetalDevice(api driver.Metal) (driver.Device, error) {
-	dev := C.CFTypeRef(api.Device)
-	C.CFRetain(dev)
-	queue := C.CFTypeRef(api.Queue)
-	C.CFRetain(queue)
+	if err := loadMetal(); err != nil {
+		return nil, fmt.Errorf("metal: %w", err)
+	}
+	dev := uintptr(api.Device)
+	cfRetain(dev)
+	queue := uintptr(api.Queue)
+	cfRetain(queue)
 	b := &Backend{
 		dev:      dev,
 		unified:  unifiedMemory(uintptr(dev)),
 		queue:    queue,
-		pixelFmt: C.MTLPixelFormat(api.PixelFormat),
+		pixelFmt: uintptr(api.PixelFormat),
 		bufSizes: make([]uint32, bufferUnits),
 	}
 	return b, nil
@@ -528,7 +164,7 @@ func newMetalDevice(api driver.Metal) (driver.Device, error) {
 
 func (b *Backend) BeginFrame(target driver.RenderTarget, clear bool, viewport image.Point) driver.Texture {
 	if b.lastCmdBuffer != 0 {
-		C.cmdBufferWaitUntilCompleted(b.lastCmdBuffer)
+		cmdBufferWaitUntilCompleted(b.lastCmdBuffer)
 		b.stagingOff = 0
 	}
 	// Every command buffer committed so far has completed: buffers released
@@ -540,7 +176,7 @@ func (b *Backend) BeginFrame(target driver.RenderTarget, clear bool, viewport im
 	}
 	switch t := target.(type) {
 	case driver.MetalRenderTarget:
-		texture := C.CFTypeRef(t.Texture)
+		texture := uintptr(t.Texture)
 		return &Texture{texture: texture, foreign: true}
 	case *Texture:
 		return t
@@ -549,13 +185,13 @@ func (b *Backend) BeginFrame(target driver.RenderTarget, clear bool, viewport im
 	}
 }
 
-func (b *Backend) startBlit() C.CFTypeRef {
+func (b *Backend) startBlit() uintptr {
 	if b.blitEnc != 0 {
 		return b.blitEnc
 	}
 	b.endEncoder()
 	b.ensureCmdBuffer()
-	b.blitEnc = C.cmdBufferBlitEncoder(b.cmdBuffer)
+	b.blitEnc = cmdBufferBlitEncoder(b.cmdBuffer)
 	if b.blitEnc == 0 {
 		panic("metal: [MTLCommandBuffer blitCommandEncoder:] failed")
 	}
@@ -567,22 +203,22 @@ func (b *Backend) CopyTexture(dst driver.Texture, dorig image.Point, src driver.
 	dstTex := dst.(*Texture).texture
 	srcTex := src.(*Texture).texture
 	ssz := srect.Size()
-	C.blitEncCopyFromTexture(
+	blitEncCopyFromTexture(
 		enc,
 		srcTex,
-		C.MTLOrigin{
-			x: C.NSUInteger(srect.Min.X),
-			y: C.NSUInteger(srect.Min.Y),
+		mtlOrigin{
+			X: uintptr(srect.Min.X),
+			Y: uintptr(srect.Min.Y),
 		},
-		C.MTLSize{
-			width:  C.NSUInteger(ssz.X),
-			height: C.NSUInteger(ssz.Y),
-			depth:  1,
+		mtlSize{
+			Width:  uintptr(ssz.X),
+			Height: uintptr(ssz.Y),
+			Depth:  1,
 		},
 		dstTex,
-		C.MTLOrigin{
-			x: C.NSUInteger(dorig.X),
-			y: C.NSUInteger(dorig.Y),
+		mtlOrigin{
+			X: uintptr(dorig.X),
+			Y: uintptr(dorig.Y),
 		},
 	)
 }
@@ -596,12 +232,12 @@ func (b *Backend) endCmdBuffer(wait bool) {
 	if b.cmdBuffer == 0 {
 		return
 	}
-	C.cmdBufferCommit(b.cmdBuffer)
+	cmdBufferCommit(b.cmdBuffer)
 	if wait {
-		C.cmdBufferWaitUntilCompleted(b.cmdBuffer)
+		cmdBufferWaitUntilCompleted(b.cmdBuffer)
 	}
 	if b.lastCmdBuffer != 0 {
-		C.CFRelease(b.lastCmdBuffer)
+		cfRelease(b.lastCmdBuffer)
 	}
 	b.lastCmdBuffer = b.cmdBuffer
 	b.cmdBuffer = 0
@@ -626,31 +262,31 @@ func (b *Backend) Release() {
 	b.pool.trim()
 	b.quads.release()
 	if b.cmdBuffer != 0 {
-		C.CFRelease(b.cmdBuffer)
+		cfRelease(b.cmdBuffer)
 	}
 	if b.lastCmdBuffer != 0 {
-		C.CFRelease(b.lastCmdBuffer)
+		cfRelease(b.lastCmdBuffer)
 	}
 	if b.stagingBuf != 0 {
-		C.CFRelease(b.stagingBuf)
+		cfRelease(b.stagingBuf)
 	}
-	C.CFRelease(b.queue)
-	C.CFRelease(b.dev)
+	cfRelease(b.queue)
+	cfRelease(b.dev)
 	*b = Backend{}
 }
 
 // NewSurfaceTexture wraps a BGRA IOSurface in a texture without copying
 // it. Keel patch.
 func (b *Backend) NewSurfaceTexture(surface uintptr, width, height int, minFilter, magFilter driver.TextureFilter) (driver.Texture, error) {
-	tex := C.CFTypeRef(surfaceTexture(uintptr(b.dev), surface, uintptr(width), uintptr(height), b.unified))
+	tex := uintptr(surfaceTexture(uintptr(b.dev), surface, uintptr(width), uintptr(height), b.unified))
 	if tex == 0 {
 		return nil, errors.New("metal: [MTLDevice newTextureWithDescriptor:iosurface:plane:] failed")
 	}
 	min, mip := samplerFilterFor(minFilter)
 	max, _ := samplerFilterFor(magFilter)
-	s := C.newSampler(b.dev, min, max, mip)
+	s := newSampler(b.dev, min, max, mip)
 	if s == 0 {
-		C.CFRelease(tex)
+		cfRelease(tex)
 		return nil, errors.New("metal: [MTLDevice newSamplerStateWithDescriptor:] failed")
 	}
 	return &Texture{backend: b, texture: tex, sampler: s, width: width, height: height, srgb: true}, nil
@@ -658,41 +294,37 @@ func (b *Backend) NewSurfaceTexture(surface uintptr, width, height int, minFilte
 
 func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, minFilter, magFilter driver.TextureFilter, bindings driver.BufferBinding) (driver.Texture, error) {
 	mformat := pixelFormatFor(format)
-	var usage C.MTLTextureUsage
+	var usage uintptr
 	if bindings&(driver.BufferBindingTexture|driver.BufferBindingShaderStorageRead) != 0 {
-		usage |= C.MTLTextureUsageShaderRead
+		usage |= mtlTextureUsageShaderRead
 	}
 	if bindings&driver.BufferBindingFramebuffer != 0 {
-		usage |= C.MTLTextureUsageRenderTarget
+		usage |= mtlTextureUsageRenderTarget
 	}
 	if bindings&driver.BufferBindingShaderStorageWrite != 0 {
-		usage |= C.MTLTextureUsageShaderWrite
+		usage |= mtlTextureUsageShaderWrite
 	}
 	min, mip := samplerFilterFor(minFilter)
 	max, _ := samplerFilterFor(magFilter)
-	mipmap := mip != C.MTLSamplerMipFilterNotMipmapped
-	mipmapped := C.int(0)
-	if mipmap {
-		mipmapped = 1
-	}
+	mipmap := mip != mtlSamplerMipFilterNotMipmapped
 	direct := b.unified && bindings == driver.BufferBindingTexture && format != driver.TextureFormatFloat
-	var tex C.CFTypeRef
+	var tex uintptr
 	if direct {
-		tex = C.CFTypeRef(uploadTexture(uintptr(b.dev), uintptr(mformat), uintptr(width), uintptr(height), uintptr(usage), mipmap))
+		tex = uintptr(uploadTexture(uintptr(b.dev), uintptr(mformat), uintptr(width), uintptr(height), uintptr(usage), mipmap))
 	}
 	if tex == 0 {
 		if format == driver.TextureFormatAlpha8 {
 			return nil, errors.New("metal: single-channel masks unavailable")
 		}
 		direct = false
-		tex = C.newTexture(b.dev, C.NSUInteger(width), C.NSUInteger(height), mformat, usage, mipmapped)
+		tex = newTexture(b.dev, uintptr(width), uintptr(height), mformat, usage, mipmap)
 	}
 	if tex == 0 {
 		return nil, errors.New("metal: [MTLDevice newTextureWithDescriptor:] failed")
 	}
-	s := C.newSampler(b.dev, min, max, mip)
+	s := newSampler(b.dev, min, max, mip)
 	if s == 0 {
-		C.CFRelease(tex)
+		cfRelease(tex)
 		return nil, errors.New("metal: [MTLDevice newSamplerStateWithDescriptor:] failed")
 	}
 	return &Texture{backend: b, texture: tex, sampler: s, width: width, height: height, mipmap: mipmap, direct: direct, srgb: format == driver.TextureFormatSRGBA, mask: format == driver.TextureFormatAlpha8}, nil
@@ -705,14 +337,14 @@ func (b *Backend) NewMaskTexture(width, height int, min, mag driver.TextureFilte
 	return b.NewTexture(driver.TextureFormatAlpha8, width, height, min, mag, driver.BufferBindingTexture)
 }
 
-func samplerFilterFor(f driver.TextureFilter) (C.MTLSamplerMinMagFilter, C.MTLSamplerMipFilter) {
+func samplerFilterFor(f driver.TextureFilter) (uintptr, uintptr) {
 	switch f {
 	case driver.FilterNearest:
-		return C.MTLSamplerMinMagFilterNearest, C.MTLSamplerMipFilterNotMipmapped
+		return mtlSamplerMinMagFilterNearest, mtlSamplerMipFilterNotMipmapped
 	case driver.FilterLinear:
-		return C.MTLSamplerMinMagFilterLinear, C.MTLSamplerMipFilterNotMipmapped
+		return mtlSamplerMinMagFilterLinear, mtlSamplerMipFilterNotMipmapped
 	case driver.FilterLinearMipmapLinear:
-		return C.MTLSamplerMinMagFilterLinear, C.MTLSamplerMipFilterLinear
+		return mtlSamplerMinMagFilterLinear, mtlSamplerMipFilterLinear
 	default:
 		panic("invalid texture filter")
 	}
@@ -724,83 +356,79 @@ func (b *Backend) NewPipeline(desc driver.PipelineDesc) (driver.Pipeline, error)
 	if got, exp := len(layout), len(vsh.inputs); got != exp {
 		return nil, fmt.Errorf("metal: number of input descriptors (%d) doesn't match number of inputs (%d)", got, exp)
 	}
-	formats := make([]C.MTLVertexFormat, len(layout))
-	offsets := make([]C.NSUInteger, len(layout))
+	formats := make([]uintptr, len(layout))
+	offsets := make([]uintptr, len(layout))
 	for i, inp := range layout {
 		index := vsh.inputs[i].Location
 		formats[index] = vertFormatFor(vsh.inputs[i])
-		offsets[index] = C.NSUInteger(inp.Offset)
+		offsets[index] = uintptr(inp.Offset)
 	}
 	srcFactor := blendFactorFor(desc.BlendDesc.SrcFactor)
 	dstFactor := blendFactorFor(desc.BlendDesc.DstFactor)
-	blend := C.int(0)
-	if desc.BlendDesc.IsEnabled() {
-		blend = 1
-	}
 	pf := b.pixelFmt
 	if f := desc.PixelFormat; f != driver.TextureFormatOutput {
 		pf = pixelFormatFor(f)
 	}
-	pipe, err := splitErr(C.newRenderPipeline(
+	pipe, err := newRenderPipeline(
 		b.dev,
 		vsh.function,
 		fsh.function,
 		pf,
 		attributeBufferIndex,
-		C.NSUInteger(len(layout)), unsafe.SliceData(formats), unsafe.SliceData(offsets),
-		C.NSUInteger(desc.VertexLayout.Stride),
-		blend, srcFactor, dstFactor,
+		formats, offsets,
+		uintptr(desc.VertexLayout.Stride),
+		desc.BlendDesc.IsEnabled(), srcFactor, dstFactor,
 		2, // Number of vertex buffers.
 		1, // Number of fragment buffers.
-	))
+	)
 	if err != nil {
 		return nil, fmt.Errorf("metal: pipeline construction failed: %w", err)
 	}
 	return &Pipeline{pipeline: pipe, topology: primitiveFor(desc.Topology)}, nil
 }
 
-func blendFactorFor(f driver.BlendFactor) C.MTLBlendFactor {
+func blendFactorFor(f driver.BlendFactor) uintptr {
 	switch f {
 	case driver.BlendFactorZero:
-		return C.MTLBlendFactorZero
+		return mtlBlendFactorZero
 	case driver.BlendFactorOne:
-		return C.MTLBlendFactorOne
+		return mtlBlendFactorOne
 	case driver.BlendFactorOneMinusSrcAlpha:
-		return C.MTLBlendFactorOneMinusSourceAlpha
+		return mtlBlendFactorOneMinusSourceAlpha
 	case driver.BlendFactorDstColor:
-		return C.MTLBlendFactorDestinationColor
+		return mtlBlendFactorDestinationColor
 	default:
 		panic("unsupported blend factor")
 	}
 }
 
-func vertFormatFor(f shader.InputLocation) C.MTLVertexFormat {
+func vertFormatFor(f shader.InputLocation) uintptr {
 	t := f.Type
 	s := f.Size
 	switch {
 	case t == shader.DataTypeFloat && s == 1:
-		return C.MTLVertexFormatFloat
+		return mtlVertexFormatFloat
 	case t == shader.DataTypeFloat && s == 2:
-		return C.MTLVertexFormatFloat2
+		return mtlVertexFormatFloat2
 	case t == shader.DataTypeFloat && s == 3:
-		return C.MTLVertexFormatFloat3
+		return mtlVertexFormatFloat3
 	case t == shader.DataTypeFloat && s == 4:
-		return C.MTLVertexFormatFloat4
+		return mtlVertexFormatFloat4
 	default:
 		panic("unsupported data type")
 	}
 }
 
-func pixelFormatFor(f driver.TextureFormat) C.MTLPixelFormat {
+func pixelFormatFor(f driver.TextureFormat) uintptr {
 	switch f {
 	case driver.TextureFormatFloat:
-		return C.MTLPixelFormatR16Float
+		return mtlPixelFormatR16Float
 	case driver.TextureFormatRGBA8:
-		return C.MTLPixelFormatRGBA8Unorm
+		return mtlPixelFormatRGBA8Unorm
 	case driver.TextureFormatAlpha8:
-		return C.MTLPixelFormatR8Unorm
+		return mtlPixelFormatR8Unorm
 	case driver.TextureFormatSRGBA:
-		return C.MTLPixelFormatRGBA8Unorm_sRGB
+		return mtlPixelFormatRGBA8Unorm_sRGB
 	default:
 		panic("unsupported pixel format")
 	}
@@ -815,22 +443,26 @@ func (b *Backend) NewBuffer(typ driver.BufferBinding, size int) (driver.Buffer, 
 	if size <= maxStoreSize && typ&(driver.BufferBindingShaderStorageWrite|driver.BufferBindingIndices) == 0 {
 		return &Buffer{backend: b, size: size, store: b.stores.get(size)}, nil
 	}
-	class := bufferClass(size)
-	buf := b.pool.get(class)
+	key := bufferPoolKey{class: bufferClass(size), storage: bufferStoragePrivate}
+	buf := b.pool.get(key)
 	if buf == 0 {
-		buf = C.newBuffer(b.dev, C.NSUInteger(class), C.MTLResourceStorageModePrivate)
+		buf = newBuffer(b.dev, uintptr(key.class), mtlResourceStorageModePrivate)
 	}
-	return &Buffer{backend: b, size: size, buffer: buf, class: class}, nil
+	return &Buffer{backend: b, size: size, buffer: buf, poolKey: key}, nil
 }
 
 func (b *Backend) NewImmutableBuffer(typ driver.BufferBinding, data []byte) (driver.Buffer, error) {
 	// Immutable geometry is initialized before its first GPU use. Keep mutable
 	// buffers on the ordered upload path, including later Upload calls on this buffer.
 	if b.unified && (len(data) > 4096 || typ&driver.BufferBindingIndices != 0) {
-		buf := C.newBuffer(b.dev, C.NSUInteger(len(data)), C.MTLResourceStorageModeShared)
+		key := bufferPoolKey{class: bufferClass(len(data)), storage: bufferStorageShared}
+		buf := b.pool.get(key)
+		if buf == 0 {
+			buf = newBuffer(b.dev, uintptr(key.class), mtlResourceStorageModeShared)
+		}
 		if buf != 0 {
-			copy(bufferStore(buf), data)
-			return &Buffer{backend: b, size: len(data), buffer: buf}, nil
+			copy(bufferStore(buf)[:len(data)], data)
+			return &Buffer{backend: b, size: len(data), buffer: buf, poolKey: key}, nil
 		}
 	}
 	buf, err := b.NewBuffer(typ, len(data))
@@ -847,7 +479,7 @@ func (b *Backend) NewComputeProgram(src shader.Sources) (driver.Program, error) 
 		return nil, err
 	}
 	defer sh.Release()
-	pipe, err := splitErr(C.newComputePipeline(b.dev, sh.function))
+	pipe, err := newComputePipeline(b.dev, sh.function)
 	if err != nil {
 		return nil, fmt.Errorf("metal: compute program %q load failed: %w", src.Name, err)
 	}
@@ -862,26 +494,14 @@ func (b *Backend) NewFragmentShader(src shader.Sources) (driver.FragmentShader, 
 	return b.newShader(src)
 }
 
-func splitErr(o C.CFTypeAndError) (C.CFTypeRef, error) {
-	if o.err != nil {
-		defer C.free(unsafe.Pointer(o.err))
-		return 0, errors.New(C.GoString(o.err))
-	}
-	return o.obj, nil
-}
-
 func (b *Backend) newShader(src shader.Sources) (*Shader, error) {
 	vsrc := src.MetalLib
-	cname := C.CString(src.Name)
-	defer C.free(unsafe.Pointer(cname))
-	vlib, err := splitErr(C.newLibrary(b.dev, cname, unsafe.Pointer(unsafe.StringData(vsrc)), C.size_t(len(vsrc))))
+	vlib, err := newLibrary(b.dev, src.Name, vsrc)
 	if err != nil {
 		return nil, fmt.Errorf("metal: shader %q load failed: %w", src.Name, err)
 	}
-	defer C.CFRelease(vlib)
-	funcName := C.CString("main0")
-	defer C.free(unsafe.Pointer(funcName))
-	f := C.libraryNewFunction(vlib, funcName)
+	defer cfRelease(vlib)
+	f := libraryNewFunction(vlib, "main0")
 	if f == 0 {
 		return nil, fmt.Errorf("metal: main function not found in %q", src.Name)
 	}
@@ -893,13 +513,13 @@ func (b *Backend) Viewport(x, y, width, height int) {
 	if enc == 0 {
 		panic("no active render pass")
 	}
-	C.renderEncViewport(enc, C.MTLViewport{
-		originX: C.double(x),
-		originY: C.double(y),
-		width:   C.double(width),
-		height:  C.double(height),
-		znear:   0.0,
-		zfar:    1.0,
+	renderEncViewport(enc, mtlViewport{
+		OriginX: float64(x),
+		OriginY: float64(y),
+		Width:   float64(width),
+		Height:  float64(height),
+		ZNear:   0.0,
+		ZFar:    1.0,
 	})
 }
 
@@ -908,7 +528,7 @@ func (b *Backend) DrawArrays(off, count int) {
 	if enc == 0 {
 		panic("no active render pass")
 	}
-	C.renderEncDrawPrimitives(enc, b.topology, C.NSUInteger(off), C.NSUInteger(count))
+	renderEncDrawPrimitives(enc, b.topology, uintptr(off), uintptr(count))
 }
 
 func (b *Backend) DrawElements(off, count int) {
@@ -916,15 +536,15 @@ func (b *Backend) DrawElements(off, count int) {
 	if enc == 0 {
 		panic("no active render pass")
 	}
-	C.renderEncDrawIndexedPrimitives(enc, b.topology, b.indexBuf.buffer, C.NSUInteger(off), C.NSUInteger(count))
+	renderEncDrawIndexedPrimitives(enc, b.topology, b.indexBuf.buffer, uintptr(off), uintptr(count))
 }
 
-func primitiveFor(mode driver.Topology) C.MTLPrimitiveType {
+func primitiveFor(mode driver.Topology) uintptr {
 	switch mode {
 	case driver.TopologyTriangles:
-		return C.MTLPrimitiveTypeTriangle
+		return mtlPrimitiveTypeTriangle
 	case driver.TopologyTriangleStrip:
-		return C.MTLPrimitiveTypeTriangleStrip
+		return mtlPrimitiveTypeTriangleStrip
 	default:
 		panic("metal: unknown draw mode")
 	}
@@ -940,7 +560,7 @@ func (b *Backend) BeginCompute() {
 	for i := range b.bufSizes {
 		b.bufSizes[i] = 0
 	}
-	b.computeEnc = C.cmdBufferComputeEncoder(b.cmdBuffer)
+	b.computeEnc = cmdBufferComputeEncoder(b.cmdBuffer)
 	if b.computeEnc == 0 {
 		panic("metal: [MTLCommandBuffer computeCommandEncoder:] failed")
 	}
@@ -950,8 +570,8 @@ func (b *Backend) EndCompute() {
 	if b.computeEnc == 0 {
 		panic("no active compute pass")
 	}
-	C.computeEncEnd(b.computeEnc)
-	C.CFRelease(b.computeEnc)
+	computeEncEnd(b.computeEnc)
+	cfRelease(b.computeEnc)
 	b.computeEnc = 0
 }
 
@@ -960,24 +580,24 @@ func (b *Backend) DispatchCompute(x, y, z int) {
 	if enc == 0 {
 		panic("no active compute pass")
 	}
-	C.computeEncSetBytes(enc, unsafe.Pointer(unsafe.SliceData(b.bufSizes)), C.NSUInteger(len(b.bufSizes)*4), spvBufferSizeConstantsBinding)
-	threadgroupsPerGrid := C.MTLSize{
-		width: C.NSUInteger(x), height: C.NSUInteger(y), depth: C.NSUInteger(z),
+	computeEncSetBytes(enc, unsafe.Pointer(unsafe.SliceData(b.bufSizes)), uintptr(len(b.bufSizes)*4), spvBufferSizeConstantsBinding)
+	threadgroupsPerGrid := mtlSize{
+		Width: uintptr(x), Height: uintptr(y), Depth: uintptr(z),
 	}
 	sz := b.prog.groupSize
-	threadsPerThreadgroup := C.MTLSize{
-		width: C.NSUInteger(sz[0]), height: C.NSUInteger(sz[1]), depth: C.NSUInteger(sz[2]),
+	threadsPerThreadgroup := mtlSize{
+		Width: uintptr(sz[0]), Height: uintptr(sz[1]), Depth: uintptr(sz[2]),
 	}
-	C.computeEncDispatch(enc, threadgroupsPerGrid, threadsPerThreadgroup)
+	computeEncDispatch(enc, threadgroupsPerGrid, threadsPerThreadgroup)
 }
 
-func (b *Backend) stagingBuffer(size int) (C.CFTypeRef, int) {
+func (b *Backend) stagingBuffer(size int) (uintptr, int) {
 	if b.stagingBuf == 0 || b.stagingOff+size > len(bufferStore(b.stagingBuf)) {
 		if b.stagingBuf != 0 {
-			C.CFRelease(b.stagingBuf)
+			cfRelease(b.stagingBuf)
 		}
 		cap := 2 * (b.stagingOff + size)
-		b.stagingBuf = C.newBuffer(b.dev, C.NSUInteger(cap), C.MTLResourceStorageModeShared|C.MTLResourceCPUCacheModeWriteCombined)
+		b.stagingBuf = newBuffer(b.dev, uintptr(cap), mtlResourceStorageModeShared|mtlResourceCPUCacheModeWriteCombined)
 		if b.stagingBuf == 0 {
 			panic(fmt.Errorf("metal: failed to allocate %d bytes of staging buffer", cap))
 		}
@@ -1026,42 +646,38 @@ func (t *Texture) Upload(offset, size image.Point, pixels []byte, stride int) {
 		srcOff += stride
 	}
 	enc := t.backend.startBlit()
-	orig := C.MTLOrigin{
-		x: C.NSUInteger(offset.X),
-		y: C.NSUInteger(offset.Y),
+	orig := mtlOrigin{
+		X: uintptr(offset.X),
+		Y: uintptr(offset.Y),
 	}
-	msize := C.MTLSize{
-		width:  C.NSUInteger(size.X),
-		height: C.NSUInteger(size.Y),
-		depth:  1,
+	msize := mtlSize{
+		Width:  uintptr(size.X),
+		Height: uintptr(size.Y),
+		Depth:  1,
 	}
-	C.blitEncCopyBufferToTexture(enc, buf, t.texture, C.NSUInteger(off), C.NSUInteger(dstStride), C.NSUInteger(len(store)), msize, orig)
+	blitEncCopyBufferToTexture(enc, buf, t.texture, uintptr(off), uintptr(dstStride), uintptr(len(store)), msize, orig)
 	if t.mipmap {
-		C.blitEncGenerateMipmapsForTexture(enc, t.texture)
+		blitEncGenerateMipmapsForTexture(enc, t.texture)
 	}
 }
 
 // SetVolatile lets the system reclaim the texture's memory while it is
 // volatile, which also takes it out of the process's footprint. Keel patch.
 func (t *Texture) SetVolatile(volatile bool) {
-	v := C.int(0)
-	if volatile {
-		v = 1
-	}
-	C.textureSetVolatile(t.texture, v)
+	textureSetVolatile(t.texture, volatile)
 }
 
 func (t *Texture) Release() {
 	if t.foreign {
 		panic("metal: release of external texture")
 	}
-	C.CFRelease(t.texture)
-	C.CFRelease(t.sampler)
+	cfRelease(t.texture)
+	cfRelease(t.sampler)
 	*t = Texture{}
 }
 
 func (p *Pipeline) Release() {
-	C.CFRelease(p.pipeline)
+	cfRelease(p.pipeline)
 	*p = Pipeline{}
 }
 
@@ -1070,10 +686,10 @@ func (b *Backend) PrepareTexture(tex driver.Texture) {}
 func (b *Backend) BindTexture(unit int, tex driver.Texture) {
 	t := tex.(*Texture)
 	if enc := b.renderEnc; enc != 0 {
-		C.renderEncSetFragmentTexture(enc, C.NSUInteger(unit), t.texture)
-		C.renderEncSetFragmentSamplerState(enc, C.NSUInteger(unit), t.sampler)
+		renderEncSetFragmentTexture(enc, uintptr(unit), t.texture)
+		renderEncSetFragmentSamplerState(enc, uintptr(unit), t.sampler)
 	} else if enc := b.computeEnc; enc != 0 {
-		C.computeEncSetTexture(enc, C.NSUInteger(unit), t.texture)
+		computeEncSetTexture(enc, uintptr(unit), t.texture)
 	} else {
 		panic("no active render nor compute pass")
 	}
@@ -1083,7 +699,7 @@ func (b *Backend) ensureCmdBuffer() {
 	if b.cmdBuffer != 0 {
 		return
 	}
-	b.cmdBuffer = C.queueNewBuffer(b.queue)
+	b.cmdBuffer = queueNewBuffer(b.queue)
 	if b.cmdBuffer == 0 {
 		panic("metal: [MTLCommandQueue cmdBuffer] failed")
 	}
@@ -1095,7 +711,7 @@ func (b *Backend) BindPipeline(pipe driver.Pipeline) {
 	if enc == 0 {
 		panic("no active render pass")
 	}
-	C.renderEncSetRenderPipelineState(enc, p.pipeline)
+	renderEncSetRenderPipelineState(enc, p.pipeline)
 	b.topology = p.topology
 }
 
@@ -1105,17 +721,17 @@ func (b *Backend) BindProgram(prog driver.Program) {
 		panic("no active compute pass")
 	}
 	p := prog.(*Program)
-	C.computeEncSetPipeline(enc, p.pipeline)
+	computeEncSetPipeline(enc, p.pipeline)
 	b.prog = p
 }
 
 func (s *Shader) Release() {
-	C.CFRelease(s.function)
+	cfRelease(s.function)
 	*s = Shader{}
 }
 
 func (p *Program) Release() {
-	C.CFRelease(p.pipeline)
+	cfRelease(p.pipeline)
 	*p = Program{}
 }
 
@@ -1127,9 +743,9 @@ func (b *Backend) BindStorageBuffer(binding int, buffer driver.Buffer) {
 		panic("no active compute pass")
 	}
 	if buf.buffer != 0 {
-		C.computeEncSetBuffer(enc, C.NSUInteger(binding), buf.buffer)
+		computeEncSetBuffer(enc, uintptr(binding), buf.buffer)
 	} else if buf.size > 0 {
-		C.computeEncSetBytes(enc, unsafe.Pointer(unsafe.SliceData(buf.store)), C.NSUInteger(buf.size), C.NSUInteger(binding))
+		computeEncSetBytes(enc, unsafe.Pointer(unsafe.SliceData(buf.store)), uintptr(buf.size), uintptr(binding))
 	}
 }
 
@@ -1140,11 +756,11 @@ func (b *Backend) BindUniforms(buf driver.Buffer) {
 		panic("no active render pass")
 	}
 	if bf.buffer != 0 {
-		C.renderEncSetVertexBuffer(enc, bf.buffer, uniformBufferIndex, 0)
-		C.renderEncSetFragmentBuffer(enc, bf.buffer, uniformBufferIndex, 0)
+		renderEncSetVertexBuffer(enc, bf.buffer, uniformBufferIndex, 0)
+		renderEncSetFragmentBuffer(enc, bf.buffer, uniformBufferIndex, 0)
 	} else if bf.size > 0 {
-		C.renderEncSetVertexBytes(enc, unsafe.Pointer(unsafe.SliceData(bf.store)), C.NSUInteger(bf.size), uniformBufferIndex)
-		C.renderEncSetFragmentBytes(enc, unsafe.Pointer(unsafe.SliceData(bf.store)), C.NSUInteger(bf.size), uniformBufferIndex)
+		renderEncSetVertexBytes(enc, unsafe.Pointer(unsafe.SliceData(bf.store)), uintptr(bf.size), uniformBufferIndex)
+		renderEncSetFragmentBytes(enc, unsafe.Pointer(unsafe.SliceData(bf.store)), uintptr(bf.size), uniformBufferIndex)
 	}
 }
 
@@ -1155,9 +771,9 @@ func (b *Backend) BindVertexBuffer(buf driver.Buffer, offset int) {
 		panic("no active render pass")
 	}
 	if bf.buffer != 0 {
-		C.renderEncSetVertexBuffer(enc, bf.buffer, attributeBufferIndex, C.NSUInteger(offset))
+		renderEncSetVertexBuffer(enc, bf.buffer, attributeBufferIndex, uintptr(offset))
 	} else if n := bf.size - offset; n > 0 {
-		C.renderEncSetVertexBytes(enc, unsafe.Pointer(&bf.store[offset]), C.NSUInteger(n), attributeBufferIndex)
+		renderEncSetVertexBytes(enc, unsafe.Pointer(&bf.store[offset]), uintptr(n), attributeBufferIndex)
 	}
 }
 
@@ -1171,7 +787,7 @@ func (b *Buffer) Download(data []byte) error {
 	}
 	buf, off := b.backend.stagingBuffer(len(data))
 	enc := b.backend.startBlit()
-	C.blitEncCopyBufferToBuffer(enc, b.buffer, buf, 0, C.NSUInteger(off), C.NSUInteger(len(data)))
+	blitEncCopyBufferToBuffer(enc, b.buffer, buf, 0, uintptr(off), uintptr(len(data)))
 	b.backend.endCmdBuffer(true)
 	store := bufferSlice(buf, off, len(data))
 	copy(data, store)
@@ -1190,22 +806,22 @@ func (b *Buffer) Upload(data []byte) {
 	store := bufferSlice(buf, off, len(data))
 	copy(store, data)
 	enc := b.backend.startBlit()
-	C.blitEncCopyBufferToBuffer(enc, buf, b.buffer, C.NSUInteger(off), 0, C.NSUInteger(len(store)))
+	blitEncCopyBufferToBuffer(enc, buf, b.buffer, uintptr(off), 0, uintptr(len(store)))
 }
 
-func bufferStore(buf C.CFTypeRef) []byte {
-	contents := C.bufferContents(buf)
-	return (*(*[1 << 30]byte)(contents.addr))[:contents.size:contents.size]
+func bufferStore(buf uintptr) []byte {
+	addr, size := bufferContents(buf)
+	return unsafe.Slice((*byte)(addr), size)
 }
 
-func bufferSlice(buf C.CFTypeRef, off, len int) []byte {
+func bufferSlice(buf uintptr, off, len int) []byte {
 	store := bufferStore(buf)
 	return store[off : off+len]
 }
 
 func (b *Buffer) Release() {
-	if b.buffer != 0 && !b.backend.pool.put(b.class, b.buffer) {
-		C.CFRelease(b.buffer)
+	if b.buffer != 0 && !b.backend.pool.put(b.poolKey, b.buffer) {
+		cfRelease(b.buffer)
 	}
 	if b.store != nil && b.backend != nil {
 		b.backend.stores.put(b.store)
@@ -1219,19 +835,19 @@ func (b *Backend) Trim() {
 	// The next frame must not reuse storage still read by the GPU. Finish
 	// this frame before dropping the completion fence and temporary buffers.
 	if b.lastCmdBuffer != 0 {
-		C.cmdBufferWaitUntilCompleted(b.lastCmdBuffer)
-		C.CFRelease(b.lastCmdBuffer)
+		cmdBufferWaitUntilCompleted(b.lastCmdBuffer)
+		cfRelease(b.lastCmdBuffer)
 		b.lastCmdBuffer = 0
 	}
 	b.pool.trim()
 	b.stores.trim()
 	if b.stagingBuf != 0 {
-		C.CFRelease(b.stagingBuf)
+		cfRelease(b.stagingBuf)
 		b.stagingBuf = 0
 	}
 	b.stagingOff = 0
 	if b.quads.buf != 0 {
-		C.CFRelease(b.quads.buf)
+		cfRelease(b.quads.buf)
 		b.quads.buf = 0
 	}
 	b.quads.off = 0
@@ -1242,14 +858,14 @@ func (t *Texture) ReadPixels(src image.Rectangle, pixels []byte, stride int) err
 		return nil
 	}
 	sz := src.Size()
-	orig := C.MTLOrigin{
-		x: C.NSUInteger(src.Min.X),
-		y: C.NSUInteger(src.Min.Y),
+	orig := mtlOrigin{
+		X: uintptr(src.Min.X),
+		Y: uintptr(src.Min.Y),
 	}
-	msize := C.MTLSize{
-		width:  C.NSUInteger(sz.X),
-		height: C.NSUInteger(sz.Y),
-		depth:  1,
+	msize := mtlSize{
+		Width:  uintptr(sz.X),
+		Height: uintptr(sz.Y),
+		Depth:  1,
 	}
 	bpp := 4
 	if t.mask {
@@ -1259,7 +875,7 @@ func (t *Texture) ReadPixels(src image.Rectangle, pixels []byte, stride int) err
 	n := sz.Y * stageStride
 	buf, off := t.backend.stagingBuffer(n)
 	enc := t.backend.startBlit()
-	C.blitEncCopyTextureToBuffer(enc, t.texture, buf, C.NSUInteger(off), C.NSUInteger(stageStride), C.NSUInteger(n), msize, orig)
+	blitEncCopyTextureToBuffer(enc, t.texture, buf, uintptr(off), uintptr(stageStride), uintptr(n), msize, orig)
 	t.backend.endCmdBuffer(true)
 	store := bufferSlice(buf, off, n)
 	var srcOff, dstOff int
@@ -1285,16 +901,16 @@ func (b *Backend) BeginRenderPass(tex driver.Texture, d driver.LoadDesc) {
 	b.ensureCmdBuffer()
 	f := tex.(*Texture)
 	col := d.ClearColor
-	var act C.MTLLoadAction
+	var act uintptr
 	switch d.Action {
 	case driver.LoadActionKeep:
-		act = C.MTLLoadActionLoad
+		act = mtlLoadActionLoad
 	case driver.LoadActionClear:
-		act = C.MTLLoadActionClear
+		act = mtlLoadActionClear
 	case driver.LoadActionInvalidate:
-		act = C.MTLLoadActionDontCare
+		act = mtlLoadActionDontCare
 	}
-	b.renderEnc = C.cmdBufferRenderEncoder(b.cmdBuffer, f.texture, act, C.float(col.R), C.float(col.G), C.float(col.B), C.float(col.A))
+	b.renderEnc = cmdBufferRenderEncoder(b.cmdBuffer, f.texture, act, float32(col.R), float32(col.G), float32(col.B), float32(col.A))
 	if b.renderEnc == 0 {
 		panic("metal: [MTLCommandBuffer renderCommandEncoderWithDescriptor:] failed")
 	}
@@ -1304,8 +920,8 @@ func (b *Backend) EndRenderPass() {
 	if b.renderEnc == 0 {
 		panic("no active render pass")
 	}
-	C.renderEncEnd(b.renderEnc)
-	C.CFRelease(b.renderEnc)
+	renderEncEnd(b.renderEnc)
+	cfRelease(b.renderEnc)
 	b.renderEnc = 0
 }
 
@@ -1317,8 +933,8 @@ func (b *Backend) endEncoder() {
 		panic("active compute pass")
 	}
 	if b.blitEnc != 0 {
-		C.blitEncEnd(b.blitEnc)
-		C.CFRelease(b.blitEnc)
+		blitEncEnd(b.blitEnc)
+		cfRelease(b.blitEnc)
 		b.blitEnc = 0
 	}
 }

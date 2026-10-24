@@ -93,6 +93,10 @@ type SemanticDesc struct {
 	Disabled    bool
 	Gestures    SemanticGestures
 	Bounds      image.Rectangle
+	// Focused is whether the node holds keyboard focus: the focused
+	// handler's area is the node's or inside it. Keel patch, for platform
+	// accessibility.
+	Focused bool
 }
 
 // SemanticGestures is a bit-set of supported gestures.
@@ -174,6 +178,26 @@ type taggedEvent struct {
 // Source returns a Source backed by this Router.
 func (q *Router) Source() Source {
 	return Source{r: q}
+}
+
+// Pending reports whether the router holds events or commands for the next
+// frame: input that arrived since the last frame, events the last frame
+// produced (focus, pointer enter and leave), or queued commands. Keel patch:
+// a frame without any can repaint retained content instead of rebuilding it.
+func (s Source) Pending() bool {
+	return s.r != nil && s.r.pending()
+}
+
+func (q *Router) pending() bool {
+	if len(q.commands) > 0 || len(q.transfers) > 0 || q.deferring || len(q.changes) > 1 {
+		return true
+	}
+	for _, ch := range q.changes {
+		if len(ch.events) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // Execute a command.
@@ -759,7 +783,75 @@ func (q *Router) SemanticAt(pos f32.Point) (SemanticID, bool) {
 func (q *Router) AppendSemantics(nodes []SemanticNode) []SemanticNode {
 	q.pointer.collector.q = &q.pointer.queue
 	q.pointer.collector.ensureRoot()
-	return q.pointer.queue.AppendSemantics(nodes)
+	start := len(nodes)
+	nodes = q.pointer.queue.AppendSemantics(nodes)
+	q.markFocused(nodes[start:])
+	return nodes
+}
+
+// FocusSemantic gives keyboard focus to the semantic node id of the last
+// frame: to its focusable handler, or the nearest one inside it. It reports
+// whether it found one. Keel patch: an accessibility client moves focus to
+// an element it knows by its node.
+func (q *Router) FocusSemantic(id SemanticID) bool {
+	pq := &q.pointer.queue
+	pq.assignSemIDs()
+	area := -1
+	for i, a := range pq.areas {
+		if a.semantic.valid && a.semantic.id == id {
+			area = i
+			break
+		}
+	}
+	if area < 0 {
+		return false
+	}
+	var target event.Tag
+	best, bestArea := -1, 0
+	for tag, h := range q.handlers {
+		if !h.filter.focusable || h.pointer.areaPlusOne == 0 {
+			continue
+		}
+		at := h.pointer.areaPlusOne - 1
+		depth := 0
+		for a := at; a != area; a = pq.areas[a].parent {
+			if a <= 0 {
+				depth = -1
+				break
+			}
+			depth++
+		}
+		if depth >= 0 && (best < 0 || depth < best || depth == best && at < bestArea) {
+			target, best, bestArea = tag, depth, at
+		}
+	}
+	if target == nil {
+		return false
+	}
+	q.execute(key.FocusCmd{Tag: target})
+	return true
+}
+
+// markFocused marks the node that holds keyboard focus: the innermost node
+// whose area holds the focused handler's.
+func (q *Router) markFocused(nodes []SemanticNode) {
+	focus := q.lastState().keyState.focus
+	if focus == nil {
+		return
+	}
+	h, ok := q.handlers[focus]
+	if !ok || h.pointer.areaPlusOne == 0 {
+		return
+	}
+	areas := q.pointer.queue.areas
+	for area := h.pointer.areaPlusOne - 1; area > 0 && area < len(areas); area = areas[area].parent {
+		for i := range nodes {
+			if nodes[i].areaIdx == area {
+				nodes[i].Desc.Focused = true
+				return
+			}
+		}
+	}
 }
 
 // EditorState returns the editor state for the focused handler, or the

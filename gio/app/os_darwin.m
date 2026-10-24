@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
+//go:build darwin && (ios || (cgo && !purego))
+
 #import <Foundation/Foundation.h>
 
 #include "_cgo_export.h"

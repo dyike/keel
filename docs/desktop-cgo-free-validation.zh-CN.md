@@ -96,6 +96,74 @@ Hello 的前后 PNG 字节一致。两份完整组件矩阵各有 792 张 PNG：
 macOS 上基线 overlay 使用解析后的 `/private/tmp` 源码路径。
 真实窗口生命周期及多窗口夹具也通过。
 
+## M1 进展：Keel 的 CoreText 绑定（2026-10-24）
+
+`ui/theme` 通过 `coretext_cgo_darwin.go`（`cgo && !purego`）调用 CoreText 栅格化字形；不使用 cgo 时改用 `coretext_purego_darwin.go`（`!cgo || purego`）。字体缓存、留边和线性光转换为两者共用。与 cgo 代码一样，位图上下文绘制到一块 Go 缓冲区，其生命周期限定在一个函数内；改由上下文自己持有像素时实测慢三倍。整数和指针调用通过 `SyscallN` 按地址调用；两种文字颜色是一次性创建的 CGColor；只有边界查询在 amd64 上保留 `RegisterFunc` 包装，因为它返回的矩形通过隐藏指针传递。
+
+| 检查 | 结果 |
+| --- | --- |
+| `go test ./ui/theme`，带与不带 `-tags purego`；`-race -tags purego` | 通过。 |
+| 组件截图：11 个文字密集页面 × 浅色/深色 × 1x/2x，以及 `hello` | 两种绑定的 44 张和 1 张 PNG 逐字节相同。 |
+| 12 次 emoji 栅格化（Apple Color Emoji，三种尺寸）及浅色/深色文字遮罩 | 两种绑定的 SHA-256 相同。 |
+| `BenchmarkCoreTextMask`（一次字形缓存未命中），Apple M4 | cgo 2.7 µs、4 次分配；purego 3.3 µs、19 次分配。稳定帧不做栅格化。 |
+| `CGO_ENABLED=0 go vet ./ui/theme` | 仍在 Gio 的 `internal/gl` 失败：`ui/theme` 经由无头渲染器依赖它，是 M1 的后续步骤。 |
+
+在 macOS 默认切换之前，cgo 绑定仍是默认值，切换后删除。未在原生 amd64 上运行。
+
+## M1 进展：Gio 的 GL 绑定（2026-10-24）
+
+`gio/internal/gl` 新增面向 macOS 和 Linux 桌面的 purego 绑定，通过 `CGO_ENABLED=0` 或 `-tags purego` 选用；iOS、Android 和 BSD 仍使用 `gl_unix.go`，`go list` 已逐个配置确认。借此，`CGO_ENABLED=0 go vet ./gio/internal/gl` 在 darwin 与 linux 的 amd64、arm64 上均通过。在 macOS 上使用 `-tags "nometal purego"` 时，无头与绘制测试经由 OpenGL 渲染并通过；`gio/gpu` 在 `nometal` 下无论哪种绑定都无法构建，与 `main` 相同（其着色测试使用仅 Metal 提供的 `AddTinted`）。`hello` 的无 cgo 构建现在止于 `gio/app`。Linux 上 GL 的性能与运行情况留待 L1 测量。
+
+## M1 进展：Gio 的 Metal 后端（2026-10-24）
+
+`gio/gpu/internal/metal` 新增面向 macOS 的 purego 绑定，通过 `CGO_ENABLED=0` 或 `-tags purego` 选用；iOS 仍使用 cgo 文件，`go list` 已对 iOS、带 cgo 的 macOS 和不带 cgo 的 macOS 分别确认。在 Apple M4（darwin/arm64）上对比两种绑定：
+
+- 像素：hello 逐字节相同。组件矩阵 793 张截图中 721 张逐字节相同；其余 72 张是动画页面（spinner、progress、skeleton、status marker 及包含它们的页面），cgo 绑定连续两次运行时同样是这 72 张不同。
+- 测试：`gio/...` 和 `ui/...` 在 `-tags purego` 下通过，包括真实窗口测试（`KEEL_DESKTOP=1`）。
+- 每帧分配：旋转路径 6 次（cgo 为 7 次），重复裁剪 4 次（cgo 为 5 次）。purego 绑定自身的调用中只有阻塞等待会分配。
+- CPU：交替运行四轮，6000 帧无头渲染的用户加系统时间 purego 为 1.97–2.13 s，cgo 为 2.01–2.07 s，差异在噪声范围内。这些帧的绘制调用很少；单次调用约 55 ns，未合批的数千次绘制可能更慢。
+- 泄漏：两种绑定在约 15000 帧中按类统计的 Objective-C 对象数保持不变；编码器调用不使用自动释放池。
+
+amd64 只做了编译和 vet（未安装 Rosetta），其经 `RegisterFunc` 按值传递结构体的调用尚未运行。`hello` 的无 cgo 构建仍止于 `gio/app`；`gio/gpu/headless` 仍使用 cgo。
+
+## M1 进展：Gio 的无头上下文（2026-10-24）
+
+`gio/gpu/headless` 在 macOS 上不使用 cgo、经 purego 创建 Metal 设备和队列；iOS 仍使用 cgo 文件。至此 Gio 的 GPU 部分（`gpu`、`gpu/headless`、`gpu/internal/metal`、`internal/gl`、`internal/cocoainit`）在 Apple M4 上以 `CGO_ENABLED=0` 运行测试并通过。使用 `-tags purego` 时，hello 与 cgo 构建逐字节相同，组件矩阵 793 张截图中同样有 721 张一致；其余 72 张是 cgo 连续两次运行时也会不同的动画页面。`hello` 的无 cgo 构建现在只剩 `gio/app` 一个 cgo 包。
+
+## M2 进展：Gio 的 macOS app 绑定（2026-10-24）
+
+`gio/app` 在 macOS 上新增 purego 绑定，因此 `CGO_ENABLED=0` 时 `examples/hello` 不再有任何使用 cgo 的包，二进制只链接 libSystem。在 Apple M4 上：
+
+- `CGO_ENABLED=0 go test ./...` 通过；`gio/app` 的真实窗口测试（`KEEL_DESKTOP=1`：空闲回收、实时缩放、包装输入视图、激活策略、文本输入）和 `ui/window` 真实窗口测试在 cgo、`-tags purego` 和无 cgo 三种配置下均通过。`-race -tags purego` 对 `gio/app`、`gio/gpu/...`、`ui/window` 和 `ui/el` 通过。`gio/app` 仍能交叉编译到 iOS，amd64 构建能通过 vet。
+- 文本输入：新测试经 `objc_msgSend` 向获得焦点的编辑器发送 `NSTextInputClient` 消息：带范围和光标的标记文本、提交、取消、按两个 UTF-16 单元计数的代理对、带实际范围的子串，以及位于窗口框架内的光标矩形。测试在两种绑定下通过，去掉协议或改动返回范围时失败。没有驱动真实输入法。
+- 像素：无 cgo 的 `hello` 截图与 cgo 版逐字节相同。可见的无 cgo 窗口经自动化接口完成了中文和 emoji 输入、点击和重绘。
+- OpenGL（`nometal`）：新测试在 cgo、purego 和无 cgo 下打开并缩放窗口；未比较像素。`hello` 在 `nometal` 下无论哪种绑定都无法构建（`ui/theme` 使用仅 Metal 提供的 `PaintTintedQuads`），与之前相同。
+- 开销，真实窗口，预热 3 s 后测 10 s，交替运行四轮：spinner 页面无 cgo 时 CPU 0.94–1.07 s（均值 1.00），cgo 为 0.89–0.98 s（均值 0.94），约多 6%；phys_footprint 分别为 108–121 MB 和 108–118 MB。空闲的 `hello` 两者都没有可测的 CPU。原生回调以及浮点、结构体消息经 purego 的反射包装函数，会产生分配。
+
+未完成：amd64 实际运行，真实中文输入法及其候选窗在缩放变化下的位置，手动验证显示器睡眠/唤醒和全屏，以及 OpenGL 窗口的像素检查。macOS 默认仍为 cgo。
+
+## L1 进展：Linux 上的 EGL、xkbcommon 和 X11（2026-10-24）
+
+"Linux without cgo" 工作流在 GitHub 的 ubuntu-24.04（amd64）和 ubuntu-24.04-arm 运行器上执行，不装 C 编译器，只装运行库，使用 Mesa 的软件渲染。在 `CGO_ENABLED=0` 下：
+
+- EGL 和 OpenGL ES：新的无头像素测试经 surfaceless EGL 渲染填充、裁剪和混合的椭圆，两种架构上读回的像素都正确；GL 绑定的符号和字符串测试通过。
+- xkbcommon：新测试编译默认键位表，检查 KEY_A 的 keysym、文本、Shift 和重复；cgo 任务也运行该测试，头文件检查通过。
+- X11：`examples/hello` 能构建，窗口能在 Xvfb 下打开。cgo 任务对照头文件检查 Go 定义的 X 结构体布局和常量。ui/window 真实窗口测试起初在两种绑定下都于 resident 和 reopen 超时：Perform 和 Configure 在事件循环之外运行，Xlib 从未发出它们的请求。补上 XFlush 后，整套测试在 Xvfb 下以两种绑定、amd64 和 arm64 全部通过。CI 还发现了重构引入的两处 cgo 回归（向 C 传递含 Go 指针的结构体），已在本记录前修复。
+
+Linux 上 Wayland 和 Vulkan 仍只能用 cgo；无 cgo 构建使用 X11 和 EGL。IBus 输入、默认之外的键盘布局以及真实桌面均未验证。
+
+## L2 进展：Linux 上的 Wayland（2026-10-24）
+
+`gio/app` 不使用 cgo 即可打开 Wayland 窗口。无 cgo 工作流在 weston 的无头后端下运行 Wayland 生命周期测试和 ui/window 的六个真实窗口测试，并取消 `DISPLAY`，不存在退回 X11 的可能；amd64 和 arm64 上全部通过。两种绑定下请求都由共用的 Go 代码经 `wl_proxy_marshal_array_flags` 编组；cgo 任务对照头文件检查其中 61 个操作码、30 个协议常量和 wl_cursor 布局，并在本记录前发现了 text-input 的 content purpose 取值错误。事件经 Gio 的监听表（cgo）或一个 `wl_proxy_add_dispatcher` 回调（purego）送到共用的处理函数。
+
+未验证：真实合成器和桌面、配合输入法的 text-input、应用间剪贴板、触摸、HiDPI 输出缩放和客户端装饰。Linux 上 Vulkan 仍只能用 cgo。
+
+## L2 进展：Linux 上的 Vulkan（2026-10-24）
+
+`gio/internal/vk` 在 Linux 上新增 purego 绑定。其结构体和常量由 `cgo -godefs` 从 Vulkan-Headers v1.3.275 生成，amd64 与 arm64 完全一致，字段名按头文件恢复。cgo 任务对照已安装的头文件检查所有字段偏移、结构体大小和 157 个常量；首次运行发现了一个被 godefs 改名的字段和一个溢出检查的常量，均已在本记录前修复。禁用 EGL 上下文后，无头像素测试在两种绑定、amd64 与 arm64 上都经 lavapipe 的 Vulkan 渲染并通过。
+
+Gio 在窗口表面上会跳过 lavapipe 这类 CPU 设备，因此 Vulkan 窗口（交换链、呈现）未经验证，需要真实 GPU。至此 Linux 桌面路径上不再有需要 cgo 的包。
+
 ## 保留的 ABI 工作与待验收项
 
 D0 编译门禁和 M0 无 CGO Objective-C 探针保留在根模块中。

@@ -110,6 +110,170 @@ With that same frame time, all 792 PNGs and the matrix index are byte-identical.
 The baseline overlay uses the resolved `/private/tmp` source path on macOS.
 Real-window lifecycle/multiwindow fixtures also pass.
 
+## M1 progress: Keel's CoreText binding (2026-10-24)
+
+`ui/theme` rasterizes glyphs through CoreText in `coretext_cgo_darwin.go`
+(`cgo && !purego`) or, without cgo, in `coretext_purego_darwin.go`
+(`!cgo || purego`); font caching, padding and the linear-light conversion
+are shared. The bitmap context draws into a Go buffer whose lifetime is
+bounded by one function, as in the cgo code; a context owning its pixels
+measured three times slower. Integer and pointer calls go by address
+through `SyscallN`; the text colors are CGColors created once, and only the
+bounds query keeps a `RegisterFunc` wrapper on amd64, where its rect result
+uses a hidden pointer.
+
+| Check | Result |
+| --- | --- |
+| `go test ./ui/theme`, with and without `-tags purego`; `-race -tags purego` | Passed. |
+| Component screenshots, 11 text-heavy sections × light/dark × 1x/2x, plus `hello` | 44 and 1 PNGs byte-identical between bindings. |
+| 12 emoji rasterizations (Apple Color Emoji, three sizes) and text masks, light and dark | Identical SHA-256 between bindings. |
+| `BenchmarkCoreTextMask` (one glyph-cache miss), Apple M4 | cgo 2.7 µs, 4 allocs; purego 3.3 µs, 19 allocs. Steady-state frames do not rasterize. |
+| `CGO_ENABLED=0 go vet ./ui/theme` | Still fails in Gio's `internal/gl`, which `ui/theme` reaches through the headless renderer: the next M1 steps. |
+
+The cgo binding remains the default until macOS is promoted, then is removed.
+Native amd64 execution was not run.
+
+## M1 progress: Gio's GL binding (2026-10-24)
+
+`gio/internal/gl` has a purego binding for macOS and Linux desktop,
+selected by `CGO_ENABLED=0` or `-tags purego`; iOS, Android and the BSDs
+keep `gl_unix.go`, as `go list` confirms for each configuration. With it,
+`CGO_ENABLED=0 go vet ./gio/internal/gl` passes for darwin and linux, amd64
+and arm64. On macOS the headless and paint tests pass with
+`-tags "nometal purego"`, rendering through OpenGL; `gio/gpu` fails to build
+under `nometal` with either binding, as on `main` (its tint test uses the
+Metal-only `AddTinted`). The no-cgo build of `hello` now stops in `gio/app`.
+Linux GL performance and runtime remain to be measured with L1.
+
+## M1 progress: Gio's Metal backend (2026-10-24)
+
+`gio/gpu/internal/metal` has a purego binding for macOS, selected by
+`CGO_ENABLED=0` or `-tags purego`; iOS keeps the cgo file, as `go list`
+confirms for iOS, macOS with cgo and macOS without it. On an Apple M4
+(darwin/arm64), comparing the two bindings:
+
+- Pixels: hello is byte-identical. Of 793 component-matrix screenshots, 721
+  are byte-identical; the other 72 are animated pages (spinner, progress,
+  skeleton, status marker, and pages containing them), and the same 72
+  differ between two runs of the cgo binding.
+- Tests: `gio/...` and `ui/...` pass with `-tags purego`, including the
+  real-window tests (`KEEL_DESKTOP=1`).
+- Allocations per frame: 6 instead of 7 (rotating path) and 4 instead of 5
+  (repeated clip). Of the purego binding's own calls, only the blocking wait
+  allocates.
+- CPU: 6,000 headless frames took 1.97 to 2.13 s of user and system time
+  with purego and 2.01 to 2.07 s with cgo over four alternating runs; the
+  difference is within noise. These frames have few draws; a call costs
+  about 55 ns, so frames with thousands of unbatched draws may cost more.
+- Leaks: Objective-C object counts by class stay constant over about 15,000
+  frames with both bindings; encoder calls run without an autorelease pool.
+
+amd64 was only compiled and vetted (Rosetta is not installed), so its
+by-value struct calls through `RegisterFunc` have not run. The no-cgo build
+of `hello` still stops in `gio/app`; `gio/gpu/headless` remains cgo.
+
+## M1 progress: Gio's headless context (2026-10-24)
+
+`gio/gpu/headless` creates its Metal device and queue through purego on
+macOS without cgo; iOS keeps the cgo file. With it, Gio's GPU stack
+(`gpu`, `gpu/headless`, `gpu/internal/metal`, `internal/gl`,
+`internal/cocoainit`) passes its tests with `CGO_ENABLED=0` on an Apple M4.
+With `-tags purego`, hello is byte-identical to the cgo build and the same
+721 of 793 component screenshots match; the other 72 are the animated pages
+that also differ between cgo runs. `gio/app` is now the only cgo package in
+the no-cgo build of `hello`.
+
+## M2 progress: Gio's macOS app binding (2026-10-24)
+
+`gio/app` has a purego binding on macOS, so with `CGO_ENABLED=0` no package of
+`examples/hello` uses cgo and the binary links only libSystem. On an Apple M4:
+
+- `CGO_ENABLED=0 go test ./...` passes; `gio/app` real-window tests
+  (`KEEL_DESKTOP=1`: idle trim, live resize, wrapped input view, activation
+  policy, text input) and `ui/window` real windows pass with cgo, with
+  `-tags purego` and without cgo. `-race -tags purego` passes for `gio/app`,
+  `gio/gpu/...`, `ui/window` and `ui/el`. `gio/app` still cross-compiles for
+  iOS, and its amd64 build vets.
+- Text input: a new test sends the `NSTextInputClient` messages through
+  `objc_msgSend` to a focused editor: marked text with its range and caret,
+  commit, cancel, a surrogate pair counted as two UTF-16 units, the
+  substring with its actual range, and the caret rectangle inside the
+  window frame. It passes under both bindings and fails without the
+  protocol or with a skewed range. No real input method was driven.
+- Pixels: the no-cgo `hello` screenshot is byte-identical to cgo's. A
+  visible no-cgo window took typing of Chinese and emoji, a click and a
+  redraw through the automation socket.
+- OpenGL (`nometal`): a new test opens and resizes a window under cgo,
+  purego and no cgo; its pixels were not compared. `hello` does not build
+  with `nometal` with either binding (`ui/theme` uses the Metal-only
+  `PaintTintedQuads`), as before.
+- Cost, real windows, 10 s after a 3 s warmup, four alternating runs:
+  the spinner page used 0.94–1.07 s of CPU without cgo (mean 1.00) and
+  0.89–0.98 s with cgo (mean 0.94), about 6% more; phys_footprint was
+  108–121 MB against 108–118 MB. Idle `hello` used no measurable CPU with
+  either. Native callbacks and float or struct messages go through purego's
+  reflective wrappers, which allocate.
+
+Not done: amd64 execution, a real Chinese input method with candidate
+windows across scale changes, display sleep/wake and full screen by hand,
+and the pixel check of the OpenGL window. The macOS default stays cgo.
+
+## L1 progress: EGL, xkbcommon and X11 on Linux (2026-10-24)
+
+The "Linux without cgo" workflow runs on GitHub's ubuntu-24.04 (amd64) and
+ubuntu-24.04-arm runners with no C compiler and runtime libraries only, on
+Mesa's software renderers. With `CGO_ENABLED=0`:
+
+- EGL and OpenGL ES: a new headless pixel test renders fills, a clip and a
+  blended ellipse through surfaceless EGL and reads them back correctly on
+  both architectures; the GL binding's symbol and string tests pass.
+- xkbcommon: a new test compiles the default keymap and checks KEY_A's
+  keysym, text, Shift and repeat; the cgo job runs it too and its header
+  checks pass.
+- X11: `examples/hello` builds and its window opens under Xvfb. The cgo job
+  checks the Go X structure layouts and constants against the headers.
+  The ui/window real-window tests first timed out in resident and reopen
+  with both bindings: Perform and Configure ran outside the event loop and
+  Xlib never flushed their requests. With XFlush added, the whole set
+  passes under Xvfb with both bindings on amd64 and arm64. CI also found two
+  cgo regressions of the refactor (structs holding Go pointers passed to
+  C), fixed before this note.
+
+Wayland and Vulkan are still cgo-only on Linux; the no-cgo build uses X11
+and EGL. IBus input, keyboard layouts beyond the default and real desktops
+were not exercised.
+
+## L2 progress: Wayland on Linux (2026-10-24)
+
+`gio/app` opens Wayland windows without cgo. The no-cgo workflow runs the
+Wayland lifecycle tests and the six ui/window real-window tests under
+weston's headless backend with `DISPLAY` unset, so no X11 fallback exists;
+all pass on amd64 and arm64. Requests are marshalled by shared Go code
+through `wl_proxy_marshal_array_flags` under both bindings; the cgo job
+checks their 61 opcodes, 30 protocol values and the wl_cursor layouts
+against the headers, which caught wrong text-input content purpose values
+before this note. Events reach shared handlers through Gio's listener
+tables (cgo) or one `wl_proxy_add_dispatcher` callback (purego).
+
+Not exercised: a real compositor and desktop, text-input with an input
+method, clipboard between applications, touch, HiDPI output scales and
+client-side decorations. Vulkan remains cgo-only on Linux.
+
+## L2 progress: Vulkan on Linux (2026-10-24)
+
+`gio/internal/vk` has a purego binding on Linux. Its structures and values
+are generated by `cgo -godefs` from Vulkan-Headers v1.3.275, identical for
+amd64 and arm64, with field names restored from the headers. The cgo job
+checks every field offset and size and 157 values against the installed
+headers; the first run caught a field godefs had renamed and a value that
+overflowed the check, both fixed before this note. A headless pixel test
+that disables the EGL context renders through Vulkan on lavapipe with both
+bindings, on amd64 and arm64.
+
+Gio skips CPU devices such as lavapipe for window surfaces, so Vulkan
+windows (swapchains, presentation) were not exercised; they need a GPU.
+With this step no package of the Linux desktop path needs cgo.
+
 ## Preserved ABI work and remaining gates
 
 D0's compile gate and M0's no-cgo Objective-C probes remain in the root module.

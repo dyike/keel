@@ -180,6 +180,18 @@ func (s *store) get(k stateKey) *elemState {
 	return st
 }
 
+// of returns n's state, if it has one: the pointer assignKeys cached on n,
+// or the map entry for a state created since. Frames visit every node in
+// several passes, and one map lookup per node and frame is enough.
+func (s *store) of(n *Node) *elemState {
+	if n.state != nil {
+		return n.state
+	}
+	st := s.states[n.key]
+	n.state = st
+	return st
+}
+
 func (s *store) sweep() {
 	for k, st := range s.states {
 		if st.frame != s.frame {
@@ -198,7 +210,9 @@ func (s *store) assignKeys(n *Node, key stateKey) {
 	if s.stats != nil {
 		s.stats.labels[key] = labelState(n)
 	}
-	if st := s.states[key]; st != nil {
+	st := s.states[key]
+	n.state = st
+	if st != nil {
 		st.frame = s.frame
 	}
 	for i, c := range n.children {

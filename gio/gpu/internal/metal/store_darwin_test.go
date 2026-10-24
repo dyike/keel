@@ -3,6 +3,7 @@
 package metal
 
 import (
+	"image"
 	"testing"
 
 	"github.com/dyike/keel/gio/gpu/internal/driver"
@@ -46,6 +47,32 @@ func TestStorePoolClasses(t *testing.T) {
 	p.trim()
 	if len(p.free[storeClass(128)]) != 0 {
 		t.Fatal("trim kept stores")
+	}
+}
+
+func TestBufferPoolCompletionAndStorageClasses(t *testing.T) {
+	var p bufferPool
+	shared := bufferPoolKey{class: 8192, storage: bufferStorageShared}
+	private := bufferPoolKey{class: 8192, storage: bufferStoragePrivate}
+	if !p.put(shared, 0) {
+		t.Fatal("shared buffer was not admitted")
+	}
+	if len(p.pending) != 1 || len(p.ready[shared]) != 0 {
+		t.Fatal("released buffer became ready before frame completion")
+	}
+	// A zero native reference is sufficient for testing pool bookkeeping; no
+	// native release occurs while the per-class limit is not exceeded.
+	p.frameStarted()
+	if len(p.pending) != 0 || len(p.ready[shared]) != 1 {
+		t.Fatal("completed shared buffer did not become ready")
+	}
+	p.get(private)
+	if len(p.ready[shared]) != 1 {
+		t.Fatal("private allocation consumed shared storage")
+	}
+	p.get(shared)
+	if len(p.ready[shared]) != 0 || p.bytes != 0 {
+		t.Fatal("shared allocation did not consume completed shared storage")
 	}
 }
 
@@ -93,4 +120,57 @@ func TestSmallBufferStoresReused(t *testing.T) {
 		}
 	}
 	ubuf.Release()
+}
+
+func TestLargeImmutableBuffersReuseSharedStorage(t *testing.T) {
+	b := testBackend(t)
+	if !b.unified {
+		t.Skip("shared immutable buffers require unified memory")
+	}
+	data := make([]byte, 5000)
+	for i := range data {
+		data[i] = byte(i * 17)
+	}
+	firstBuffer, err := b.NewImmutableBuffer(driver.BufferBindingVertices, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := firstBuffer.(*Buffer)
+	if first.poolKey.storage != bufferStorageShared {
+		t.Fatal("large immutable buffer did not use shared storage")
+	}
+	ref := first.buffer
+	first.Release()
+	if len(b.pool.pending) != 1 {
+		t.Fatalf("released buffer count = %d, want 1 pending completion", len(b.pool.pending))
+	}
+	// BeginFrame waits for the previous command buffer before making released
+	// buffers available. There is no command here, but the same lifetime gate
+	// still advances the pool.
+	b.BeginFrame(nil, false, image.Point{})
+	for i := range data {
+		data[i] ^= 0xff
+	}
+	secondBuffer, err := b.NewImmutableBuffer(driver.BufferBindingVertices, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := secondBuffer.(*Buffer)
+	if second.buffer != ref {
+		t.Fatal("large immutable buffer did not reuse completed shared storage")
+	}
+	if got := bufferStore(second.buffer)[:len(data)]; string(got) != string(data) {
+		t.Fatal("reused shared storage does not hold the new path vertices")
+	}
+	second.Release()
+
+	mutableBuffer, err := b.NewBuffer(driver.BufferBindingVertices, len(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mutable := mutableBuffer.(*Buffer)
+	if mutable.poolKey.storage != bufferStoragePrivate {
+		t.Fatal("mutable vertex buffer did not use private storage")
+	}
+	mutable.Release()
 }

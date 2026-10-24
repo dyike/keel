@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build darwin && !ios && nometal
+//go:build darwin && !ios && nometal && cgo && !purego
 
 package app
 
@@ -60,7 +60,7 @@ func newContext(w *window) (*glContext, error) {
 	if glFlush == nil {
 		return nil, errors.New("gl: missing symbol glFlush in the OpenGL framework")
 	}
-	view := w.contextView()
+	view := C.CFTypeRef(w.contextView())
 	ctx := C.gio_createGLContext()
 	if ctx == 0 {
 		return nil, errors.New("gl: failed to create NSOpenGLContext")

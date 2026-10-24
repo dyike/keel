@@ -251,7 +251,13 @@ func menuWindowProc(hwnd, msg, wparam, lparam uintptr) uintptr {
 			return 0
 		}
 	}
+	if msg == 0x3d { // WM_GETOBJECT: UI Automation asks for the window's provider.
+		if result, ok := accessibilityGetObject(target.w, hwnd, wparam, lparam); ok {
+			return result
+		}
+	}
 	if msg == 0x82 { // WM_NCDESTROY; destroy detached old menus, current menu is OS-owned.
+		accessibilityDestroyed(hwnd)
 		winMenus.Lock()
 		delete(winMenus.windows, hwnd)
 		winMenus.Unlock()

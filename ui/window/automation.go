@@ -215,35 +215,75 @@ type Element struct {
 	Y        int    `json:"y"`
 	Width    int    `json:"width"`
 	Height   int    `json:"height"`
+
+	parent int              // index of the enclosing container element, or -1
+	id     input.SemanticID // the node it came from
+	// viewport is the part of the window that can show it: the window, or
+	// the scroll area or clip that holds it.
+	viewport image.Rectangle
+	focused  bool // it, or a node it absorbs, holds keyboard focus
 }
+
+func (e Element) box() image.Rectangle { return image.Rect(e.X, e.Y, e.X+e.Width, e.Y+e.Height) }
 
 func (e Element) center() f32.Point {
 	return f32.Pt(float32(e.X)+float32(e.Width)/2, float32(e.Y)+float32(e.Height)/2)
 }
 
-// snapshot renders and flattens the semantic tree into elements. An element
-// absorbs the nodes inside it, so a button with a label is one element, not two.
+// snapshot renders the twin and lists its elements.
 func (w *Window) snapshot() []Element {
 	w.render()
 	v := w.virt
-	nodes := v.router.AppendSemantics(nil)
+	out := elementsOf(v.router.AppendSemantics(nil), w.window(), false)
+	v.refs = out
+	return out
+}
+
+// window is the twin's area, in dp.
+func (w *Window) window() image.Rectangle { return image.Rectangle{Max: w.virt.getSize()} }
+
+// elementsOf flattens a semantic tree into elements, the model shared by
+// automation and platform accessibility. An element absorbs the nodes inside
+// it, so a button with a label is one element, not two; containers keep
+// their elements, which record them as parent. visible is the window, in
+// the tree's units.
+//
+// Agents get what can be seen, clipped to view. Accessibility (ax) also
+// gets what is scrolled out of view inside a scroll area, at its full
+// bounds, so a screen reader can reach it and scroll it into view; scroll
+// areas become elements of their own.
+func elementsOf(nodes []input.SemanticNode, visible image.Rectangle, ax bool) []Element {
 	var out []Element
-	var walk func(n input.SemanticNode, inControl bool, visible image.Rectangle)
-	walk = func(n input.SemanticNode, inControl bool, visible image.Rectangle) {
+	// owner is the element absorbing n, or -1.
+	var walk func(n input.SemanticNode, owner int, visible image.Rectangle, parent int, inScroll bool)
+	walk = func(n input.SemanticNode, owner int, visible image.Rectangle, parent int, inScroll bool) {
 		d := n.Desc
+		inControl := owner >= 0
 		if d.Description == "el-inert" {
 			return
 		}
 		// Gio's bounds ignore scroll clipping: a row scrolled out of a table
 		// still reports where it would be. Keep only what can be seen.
 		b := d.Bounds.Intersect(visible)
-		if b.Empty() {
+		if b.Empty() && !(ax && inScroll) {
 			return
 		}
 		role, value := roleOf(d, inControl)
+		if role == "scrollarea" && !ax {
+			role = ""
+		}
+		box := b
+		if ax {
+			box = d.Bounds
+		}
+		if role == "" && d.Focused && owner >= 0 {
+			out[owner].focused = true // e.g. Gio's editor inside el's textbox
+		}
+		self := -1
 		if role != "" {
-			e := Element{Role: role, Name: d.Label, Value: value, Disabled: d.Disabled,
-				X: b.Min.X, Y: b.Min.Y, Width: b.Dx(), Height: b.Dy()}
+			self = len(out)
+			e := Element{Role: role, Name: d.Label, Value: value, Disabled: d.Disabled, focused: d.Focused,
+				X: box.Min.X, Y: box.Min.Y, Width: box.Dx(), Height: box.Dy(), parent: parent, id: n.ID, viewport: visible}
 			state := d.Selected
 			switch role {
 			case "checkbox", "radio", "switch", "menuitemcheckbox":
@@ -259,26 +299,38 @@ func (w *Window) snapshot() []Element {
 				e.Name = childText(n)
 			}
 			e.Ref = fmt.Sprintf("e%d", len(out)+1)
+			if containerRoles[role] {
+				parent = len(out)
+			}
 			out = append(out, e)
 		}
 		// An element absorbs the nodes inside it (a button's label), except
 		// containers, whose children are elements of their own.
 		absorb := role != "" && !containerRoles[role] && !strings.HasPrefix(d.Description, "paragraph")
-		if role != "" || !d.Bounds.Eq(nodes[0].Desc.Bounds) {
+		if (role != "" || !d.Bounds.Eq(nodes[0].Desc.Bounds)) && !b.Empty() {
 			visible = b // an element or clip area bounds what is inside it
 		}
+		inScroll = inScroll || custom(d) == "scrollarea"
+		if absorb {
+			owner = self
+		}
 		for _, c := range n.Children {
-			walk(c, inControl || absorb, visible)
+			walk(c, owner, visible, parent, inScroll)
 		}
 	}
 	if len(nodes) > 0 {
-		walk(nodes[0], false, image.Rectangle{Max: w.virt.getSize()})
+		walk(nodes[0], -1, visible, -1, false)
 	}
-	v.refs = out
 	return out
 }
 
-var containerRoles = map[string]bool{"tooltip": true, "dialog": true, "figure": true, "banner": true, "region": true, "toolbar": true, "tablist": true, "tabpanel": true, "log": true, "article": true, "tree": true, "navigation": true, "attachment": true, "menu": true, "alertdialog": true, "grid": true, "radiogroup": true, "listbox": true, "list": true, "form": true, "combobox": true, "table": true, "code": true, "footnotes": true, "accordion": true, "alert": true, "group": true, "status": true, "tag": true, "search": true}
+// custom is the role a node declares with core.Role.
+func custom(d input.SemanticDesc) string {
+	role, _, _ := strings.Cut(d.Description, ":")
+	return role
+}
+
+var containerRoles = map[string]bool{"scrollarea": true, "tooltip": true, "dialog": true, "figure": true, "banner": true, "region": true, "toolbar": true, "tablist": true, "tabpanel": true, "log": true, "article": true, "tree": true, "navigation": true, "attachment": true, "menu": true, "alertdialog": true, "grid": true, "radiogroup": true, "listbox": true, "list": true, "form": true, "combobox": true, "table": true, "code": true, "footnotes": true, "accordion": true, "alert": true, "group": true, "status": true, "tag": true, "search": true}
 
 // roleOf maps a semantic node to an element role and value. Gio's classes
 // give the common roles; core.Role descriptions ("row", "select:北京") the rest.

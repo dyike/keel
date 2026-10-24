@@ -155,6 +155,8 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `search` | `kit.CodeEditor` 的查找面板 | 输入框和按钮单独列出 |
 | `code` | Markdown 代码块 | 名字是语言；里面的代码文字和"复制"按钮单独列出 |
 
+macOS 上的读屏软件看到的是同样的元素，见[无障碍](accessibility.zh-CN.md)。
+
 组件通过 `core.Role` 或 el 的 `Role` 声明的其他角色会原样列出，不需要在自动化代码里登记，只需补进上表。默认情况下，一个元素会吸收它内部的文字；如果子元素需要单独列出（对话框、菜单这类容器），把角色加入 `ui/window/automation.go` 的 `containerRoles`。
 
 自动化模式下（设置了 `KEEL_AUTOMATION`），应用启动时默认开启"减少动画"：Sheet 这类滑入的浮层直接出现在最终位置，Agent 读到的坐标就是点击的坐标。应用可以自己用 `theme.SetReducedMotion(false)` 改回。

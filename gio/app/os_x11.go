@@ -4,27 +4,6 @@
 
 package app
 
-/*
-#cgo freebsd openbsd CFLAGS: -I/usr/X11R6/include -I/usr/local/include
-#cgo freebsd openbsd LDFLAGS: -L/usr/X11R6/lib -L/usr/local/lib
-#cgo freebsd openbsd LDFLAGS: -lX11 -lxkbcommon -lxkbcommon-x11 -lX11-xcb -lXcursor -lXfixes
-#cgo linux pkg-config: x11 xkbcommon xkbcommon-x11 x11-xcb xcursor xfixes
-
-#include <stdlib.h>
-#include <locale.h>
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
-#include <X11/Xutil.h>
-#include <X11/Xresource.h>
-#include <X11/XKBlib.h>
-#include <X11/Xlib-xcb.h>
-#include <X11/extensions/Xfixes.h>
-#include <X11/Xcursor/Xcursor.h>
-#include <xkbcommon/xkbcommon-x11.h>
-
-*/
-import "C"
-
 import (
 	"errors"
 	"fmt"
@@ -53,50 +32,309 @@ import (
 	"github.com/dyike/keel/gio/app/internal/xkb"
 )
 
+// The Xlib calls live in os_x11_cgo.go and os_x11_purego.go. Keel patch:
+// this file holds the logic both share, over Go definitions of the X
+// structures it reads and writes; os_x11_cgo.go checks their layout and
+// the values below against the headers.
+
 const (
 	_NET_WM_STATE_REMOVE = 0
 	_NET_WM_STATE_ADD    = 1
 )
 
+// Xlib values.
+const (
+	xFalse            = 0
+	xTrue             = 1
+	xNone             = 0
+	xCurrentTime      = 0
+	xNoEventMask      = 0
+	xKeyPress         = 2
+	xKeyRelease       = 3
+	xButtonPress      = 4
+	xButtonRelease    = 5
+	xMotionNotify     = 6
+	xFocusIn          = 9
+	xFocusOut         = 10
+	xExpose           = 12
+	xConfigureNotify  = 22
+	xSelectionRequest = 30
+	xSelectionNotify  = 31
+	xClientMessage    = 33
+
+	xKeyPressMask             = 1 << 0
+	xKeyReleaseMask           = 1 << 1
+	xButtonPressMask          = 1 << 2
+	xButtonReleaseMask        = 1 << 3
+	xPointerMotionMask        = 1 << 6
+	xExposureMask             = 1 << 15
+	xStructureNotifyMask      = 1 << 17
+	xSubstructureNotifyMask   = 1 << 19
+	xSubstructureRedirectMask = 1 << 20
+	xFocusChangeMask          = 1 << 21
+
+	xCWBackPixmap       = 1 << 0
+	xCWOverrideRedirect = 1 << 9
+	xCWEventMask        = 1 << 11
+	xCopyFromParent     = 0
+	xInputOutput        = 1
+	xPMinSize           = 1 << 4
+	xPMaxSize           = 1 << 5
+	xInputHint          = 1 << 0
+	xPropModeReplace    = 0
+
+	xButton1 = 1
+	xButton2 = 2
+	xButton3 = 3
+	xButton4 = 4
+	xButton5 = 5
+
+	xkbUseCoreKbd            = 0x0100
+	xkbMajorVersion          = 1
+	xkbMinorVersion          = 0
+	xkbNewKeyboardNotify     = 0
+	xkbMapNotify             = 1
+	xkbStateNotify           = 2
+	xkbNewKeyboardNotifyMask = 1 << 0
+	xkbMapNotifyMask         = 1 << 1
+	xkbStateNotifyMask       = 1 << 2
+)
+
+// X structures. C's int is int32, long is int and unsigned long (Window,
+// Atom, Time, XID) is uintptr, on 32- and 64-bit systems alike.
+type (
+	xWindow = uintptr
+	xAtom   = uintptr
+
+	// xEvent is the XEvent union: long pad[24].
+	xEvent [24]int
+
+	xAnyEvent struct {
+		Type      int32
+		Serial    uintptr
+		SendEvent int32
+		Display   unsafe.Pointer
+		Window    xWindow
+	}
+
+	xKeyEvent struct {
+		Type                    int32
+		Serial                  uintptr
+		SendEvent               int32
+		Display                 unsafe.Pointer
+		Window, Root, Subwindow xWindow
+		Time                    uintptr
+		X, Y, XRoot, YRoot      int32
+		State, Keycode          uint32
+		SameScreen              int32
+	}
+
+	xButtonEvent struct {
+		Type                    int32
+		Serial                  uintptr
+		SendEvent               int32
+		Display                 unsafe.Pointer
+		Window, Root, Subwindow xWindow
+		Time                    uintptr
+		X, Y, XRoot, YRoot      int32
+		State, Button           uint32
+		SameScreen              int32
+	}
+
+	xMotionEvent struct {
+		Type                    int32
+		Serial                  uintptr
+		SendEvent               int32
+		Display                 unsafe.Pointer
+		Window, Root, Subwindow xWindow
+		Time                    uintptr
+		X, Y, XRoot, YRoot      int32
+		State                   uint32
+		IsHint                  int8
+		SameScreen              int32
+	}
+
+	xExposeEvent struct {
+		Type                       int32
+		Serial                     uintptr
+		SendEvent                  int32
+		Display                    unsafe.Pointer
+		Window                     xWindow
+		X, Y, Width, Height, Count int32
+	}
+
+	xConfigureEvent struct {
+		Type                             int32
+		Serial                           uintptr
+		SendEvent                        int32
+		Display                          unsafe.Pointer
+		Event, Window                    xWindow
+		X, Y, Width, Height, BorderWidth int32
+		Above                            xWindow
+		OverrideRedirect                 int32
+	}
+
+	xSelectionEvent struct {
+		Type                        int32
+		Serial                      uintptr
+		SendEvent                   int32
+		Display                     unsafe.Pointer
+		Requestor                   xWindow
+		Selection, Target, Property xAtom
+		Time                        uintptr
+	}
+
+	xSelectionRequestEvent struct {
+		Type                        int32
+		Serial                      uintptr
+		SendEvent                   int32
+		Display                     unsafe.Pointer
+		Owner, Requestor            xWindow
+		Selection, Target, Property xAtom
+		Time                        uintptr
+	}
+
+	xClientMessageEvent struct {
+		Type        int32
+		Serial      uintptr
+		SendEvent   int32
+		Display     unsafe.Pointer
+		Window      xWindow
+		MessageType xAtom
+		Format      int32
+		Data        [5]int // the long member of the data union
+	}
+
+	xkbAnyEvent struct {
+		Type      int32
+		Serial    uintptr
+		SendEvent int32
+		Display   unsafe.Pointer
+		Time      uintptr
+		XkbType   int32
+		Device    uint32
+	}
+
+	xkbStateNotifyEvent struct {
+		Type                                                   int32
+		Serial                                                 uintptr
+		SendEvent                                              int32
+		Display                                                unsafe.Pointer
+		Time                                                   uintptr
+		XkbType, Device                                        int32
+		Changed                                                uint32
+		Group, BaseGroup, LatchedGroup, LockedGroup            int32
+		Mods, BaseMods, LatchedMods, LockedMods                uint32
+		CompatState                                            int32
+		GrabMods, CompatGrabMods, LookupMods, CompatLookupMods uint8
+		PtrButtons                                             int32
+		Keycode                                                uint8
+		EventType, ReqMajor, ReqMinor                          int8
+	}
+
+	xSizeHints struct {
+		Flags                                    int
+		X, Y, Width, Height                      int32
+		MinWidth, MinHeight, MaxWidth, MaxHeight int32
+		WidthInc, HeightInc                      int32
+		MinAspect, MaxAspect                     struct{ X, Y int32 }
+		BaseWidth, BaseHeight, WinGravity        int32
+	}
+
+	xTextProperty struct {
+		Value    unsafe.Pointer
+		Encoding xAtom
+		Format   int32
+		Nitems   uintptr
+	}
+
+	xWindowAttributes struct {
+		X, Y, Width, Height, BorderWidth, Depth          int32
+		Visual                                           unsafe.Pointer
+		Root                                             xWindow
+		Class                                            int32
+		BitGravity, WinGravity, BackingStore             int32
+		BackingPlanes, BackingPixel                      uintptr
+		SaveUnder                                        int32
+		Colormap                                         uintptr
+		MapInstalled                                     int32
+		MapState                                         int32
+		AllEventMasks, YourEventMask, DoNotPropagateMask int
+		OverrideRedirect                                 int32
+		Screen                                           unsafe.Pointer
+	}
+
+	xSetWindowAttributes struct {
+		BackgroundPixmap, BackgroundPixel    uintptr
+		BorderPixmap, BorderPixel            uintptr
+		BitGravity, WinGravity, BackingStore int32
+		BackingPlanes, BackingPixel          uintptr
+		SaveUnder                            int32
+		EventMask, DoNotPropagateMask        int
+		OverrideRedirect                     int32
+		Colormap, Cursor                     uintptr
+	}
+
+	xWMHints struct {
+		Flags        int
+		Input        int32
+		InitialState int32
+		IconPixmap   uintptr
+		IconWindow   xWindow
+		IconX, IconY int32
+		IconMask     uintptr
+		WindowGroup  uintptr
+	}
+
+	xClassHint struct {
+		ResName, ResClass unsafe.Pointer
+	}
+
+	xrmValue struct {
+		Size uint32
+		Addr unsafe.Pointer
+	}
+)
+
 type x11Window struct {
 	w            *callbacks
-	x            *C.Display
+	x            unsafe.Pointer // Display *
 	xkb          *xkb.Context
-	xkbEventBase C.int
-	xw           C.Window
+	xkbEventBase int32
+	xw           xWindow
 	ibus         *ibus.IBus
 
 	atoms struct {
 		// "UTF8_STRING".
-		utf8string C.Atom
+		utf8string xAtom
 		// "text/plain;charset=utf-8".
-		plaintext C.Atom
+		plaintext xAtom
 		// "TARGETS"
-		targets C.Atom
+		targets xAtom
 		// "CLIPBOARD".
-		clipboard C.Atom
+		clipboard xAtom
 		// "PRIMARY".
-		primary C.Atom
+		primary xAtom
 		// "CLIPBOARD_CONTENT", the clipboard destination property.
-		clipboardContent C.Atom
+		clipboardContent xAtom
 		// "WM_DELETE_WINDOW"
-		evDelWindow C.Atom
+		evDelWindow xAtom
 		// "ATOM"
-		atom C.Atom
+		atom xAtom
 		// "GTK_TEXT_BUFFER_CONTENTS"
-		gtk_text_buffer_contents C.Atom
+		gtk_text_buffer_contents xAtom
 		// "_NET_WM_NAME"
-		wmName C.Atom
+		wmName xAtom
 		// "_NET_WM_STATE"
-		wmState C.Atom
+		wmState xAtom
 		// "_NET_WM_STATE_FULLSCREEN"
-		wmStateFullscreen C.Atom
+		wmStateFullscreen xAtom
 		// "_NET_ACTIVE_WINDOW"
-		wmActiveWindow C.Atom
+		wmActiveWindow xAtom
 		// _NET_WM_STATE_MAXIMIZED_HORZ
-		wmStateMaximizedHorz C.Atom
+		wmStateMaximizedHorz xAtom
 		// _NET_WM_STATE_MAXIMIZED_VERT
-		wmStateMaximizedVert C.Atom
+		wmStateMaximizedVert xAtom
 	}
 	metric unit.Metric
 	notify struct {
@@ -157,18 +395,18 @@ func (w *x11Window) SetAnimating(anim bool) {
 }
 
 func (w *x11Window) ReadClipboard() {
-	C.XDeleteProperty(w.x, w.xw, w.atoms.clipboardContent)
-	C.XConvertSelection(w.x, w.atoms.clipboard, w.atoms.utf8string, w.atoms.clipboardContent, w.xw, C.CurrentTime)
+	xDeleteProperty(w.x, w.xw, w.atoms.clipboardContent)
+	xConvertSelection(w.x, w.atoms.clipboard, w.atoms.utf8string, w.atoms.clipboardContent, w.xw, xCurrentTime)
 }
 
 func (w *x11Window) WriteClipboard(mime string, s []byte) {
 	w.clipboard.content = s
-	C.XSetSelectionOwner(w.x, w.atoms.clipboard, w.xw, C.CurrentTime)
-	C.XSetSelectionOwner(w.x, w.atoms.primary, w.xw, C.CurrentTime)
+	xSetSelectionOwner(w.x, w.atoms.clipboard, w.xw, xCurrentTime)
+	xSetSelectionOwner(w.x, w.atoms.primary, w.xw, xCurrentTime)
 }
 
 func (w *x11Window) Configure(options []Option) {
-	var shints C.XSizeHints
+	var shints xSizeHints
 	prev := w.config
 	cnf := w.config
 	cnf.apply(w.metric, options)
@@ -191,8 +429,8 @@ func (w *x11Window) Configure(options []Option) {
 		case Minimized, Fullscreen:
 		default:
 			w.config.Mode = Minimized
-			screen := C.XDefaultScreen(w.x)
-			C.XIconifyWindow(w.x, w.xw, screen)
+			screen := xDefaultScreen(w.x)
+			xIconifyWindow(w.x, w.xw, screen)
 		}
 	case Maximized:
 		switch prev.Mode {
@@ -210,7 +448,7 @@ func (w *x11Window) Configure(options []Option) {
 		case Fullscreen:
 			w.config.Mode = Windowed
 			w.sendWMStateEvent(_NET_WM_STATE_REMOVE, w.atoms.wmStateFullscreen, 0)
-			C.XResizeWindow(w.x, w.xw, C.uint(cnf.Size.X), C.uint(cnf.Size.Y))
+			xResizeWindow(w.x, w.xw, uint32(cnf.Size.X), uint32(cnf.Size.Y))
 		case Minimized:
 			w.config.Mode = Windowed
 			w.raise()
@@ -221,45 +459,39 @@ func (w *x11Window) Configure(options []Option) {
 		w.setTitle(prev, cnf)
 		if prev.Size != cnf.Size {
 			w.config.Size = cnf.Size
-			C.XResizeWindow(w.x, w.xw, C.uint(cnf.Size.X), C.uint(cnf.Size.Y))
+			xResizeWindow(w.x, w.xw, uint32(cnf.Size.X), uint32(cnf.Size.Y))
 		}
 		if prev.MinSize != cnf.MinSize {
 			w.config.MinSize = cnf.MinSize
-			shints.min_width = C.int(cnf.MinSize.X)
-			shints.min_height = C.int(cnf.MinSize.Y)
-			shints.flags = C.PMinSize
+			shints.MinWidth = int32(cnf.MinSize.X)
+			shints.MinHeight = int32(cnf.MinSize.Y)
+			shints.Flags = xPMinSize
 		}
 		if prev.MaxSize != cnf.MaxSize {
 			w.config.MaxSize = cnf.MaxSize
-			shints.max_width = C.int(cnf.MaxSize.X)
-			shints.max_height = C.int(cnf.MaxSize.Y)
-			shints.flags = shints.flags | C.PMaxSize
+			shints.MaxWidth = int32(cnf.MaxSize.X)
+			shints.MaxHeight = int32(cnf.MaxSize.Y)
+			shints.Flags = shints.Flags | xPMaxSize
 		}
-		if shints.flags != 0 {
-			C.XSetWMNormalHints(w.x, w.xw, &shints)
+		if shints.Flags != 0 {
+			xSetWMNormalHints(w.x, w.xw, &shints)
 		}
 	}
 	if cnf.Decorated != prev.Decorated {
 		w.config.Decorated = cnf.Decorated
 	}
+	// Keel patch: see Perform.
+	xFlush(w.x)
 	w.ProcessEvent(ConfigEvent{Config: w.config})
 }
 
 func (w *x11Window) setTitle(prev, cnf Config) {
 	if prev.Title != cnf.Title {
 		title := cnf.Title
-		ctitle := C.CString(title)
-		defer C.free(unsafe.Pointer(ctitle))
-		C.XStoreName(w.x, w.xw, ctitle)
+		ctitle := cString(title)
+		xStoreName(w.x, w.xw, ctitle)
 		// set _NET_WM_NAME as well for UTF-8 support in window title.
-		C.XSetTextProperty(w.x, w.xw,
-			&C.XTextProperty{
-				value:    (*C.uchar)(unsafe.Pointer(ctitle)),
-				encoding: w.atoms.utf8string,
-				format:   8,
-				nitems:   C.ulong(len(title)),
-			},
-			w.atoms.wmName)
+		xSetTextProperty(w.x, w.xw, ctitle[:len(title)], w.atoms.utf8string, 8, w.atoms.wmName)
 	}
 }
 
@@ -275,63 +507,65 @@ func (w *x11Window) Perform(acts system.Action) {
 	if acts&system.ActionClose != 0 {
 		w.close()
 	}
+	// Keel patch: Perform runs outside the event loop, which waits in poll
+	// for the X connection; Xlib only buffers these requests, so flush
+	// them or a close never reaches the server.
+	xFlush(w.x)
 }
 
 func (w *x11Window) center() {
-	screen := C.XDefaultScreen(w.x)
-	width := C.XDisplayWidth(w.x, screen)
-	height := C.XDisplayHeight(w.x, screen)
+	screen := xDefaultScreen(w.x)
+	width := xDisplayWidth(w.x, screen)
+	height := xDisplayHeight(w.x, screen)
 
-	var attrs C.XWindowAttributes
-	C.XGetWindowAttributes(w.x, w.xw, &attrs)
-	width -= attrs.border_width
-	height -= attrs.border_width
+	var attrs xWindowAttributes
+	xGetWindowAttributes(w.x, w.xw, &attrs)
+	width -= attrs.BorderWidth
+	height -= attrs.BorderWidth
 
 	sz := w.config.Size
 	x := (int(width) - sz.X) / 2
 	y := (int(height) - sz.Y) / 2
 
-	C.XMoveResizeWindow(w.x, w.xw, C.int(x), C.int(y), C.uint(sz.X), C.uint(sz.Y))
+	xMoveResizeWindow(w.x, w.xw, int32(x), int32(y), uint32(sz.X), uint32(sz.Y))
 }
 
 func (w *x11Window) raise() {
-	var xev C.XEvent
-	ev := (*C.XClientMessageEvent)(unsafe.Pointer(&xev))
-	*ev = C.XClientMessageEvent{
-		_type:        C.ClientMessage,
-		display:      w.x,
-		window:       w.xw,
-		message_type: w.atoms.wmActiveWindow,
-		format:       32,
+	xev := new(xEvent)
+	ev := (*xClientMessageEvent)(unsafe.Pointer(xev))
+	*ev = xClientMessageEvent{
+		Type:        xClientMessage,
+		Display:     w.x,
+		Window:      w.xw,
+		MessageType: w.atoms.wmActiveWindow,
+		Format:      32,
 	}
-	C.XSendEvent(
+	xSendEvent(
 		w.x,
-		C.XDefaultRootWindow(w.x), // MUST be the root window
-		C.False,
-		C.SubstructureNotifyMask|C.SubstructureRedirectMask,
-		&xev,
+		xDefaultRootWindow(w.x), // MUST be the root window
+		xFalse,
+		xSubstructureNotifyMask|xSubstructureRedirectMask,
+		xev,
 	)
-	C.XMapRaised(w.display(), w.xw)
+	xMapRaised(w.display(), w.xw)
 }
 
 func (w *x11Window) SetCursor(cursor pointer.Cursor) {
 	if cursor == pointer.CursorNone {
 		w.cursor = cursor
-		C.XFixesHideCursor(w.x, w.xw)
+		xFixesHideCursor(w.x, w.xw)
 		return
 	}
 
 	xcursor := xCursor[cursor]
-	cname := C.CString(xcursor)
-	defer C.free(unsafe.Pointer(cname))
-	c := C.XcursorLibraryLoadCursor(w.x, cname)
+	c := xcursorLibraryLoadCursor(w.x, cString(xcursor))
 	if c == 0 {
 		cursor = pointer.CursorDefault
 	}
 	w.cursor = cursor
 	// If c if null (i.e. cursor was not found),
 	// XDefineCursor will use the default cursor.
-	C.XDefineCursor(w.x, w.xw, c)
+	xDefineCursor(w.x, w.xw, c)
 }
 
 func (w *x11Window) ShowTextInput(show bool) {}
@@ -341,51 +575,49 @@ func (w *x11Window) SetInputHint(_ key.InputHint) {}
 func (w *x11Window) EditorStateChanged(old, new editorState) {
 	if shouldCancelComposition(old, new) {
 		w.ibus.Reset()
-		w.w.SetComposingRegion(key.Range{-1, -1})
+		w.w.SetComposingRegion(key.Range{Start: -1, End: -1})
 	}
 }
 
 // close asks the event loop to process a close request.
 func (w *x11Window) close() {
-	var xev C.XEvent
-	ev := (*C.XClientMessageEvent)(unsafe.Pointer(&xev))
-	*ev = C.XClientMessageEvent{
-		_type:        C.ClientMessage,
-		display:      w.x,
-		window:       w.xw,
-		message_type: w.atom("WM_PROTOCOLS", true),
-		format:       32,
+	xev := new(xEvent)
+	ev := (*xClientMessageEvent)(unsafe.Pointer(xev))
+	*ev = xClientMessageEvent{
+		Type:        xClientMessage,
+		Display:     w.x,
+		Window:      w.xw,
+		MessageType: w.atom("WM_PROTOCOLS", true),
+		Format:      32,
 	}
-	arr := (*[5]C.long)(unsafe.Pointer(&ev.data))
-	arr[0] = C.long(w.atoms.evDelWindow)
-	arr[1] = C.CurrentTime
+	ev.Data[0] = int(w.atoms.evDelWindow)
+	ev.Data[1] = xCurrentTime
 	w.ibus.Stop()
-	C.XSendEvent(w.x, w.xw, C.False, C.NoEventMask, &xev)
+	xSendEvent(w.x, w.xw, xFalse, xNoEventMask, xev)
 }
 
 // action is one of _NET_WM_STATE_REMOVE, _NET_WM_STATE_ADD.
-func (w *x11Window) sendWMStateEvent(action C.long, atom1, atom2 C.ulong) {
-	var xev C.XEvent
-	ev := (*C.XClientMessageEvent)(unsafe.Pointer(&xev))
-	*ev = C.XClientMessageEvent{
-		_type:        C.ClientMessage,
-		display:      w.x,
-		window:       w.xw,
-		message_type: w.atoms.wmState,
-		format:       32,
+func (w *x11Window) sendWMStateEvent(action int, atom1, atom2 xAtom) {
+	xev := new(xEvent)
+	ev := (*xClientMessageEvent)(unsafe.Pointer(xev))
+	*ev = xClientMessageEvent{
+		Type:        xClientMessage,
+		Display:     w.x,
+		Window:      w.xw,
+		MessageType: w.atoms.wmState,
+		Format:      32,
 	}
-	data := (*[5]C.long)(unsafe.Pointer(&ev.data))
-	data[0] = C.long(action)
-	data[1] = C.long(atom1)
-	data[2] = C.long(atom2)
-	data[3] = 1 // application
+	ev.Data[0] = action
+	ev.Data[1] = int(atom1)
+	ev.Data[2] = int(atom2)
+	ev.Data[3] = 1 // application
 
-	C.XSendEvent(
+	xSendEvent(
 		w.x,
-		C.XDefaultRootWindow(w.x), // MUST be the root window
-		C.False,
-		C.SubstructureNotifyMask|C.SubstructureRedirectMask,
-		&xev,
+		xDefaultRootWindow(w.x), // MUST be the root window
+		xFalse,
+		xSubstructureNotifyMask|xSubstructureRedirectMask,
+		xev,
 	)
 }
 
@@ -445,11 +677,11 @@ func (w *x11Window) invalidate() {
 	}
 }
 
-func (w *x11Window) display() *C.Display {
+func (w *x11Window) display() unsafe.Pointer {
 	return w.x
 }
 
-func (w *x11Window) window() (C.Window, int, int) {
+func (w *x11Window) window() (xWindow, int, int) {
 	return w.xw, w.config.Size.X, w.config.Size.Y
 }
 
@@ -477,7 +709,7 @@ dispatchFnsLoop:
 		}
 	}
 
-	xfd := C.XConnectionNumber(w.x)
+	xfd := xConnectionNumber(w.x)
 
 	// Poll for events and notifications.
 	pollfds := []syscall.PollFd{
@@ -551,21 +783,19 @@ func (w *x11Window) destroy() {
 		w.xkb = nil
 	}
 	w.ibus.Stop()
-	C.XDestroyWindow(w.x, w.xw)
-	C.XCloseDisplay(w.x)
+	xDestroyWindow(w.x, w.xw)
+	xCloseDisplay(w.x)
 	w.x = nil
 }
 
 // atom is a wrapper around XInternAtom. Callers should cache the result
 // in order to limit round-trips to the X server.
-func (w *x11Window) atom(name string, onlyIfExists bool) C.Atom {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-	flag := C.Bool(C.False)
+func (w *x11Window) atom(name string, onlyIfExists bool) xAtom {
+	flag := int32(xFalse)
 	if onlyIfExists {
-		flag = C.True
+		flag = xTrue
 	}
-	return C.XInternAtom(w.x, cname, flag)
+	return xInternAtom(w.x, cString(name), flag)
 }
 
 // x11EventHandler wraps static variables for the main event loop.
@@ -574,7 +804,7 @@ func (w *x11Window) atom(name string, onlyIfExists bool) C.Atom {
 type x11EventHandler struct {
 	w    *x11Window
 	text []byte
-	xev  *C.XEvent
+	xev  *xEvent
 }
 
 // handleEvents returns true if the window needs to be redrawn.
@@ -582,34 +812,34 @@ func (h *x11EventHandler) handleEvents() bool {
 	w := h.w
 	xev := h.xev
 	redraw := false
-	for C.XPending(w.x) != 0 {
-		C.XNextEvent(w.x, xev)
-		if C.XFilterEvent(xev, C.None) == C.True {
+	for xPending(w.x) != 0 {
+		xNextEvent(w.x, xev)
+		if xFilterEvent(xev, xNone) == xTrue {
 			continue
 		}
-		switch _type := (*C.XAnyEvent)(unsafe.Pointer(xev))._type; _type {
+		switch _type := (*xAnyEvent)(unsafe.Pointer(xev)).Type; _type {
 		case h.w.xkbEventBase:
-			xkbEvent := (*C.XkbAnyEvent)(unsafe.Pointer(xev))
-			switch xkbEvent.xkb_type {
-			case C.XkbNewKeyboardNotify, C.XkbMapNotify:
+			xkbEvent := (*xkbAnyEvent)(unsafe.Pointer(xev))
+			switch xkbEvent.XkbType {
+			case xkbNewKeyboardNotify, xkbMapNotify:
 				if err := h.w.updateXkbKeymap(); err != nil {
 					panic(err)
 				}
-			case C.XkbStateNotify:
-				state := (*C.XkbStateNotifyEvent)(unsafe.Pointer(xev))
-				h.w.xkb.UpdateMask(uint32(state.base_mods), uint32(state.latched_mods), uint32(state.locked_mods),
-					uint32(state.base_group), uint32(state.latched_group), uint32(state.locked_group))
+			case xkbStateNotify:
+				state := (*xkbStateNotifyEvent)(unsafe.Pointer(xev))
+				h.w.xkb.UpdateMask(state.BaseMods, state.LatchedMods, state.LockedMods,
+					uint32(state.BaseGroup), uint32(state.LatchedGroup), uint32(state.LockedGroup))
 			}
-		case C.KeyPress, C.KeyRelease:
+		case xKeyPress, xKeyRelease:
 			ks := key.Press
-			if _type == C.KeyRelease {
+			if _type == xKeyRelease {
 				ks = key.Release
 			}
-			kevt := (*C.XKeyPressedEvent)(unsafe.Pointer(xev))
-			sym, events := h.w.xkb.DispatchKey(uint32(kevt.keycode), ks)
+			kevt := (*xKeyEvent)(unsafe.Pointer(xev))
+			sym, events := h.w.xkb.DispatchKey(kevt.Keycode, ks)
 			handledByIME := false
-			if _type == C.KeyPress {
-				handledByIME = w.ibus.ProcessKey(sym, uint32(kevt.keycode), uint32(kevt.state))
+			if _type == xKeyPress {
+				handledByIME = w.ibus.ProcessKey(sym, kevt.Keycode, kevt.State)
 				if handledByIME {
 					// Update IME cursor position
 					sel := w.w.EditorState().Selection
@@ -624,11 +854,8 @@ func (h *x11EventHandler) handleEvents() bool {
 					if pos.Max.X <= pos.Min.X {
 						pos.Max.X = pos.Min.X + 1
 					}
-					root := C.XDefaultRootWindow(w.x)
-					var dstX, dstY C.int
-					var childReturn C.Window
-					C.XTranslateCoordinates(w.x, w.xw, root, 0, 0, &dstX, &dstY, &childReturn)
-					_ = childReturn
+					root := xDefaultRootWindow(w.x)
+					dstX, dstY := xTranslateCoordinates(w.x, w.xw, root, 0, 0)
 					pos.Min.X += int(dstX)
 					pos.Min.Y += int(dstY)
 					pos.Max.X += int(dstX)
@@ -645,31 +872,31 @@ func (h *x11EventHandler) handleEvents() bool {
 					}
 				}
 			}
-		case C.ButtonPress, C.ButtonRelease:
-			bevt := (*C.XButtonEvent)(unsafe.Pointer(xev))
+		case xButtonPress, xButtonRelease:
+			bevt := (*xButtonEvent)(unsafe.Pointer(xev))
 			ev := pointer.Event{
 				Kind:   pointer.Press,
 				Source: pointer.Mouse,
 				Position: f32.Point{
-					X: float32(bevt.x),
-					Y: float32(bevt.y),
+					X: float32(bevt.X),
+					Y: float32(bevt.Y),
 				},
-				Time:      time.Duration(bevt.time) * time.Millisecond,
+				Time:      time.Duration(bevt.Time) * time.Millisecond,
 				Modifiers: w.xkb.Modifiers(),
 			}
-			if bevt._type == C.ButtonRelease {
+			if bevt.Type == xButtonRelease {
 				ev.Kind = pointer.Release
 			}
 			var btn pointer.Buttons
 			const scrollScale = 10
-			switch bevt.button {
-			case C.Button1:
+			switch bevt.Button {
+			case xButton1:
 				btn = pointer.ButtonPrimary
-			case C.Button2:
+			case xButton2:
 				btn = pointer.ButtonTertiary
-			case C.Button3:
+			case xButton3:
 				btn = pointer.ButtonSecondary
-			case C.Button4:
+			case xButton4:
 				ev.Kind = pointer.Scroll
 				// scroll up or left (if shift is pressed).
 				if ev.Modifiers == key.ModShift {
@@ -677,7 +904,7 @@ func (h *x11EventHandler) handleEvents() bool {
 				} else {
 					ev.Scroll.Y = -scrollScale
 				}
-			case C.Button5:
+			case xButton5:
 				// scroll down or right (if shift is pressed).
 				ev.Kind = pointer.Scroll
 				if ev.Modifiers == key.ModShift {
@@ -698,119 +925,119 @@ func (h *x11EventHandler) handleEvents() bool {
 				continue
 			}
 			switch _type {
-			case C.ButtonPress:
+			case xButtonPress:
 				w.pointerBtns |= btn
-			case C.ButtonRelease:
+			case xButtonRelease:
 				w.pointerBtns &^= btn
 			}
 			ev.Buttons = w.pointerBtns
 			w.ProcessEvent(ev)
-		case C.MotionNotify:
-			mevt := (*C.XMotionEvent)(unsafe.Pointer(xev))
+		case xMotionNotify:
+			mevt := (*xMotionEvent)(unsafe.Pointer(xev))
 			w.ProcessEvent(pointer.Event{
 				Kind:    pointer.Move,
 				Source:  pointer.Mouse,
 				Buttons: w.pointerBtns,
 				Position: f32.Point{
-					X: float32(mevt.x),
-					Y: float32(mevt.y),
+					X: float32(mevt.X),
+					Y: float32(mevt.Y),
 				},
-				Time:      time.Duration(mevt.time) * time.Millisecond,
+				Time:      time.Duration(mevt.Time) * time.Millisecond,
 				Modifiers: w.xkb.Modifiers(),
 			})
-		case C.Expose: // update
+		case xExpose: // update
 			// redraw only on the last expose event
-			redraw = (*C.XExposeEvent)(unsafe.Pointer(xev)).count == 0
-		case C.FocusIn:
+			redraw = (*xExposeEvent)(unsafe.Pointer(xev)).Count == 0
+		case xFocusIn:
 			w.config.Focused = true
 			w.ProcessEvent(ConfigEvent{Config: w.config})
 			w.ibus.Focused(true)
-		case C.FocusOut:
+		case xFocusOut:
 			w.config.Focused = false
 			w.ProcessEvent(ConfigEvent{Config: w.config})
 			w.ibus.Focused(false)
-		case C.ConfigureNotify: // window configuration change
-			cevt := (*C.XConfigureEvent)(unsafe.Pointer(xev))
-			if sz := image.Pt(int(cevt.width), int(cevt.height)); sz != w.config.Size {
+		case xConfigureNotify: // window configuration change
+			cevt := (*xConfigureEvent)(unsafe.Pointer(xev))
+			if sz := image.Pt(int(cevt.Width), int(cevt.Height)); sz != w.config.Size {
 				w.config.Size = sz
 				w.ProcessEvent(ConfigEvent{Config: w.config})
 			}
 			// redraw will be done by a later expose event
-		case C.SelectionNotify:
-			cevt := (*C.XSelectionEvent)(unsafe.Pointer(xev))
+		case xSelectionNotify:
+			cevt := (*xSelectionEvent)(unsafe.Pointer(xev))
 			prop := w.atoms.clipboardContent
-			if cevt.property != prop {
+			if cevt.Property != prop {
 				break
 			}
-			if cevt.selection != w.atoms.clipboard {
+			if cevt.Selection != w.atoms.clipboard {
 				break
 			}
-			var text C.XTextProperty
-			if st := C.XGetTextProperty(w.x, w.xw, &text, prop); st == 0 {
+			var text xTextProperty
+			if st := xGetTextProperty(w.x, w.xw, &text, prop); st == 0 {
 				// Failed; ignore.
 				break
 			}
-			if text.format != 8 || text.encoding != w.atoms.utf8string {
+			if text.Format != 8 || text.Encoding != w.atoms.utf8string {
 				// Ignore non-utf-8 encoded strings.
 				break
 			}
-			str := C.GoStringN((*C.char)(unsafe.Pointer(text.value)), C.int(text.nitems))
+			str := goStringN(text.Value, int(text.Nitems))
 			w.ProcessEvent(transfer.DataEvent{
 				Type: "application/text",
 				Open: func() io.ReadCloser {
 					return io.NopCloser(strings.NewReader(str))
 				},
 			})
-		case C.SelectionRequest:
-			cevt := (*C.XSelectionRequestEvent)(unsafe.Pointer(xev))
-			if (cevt.selection != w.atoms.clipboard && cevt.selection != w.atoms.primary) || cevt.property == C.None {
+		case xSelectionRequest:
+			cevt := (*xSelectionRequestEvent)(unsafe.Pointer(xev))
+			if (cevt.Selection != w.atoms.clipboard && cevt.Selection != w.atoms.primary) || cevt.Property == xNone {
 				// Unsupported clipboard or obsolete requestor.
 				break
 			}
 			notify := func() {
-				var xev C.XEvent
-				ev := (*C.XSelectionEvent)(unsafe.Pointer(&xev))
-				*ev = C.XSelectionEvent{
-					_type:     C.SelectionNotify,
-					display:   cevt.display,
-					requestor: cevt.requestor,
-					selection: cevt.selection,
-					target:    cevt.target,
-					property:  cevt.property,
-					time:      cevt.time,
+				xev := new(xEvent)
+				ev := (*xSelectionEvent)(unsafe.Pointer(xev))
+				*ev = xSelectionEvent{
+					Type:      xSelectionNotify,
+					Display:   cevt.Display,
+					Requestor: cevt.Requestor,
+					Selection: cevt.Selection,
+					Target:    cevt.Target,
+					Property:  cevt.Property,
+					Time:      cevt.Time,
 				}
-				C.XSendEvent(w.x, cevt.requestor, 0, 0, &xev)
+				xSendEvent(w.x, cevt.Requestor, 0, 0, xev)
 			}
-			switch cevt.target {
+			switch cevt.Target {
 			case w.atoms.targets:
 				// The requestor wants the supported clipboard
 				// formats. First write the targets...
-				formats := [...]C.long{
-					C.long(w.atoms.targets),
-					C.long(w.atoms.utf8string),
-					C.long(w.atoms.plaintext),
+				// Format 32 data is an array of C longs.
+				formats := []int{
+					int(w.atoms.targets),
+					int(w.atoms.utf8string),
+					int(w.atoms.plaintext),
 					// GTK clients need this.
-					C.long(w.atoms.gtk_text_buffer_contents),
+					int(w.atoms.gtk_text_buffer_contents),
 				}
-				C.XChangeProperty(w.x, cevt.requestor, cevt.property, w.atoms.atom,
-					32 /* bitwidth of formats */, C.PropModeReplace,
-					(*C.uchar)(unsafe.Pointer(&formats)), C.int(len(formats)),
+				xChangeProperty(w.x, cevt.Requestor, cevt.Property, w.atoms.atom,
+					32 /* bitwidth of formats */, xPropModeReplace,
+					unsafe.Pointer(&formats[0]), int32(len(formats)),
 				)
 				// ...then notify the requestor.
 				notify()
 			case w.atoms.plaintext, w.atoms.utf8string, w.atoms.gtk_text_buffer_contents:
 				content := w.clipboard.content
-				ptr := (*C.uchar)(unsafe.Pointer(unsafe.SliceData(content)))
-				C.XChangeProperty(w.x, cevt.requestor, cevt.property, cevt.target,
-					8 /* bitwidth */, C.PropModeReplace,
-					ptr, C.int(len(content)),
+				xChangeProperty(w.x, cevt.Requestor, cevt.Property, cevt.Target,
+					8 /* bitwidth */, xPropModeReplace,
+					unsafe.Pointer(unsafe.SliceData(content)), int32(len(content)),
 				)
 				notify()
 			}
-		case C.ClientMessage: // extensions
-			cevt := (*C.XClientMessageEvent)(unsafe.Pointer(xev))
-			switch *(*C.long)(unsafe.Pointer(&cevt.data)) {
-			case C.long(w.atoms.evDelWindow):
+		case xClientMessage: // extensions
+			cevt := (*xClientMessageEvent)(unsafe.Pointer(xev))
+			switch cevt.Data[0] {
+			case int(w.atoms.evDelWindow):
 				if w.closing != nil {
 					return true
 				}
@@ -839,32 +1066,34 @@ func newX11Window(gioWin *callbacks, options []Option) error {
 	}
 
 	x11Threads.Do(func() {
-		if C.XInitThreads() == 0 {
+		if err = loadX11(); err != nil {
+			return
+		}
+		if xInitThreads() == 0 {
 			err = errors.New("x11: threads init failed")
 		}
-		C.XrmInitialize()
+		xrmInitialize()
 	})
 	if err != nil {
 		return err
 	}
-	dpy := C.XOpenDisplay(nil)
+	dpy := xOpenDisplay()
 	if dpy == nil {
 		return errors.New("x11: cannot connect to the X server")
 	}
-	var major, minor C.int = C.XkbMajorVersion, C.XkbMinorVersion
-	var xkbEventBase C.int
-	if C.XkbQueryExtension(dpy, nil, &xkbEventBase, nil, &major, &minor) != C.True {
-		C.XCloseDisplay(dpy)
+	xkbEventBase, ok := xkbQueryExtension(dpy, xkbMajorVersion, xkbMinorVersion)
+	if !ok {
+		xCloseDisplay(dpy)
 		return errors.New("x11: XkbQueryExtension failed")
 	}
-	const bits = C.uint(C.XkbNewKeyboardNotifyMask | C.XkbMapNotifyMask | C.XkbStateNotifyMask)
-	if C.XkbSelectEvents(dpy, C.XkbUseCoreKbd, bits, bits) != C.True {
-		C.XCloseDisplay(dpy)
+	const bits = uint32(xkbNewKeyboardNotifyMask | xkbMapNotifyMask | xkbStateNotifyMask)
+	if xkbSelectEvents(dpy, xkbUseCoreKbd, bits, bits) != xTrue {
+		xCloseDisplay(dpy)
 		return errors.New("x11: XkbSelectEvents failed")
 	}
 	xkb, err := xkb.New()
 	if err != nil {
-		C.XCloseDisplay(dpy)
+		xCloseDisplay(dpy)
 		return fmt.Errorf("x11: %v", err)
 	}
 
@@ -874,19 +1103,19 @@ func newX11Window(gioWin *callbacks, options []Option) error {
 	var cnf Config
 	cnf.apply(cfg, options)
 
-	swa := C.XSetWindowAttributes{
-		event_mask: C.ExposureMask | C.FocusChangeMask | // update
-			C.KeyPressMask | C.KeyReleaseMask | // keyboard
-			C.ButtonPressMask | C.ButtonReleaseMask | // mouse clicks
-			C.PointerMotionMask | // mouse movement
-			C.StructureNotifyMask, // resize
-		background_pixmap: C.None,
-		override_redirect: C.False,
+	swa := xSetWindowAttributes{
+		EventMask: xExposureMask | xFocusChangeMask | // update
+			xKeyPressMask | xKeyReleaseMask | // keyboard
+			xButtonPressMask | xButtonReleaseMask | // mouse clicks
+			xPointerMotionMask | // mouse movement
+			xStructureNotifyMask, // resize
+		BackgroundPixmap: xNone,
+		OverrideRedirect: xFalse,
 	}
-	win := C.XCreateWindow(dpy, C.XDefaultRootWindow(dpy),
-		0, 0, C.uint(cnf.Size.X), C.uint(cnf.Size.Y),
-		0, C.CopyFromParent, C.InputOutput, nil,
-		C.CWEventMask|C.CWBackPixmap|C.CWOverrideRedirect, &swa)
+	win := xCreateWindow(dpy, xDefaultRootWindow(dpy),
+		0, 0, uint32(cnf.Size.X), uint32(cnf.Size.Y),
+		0, xCopyFromParent, xInputOutput,
+		xCWEventMask|xCWBackPixmap|xCWOverrideRedirect, &swa)
 
 	w := &x11Window{
 		w: gioWin, x: dpy, xw: win,
@@ -897,7 +1126,7 @@ func newX11Window(gioWin *callbacks, options []Option) error {
 		dispatchFns:  make(chan func(), 20),
 		config:       Config{Size: cnf.Size},
 	}
-	w.handler = x11EventHandler{w: w, xev: new(C.XEvent), text: make([]byte, 4)}
+	w.handler = x11EventHandler{w: w, xev: new(xEvent), text: make([]byte, 4)}
 	w.notify.read = pipe[0]
 	w.notify.write = pipe[1]
 	w.w.SetDriver(w)
@@ -907,15 +1136,13 @@ func newX11Window(gioWin *callbacks, options []Option) error {
 		return err
 	}
 
-	var hints C.XWMHints
-	hints.input = C.True
-	hints.flags = C.InputHint
-	C.XSetWMHints(dpy, win, &hints)
+	var hints xWMHints
+	hints.Input = xTrue
+	hints.Flags = xInputHint
+	xSetWMHints(dpy, win, &hints)
 
-	name := C.CString(ID)
-	defer C.free(unsafe.Pointer(name))
-	wmhints := C.XClassHint{name, name}
-	C.XSetClassHint(dpy, win, &wmhints)
+	name := cString(ID)
+	xSetClassHint(dpy, win, name, name)
 
 	w.atoms.utf8string = w.atom("UTF8_STRING", false)
 	w.atoms.plaintext = w.atom("text/plain;charset=utf-8", false)
@@ -934,22 +1161,22 @@ func newX11Window(gioWin *callbacks, options []Option) error {
 	w.atoms.wmStateMaximizedVert = w.atom("_NET_WM_STATE_MAXIMIZED_VERT", false)
 
 	// extensions
-	C.XSetWMProtocols(dpy, win, &w.atoms.evDelWindow, 1)
+	xSetWMProtocols(dpy, win, []xAtom{w.atoms.evDelWindow})
 
 	// IBus IME
 	if strings.Contains(os.Getenv("XMODIFIERS"), "@im=ibus") {
-		w.ibus, _ = ibus.Start(C.GoString(C.XDisplayString(dpy)), (*ibusEventHandler)(w))
+		w.ibus, _ = ibus.Start(xDisplayString(dpy), (*ibusEventHandler)(w))
 	}
 
 	// make the window visible on the screen
-	C.XMapWindow(dpy, win)
+	xMapWindow(dpy, win)
 	w.Configure(options)
-	w.ProcessEvent(X11ViewEvent{Display: unsafe.Pointer(dpy), Window: uintptr(win)})
+	w.ProcessEvent(X11ViewEvent{Display: dpy, Window: uintptr(win)})
 	return nil
 }
 
 // detectUIScale reports the system UI scale, or 1.0 if it fails.
-func x11DetectUIScale(dpy *C.Display) float32 {
+func x11DetectUIScale(dpy unsafe.Pointer) float32 {
 	// default fixed DPI value used in most desktop UI toolkits
 	const defaultDesktopDPI = 96
 	var scale float32 = 1.0
@@ -957,24 +1184,19 @@ func x11DetectUIScale(dpy *C.Display) float32 {
 	// Get actual DPI from X resource Xft.dpi (set by GTK and Qt).
 	// This value is entirely based on user preferences and conflates both
 	// screen (UI) scaling and font scale.
-	rms := C.XResourceManagerString(dpy)
+	rms := xResourceManagerString(dpy)
 	if rms != nil {
-		db := C.XrmGetStringDatabase(rms)
+		db := xrmGetStringDatabase(rms)
 		if db != nil {
-			var (
-				t *C.char
-				v C.XrmValue
-			)
-			if C.XrmGetResource(db, (*C.char)(unsafe.Pointer(unsafe.StringData("Xft.dpi\x00"))),
-				(*C.char)(unsafe.Pointer(unsafe.StringData("Xft.Dpi\x00"))), &t, &v) != C.False {
-				if t != nil && C.GoString(t) == "String" {
-					f, err := strconv.ParseFloat(C.GoString(v.addr), 32)
+			if typ, v, ok := xrmGetResource(db, "Xft.dpi", "Xft.Dpi"); ok {
+				if typ == "String" {
+					f, err := strconv.ParseFloat(goString(v.Addr), 32)
 					if err == nil {
 						scale = float32(f) / defaultDesktopDPI
 					}
 				}
 			}
-			C.XrmDestroyDatabase(db)
+			xrmDestroyDatabase(db)
 		}
 	}
 
@@ -983,25 +1205,25 @@ func x11DetectUIScale(dpy *C.Display) float32 {
 
 func (w *x11Window) updateXkbKeymap() error {
 	w.xkb.DestroyKeymapState()
-	ctx := (*C.struct_xkb_context)(unsafe.Pointer(w.xkb.Ctx))
-	xcb := C.XGetXCBConnection(w.x)
+	ctx := w.xkb.Ctx
+	xcb := xGetXCBConnection(w.x)
 	if xcb == nil {
 		return errors.New("x11: XGetXCBConnection failed")
 	}
-	xkbDevID := C.xkb_x11_get_core_keyboard_device_id(xcb)
+	xkbDevID := xkbX11GetCoreKeyboardDeviceID(xcb)
 	if xkbDevID == -1 {
 		return errors.New("x11: xkb_x11_get_core_keyboard_device_id failed")
 	}
-	keymap := C.xkb_x11_keymap_new_from_device(ctx, xcb, xkbDevID, C.XKB_KEYMAP_COMPILE_NO_FLAGS)
+	keymap := xkbX11KeymapNewFromDevice(ctx, xcb, xkbDevID)
 	if keymap == nil {
 		return errors.New("x11: xkb_x11_keymap_new_from_device failed")
 	}
-	state := C.xkb_x11_state_new_from_device(keymap, xcb, xkbDevID)
+	state := xkbX11StateNewFromDevice(keymap, xcb, xkbDevID)
 	if state == nil {
-		C.xkb_keymap_unref(keymap)
+		xkbKeymapUnref(keymap)
 		return errors.New("x11: xkb_x11_keymap_new_from_device failed")
 	}
-	w.xkb.SetKeymap(unsafe.Pointer(keymap), unsafe.Pointer(state))
+	w.xkb.SetKeymap(keymap, state)
 	return nil
 }
 

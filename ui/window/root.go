@@ -27,6 +27,11 @@ func (r *root) Layout(gtx core.C, content core.Widget) core.D {
 	// Content that lays out the whole window itself (el.Root) gets it as is:
 	// no padding, no outer scroll.
 	if f, ok := content.(interface{ FillsWindow() bool }); ok && f.FillsWindow() {
+		// A window's own root may repaint frames that only advance
+		// paint-time animation (el's paint-only frames).
+		if rf, ok := content.(interface{ RetainFrames() }); ok {
+			rf.RetainFrames()
+		}
 		gtx.Constraints = layout.Exact(gtx.Constraints.Max)
 		return content.Layout(gtx)
 	}

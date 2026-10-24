@@ -110,6 +110,9 @@ type Window struct {
 	drawsTitle                bool          // Keel draws the title bar; see decorations.go
 	shown                     chan struct{} // closed at the first frame or at destruction
 	glassRenderer             glassRenderer
+	// axActive is set once a platform accessibility client asked about the
+	// window; axQueued while a refresh of its elements waits.
+	axActive, axQueued atomic.Bool
 }
 
 // Open creates and shows a centered window where the platform supports it.
@@ -130,6 +133,7 @@ func Open(o Options) *Window {
 	w.win = new(gioapp.Window)
 	w.win.Option(w.nativeOptions()...)
 	loop.Register(w, w.win.Invalidate)
+	accessibilityOpen(w)
 	if automating() {
 		openVirtual(w, false) // shadow of the real window, driven by agents
 	}
@@ -276,6 +280,7 @@ func (w *Window) setFocused(focused bool) {
 	if w.focused != focused {
 		w.focused = focused
 		if w.win != nil {
+			loop.Changed()
 			w.win.Invalidate()
 		}
 	}
@@ -343,12 +348,15 @@ func (w *Window) run() {
 			w.setFocused(e.Config.Focused)
 			if m := e.Config.Mode == gioapp.Maximized; m != w.maximized {
 				w.maximized = m
+				loop.Changed()
 				w.win.Invalidate() // title bars show maximize or restore
 			}
 			if w.updateDecorations(e.Config.Decorated, e.Config.Mode == gioapp.Fullscreen) {
+				loop.Changed()
 				w.win.Invalidate()
 			}
 			loop.Unlock()
+			accessibilityFocus(w, e.Config.Focused)
 		case gioapp.FrameEvent:
 			stats := beginFrameStats()
 			gtx := gioapp.NewContext(&ops, e)
@@ -367,6 +375,7 @@ func (w *Window) run() {
 				}
 			}
 			e.Frame(gtx.Ops)
+			accessibilityFrame(w, e.Size)
 			stats.end()
 			if !positioned {
 				positioned = true
@@ -413,6 +422,7 @@ func (w *Window) layout(gtx core.C) {
 }
 
 func (w *Window) destroy() {
+	accessibilityClose(w)
 	remaining := w.finish()
 	if w.virt != nil {
 		forgetVirtual(w)

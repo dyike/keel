@@ -104,16 +104,25 @@ Desktop migration is not complete. Preserve Gio's UI, layout, GPU algorithms
 and performance patches; replace native bindings, not the renderers. The
 2026-10-12 darwin/arm64 dependency scan of `examples/hello` selects cgo in:
 
-- Gio: `app`, `internal/gl`, `internal/cocoainit`, `gpu/internal/metal`
-  (including pool/quads), and `gpu/headless`.
-- Keel: `ui/theme/coretext_darwin.go` (CoreText/CoreGraphics).
+- Gio: `app`, `internal/gl`, `internal/cocoainit`, `gpu/internal/metal` and
+  `gpu/headless`. Each also has a purego binding on macOS (`internal/gl` on
+  Linux desktop too), selected by `-tags purego` or `CGO_ENABLED=0`; cgo
+  stays their default and their only binding on iOS, Android and the BSDs.
+- Keel: `ui/theme/coretext_cgo_darwin.go` (CoreText/CoreGraphics). A purego
+  rasterizer, `coretext_purego_darwin.go`, is selected by `-tags purego` or
+  `CGO_ENABLED=0` and renders byte-identical masks; the cgo file stays the
+  default until the macOS default is promoted.
 - `runtime/cgo`, as a consequence of the selected bindings.
 
-Linux also needs migration of X11/Wayland, xkbcommon, EGL/GL and Vulkan
-bindings. Windows already builds without cgo. iOS/Android migration is deferred.
-`CGO_ENABLED=0 go build ./examples/hello` currently fails on macOS in Gio GL;
-`CGO_ENABLED=0 go build ./native/...` passes on the inspected macOS host.
-Neither observation establishes cross-platform runtime support.
+On Linux, EGL, GL, Vulkan, xkbcommon and the X11 and Wayland windows have
+purego bindings (CI: "Linux without cgo", amd64 and arm64), so the desktop
+path builds and runs without cgo there; cgo stays the default until Linux
+is promoted too. Windows already builds without cgo. iOS/Android migration is deferred.
+On the inspected Apple silicon host, `CGO_ENABLED=0 go build ./examples/hello`
+passes and `CGO_ENABLED=0 go test ./...` passes, including real windows
+(`KEEL_DESKTOP=1`). The macOS default stays cgo until the promotion gate in the
+design (amd64 runs, a real input method, GPU parity) passes. These observations
+do not establish Linux or Intel Mac runtime support.
 See [the delivery design](docs/desktop-cgo-free.md) for gates and sequencing.
 Completed Keel binding migrations, each retaining behavior and tests:
 

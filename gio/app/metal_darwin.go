@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build !nometal
+//go:build !nometal && (ios || (cgo && !purego))
 
 package app
 
@@ -89,7 +89,7 @@ func newMtlContext(w *window) (*mtlContext, error) {
 	if dev == 0 {
 		return nil, errors.New("metal: MTLCreateSystemDefaultDevice failed")
 	}
-	view := w.contextView()
+	view := C.CFTypeRef(w.contextView())
 	layer := getMetalLayer(view)
 	if layer == 0 {
 		C.CFRelease(dev)

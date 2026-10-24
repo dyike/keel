@@ -153,9 +153,10 @@ func (cx *Context) Focus(id string) {
 func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 	n.effectiveDisabled = disabled || n.disabled || n.style.hidden || n.style.revealSet && n.style.reveal <= 0
 	n.disabledRoot = n.effectiveDisabled && !disabled
-	st := r.store.states[n.key]
+	st := r.store.of(n)
 	if n.id != "" || n.isFocusable() || n.onKey != nil || n.input != nil || n.interactive() || n.onScroll != nil || n.style.scrollX || n.style.scrollY {
 		st = r.store.get(n.key)
+		n.state = st
 	}
 	if n.input != nil {
 		st.inputEditor()
@@ -210,7 +211,7 @@ func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
 			return false
 		}
 		if n.id == r.focusID && (n.isFocusable() || n.input != nil) {
-			st := r.store.states[n.key]
+			st := r.store.of(n)
 			if st != nil && st.keyFrame == r.store.frame {
 				if n.input != nil {
 					st.inputRing, st.inputSource = !r.focusFromPointer, true

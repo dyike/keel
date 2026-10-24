@@ -21,10 +21,14 @@ type viewTimer struct {
 }
 
 // Now is the frame timestamp. Animations must derive their phase from it.
-func (cx *Context) Now() time.Time { return cx.root.e.gtx.Now }
+func (cx *Context) Now() time.Time {
+	cx.noteRenderTime()
+	return cx.root.e.gtx.Now
+}
 
 // Animating requests the next animation frame without spawning a goroutine.
 func (cx *Context) Animating() {
+	cx.noteRenderTime()
 	if cx.root.e.gtx.Enabled() && !ReducedMotion() {
 		cx.root.e.gtx.Execute(op.InvalidateCmd{})
 	}
@@ -40,6 +44,7 @@ const AmbientFrameInterval = time.Second / 30
 // wall time. Ticks are aligned, so all ambient indicators share their frames,
 // and a frame already requested sooner (by a transition, say) still wins.
 func (cx *Context) AnimatingAmbient() {
+	cx.noteRenderTime()
 	gtx := cx.root.e.gtx
 	if !gtx.Enabled() || ReducedMotion() {
 		return

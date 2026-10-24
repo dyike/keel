@@ -34,7 +34,7 @@ Go 的 `pprof` 在 macOS 上会把 cgo 和内核时间算错：它显示约 10% 
 
 1. **缓存未变化 label 的字形。** Keel 缓存了测量结果，但绘制时每帧仍调用 `Shaper.LayoutString`（对字符串做哈希），再用 `NextGlyph` 逐个重建字形。约 8% CPU。
 2. **`ui/el` 每帧的固定记账。** 即使没按 Tab，Tab 导航每帧也要遍历两遍树（`focusedContainerTrap`、`collectTabTargets`）；每个节点的状态每帧要在 `store.states` 里查 5 次以上（assignKeys、prepareKeys、Tab 遍历、blockTree、paint）。约 8–10%。
-3. **纯绘制帧。** 只有动画在推进（没有输入、更新或状态变化）时，复用上一帧的元素树和布局，只重跑绘制。约占动画帧的 30%；需要谨慎改动帧流程。
+3. **纯绘制帧。** 已在 `feat/desktop-next` 完成：只推进绘制时动画（`el.AmbientPhase`；Spinner 和不确定状态的 ProgressCircle）的帧，窗口根元素直接用上一帧的元素树和布局重绘。这类帧在 `el` 中耗时从 359 µs 降到 228 µs（−37%）；真实窗口中只有一个 Spinner 和 60 行内容在显示时，进程 CPU 约减少 5.5%（每 10 秒 1.48 s 对 1.57 s）。线性进度条、骨架屏、扫光和状态标记仍在 Render 中动画。
 4. **保留子树或局部重绘。** 收益最大，滚动也能受益，属于架构级改动；约束见[渲染内存](../rendering-memory.zh-CN.md)。
 5. **启动峰值。** `hello` 稳定在 37 MB，但首帧期间峰值 96 MB；活动监视器先看到的是峰值。
 6. **120 Hz 屏。** ProMotion 上每帧节省都会翻倍；尚未在 120 Hz 屏上实测。

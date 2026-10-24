@@ -33,6 +33,10 @@ func TestRealWindows(t *testing.T) {
 			cases = append(cases, []string{"./testdata/glass"})
 		}
 	}
+	if runtime.GOOS == "linux" && os.Getenv("KEEL_ATSPI") == "1" {
+		// Needs at-spi2-core in the session (dbus-run-session).
+		cases = append(cases, []string{"./testdata/atspi"})
+	}
 	for _, args := range cases {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)

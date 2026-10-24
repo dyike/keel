@@ -12,9 +12,19 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Install Linux window dependencies
-        run: sudo apt-get update && sudo apt-get install -y libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libegl1-mesa-dev libgles2-mesa-dev libxcursor-dev libxfixes-dev libvulkan-dev weston
+        run: sudo apt-get update && sudo apt-get install -y libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libegl1-mesa-dev libgles2-mesa-dev libxcursor-dev libxfixes-dev libvulkan-dev mesa-vulkan-drivers weston xvfb xauth
+      - name: Vulkan through headless rendering via cgo (lavapipe), with layout checks
+        run: GIO_HEADLESS_REQUIRED=1 go test ./gio/gpu/headless -run 'RenderPixels' -count=1 -v
+      - name: xkbcommon keymaps and key dispatch through cgo
+        run: GIO_XKB_REQUIRED=1 go test ./gio/app/internal/xkb -count=1 -v
       - name: Check invalid-view acknowledgment before native teardown
         run: go test -race ./gio/app -run 'TestDeferredTeardown|TestWaylandEventAcknowledges|TestWaylandRun|TestEventFuncs' -count=1 -timeout=120s
+      - name: Real X11 windows through cgo under Xvfb
+        shell: bash
+        run: |
+          unset WAYLAND_DISPLAY
+          xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run TestRealWindows -count=1 -timeout=300s -v
+          xvfb-run -a -s "-screen 0 1280x1024x24" go test ./gio/app -count=1 -timeout=180s
       - name: Check real windows under a headless Wayland compositor
         shell: bash
         run: |

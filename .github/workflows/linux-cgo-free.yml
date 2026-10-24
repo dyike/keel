@@ -1,0 +1,85 @@
+name: Linux without cgo
+
+# Runs the Linux bindings that no longer need cgo, with no C compiler and
+# only runtime libraries installed, on Mesa's software renderers. Each step
+# grows with the migration in docs/desktop-cgo-free.md (L1, L2).
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    env:
+      CGO_ENABLED: '0'
+      CC: /nonexistent-c-compiler
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install runtime libraries only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgles2 libegl-mesa0 libgl1-mesa-dri \
+            libx11-6 libx11-xcb1 libxkbcommon0 libxkbcommon-x11-0 libxcursor1 libxfixes3 \
+            libwayland-client0 libwayland-egl1 libwayland-cursor0 \
+            libvulkan1 mesa-vulkan-drivers \
+            xkb-data xvfb xauth weston \
+            dbus at-spi2-core python3-pyatspi libatspi2.0-dev
+      - name: OpenGL ES and EGL through headless rendering (surfaceless)
+        env:
+          EGL_PLATFORM: surfaceless
+        run: GIO_HEADLESS_REQUIRED=1 go test -tags novulkan ./gio/internal/egl ./gio/internal/gl ./gio/gpu/... -count=1 -v -timeout=300s
+      - name: Vulkan through headless rendering (lavapipe)
+        run: GIO_HEADLESS_REQUIRED=1 go test ./gio/gpu/headless -run 'RenderPixels' -count=1 -v
+      - name: xkbcommon keymaps and key dispatch
+        run: GIO_XKB_REQUIRED=1 go test ./gio/app/internal/xkb -count=1 -v
+      - name: Real X11 windows under Xvfb
+        run: xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run TestRealWindows -count=1 -timeout=300s -v
+      - name: AT-SPI accessibility over D-Bus
+        shell: bash
+        run: |
+          dbus-run-session -- bash -euo pipefail -c '
+            go test ./ui/internal/atspi -count=1 -v
+            xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 KEEL_ATSPI=1 \
+              go test ./ui/window -run "TestRealWindows/./testdata/atspi" -count=1 -timeout=300s -v
+            go build -o /tmp/hello ./examples/hello
+            xvfb-run -a -s "-screen 0 1280x1024x24" bash -c "
+              /tmp/hello & app=\$!
+              python3 ui/window/testdata/atspi/pyatspi_check.py hello; status=\$?
+              kill \$app; exit \$status"
+          '
+      - name: Gio app tests and hello on X11
+        shell: bash
+        run: |
+          xvfb-run -a -s "-screen 0 1280x1024x24" go test ./gio/app -count=1 -timeout=180s
+          go build -o /tmp/hello ./examples/hello
+          ldd /tmp/hello || true
+      - name: Real Wayland windows under a headless compositor
+        shell: bash
+        run: |
+          export XDG_RUNTIME_DIR="$(mktemp -d)"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          export WAYLAND_DISPLAY=keel-test
+          unset DISPLAY
+          weston --backend=headless-backend.so --socket="$WAYLAND_DISPLAY" --renderer=gl --idle-time=0 > /tmp/keel-weston.log 2>&1 &
+          compositor=$!
+          trap 'kill "$compositor" || true; cat /tmp/keel-weston.log; rm -rf "$XDG_RUNTIME_DIR"' EXIT
+          for attempt in $(seq 1 100); do
+            test -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" && break
+            kill -0 "$compositor" || exit 1
+            sleep 0.1
+          done
+          test -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
+          go test ./gio/app -run 'TestDeferredTeardown|TestWaylandEventAcknowledges|TestWaylandRun|TestEventFuncs' -count=1 -timeout=120s -v
+          KEEL_DESKTOP=1 go test ./ui/window -run TestRealWindows -count=1 -timeout=300s -v

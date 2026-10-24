@@ -54,9 +54,14 @@ Ordered by expected benefit for the effort.
    frame (`focusedContainerTrap`, `collectTabTargets`) even without a Tab
    press; each node's state is looked up in `store.states` five or more times
    a frame (assignKeys, prepareKeys, tab walks, blockTree, paint). About 8–10%.
-3. **Paint-only frames.** When only an animation advances (no input, updates
-   or state changes), reuse the previous element tree and layout and re-run
-   paint. About 30% of an animation frame; needs care in the frame flow.
+3. **Paint-only frames.** Done on `feat/desktop-next`: a window's root
+   repaints frames that only advance paint-time animation (`el.AmbientPhase`;
+   the spinner and indeterminate circular progress) from the previous
+   tree and layout. One such frame in `el` takes 228 µs instead of 359 µs
+   (−37%); a real window whose only motion is a spinner beside 60 rows used
+   about 5.5% less process CPU (1.48 s against 1.57 s per 10 s). The linear
+   progress bar, skeleton, shimmer and status marker still animate in
+   Render.
 4. **Retained subtrees or damage regions.** The largest gain, including
    scrolling, and an architectural change; see
    [rendering memory](../rendering-memory.md) for the constraints.

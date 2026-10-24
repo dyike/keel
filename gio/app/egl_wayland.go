@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build ((linux && !android) || freebsd) && !nowayland && !noopengl
+//go:build ((linux && !android && cgo && !purego) || freebsd) && !nowayland && !noopengl
 
 package app
 
@@ -40,7 +40,7 @@ func init() {
 		if surf == nil {
 			return nil, errors.New("wayland: no surface")
 		}
-		eglWin := C.wl_egl_window_create(surf, C.int(width), C.int(height))
+		eglWin := C.wl_egl_window_create((*C.struct_wl_surface)(surf), C.int(width), C.int(height))
 		if eglWin == nil {
 			return nil, errors.New("wayland: wl_egl_window_create failed")
 		}
