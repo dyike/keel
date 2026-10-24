@@ -88,7 +88,15 @@ type Window struct {
 		ids      map[input.SemanticID]input.SemanticNode
 	}
 	imeState editorState
-	driver   driver
+	// Keel patch: platform accessibility outside this package; see
+	// ObserveSemantics and QueueInput.
+	observe struct {
+		sync.Mutex
+		fn    func(nodes []input.SemanticNode, size image.Point)
+		nodes []input.SemanticNode
+		input []event.Event
+	}
+	driver driver
 	// gpuErr tracks the GPU error that is to be reported when
 	// the window is closed.
 	gpuErr error
@@ -268,6 +276,53 @@ func (w *Window) processFrame(frame *op.Ops, ack chan<- struct{}) {
 	}
 	w.updateState()
 	w.updateCursor()
+	w.observeFrame()
+}
+
+// observeFrame hands the frame's semantic tree to the observer, if any.
+func (w *Window) observeFrame() {
+	w.observe.Lock()
+	fn := w.observe.fn
+	w.observe.Unlock()
+	if fn != nil {
+		w.observe.nodes = w.queue.AppendSemantics(w.observe.nodes[:0])
+		fn(w.observe.nodes, w.lastFrame.size)
+	}
+}
+
+// ObserveSemantics calls fn after each frame with the frame's semantic
+// tree, root first, and the window size in pixels; nil stops it. fn runs on
+// the window's driver thread while nothing else reads the window's input
+// state, and must not keep nodes or call into the window. Keel patch: a
+// platform accessibility bridge copies what it serves from here.
+func (w *Window) ObserveSemantics(fn func(nodes []input.SemanticNode, size image.Point)) {
+	w.observe.Lock()
+	w.observe.fn = fn
+	w.observe.Unlock()
+}
+
+// QueueInput delivers events as if the platform had reported them, on the
+// driver thread before the next event; it may be called from any goroutine
+// and wakes the window. Keel patch: an accessibility client's press, which
+// arrives on its own threads, acts as a click.
+func (w *Window) QueueInput(events ...event.Event) {
+	w.observe.Lock()
+	w.observe.input = append(w.observe.input, events...)
+	w.observe.Unlock()
+	w.Invalidate()
+}
+
+func (w *Window) processQueuedInput() {
+	w.observe.Lock()
+	events := w.observe.input
+	w.observe.input = nil
+	w.observe.Unlock()
+	if w.driver == nil {
+		return // destroyed
+	}
+	for _, e := range events {
+		w.processEvent(e)
+	}
 }
 
 func (w *Window) updateState() {
@@ -622,6 +677,7 @@ func (c *callbacks) nextEvent() (event.Event, bool) {
 }
 
 func (w *Window) nextEvent() (event.Event, bool) {
+	w.processQueuedInput()
 	s := &w.coalesced
 	defer func() {
 		// Every event counts as a wakeup.

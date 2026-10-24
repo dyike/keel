@@ -44,6 +44,17 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app`: `Window.ObserveSemantics(fn)` calls fn on the driver thread
+  after each frame is processed, with the frame's semantic tree and size,
+  while nothing else reads the window's input state; `Window.QueueInput`
+  takes input from any goroutine and delivers it on the driver thread
+  before the next event. On Windows, UI Automation calls providers on its
+  own threads while Gio's router belongs to the window thread; Keel's
+  bridge copies the elements from the observer and turns presses into
+  queued input (the Linux bridge queues its input the same way). A test
+  observes a frame, queues a click from another goroutine and checks the
+  handler receives it, under the race detector.
+
 - `gio/io/input`: semantic IDs stay with their nodes. A node with an input
   handler keeps the ID its handler's tag had, through changes of label or
   state (a checkbox toggles, "Save" becomes "Saved"). Other nodes are
