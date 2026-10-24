@@ -13,11 +13,19 @@ import (
 
 var errUnknown = dbus.NewError("org.freedesktop.DBus.Error.UnknownObject", []any{"no such accessible object"})
 
-// with runs fn on the object a call names, holding b.mu.
-func (b *Bridge) with(msg dbus.Message, fn func(o object)) *dbus.Error {
+var errFailed = dbus.NewError("org.freedesktop.DBus.Error.Failed", []any{"internal error"})
+
+// with runs fn on the object a call names, holding b.mu. A fault in the
+// bridge fails the call instead of the application.
+func (b *Bridge) with(msg dbus.Message, fn func(o object)) (err *dbus.Error) {
 	path, _ := msg.Headers[dbus.FieldPath].Value().(dbus.ObjectPath)
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	defer func() {
+		if r := recover(); r != nil {
+			err = errFailed
+		}
+	}()
 	b.asked()
 	o, ok := b.lookup(path)
 	if !ok {

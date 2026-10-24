@@ -178,7 +178,7 @@ func (b *Bridge) find(id int) (*window, int) {
 // AddWindow lists a new window under the application.
 func (b *Bridge) AddWindow(id int, title string) {
 	b.mu.Lock()
-	w := &window{id: id, title: title, index: map[string]int{}}
+	w := &window{id: id, title: title, index: map[string]int{}, kids: make([][]int, 1)}
 	b.windows = append(b.windows, w)
 	n := len(b.windows) - 1
 	b.mu.Unlock()

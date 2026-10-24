@@ -158,6 +158,10 @@ func TestBridge(t *testing.T) {
 		{Key: "5", Role: "button", Name: "Order 99", Bounds: image.Rect(0, 3000, 400, 3030), Viewport: area, Parent: 2, Disabled: true},
 	}
 	b.AddWindow(1, "Orders")
+	var count dbus.Variant // a window before its first frame
+	if err := client.Object(app.Names()[0], b.windowPath(1)).Call(ifaceProps+".Get", 0, ifaceAccess, "ChildCount").Store(&count); err != nil || count.Value() != int32(0) {
+		t.Fatalf("new window ChildCount %v, %v", count, err)
+	}
 	b.Update(1, "Orders", nodes)
 
 	call := func(path dbus.ObjectPath, method string, out any, args ...any) {
