@@ -122,6 +122,7 @@ func Open(o Options) *Window {
 	w.win = new(gioapp.Window)
 	w.win.Option(w.nativeOptions()...)
 	loop.Register(w, w.win.Invalidate)
+	accessibilityOpen(w)
 	if automating() {
 		openVirtual(w, false) // shadow of the real window, driven by agents
 	}
@@ -322,6 +323,7 @@ func (w *Window) run() {
 	positioned := false
 	for {
 		ev := w.win.Event()
+		accessibilityInput(w)
 		if os.Getenv("REX_STARTUP_TRACE") != "" {
 			fmt.Fprintf(os.Stderr, "keel %d window=%q event %T\n", time.Now().UnixMicro(), w.opts.Title, ev)
 		}
@@ -344,6 +346,7 @@ func (w *Window) run() {
 				w.win.Invalidate()
 			}
 			loop.Unlock()
+			accessibilityFocus(w, e.Config.Focused)
 		case gioapp.FrameEvent:
 			stats := beginFrameStats()
 			gtx := gioapp.NewContext(&ops, e)
@@ -362,7 +365,7 @@ func (w *Window) run() {
 				}
 			}
 			e.Frame(gtx.Ops)
-			accessibilityFrame(w)
+			accessibilityFrame(w, e.Size)
 			stats.end()
 			if !positioned {
 				positioned = true
@@ -409,6 +412,7 @@ func (w *Window) layout(gtx core.C) {
 }
 
 func (w *Window) destroy() {
+	accessibilityClose(w)
 	remaining := w.finish()
 	if w.virt != nil {
 		forgetVirtual(w)

@@ -16,9 +16,7 @@ import (
 	"image"
 	"sync"
 
-	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/io/input"
-	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/ui/internal/appkit"
 	"github.com/dyike/keel/ui/internal/loop"
 	"github.com/ebitengine/purego/objc"
@@ -101,9 +99,14 @@ func installAccessibility(view uintptr) {
 
 var axImps struct{ children, role, hitTest objc.IMP }
 
+func accessibilityOpen(*Window)        {}
+func accessibilityInput(*Window)       {}
+func accessibilityFocus(*Window, bool) {}
+func accessibilityClose(*Window)       {}
+
 // accessibilityFrame queues a refresh after a frame of a window an
 // accessibility client has asked about, one at a time.
-func accessibilityFrame(w *Window) {
+func accessibilityFrame(w *Window, _ image.Point) {
 	if !w.axActive.Load() || !w.axQueued.CompareAndSwap(false, true) {
 		return
 	}
@@ -473,64 +476,25 @@ func axLatest(obj appkit.ID) (*axObject, bool) {
 	return o, axObjects[obj] == o
 }
 
-// axScrollTo scrolls the area that holds the element until the element
-// shows, its top first when it is taller than the area: a wheel scroll at
-// the area's center, as a person would.
+// axScrollTo scrolls the element into view.
 func axScrollTo(obj appkit.ID) {
-	o, ok := axLatest(obj)
-	if !ok {
-		return
+	if o, ok := axLatest(obj); ok {
+		scrollToElement(o.v.w, o.el)
 	}
-	b, vp := o.el.box(), o.el.viewport
-	delta := func(lo, hi, vlo, vhi int) int {
-		switch {
-		case lo < vlo:
-			return lo - vlo
-		case hi > vhi:
-			return min(hi-vhi, lo-vlo)
-		}
-		return 0
-	}
-	axScroll(o.v.w, vp, delta(b.Min.X, b.Max.X, vp.Min.X, vp.Max.X), delta(b.Min.Y, b.Max.Y, vp.Min.Y, vp.Max.Y))
 }
 
-// axScrollPage scrolls a scroll area by most of its size.
+// axScrollPage scrolls a scroll area by a page.
 func axScrollPage(obj appkit.ID, dx, dy int) {
-	o, ok := axLatest(obj)
-	if !ok {
-		return
+	if o, ok := axLatest(obj); ok {
+		scrollPage(o.v.w, o.el, dx, dy)
 	}
-	area := o.el.box().Intersect(o.el.viewport)
-	axScroll(o.v.w, area, dx*area.Dx()*9/10, dy*area.Dy()*9/10)
 }
 
-func axScroll(w *Window, area image.Rectangle, dx, dy int) {
-	if area.Empty() || dx == 0 && dy == 0 {
-		return
-	}
-	c := area.Min.Add(area.Max).Div(2)
-	w.win.ProcessInput(pointer.Event{Kind: pointer.Scroll, Source: pointer.Mouse, Position: f32.Pt(float32(c.X), float32(c.Y)), Scroll: f32.Pt(float32(dx), float32(dy))})
-}
-
-// axPress clicks the center of the element's visible part, as VoiceOver's
-// press does, where the latest frame drew it: the last refresh may be a
-// frame behind.
+// axPress presses the element where the latest frame drew it: the last
+// refresh may be a frame behind.
 func axPress(obj appkit.ID) bool {
 	o, ok := axLatest(obj)
-	if !ok || o.el.Disabled {
-		return false // gone or disabled in the latest frame
-	}
-	w := o.v.w
-	shown := o.el.box().Intersect(o.el.viewport)
-	if shown.Empty() {
-		return false // scrolled out of view: a client scrolls to it first
-	}
-	c := shown.Min.Add(shown.Max).Div(2)
-	p := f32.Pt(float32(c.X), float32(c.Y))
-	w.win.ProcessInput(pointer.Event{Kind: pointer.Move, Source: pointer.Mouse, Position: p})
-	w.win.ProcessInput(pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: p})
-	w.win.ProcessInput(pointer.Event{Kind: pointer.Release, Source: pointer.Mouse, Position: p})
-	return true
+	return ok && pressElement(o.v.w, o.el)
 }
 
 // axHitTest returns the element under a screen point: the last listed

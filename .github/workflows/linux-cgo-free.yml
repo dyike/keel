@@ -34,7 +34,8 @@ jobs:
             libx11-6 libx11-xcb1 libxkbcommon0 libxkbcommon-x11-0 libxcursor1 libxfixes3 \
             libwayland-client0 libwayland-egl1 libwayland-cursor0 \
             libvulkan1 mesa-vulkan-drivers \
-            xkb-data xvfb xauth weston
+            xkb-data xvfb xauth weston \
+            dbus at-spi2-core python3-pyatspi libatspi2.0-dev
       - name: OpenGL ES and EGL through headless rendering (surfaceless)
         env:
           EGL_PLATFORM: surfaceless
@@ -45,6 +46,19 @@ jobs:
         run: GIO_XKB_REQUIRED=1 go test ./gio/app/internal/xkb -count=1 -v
       - name: Real X11 windows under Xvfb
         run: xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run TestRealWindows -count=1 -timeout=300s -v
+      - name: AT-SPI accessibility over D-Bus
+        shell: bash
+        run: |
+          dbus-run-session -- bash -euo pipefail -c '
+            go test ./ui/internal/atspi -count=1 -v
+            xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 KEEL_ATSPI=1 \
+              go test ./ui/window -run "TestRealWindows/./testdata/atspi" -count=1 -timeout=300s -v
+            go build -o /tmp/hello ./examples/hello
+            xvfb-run -a -s "-screen 0 1280x1024x24" bash -c "
+              /tmp/hello & app=\$!
+              python3 ui/window/testdata/atspi/pyatspi_check.py hello; status=\$?
+              kill \$app; exit \$status"
+          '
       - name: Gio app tests and hello on X11
         shell: bash
         run: |
