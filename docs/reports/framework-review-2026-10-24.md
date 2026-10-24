@@ -36,7 +36,7 @@ processing about 20% and AppKit/Core Animation about 25%.
 | Change | Status | Effect on the Button page |
 | --- | --- | --- |
 | Looping indicators at a shared 30 Hz cadence (`cx.AnimatingAmbient`) | merged, #50 | process CPU 219 → 114 ms/s; energy impact −17% |
-| A glyph run as one operation (`paint.ImageOp.PaintQuads`) | open, #51 | process CPU −10%; Gio `gpu.collect` −33%; pixels byte-identical |
+| A glyph run as one operation (`paint.ImageOp.PaintQuads`) | merged, #51 | process CPU −10%; Gio `gpu.collect` −33%; pixels byte-identical |
 | Pooled immutable Metal buffers | prepared, not committed | removes `newBuffer`/`dealloc`, 2–3% of CPU |
 
 Text was about 4,000 of the page's 5,300 operations per frame before #51. A

@@ -23,7 +23,7 @@ Go 的 `pprof` 在 macOS 上会把 cgo 和内核时间算错：它显示约 10% 
 | 改动 | 状态 | 对 Button 页的效果 |
 | --- | --- | --- |
 | 循环指示器共用 30 Hz 节奏（`cx.AnimatingAmbient`） | 已合并，#50 | 进程 CPU 219 → 114 ms/s；能耗 −17% |
-| 一串字形合成一个操作（`paint.ImageOp.PaintQuads`） | 已开 PR，#51 | 进程 CPU −10%；Gio `gpu.collect` −33%；像素逐字节一致 |
+| 一串字形合成一个操作（`paint.ImageOp.PaintQuads`） | 已合并，#51 | 进程 CPU −10%；Gio `gpu.collect` −33%；像素逐字节一致 |
 | 不可变 Metal 缓冲池化 | 已准备，未提交 | 去掉 `newBuffer`/`dealloc`，约 2–3% CPU |
 
 #51 之前，这个页面每帧约 5300 个操作里有约 4000 个是文字。一个把 Gio 事件循环每帧 4 次 channel 交接减为 3 次的改动，每帧只省约 0.3 µs，没有保留。
