@@ -148,7 +148,7 @@ amd64 只做了编译和 vet（未安装 Rosetta），其经 `RegisterFunc` 按�
 
 - EGL 和 OpenGL ES：新的无头像素测试经 surfaceless EGL 渲染填充、裁剪和混合的椭圆，两种架构上读回的像素都正确；GL 绑定的符号和字符串测试通过。
 - xkbcommon：新测试编译默认键位表，检查 KEY_A 的 keysym、文本、Shift 和重复；cgo 任务也运行该测试，头文件检查通过。
-- X11：`examples/hello` 能构建，窗口能在 Xvfb 下打开。cgo 任务对照头文件检查 Go 定义的 X 结构体布局和常量。Xvfb 下 ui/window 的 raise 测试在两种绑定下都通过；resident 和 reopen 在两种绑定下都超时，因此从两边的门禁中排除，作为 X11 问题单独跟踪。CI 发现了重构引入的两处 cgo 回归（向 C 传递含 Go 指针的结构体），已在本记录前修复。
+- X11：`examples/hello` 能构建，窗口能在 Xvfb 下打开。cgo 任务对照头文件检查 Go 定义的 X 结构体布局和常量。ui/window 真实窗口测试起初在两种绑定下都于 resident 和 reopen 超时：Perform 和 Configure 在事件循环之外运行，Xlib 从未发出它们的请求。补上 XFlush 后，整套测试在 Xvfb 下以两种绑定、amd64 和 arm64 全部通过。CI 还发现了重构引入的两处 cgo 回归（向 C 传递含 Go 指针的结构体），已在本记录前修复。
 
 Linux 上 Wayland 和 Vulkan 仍只能用 cgo；无 cgo 构建使用 X11 和 EGL。IBus 输入、默认之外的键盘布局以及真实桌面均未验证。
 

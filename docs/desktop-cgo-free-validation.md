@@ -232,10 +232,12 @@ Mesa's software renderers. With `CGO_ENABLED=0`:
   checks pass.
 - X11: `examples/hello` builds and its window opens under Xvfb. The cgo job
   checks the Go X structure layouts and constants against the headers.
-  Under Xvfb the ui/window raise test passes with both bindings; resident
-  and reopen time out with both, so they are excluded from both gates and
-  tracked as an X11 issue. CI found two cgo regressions of the refactor
-  (structs holding Go pointers passed to C), fixed before this note.
+  The ui/window real-window tests first timed out in resident and reopen
+  with both bindings: Perform and Configure ran outside the event loop and
+  Xlib never flushed their requests. With XFlush added, the whole set
+  passes under Xvfb with both bindings on amd64 and arm64. CI also found two
+  cgo regressions of the refactor (structs holding Go pointers passed to
+  C), fixed before this note.
 
 Wayland and Vulkan are still cgo-only on Linux; the no-cgo build uses X11
 and EGL. IBus input, keyboard layouts beyond the default and real desktops

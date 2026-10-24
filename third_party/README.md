@@ -50,9 +50,11 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
   field offset, size and constant against the headers at init;
   `os_x11_purego.go` loads libX11, libX11-xcb, libXcursor, libXfixes and
   libxkbcommon-x11 without cgo. Wayland and Vulkan files are cgo-only on
-  Linux for now. The X11 real-window tests give the same results through
-  both bindings under Xvfb: raise passes; resident and reopen time out
-  either way, an X11 issue tracked apart from the migration.
+  Linux for now. Perform and Configure end with XFlush: they run outside
+  the event loop, which waits in poll, so Xlib kept their requests (a
+  close, raise or resize) buffered. Under Xvfb the resident and reopen
+  real-window tests timed out with both bindings and raise deadlocked at
+  times; the whole set now passes with both, on amd64 and arm64.
 
 - `gio/app/internal/xkb`: the key dispatch logic and keysym table move to
   `xkb.go`, over libxkbcommon's opaque pointers; `xkb_cgo.go` keeps the cgo
