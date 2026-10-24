@@ -789,6 +789,49 @@ func (q *Router) AppendSemantics(nodes []SemanticNode) []SemanticNode {
 	return nodes
 }
 
+// FocusSemantic gives keyboard focus to the semantic node id of the last
+// frame: to its focusable handler, or the nearest one inside it. It reports
+// whether it found one. Keel patch: an accessibility client moves focus to
+// an element it knows by its node.
+func (q *Router) FocusSemantic(id SemanticID) bool {
+	pq := &q.pointer.queue
+	pq.assignSemIDs()
+	area := -1
+	for i, a := range pq.areas {
+		if a.semantic.valid && a.semantic.id == id {
+			area = i
+			break
+		}
+	}
+	if area < 0 {
+		return false
+	}
+	var target event.Tag
+	best, bestArea := -1, 0
+	for tag, h := range q.handlers {
+		if !h.filter.focusable || h.pointer.areaPlusOne == 0 {
+			continue
+		}
+		at := h.pointer.areaPlusOne - 1
+		depth := 0
+		for a := at; a != area; a = pq.areas[a].parent {
+			if a <= 0 {
+				depth = -1
+				break
+			}
+			depth++
+		}
+		if depth >= 0 && (best < 0 || depth < best || depth == best && at < bestArea) {
+			target, best, bestArea = tag, depth, at
+		}
+	}
+	if target == nil {
+		return false
+	}
+	q.execute(key.FocusCmd{Tag: target})
+	return true
+}
+
 // markFocused marks the node that holds keyboard focus: the innermost node
 // whose area holds the focused handler's.
 func (q *Router) markFocused(nodes []SemanticNode) {

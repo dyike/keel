@@ -59,4 +59,24 @@ func TestSemanticFocus(t *testing.T) {
 	if f := frame(); len(f) != 0 {
 		t.Fatalf("focused after clearing focus: %v", f)
 	}
+	// Focus by node: Second's handler sits in an area inside it.
+	ids := map[string]SemanticID{}
+	for _, n := range r.AppendSemantics(nil) {
+		ids[n.Desc.Label] = n.ID
+	}
+	if !r.FocusSemantic(ids["Second"]) {
+		t.Fatal("FocusSemantic(Second) found no handler")
+	}
+	if f := frame(); len(f) != 1 || !f["Second"] {
+		t.Fatalf("after FocusSemantic(Second), focused %v", f)
+	}
+	if !r.FocusSemantic(ids["First"]) {
+		t.Fatal("FocusSemantic(First) found no handler")
+	}
+	if f := frame(); len(f) != 1 || !f["First"] {
+		t.Fatalf("after FocusSemantic(First), focused %v", f)
+	}
+	if r.FocusSemantic(9999) {
+		t.Fatal("FocusSemantic of an unknown node succeeded")
+	}
 }

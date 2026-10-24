@@ -5,10 +5,12 @@ package app
 import (
 	"image"
 	"testing"
+	"time"
 
 	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/io/event"
 	"github.com/dyike/keel/gio/io/input"
+	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/gio/io/semantic"
 	"github.com/dyike/keel/gio/op"
@@ -123,6 +125,29 @@ func TestObserveSemanticsAndQueueInput(t *testing.T) {
 	}
 	if len(kinds) != 2 || kinds[0] != pointer.Press || kinds[1] != pointer.Release {
 		t.Fatalf("queued input delivered %v", kinds)
+	}
+	// Focus queued from another goroutine moves before the next event.
+	var id input.SemanticID
+	for _, n := range w.queue.AppendSemantics(nil) {
+		if n.Desc.Label == "Save" {
+			id = n.ID
+		}
+	}
+	w.queue.Event(key.FocusFilter{Target: tag})
+	w.queue.Frame(&ops)
+	go w.QueueFocus(id)
+	for deadline := time.Now().Add(time.Second); ; {
+		w.observe.Lock()
+		queued := len(w.observe.focus)
+		w.observe.Unlock()
+		if queued > 0 || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	w.nextEvent()
+	if !w.queue.Source().Focused(tag) {
+		t.Fatal("queued focus did not reach the button")
 	}
 	w.ObserveSemantics(nil)
 	seen = nil

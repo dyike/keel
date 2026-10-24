@@ -44,6 +44,17 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/io/input`, `gio/app`: `Router.FocusSemantic(id)` gives keyboard
+  focus to a semantic node, through its focusable handler or the nearest
+  one inside it (a text field's editor), and `Window.QueueFocus(id)` does
+  so from any goroutine on the driver thread before the next event. An
+  accessibility client moves focus to an element it knows by its node.
+  `QueueInput` and `QueueFocus` wake the window from a goroutine: inside a
+  native callback on macOS's main thread, `Invalidate` would run Gio
+  inline. Tests focus nodes by ID, one through an inner area, reject an
+  unknown ID, and queue focus from another goroutine under the race
+  detector.
+
 - `gio/io/input`: `SemanticDesc.Focused` marks the node holding keyboard
   focus, the innermost one whose area holds the focused handler's, so the
   platform accessibility bridges report focus. And a handler's gestures

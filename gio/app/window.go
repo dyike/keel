@@ -95,6 +95,7 @@ type Window struct {
 		fn    func(nodes []input.SemanticNode, size image.Point)
 		nodes []input.SemanticNode
 		input []event.Event
+		focus []input.SemanticID
 	}
 	driver driver
 	// gpuErr tracks the GPU error that is to be reported when
@@ -302,26 +303,48 @@ func (w *Window) ObserveSemantics(fn func(nodes []input.SemanticNode, size image
 }
 
 // QueueInput delivers events as if the platform had reported them, on the
-// driver thread before the next event; it may be called from any goroutine
-// and wakes the window. Keel patch: an accessibility client's press, which
-// arrives on its own threads, acts as a click.
+// driver thread before the next event; it may be called from any goroutine,
+// including inside a native callback on the driver thread, and wakes the
+// window without waiting. Keel patch: an accessibility client's press,
+// which arrives on its own threads, acts as a click.
 func (w *Window) QueueInput(events ...event.Event) {
 	w.observe.Lock()
 	w.observe.input = append(w.observe.input, events...)
 	w.observe.Unlock()
-	w.Invalidate()
+	go w.Invalidate() // on macOS's main thread, Invalidate runs Gio inline
+}
+
+// QueueFocus gives keyboard focus to the semantic node id of the latest
+// frame (see input.Router.FocusSemantic), on the driver thread before the
+// next event; like QueueInput, it may be called from any goroutine and
+// wakes the window without waiting. Keel patch: an accessibility client
+// moves focus.
+func (w *Window) QueueFocus(id input.SemanticID) {
+	w.observe.Lock()
+	w.observe.focus = append(w.observe.focus, id)
+	w.observe.Unlock()
+	go w.Invalidate()
 }
 
 func (w *Window) processQueuedInput() {
 	w.observe.Lock()
-	events := w.observe.input
-	w.observe.input = nil
+	events, focus := w.observe.input, w.observe.focus
+	w.observe.input, w.observe.focus = nil, nil
 	w.observe.Unlock()
 	if w.driver == nil {
 		return // destroyed
 	}
 	for _, e := range events {
 		w.processEvent(e)
+	}
+	for _, id := range focus {
+		if w.queue.FocusSemantic(id) {
+			// Deliver the focus change in a frame, as processEvent does.
+			if t, handled := w.queue.WakeupTime(); handled {
+				w.setNextFrame(t)
+				w.updateAnimation()
+			}
+		}
 	}
 }
 
