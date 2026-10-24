@@ -44,6 +44,13 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app`: `Window.AppendSemantics` returns the semantic tree of the
+  latest frame and `Window.ProcessInput` delivers an event as if the
+  platform had reported it, both on the driver thread. Keel's platform
+  accessibility bridge (`ui/window`) answers a screen reader's questions
+  from the tree inside the native callback and turns its press into a
+  click. A test finds a button in the tree and presses it.
+
 - `gio/io/input`: `Source.Pending` reports whether the router holds events
   or commands for the next frame (input since the last frame, events the
   last frame produced, queued commands). Keel's `ui/el` repaints a frame

@@ -473,6 +473,23 @@ func (c *callbacks) SemanticAt(pos f32.Point) (input.SemanticID, bool) {
 	return c.w.queue.SemanticAt(pos)
 }
 
+// AppendSemantics appends the semantic tree of the latest frame to nodes,
+// root first. Call it only on the window's driver thread (the main thread
+// on macOS) from a native callback, such as an accessibility request: not
+// from a function passed to Run, which may run while the client lays out a
+// frame that reads the same input state. Keel patch: a platform
+// accessibility bridge outside this package reads the tree.
+func (w *Window) AppendSemantics(nodes []input.SemanticNode) []input.SemanticNode {
+	return w.queue.AppendSemantics(nodes)
+}
+
+// ProcessInput delivers e as if the platform had reported it, and reports
+// whether a handler wants it. Same thread rule as AppendSemantics. Keel
+// patch: an accessibility client's press acts as a click.
+func (w *Window) ProcessInput(e event.Event) bool {
+	return w.processEvent(e)
+}
+
 func (c *callbacks) EditorState() editorState {
 	return c.w.imeState
 }
