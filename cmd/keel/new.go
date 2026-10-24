@@ -74,7 +74,7 @@ func (c *cli) newProject(args []string) error {
 	if err := cfg.validate(); err != nil {
 		return err
 	}
-	gomod := "module " + strconv.Quote(*module) + "\n\ngo 1.26.1\n"
+	gomod := "module " + strconv.Quote(*module) + "\n\ngo " + minGoVersion + "\n"
 	// Gio and go-text are packages of the Keel module: one requirement
 	// brings Keel's copies, with no replace of the app's own.
 	if *replace != "" {

@@ -13,6 +13,9 @@
 package main
 
 import (
+	"bytes"
+	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -65,13 +68,17 @@ func (c *cli) main(args []string) int {
 		err = c.iconCommand(args[1:])
 	case "doctor":
 		err = c.doctor(args[1:])
-	case "version":
-		fmt.Fprintln(c.out, "keel", keelVersion())
+	case "version", "-version", "--version":
+		fmt.Fprintln(c.out, "keel", displayVersion())
 	case "help", "-h", "-help", "--help":
 		fmt.Fprint(c.out, usage)
 	default:
 		fmt.Fprintf(c.errw, "keel: unknown command %q\n\n%s", args[0], usage)
 		return 2
+	}
+	if errors.Is(err, flag.ErrHelp) {
+		// The flag set already printed the usage that -h asked for.
+		return 0
 	}
 	if err != nil {
 		fmt.Fprintln(c.errw, "keel:", err)
@@ -90,6 +97,13 @@ func (c *cli) command(dir string, env []string, name string, args ...string) err
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, c.out, c.errw
+	if name == "codesign" {
+		// --force re-signs bundles that Go's linker or a previous build
+		// signed; codesign reports that on every build.
+		f := &dropLines{w: c.errw, suffix: ": replacing existing signature"}
+		defer f.Flush()
+		cmd.Stderr = f
+	}
 	if len(env) > 0 {
 		cmd.Env = append(os.Environ(), env...)
 	}
@@ -105,4 +119,36 @@ func (c *cli) wd() string {
 	}
 	wd, _ := os.Getwd()
 	return wd
+}
+
+// dropLines writes everything to w except whole lines ending in suffix.
+type dropLines struct {
+	w       io.Writer
+	suffix  string
+	pending []byte
+}
+
+func (d *dropLines) Write(p []byte) (int, error) {
+	d.pending = append(d.pending, p...)
+	for {
+		i := bytes.IndexByte(d.pending, '\n')
+		if i < 0 {
+			return len(p), nil
+		}
+		line := d.pending[:i+1]
+		if !bytes.HasSuffix(bytes.TrimRight(line, "\r\n"), []byte(d.suffix)) {
+			if _, err := d.w.Write(line); err != nil {
+				return len(p), err
+			}
+		}
+		d.pending = d.pending[i+1:]
+	}
+}
+
+// Flush writes a final line without a newline.
+func (d *dropLines) Flush() {
+	if len(d.pending) > 0 && !bytes.HasSuffix(d.pending, []byte(d.suffix)) {
+		d.w.Write(d.pending)
+	}
+	d.pending = nil
 }

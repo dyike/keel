@@ -10,6 +10,17 @@ import (
 
 // app is the whole interface: Render builds the view tree each frame, and
 // callbacks change fields that the next frame shows.
+//
+// Callbacks run under Keel's frame lock, so they may change fields directly.
+// Work in another goroutine, such as a network request, must hand its result
+// back through core.Update:
+//
+//	go func() {
+//		text := load()
+//		core.Update(func() { a.text = text })
+//	}()
+//
+// See https://github.com/dyike/keel/blob/main/docs/architecture.md#threading
 type app struct {
 	name  *kit.InputView
 	count int

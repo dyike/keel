@@ -42,8 +42,13 @@ func TestNames(t *testing.T) {
 			t.Errorf("displayName(%q) = %q, want %q", in, got, want[1])
 		}
 	}
-	if !goAtLeast("go1.26.4", 1, 26) || !goAtLeast("go1.27rc1", 1, 26) || goAtLeast("go1.25.9", 1, 26) || goAtLeast("devel", 1, 26) {
-		t.Fatal("goAtLeast")
+	for v, want := range map[string]bool{
+		"go1.26.1": true, "go1.26.4": true, "go1.27rc1": true, "go1.27.0": true,
+		"go1.26.0": false, "go1.26rc2": false, "go1.25.9": false, "devel": false,
+	} {
+		if goAtLeast(v, "1.26.1") != want {
+			t.Errorf("goAtLeast(%q, 1.26.1) = %v", v, !want)
+		}
 	}
 }
 
@@ -213,5 +218,53 @@ func TestNewLanguage(t *testing.T) {
 	c, _ := newCLI(t.TempDir())
 	if c.main([]string{"new", "app", "-offline", "-lang", "fr", "-replace", testCheckout(t)}) == 0 {
 		t.Fatal("an unknown -lang must be refused")
+	}
+}
+
+// Generated projects and keel doctor require the Go version Keel does.
+func TestMinGoVersionMatchesModule(t *testing.T) {
+	mod, err := os.ReadFile(filepath.Join(testCheckout(t), "go.mod"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(mod), "\ngo "+minGoVersion+"\n") {
+		t.Fatalf("minGoVersion %s is not the go directive of Keel's go.mod", minGoVersion)
+	}
+	root := t.TempDir()
+	c, out := newCLI(root)
+	if c.main([]string{"new", "app", "-offline", "-replace", testCheckout(t)}) != 0 {
+		t.Fatal(out.String())
+	}
+	gen, _ := os.ReadFile(filepath.Join(root, "app", "go.mod"))
+	if !strings.Contains(string(gen), "\ngo "+minGoVersion+"\n") {
+		t.Fatalf("generated go.mod:\n%s", gen)
+	}
+}
+
+// -h prints a command's flags and succeeds; every spelling of version works.
+func TestHelpAndVersion(t *testing.T) {
+	for _, cmd := range []string{"new", "run", "build", "icon", "doctor"} {
+		c, out := newCLI(t.TempDir())
+		if code := c.main([]string{cmd, "-h"}); code != 0 || strings.Contains(out.String(), "help requested") || !strings.Contains(out.String(), "-") {
+			t.Errorf("keel %s -h: exit %d\n%s", cmd, code, out.String())
+		}
+	}
+	for _, arg := range []string{"version", "-version", "--version"} {
+		c, out := newCLI(t.TempDir())
+		if code := c.main([]string{arg}); code != 0 || !strings.HasPrefix(out.String(), "keel ") || strings.Contains(out.String(), "latest") {
+			t.Errorf("keel %s: exit %d %q", arg, code, out.String())
+		}
+	}
+}
+
+func TestDropLines(t *testing.T) {
+	var b bytes.Buffer
+	d := &dropLines{w: &b, suffix: ": replacing existing signature"}
+	for _, chunk := range []string{"dist/A.app: replacing exi", "sting signature\nwarning: keep\r\n", "x.app: replacing existing signature\n", "tail"} {
+		d.Write([]byte(chunk))
+	}
+	d.Flush()
+	if b.String() != "warning: keep\r\ntail" {
+		t.Fatalf("%q", b.String())
 	}
 }
