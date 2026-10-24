@@ -12,7 +12,9 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Install Linux window dependencies
-        run: sudo apt-get update && sudo apt-get install -y libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libegl1-mesa-dev libgles2-mesa-dev libxcursor-dev libxfixes-dev libvulkan-dev weston xvfb xauth
+        run: sudo apt-get update && sudo apt-get install -y libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libegl1-mesa-dev libgles2-mesa-dev libxcursor-dev libxfixes-dev libvulkan-dev mesa-vulkan-drivers weston xvfb xauth
+      - name: Vulkan through headless rendering via cgo (lavapipe), with layout checks
+        run: GIO_HEADLESS_REQUIRED=1 go test ./gio/gpu/headless -run 'RenderPixels' -count=1 -v
       - name: xkbcommon keymaps and key dispatch through cgo
         run: GIO_XKB_REQUIRED=1 go test ./gio/app/internal/xkb -count=1 -v
       - name: Check invalid-view acknowledgment before native teardown

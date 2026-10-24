@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build ((linux && cgo && !purego) || freebsd) && !novulkan
+//go:build (linux || freebsd) && !novulkan
 
 package headless
 

@@ -18,6 +18,11 @@ import (
 // the Linux EGL and OpenGL ES bindings without cgo. Set
 // GIO_HEADLESS_REQUIRED=1 to fail rather than skip when no context exists.
 func TestRenderPixels(t *testing.T) {
+	checkRenderPixels(t)
+}
+
+func checkRenderPixels(t *testing.T) {
+	t.Helper()
 	w, err := NewWindow(64, 48)
 	if err != nil {
 		if os.Getenv("GIO_HEADLESS_REQUIRED") == "1" {
