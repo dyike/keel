@@ -26,37 +26,49 @@ func bufferClass(size int) int {
 }
 
 type pooledBuffer struct {
-	class  int
+	key    bufferPoolKey
 	buffer C.CFTypeRef
+}
+
+type bufferStorage uint8
+
+const (
+	bufferStoragePrivate bufferStorage = iota
+	bufferStorageShared
+)
+
+type bufferPoolKey struct {
+	class   int
+	storage bufferStorage
 }
 
 // bufferPool keeps released buffers. A buffer released during a frame may
 // still be read by that frame's command buffer, so it stays pending until
 // the next frame starts, after Backend.BeginFrame waited for the GPU.
 type bufferPool struct {
-	ready   map[int][]C.CFTypeRef
+	ready   map[bufferPoolKey][]C.CFTypeRef
 	pending []pooledBuffer
 	bytes   int
 }
 
-func (p *bufferPool) get(class int) C.CFTypeRef {
-	list := p.ready[class]
+func (p *bufferPool) get(key bufferPoolKey) C.CFTypeRef {
+	list := p.ready[key]
 	if len(list) == 0 {
 		return 0
 	}
 	buf := list[len(list)-1]
-	p.ready[class] = list[:len(list)-1]
-	p.bytes -= class
+	p.ready[key] = list[:len(list)-1]
+	p.bytes -= key.class
 	return buf
 }
 
 // put keeps buf for reuse, or reports false when the pool is full.
-func (p *bufferPool) put(class int, buf C.CFTypeRef) bool {
-	if class == 0 || p.bytes+class > maxPooledBytes {
+func (p *bufferPool) put(key bufferPoolKey, buf C.CFTypeRef) bool {
+	if key.class == 0 || p.bytes+key.class > maxPooledBytes {
 		return false
 	}
-	p.pending = append(p.pending, pooledBuffer{class, buf})
-	p.bytes += class
+	p.pending = append(p.pending, pooledBuffer{key, buf})
+	p.bytes += key.class
 	return true
 }
 
@@ -65,15 +77,15 @@ func (p *bufferPool) frameStarted() {
 		return
 	}
 	if p.ready == nil {
-		p.ready = map[int][]C.CFTypeRef{}
+		p.ready = map[bufferPoolKey][]C.CFTypeRef{}
 	}
 	for _, b := range p.pending {
-		if len(p.ready[b.class]) >= maxPooledPerCls {
+		if len(p.ready[b.key]) >= maxPooledPerCls {
 			C.CFRelease(b.buffer)
-			p.bytes -= b.class
+			p.bytes -= b.key.class
 			continue
 		}
-		p.ready[b.class] = append(p.ready[b.class], b.buffer)
+		p.ready[b.key] = append(p.ready[b.key], b.buffer)
 	}
 	p.pending = p.pending[:0]
 }

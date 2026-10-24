@@ -489,7 +489,7 @@ type Buffer struct {
 	backend *Backend
 	size    int
 	buffer  C.CFTypeRef
-	class   int // capacity of buffer, a size class of the pool
+	poolKey bufferPoolKey
 
 	// store is the buffer contents for buffers not allocated on the GPU.
 	store []byte
@@ -815,22 +815,26 @@ func (b *Backend) NewBuffer(typ driver.BufferBinding, size int) (driver.Buffer, 
 	if size <= maxStoreSize && typ&(driver.BufferBindingShaderStorageWrite|driver.BufferBindingIndices) == 0 {
 		return &Buffer{backend: b, size: size, store: b.stores.get(size)}, nil
 	}
-	class := bufferClass(size)
-	buf := b.pool.get(class)
+	key := bufferPoolKey{class: bufferClass(size), storage: bufferStoragePrivate}
+	buf := b.pool.get(key)
 	if buf == 0 {
-		buf = C.newBuffer(b.dev, C.NSUInteger(class), C.MTLResourceStorageModePrivate)
+		buf = C.newBuffer(b.dev, C.NSUInteger(key.class), C.MTLResourceStorageModePrivate)
 	}
-	return &Buffer{backend: b, size: size, buffer: buf, class: class}, nil
+	return &Buffer{backend: b, size: size, buffer: buf, poolKey: key}, nil
 }
 
 func (b *Backend) NewImmutableBuffer(typ driver.BufferBinding, data []byte) (driver.Buffer, error) {
 	// Immutable geometry is initialized before its first GPU use. Keep mutable
 	// buffers on the ordered upload path, including later Upload calls on this buffer.
 	if b.unified && (len(data) > 4096 || typ&driver.BufferBindingIndices != 0) {
-		buf := C.newBuffer(b.dev, C.NSUInteger(len(data)), C.MTLResourceStorageModeShared)
+		key := bufferPoolKey{class: bufferClass(len(data)), storage: bufferStorageShared}
+		buf := b.pool.get(key)
+		if buf == 0 {
+			buf = C.newBuffer(b.dev, C.NSUInteger(key.class), C.MTLResourceStorageModeShared)
+		}
 		if buf != 0 {
-			copy(bufferStore(buf), data)
-			return &Buffer{backend: b, size: len(data), buffer: buf}, nil
+			copy(bufferStore(buf)[:len(data)], data)
+			return &Buffer{backend: b, size: len(data), buffer: buf, poolKey: key}, nil
 		}
 	}
 	buf, err := b.NewBuffer(typ, len(data))
@@ -1204,7 +1208,7 @@ func bufferSlice(buf C.CFTypeRef, off, len int) []byte {
 }
 
 func (b *Buffer) Release() {
-	if b.buffer != 0 && !b.backend.pool.put(b.class, b.buffer) {
+	if b.buffer != 0 && !b.backend.pool.put(b.poolKey, b.buffer) {
 		C.CFRelease(b.buffer)
 	}
 	if b.store != nil && b.backend != nil {

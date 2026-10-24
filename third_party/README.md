@@ -44,6 +44,20 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/gpu/internal/metal`: immutable vertex buffers on unified-memory Macs
+  and iOS devices now use the existing bounded, power-of-two Metal buffer pool.
+  Large paths previously bypassed that pool and called `newBuffer` for every
+  cache miss, including every frame of a rotated spinner. Shared and private
+  storage have distinct pool keys; released storage becomes reusable only after
+  `BeginFrame` has waited for the preceding command buffer, and `Trim` still
+  releases it. The renderer keeps dedicated per-path buffers and unchanged
+  vertex coordinates, coverage, clipping and opacity. Re-keying solely by local
+  path geometry is intentionally avoided because tessellation, x-monotone curve
+  splitting, bounds and contour `MaxY` are computed after the non-translation
+  transform. Native tests check completion-gated shared-buffer reuse and compare
+  24 rotating-path frames byte-for-byte with a renderer whose pool and path
+  cache are dropped before every frame; a full-frame benchmark covers sustained
+  rotation.
 - `gio/op/paint`, `gio/gpu`, `gio/internal/ops`: `ImageOp.PaintQuads` (and
   `PaintTintedQuads` on Metal builds) paints one image at many offsets, each
   clipped to a rectangle of the image, as a single `TypeImageQuads` operation
