@@ -243,6 +243,22 @@ Wayland and Vulkan are still cgo-only on Linux; the no-cgo build uses X11
 and EGL. IBus input, keyboard layouts beyond the default and real desktops
 were not exercised.
 
+## L2 progress: Wayland on Linux (2026-10-24)
+
+`gio/app` opens Wayland windows without cgo. The no-cgo workflow runs the
+Wayland lifecycle tests and the six ui/window real-window tests under
+weston's headless backend with `DISPLAY` unset, so no X11 fallback exists;
+all pass on amd64 and arm64. Requests are marshalled by shared Go code
+through `wl_proxy_marshal_array_flags` under both bindings; the cgo job
+checks their 61 opcodes, 30 protocol values and the wl_cursor layouts
+against the headers, which caught wrong text-input content purpose values
+before this note. Events reach shared handlers through Gio's listener
+tables (cgo) or one `wl_proxy_add_dispatcher` callback (purego).
+
+Not exercised: a real compositor and desktop, text-input with an input
+method, clipboard between applications, touch, HiDPI output scales and
+client-side decorations. Vulkan remains cgo-only on Linux.
+
 ## Preserved ABI work and remaining gates
 
 D0's compile gate and M0's no-cgo Objective-C probes remain in the root module.

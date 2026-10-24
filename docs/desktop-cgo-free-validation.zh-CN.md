@@ -152,6 +152,12 @@ amd64 只做了编译和 vet（未安装 Rosetta），其经 `RegisterFunc` 按�
 
 Linux 上 Wayland 和 Vulkan 仍只能用 cgo；无 cgo 构建使用 X11 和 EGL。IBus 输入、默认之外的键盘布局以及真实桌面均未验证。
 
+## L2 进展：Linux 上的 Wayland（2026-10-24）
+
+`gio/app` 不使用 cgo 即可打开 Wayland 窗口。无 cgo 工作流在 weston 的无头后端下运行 Wayland 生命周期测试和 ui/window 的六个真实窗口测试，并取消 `DISPLAY`，不存在退回 X11 的可能；amd64 和 arm64 上全部通过。两种绑定下请求都由共用的 Go 代码经 `wl_proxy_marshal_array_flags` 编组；cgo 任务对照头文件检查其中 61 个操作码、30 个协议常量和 wl_cursor 布局，并在本记录前发现了 text-input 的 content purpose 取值错误。事件经 Gio 的监听表（cgo）或一个 `wl_proxy_add_dispatcher` 回调（purego）送到共用的处理函数。
+
+未验证：真实合成器和桌面、配合输入法的 text-input、应用间剪贴板、触摸、HiDPI 输出缩放和客户端装饰。Linux 上 Vulkan 仍只能用 cgo。
+
 ## 保留的 ABI 工作与待验收项
 
 D0 编译门禁和 M0 无 CGO Objective-C 探针保留在根模块中。
