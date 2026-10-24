@@ -16,20 +16,20 @@ import (
 // result is an integer or a pointer. Keel patch.
 
 var x11 struct {
-	initThreads, rmInitialize, openDisplay, closeDisplay         uintptr
-	kbQueryExtension, kbSelectEvents                             uintptr
+	initThreads, rmInitialize, openDisplay, closeDisplay          uintptr
+	kbQueryExtension, kbSelectEvents                              uintptr
 	defaultRootWindow, defaultScreen, displayWidth, displayHeight uintptr
-	createWindow, destroyWindow, mapWindow, mapRaised            uintptr
-	iconifyWindow, resizeWindow, moveResizeWindow                uintptr
-	getWindowAttributes, setWMNormalHints, setWMHints            uintptr
-	setClassHint, setWMProtocols, storeName                      uintptr
-	setTextProperty, getTextProperty, internAtom, deleteProperty uintptr
-	convertSelection, setSelectionOwner, changeProperty          uintptr
-	sendEvent, pending, nextEvent, filterEvent, connectionNumber uintptr
-	translateCoordinates, defineCursor, displayString            uintptr
-	resourceManagerString, rmGetStringDatabase                   uintptr
-	rmGetResource, rmDestroyDatabase                             uintptr
-	getXCBConnection, fixesHideCursor, cursorLibraryLoadCursor   uintptr
+	createWindow, destroyWindow, mapWindow, mapRaised             uintptr
+	iconifyWindow, resizeWindow, moveResizeWindow                 uintptr
+	getWindowAttributes, setWMNormalHints, setWMHints             uintptr
+	setClassHint, setWMProtocols, storeName                       uintptr
+	setTextProperty, getTextProperty, internAtom, deleteProperty  uintptr
+	convertSelection, setSelectionOwner, changeProperty           uintptr
+	sendEvent, pending, nextEvent, filterEvent, connectionNumber  uintptr
+	translateCoordinates, defineCursor, displayString             uintptr
+	resourceManagerString, rmGetStringDatabase                    uintptr
+	rmGetResource, rmDestroyDatabase                              uintptr
+	getXCBConnection, fixesHideCursor, cursorLibraryLoadCursor    uintptr
 	kbX11CoreDevice, kbX11KeymapNew, kbX11StateNew, kbKeymapUnref uintptr
 }
 
@@ -165,7 +165,7 @@ func xkbSelectEvents(d unsafe.Pointer, device, affect, values uint32) int32 {
 }
 
 func xDefaultRootWindow(d unsafe.Pointer) xWindow { return xcall(x11.defaultRootWindow, ptr(d)) }
-func xDefaultScreen(d unsafe.Pointer) int32        { return i32(xcall(x11.defaultScreen, ptr(d))) }
+func xDefaultScreen(d unsafe.Pointer) int32       { return i32(xcall(x11.defaultScreen, ptr(d))) }
 
 func xDisplayWidth(d unsafe.Pointer, screen int32) int32 {
 	return i32(xcall(x11.displayWidth, ptr(d), iarg(screen)))
