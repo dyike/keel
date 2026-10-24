@@ -9,10 +9,15 @@ $AE = [System.Windows.Automation.AutomationElement]
 $Scope = [System.Windows.Automation.TreeScope]
 $CT = [System.Windows.Automation.ControlType]
 
+# Wait-For retries a probe; one that walks the tree while the window
+# replaces elements may meet one that just left (ElementNotAvailable).
 function Wait-For([scriptblock]$Probe, [string]$What) {
   for ($i = 0; $i -lt 150; $i++) {
-    $r = & $Probe
-    if ($r) { return $r }
+    try {
+      $r = & $Probe
+      if ($r) { return $r }
+    } catch [System.Windows.Automation.ElementNotAvailableException] {
+    }
     Start-Sleep -Milliseconds 100
   }
   throw "FAIL: timed out waiting for $What"
