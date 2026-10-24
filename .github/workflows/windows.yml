@@ -13,5 +13,14 @@ jobs:
           cache: true
       - name: Check native menu handles and frameless fallback
         run: go test ./ui/window -run 'TestWin32Menu|TestWindowsFrameless|TestWindowMenu' -count=1 -timeout=120s
+      - name: UI Automation providers, and clients from another process
+        shell: powershell
+        run: |
+          go test ./ui/internal/uia -count=1 -v
+          if ($LASTEXITCODE) { exit 1 }
+          go build -o hello.exe ./examples/hello
+          go build -o components.exe ./examples/components
+          ./ui/window/testdata/uia/check.ps1 hello (Resolve-Path hello.exe)
+          ./ui/window/testdata/uia/check.ps1 components (Resolve-Path components.exe)
       - name: Check development executable resources and watcher
         run: go test ./cmd/keel -run 'TestRunResources|TestWindowsCompileRun|TestRunWatchSnapshot|TestRunWatchRebuildRecovery' -count=1 -timeout=180s

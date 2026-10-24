@@ -2,9 +2,9 @@
 
 English | [简体中文](accessibility.zh-CN.md)
 
-On macOS (VoiceOver) and Linux (Orca and other AT-SPI clients), assistive technology can read a Keel window and press its controls. Applications need no code for this: what a screen reader sees is the same element list an agent reads in [automation](automation.md#element), with the same roles, names, values and states.
+On macOS (VoiceOver), Windows (Narrator and other UI Automation clients) and Linux (Orca and other AT-SPI clients), assistive technology can read a Keel window and press its controls. Applications need no code for this: what a screen reader sees is the same element list an agent reads in [automation](automation.md#element), with the same roles, names, values and states.
 
-Windows (UI Automation), iOS and Android are not connected yet.
+iOS and Android are not connected yet.
 
 ## What a screen reader gets on macOS
 
@@ -43,7 +43,13 @@ The first window connects to the accessibility bus the session advertises (`org.
 
 `Component.ScrollTo` scrolls an element into view; `DoAction` clicks it. Changes are announced with `ChildrenChanged`, `StateChanged` (checked, selected, enabled, showing, active, defunct) and `PropertyChange` (name), and window focus with `Window.Activate` and `Deactivate`.
 
-Calls arrive on D-Bus goroutines and read the elements of the last frame under a lock. Actions are queued and run on the window's goroutine after its next event: on X11 and Wayland, Gio's driver runs inside `Window.Event`, so that is where its input state may be touched.
+Calls arrive on D-Bus goroutines and read the elements of the last frame under a lock. Actions become input queued for the window (`Window.QueueInput`), which Gio's driver delivers before its next event: on X11 and Wayland the driver runs inside `Window.Event` on the window's goroutine, the one place its input state may be touched.
+
+## Windows (UI Automation)
+
+A window answers `WM_GETOBJECT` with a root provider, which Windows merges with the window's own (title, position). Each element is a provider implementing `IRawElementProviderSimple` and `IRawElementProviderFragment`, and by role the Invoke (buttons, links, menu items, rows), Toggle (checkboxes, switches), ScrollItem (everything inside a scroll area) and read-only Value (text fields, selects, sliders, progress) patterns. Control types follow the element roles: Button, CheckBox, Edit, Hyperlink, TabItem, ComboBox, ListItem, DataItem, Pane for scroll areas and dialogs, Text, Group. `IsOffscreen` marks what is scrolled out of view. A structure change raises `StructureChanged`; a toggle raises a `ToggleState` property change.
+
+The providers are COM objects built without cgo: each is a block of native heap memory with one vtable pointer per interface, the vtables' entries are about 40 callbacks created once, and the Go side is found by the block's address. Nothing runs until the first `WM_GETOBJECT`; then Gio hands each frame's semantic tree to an observer on the window thread (`Window.ObserveSemantics`), and presses and scrolls become queued input (`Window.QueueInput`), because UI Automation calls on its own threads.
 
 ## Cost
 
@@ -61,5 +67,6 @@ On macOS, Gio keeps each frame's semantic tree on the main thread, where AppKit 
 - Text fields are read-only to assistive apps: their value can be read, but not set, and text ranges and selection are not exposed.
 - Sliders do not support increment and decrement; there are no live-region announcements.
 - Elements keep their identity through changes of label and state when they take input (a button, a checkbox). Plain text whose words change (a counter) becomes a new element.
+- Windows: hit testing (`ElementProviderFromPoint`) answers for the mouse position, since its coordinates are doubles that a Windows callback does not receive. Values cannot be set, and there is no Text pattern, keyboard focus (`HasKeyboardFocus`, focus events) or ExpandCollapse pattern.
 - Linux: there are no Text and Value interfaces, so Orca reads an entry's name but not its contents, and a slider's or progress bar's value only as a description. Screen coordinates are window coordinates, since Wayland does not report window positions. CI checks X11 under Xvfb; Wayland runs the same code but is not checked with a client.
-- The real-window test (`KEEL_DESKTOP=1 go test -run RealWindowsAccessibility ./ui/window`) asks the view through AppKit's API in the same process. Reading, pressing and scrolling were also checked from another process through `AXUIElement`, the API VoiceOver uses, on `examples/hello` and `examples/components`. On Linux, CI runs `ui/window/testdata/atspi` under Xvfb with at-spi2-core: as a client on the accessibility bus, it finds the application on the registry's desktop, reads roles and names, presses a button, and scrolls a row into view and presses it; `pyatspi_check.py` reads `examples/hello` through libatspi, the library Orca uses, and checks its checkbox. Neither VoiceOver nor Orca has been run.
+- The real-window test (`KEEL_DESKTOP=1 go test -run RealWindowsAccessibility ./ui/window`) asks the view through AppKit's API in the same process. Reading, pressing and scrolling were also checked from another process through `AXUIElement`, the API VoiceOver uses, on `examples/hello` and `examples/components`. On Linux, CI runs `ui/window/testdata/atspi` under Xvfb with at-spi2-core: as a client on the accessibility bus, it finds the application on the registry's desktop, reads roles and names, presses a button, and scrolls a row into view and presses it; `pyatspi_check.py` reads `examples/hello` through libatspi, the library Orca uses, and checks its checkbox. On Windows, CI calls the providers through their vtables without a window, checks every IID, method order and ID against the Windows SDK headers, and reads `examples/hello` and `examples/components` from another process with .NET's UI Automation client (`ui/window/testdata/uia/check.ps1`): it toggles the checkbox, invokes a button, and scrolls a link out of view into view and invokes it. VoiceOver, Narrator and Orca have not been run.

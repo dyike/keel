@@ -100,7 +100,6 @@ func installAccessibility(view uintptr) {
 var axImps struct{ children, role, hitTest objc.IMP }
 
 func accessibilityOpen(*Window)        {}
-func accessibilityInput(*Window)       {}
 func accessibilityFocus(*Window, bool) {}
 func accessibilityClose(*Window)       {}
 
@@ -479,14 +478,14 @@ func axLatest(obj appkit.ID) (*axObject, bool) {
 // axScrollTo scrolls the element into view.
 func axScrollTo(obj appkit.ID) {
 	if o, ok := axLatest(obj); ok {
-		scrollToElement(o.v.w, o.el)
+		processInput(o.v.w, scrollToEvents(o.el))
 	}
 }
 
 // axScrollPage scrolls a scroll area by a page.
 func axScrollPage(obj appkit.ID, dx, dy int) {
 	if o, ok := axLatest(obj); ok {
-		scrollPage(o.v.w, o.el, dx, dy)
+		processInput(o.v.w, pageEvents(o.el, dx, dy))
 	}
 }
 
@@ -494,7 +493,7 @@ func axScrollPage(obj appkit.ID, dx, dy int) {
 // refresh may be a frame behind.
 func axPress(obj appkit.ID) bool {
 	o, ok := axLatest(obj)
-	return ok && pressElement(o.v.w, o.el)
+	return ok && processInput(o.v.w, clickEvents(o.el))
 }
 
 // axHitTest returns the element under a screen point: the last listed

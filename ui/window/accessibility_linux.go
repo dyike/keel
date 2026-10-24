@@ -8,9 +8,9 @@ package window
 // there is no such bus, nothing else happens. Elements are built only once a
 // client has made a request: from then on, after each frame, on the
 // window's goroutine, from the semantic tree Gio's driver keeps there.
-// Requests that act (press, scroll) arrive on D-Bus goroutines; they are
-// queued and run on the window's goroutine after its next event, the one
-// place Gio's router is free.
+// Requests that act (press, scroll) arrive on D-Bus goroutines and become
+// input queued for the window (Window.QueueInput), which Gio's driver
+// delivers before the next event.
 
 import (
 	"image"
@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/dyike/keel/gio/io/event"
 	"github.com/dyike/keel/gio/io/input"
 	"github.com/dyike/keel/ui/internal/atspi"
 	"github.com/dyike/keel/ui/internal/loop"
@@ -40,9 +41,8 @@ type axWindow struct {
 	nodes []input.SemanticNode // window goroutine only
 	buf   []atspi.Node
 
-	mu      sync.Mutex
-	els     map[string]Element // the latest frame's elements, by key
-	pending []func()
+	mu  sync.Mutex
+	els map[string]Element // the latest frame's elements, by key
 }
 
 func axWindowOf(w *Window) *axWindow {
@@ -164,49 +164,26 @@ func accessibilityFrame(w *Window, size image.Point) {
 	b.Update(a.id, w.opts.Title, a.buf)
 }
 
-// accessibilityInput runs the requests queued since the last event.
-func accessibilityInput(w *Window) {
-	a := axWindowOf(w)
-	if a == nil {
-		return
-	}
+// queue sends the input events makes for the element named key.
+func (a *axWindow) queue(key string, events func(Element) []event.Event) bool {
 	a.mu.Lock()
-	todo := a.pending
-	a.pending = nil
+	e, ok := a.els[key]
 	a.mu.Unlock()
-	for _, fn := range todo {
-		fn()
-	}
-}
-
-// queue runs fn with the element named key on the window's goroutine.
-func (a *axWindow) queue(key string, fn func(Element)) bool {
-	a.mu.Lock()
-	if _, ok := a.els[key]; !ok {
-		a.mu.Unlock()
+	if !ok {
 		return false
 	}
-	a.pending = append(a.pending, func() {
-		a.mu.Lock()
-		e, ok := a.els[key]
-		a.mu.Unlock()
-		if ok {
-			fn(e)
-		}
-	})
-	a.mu.Unlock()
-	a.w.win.Invalidate() // wakes Event
+	evs := events(e)
+	if len(evs) == 0 {
+		return false
+	}
+	a.w.win.QueueInput(evs...)
 	return true
 }
 
-func (a *axWindow) Press(key string) bool {
-	return a.queue(key, func(e Element) { pressElement(a.w, e) })
-}
+func (a *axWindow) Press(key string) bool { return a.queue(key, clickEvents) }
 
-func (a *axWindow) ScrollTo(key string) bool {
-	return a.queue(key, func(e Element) { scrollToElement(a.w, e) })
-}
+func (a *axWindow) ScrollTo(key string) bool { return a.queue(key, scrollToEvents) }
 
 func (a *axWindow) ScrollPage(key string, dx, dy int) bool {
-	return a.queue(key, func(e Element) { scrollPage(a.w, e, dx, dy) })
+	return a.queue(key, func(e Element) []event.Event { return pageEvents(e, dx, dy) })
 }

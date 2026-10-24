@@ -323,7 +323,6 @@ func (w *Window) run() {
 	positioned := false
 	for {
 		ev := w.win.Event()
-		accessibilityInput(w)
 		if os.Getenv("REX_STARTUP_TRACE") != "" {
 			fmt.Fprintf(os.Stderr, "keel %d window=%q event %T\n", time.Now().UnixMicro(), w.opts.Title, ev)
 		}
