@@ -44,6 +44,12 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/internal/cocoainit`: `cocoa_purego_darwin.go` starts the NSThread that
+  puts Cocoa in multithreaded mode without cgo (`CGO_ENABLED=0` or
+  `-tags purego`), releasing the reference from `new` as ARC does; iOS keeps
+  the cgo file. A test checks `+[NSThread isMultiThreaded]` with either
+  binding and fails when the thread is not started.
+
 - `gio/internal/gl`: a purego binding, `gl_purego_unix.go`, loads OpenGL on
   macOS and OpenGL ES on Linux without cgo, selected by `CGO_ENABLED=0` or
   `-tags purego`; `gl_unix.go` stays the cgo default and the only binding for

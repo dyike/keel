@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
+//go:build darwin && (ios || (cgo && !purego))
+
 // Package cocoainit initializes support for multithreaded
 // programs in Cocoa.
 package cocoainit
