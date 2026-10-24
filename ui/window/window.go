@@ -102,6 +102,9 @@ type Window struct {
 	drawsTitle                bool          // Keel draws the title bar; see decorations.go
 	shown                     chan struct{} // closed at the first frame or at destruction
 	glassRenderer             glassRenderer
+	// axActive is set once a platform accessibility client asked about the
+	// window; axQueued while a refresh of its elements waits.
+	axActive, axQueued atomic.Bool
 }
 
 // Open creates and shows a centered window where the platform supports it.
@@ -359,6 +362,7 @@ func (w *Window) run() {
 				}
 			}
 			e.Frame(gtx.Ops)
+			accessibilityFrame(w)
 			stats.end()
 			if !positioned {
 				positioned = true

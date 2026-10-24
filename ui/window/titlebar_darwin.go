@@ -26,6 +26,7 @@ func platformWindowEvent(w *Window, event any) {
 		w.nativeTrafficLightsDirty = true
 		if e.View != 0 {
 			nativeWindows.Store(e.View, w)
+			installAccessibility(e.View)
 		}
 		if e.View != 0 && e.Layer != 0 {
 			configureNativeResize(e.View, e.Layer)
@@ -36,6 +37,7 @@ func clearPlatformWindow(w *Window) {
 	if w.nativeView != 0 {
 		view := appkit.ID(w.nativeView)
 		nativeWindows.Delete(w.nativeView)
+		forgetAccessibility(view)
 		setTitleBarArea(w.nativeView, appkit.Rect{})
 		// A view's last release must happen on the main thread.
 		appkit.MainAsync(func() { appkit.Release(view) })

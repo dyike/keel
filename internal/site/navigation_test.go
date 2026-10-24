@@ -116,7 +116,7 @@ func TestPageNavigation(t *testing.T) {
 		{"README.md", "", ""},
 		{"docs/README.md", "", "docs/getting-started.md"},
 		{"docs/getting-started.md", "docs/README.md", "docs/web.md"},
-		{"docs/kit.md", "docs/base.md", "docs/kit/label.md"},
+		{"docs/kit.md", "docs/accessibility.md", "docs/kit/label.md"},
 		{"docs/kit/label.md", "docs/kit.md", "docs/kit/icon.md"},
 		{"docs/kit/command.md", "docs/kit/stepper.md", "docs/kit/input.md"},
 		{"docs/kit/input.md", "docs/kit/command.md", "docs/kit/input_group.md"},

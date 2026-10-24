@@ -29,6 +29,10 @@ func TestMain(m *testing.M) {
 		resizeWindowHelper()
 		return
 	}
+	if os.Getenv("KEEL_ACCESSIBILITY_HELPER") == "1" {
+		accessibilityHelper()
+		return
+	}
 	os.Exit(m.Run())
 }
 
