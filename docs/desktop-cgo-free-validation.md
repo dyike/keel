@@ -172,6 +172,17 @@ amd64 was only compiled and vetted (Rosetta is not installed), so its
 by-value struct calls through `RegisterFunc` have not run. The no-cgo build
 of `hello` still stops in `gio/app`; `gio/gpu/headless` remains cgo.
 
+## M1 progress: Gio's headless context (2026-10-24)
+
+`gio/gpu/headless` creates its Metal device and queue through purego on
+macOS without cgo; iOS keeps the cgo file. With it, Gio's GPU stack
+(`gpu`, `gpu/headless`, `gpu/internal/metal`, `internal/gl`,
+`internal/cocoainit`) passes its tests with `CGO_ENABLED=0` on an Apple M4.
+With `-tags purego`, hello is byte-identical to the cgo build and the same
+721 of 793 component screenshots match; the other 72 are the animated pages
+that also differ between cgo runs. `gio/app` is now the only cgo package in
+the no-cgo build of `hello`.
+
 ## Preserved ABI work and remaining gates
 
 D0's compile gate and M0's no-cgo Objective-C probes remain in the root module.

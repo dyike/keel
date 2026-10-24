@@ -126,6 +126,10 @@ macOS 上基线 overlay 使用解析后的 `/private/tmp` 源码路径。
 
 amd64 只做了编译和 vet（未安装 Rosetta），其经 `RegisterFunc` 按值传递结构体的调用尚未运行。`hello` 的无 cgo 构建仍止于 `gio/app`；`gio/gpu/headless` 仍使用 cgo。
 
+## M1 进展：Gio 的无头上下文（2026-10-24）
+
+`gio/gpu/headless` 在 macOS 上不使用 cgo、经 purego 创建 Metal 设备和队列；iOS 仍使用 cgo 文件。至此 Gio 的 GPU 部分（`gpu`、`gpu/headless`、`gpu/internal/metal`、`internal/gl`、`internal/cocoainit`）在 Apple M4 上以 `CGO_ENABLED=0` 运行测试并通过。使用 `-tags purego` 时，hello 与 cgo 构建逐字节相同，组件矩阵 793 张截图中同样有 721 张一致；其余 72 张是 cgo 连续两次运行时也会不同的动画页面。`hello` 的无 cgo 构建现在只剩 `gio/app` 一个 cgo 包。
+
 ## 保留的 ABI 工作与待验收项
 
 D0 编译门禁和 M0 无 CGO Objective-C 探针保留在根模块中。

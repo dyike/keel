@@ -44,6 +44,14 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/gpu/headless`: `headless_purego_darwin.go` creates the Metal device
+  and command queue without cgo on macOS (`CGO_ENABLED=0` or
+  `-tags purego`), inside an autorelease pool on a locked thread, as the cgo
+  helpers do; iOS keeps `headless_darwin.go`. A test checks under each
+  binding that the queue belongs to the reported device; it fails when the
+  two are swapped. With the purego Metal backend, `CGO_ENABLED=0 go test
+  ./gio/gpu/...` passes on macOS.
+
 - `gio/gpu/internal/metal`: a purego binding, `metal_purego_darwin.go`,
   sends the backend's Metal messages without cgo on macOS, selected by
   `CGO_ENABLED=0` or `-tags purego`; `metal_cgo_darwin.go` keeps Gio's
