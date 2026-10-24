@@ -17,13 +17,11 @@ jobs:
         run: GIO_XKB_REQUIRED=1 go test ./gio/app/internal/xkb -count=1 -v
       - name: Check invalid-view acknowledgment before native teardown
         run: go test -race ./gio/app -run 'TestDeferredTeardown|TestWaylandEventAcknowledges|TestWaylandRun|TestEventFuncs' -count=1 -timeout=120s
-      # The same X11 set as the no-cgo workflow: resident and reopen time out
-      # on X11 with either binding and are tracked apart.
       - name: Real X11 windows through cgo under Xvfb
         shell: bash
         run: |
           unset WAYLAND_DISPLAY
-          xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run 'TestRealWindows/./testdata/^raise$' -count=1 -timeout=300s -v
+          xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run TestRealWindows -count=1 -timeout=300s -v
           xvfb-run -a -s "-screen 0 1280x1024x24" go test ./gio/app -count=1 -timeout=180s
       - name: Check real windows under a headless Wayland compositor
         shell: bash

@@ -16,21 +16,21 @@ import (
 // result is an integer or a pointer. Keel patch.
 
 var x11 struct {
-	initThreads, rmInitialize, openDisplay, closeDisplay          uintptr
-	kbQueryExtension, kbSelectEvents                              uintptr
-	defaultRootWindow, defaultScreen, displayWidth, displayHeight uintptr
-	createWindow, destroyWindow, mapWindow, mapRaised             uintptr
-	iconifyWindow, resizeWindow, moveResizeWindow                 uintptr
-	getWindowAttributes, setWMNormalHints, setWMHints             uintptr
-	setClassHint, setWMProtocols, storeName                       uintptr
-	setTextProperty, getTextProperty, internAtom, deleteProperty  uintptr
-	convertSelection, setSelectionOwner, changeProperty           uintptr
-	sendEvent, pending, nextEvent, filterEvent, connectionNumber  uintptr
-	translateCoordinates, defineCursor, displayString             uintptr
-	resourceManagerString, rmGetStringDatabase                    uintptr
-	rmGetResource, rmDestroyDatabase                              uintptr
-	getXCBConnection, fixesHideCursor, cursorLibraryLoadCursor    uintptr
-	kbX11CoreDevice, kbX11KeymapNew, kbX11StateNew, kbKeymapUnref uintptr
+	initThreads, rmInitialize, openDisplay, closeDisplay                uintptr
+	kbQueryExtension, kbSelectEvents                                    uintptr
+	defaultRootWindow, defaultScreen, displayWidth, displayHeight       uintptr
+	createWindow, destroyWindow, mapWindow, mapRaised                   uintptr
+	iconifyWindow, resizeWindow, moveResizeWindow                       uintptr
+	getWindowAttributes, setWMNormalHints, setWMHints                   uintptr
+	setClassHint, setWMProtocols, storeName                             uintptr
+	setTextProperty, getTextProperty, internAtom, deleteProperty        uintptr
+	convertSelection, setSelectionOwner, changeProperty                 uintptr
+	sendEvent, flush, pending, nextEvent, filterEvent, connectionNumber uintptr
+	translateCoordinates, defineCursor, displayString                   uintptr
+	resourceManagerString, rmGetStringDatabase                          uintptr
+	rmGetResource, rmDestroyDatabase                                    uintptr
+	getXCBConnection, fixesHideCursor, cursorLibraryLoadCursor          uintptr
+	kbX11CoreDevice, kbX11KeymapNew, kbX11StateNew, kbKeymapUnref       uintptr
 }
 
 // openLib opens the first of names that loads.
@@ -97,6 +97,7 @@ func loadX11() error {
 		{"x11", "XSetSelectionOwner", &x11.setSelectionOwner},
 		{"x11", "XChangeProperty", &x11.changeProperty},
 		{"x11", "XSendEvent", &x11.sendEvent},
+		{"x11", "XFlush", &x11.flush},
 		{"x11", "XPending", &x11.pending},
 		{"x11", "XNextEvent", &x11.nextEvent},
 		{"x11", "XFilterEvent", &x11.filterEvent},
@@ -260,6 +261,8 @@ func xChangeProperty(d unsafe.Pointer, w xWindow, prop, typ xAtom, format, mode 
 func xSendEvent(d unsafe.Pointer, w xWindow, propagate int32, mask int, ev *xEvent) {
 	xcall(x11.sendEvent, ptr(d), w, iarg(propagate), uintptr(mask), uintptr(unsafe.Pointer(ev)))
 }
+
+func xFlush(d unsafe.Pointer) { xcall(x11.flush, ptr(d)) }
 
 func xPending(d unsafe.Pointer) int32 { return i32(xcall(x11.pending, ptr(d))) }
 

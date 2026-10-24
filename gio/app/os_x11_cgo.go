@@ -360,6 +360,8 @@ func xSendEvent(d unsafe.Pointer, w xWindow, propagate int32, mask int, ev *xEve
 	C.XSendEvent(dpy(d), C.Window(w), C.Bool(propagate), C.long(mask), cev(ev))
 }
 
+func xFlush(d unsafe.Pointer) { C.XFlush(dpy(d)) }
+
 func xPending(d unsafe.Pointer) int32          { return int32(C.XPending(dpy(d))) }
 func xNextEvent(d unsafe.Pointer, ev *xEvent)  { C.XNextEvent(dpy(d), cev(ev)) }
 func xFilterEvent(ev *xEvent, w xWindow) int32 { return int32(C.XFilterEvent(cev(ev), C.Window(w))) }

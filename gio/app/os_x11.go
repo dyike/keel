@@ -507,6 +507,8 @@ func (w *x11Window) Configure(options []Option) {
 	if cnf.Decorated != prev.Decorated {
 		w.config.Decorated = cnf.Decorated
 	}
+	// Keel patch: see Perform.
+	xFlush(w.x)
 	w.ProcessEvent(ConfigEvent{Config: w.config})
 }
 
@@ -532,6 +534,10 @@ func (w *x11Window) Perform(acts system.Action) {
 	if acts&system.ActionClose != 0 {
 		w.close()
 	}
+	// Keel patch: Perform runs outside the event loop, which waits in poll
+	// for the X connection; Xlib only buffers these requests, so flush
+	// them or a close never reaches the server.
+	xFlush(w.x)
 }
 
 func (w *x11Window) center() {
