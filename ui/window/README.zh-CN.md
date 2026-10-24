@@ -21,6 +21,7 @@
 | `motion_*` | 系统偏好：减少动态效果（macOS）、滚动条自动隐藏（macOS、Windows），写进 `theme` |
 | `motion_darwin.go`（macOS）、`scroll_wayland*` | 滚动的设备和手势阶段（触控板抬手、滚轮），Gio 不提供，交给 `core.ReportScrollGesture` |
 | `automation.go` | 自动化模式：内存窗口、语义快照、模拟点击输入滚动 |
+| `reload*.go`、`development.go` | `keel run` 重载：保存并恢复窗口尺寸、macOS 位置、`KeepState` 和内容的 `core.ReloadState` |
 | `headless.go` | `OpenHeadless`：供应用测试的内存窗口；`windowtest` 把它包装成 `testing.TB` 辅助 |
 | `automation_server.go` | 自动化协议：`KEEL_AUTOMATION` socket 上的 JSON 请求 |
 | `testdata/raise` | 真实窗口死锁回归测试 |

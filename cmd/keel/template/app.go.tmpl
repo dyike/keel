@@ -1,4 +1,4 @@
-package main
+{{define "count"}}{{if .Current}}a.state.Count{{else}}a.count{{end}}{{end}}package main
 
 import (
 	"strconv"
@@ -22,8 +22,15 @@ import (
 //
 // See https://github.com/dyike/keel/blob/main/docs/architecture.md#threading
 type app struct {
+{{- if .Current}}
+	name *kit.InputView
+	// state is what main.go keeps across keel run reloads: exported fields,
+	// encoded with encoding/json.
+	state struct{ Count int }
+{{- else}}
 	name  *kit.InputView
 	count int
+{{- end}}
 }
 {{if eq .Lang "zh-CN"}}
 func newApp() *app {
@@ -40,7 +47,7 @@ func (a *app) Render(cx *el.Context) el.Element {
 		el.Text("编辑 app.go 并保存，keel run 会自动重新编译并重启应用。").TextColor(theme.Muted),
 		a.name.Render(cx),
 		el.Text(greeting),
-		kit.Button("点了 "+strconv.Itoa(a.count)+" 次", func() { a.count++ }).Render(cx),
+		kit.Button("点了 "+strconv.Itoa({{template "count" .}})+" 次", func() { {{template "count" .}}++ }).Render(cx),
 	)
 }
 {{- else}}
@@ -58,7 +65,7 @@ func (a *app) Render(cx *el.Context) el.Element {
 		el.Text("Edit app.go and save: keel run rebuilds and restarts the app.").TextColor(theme.Muted),
 		a.name.Render(cx),
 		el.Text(greeting),
-		kit.Button("Clicked "+strconv.Itoa(a.count)+" times", func() { a.count++ }).Render(cx),
+		kit.Button("Clicked "+strconv.Itoa({{template "count" .}})+" times", func() { {{template "count" .}}++ }).Render(cx),
 	)
 }
 {{- end}}

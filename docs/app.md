@@ -29,6 +29,7 @@ window.Main()
 | `Overlay` | A layer covering the entire window, used for custom Gio content that does not use el; `cx.Overlay` is used for dialog boxes and menus of el views. It should take up no space when there is nothing to display |
 | `Shortcuts` | The shortcut key that takes effect when the window gets focus, see below for the writing method |
 | `OnClose` | Called after the window is destroyed, running in the lock, you can directly modify the component |
+| `KeepState` | A pointer to application state that survives `keel run` reloads: exported fields, JSON-encoded before the reload and decoded by `Open` after it, all or nothing. Unused outside `keel run`; see [Getting started · Run](getting-started.md#run) |
 | `Frameless` | Hide the system title bar. The content starts from the top edge of the window. The application draws the title bar by itself, usually using [kit.TitleBar](kit/title_bar.md). When not set, if the synthesizer on Linux does not draw a title bar (WSLg, GNOME Wayland), keel will draw a title bar following the theme and font |
 | `TopMost` | Keep a launcher or utility above ordinary windows. This does not activate the app. Call `Raise()` when showing a resident app in response to a hotkey. |
 

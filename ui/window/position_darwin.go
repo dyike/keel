@@ -16,11 +16,24 @@ func centerNewWindow(w *Window) {
 	// Gio keeps the view valid until the next view event; retain it across
 	// the asynchronous dispatch.
 	view := appkit.Retain(appkit.ID(w.nativeView))
+	restore := w.reloadOrigin
 	appkit.MainAsync(func() {
 		defer appkit.Release(view)
 		window := appkit.Send(view, "window")
 		if window == 0 {
 			return
+		}
+		if restore != nil {
+			// Where it was before a keel run reload, if a screen still shows it.
+			origin := appkit.Point{X: restore[0], Y: restore[1]}
+			screens := appkit.Send(appkit.Class("NSScreen"), "screens")
+			for i := uintptr(0); i < uintptr(appkit.Send(screens, "count")); i++ {
+				s := appkit.Send(screens, "objectAtIndex:", i)
+				if appkit.MsgRect(s, appkit.Sel("visibleFrame")).Contains(origin) {
+					appkit.MsgSetPoint(window, appkit.Sel("setFrameOrigin:"), origin)
+					return
+				}
+			}
 		}
 		screen := appkit.Send(window, "screen")
 		if screen == 0 {

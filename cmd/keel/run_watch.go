@@ -187,6 +187,9 @@ func (c *cli) watchProject(ctx context.Context, dir string, args []string) error
 		return err
 	}
 	defer os.RemoveAll(tmp)
+	ctl := newReloadControl(tmp)
+	defer ctl.close()
+	reloadEnv := ctl.env(filepath.Join(tmp, "state.json"))
 	var outputMu sync.Mutex
 	runner := *c
 	runner.out = runOutput{&outputMu, c.out}
@@ -275,7 +278,7 @@ func (c *cli) watchProject(ctx context.Context, dir string, args []string) error
 						return nil
 					}
 				default:
-					stopRunProcess(app, appDone)
+					reloadRunProcess(app, appDone, ctl)
 					app = nil
 					appDone = nil
 				}
@@ -289,7 +292,7 @@ func (c *cli) watchProject(ctx context.Context, dir string, args []string) error
 			app.Stdin = os.Stdin
 			app.Stdout = runner.out
 			app.Stderr = runner.errw
-			app.Env = append(os.Environ(), "KEEL_RUN_ICON="+result.icon, "KEEL_RUN_WATCH=1")
+			app.Env = append(append(os.Environ(), "KEEL_RUN_ICON="+result.icon, "KEEL_RUN_WATCH=1"), reloadEnv...)
 			configureRunProcess(app)
 			if err := app.Start(); err != nil {
 				app = nil

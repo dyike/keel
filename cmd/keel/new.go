@@ -118,10 +118,10 @@ func (c *cli) newProject(args []string) error {
 	}
 	defer os.RemoveAll(stage)
 	dir = stage
-	// windowtest arrived after v0.3.8: the example test needs the CLI's own
-	// release, or the local checkout.
+	// Current is a Keel with windowtest and KeepState: the CLI's own release
+	// or the local checkout. Older releases get the earlier template.
 	writeTest := *replace != "" || *keel == keelVersion()
-	data := map[string]any{"Name": cfg.Name, "Module": *module, "Lang": *lang, "Test": writeTest, "CI": *ci == "github"}
+	data := map[string]any{"Name": cfg.Name, "Module": *module, "Lang": *lang, "Test": writeTest, "Current": writeTest, "CI": *ci == "github"}
 	for out, tmpl := range map[string]string{
 		"main.go": "main.go.tmpl", "app.go": "app.go.tmpl",
 		".gitignore": "gitignore.tmpl", "README.md": "README.md.tmpl",

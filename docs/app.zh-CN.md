@@ -29,6 +29,7 @@ window.Main()
 | `Overlay` | 盖在整个窗口上的一层，给不用 el 的自定义 Gio 内容用；el 视图的对话框、菜单用 `cx.Overlay`。没东西显示时应该不占空间 |
 | `Shortcuts` | 窗口获得焦点时生效的快捷键，写法见下文 |
 | `OnClose` | 窗口销毁后调用，在锁内运行，可以直接改组件 |
+| `KeepState` | 指向应用状态的指针，在 `keel run` 重载后保留：导出字段在重载前编码为 JSON，由 `Open` 在重载后整体解码。`keel run` 之外不使用；见[快速开始 · 运行](getting-started.zh-CN.md#运行) |
 | `Frameless` | 隐藏系统标题栏，内容从窗口最上沿开始，由应用自己画标题栏，通常用 [kit.TitleBar](kit/title_bar.zh-CN.md)。不设时，Linux 上合成器不画标题栏（WSLg、GNOME Wayland）的情况下由 keel 画一个跟随主题和字体的标题栏 |
 | `TopMost` | 让启动器或工具窗口位于普通窗口上方。置顶不会激活应用；响应全局快捷键显示常驻窗口时，还需调用 `Raise()`。 |
 

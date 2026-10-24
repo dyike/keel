@@ -11,6 +11,7 @@ GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回�
 | --- | --- |
 | `element.go` | `Element`、`Node`、`Styled[T]` 的全部链式方法，`Div`、`Text`、`Widget`、`Map`；`Decorate` 包裹绘制，`VisitWidgets` 读取布局后的部件坐标 |
 | `arena.go` | 每个 root 的节点块、可复用节点缓冲、独立指针句柄和构建代号校验；Cache 和独立元素使用持久存储 |
+| `reload.go` | `core.ReloadState`：在 `keel run` 重载间保留滚动位置和输入框文字，按树中位置、角色和名称匹配；从不保存密码 |
 | `time.go` | 帧时间、声明式定时器、显式 key 与减少动画 |
 | `overlay.go` | 声明式浮层、锚定定位、模态输入隔离、焦点约束与悬停查询 |
 | `mount.go` | `cx.Mount`：把视图挂到窗口根部（kit 的 `Dialog.Show`、`Sheet.Show`、`WindowNotifier` 用它） |

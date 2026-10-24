@@ -174,6 +174,9 @@ type RootWidget struct {
 	arena          nodeArena
 	focusID        string
 	focusPending   bool
+	// reload is state saved before a keel run reload, applied to the first
+	// frame; see reload.go.
+	reload map[string]reloadEntry
 
 	pointerDispatch  bool
 	focusFromPointer bool
@@ -270,6 +273,15 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	tree := r.renderTree(&cx)
 	cx.prepareActionBindings(tree)
 	st.assignKeys(tree, 1)
+	if r.reload != nil && live {
+		r.applyReload(tree, "")
+		r.reload = nil
+		// Inputs read their bound text while rendering: render once more.
+		r.beginTimers()
+		tree = r.renderTree(&cx)
+		cx.prepareActionBindings(tree)
+		st.assignKeys(tree, 1)
+	}
 	r.prepareKeys(tree, nil, false)
 	r.mainTree = tree
 	r.prepareLayers(&cx)

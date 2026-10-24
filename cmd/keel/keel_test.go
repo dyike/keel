@@ -306,9 +306,20 @@ func TestNewExampleTestAndCI(t *testing.T) {
 		t.Fatalf("go.mod lacks the keel tool:\n%s", mod)
 	}
 
-	// An older release has no windowtest: no example test that cannot compile.
-	if dir := gen("-keel", "v0.3.8"); exists(filepath.Join(dir, "app_test.go")) {
+	// An older release has neither windowtest nor KeepState: no example test
+	// and no KeepState, either of which would not compile.
+	dir = gen("-keel", "v0.3.8")
+	if exists(filepath.Join(dir, "app_test.go")) {
 		t.Fatal("app_test.go written for a release without windowtest")
+	}
+	for _, f := range []string{"main.go", "app.go"} {
+		src, _ := os.ReadFile(filepath.Join(dir, f))
+		if bytes.Contains(src, []byte("KeepState")) || bytes.Contains(src, []byte("a.state")) {
+			t.Fatalf("%s uses KeepState with v0.3.8", f)
+		}
+		if formatted, err := format.Source(src); err != nil || !bytes.Equal(formatted, src) {
+			t.Fatalf("%s for v0.3.8 is not gofmt-clean", f)
+		}
 	}
 
 	c, _ := newCLI(t.TempDir())

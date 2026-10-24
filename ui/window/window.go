@@ -73,6 +73,12 @@ type Options struct {
 	// Glass enables a native macOS glass backdrop. Leave the desired glass
 	// areas transparent in Content. Other platforms keep the theme background.
 	Glass *GlassOptions
+	// KeepState points to application state that survives keel run's reloads,
+	// such as the current page or a counter: it is encoded with encoding/json
+	// before a reload and decoded into the same pointer by Open after it, so
+	// only exported fields count. Without keel run it is unused. Window size,
+	// scroll offsets and input text are kept without it.
+	KeepState any
 }
 
 type Window struct {
@@ -89,7 +95,9 @@ type Window struct {
 	menuView                  applicationMenuView
 	menuEdits                 []core.EditAction
 	root                      root
-	closed                    bool // guarded by the frame lock
+	closed                    bool        // guarded by the frame lock
+	reloadID                  string      // names the window's state across keel run reloads
+	reloadOrigin              *[2]float64 // macOS frame origin to restore instead of centering
 	focused                   bool
 	nativeTrafficLightsDirty  bool
 	nativeView, lastTitleView uintptr
@@ -109,6 +117,9 @@ type Window struct {
 // It panics on an invalid shortcut, which is a programming error.
 func Open(o Options) *Window {
 	w := newWindow(o)
+	if os.Getenv("KEEL_RUN_WATCH") == "1" {
+		restoreWindow(w)
+	}
 	registerDevelopmentWindow(w)
 	registerApplicationWindow(w)
 	loadRunIcon()
