@@ -57,14 +57,10 @@ func (v *ProgressCircleView) Color(c color.NRGBA) *ProgressCircleView { v.color 
 func (v *ProgressCircleView) Child(child el.View) *ProgressCircleView { v.child = child; return v }
 func (v *ProgressCircleView) Render(cx *el.Context) el.Element {
 	value := strconv.Itoa(int(v.value*100+.5)) + "%"
-	fraction, phase := v.value, float32(0)
-	if v.indeterminate {
+	fraction, indeterminate := v.value, v.indeterminate
+	if indeterminate {
 		v.motion.initialized = false
 		value, fraction = "indeterminate", .25
-		if !el.ReducedMotion() {
-			phase = float32(cx.Now().UnixNano()%int64(time.Second)) / float32(time.Second)
-			cx.AnimatingAmbient()
-		}
 	}
 	if !v.indeterminate {
 		fraction = v.motion.sample(cx, v.value, ProgressDuration)
@@ -74,6 +70,12 @@ func (v *ProgressCircleView) Render(cx *el.Context) el.Element {
 		foreground = *v.color
 	}
 	ring := el.Widget(core.Func(func(gtx core.C) core.D {
+		// The spinning phase is read while painting, so frames that only
+		// turn the ring repaint without rendering (el.AmbientPhase).
+		phase := float32(0)
+		if indeterminate {
+			phase = el.AmbientPhase(gtx, time.Second)
+		}
 		size := gtx.Constraints.Min
 		diameter := min(size.X, size.Y)
 		if diameter <= 0 {

@@ -237,6 +237,8 @@ el.Div().ID("save").Focusable(true).
 
 `cx.Now()` 返回本帧时间；动画只从它计算相位。`cx.Animating()` 请求下一帧，不创建 goroutine。循环指示器（Spinner、不确定进度、扫光、骨架屏脉冲）改用 `cx.AnimatingAmbient()`：它请求墙钟上下一个 `el.AmbientFrameInterval`（1/30 秒）刻度的帧，所有可见指示器共用同一帧；窗口里只有指示器在动时按 30 Hz 重绘，而不是显示器刷新率。过渡动画、滚动和输入仍然每个显示帧都绘制。`el.ReducedMotion()` 查询应用偏好；`theme.SetReducedMotion(true)` 在帧锁内切换。当前没有原生系统偏好桥接，默认 false。
 
+只改变绘制方式的指示器（例如环形的旋转）可以在绘制时读取相位：在 `el.Widget` 内调用 `el.AmbientPhase(gtx, period)`，返回本帧时间的相位并请求下一个环境刻度。这样两次环境帧之间元素树保持不变，窗口的根元素直接用上一帧的元素树和布局重绘，不再调用 `Render`（纯绘制帧；这类帧在 `el` 中的工作量约减少三分之一）。以下情况仍完整渲染：本帧或上一帧有输入；`core.Update` 或任意回调之后；有等待中的计时器；窗口尺寸、缩放或状态变化；上一次 `Render` 调用了 `cx.Now()`、`cx.Animating()` 或 `cx.AnimatingAmbient()`。只有窗口自己的根元素这样重绘，嵌入的根元素和测试总是完整渲染。因此视图同样只能通过回调和 `core.Update` 改变。`kit.Spinner` 和不确定状态的 `kit.ProgressCircle` 在绘制时动画。
+
 `cx.After(key, duration, callback)` 声明一次性定时器，key 必须可比较且在当前 root 内唯一。存活期间每次 Render 声明同一个 key；某帧没有声明即取消，与调用位置和声明顺序无关。duration 变化时重新计时。触发后持续声明不会重复执行，省略一帧再声明才会重新启动。回调在帧锁内、当前树绘制完成后通过 core.Call 执行，并通知所有窗口重绘。
 
 ```go

@@ -80,3 +80,11 @@ func (s *translatedSection) FillsWindow() bool {
 	f, ok := s.current().(interface{ FillsWindow() bool })
 	return ok && f.FillsWindow()
 }
+
+// RetainFrames passes the window's permission to repaint frames on to the
+// section's root (see el.RootWidget.RetainFrames).
+func (s *translatedSection) RetainFrames() {
+	if r, ok := s.current().(interface{ RetainFrames() }); ok {
+		r.RetainFrames()
+	}
+}

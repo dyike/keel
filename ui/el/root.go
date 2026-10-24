@@ -2,6 +2,7 @@ package el
 
 import (
 	"image"
+	"time"
 
 	"github.com/dyike/keel/ui/locale"
 
@@ -175,6 +176,17 @@ type RootWidget struct {
 	focusID        string
 	focusPending   bool
 
+	// retained is the last full frame, for paint-only frames (repaint.go);
+	// renderTime is set while rendering when the frame depends on time.
+	retained   retainedFrame
+	renderTime bool
+	// repaints counts paint-only frames, for tests.
+	repaints int
+	// retainFrames enables paint-only frames; ambientDue is the next tick
+	// AmbientPhase requested while painting.
+	retainFrames bool
+	ambientDue   time.Time
+
 	pointerDispatch  bool
 	focusFromPointer bool
 	// keyboardModality is whether the last press came from the keyboard. Focus
@@ -247,6 +259,11 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	priorOffset, priorParents := e.paintOffset, e.scrollParents
 	e.paintOffset, e.scrollParents = origin, parents
 	defer func() { e.paintOffset, e.scrollParents = priorOffset, priorParents }()
+	if r.canRepaint(gtx, visible, origin, parents) {
+		return r.repaint(gtx, visible)
+	}
+	quiet := gtx.Enabled() && !gtx.Source.Pending()
+	r.renderTime = false
 	// A missing input source can mean measurement or a disabled parent.
 	// Both render real state without advancing its lifecycle.
 	live := gtx.Enabled()
@@ -343,6 +360,9 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	if e.blockInput {
 		core.Role("el-inert").Add(gtx.Ops)
 	}
+	priorPainting := paintingRoot
+	paintingRoot = r
+	defer func() { paintingRoot = priorPainting }()
 	e.paint(tree)
 	e.textAtlasActive = false
 	area.Pop()
@@ -354,6 +374,7 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 		st.sweep()
 		r.cache.sweep(st.frame)
 	}
+	r.retain(gtx, tree, &cx, visible, origin, parents, quiet)
 	if r.fill {
 		return core.D{Size: max}
 	}

@@ -78,12 +78,10 @@ func spinnerGraphic(cx *el.Context, size float32, c color.NRGBA, icon *giowidget
 	if period <= 0 {
 		period = time.Second
 	}
-	phase := float32(0)
-	if !el.ReducedMotion() {
-		phase = float32(cx.Now().UnixNano()%int64(period)) / float32(period)
-		cx.AnimatingAmbient()
-	}
+	// The phase is read while painting, so frames that only turn the ring
+	// repaint without rendering the view again (el.AmbientPhase).
 	return el.Widget(core.Func(func(gtx core.C) core.D {
+		phase := el.AmbientPhase(gtx, period)
 		size := gtx.Constraints.Min
 		defer op.Affine(f32.Affine2D{}.Rotate(f32.Pt(float32(size.X)/2, float32(size.Y)/2), phase*2*math.Pi)).Push(gtx.Ops).Pop()
 		if icon != nil {

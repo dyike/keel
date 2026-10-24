@@ -4,7 +4,7 @@
 
 `kit.Spinner().Size(20).Label("加载中")` 显示不确定进度。Label 为空时只画图形，默认名称为“加载中”。Agent 角色 progressbar，value 为 indeterminate。没有键盘操作。
 
-旋转相位来自 cx.Now，cx.AnimatingAmbient 请求所有循环指示器共用的下一个 30 Hz 刻度，不启动 goroutine。theme.SetReducedMotion(true) 后保持静态。固定图形尺寸，文本按父容器约束换行。
+旋转相位在绘制时通过 el.AmbientPhase 读取，并请求所有循环指示器共用的下一个 30 Hz 刻度，不启动 goroutine。窗口中只有 Spinner 在动时，这些帧直接重绘，不再渲染视图（纯绘制帧，见 el 指南）。theme.SetReducedMotion(true) 后保持静态。固定图形尺寸，文本按父容器约束换行。
 
 验证：`go run ./examples/components -section spinner -theme dark`，省略 theme 查看浅色；示例按钮切换减少动画。像素测试注入不同帧时间，检查旋转和静止。
 
