@@ -28,6 +28,8 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- `gio/app/internal/xkb`：按键分发逻辑和 keysym 表移入 `xkb.go`，操作 libxkbcommon 的不透明指针；`xkb_cgo.go` 保留 cgo 调用（并对照头文件检查 keysym 和枚举值），`xkb_purego_linux.go` 不使用 cgo 加载 `libxkbcommon.so.0`。测试在两种绑定下编译默认键位表，检查 KEY_A 的 keysym、文本、Shift 和按键重复。
+
 - `gio/internal/egl`：在 Linux 桌面上，`CGO_ENABLED=0` 或 `-tags purego` 时 `egl_purego_linux.go` 通过 purego 加载 libEGL，句柄与 `egl_windows.go` 一样使用 uintptr；`egl_unix.go` 仍是 cgo 默认实现，也是 Android 和 BSD 的唯一绑定。EGLBoolean 返回值只取低 32 位。`gio/gpu/headless` 新增在所有平台运行的像素测试（设置 `GIO_HEADLESS_REQUIRED=1` 时无法创建上下文即失败而非跳过）；`gio/gpu` 中使用 `AddTinted` 的测试移入 `!nometal` 的 darwin 文件，使该包的测试能在 Linux 和 `nometal` 下构建。
 
 - `gio/app`（macOS）：在 `CGO_ENABLED=0` 或 `-tags purego` 时，purego 绑定取代 `os_macos.m`、`os_darwin.m`、cgo 辅助函数以及 Metal 和 OpenGL 窗口上下文；cgo 文件仍是默认实现，iOS 不变。`os_macos.go` 保留 Gio 的窗口逻辑，改为操作普通句柄，由两种绑定共用；`displaylink_darwin.go` 存放 display link 状态机。`os_macos_purego.go` 以相同的名称、方法和关联对象注册 `GioView`、`GioWindowDelegate`、`GioAppDelegate` 和 `AppListener`（Keel 通过 `gioInputView` 和类名找到输入视图）；视图通过以视图指针为键的映射找到所属窗口。super 调用指定实现方法的类，而不是对象的动态类。`NSTextInputClient` 方法经 purego 回调以结构体形式收发 `NSRange`、`NSRect` 和 `NSPoint`；浮点和结构体消息使用只注册一次的包装函数（amd64 上用 `objc_msgSend_stret`）。`runOnMain` 通过一个 `dispatch_async_f` 回调投递令牌，display link 使用一个 `CVDisplayLink` 回调。`os_macos_cgo.go` 对照 SDK 检查 AppKit 常量。新测试在两种绑定下经 `objc_msgSend` 驱动标记文本、提交、取消、代理对范围、子串和光标矩形；去掉协议或改动返回范围时测试失败。nometal 测试打开并缩放一个 OpenGL 窗口。

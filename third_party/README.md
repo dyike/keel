@@ -44,6 +44,13 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app/internal/xkb`: the key dispatch logic and keysym table move to
+  `xkb.go`, over libxkbcommon's opaque pointers; `xkb_cgo.go` keeps the cgo
+  calls (and checks the keysyms and enums against the headers) and
+  `xkb_purego_linux.go` loads `libxkbcommon.so.0` without cgo. A test
+  compiles the default keymap and checks the keysym, text, Shift and key
+  repeat of KEY_A under either binding.
+
 - `gio/internal/egl`: `egl_purego_linux.go` loads libEGL with purego on
   Linux desktop when `CGO_ENABLED=0` or `-tags purego`, with uintptr
   handles as `egl_windows.go` uses; `egl_unix.go` stays the cgo default and
