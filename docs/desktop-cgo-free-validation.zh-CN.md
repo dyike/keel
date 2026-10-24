@@ -158,6 +158,12 @@ Linux 上 Wayland 和 Vulkan 仍只能用 cgo；无 cgo 构建使用 X11 和 EGL
 
 未验证：真实合成器和桌面、配合输入法的 text-input、应用间剪贴板、触摸、HiDPI 输出缩放和客户端装饰。Linux 上 Vulkan 仍只能用 cgo。
 
+## L2 进展：Linux 上的 Vulkan（2026-10-24）
+
+`gio/internal/vk` 在 Linux 上新增 purego 绑定。其结构体和常量由 `cgo -godefs` 从 Vulkan-Headers v1.3.275 生成，amd64 与 arm64 完全一致，字段名按头文件恢复。cgo 任务对照已安装的头文件检查所有字段偏移、结构体大小和 157 个常量；首次运行发现了一个被 godefs 改名的字段和一个溢出检查的常量，均已在本记录前修复。禁用 EGL 上下文后，无头像素测试在两种绑定、amd64 与 arm64 上都经 lavapipe 的 Vulkan 渲染并通过。
+
+Gio 在窗口表面上会跳过 lavapipe 这类 CPU 设备，因此 Vulkan 窗口（交换链、呈现）未经验证，需要真实 GPU。至此 Linux 桌面路径上不再有需要 cgo 的包。
+
 ## 保留的 ABI 工作与待验收项
 
 D0 编译门禁和 M0 无 CGO Objective-C 探针保留在根模块中。
