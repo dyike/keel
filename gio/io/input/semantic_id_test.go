@@ -13,44 +13,62 @@ import (
 	"github.com/dyike/keel/gio/op/clip"
 )
 
-// A node keeps its semantic ID when it gains an input handler (Keel patch),
-// and nodes that say the same thing keep distinct IDs in order.
-func TestSemanticIDIgnoresHandler(t *testing.T) {
+// semanticNode is one area of a test frame.
+type semanticNode struct {
+	label    string
+	tag      event.Tag // nil: no handler
+	selected bool
+}
+
+func semanticFrame(r *Router, nodes []semanticNode, ask bool) []SemanticID {
+	for _, n := range nodes {
+		if n.tag != nil {
+			r.Event(pointer.Filter{Target: n.tag, Kinds: pointer.Press})
+		}
+	}
+	var ops op.Ops
+	for i, n := range nodes {
+		area := clip.Rect(image.Rect(0, i*10, 100, i*10+10)).Push(&ops)
+		if n.tag != nil {
+			event.Op(&ops, n.tag)
+		}
+		semantic.CheckBox.Add(&ops)
+		semantic.LabelOp(n.label).Add(&ops)
+		semantic.SelectedOp(n.selected).Add(&ops)
+		area.Pop()
+	}
+	r.Frame(&ops)
+	if !ask {
+		return nil
+	}
+	var ids []SemanticID
+	for _, n := range r.AppendSemantics(nil) {
+		if n.Desc.Label != "" {
+			ids = append(ids, n.ID)
+		}
+	}
+	return ids
+}
+
+// Semantic IDs stay with their nodes (Keel patch): through a change of
+// label or state, a frame nobody asked about, and a node gaining a handler;
+// nodes that say the same thing keep distinct IDs.
+func TestSemanticIDsStayWithNodes(t *testing.T) {
 	var r Router
-	tag := new(int)
-	frame := func(handler bool) map[string][]SemanticID {
-		if handler {
-			r.Event(pointer.Filter{Target: tag, Kinds: pointer.Press})
-		}
-		var ops op.Ops
-		for i, label := range []string{"Row", "Row", "Other"} {
-			area := clip.Rect(image.Rect(0, i*10, 100, i*10+10)).Push(&ops)
-			if handler && i == 0 {
-				event.Op(&ops, tag)
-			}
-			semantic.Button.Add(&ops)
-			semantic.LabelOp(label).Add(&ops)
-			area.Pop()
-		}
-		r.Frame(&ops)
-		ids := map[string][]SemanticID{}
-		for _, n := range r.AppendSemantics(nil) {
-			if n.Desc.Label != "" {
-				ids[n.Desc.Label] = append(ids[n.Desc.Label], n.ID)
-			}
-		}
-		return ids
+	box, save := new(int), new(int)
+	nodes := []semanticNode{{label: "Paid", tag: box}, {label: "Save", tag: save}, {label: "Row"}, {label: "Row"}}
+	before := semanticFrame(&r, nodes, true)
+	if len(before) != 4 || before[2] == before[3] {
+		t.Fatalf("ids %v", before)
 	}
-	before := frame(false)
-	after := frame(true)
-	if len(before["Row"]) != 2 || before["Row"][0] == before["Row"][1] {
-		t.Fatalf("identical rows share an ID: %v", before)
-	}
-	for _, label := range []string{"Row", "Other"} {
-		for i := range before[label] {
-			if before[label][i] != after[label][i] {
-				t.Errorf("%s %d: ID %d became %d when the node gained a handler", label, i, before[label][i], after[label][i])
-			}
+	nodes[0].selected = true        // a checkbox toggles
+	nodes[1].label = "Saved 1"      // a label changes
+	semanticFrame(&r, nodes, false) // nobody asks about this frame
+	nodes[2].tag = new(int)         // a row gains a handler
+	after := semanticFrame(&r, nodes, true)
+	for i := range before {
+		if before[i] != after[i] {
+			t.Errorf("node %d (%s): ID %d became %d", i, nodes[i].label, before[i], after[i])
 		}
 	}
 }

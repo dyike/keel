@@ -28,6 +28,10 @@ type pointerQueue struct {
 		// previously assigned. It is used to maintain stable IDs across
 		// frames.
 		contentIDs map[semanticContent][]semanticID
+		// Keel patch: tagIDs maps a handler tag to the ID its node had, and
+		// taken holds the IDs assigned this frame.
+		tagIDs map[event.Tag]semanticID
+		taken  map[SemanticID]bool
 	}
 }
 
@@ -527,28 +531,51 @@ func (q *pointerQueue) appendSemanticChildren(nodes []SemanticNode, areaIdx int)
 	return q.appendSemanticChildren(nodes, a.sibling)
 }
 
+// semanticIDFor returns a stable ID for a node. Keel patch: a node with a
+// handler keeps the ID its handler's tag had, so it keeps it when its label
+// or state changes (a checkbox toggles, "Save" becomes "Saved"). Otherwise
+// the ID follows what the node says without its handler (its tag and the
+// gestures that handler accepts), so a node keeps its ID when it gains or
+// loses handlers, such as a row scrolled into view that was only described
+// while out of view. Nodes that say the same thing get IDs in order.
 func (q *pointerQueue) semanticIDFor(content semanticContent) SemanticID {
-	// Keel patch: an ID follows what the node says, not which handler it
-	// has (its tag and the gestures that handler accepts), so a node keeps
-	// its ID when it gains or loses input handlers, such as a row scrolled
-	// into view that was only described while out of view. Nodes that say
-	// the same thing get IDs in order, as before.
-	content.tag, content.gestures = nil, 0
-	ids := q.semantic.contentIDs[content]
-	for i, id := range ids {
-		if !id.used {
-			ids[i].used = true
-			return id.id
+	s := &q.semantic
+	if s.contentIDs == nil {
+		s.contentIDs = make(map[semanticContent][]semanticID)
+		s.tagIDs = make(map[event.Tag]semanticID)
+		s.taken = make(map[SemanticID]bool)
+	}
+	tag := content.tag
+	key := content
+	key.tag, key.gestures = nil, 0
+	claim := func(id SemanticID) SemanticID {
+		s.taken[id] = true
+		if tag != nil {
+			s.tagIDs[tag] = semanticID{id: id, used: true}
+		}
+		ids := s.contentIDs[key]
+		for i := range ids {
+			if ids[i].id == id {
+				ids[i].used = true
+				return id
+			}
+		}
+		s.contentIDs[key] = append(ids, semanticID{id: id, used: true})
+		return id
+	}
+	if tag != nil {
+		if prior, ok := s.tagIDs[tag]; ok && !prior.used && !s.taken[prior.id] {
+			return claim(prior.id)
+		}
+	}
+	for _, id := range s.contentIDs[key] {
+		if !id.used && !s.taken[id.id] {
+			return claim(id.id)
 		}
 	}
 	// No prior assigned ID; allocate a new one.
-	q.semantic.lastID++
-	id := semanticID{id: q.semantic.lastID, used: true}
-	if q.semantic.contentIDs == nil {
-		q.semantic.contentIDs = make(map[semanticContent][]semanticID)
-	}
-	q.semantic.contentIDs[content] = append(q.semantic.contentIDs[content], id)
-	return id.id
+	s.lastID++
+	return claim(s.lastID)
 }
 
 func (q *pointerQueue) ActionAt(pos f32.Point) (action system.Action, hasAction bool) {
@@ -638,6 +665,11 @@ func (q *pointerQueue) hit(areaIdx int, p f32.Point) (bool, pointer.Cursor) {
 func (q *pointerQueue) reset() {
 	q.hitTree = q.hitTree[:0]
 	q.areas = q.areas[:0]
+	// Keel patch: forget IDs only after a frame that assigned them; a frame
+	// nobody asked about leaves them for the next one.
+	if !q.semantic.idsAssigned {
+		return
+	}
 	q.semantic.idsAssigned = false
 	for k, ids := range q.semantic.contentIDs {
 		for i := len(ids) - 1; i >= 0; i-- {
@@ -653,6 +685,14 @@ func (q *pointerQueue) reset() {
 			delete(q.semantic.contentIDs, k)
 		}
 	}
+	for tag, id := range q.semantic.tagIDs {
+		if !id.used {
+			delete(q.semantic.tagIDs, tag)
+		} else {
+			q.semantic.tagIDs[tag] = semanticID{id: id.id}
+		}
+	}
+	clear(q.semantic.taken)
 }
 
 func (q *pointerQueue) Frame(handlers map[event.Tag]*handler, state pointerState) (pointerState, []taggedEvent) {

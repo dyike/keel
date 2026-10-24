@@ -44,13 +44,17 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
-- `gio/io/input`: a semantic node's ID is matched by what the node says
-  (class, label, description, states) without its input handler (tag and
-  gestures). Keel describes rows scrolled out of view for accessibility
-  without handlers; when such a row scrolls into view and gains them, it
-  now keeps its ID, so a screen reader keeps its place. Nodes that say the
-  same thing still get distinct IDs in order. A test gives a node a
-  handler between frames and checks every ID; it fails without the patch.
+- `gio/io/input`: semantic IDs stay with their nodes. A node with an input
+  handler keeps the ID its handler's tag had, through changes of label or
+  state (a checkbox toggles, "Save" becomes "Saved"). Other nodes are
+  matched by what they say (class, label, description, states) without
+  the handler, so a row Keel describes out of view without handlers keeps
+  its ID when it scrolls into view and gains them. Nodes that say the same
+  thing get distinct IDs in order, and no ID is given twice in a frame.
+  IDs are forgotten only after a frame that assigned them: upstream drops
+  them all when a frame passes without a call to `AppendSemantics`.
+  Screen readers keep their place through all of these. A test covers
+  each case and fails without the patch.
 
 - `gio/app`: `Window.AppendSemantics` returns the semantic tree of the
   latest frame and `Window.ProcessInput` delivers an event as if the
