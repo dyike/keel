@@ -159,6 +159,12 @@ func TestNewProjectCompiles(t *testing.T) {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated project does not build: %v\n%s", err, b)
 	}
+	// The generated example test drives the app in memory.
+	test := exec.Command("go", "test", ".")
+	test.Dir, test.Env = cmd.Dir, cmd.Env
+	if b, err := test.CombinedOutput(); err != nil {
+		t.Fatalf("generated app_test.go fails: %v\n%s", err, b)
+	}
 	// Gio and go-text come from the checkout's Keel module; no upstream
 	// core module is required or replaced.
 	list := exec.Command("go", "list", "-deps", "-f", "{{.ImportPath}} {{with .Module}}{{.Path}}{{end}}", ".")
@@ -266,5 +272,47 @@ func TestDropLines(t *testing.T) {
 	d.Flush()
 	if b.String() != "warning: keep\r\ntail" {
 		t.Fatalf("%q", b.String())
+	}
+}
+
+// keel new writes the example test only when the required Keel has
+// windowtest, and the CI workflow only on request.
+func TestNewExampleTestAndCI(t *testing.T) {
+	gen := func(args ...string) string {
+		t.Helper()
+		root := t.TempDir()
+		c, out := newCLI(root)
+		if code := c.main(append([]string{"new", "app", "-offline"}, args...)); code != 0 {
+			t.Fatal(out.String())
+		}
+		return filepath.Join(root, "app")
+	}
+	exists := func(p string) bool { _, err := os.Stat(p); return err == nil }
+
+	dir := gen("-replace", testCheckout(t))
+	mod, _ := os.ReadFile(filepath.Join(dir, "go.mod"))
+	if !exists(filepath.Join(dir, "app_test.go")) || exists(filepath.Join(dir, ".github")) || strings.Contains(string(mod), "\ntool ") {
+		t.Fatal("default project: want app_test.go, no workflow, no tool directive")
+	}
+
+	dir = gen("-replace", testCheckout(t), "-ci", "github")
+	want, _ := templates.ReadFile("template/github-build.yml")
+	got, err := os.ReadFile(filepath.Join(dir, ".github", "workflows", "build.yml"))
+	if err != nil || !bytes.Equal(got, want) || !bytes.Contains(got, []byte("${{ matrix.os }}")) {
+		t.Fatalf("workflow not copied verbatim: %v", err)
+	}
+	mod, _ = os.ReadFile(filepath.Join(dir, "go.mod"))
+	if !strings.Contains(string(mod), "\ntool github.com/dyike/keel/cmd/keel\n") {
+		t.Fatalf("go.mod lacks the keel tool:\n%s", mod)
+	}
+
+	// An older release has no windowtest: no example test that cannot compile.
+	if dir := gen("-keel", "v0.3.8"); exists(filepath.Join(dir, "app_test.go")) {
+		t.Fatal("app_test.go written for a release without windowtest")
+	}
+
+	c, _ := newCLI(t.TempDir())
+	if c.main([]string{"new", "app", "-offline", "-ci", "gitlab", "-replace", testCheckout(t)}) == 0 {
+		t.Fatal("an unknown -ci must be refused")
 	}
 }

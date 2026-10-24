@@ -39,6 +39,39 @@ amd64/arm64 without cgo and WebAssembly, and on macOS runs a packaged identity
 probe using the existing cgo backend. Dependencies use the configured Go proxy;
 the synthetic release is served locally, with a fresh module cache and no workspace.
 
+## Testing your app
+
+`ui/window/windowtest` draws a window in memory and drives it the way a person
+does: by the visible text and roles of its elements. No native window opens, so
+the tests run in CI and with `go test ./...`.
+
+```go
+func TestGreeting(t *testing.T) {
+    app := windowtest.New(t, window.Options{Content: el.Root(newApp())})
+    app.Click("Name")      // the text box labelled Name
+    app.Type("Ada")
+    app.Click("Say hello")
+    app.Want("Hello, Ada!")
+}
+```
+
+| Method | Effect |
+| --- | --- |
+| `windowtest.New(t, opts)` | Open the window in memory for this test; 800×600 dp unless `opts` sets a size |
+| `app.Click(text)` | Click the element whose name or value best matches `text`: exact over partial, controls over plain text |
+| `app.Type(s)`, `app.Press("enter")` | Type into the focused text box; send a key chord (`"tab"`, `"mod+a"`) |
+| `app.Scroll(text, dy)` | Turn the wheel over an element |
+| `app.Want(text)`, `app.WantNot(text)`, `app.Has(text)` | Check what is visible |
+| `app.Find(text)`, `app.Elements()` | Read roles, values, checked and selected states and bounds |
+| `app.Resize(w, h)`, `app.Screenshot()` | Change the size; render a PNG with the GPU |
+
+Every query and action renders first, running functions already passed to
+`core.Update`, so the result of a goroutine that finished is visible. A failed
+lookup lists the visible elements. Elements are what agents see through
+`keel-mcp`; see [Agent end-to-end test](automation.md) for roles. Reduced motion
+is on, so nothing is caught mid-animation. `window.OpenHeadless` offers the
+same actions with errors instead of test failures.
+
 ## Interactive testing
 
 Modules under `ui/` can reference it (it is in `internal` and cannot be referenced by external projects):

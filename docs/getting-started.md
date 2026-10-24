@@ -40,12 +40,13 @@ The scaffold generates:
 | --- | --- |
 | `main.go` | Sets the application icon, opens the window, and mounts the UI |
 | `app.go` | Defines the application view and its `Render` method |
+| `app_test.go` | Uses the app in memory with [`windowtest`](testing.md#testing-your-app); `go test ./...` runs it without a window |
 | `keel.json` | Application name, ID, version, and icon used by the packager |
 | `appicon.png` | A square 1024×1024 placeholder image without rounded corners; replace it with your own |
 | `go.mod`, `go.sum` | Requires the selected Keel release, which already contains Keel's Gio and go-text; generation runs `go mod tidy` |
 | `.gitignore`, `README.md`, `README.zh-CN.md` | Project instructions and exclusions for `dist/` and build intermediates |
 
-Options: `-name "My Notes"` sets the display name, which otherwise derives from the directory (`my-notes` → `My Notes`). `-appid com.yourname.notes` sets the application ID, defaulting to `com.example.<directory>`. `-module` sets the Go module path. `-lang zh-CN` writes the generated app's text in Chinese instead of English. The destination directory must be empty.
+Options: `-name "My Notes"` sets the display name, which otherwise derives from the directory (`my-notes` → `My Notes`). `-appid com.yourname.notes` sets the application ID, defaulting to `com.example.<directory>`. `-module` sets the Go module path. `-lang zh-CN` writes the generated app's text in Chinese instead of English. `-ci github` adds `.github/workflows/build.yml`, which vets, tests and packages the app on macOS, Windows and Linux, and a `tool` line in `go.mod` so `go tool keel` runs the matching keel command. The example test is written when the project requires the CLI's own Keel release or a local checkout. The destination directory must be empty.
 
 `-keel <version>` selects an exact Keel release (default: the CLI's own, or
 the latest). `-replace <Keel checkout>` instead requires Keel from a local

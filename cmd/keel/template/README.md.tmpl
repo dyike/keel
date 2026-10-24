@@ -18,6 +18,12 @@ keel run -target ios   # Install and launch on an iOS simulator
 ```
 
 - Edit the UI in `app.go`; window setup lives in `main.go`.
+{{- if .Test}}
+- `app_test.go` uses the app in memory, by visible text, without opening a window: `go test ./...`. See [Testing your app](https://github.com/dyike/keel/blob/main/docs/testing.md#testing-your-app).
+{{- end}}
+{{- if .CI}}
+- `.github/workflows/build.yml` tests and packages the app on macOS, Windows and Linux, uploading `dist/` from each. `go tool keel` runs the keel command at the version `go.mod` requires.
+{{- end}}
 - Configure the application name, ID, version, and icon in `keel.json`. Replace `appicon.png` with a square, full-bleed 1024×1024 image without rounded corners. Packaging applies the macOS, Windows, and Linux icon shapes. Use `keel icon` to preview the platform icons. iOS uses full-bleed artwork with system rounding and transparency flattened over white.
 
 - iOS defaults to a minimum version of 18.0, configurable through `ios.minimum_version`. Device packaging uses `keel build -target ios -device -sign "Apple Development: …" -provision app.mobileprovision`. See the [iOS guide](https://github.com/dyike/keel/blob/main/docs/ios.md).

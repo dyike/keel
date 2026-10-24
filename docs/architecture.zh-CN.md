@@ -18,6 +18,7 @@ github.com/dyike/keel
 │   ├── motion/           实验性的声明式动效基础能力
 │   ├── kit/              组件：Button、Input、Table、Dialog、Chart …（一个组件一个文件）
 │   ├── window/           窗口：Open、Main、快捷键、截图
+│   │   └── windowtest/   在内存中测试应用视图：按文字查找、点击、输入
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
 │   ├── highlight/        可选：代码高亮（chroma），引入后 kit 和 markdown 才着色
 │   ├── netimage/         可选：http(s) 图片加载（net/http），引入后图片才能用网络地址
@@ -84,6 +85,8 @@ native:
 
 `markdown` 用 `el` 排版，图片走 `internal/imageload`（加载、解码限制、占位）。`el` 的输入框用 `internal/editorstyle` 绘制光标和选区；这个内部包只负责 Gio 输入绘制和字形测量，不依赖其他 Keel 模块。
 
+`ui/window/windowtest` 位于 `window` 之上，只依赖它：它把 Agent 自动化同样使用的内存窗口 `window.OpenHeadless` 包装成应用的 Go 测试工具。
+
 `cmd/keel-mcp` 不引用任何 Keel 包，也不引用 Gio：它只通过 socket 上的 JSON 协议驱动 `ui/window` 的自动化模式，见 [Agent 端到端测试](automation.zh-CN.md#原理)。
 
 `cmd/gogio` 直接调用 `internal/gogio`，打包不含 `keel.json` 的应用，例如站点组件库。它与 `cmd/keel` 共用打包器，不导入 GUI 包。
@@ -108,6 +111,7 @@ Gio 和 go-text 是 Keel 根模块内的普通包，分别通过 `github.com/dyi
 | `ui/motion` | 实验性的帧时间动画值、过渡和视觉变换 | 组件、窗口管理、原生定时器 |
 | `ui/kit` | 基于 el 和 base 的组件 | Gio 输入和浮层基础设施、窗口管理 |
 | `ui/window` | 与窗口绑定的东西：生命周期、快捷键、根视图、截图 | 具体组件 |
+| `ui/window/windowtest` | 基于 `window.OpenHeadless` 的 `testing.TB` 辅助，供应用测试 | 应用无法通过可见元素完成的操作 |
 | `ui/el` | 元素、样式、布局引擎、元素状态、视图 | 业务组件（它们在应用里写成函数或视图） |
 | `ui/internal/loop` | 跨窗口共享的可变状态：帧锁、更新队列 | 任何 Gio 类型 |
 | `ui/internal/appkit` | macOS：通过 purego 驱动 Objective-C 运行时（消息、自动释放池、主队列、block、类） | Keel 模块、Gio、cgo |

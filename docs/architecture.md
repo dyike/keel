@@ -18,6 +18,7 @@ github.com/dyike/keel
 │   ├── motion/           Experimental declarative animation primitives
 │   ├── kit/              Components: Button, Input, Table, Dialog, Chart... (one component, one file)
 │   ├── window/           Window: Open, Main, shortcut keys, screenshot
+│   │   └── windowtest/   Tests of application views in memory: find by text, click, type
 │   ├── markdown/         Markdown Rendering, for AI streaming output
 │   ├── highlight/        Optional: code highlighting (chroma), kit and markdown are colored after introduction
 │   ├── netimage/         Optional: http(s) image loading (net/http), only after importing can the image use the network address
@@ -84,6 +85,8 @@ There are only three rules:
 
 `markdown` uses `el` for typesetting, and pictures use `internal/imageload` (loading, decoding restrictions, placeholders). The input box of `el` uses `internal/editorstyle` to draw the cursor and selection; this internal package is only responsible for Gio input drawing and glyph measurement and does not rely on other Keel modules.
 
+`ui/window/windowtest` sits above `window` and depends only on it: it wraps `window.OpenHeadless`, the in-memory window that agent automation also uses, for Go tests of applications.
+
 `cmd/keel-mcp` does not reference any Keel package, nor does it reference Gio: it only drives the automation mode of `ui/window` through the JSON protocol on the socket, see [Automation](automation.md#principle).
 
 `cmd/gogio` calls `internal/gogio` directly to package applications without `keel.json`, including the site's component gallery. It shares the packager with `cmd/keel` and imports no GUI packages.
@@ -108,6 +111,7 @@ These rules are enforced by the test of `internal/deps`: it writes the packages 
 | `ui/motion` | Experimental frame-time animation values, transitions and visual transforms | Components, window management, native timers |
 | `ui/kit` | el and base based components | Gio input and overlay infrastructure, window management |
 | `ui/window` | Things bound to the window: life cycle, shortcut keys, root view, screenshots | Specific components |
+| `ui/window/windowtest` | `testing.TB` helpers over `window.OpenHeadless` for application tests | Anything an application cannot do through visible elements |
 | `ui/el` | Elements, styles, layout engines, element states, views | Business components (they are written as functions or views in the application) |
 | `ui/internal/loop` | Mutable state shared across windows: frame locks, update queues | any Gio type |
 | `ui/internal/appkit` | macOS: the Objective-C runtime through purego (messages, pools, main queue, blocks, classes) | Keel modules, Gio, cgo |

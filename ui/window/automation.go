@@ -78,7 +78,11 @@ func SocketDir() string { return filepath.Join(os.TempDir(), "keel") }
 
 func automating() bool { return auto.addr != "" }
 
-func offScreen() bool { return automating() && os.Getenv("KEEL_HEADLESS") == "1" }
+// offScreen windows are drawn in memory only: for headless agents, and for
+// tests through OpenHeadless.
+func offScreen() bool {
+	return inMemory.Load() || automating() && os.Getenv("KEEL_HEADLESS") == "1"
+}
 
 type virtual struct {
 	id      string

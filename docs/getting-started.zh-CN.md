@@ -40,12 +40,13 @@ keel run
 | --- | --- |
 | `main.go` | 设置应用图标，打开窗口，挂上界面 |
 | `app.go` | 界面：一个视图结构体和它的 `Render` |
+| `app_test.go` | 用 [`windowtest`](testing.zh-CN.md#测试应用) 在内存中使用应用；`go test ./...` 不打开窗口即可运行 |
 | `keel.json` | 应用名、ID、版本、图标，打包时读取 |
 | `appicon.png` | 1024×1024 的占位原图（满版，不带圆角），替换成自己的 |
 | `go.mod`、`go.sum` | require 所选 Keel 发布，其中已包含 Keel 的 Gio 和 go-text；生成后执行 `go mod tidy` |
 | `.gitignore`、`README.md` | 忽略 `dist/` 和打包中间文件 |
 
-参数：`-name "我的笔记"` 设置显示名称（默认由目录名得到，`my-notes` → `My Notes`），`-appid com.yourname.notes` 设置应用 ID（默认 `com.example.<目录名>`），`-module` 设置 Go 模块路径，`-lang zh-CN` 让生成应用里的文字使用中文（默认英文）。目录必须为空。
+参数：`-name "我的笔记"` 设置显示名称（默认由目录名得到，`my-notes` → `My Notes`），`-appid com.yourname.notes` 设置应用 ID（默认 `com.example.<目录名>`），`-module` 设置 Go 模块路径，`-lang zh-CN` 让生成应用里的文字使用中文（默认英文）。`-ci github` 额外生成 `.github/workflows/build.yml`，在 macOS、Windows 和 Linux 上检查、测试并打包应用，并在 `go.mod` 中加入 `tool` 行，让 `go tool keel` 运行对应版本的 keel 命令。项目依赖 CLI 自身的 Keel 版本或本地检出目录时才会写入示例测试。目录必须为空。
 
 `-keel <版本>` 选择精确的 Keel 发布（默认为 CLI 自身版本，或最新版）。`-replace <Keel 检出目录>` 改为从本地检出目录引用 Keel，用于开发 Keel，路径可含空格。`-offline` 不拉依赖而写入文件：精确的 `-keel vX.Y.Z` 不需要缓存元数据，`latest` 等查询需要缓存解析结果。构建前执行 `go mod tidy`，届时依赖须已缓存或可下载。
 
