@@ -40,6 +40,7 @@ type Node struct {
 // called on godbus goroutines and must hand the work to the window.
 type Actions interface {
 	Press(key string) bool
+	Focus(key string) bool
 	ScrollTo(key string) bool
 	ScrollPage(key string, dx, dy int) bool
 }

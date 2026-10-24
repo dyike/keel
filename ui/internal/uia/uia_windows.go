@@ -41,6 +41,7 @@ type Node struct {
 // called on UI Automation's threads, never with the lock held.
 type Actions interface {
 	Press(key string) bool
+	Focus(key string) bool
 	ScrollTo(key string) bool
 }
 
@@ -531,7 +532,9 @@ func fragmentEmbeddedRoots(o *object, out uintptr) uintptr {
 	return sOK
 }
 
-func fragmentSetFocus(o *object) uintptr { return sOK }
+func fragmentSetFocus(o *object) uintptr {
+	return o.act(func(a Actions, key string) bool { return a.Focus(key) })
+}
 
 func fragmentRoot(o *object, out uintptr) uintptr {
 	put(out, 0)

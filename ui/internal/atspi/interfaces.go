@@ -244,7 +244,7 @@ func (c componentIface) GetMDIZOrder(msg dbus.Message) (int16, *dbus.Error) {
 }
 
 func (c componentIface) GrabFocus(msg dbus.Message) (bool, *dbus.Error) {
-	return false, c.b.with(msg, func(object) {})
+	return c.b.act(msg, func(a Actions, key string) bool { return a.Focus(key) })
 }
 
 func (c componentIface) GetAlpha(msg dbus.Message) (float64, *dbus.Error) {

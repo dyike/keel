@@ -90,6 +90,12 @@ func main() {
 		c.poll("the pressed button focused", func() (ref, bool) { return saved, c.state(saved, 12) })
 		c.call(item, "org.a11y.atspi.Component.ScrollTo", nil, uint32(0))
 		c.poll("Item 25 showing", func() (ref, bool) { return item, c.showing(item) })
+		// A client moves focus with GrabFocus.
+		c.call(item, "org.a11y.atspi.Component.GrabFocus", nil)
+		c.poll("Item 25 focused by GrabFocus", func() (ref, bool) { return item, c.state(item, 12) })
+		if c.state(saved, 12) {
+			fail("Saved 1 still focused after GrabFocus on Item 25")
+		}
 		c.call(item, "org.a11y.atspi.Action.DoAction", nil, int32(0))
 		deadline := time.Now().Add(10 * time.Second)
 		for {
@@ -103,7 +109,7 @@ func main() {
 			}
 			time.Sleep(50 * time.Millisecond)
 		}
-		fmt.Println("PASS: AT-SPI registration, roles, names, scroll pane, press, focus, scroll into view")
+		fmt.Println("PASS: AT-SPI registration, roles, names, scroll pane, press, focus (reported and grabbed), scroll into view")
 	}()
 	window.Main()
 }

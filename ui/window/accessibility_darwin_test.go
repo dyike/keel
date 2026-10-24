@@ -177,6 +177,19 @@ func accessibilityHelper() {
 			saved := root.find("AXButton", "Saved 1")
 			return saved != nil && f == saved.obj && appkit.SendBool(f, "isAccessibilityFocused")
 		})
+		// A client moves focus by setting it.
+		var first appkit.ID
+		onView(func(view appkit.ID) {
+			item := axRead(view).find("AXButton", "Item 0")
+			if item == nil {
+				fail("no Item 0:\n%s", tree)
+			}
+			first = item.obj
+			appkit.Send(first, "setAccessibilityFocused:", appkit.Bool(true))
+		})
+		poll("setting focus did not move it to Item 0", func(view appkit.ID) bool {
+			return appkit.Send(view, "accessibilityFocusedUIElement") == first && appkit.SendBool(first, "isAccessibilityFocused")
+		})
 		// Frames follow the window when it moves without a new frame.
 		onView(func(view appkit.ID) {
 			win := appkit.Send(view, "window")
@@ -237,7 +250,7 @@ func accessibilityHelper() {
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
-		fmt.Println("PASS: roles, labels, nesting, frames (also after a move), hit testing, press, focus, rows out of view and scrolling")
+		fmt.Println("PASS: roles, labels, nesting, frames (also after a move), hit testing, press, focus (reported and set), rows out of view and scrolling")
 		w.Close()
 		os.Exit(0)
 	}()

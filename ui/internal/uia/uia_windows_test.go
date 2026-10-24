@@ -124,7 +124,9 @@ func vcall(p uintptr, m int, args ...uintptr) uintptr {
 	return r
 }
 
-type recorder struct{ pressed, scrolled []string }
+type recorder struct{ pressed, scrolled, focused []string }
+
+func (r *recorder) Focus(key string) bool { r.focused = append(r.focused, key); return true }
 
 func (r *recorder) Press(key string) bool    { r.pressed = append(r.pressed, key); return true }
 func (r *recorder) ScrollTo(key string) bool { r.scrolled = append(r.scrolled, key); return true }
@@ -237,8 +239,11 @@ func TestProviders(t *testing.T) {
 	if scroll == 0 || vcall(scroll, 3) != sOK {
 		t.Fatal("ScrollIntoView failed")
 	}
-	if strings.Join(acts.pressed, ",") != "1,3" || strings.Join(acts.scrolled, ",") != "4" {
-		t.Fatalf("pressed %v, scrolled %v", acts.pressed, acts.scrolled)
+	if vcall(box, 7) != sOK { // SetFocus
+		t.Fatal("SetFocus failed")
+	}
+	if strings.Join(acts.pressed, ",") != "1,3" || strings.Join(acts.scrolled, ",") != "4" || strings.Join(acts.focused, ",") != "1" {
+		t.Fatalf("pressed %v, scrolled %v, focused %v", acts.pressed, acts.scrolled, acts.focused)
 	}
 	// An element that leaves is unavailable, and freed with its last
 	// reference.

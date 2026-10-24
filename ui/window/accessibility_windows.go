@@ -118,3 +118,14 @@ func (a *uiaWindow) queue(key string, events func(Element) []event.Event) bool {
 
 func (a *uiaWindow) Press(key string) bool    { return a.queue(key, clickEvents) }
 func (a *uiaWindow) ScrollTo(key string) bool { return a.queue(key, scrollToEvents) }
+
+func (a *uiaWindow) Focus(key string) bool {
+	a.mu.Lock()
+	e, ok := a.els[key]
+	a.mu.Unlock()
+	if !ok || e.Disabled {
+		return false
+	}
+	a.w.win.QueueFocus(e.id)
+	return true
+}

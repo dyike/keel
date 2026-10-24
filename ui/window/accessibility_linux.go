@@ -187,3 +187,14 @@ func (a *axWindow) ScrollTo(key string) bool { return a.queue(key, scrollToEvent
 func (a *axWindow) ScrollPage(key string, dx, dy int) bool {
 	return a.queue(key, func(e Element) []event.Event { return pageEvents(e, dx, dy) })
 }
+
+func (a *axWindow) Focus(key string) bool {
+	a.mu.Lock()
+	e, ok := a.els[key]
+	a.mu.Unlock()
+	if !ok || e.Disabled {
+		return false
+	}
+	a.w.win.QueueFocus(e.id)
+	return true
+}

@@ -45,7 +45,11 @@ try {
     Wait-For { Find $win $CT::Text 'Enter your name first.' } 'the status text' | Out-Null
     # The press also gave the button keyboard focus.
     Wait-For { (Find $win $CT::Button 'Say hello').Current.HasKeyboardFocus } 'the button to hold focus' | Out-Null
-    'PASS: UI Automation reads the tree, toggles the checkbox, invokes the button and sees its focus'
+    # A client moves focus with SetFocus.
+    $clear = Find $win $CT::Button 'Clear'
+    $clear.SetFocus()
+    Wait-For { (Find $win $CT::Button 'Clear').Current.HasKeyboardFocus } 'SetFocus to move focus to Clear' | Out-Null
+    'PASS: UI Automation reads the tree, toggles the checkbox, invokes the button, and reports and sets focus'
   } else {
     $link = Wait-For { Find $win $CT::Hyperlink 'Tree' } 'the Tree link'
     if (-not $link.Current.IsOffscreen) { throw 'FAIL: Tree link shows before scrolling' }

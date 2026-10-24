@@ -70,6 +70,17 @@ func installAccessibility(view uintptr) {
 		axClasses.views = map[objc.Class]bool{}
 		axClasses.element = appkit.RegisterClass("KeelAccessibilityElement", "NSAccessibilityElement", nil, []objc.MethodDef{
 			appkit.Method("accessibilityPerformPress", func(self appkit.ID, _ appkit.SEL) bool { return axPress(self) }),
+			// Focus is Keel's: reported from the latest frame, and moved by a
+			// client through setting it.
+			appkit.Method("isAccessibilityFocused", func(self appkit.ID, _ appkit.SEL) bool {
+				o := axObjects[self]
+				return o != nil && o.focused
+			}),
+			appkit.Method("setAccessibilityFocused:", func(self appkit.ID, _ appkit.SEL, focused bool) {
+				if o := axObjects[self]; o != nil && focused && !o.el.Disabled {
+					o.v.w.win.QueueFocus(o.el.id)
+				}
+			}),
 			// Scrolling has no method of its own in AppKit's element API
 			// before macOS 26: it is a named action.
 			// AppKit offers a press for every element of a class that can
@@ -226,10 +237,7 @@ func (v *axView) refresh(notify bool) {
 				postAX(o.obj, "NSAccessibilityValueChangedNotification", "AXValueChanged")
 			}
 		}
-		if o.focused != e.focused {
-			o.focused = e.focused
-			appkit.Send(o.obj, "setAccessibilityFocused:", appkit.Bool(e.focused))
-		}
+		o.focused = e.focused
 		if e.focused {
 			focus = o
 		}

@@ -89,8 +89,15 @@ func (r *registry) Embed(plug ref) (ref, *dbus.Error) {
 }
 
 type actions struct {
-	mu                  sync.Mutex
-	pressed, scrolledTo []string
+	mu                           sync.Mutex
+	pressed, scrolledTo, focused []string
+}
+
+func (a *actions) Focus(key string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.focused = append(a.focused, key)
+	return true
 }
 
 func (a *actions) Press(key string) bool {
@@ -239,9 +246,10 @@ func TestBridge(t *testing.T) {
 	var ok bool
 	call(rows[0].Path, ifaceAction+".DoAction", &ok, int32(0))
 	call(rows[1].Path, ifaceComp+".ScrollTo", &ok, uint32(0))
+	call(top[1].Path, ifaceComp+".GrabFocus", &ok)
 	acts.mu.Lock()
-	if strings.Join(acts.pressed, ",") != "4" || strings.Join(acts.scrolledTo, ",") != "5" {
-		t.Fatalf("pressed %v, scrolled to %v", acts.pressed, acts.scrolledTo)
+	if strings.Join(acts.pressed, ",") != "4" || strings.Join(acts.scrolledTo, ",") != "5" || strings.Join(acts.focused, ",") != "2" {
+		t.Fatalf("pressed %v, scrolled to %v, focused %v", acts.pressed, acts.scrolledTo, acts.focused)
 	}
 	acts.mu.Unlock()
 
