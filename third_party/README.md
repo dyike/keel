@@ -44,6 +44,16 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/internal/egl`: `egl_purego_linux.go` loads libEGL with purego on
+  Linux desktop when `CGO_ENABLED=0` or `-tags purego`, with uintptr
+  handles as `egl_windows.go` uses; `egl_unix.go` stays the cgo default and
+  the only binding on Android and the BSDs. EGLBoolean results are read
+  from their low 32 bits. `gio/gpu/headless` gains a pixel test that runs
+  on every platform (`GIO_HEADLESS_REQUIRED=1` fails instead of skipping
+  without a context), and `gio/gpu`'s `AddTinted` test moves to a
+  `!nometal` darwin file, so the package's tests build on Linux and with
+  `nometal`.
+
 - `gio/app` (macOS): a purego binding replaces `os_macos.m`, `os_darwin.m`,
   the cgo helpers and the Metal and OpenGL window contexts when
   `CGO_ENABLED=0` or `-tags purego`; the cgo files stay the default and iOS

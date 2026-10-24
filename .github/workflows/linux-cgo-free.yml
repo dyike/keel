@@ -1,0 +1,41 @@
+name: Linux without cgo
+
+# Runs the Linux bindings that no longer need cgo, with no C compiler and
+# only runtime libraries installed, on Mesa's software renderers. Each step
+# grows with the migration in docs/desktop-cgo-free.md (L1, L2).
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    env:
+      CGO_ENABLED: '0'
+      CC: /nonexistent-c-compiler
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install runtime libraries only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgles2 libegl-mesa0 libgl1-mesa-dri \
+            libx11-6 libx11-xcb1 libxkbcommon0 libxkbcommon-x11-0 libxcursor1 libxfixes3 \
+            libwayland-client0 libwayland-egl1 libwayland-cursor0 \
+            libvulkan1 mesa-vulkan-drivers \
+            xvfb xauth weston
+      - name: OpenGL ES and EGL through headless rendering (surfaceless)
+        env:
+          EGL_PLATFORM: surfaceless
+        run: GIO_HEADLESS_REQUIRED=1 go test -tags novulkan ./gio/internal/egl ./gio/internal/gl ./gio/gpu/... -count=1 -v -timeout=300s
