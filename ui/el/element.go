@@ -70,7 +70,8 @@ type Node struct {
 	contentW      int           // scroll containers: width of the content
 	contentH      int           // scroll containers: height of the content
 	key           stateKey
-	textStyle     textStyle // resolved, inherited
+	state         *elemState // this frame's state, set by assignKeys; read through store.of
+	textStyle     textStyle  // resolved, inherited
 
 	// Set on subtrees returned by Context.Cache: they are reused across
 	// frames, so a layout with the same inputs can reuse the last result.

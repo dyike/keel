@@ -3,6 +3,7 @@ package el
 import (
 	"github.com/dyike/keel/gio/io/event"
 	"github.com/dyike/keel/gio/io/key"
+	"slices"
 	"sort"
 )
 
@@ -12,7 +13,7 @@ type tabTarget struct {
 	index int
 }
 
-func (r *RootWidget) tabTargets(cx *Context) ([]tabTarget, bool) {
+func (r *RootWidget) tabRoots(cx *Context) []*Node {
 	var roots []*Node
 	trap := -1
 	for i, d := range cx.layers {
@@ -28,6 +29,10 @@ func (r *RootWidget) tabTargets(cx *Context) ([]tabTarget, bool) {
 			roots = append(roots, d.layer.content.node())
 		}
 	}
+	return roots
+}
+
+func (r *RootWidget) tabTargets(roots []*Node) ([]tabTarget, bool) {
 	if scope := r.focusedContainerTrap(roots); scope != nil {
 		targets, _ := r.collectTabTargets([]*Node{scope})
 		return targets, true
@@ -44,7 +49,7 @@ func (r *RootWidget) collectTabTargets(roots []*Node) ([]tabTarget, bool) {
 		if n.effectiveDisabled || n.style.hidden {
 			return
 		}
-		if s := r.store.states[n.key]; s != nil && !s.blocked && s.keyFrame+1 >= r.store.frame && s.keyFrame > 0 && !n.tabSkip && n.tabIndex >= 0 {
+		if s := r.store.of(n); s != nil && !s.blocked && s.keyFrame+1 >= r.store.frame && s.keyFrame > 0 && !n.tabSkip && n.tabIndex >= 0 {
 			if n.input != nil {
 				targets = append(targets, tabTarget{s.editor, s, n.tabIndex})
 			} else if n.isFocusable() {
@@ -62,11 +67,32 @@ func (r *RootWidget) collectTabTargets(roots []*Node) ([]tabTarget, bool) {
 	return targets, configured
 }
 
+// tabConfigured reports what collectTabTargets would: whether any reachable
+// node takes part in Keel's Tab order. It reads no state, so a frame without
+// a Tab press does not pay for collecting targets.
+func tabConfigured(n *Node) bool {
+	if n.tabConfigured || n.focusTrap {
+		return true
+	}
+	if n.effectiveDisabled || n.style.hidden {
+		return false
+	}
+	for _, c := range n.children {
+		if tabConfigured(c.node()) {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *RootWidget) dispatchTab(cx *Context) {
-	targets, configured := r.tabTargets(cx)
-	if !configured {
+	roots := r.tabRoots(cx)
+	// A trap scope needs a reachable trap node, which tabConfigured counts.
+	if !slices.ContainsFunc(roots, tabConfigured) {
 		return
 	}
+	var targets []tabTarget
+	collected := false
 	for {
 		ev, ok := r.e.gtx.Event(key.Filter{Name: key.NameTab, Optional: key.ModShift})
 		if !ok {
@@ -75,6 +101,10 @@ func (r *RootWidget) dispatchTab(cx *Context) {
 		k, ok := ev.(key.Event)
 		if !ok || k.State != key.Press {
 			continue
+		}
+		if !collected {
+			targets, _ = r.tabTargets(roots)
+			collected = true
 		}
 		if len(targets) == 0 {
 			r.e.gtx.Execute(key.FocusCmd{})
@@ -113,7 +143,7 @@ func (r *RootWidget) focusedContainerTrap(roots []*Node) *Node {
 		if n.focusTrap {
 			scope = n
 		}
-		if state := r.store.states[n.key]; state != nil && !state.blocked && (r.source.Focused(state) || (state.editor != nil && r.source.Focused(state.editor))) {
+		if state := r.store.of(n); state != nil && !state.blocked && (r.source.Focused(state) || (state.editor != nil && r.source.Focused(state.editor))) {
 			return scope, true
 		}
 		for _, child := range n.children {

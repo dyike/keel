@@ -61,7 +61,7 @@ func (cx *Context) prepareInteractionNodes() {
 			cx.queryNodes[n.id] = focusWithinState{}
 		}
 		state := focusWithinState{}
-		if st := cx.root.store.states[n.key]; st != nil && !st.disabled {
+		if st := cx.root.store.of(n); st != nil && !st.disabled {
 			state.focused = cx.root.source.Focused(st) || st.editor != nil && cx.root.source.Focused(st.editor)
 			state.visible = !st.pointerFocus && cx.root.source.Focused(st) || st.inputRing && st.editor != nil && cx.root.source.Focused(st.editor)
 		}

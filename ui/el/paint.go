@@ -103,7 +103,7 @@ func (e *engine) measureInput(n *Node, maxW int) image.Point {
 				value = spec.document.presentation().Text
 			} else if spec.bind != nil {
 				value = *spec.bind
-			} else if st := e.store.states[n.key]; st != nil {
+			} else if st := e.store.of(n); st != nil {
 				value = st.lastText
 			}
 			if spec.password {
