@@ -21,6 +21,8 @@ Window: open, close, bring to front (including activation token), window shortcu
 | `motion_*` | System preferences: reduce dynamic effects (macOS), scrollbar auto-hide (macOS, Windows), write in `theme` |
 | `motion_darwin.go` (macOS), `scroll_wayland*` | The device and gesture stages of scrolling (trackpad hand lift, scroll wheel) are not provided by Gio and are left to `core.ReportScrollGesture` |
 | `automation.go` | Automation mode: memory window, semantic snapshot, simulated click input scrolling |
+| `reload*.go`, `development.go` | `keel run` reloads: save and restore window size, macOS position, `KeepState` and the content's `core.ReloadState` |
+| `headless.go` | `OpenHeadless`: the in-memory window for application tests; `windowtest` wraps it for `testing.TB` |
 | `automation_server.go` | Automation protocol: JSON request on `KEEL_AUTOMATION` socket |
 | `testdata/raise` | Real window deadlock regression testing |
 

@@ -40,12 +40,13 @@ keel run
 | --- | --- |
 | `main.go` | 设置应用图标，打开窗口，挂上界面 |
 | `app.go` | 界面：一个视图结构体和它的 `Render` |
+| `app_test.go` | 用 [`windowtest`](testing.zh-CN.md#测试应用) 在内存中使用应用；`go test ./...` 不打开窗口即可运行 |
 | `keel.json` | 应用名、ID、版本、图标，打包时读取 |
 | `appicon.png` | 1024×1024 的占位原图（满版，不带圆角），替换成自己的 |
 | `go.mod`、`go.sum` | require 所选 Keel 发布，其中已包含 Keel 的 Gio 和 go-text；生成后执行 `go mod tidy` |
 | `.gitignore`、`README.md` | 忽略 `dist/` 和打包中间文件 |
 
-参数：`-name "我的笔记"` 设置显示名称（默认由目录名得到，`my-notes` → `My Notes`），`-appid com.yourname.notes` 设置应用 ID（默认 `com.example.<目录名>`），`-module` 设置 Go 模块路径，`-lang zh-CN` 让生成应用里的文字使用中文（默认英文）。目录必须为空。
+参数：`-name "我的笔记"` 设置显示名称（默认由目录名得到，`my-notes` → `My Notes`），`-appid com.yourname.notes` 设置应用 ID（默认 `com.example.<目录名>`），`-module` 设置 Go 模块路径，`-lang zh-CN` 让生成应用里的文字使用中文（默认英文）。`-ci github` 额外生成 `.github/workflows/build.yml`，在 macOS、Windows 和 Linux 上检查、测试并打包应用，并在 `go.mod` 中加入 `tool` 行，让 `go tool keel` 运行对应版本的 keel 命令。项目依赖 CLI 自身的 Keel 版本或本地检出目录时才会写入示例测试。目录必须为空。
 
 `-keel <版本>` 选择精确的 Keel 发布（默认为 CLI 自身版本，或最新版）。`-replace <Keel 检出目录>` 改为从本地检出目录引用 Keel，用于开发 Keel，路径可含空格。`-offline` 不拉依赖而写入文件：精确的 `-keel vX.Y.Z` 不需要缓存元数据，`latest` 等查询需要缓存解析结果。构建前执行 `go mod tidy`，届时依赖须已缓存或可下载。
 
@@ -130,7 +131,7 @@ func (a *app) Render(cx *el.Context) el.Element {
 
 ## 运行
 
-桌面端 `keel run` 默认开启热更新：监听项目源码、资源和本地 `replace`/`go.work` 模块，保存后重新编译，编译成功再重启应用；编译失败时保留当前窗口，等待下一次修改。连续保存会合并触发，构建产物放在临时目录。macOS/Linux 下，重启前会执行窗口的 `OnClose` 回调，供应用保存持久化状态；普通内存状态仍会重置。用户关闭最后一个窗口或按 Cmd+Q 正常退出应用时，`keel run` 也会结束监听；即使正在编译，也会取消构建，不重新打开窗口。应用崩溃后仍会等待源码修改。按 Ctrl+C 停止，或使用 `keel run -watch=false` 关闭监听。
+桌面端 `keel run` 默认开启热更新：监听项目源码、资源和本地 `replace`/`go.work` 模块，保存后重新编译，编译成功再重启应用；编译失败时保留当前窗口，等待下一次修改。连续保存会合并触发，构建产物放在临时目录。重启前，`keel run` 通过本地 socket 请求应用保存状态并执行窗口的 `OnClose` 回调；新构建会回到原来的位置。无需代码即可保留：窗口尺寸（macOS 上还有位置）、滚动位置和输入框文字（密码除外）；状态只会回到树中同一位置、角色和名称相同的元素。`window.Options.KeepState` 指向的应用状态也会保留：重载前把导出字段编码为 JSON，`window.Open` 再整体解码回同一个指针，要么全部恢复，要么保持默认值。脚手架用这种方式保留点击次数。其他内存状态会重置，因为程序是重新启动的：Go 无法替换运行中进程的代码。用早于此功能的 Keel 构建的应用仍按原方式重启。用户关闭最后一个窗口或按 Cmd+Q 正常退出应用时，`keel run` 也会结束监听；即使正在编译，也会取消构建，不重新打开窗口。应用崩溃后仍会等待源码修改。按 Ctrl+C 停止，或使用 `keel run -watch=false` 关闭监听。
 
 `keel run` 把 `appid` 告诉 Gio，并使用 `keel.json` 配置的图标，遵循 `icon_mask` 和 `icons` 中的平台覆盖配置。macOS 启动签名后的临时应用包。Windows 与 `keel build` 共用 PerMonitorV2 DPI 清单、Common Controls 6、长路径支持、图标和版本资源，然后启动 GUI EXE；临时 `.syso` 在编译结束后清理。热更新和 `-watch=false` 都走这套打包路径。应用主动调用的 `window.SetIcon` 优先。Wayland 的图标要求见[窗口与应用 · 应用图标](app.zh-CN.md#应用图标)。`keel run -- --flag` 把 `--` 之后的参数交给应用。
 

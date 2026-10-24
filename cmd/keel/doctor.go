@@ -35,7 +35,7 @@ func (c *cli) doctor(args []string) error {
 	}
 	goVersion, err := exec.Command("go", "env", "GOVERSION").Output()
 	v := strings.TrimSpace(string(goVersion))
-	check("Go 1.26 or newer", err == nil && goAtLeast(v, 1, 26), v)
+	check("Go "+minGoVersion+" or newer", err == nil && goAtLeast(v, minGoVersion), v)
 	if *target == "android" {
 		c.doctorAndroid(check)
 		if !ok {
@@ -117,20 +117,39 @@ func hint(err error, fix string) string {
 	return fix
 }
 
-// goAtLeast parses "go1.26.1" and compares it with major.minor.
-func goAtLeast(v string, major, minor int) bool {
-	parts := strings.SplitN(strings.TrimPrefix(v, "go"), ".", 3)
+// goAtLeast reports whether toolchain v ("go1.26.1", "go1.27rc1") is at
+// least release want ("1.26.1"). A prerelease counts as below its first
+// release: go1.27rc1 is newer than 1.26.9 but older than 1.27.0.
+func goAtLeast(v, want string) bool {
+	got, pre, ok := goRelease(strings.TrimPrefix(v, "go"))
+	min, _, ok2 := goRelease(want)
+	if !ok || !ok2 {
+		return false
+	}
+	for i := range got {
+		if got[i] != min[i] {
+			return got[i] > min[i]
+		}
+	}
+	return !pre
+}
+
+// goRelease splits "1.26.1" or "1.27rc1" into numbers and a prerelease flag.
+func goRelease(v string) (n [3]int, pre bool, ok bool) {
+	parts := strings.SplitN(v, ".", 3)
 	if len(parts) < 2 {
-		return false
+		return n, false, false
 	}
-	ma, err1 := strconv.Atoi(parts[0])
-	digits := parts[1] // "26", or "27rc1" for a prerelease
-	if i := strings.IndexFunc(digits, func(r rune) bool { return r < '0' || r > '9' }); i >= 0 {
-		digits = digits[:i]
+	for i, p := range parts {
+		digits := p
+		if j := strings.IndexFunc(p, func(r rune) bool { return r < '0' || r > '9' }); j >= 0 {
+			digits, pre = p[:j], true
+		}
+		x, err := strconv.Atoi(digits)
+		if err != nil {
+			return n, false, false
+		}
+		n[i] = x
 	}
-	mi, err2 := strconv.Atoi(digits)
-	if err1 != nil || err2 != nil {
-		return false
-	}
-	return ma > major || ma == major && mi >= minor
+	return n, pre, true
 }

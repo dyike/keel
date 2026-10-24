@@ -27,19 +27,27 @@ func registerDevelopmentWindow(w *Window) {
 	development.windows[w] = true
 	development.Unlock()
 	development.once.Do(func() {
+		var reloading sync.Once
+		reloadNow := func() {
+			reloading.Do(func() {
+				development.Lock()
+				windows := make([]*Window, 0, len(development.windows))
+				for w := range development.windows {
+					windows = append(windows, w)
+				}
+				development.Unlock()
+				saveReloadState(windows)
+				closeDevelopmentWindows(windows)
+				os.Exit(0)
+			})
+		}
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt)
 		go func() {
 			<-signals
-			development.Lock()
-			windows := make([]*Window, 0, len(development.windows))
-			for w := range development.windows {
-				windows = append(windows, w)
-			}
-			development.Unlock()
-			closeDevelopmentWindows(windows)
-			os.Exit(0)
+			reloadNow()
 		}()
+		listenForReload(reloadNow)
 	})
 }
 

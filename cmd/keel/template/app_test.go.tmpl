@@ -1,0 +1,28 @@
+package main
+
+import (
+	"testing"
+
+	"github.com/dyike/keel/ui/el"
+	"github.com/dyike/keel/ui/window"
+	"github.com/dyike/keel/ui/window/windowtest"
+)
+
+// TestApp draws the app in memory and uses it as a person would; go test
+// runs it without opening a window. See windowtest for every action.
+func TestApp(t *testing.T) {
+	app := windowtest.New(t, window.Options{Content: el.Root(newApp())})
+{{- if eq .Lang "zh-CN"}}
+	app.Click("名字")
+	app.Type("小明")
+	app.Want("你好，小明！")
+	app.Click("点了 0 次")
+	app.Want("点了 1 次")
+{{- else}}
+	app.Click("Name")
+	app.Type("Ada")
+	app.Want("Hello, Ada!")
+	app.Click("Clicked 0 times")
+	app.Want("Clicked 1 times")
+{{- end}}
+}

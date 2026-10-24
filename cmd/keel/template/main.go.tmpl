@@ -21,11 +21,24 @@ func main() {
 	if err := window.SetIcon(appIcon); err != nil {
 		log.Print(err)
 	}
+{{- if .Current}}
+	a := newApp()
+	window.Open(window.Options{
+		Title:   {{printf "%q" .Name}},
+		Width:   720,
+		Height:  480,
+		Content: el.Root(a),
+		// The click count survives keel run's reloads. Window size, scroll
+		// positions and typed text are kept without it.
+		KeepState: &a.state,
+	})
+{{- else}}
 	window.Open(window.Options{
 		Title:   {{printf "%q" .Name}},
 		Width:   720,
 		Height:  480,
 		Content: el.Root(newApp()),
 	})
+{{- end}}
 	window.Main()
 }

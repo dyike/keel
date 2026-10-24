@@ -192,6 +192,39 @@ func (c *Config) save(dir string) error {
 
 // keelVersion is this tool's release, which new projects require; a
 // development build asks for the latest.
+// minGoVersion is the go directive of Keel's go.mod, which generated
+// projects and keel doctor require too.
+const minGoVersion = "1.26.1"
+
+// displayVersion is keelVersion for people: a build from a checkout names
+// its commit instead of "latest".
+func displayVersion() string {
+	if v := keelVersion(); v != "latest" {
+		return v
+	}
+	rev, dirty := "", false
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		for _, s := range bi.Settings {
+			switch s.Key {
+			case "vcs.revision":
+				rev = s.Value
+			case "vcs.modified":
+				dirty = s.Value == "true"
+			}
+		}
+	}
+	if len(rev) > 12 {
+		rev = rev[:12]
+	}
+	switch {
+	case rev == "":
+		return "devel"
+	case dirty:
+		return "devel " + rev + "-dirty"
+	}
+	return "devel " + rev
+}
+
 func keelVersion() string {
 	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Path == "github.com/dyike/keel" {
 		if v := bi.Main.Version; v != "" && v != "(devel)" && !strings.Contains(v, "-0.") {

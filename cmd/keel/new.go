@@ -29,6 +29,7 @@ func (c *cli) newProject(args []string) error {
 	replace := fs.String("replace", "", "use a local Keel checkout at this path (for developing Keel)")
 	offline := fs.Bool("offline", false, "use cached release metadata; write files without fetching dependencies")
 	lang := fs.String("lang", "en", "language of the generated app's text: en or zh-CN")
+	ci := fs.String("ci", "", "also write a CI workflow that tests and packages on each desktop OS: github")
 	fs.Usage = func() {
 		fmt.Fprintln(c.errw, "Usage: keel new <dir> [flags]")
 		fs.PrintDefaults()
@@ -46,6 +47,9 @@ func (c *cli) newProject(args []string) error {
 	}
 	if *lang != "en" && *lang != "zh-CN" {
 		return fmt.Errorf("unknown -lang %q: use en or zh-CN", *lang)
+	}
+	if *ci != "" && *ci != "github" {
+		return fmt.Errorf("unknown -ci %q: use github", *ci)
 	}
 	dir := dirArg
 	if !filepath.IsAbs(dir) {
@@ -74,7 +78,7 @@ func (c *cli) newProject(args []string) error {
 	if err := cfg.validate(); err != nil {
 		return err
 	}
-	gomod := "module " + strconv.Quote(*module) + "\n\ngo 1.26.1\n"
+	gomod := "module " + strconv.Quote(*module) + "\n\ngo " + minGoVersion + "\n"
 	// Gio and go-text are packages of the Keel module: one requirement
 	// brings Keel's copies, with no replace of the app's own.
 	if *replace != "" {
@@ -98,6 +102,10 @@ func (c *cli) newProject(args []string) error {
 		*keel = exact
 		gomod += "\nrequire github.com/dyike/keel " + exact + "\n"
 	}
+	if *ci == "github" {
+		// The workflow runs go tool keel: the CLI at the app's Keel version.
+		gomod += "\ntool " + keelModulePath + "/cmd/keel\n"
+	}
 	target := dir
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return err
@@ -110,13 +118,35 @@ func (c *cli) newProject(args []string) error {
 	}
 	defer os.RemoveAll(stage)
 	dir = stage
-	data := map[string]string{"Name": cfg.Name, "Module": *module, "Lang": *lang}
+	// Current is a Keel with windowtest and KeepState: the CLI's own release
+	// or the local checkout. Older releases get the earlier template.
+	writeTest := *replace != "" || *keel == keelVersion()
+	data := map[string]any{"Name": cfg.Name, "Module": *module, "Lang": *lang, "Test": writeTest, "Current": writeTest, "CI": *ci == "github"}
 	for out, tmpl := range map[string]string{
 		"main.go": "main.go.tmpl", "app.go": "app.go.tmpl",
 		".gitignore": "gitignore.tmpl", "README.md": "README.md.tmpl",
 		"README.zh-CN.md": "README.zh-CN.md.tmpl",
 	} {
 		if err := writeTemplate(filepath.Join(dir, out), tmpl, data); err != nil {
+			return err
+		}
+	}
+	if writeTest {
+		if err := writeTemplate(filepath.Join(dir, "app_test.go"), "app_test.go.tmpl", data); err != nil {
+			return err
+		}
+	}
+	if *ci == "github" {
+		// GitHub's ${{ }} expressions are not templates: copy the file as is.
+		src, err := templates.ReadFile("template/github-build.yml")
+		if err != nil {
+			return err
+		}
+		workflows := filepath.Join(dir, ".github", "workflows")
+		if err := os.MkdirAll(workflows, 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(workflows, "build.yml"), src, 0o644); err != nil {
 			return err
 		}
 	}
@@ -186,11 +216,36 @@ func installProject(stage, target string) error {
 		return err
 	}
 	for _, entry := range entries {
-		if err := os.Link(filepath.Join(stage, entry.Name()), filepath.Join(target, entry.Name())); err != nil {
+		if err := linkTree(filepath.Join(stage, entry.Name()), filepath.Join(target, entry.Name())); err != nil {
 			if created {
 				os.Remove(target) // Preserve concurrent files and any installed files.
 			}
 			return fmt.Errorf("install project %s: %w; any installed files were retained to protect concurrent changes", target, err)
+		}
+	}
+	return nil
+}
+
+// linkTree hard-links src to dst, creating directories (such as .github)
+// exclusively and linking the files inside them.
+func linkTree(src, dst string) error {
+	info, err := os.Lstat(src)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return os.Link(src, dst)
+	}
+	if err := os.Mkdir(dst, info.Mode().Perm()); err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if err := linkTree(filepath.Join(src, e.Name()), filepath.Join(dst, e.Name())); err != nil {
+			return err
 		}
 	}
 	return nil

@@ -19,6 +19,32 @@ Ubuntu 的 `distribution` job 在脚手架测试前安装 Linux 图形开发库�
 
 `python3 scripts/check-module-release.py` 把工作区打包成本地模块代理中的测试用 Keel 发布，用 `keel new` 创建只 require Keel 的应用，确认其 Gio 和 go-text 包来自 Keel 模块（而非上游 `gioui.org` 或 go-text），编译外部自定义组件，并从该发布 `go install` CLI。它检查默认、离线、本地生成及含空格路径，无 CGO 打包 Windows amd64/arm64 和 WebAssembly；macOS 上还用现有 CGO 后端运行打包后的应用 ID/启动参数探针。外部依赖使用当前配置的 Go 代理；合成发布由本地代理提供，使用全新模块缓存并关闭 workspace。
 
+## 测试应用
+
+`ui/window/windowtest` 在内存中绘制窗口，并像人一样操作它：按元素的可见文字和角色。不打开原生窗口，所以测试能在 CI 中运行，也随 `go test ./...` 一起运行。
+
+```go
+func TestGreeting(t *testing.T) {
+    app := windowtest.New(t, window.Options{Content: el.Root(newApp())})
+    app.Click("Name")      // 标签为 Name 的输入框
+    app.Type("Ada")
+    app.Click("Say hello")
+    app.Want("Hello, Ada!")
+}
+```
+
+| 方法 | 作用 |
+| --- | --- |
+| `windowtest.New(t, opts)` | 在本测试期间于内存中打开窗口；`opts` 未设置尺寸时为 800×600 dp |
+| `app.Click(text)` | 点击名称或值与 `text` 最匹配的元素：完全匹配优先于部分匹配，控件优先于普通文字 |
+| `app.Type(s)`、`app.Press("enter")` | 向获得焦点的输入框输入；发送按键组合（`"tab"`、`"mod+a"`） |
+| `app.Scroll(text, dy)` | 在元素上滚动滚轮 |
+| `app.Want(text)`、`app.WantNot(text)`、`app.Has(text)` | 检查可见内容 |
+| `app.Find(text)`、`app.Elements()` | 读取角色、值、勾选与选中状态和边界 |
+| `app.Resize(w, h)`、`app.Screenshot()` | 改变尺寸；用 GPU 渲染 PNG |
+
+每次查询和操作都会先渲染，执行已经交给 `core.Update` 的函数，所以已完成的 goroutine 的结果可见。查找失败时会列出可见元素。元素就是 Agent 通过 `keel-mcp` 看到的内容，角色见 [Agent 端到端测试](automation.zh-CN.md)。减少动画处于开启状态，不会截到动画中途。`window.OpenHeadless` 提供同样的操作，以返回错误代替测试失败。
+
 ## 交互测试
 
 `ui/` 下的模块都可以引用它（它在 `internal` 里，外部项目引用不到）：
