@@ -413,7 +413,7 @@ type vkPhysicalDeviceFeatures struct {
 	multiViewport                           uint32
 	samplerAnisotropy                       uint32
 	textureCompressionETC2                  uint32
-	lDR                                     uint32
+	textureCompressionASTC_LDR              uint32
 	textureCompressionBC                    uint32
 	occlusionQueryPrecise                   uint32
 	pipelineStatisticsQuery                 uint32

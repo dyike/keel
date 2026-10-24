@@ -28,6 +28,8 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- `gio/internal/vk`：`vulkan_purego.go`（及 `vulkan_x11_purego.go`、`vulkan_wayland_purego.go`）在 Linux 上不使用 cgo 实现 vk 的 API：运行时加载 libvulkan，所有函数都通过函数指针以整数、句柄和指针参数调用。Vulkan 结构体和常量由 `cgo -godefs` 从 Vulkan-Headers v1.3.275 生成到 `vulkan_types.go` 和 `vulkan_consts.go`（amd64 与 arm64 完全一致），字段名按头文件恢复为 C 的名字，因此 vulkan.go 的 Go 代码得以复用，只替换其中的 C 类型和辅助函数；88 个 C 辅助函数改为生成的 Go 函数。`vulkan_layout_cgo.go` 在 cgo 构建中对照已安装的头文件检查所有字段偏移、结构体大小和 157 个常量。新的无头测试在两种绑定下都经 Vulkan 备用上下文渲染（CI 中为 lavapipe）。
+
 - `gio/app`（Wayland）：`os_wayland.go` 保留 Gio 的 Wayland 窗口逻辑，改为操作不透明的 proxy 指针；请求在 `wayland_requests.go` 中用 `wl_proxy_marshal_array_flags` 编组（wayland-scanner 的内联函数用的是 `wl_proxy_marshal_flags`），事件交给共用的 `wlOn*` 处理函数。`os_wayland_cgo.go` 保留 Gio 的监听表（os_wayland.c）和生成的协议代码，配以 `//export` 转接函数，并在初始化时对照头文件检查每个操作码、协议常量和光标结构体。`os_wayland_purego.go` 不使用 cgo 加载 libwayland-client 和 libwayland-cursor，按 `wayland_protocols_purego.go`（由 scanner 代码生成）在 C 内存中构建 xdg-shell、xdg-decoration 和 text-input 接口，并用一个 `wl_proxy_add_dispatcher` 回调分发所有 proxy 的事件。`egl_wayland_purego.go` 加载 libwayland-egl。
 
 - `gio/app`（X11）：`os_x11.go` 保留 Gio 的 X11 窗口逻辑，改为操作自己定义的 X 结构体（Window、Atom、Time 用 uintptr，C long 用 int）；`os_x11_cgo.go` 保留经 cgo 调用的 Xlib，并在初始化时对照头文件检查每个字段偏移、结构体大小和常量；`os_x11_purego.go` 不使用 cgo 加载 libX11、libX11-xcb、libXcursor、libXfixes 和 libxkbcommon-x11。Linux 上 Wayland 和 Vulkan 文件暂时只用 cgo。Perform 和 Configure 末尾调用 XFlush：它们在事件循环之外运行，而事件循环阻塞在 poll 上，Xlib 一直缓存着它们发出的请求（关闭、置前或调整大小）。此前在 Xvfb 下，resident 和 reopen 真实窗口测试在两种绑定下都会超时，raise 偶尔死锁；修复后整套测试在两种绑定、amd64 和 arm64 上都通过。
