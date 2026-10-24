@@ -28,6 +28,8 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- `gio/app`（macOS）：在 `CGO_ENABLED=0` 或 `-tags purego` 时，purego 绑定取代 `os_macos.m`、`os_darwin.m`、cgo 辅助函数以及 Metal 和 OpenGL 窗口上下文；cgo 文件仍是默认实现，iOS 不变。`os_macos.go` 保留 Gio 的窗口逻辑，改为操作普通句柄，由两种绑定共用；`displaylink_darwin.go` 存放 display link 状态机。`os_macos_purego.go` 以相同的名称、方法和关联对象注册 `GioView`、`GioWindowDelegate`、`GioAppDelegate` 和 `AppListener`（Keel 通过 `gioInputView` 和类名找到输入视图）；视图通过以视图指针为键的映射找到所属窗口。super 调用指定实现方法的类，而不是对象的动态类。`NSTextInputClient` 方法经 purego 回调以结构体形式收发 `NSRange`、`NSRect` 和 `NSPoint`；浮点和结构体消息使用只注册一次的包装函数（amd64 上用 `objc_msgSend_stret`）。`runOnMain` 通过一个 `dispatch_async_f` 回调投递令牌，display link 使用一个 `CVDisplayLink` 回调。`os_macos_cgo.go` 对照 SDK 检查 AppKit 常量。新测试在两种绑定下经 `objc_msgSend` 驱动标记文本、提交、取消、代理对范围、子串和光标矩形；去掉协议或改动返回范围时测试失败。nometal 测试打开并缩放一个 OpenGL 窗口。
+
 - `gio/gpu/headless`：`headless_purego_darwin.go` 在 macOS 上不使用 cgo（`CGO_ENABLED=0` 或 `-tags purego`）创建 Metal 设备和命令队列，与 cgo 辅助函数一样在锁定线程的自动释放池中完成；iOS 仍使用 `headless_darwin.go`。测试在每种绑定下检查队列属于返回的设备，两者交换时失败。配合 purego Metal 后端，`CGO_ENABLED=0 go test ./gio/gpu/...` 在 macOS 上通过。
 
 - `gio/gpu/internal/metal`：新增 purego 绑定 `metal_purego_darwin.go`，在 macOS 上不使用 cgo 发送后端的 Metal 消息，通过 `CGO_ENABLED=0` 或 `-tags purego` 选用；`metal_cgo_darwin.go` 保留 Gio 的 Objective-C 辅助函数，仍是 cgo 默认实现，也是 iOS 的唯一绑定。后端的 Go 逻辑改为操作普通句柄，由两种绑定共用。`purego.SyscallN` 会分配参数切片，因此编码器调用在互斥锁下复用同一个参数数组；会阻塞或指向局部变量的调用直接使用 `SyscallN`。arm64 把 `MTLOrigin`、`MTLSize` 和 `MTLViewport` 以指向副本的指针传递，amd64 通过 `RegisterFunc` 放在栈上传递。一帧会在三种清屏色之间切换，而设置清屏色需要一次反射调用，所以按清屏色保留渲染通道描述符。cgo 文件对照 SDK 检查各枚举值。测试在两种绑定下覆盖 `NSError` 报错和计算调度；交换两个尺寸参数时调度测试会失败。无头、绘制和真实窗口测试在两种绑定下均通过。

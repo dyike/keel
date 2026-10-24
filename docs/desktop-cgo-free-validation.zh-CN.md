@@ -130,6 +130,18 @@ amd64 只做了编译和 vet（未安装 Rosetta），其经 `RegisterFunc` 按�
 
 `gio/gpu/headless` 在 macOS 上不使用 cgo、经 purego 创建 Metal 设备和队列；iOS 仍使用 cgo 文件。至此 Gio 的 GPU 部分（`gpu`、`gpu/headless`、`gpu/internal/metal`、`internal/gl`、`internal/cocoainit`）在 Apple M4 上以 `CGO_ENABLED=0` 运行测试并通过。使用 `-tags purego` 时，hello 与 cgo 构建逐字节相同，组件矩阵 793 张截图中同样有 721 张一致；其余 72 张是 cgo 连续两次运行时也会不同的动画页面。`hello` 的无 cgo 构建现在只剩 `gio/app` 一个 cgo 包。
 
+## M2 进展：Gio 的 macOS app 绑定（2026-10-24）
+
+`gio/app` 在 macOS 上新增 purego 绑定，因此 `CGO_ENABLED=0` 时 `examples/hello` 不再有任何使用 cgo 的包，二进制只链接 libSystem。在 Apple M4 上：
+
+- `CGO_ENABLED=0 go test ./...` 通过；`gio/app` 的真实窗口测试（`KEEL_DESKTOP=1`：空闲回收、实时缩放、包装输入视图、激活策略、文本输入）和 `ui/window` 真实窗口测试在 cgo、`-tags purego` 和无 cgo 三种配置下均通过。`-race -tags purego` 对 `gio/app`、`gio/gpu/...`、`ui/window` 和 `ui/el` 通过。`gio/app` 仍能交叉编译到 iOS，amd64 构建能通过 vet。
+- 文本输入：新测试经 `objc_msgSend` 向获得焦点的编辑器发送 `NSTextInputClient` 消息：带范围和光标的标记文本、提交、取消、按两个 UTF-16 单元计数的代理对、带实际范围的子串，以及位于窗口框架内的光标矩形。测试在两种绑定下通过，去掉协议或改动返回范围时失败。没有驱动真实输入法。
+- 像素：无 cgo 的 `hello` 截图与 cgo 版逐字节相同。可见的无 cgo 窗口经自动化接口完成了中文和 emoji 输入、点击和重绘。
+- OpenGL（`nometal`）：新测试在 cgo、purego 和无 cgo 下打开并缩放窗口；未比较像素。`hello` 在 `nometal` 下无论哪种绑定都无法构建（`ui/theme` 使用仅 Metal 提供的 `PaintTintedQuads`），与之前相同。
+- 开销，真实窗口，预热 3 s 后测 10 s，交替运行四轮：spinner 页面无 cgo 时 CPU 0.94–1.07 s（均值 1.00），cgo 为 0.89–0.98 s（均值 0.94），约多 6%；phys_footprint 分别为 108–121 MB 和 108–118 MB。空闲的 `hello` 两者都没有可测的 CPU。原生回调以及浮点、结构体消息经 purego 的反射包装函数，会产生分配。
+
+未完成：amd64 实际运行，真实中文输入法及其候选窗在缩放变化下的位置，手动验证显示器睡眠/唤醒和全屏，以及 OpenGL 窗口的像素检查。macOS 默认仍为 cgo。
+
 ## 保留的 ABI 工作与待验收项
 
 D0 编译门禁和 M0 无 CGO Objective-C 探针保留在根模块中。

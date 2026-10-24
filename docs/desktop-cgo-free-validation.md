@@ -183,6 +183,41 @@ With `-tags purego`, hello is byte-identical to the cgo build and the same
 that also differ between cgo runs. `gio/app` is now the only cgo package in
 the no-cgo build of `hello`.
 
+## M2 progress: Gio's macOS app binding (2026-10-24)
+
+`gio/app` has a purego binding on macOS, so with `CGO_ENABLED=0` no package of
+`examples/hello` uses cgo and the binary links only libSystem. On an Apple M4:
+
+- `CGO_ENABLED=0 go test ./...` passes; `gio/app` real-window tests
+  (`KEEL_DESKTOP=1`: idle trim, live resize, wrapped input view, activation
+  policy, text input) and `ui/window` real windows pass with cgo, with
+  `-tags purego` and without cgo. `-race -tags purego` passes for `gio/app`,
+  `gio/gpu/...`, `ui/window` and `ui/el`. `gio/app` still cross-compiles for
+  iOS, and its amd64 build vets.
+- Text input: a new test sends the `NSTextInputClient` messages through
+  `objc_msgSend` to a focused editor: marked text with its range and caret,
+  commit, cancel, a surrogate pair counted as two UTF-16 units, the
+  substring with its actual range, and the caret rectangle inside the
+  window frame. It passes under both bindings and fails without the
+  protocol or with a skewed range. No real input method was driven.
+- Pixels: the no-cgo `hello` screenshot is byte-identical to cgo's. A
+  visible no-cgo window took typing of Chinese and emoji, a click and a
+  redraw through the automation socket.
+- OpenGL (`nometal`): a new test opens and resizes a window under cgo,
+  purego and no cgo; its pixels were not compared. `hello` does not build
+  with `nometal` with either binding (`ui/theme` uses the Metal-only
+  `PaintTintedQuads`), as before.
+- Cost, real windows, 10 s after a 3 s warmup, four alternating runs:
+  the spinner page used 0.94–1.07 s of CPU without cgo (mean 1.00) and
+  0.89–0.98 s with cgo (mean 0.94), about 6% more; phys_footprint was
+  108–121 MB against 108–118 MB. Idle `hello` used no measurable CPU with
+  either. Native callbacks and float or struct messages go through purego's
+  reflective wrappers, which allocate.
+
+Not done: amd64 execution, a real Chinese input method with candidate
+windows across scale changes, display sleep/wake and full screen by hand,
+and the pixel check of the OpenGL window. The macOS default stays cgo.
+
 ## Preserved ABI work and remaining gates
 
 D0's compile gate and M0's no-cgo Objective-C probes remain in the root module.

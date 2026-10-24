@@ -44,6 +44,27 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app` (macOS): a purego binding replaces `os_macos.m`, `os_darwin.m`,
+  the cgo helpers and the Metal and OpenGL window contexts when
+  `CGO_ENABLED=0` or `-tags purego`; the cgo files stay the default and iOS
+  is unchanged. `os_macos.go` keeps Gio's window logic over plain handles,
+  shared by both bindings; `displaylink_darwin.go` holds the display link
+  state machine. `os_macos_purego.go` registers `GioView`,
+  `GioWindowDelegate`, `GioAppDelegate` and `AppListener` with the same
+  names, methods and associated objects (Keel finds the input view by
+  `gioInputView` and the class name); a view reaches its window through a
+  map keyed by the view pointer. Super calls name the implementing class,
+  never the object's dynamic class. `NSTextInputClient` methods take and
+  return `NSRange`, `NSRect` and `NSPoint` as structs through purego
+  callbacks; float and struct messages use wrappers registered once
+  (`objc_msgSend_stret` on amd64). `runOnMain` posts tokens through one
+  `dispatch_async_f` callback and the display link uses one `CVDisplayLink`
+  callback. `os_macos_cgo.go` checks the AppKit values against the SDK. A
+  new test drives marked text, commit, cancel, surrogate-pair ranges, the
+  substring and the caret rectangle through `objc_msgSend` under either
+  binding; it fails without the protocol or with a skewed range. A nometal
+  test opens and resizes an OpenGL window.
+
 - `gio/gpu/headless`: `headless_purego_darwin.go` creates the Metal device
   and command queue without cgo on macOS (`CGO_ENABLED=0` or
   `-tags purego`), inside an autorelease pool on a locked thread, as the cgo

@@ -104,9 +104,10 @@ Desktop migration is not complete. Preserve Gio's UI, layout, GPU algorithms
 and performance patches; replace native bindings, not the renderers. The
 2026-10-12 darwin/arm64 dependency scan of `examples/hello` selects cgo in:
 
-- Gio: `app`. `internal/gl` (macOS/Linux desktop), `internal/cocoainit`,
-  `gpu/internal/metal` and `gpu/headless` (macOS) also have purego bindings, selected by `-tags purego` or `CGO_ENABLED=0`; cgo stays their
-  default and their only binding on iOS, Android and the BSDs.
+- Gio: `app`, `internal/gl`, `internal/cocoainit`, `gpu/internal/metal` and
+  `gpu/headless`. Each also has a purego binding on macOS (`internal/gl` on
+  Linux desktop too), selected by `-tags purego` or `CGO_ENABLED=0`; cgo
+  stays their default and their only binding on iOS, Android and the BSDs.
 - Keel: `ui/theme/coretext_cgo_darwin.go` (CoreText/CoreGraphics). A purego
   rasterizer, `coretext_purego_darwin.go`, is selected by `-tags purego` or
   `CGO_ENABLED=0` and renders byte-identical masks; the cgo file stays the
@@ -115,10 +116,11 @@ and performance patches; replace native bindings, not the renderers. The
 
 Linux also needs migration of X11/Wayland, xkbcommon, EGL/GL and Vulkan
 bindings. Windows already builds without cgo. iOS/Android migration is deferred.
-`CGO_ENABLED=0 go build ./examples/hello` currently fails on macOS in `gio/app`;
-`CGO_ENABLED=0 go build ./native/...` passes on the inspected macOS host, and
-`CGO_ENABLED=0 go test ./gio/gpu/...` passes there, rendering through Metal.
-Neither observation establishes cross-platform runtime support.
+On the inspected Apple silicon host, `CGO_ENABLED=0 go build ./examples/hello`
+passes and `CGO_ENABLED=0 go test ./...` passes, including real windows
+(`KEEL_DESKTOP=1`). The macOS default stays cgo until the promotion gate in the
+design (amd64 runs, a real input method, GPU parity) passes. These observations
+do not establish Linux or Intel Mac runtime support.
 See [the delivery design](docs/desktop-cgo-free.md) for gates and sequencing.
 Completed Keel binding migrations, each retaining behavior and tests:
 

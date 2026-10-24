@@ -37,6 +37,10 @@ func TestMain(m *testing.M) {
 		metalResizeWindowHelper()
 		return
 	}
+	if os.Getenv("GIO_TEXT_INPUT_HELPER") == "1" {
+		textInputHelper()
+		return
+	}
 	if os.Getenv("GIO_METAL_IDLE_HELPER") == "1" {
 		metalIdleWindowHelper()
 		return
