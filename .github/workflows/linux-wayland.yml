@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           unset WAYLAND_DISPLAY
-          xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run TestRealWindows -count=1 -timeout=300s -v 2>&1 | grep -E "^(=== RUN|--- |\s+FAIL|ok|FAIL)" | head -40
+          xvfb-run -a -s "-screen 0 1280x1024x24" env KEEL_DESKTOP=1 go test ./ui/window -run TestRealWindows -count=1 -timeout=300s -v 2>&1 | tail -80
       - name: Check real windows under a headless Wayland compositor
         shell: bash
         run: |
