@@ -93,6 +93,10 @@ type SemanticDesc struct {
 	Disabled    bool
 	Gestures    SemanticGestures
 	Bounds      image.Rectangle
+	// Focused is whether the node holds keyboard focus: the focused
+	// handler's area is the node's or inside it. Keel patch, for platform
+	// accessibility.
+	Focused bool
 }
 
 // SemanticGestures is a bit-set of supported gestures.
@@ -779,7 +783,32 @@ func (q *Router) SemanticAt(pos f32.Point) (SemanticID, bool) {
 func (q *Router) AppendSemantics(nodes []SemanticNode) []SemanticNode {
 	q.pointer.collector.q = &q.pointer.queue
 	q.pointer.collector.ensureRoot()
-	return q.pointer.queue.AppendSemantics(nodes)
+	start := len(nodes)
+	nodes = q.pointer.queue.AppendSemantics(nodes)
+	q.markFocused(nodes[start:])
+	return nodes
+}
+
+// markFocused marks the node that holds keyboard focus: the innermost node
+// whose area holds the focused handler's.
+func (q *Router) markFocused(nodes []SemanticNode) {
+	focus := q.lastState().keyState.focus
+	if focus == nil {
+		return
+	}
+	h, ok := q.handlers[focus]
+	if !ok || h.pointer.areaPlusOne == 0 {
+		return
+	}
+	areas := q.pointer.queue.areas
+	for area := h.pointer.areaPlusOne - 1; area > 0 && area < len(areas); area = areas[area].parent {
+		for i := range nodes {
+			if nodes[i].areaIdx == area {
+				nodes[i].Desc.Focused = true
+				return
+			}
+		}
+	}
 }
 
 // EditorState returns the editor state for the focused handler, or the

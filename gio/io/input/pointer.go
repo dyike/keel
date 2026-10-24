@@ -705,7 +705,10 @@ func (q *pointerQueue) Frame(handlers map[event.Tag]*handler, state pointerState
 			if h.filter.pointer.kinds&pointer.Scroll != 0 {
 				area.semantic.content.gestures |= ScrollGesture
 			}
-			area.semantic.valid = area.semantic.content.gestures != 0
+			// Keel patch: a handler's gestures make its area semantic, but
+			// do not unmake one that describes itself (a label, a class):
+			// upstream dropped those whose handler only takes key focus.
+			area.semantic.valid = area.semantic.valid || area.semantic.content.gestures != 0
 		}
 	}
 	var evts []taggedEvent

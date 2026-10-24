@@ -44,6 +44,15 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/io/input`: `SemanticDesc.Focused` marks the node holding keyboard
+  focus, the innermost one whose area holds the focused handler's, so the
+  platform accessibility bridges report focus. And a handler's gestures
+  no longer unmake an area that describes itself: upstream set an area's
+  semantics to whether its handler takes clicks or scrolls, so a node with
+  a class and a label whose handler only takes key focus left the tree. A
+  test focuses two buttons in turn, one through a plain inner area, and
+  checks the mark; without either change it fails.
+
 - `gio/app`: `Window.ObserveSemantics(fn)` calls fn on the driver thread
   after each frame is processed, with the frame's semantic tree and size,
   while nothing else reads the window's input state; `Window.QueueInput`
