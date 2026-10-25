@@ -144,11 +144,13 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
   field offset, size and constant against the headers at init;
   `os_x11_purego.go` loads libX11, libX11-xcb, libXcursor, libXfixes and
   libxkbcommon-x11 without cgo. Wayland and Vulkan files are cgo-only on
-  Linux for now. Perform and Configure end with XFlush: they run outside
-  the event loop, which waits in poll, so Xlib kept their requests (a
-  close, raise or resize) buffered. Under Xvfb the resident and reopen
+  Linux for now. Perform and Configure end with XFlush: they used to run
+  outside the event loop, which waits in poll, so Xlib kept their requests
+  (a close, raise or resize) buffered. Under Xvfb the resident and reopen
   real-window tests timed out with both bindings and raise deadlocked at
-  times; the whole set now passes with both, on amd64 and arm64.
+  times; the whole set now passes with both, on amd64 and arm64. Now that
+  `Run` queues them for the event loop (see below), the flush sends their
+  requests at once instead of at the loop's next XPending.
 
 - `gio/app/internal/xkb`: the key dispatch logic and keysym table move to
   `xkb.go`, over libxkbcommon's opaque pointers; `xkb_cgo.go` keeps the cgo
@@ -585,6 +587,8 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
 `deferred_teardown_test.go` covers notification, acknowledgment and single cleanup.
 
 - `gio/app` (Wayland): queue `Run` callbacks for the native event thread instead of executing them on a background caller. Asynchronous maximize/configure otherwise races frame collection and can reset recorded operations while the GPU reads them. Shutdown stops queue wakeups before closing the native pipe and releases waiting `Window.Run` callers. A regression decodes a frame before draining a queued reset.
+
+- `gio/app` (X11): queue `Run` callbacks for the event loop, as on Wayland. Gio ran them on the caller's goroutine, so Perform and Configure called Xlib there while the loop waited in poll on the X connection. During such a call Xlib can read events off the socket into its own queue; when that happened after the loop's last XPending, poll never woke and the window ignored its close request. The reopen real-window cases timed out ("FAIL: timeout") in 5 of 3,840 runs under Xvfb without cgo; a dump at the timeout showed the loop in poll, the socket and notify pipe empty, and one event in Xlib's queue. Before the loop starts, `Run` still calls f directly, because `Window.init` replays early actions from inside `Event`. Shutdown stops queue wake-ups before closing the notify pipe and releases waiting `Window.Run` callers. `os_x11_run_test.go` covers the queue, the wake-up and shutdown.
 
 - `gio/gpu`: track opacity membership per image operation. An unrelated opacity layer no longer disables shared tinted textures for the whole frame; path clips and images inside layers retain baked colors. Texture-count and native pixel tests cover unrelated and nested opacity. CoreText uses 256×256 pages with the same 32 MiB pixel budget to reduce whole-page color copies in the fallback path; cache tests cover eviction and pages used in the current frame.
 

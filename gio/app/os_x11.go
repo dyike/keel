@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 	"unsafe"
@@ -355,8 +356,14 @@ type x11Window struct {
 
 	wakeups     chan struct{}
 	dispatchFns chan func()
-	handler     x11EventHandler
-	buf         [100]byte
+	// Keel patch: Run queues its functions for the event loop, which
+	// drains them in Event. started reports that the loop has begun;
+	// done is closed when the window is destroyed.
+	runFuncs eventFuncs
+	started  atomic.Bool
+	done     chan struct{}
+	handler  x11EventHandler
+	buf      [100]byte
 }
 
 var (
@@ -507,9 +514,8 @@ func (w *x11Window) Perform(acts system.Action) {
 	if acts&system.ActionClose != 0 {
 		w.close()
 	}
-	// Keel patch: Perform runs outside the event loop, which waits in poll
-	// for the X connection; Xlib only buffers these requests, so flush
-	// them or a close never reaches the server.
+	// Keel patch: Xlib only buffers these requests; send them now rather
+	// than when the event loop next checks for events.
 	xFlush(w.x)
 }
 
@@ -634,7 +640,9 @@ func (w *x11Window) shutdown(err error) {
 }
 
 func (w *x11Window) Event() event.Event {
+	w.started.Store(true)
 	for {
+		w.runFuncs.drain()
 		if w.delivered != nil {
 			e := w.delivered
 			w.delivered = nil
@@ -655,8 +663,34 @@ func (w *x11Window) Event() event.Event {
 	}
 }
 
+// Run queues f for the event loop. Keel patch: Gio ran f on the caller's
+// goroutine. Xlib calls there (Perform, Configure) can read events from the
+// connection into Xlib's queue after the loop has checked it and before it
+// blocks in poll, which then never wakes: a window ignored its close
+// request. All Xlib calls now happen on the event loop. Before the loop
+// starts, as when Window.init replays early actions from inside Event, f
+// runs directly.
 func (w *x11Window) Run(f func()) {
-	f()
+	if !w.started.Load() {
+		f()
+		return
+	}
+	w.runFuncs.add(f, w.invalidate)
+}
+
+// Done is closed when the window is destroyed, releasing Window.Run callers
+// whose functions will not run.
+func (w *x11Window) Done() <-chan struct{} { return w.done }
+
+// stopRun drops queued functions and stops wake-ups through the notify
+// pipe, which destroy then closes.
+func (w *x11Window) stopRun() {
+	w.runFuncs.close()
+	select {
+	case <-w.done:
+	default:
+		close(w.done)
+	}
 }
 
 func (w *x11Window) Frame(frame *op.Ops) {
@@ -770,6 +804,7 @@ dispatchFnsLoop:
 }
 
 func (w *x11Window) destroy() {
+	w.stopRun()
 	if w.notify.write != 0 {
 		syscall.Close(w.notify.write)
 		w.notify.write = 0
@@ -1124,6 +1159,7 @@ func newX11Window(gioWin *callbacks, options []Option) error {
 		xkbEventBase: xkbEventBase,
 		wakeups:      make(chan struct{}, 1),
 		dispatchFns:  make(chan func(), 20),
+		done:         make(chan struct{}),
 		config:       Config{Size: cnf.Size},
 	}
 	w.handler = x11EventHandler{w: w, xev: new(xEvent), text: make([]byte, 4)}

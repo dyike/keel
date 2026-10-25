@@ -46,7 +46,7 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 - `gio/app`（Wayland）：`os_wayland.go` 保留 Gio 的 Wayland 窗口逻辑，改为操作不透明的 proxy 指针；请求在 `wayland_requests.go` 中用 `wl_proxy_marshal_array_flags` 编组（wayland-scanner 的内联函数用的是 `wl_proxy_marshal_flags`），事件交给共用的 `wlOn*` 处理函数。`os_wayland_cgo.go` 保留 Gio 的监听表（os_wayland.c）和生成的协议代码，配以 `//export` 转接函数，并在初始化时对照头文件检查每个操作码、协议常量和光标结构体。`os_wayland_purego.go` 不使用 cgo 加载 libwayland-client 和 libwayland-cursor，按 `wayland_protocols_purego.go`（由 scanner 代码生成）在 C 内存中构建 xdg-shell、xdg-decoration 和 text-input 接口，并用一个 `wl_proxy_add_dispatcher` 回调分发所有 proxy 的事件。`egl_wayland_purego.go` 加载 libwayland-egl。
 
-- `gio/app`（X11）：`os_x11.go` 保留 Gio 的 X11 窗口逻辑，改为操作自己定义的 X 结构体（Window、Atom、Time 用 uintptr，C long 用 int）；`os_x11_cgo.go` 保留经 cgo 调用的 Xlib，并在初始化时对照头文件检查每个字段偏移、结构体大小和常量；`os_x11_purego.go` 不使用 cgo 加载 libX11、libX11-xcb、libXcursor、libXfixes 和 libxkbcommon-x11。Linux 上 Wayland 和 Vulkan 文件暂时只用 cgo。Perform 和 Configure 末尾调用 XFlush：它们在事件循环之外运行，而事件循环阻塞在 poll 上，Xlib 一直缓存着它们发出的请求（关闭、置前或调整大小）。此前在 Xvfb 下，resident 和 reopen 真实窗口测试在两种绑定下都会超时，raise 偶尔死锁；修复后整套测试在两种绑定、amd64 和 arm64 上都通过。
+- `gio/app`（X11）：`os_x11.go` 保留 Gio 的 X11 窗口逻辑，改为操作自己定义的 X 结构体（Window、Atom、Time 用 uintptr，C long 用 int）；`os_x11_cgo.go` 保留经 cgo 调用的 Xlib，并在初始化时对照头文件检查每个字段偏移、结构体大小和常量；`os_x11_purego.go` 不使用 cgo 加载 libX11、libX11-xcb、libXcursor、libXfixes 和 libxkbcommon-x11。Linux 上 Wayland 和 Vulkan 文件暂时只用 cgo。Perform 和 Configure 末尾调用 XFlush：它们原先在事件循环之外运行，而事件循环阻塞在 poll 上，Xlib 一直缓存着它们发出的请求（关闭、置前或调整大小）。此前在 Xvfb 下，resident 和 reopen 真实窗口测试在两种绑定下都会超时，raise 偶尔死锁；修复后整套测试在两种绑定、amd64 和 arm64 上都通过。现在 `Run` 把它们排队到事件循环执行（见下文），XFlush 让请求立即发出，而不是等事件循环下一次调用 XPending。
 
 - `gio/app/internal/xkb`：按键分发逻辑和 keysym 表移入 `xkb.go`，操作 libxkbcommon 的不透明指针；`xkb_cgo.go` 保留 cgo 调用（并对照头文件检查 keysym 和枚举值），`xkb_purego_linux.go` 不使用 cgo 加载 `libxkbcommon.so.0`。测试在两种绑定下编译默认键位表，检查 KEY_A 的 keysym、文本、Shift 和按键重复。
 
@@ -202,6 +202,8 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
 `deferred_teardown_test.go` 覆盖通知、确认与只清理一次的顺序。
 
 - `gio/app`（Wayland）：`Run` 回调排队到原生事件线程执行。此前后台最大化、配置窗口与收集帧指令并发，可能在 GPU 读取时重置录制指令。关闭时先停止队列唤醒，再关闭原生管道，并让等待中的 `Window.Run` 返回。回归测试在执行排队重置前解码当前帧。
+
+- `gio/app`（X11）：`Run` 回调排队到事件循环执行，与 Wayland 相同。Gio 原先在调用方的 goroutine 上执行它们，于是 Perform 和 Configure 在那里调用 Xlib，而事件循环正阻塞在 X 连接的 poll 上。这类调用期间，Xlib 可能把 socket 上的事件读进自己的队列；如果这发生在事件循环最后一次 XPending 之后，poll 永远不会醒来，窗口收不到关闭请求。无 cgo 的 Xvfb 环境下，reopen 真实窗口用例在 3840 次运行中超时（"FAIL: timeout"）5 次；超时时的转储显示事件循环停在 poll，socket 和通知管道都为空，Xlib 队列里有一个事件。事件循环启动之前，`Run` 仍直接调用 f，因为 `Window.init` 在 `Event` 内部重放早先的操作。关闭时先停止队列唤醒，再关闭通知管道，并让等待中的 `Window.Run` 返回。`os_x11_run_test.go` 覆盖排队、唤醒和关闭。
 
 - `gio/gpu`：按图片绘制操作记录是否位于透明度图层内，无关图层不再让整帧禁用着色纹理共享；路径裁剪和图层内图片仍使用烘焙颜色。纹理数量和原生像素测试覆盖无关图层与嵌套透明度。CoreText 页面改为 256×256，保留 32 MiB 像素预算，减少回退路径按颜色复制整页的成本；缓存测试覆盖淘汰和当前帧正在使用的页面。
 
