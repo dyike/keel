@@ -44,6 +44,12 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app`: reopen invalidation when a frame is delivered, so an external
+  update arriving during layout can request the following frame. Previously
+  the pending-request flag stayed closed until the event queue drained,
+  dropping that request. `TestInvalidateDuringFrame` reproduces the loss
+  and checks that duplicate requests still coalesce.
+
 - `gio/internal/ops`: op writes extend the data buffer in place when it
   has room, instead of `append(o.data, make([]byte, n)...)`. The compiler
   turns that idiom into an in-place extension only in ordinary builds;

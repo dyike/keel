@@ -732,6 +732,11 @@ func (w *Window) nextEvent() (event.Event, bool) {
 		e := *s.frame
 		s.frame = nil
 		s.framePending = true
+		// Updates arriving after delivery may miss this frame's layout.
+		// Allow them to schedule the next frame before the event queue drains.
+		w.invMu.Lock()
+		w.mayInvalidate = w.driver != nil
+		w.invMu.Unlock()
 		return e.FrameEvent, true
 	case s.wakeup:
 		return wakeupEvent{}, true
