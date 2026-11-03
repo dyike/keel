@@ -25,3 +25,10 @@ var fallbackFaces = sync.OnceValue(func() []font.FontFace {
 	faces = append(faces, parsed...)
 	return faces[:len(faces):len(faces)]
 })
+
+// DefaultFontFaces returns a copy of the default face list. The immutable font
+// tables are shared; callers can create independent shapers without reloading
+// platform collections. Do not modify the underlying Font returned by Face().
+func DefaultFontFaces() []font.FontFace {
+	return append([]font.FontFace(nil), fallbackFaces()...)
+}
