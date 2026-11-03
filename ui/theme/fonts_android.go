@@ -1,8 +1,6 @@
 package theme
 
 import (
-	"os"
-
 	"github.com/dyike/keel/gio/font"
 	"github.com/dyike/keel/gio/font/opentype"
 )
@@ -15,11 +13,11 @@ func platformFaces() []font.FontFace {
 		"/system/fonts/NotoSansCJK-Regular.ttc",
 		"/system/fonts/NotoSansSC-Regular.otf",
 	} {
-		data, err := os.ReadFile(path)
+		data, err := mapFile(path)
 		if err != nil {
 			continue
 		}
-		faces, err := opentype.ParseCollection(data)
+		faces, err := opentype.ParseCollectionShared(data)
 		if err == nil {
 			return faces
 		}
