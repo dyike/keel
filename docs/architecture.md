@@ -242,3 +242,5 @@ SVG parsing uses the local `internal/oksvg` copy from `ui/kit`; it depends only 
 `native/tray` depends only on `native` and `native/internal/sys`, never UI or Gio. It uses purego/AppKit on macOS, Win32 on Windows and pure Go SNI/DBusMenu on Linux. Native events enter a separate queue and each tray serializes callbacks on a Go goroutine; UI writes still use `core.Update`. The application explicitly chooses residence; creating a tray does not alter window lifetime.
 
 On macOS and Windows, `gio/app` uses native window decorations and does not import the fallback Material/text stack. Keel UI widgets still depend on text and theme normally. Other targets retain Gio's client-side decoration fallback.
+
+The optional `ui/highlight/golang` provider includes Go, Go text templates and plain text only. Both highlighting providers use `ui/internal/codehighlight` for token conversion. Components selects this provider; its image fixtures are local/data URLs and do not require `ui/netimage`.

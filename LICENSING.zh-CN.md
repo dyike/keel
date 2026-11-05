@@ -26,3 +26,5 @@ Keel 采用 [MIT 协议](LICENSE)，SPDX 标识为 `MIT`。
 ## 贡献
 
 外部贡献需要同意 [贡献者授权协议（CLA）](CLA.zh-CN.md)，贡献以 MIT 协议发布。详见 [参与贡献](CONTRIBUTING.zh-CN.md)。
+
+`ui/highlight/golang` 复制了 Chroma v2.27.0 的部分词法规则，遵循 MIT；见 `ui/highlight/golang/LICENSE`。

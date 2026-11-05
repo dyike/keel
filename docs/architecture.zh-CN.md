@@ -235,3 +235,5 @@ SVG 图标由 `internal/oksvg` 解析，在 `ui/kit` 内通过 `rasterx` 按物�
 `native/tray` 仅依赖 `native` 和 `native/internal/sys`，不引用 UI 或 Gio。macOS 使用 purego/AppKit，Windows 使用 Win32，Linux 使用纯 Go 的 SNI/DBusMenu。原生事件进入独立的队列，由每个托盘的 Go goroutine 串行执行回调；写 UI 状态仍经过 `core.Update`。驻留策略由应用显式设置，创建托盘不会自动改变窗口生命周期。
 
 macOS、Windows 上的 `gio/app` 使用系统窗口装饰，不导入备用标题栏的 Material/文本依赖。Keel UI 组件仍按正常方式依赖文字和主题；其他目标保留 Gio 自绘标题栏回退。
+
+可选的 `ui/highlight/golang` 仅包含 Go、Go 文本模板和纯文本。两个高亮入口共用 `ui/internal/codehighlight` 转换 token。Components 使用 Go 高亮入口；图片演示均为本地内容或 data URL，无需引入 `ui/netimage`。

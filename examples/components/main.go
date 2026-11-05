@@ -16,10 +16,8 @@ import (
 	"github.com/dyike/keel/ui/theme"
 	"github.com/dyike/keel/ui/window"
 
-	// Opt-in features this example shows: code highlighting and images
-	// loaded over the network (each about 4 MB; see docs/kit.md).
-	_ "github.com/dyike/keel/ui/highlight"
-	_ "github.com/dyike/keel/ui/netimage"
+	// The gallery uses Go snippets and local/data-URL image fixtures.
+	_ "github.com/dyike/keel/ui/highlight/golang"
 )
 
 func main() {

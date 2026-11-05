@@ -26,3 +26,5 @@ The documentation gallery’s Noto Sans SC font is licensed under SIL Open Font 
 ## Contributions
 
 External contributors must agree to the [Contributor License Agreement (CLA)](CLA.md). Contributions are released under MIT. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Selected Chroma v2.27.0 lexer rules are copied into `ui/highlight/golang` under MIT; see `ui/highlight/golang/LICENSE`.

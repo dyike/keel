@@ -740,3 +740,7 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
 `internal/oksvg` copies `github.com/srwiley/oksvg` at `v0.0.0-20221011165216-be6e8873101c` under BSD-3-Clause (`internal/oksvg/LICENSE`). It is an internal package of Keel's module, with no nested module or replace directive. Rasterization continues to use upstream `github.com/srwiley/rasterx`.
 
 Patch: `public.go` selects a local charset reader. Default builds accept UTF-8 and reject other declared encodings; `-tags keel_legacy_svg` uses the original `charset.NewReaderLabel`. This prevents legacy encoder/decoder tables and their initialization from entering every kit client. Rendering code is unchanged. Parser pixel comparisons against upstream and encoding tests live next to the copy. To update, copy upstream non-test Go files and LICENSE, then reapply this reader selection.
+
+### Selected Chroma lexer
+
+`ui/highlight/golang` copies the Go lexer and Go-template/plaintext XML rules from Chroma v2.27.0 (MIT, license included). Registration uses a private registry; Go HTML templates are omitted. This avoids linking hundreds of unrelated language rules into Components. The token adapter is shared with the unchanged full-language provider. Parity tests cover supported aliases, malformed code, Unicode, raw-string templates and styles.

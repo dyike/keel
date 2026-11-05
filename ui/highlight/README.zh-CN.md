@@ -13,3 +13,5 @@ import _ "github.com/dyike/keel/ui/highlight"
 - 语言名支持别名和扩展名（`go`、`golang`、`Go`）；配色默认 `github` / `github-dark`，按代码背景深浅选择，Markdown 可用 `markdown.CodeStyle` 指定 chroma 风格名。
 
 要换别的高亮实现，实现 `core.Highlighter` 并调用 `core.SetHighlighter`。
+
+仅需 Go 的应用可改用 `ui/highlight/golang`：包含 Go、Go 文本模板和纯文本，沿用相同的 token 转换和配色，其他语言显示为无颜色文本。本入口仍提供完整语言支持。

@@ -286,3 +286,7 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
 `internal/oksvg` 来自 `github.com/srwiley/oksvg` 的 `v0.0.0-20221011165216-be6e8873101c`，许可为 BSD-3-Clause（`internal/oksvg/LICENSE`）。它是 Keel 模块内的内部包，没有嵌套模块或 replace 指令。光栅化继续使用上游 `github.com/srwiley/rasterx`。
 
 补丁：`public.go` 改用本地字符集读取函数。默认构建接受 UTF-8，拒绝其他编码声明；`-tags keel_legacy_svg` 使用原来的 `charset.NewReaderLabel`。这样旧字符集编解码表及其初始化代码不会进入每个 kit 客户端。绘制代码保持不变；副本旁包含与上游的像素对比及编码测试。更新时复制上游非测试 Go 文件和 LICENSE，再应用读取函数选择补丁。
+
+### 按需选择 Chroma 规则
+
+`ui/highlight/golang` 复制 Chroma v2.27.0 的 Go lexer 和 Go 模板、纯文本 XML 规则（MIT，附许可证）。改为独立注册表，省略 Go HTML 模板，避免 Components 链入数百种无关语言。token 转换与完整语言入口共用。对比测试覆盖支持的别名、不完整代码、Unicode、原始字符串模板及配色。

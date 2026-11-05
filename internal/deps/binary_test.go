@@ -77,3 +77,17 @@ func TestNoOpenGLDependencies(t *testing.T) {
 		}
 	}
 }
+
+// The component fixtures use Go/text and local images. Keep unused global
+// language registration and the HTTP client out of this representative client.
+func TestComponentsOptionalDependencies(t *testing.T) {
+	out, err := exec.Command("go", "list", "-deps", mod+"/examples/components").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, dep := range strings.Fields(string(out)) {
+		if dep == "net/http" || dep == "github.com/alecthomas/chroma/v2/lexers" {
+			t.Errorf("components unexpectedly includes %s", dep)
+		}
+	}
+}

@@ -4,6 +4,45 @@ English | [简体中文](testing.zh-CN.md)
 
 Most interface tests do not require opening a window: the `ui/internal/uitest` testing tool sends clicks, keys, and text through Gio's real input routing. The code executed by the component is exactly the same as that of the real window. `go test -race ./...` takes about 10 seconds to run on this machine.
 
+## Components dependency selection, local follow-up
+
+Components keeps all 99 scenes and selects only the optional dependencies its
+fixtures use: `ui/highlight/golang` for Go/template/plain-text snippets, and
+local/data-URL images without `ui/netimage`. The original full-language
+`ui/highlight` and HTTP image provider remain available to applications.
+Unknown languages in this gallery now render uncolored; automatic language
+detection is limited to the selected registry. HTTP image URLs are not enabled
+in this example. This is dependency selection for Components, not an equivalent
+reduction for applications that require all languages and remote images.
+
+Go 1.27.1, `CGO_ENABLED=0`, `GOWORK=off`,
+`-trimpath -buildvcs=false -ldflags="-s -w"`. Before and after use the same
+working tree (including the native decoration split below); the baseline
+restores the two previous imports through a Go overlay. Executable sizes:
+
+| Target | Before (MiB) | After (MiB) | Reduction |
+| --- | ---: | ---: | ---: |
+| macOS arm64 | 24.54 | 19.04 | 22.4% |
+| Windows amd64 | 25.76 | 20.01 | 22.3% |
+| Linux amd64 | 26.33 | 20.63 | 21.7% |
+
+On macOS, removing the unused HTTP image import alone saves 2.98 MiB;
+selecting Go rules then saves another 2.52 MiB. No renderer, font, component,
+resolution or frame-rate changes are part of this step. No physical-memory
+reduction is claimed. These changes are local and unpublished.
+
+The fixed-time matrix matches all 792 PNGs byte for byte; all 99 visible
+window scenes and gallery interaction checks pass. An initial comparison
+without a fixed clock differed in 72 animation images; the fixed-time rerun
+eliminated those differences. Supported-language parity tests compare the
+selected provider against the full provider, including templates, malformed
+code, Unicode and multiple styles. Dependency tests reject `net/http` and
+the global Chroma lexer registry in Components. Full cgo/no-cgo tests, vet,
+focused race tests, desktop cross-builds of Components and its WebAssembly
+build pass. This does not resolve the four native-window gate failures
+recorded in the preceding optimization; that gate was not rerun here.
+
+
 ## Native window dependency split, local follow-up
 
 Against `19b3db8`, macOS and Windows no longer compile Gio's client-side
