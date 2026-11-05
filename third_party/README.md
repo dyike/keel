@@ -724,3 +724,9 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
 - `gio/app` (macOS): rechecked on 2026-10-18 whether two drawables would do
   (16.7 MB each at 2560x1680): `TestMetalResizeWindow` stalled in 3 of 3
   runs with `maximumDrawableCount = 2`, so it stays at three.
+
+## SVG parser
+
+`internal/oksvg` copies `github.com/srwiley/oksvg` at `v0.0.0-20221011165216-be6e8873101c` under BSD-3-Clause (`internal/oksvg/LICENSE`). It is an internal package of Keel's module, with no nested module or replace directive. Rasterization continues to use upstream `github.com/srwiley/rasterx`.
+
+Patch: `public.go` selects a local charset reader. Default builds accept UTF-8 and reject other declared encodings; `-tags keel_legacy_svg` uses the original `charset.NewReaderLabel`. This prevents legacy encoder/decoder tables and their initialization from entering every kit client. Rendering code is unchanged. Parser pixel comparisons against upstream and encoding tests live next to the copy. To update, copy upstream non-test Go files and LICENSE, then reapply this reader selection.

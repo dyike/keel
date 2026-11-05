@@ -13,8 +13,8 @@ import (
 	"github.com/dyike/keel/gio/op"
 	"github.com/dyike/keel/gio/op/clip"
 	"github.com/dyike/keel/gio/op/paint"
+	"github.com/dyike/keel/internal/oksvg"
 	"github.com/dyike/keel/ui/core"
-	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 )
 
@@ -29,7 +29,8 @@ type svgIcon struct {
 	image    paint.ImageOp
 }
 
-// SVGIcon parses SVG bytes synchronously. Keep the returned view for reuse;
+// SVGIcon parses UTF-8 SVG bytes synchronously. Build with keel_legacy_svg
+// to accept legacy encodings. Keep the returned view for reuse;
 // parsing should not happen every Render. Input is limited to 1MiB. Unsupported
 // SVG elements return an error. As with built-in icons, Color tints the alpha
 // silhouette; OriginalColors(true) preserves the SVG's colors instead.

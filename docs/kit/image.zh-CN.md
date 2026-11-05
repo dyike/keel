@@ -55,3 +55,5 @@ cache := kit.NewImageCache(32 << 20).Disk(filepath.Join(dir, "myapp", "images"),
 ```
 
 `Disk(目录, 上限字节, 有效期)`（同样需要 `ui/netimage`）把 HTTP(S) 图片的原始字节存到磁盘，重启后不必重新下载。有效期内直接使用本地副本；过期后带 `If-None-Match` / `If-Modified-Since` 重新验证，服务器返回 304 就继续用本地副本并刷新有效期。网络失败或服务器 5xx 时使用过期副本。总大小超过上限时按最近使用时间淘汰。`Cache-Control: no-store` 的响应不落盘；本地文件和 data URL 不复制。本地副本解码失败会被删除。目录为空或上限 ≤ 0 关闭磁盘缓存。内存层仍按原规则工作，磁盘层只在内存未命中时读取。
+
+SVG 图片与 [SVG 图标](icon.zh-CN.md) 使用相同编码策略：默认 UTF-8，用 `-tags keel_legacy_svg` 启用旧字符集。

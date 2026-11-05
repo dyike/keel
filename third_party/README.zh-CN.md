@@ -273,3 +273,9 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
 - `gio/gpu/internal/metal`：不超过 4 KiB 的缓冲放在 Go 内存里（通过 `set*Bytes` 传给 GPU，每条重建的路径都用到），其存储按 2 的幂分级复用，每级最多 256 个，`Trim` 时清空。`set*Bytes` 会把内容复制进编码器，所以缓冲释放后存储即可复用。60 Hz 的 Mirage 会话原先每秒分配数 MB。`TestSmallBufferStoresReused` 检查复用、清零，以及一个小的不可变缓冲只分配一次（`*Buffer` 本身）。
 - `gio/op/paint`、`gio/gpu`、`gio/internal/dirty`：`NewSharedImageOp(src, mu)` 是由所有者在帧外写像素的可变图片。渲染器只在读取 `src` 时（创建纹理，或版本变化后上传变化区域）持有 `mu`，且都在帧内完成。远程桌面客户端可以把解码器的帧缓冲用 `SubImage` 切成共用一把锁的 tile 直接交给渲染器，不必再复制一份 tile 图片（5K 屏幕约 60 MB）。`TestSharedImageReadsUnderLock` 检查每次上传都持有锁、未变化的 tile 不取锁，并在 `go test -race` 下验证并发写入。
 - `gio/app`（macOS）：2026-10-18 复查两个 drawable 是否够用（2560x1680 时每个 16.7 MB）：`maximumDrawableCount = 2` 时 `TestMetalResizeWindow` 3 次运行 3 次停顿，因此保持三个。
+
+## SVG 解析器
+
+`internal/oksvg` 来自 `github.com/srwiley/oksvg` 的 `v0.0.0-20221011165216-be6e8873101c`，许可为 BSD-3-Clause（`internal/oksvg/LICENSE`）。它是 Keel 模块内的内部包，没有嵌套模块或 replace 指令。光栅化继续使用上游 `github.com/srwiley/rasterx`。
+
+补丁：`public.go` 改用本地字符集读取函数。默认构建接受 UTF-8，拒绝其他编码声明；`-tags keel_legacy_svg` 使用原来的 `charset.NewReaderLabel`。这样旧字符集编解码表及其初始化代码不会进入每个 kit 客户端。绘制代码保持不变；副本旁包含与上游的像素对比及编码测试。更新时复制上游非测试 Go 文件和 LICENSE，再应用读取函数选择补丁。

@@ -4,6 +4,44 @@ English | [简体中文](testing.zh-CN.md)
 
 Most interface tests do not require opening a window: the `ui/internal/uitest` testing tool sends clicks, keys, and text through Gio's real input routing. The code executed by the component is exactly the same as that of the real window. `go test -race ./...` takes about 10 seconds to run on this machine.
 
+## Binary dependency measurements, 2026-11-05
+
+Compared with main `1759621`, this unpublished local change restricts native
+X11/DBus implementations to Linux and uses UTF-8 SVG parsing by default.
+`-tags keel_legacy_svg` restores upstream legacy charset decoding. Font
+fallbacks, renderer selection and automation remain unchanged.
+
+Go 1.27.1 on darwin/arm64; each target uses `CGO_ENABLED=0`, `GOWORK=off`,
+`-trimpath -buildvcs=false -ldflags="-s -w"`. Values are executable MiB,
+not installers or runtime memory. The native probe imports `native/permission`
+and calls `Granted` with a flag-provided kind (default -1, avoiding native
+permission requests); its sleep option permits separate memory sampling.
+
+| Target | Hello before → after | Components before → after | Native probe before → after |
+| --- | ---: | ---: | ---: |
+| macOS arm64 | 11.25 → 10.47 | 25.87 → 24.54 | 3.29 → 2.31 |
+| Windows amd64 | 11.50 → 10.72 | 26.78 → 25.77 | 2.34 → 2.16 |
+| Linux amd64 | 14.11 → 13.31 | 27.11 → 26.33 | 2.87 → 2.87 |
+
+With macOS's default cgo backend, Hello changes from 11.09 to 10.32 MiB,
+Components from 25.48 to 24.18 MiB and the native probe from 3.29 to 2.30 MiB.
+Linux retains the native protocols it actually uses. These results do not
+establish a GUI physical-memory reduction or Windows/Linux runtime behavior.
+
+Default and no-cgo full tests, vet, race tests and Windows/Linux no-cgo full
+builds pass. Parser tests compare pixels with upstream at 1× and 2×;
+legacy-tag tests decode Big5, GBK, Shift-JIS and Windows-1252. Native protocol
+unit tests also pass on macOS using a test-only build-constraint overlay;
+Linux's protocol test binary cross-compiles. Dependency tests check desktop
+target selection and reject legacy charset tables in default kit builds.
+
+The first 792-image matrix comparison differed in 12 dark 1× images.
+Three interleaved fresh-process comparisons of each affected scene/width all
+matched; a complete fresh matrix repeat then matched all 792 PNGs byte for
+byte. The initial differences were not reproduced. The real-window gallery
+passed all 99 scenes and its interaction checks. No renderer changes were
+made in response to the initial screenshot differences.
+
 ## Desktop no-cgo compilation gate
 
 ```sh

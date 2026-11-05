@@ -31,7 +31,7 @@ var allowed = map[string][]string{
 	"ui/motion":                {"ui/el", "ui/core", "ui/theme", "ui/locale", "ui/internal/loop", "ui/internal/editorstyle", "ui/internal/inputcontent"},
 	"ui/highlight":             {"ui/core", "ui/internal/loop"},
 	"ui/netimage":              {"ui/core", "ui/internal/loop"},
-	"ui/kit":                   {"ui/base", "ui/core", "ui/theme", "ui/locale", "ui/el", "ui/internal/loop", "ui/internal/editorstyle", "ui/internal/inputcontent"},
+	"ui/kit":                   {"internal/oksvg", "ui/base", "ui/core", "ui/theme", "ui/locale", "ui/el", "ui/internal/loop", "ui/internal/editorstyle", "ui/internal/inputcontent"},
 	"ui/window":                {"ui/core", "ui/theme", "ui/internal/loop", "ui/internal/appkit", "ui/internal/wayland", "internal/appicon"},
 	"ui/window/windowtest":     {"ui/window", "ui/core", "ui/theme", "ui/internal/loop", "ui/internal/appkit", "ui/internal/wayland", "internal/appicon"},
 	"ui/el":                    {"ui/core", "ui/theme", "ui/locale", "ui/internal/loop", "ui/internal/editorstyle", "ui/internal/inputcontent"},
@@ -56,6 +56,7 @@ var allowed = map[string][]string{
 	"cmd/gogio":    {"internal/gogio"},
 	// The packager is shared by both commands (internal/gogio/README.md).
 	"internal/gogio": {},
+	"internal/oksvg": {},
 }
 
 func TestModuleBoundaries(t *testing.T) {
@@ -122,14 +123,15 @@ func TestFoundationBoundaries(t *testing.T) {
 }
 
 // kit may reach implementation helpers transitively through el/core/theme,
-// but its own components must stay on their public APIs.
+// but its own components must stay on their public APIs. The internal SVG
+// parser is the one explicit implementation dependency.
 func TestKitDirectDependencies(t *testing.T) {
 	out, err := exec.Command("go", "list", "-f", `{{range .Imports}}{{println .}}{{end}}`, mod+"/ui/kit").Output()
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, dep := range strings.Fields(string(out)) {
-		if strings.HasPrefix(dep, mod+"/") && !within(dep, gio) && !within(dep, typesetting) && !slices.Contains([]string{mod + "/ui/base", mod + "/ui/core", mod + "/ui/theme", mod + "/ui/locale", mod + "/ui/el"}, dep) {
+		if strings.HasPrefix(dep, mod+"/") && !within(dep, gio) && !within(dep, typesetting) && !slices.Contains([]string{mod + "/internal/oksvg", mod + "/ui/base", mod + "/ui/core", mod + "/ui/theme", mod + "/ui/locale", mod + "/ui/el"}, dep) {
 			t.Errorf("kit directly imports %s", dep)
 		}
 	}
