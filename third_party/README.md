@@ -44,6 +44,16 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app`: keep the fallback title bar's Material widgets and text shaper
+  out of macOS and Windows window builds. AppKit and Win32 implement the
+  decoration option directly; the other platforms retain the existing
+  fallback, its measured height, actions and maximized state. Native and
+  fallback state tests and dependency checks cover the split.
+- `gio/gpu`: make `noopengl` exclude the OpenGL registration import and EGL/WebGL headless contexts. Previously
+  the tag removed window contexts but the GPU initializer still retained
+  the backend. A tagged test verifies that requesting OpenGL returns an
+  unsupported-backend error; other backends keep their existing behavior.
+
 - `gio/app`: reopen invalidation when a frame is delivered, so an external
   update arriving during layout can request the following frame. Previously
   the pending-request flag stayed closed until the event queue drained,

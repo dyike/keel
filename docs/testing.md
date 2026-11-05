@@ -4,6 +4,46 @@ English | [简体中文](testing.zh-CN.md)
 
 Most interface tests do not require opening a window: the `ui/internal/uitest` testing tool sends clicks, keys, and text through Gio's real input routing. The code executed by the component is exactly the same as that of the real window. `go test -race ./...` takes about 10 seconds to run on this machine.
 
+## Native window dependency split, local follow-up
+
+Against `19b3db8`, macOS and Windows no longer compile Gio's client-side
+fallback title bar into `gio/app`. Native title bars remain; Linux and the
+other platforms retain the existing fallback. No font features are removed
+from Keel widgets. Go 1.27.1, `CGO_ENABLED=0`, `GOWORK=off`,
+`-trimpath -buildvcs=false -ldflags="-s -w"`, executable MiB:
+
+| Client | macOS arm64 before → after | Windows amd64 before → after |
+| --- | ---: | ---: |
+| Empty Gio window (event loop and frame submission, no text) | 6.718 → 3.364 | 6.499 → 2.998 |
+| Empty Keel window | 9.220 → 9.220 | 9.083 → 9.075 |
+| Hello | 10.473 → 10.457 | 10.723 → 10.715 |
+
+The roughly 50% reduction belongs to the bare Gio client, not Hello. Keel
+still needs its text/theme stack. Linux retains fallback decorations and
+these clients grow by 4–8 KiB from the split. The proposed additional 30%
+Hello reduction has not been achieved. No GUI memory reduction is claimed.
+
+`noopengl` now removes GPU registration as well as EGL/WebGL headless
+contexts. It previously left the GPU backend linked despite excluding app
+contexts. On macOS, the updated empty Gio client is 3.139 MiB with the tag;
+Hello is 10.312 MiB. Use the tag only with another supported backend (for
+example Metal); it does not provide a replacement for WebGL. Normal builds
+retain OpenGL. Font removal and disabling development tooling were measured
+only with local overlays and are not part of the change.
+
+Full tests with and without cgo, race, vet, Windows/Linux full cross-builds,
+WebAssembly build, fallback-decoration tests through a host overlay, and
+Metal idle/resize tests pass. The component matrix has 792 byte-identical
+PNGs and all 99 gallery scenes pass interaction checks. The workflow's
+comparison step initially lacked baseline metadata; a separate complete
+byte comparison verified the images without rerendering them.
+
+The complete `RealWindows` gate is **not passing** on the inspected host:
+accessibility press, text-cache redraw/resize, glass and the resize probe
+fail with both backends. The same four failures reproduce on `19b3db8`
+without this change. These failures remain unresolved; the passing Metal
+checks do not replace that gate. Windows/Linux runtime behavior is unverified.
+
 ## Binary dependency measurements, 2026-11-05
 
 Compared with main `1759621`, this unpublished local change restricts native

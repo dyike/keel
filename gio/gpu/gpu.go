@@ -36,7 +36,6 @@ import (
 	// Register backends.
 	_ "github.com/dyike/keel/gio/gpu/internal/d3d11"
 	_ "github.com/dyike/keel/gio/gpu/internal/metal"
-	_ "github.com/dyike/keel/gio/gpu/internal/opengl"
 	_ "github.com/dyike/keel/gio/gpu/internal/vulkan"
 )
 

@@ -45,3 +45,35 @@ func TestDefaultSVGDependencies(t *testing.T) {
 		}
 	}
 }
+
+func TestNativeAppDoesNotImportFallbackWidgets(t *testing.T) {
+	for _, target := range []string{"darwin", "windows"} {
+		cmd := exec.Command("go", "list", "-deps", "-f", "{{.ImportPath}}", gio+"/app")
+		cmd.Env = append(os.Environ(), "GOOS="+target, "GOARCH=amd64", "CGO_ENABLED=0", "GOWORK=off")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("%s: %v: %s", target, err, out)
+		}
+		for _, dep := range strings.Fields(string(out)) {
+			if within(dep, gio+"/widget") || within(dep, gio+"/text") || within(dep, typesetting) {
+				t.Errorf("%s app retains client-side title bar dependency %s", target, dep)
+			}
+		}
+	}
+}
+
+func TestNoOpenGLDependencies(t *testing.T) {
+	for _, target := range []string{"darwin", "linux", "windows"} {
+		cmd := exec.Command("go", "list", "-tags=noopengl", "-deps", "-f", "{{.ImportPath}}", gio+"/gpu/headless")
+		cmd.Env = append(os.Environ(), "GOOS="+target, "GOARCH=amd64", "CGO_ENABLED=0", "GOWORK=off")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("%s: %v: %s", target, err, out)
+		}
+		for _, dep := range strings.Fields(string(out)) {
+			if dep == gio+"/gpu/internal/opengl" || dep == gio+"/internal/egl" {
+				t.Errorf("%s noopengl retains %s", target, dep)
+			}
+		}
+	}
+}
