@@ -177,7 +177,9 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 		}
 		st.dragAccept = n.dragAccept
 		if st.disabled {
-			st.inputPaste = nil
+			if st.inputState != nil {
+				st.inputPaste = nil
+			}
 			st.pressedKey = ""
 			st.click = gesture.Click{}
 			st.drag = gesture.Drag{}

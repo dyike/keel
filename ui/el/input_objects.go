@@ -124,6 +124,7 @@ func (e *engine) prepareInputObjects(n *Node, st *elemState, maxW int) {
 	d := n.input.document
 	d.objects = true
 	p := d.presentation()
+	st.inputEditor()
 	objects := &st.inputObjects
 	objects.sizes = objects.sizes[:0]
 	if len(p.Spans) == 0 {

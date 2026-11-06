@@ -131,3 +131,26 @@ func TestIdleReclaimerCollectsUncollectedGarbage(t *testing.T) {
 		t.Fatal("new allocation budget did not trigger collection")
 	}
 }
+
+func TestIdleReclaimerSmallLiveHeapAfterAllocation(t *testing.T) {
+	for _, tc := range []struct {
+		heap, allocated uint64
+		want            int
+	}{
+		{reclaimObjectMinimum - 1, reclaimMinimum, 0},
+		{reclaimObjectMinimum, reclaimMinimum - 1, 0},
+		{reclaimObjectMinimum, reclaimMinimum, 1},
+	} {
+		calls := 0
+		r := idleReclaimer{enabled: true, last: time.Now().Add(-time.Minute), reclaim: func() { calls++ }, readStats: func(s *runtime.MemStats) { s.HeapAlloc = tc.heap; s.TotalAlloc = tc.allocated }}
+		r.fire(0)
+		if calls != tc.want || r.timer != nil {
+			t.Fatalf("heap=%d allocation=%d: calls=%d timer=%v", tc.heap, tc.allocated, calls, r.timer)
+		}
+		r.next = time.Time{}
+		r.fire(0)
+		if calls != tc.want || r.timer != nil {
+			t.Fatal("unchanged heap caused periodic collection")
+		}
+	}
+}

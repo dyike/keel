@@ -44,6 +44,23 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/text`: bound retained paragraph layouts by estimated bytes (8 MiB
+  ordinarily, at most 64 MiB for layouts used within eight explicit frames),
+  retaining the 1,000-entry cap. A short cached paragraph owns its string rather
+  than retaining the input document through a substring. `Shaper.BeginFrame`
+  protects visible working sets; callers without it keep the ordinary budget.
+  Tests cover byte/entry caps, oversized paragraphs, key ownership and working-set
+  reuse. This follows MyGo's byte-budget approach without changing layout output.
+- `gio/text`, macOS: retain stable face identities but reclaim least-recently-used
+  sized CoreText fonts above 512 unpinned objects. A copied descriptor must first
+  reconstruct a `CFEqual` font; unsupported identities remain pinned. Old glyph
+  IDs recreate their original fonts on demand. The existing `GlyphNativeFont`
+  API pins its returned handle to preserve its lifetime contract; the theme uses
+  `BorrowGlyphNativeFont` for synchronous rasterization. Descriptors, face-index
+  metadata, the existing 256-entry primary cache, and pinned fonts are outside
+  the 512-object budget, so this is not a bound on all native memory. Eviction,
+  legacy-handle and raster tests cover old glyphs, CJK, variable styles and emoji.
+
 - `gio/app`: keep the fallback title bar's Material widgets and text shaper
   out of macOS and Windows window builds. AppKit and Win32 implement the
   decoration option directly; the other platforms retain the existing

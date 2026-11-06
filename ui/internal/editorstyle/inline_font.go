@@ -8,6 +8,7 @@ package editorstyle
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"slices"
@@ -25,7 +26,15 @@ type InlineFontMetrics struct {
 	Ascent, Descent int16  // positive distances above/below the baseline
 }
 
-type inlineFace struct{ font *fontapi.Font }
+type inlineFace struct {
+	font *fontapi.Font
+	data []byte
+}
+
+// NativeFontData opts this immutable, document-local font into platform
+// shaping. Otherwise one inline object forces the whole editor through the
+// Go fallback, including a separate system font index and parsed font tables.
+func (f inlineFace) NativeFontData() ([]byte, int) { return f.data, 0 }
 
 func (f inlineFace) Face() *fontapi.Face { return fontapi.NewFace(f.font) }
 
@@ -50,7 +59,7 @@ func InlineFont(name font.Typeface, metrics InlineFontMetrics, glyphs []InlineGl
 	if err != nil {
 		return font.FontFace{}, fmt.Errorf("editorstyle: inline font: %w", err)
 	}
-	return font.FontFace{Font: font.Font{Typeface: name}, Face: inlineFace{face.Font}}, nil
+	return font.FontFace{Font: font.Font{Typeface: name}, Face: inlineFace{face.Font, data}}, nil
 }
 
 func inlineFontData(m InlineFontMetrics, glyphs []InlineGlyph) []byte {
@@ -108,6 +117,32 @@ func inlineFontData(m InlineFontMetrics, glyphs []InlineGlyph) []byte {
 		u16(glyf[at+8:], uint16(m.Ascent))
 	}
 	tables := map[string][]byte{"head": head, "hhea": hhea, "hmtx": hmtx, "maxp": maxp, "cmap": cmap, "loca": loca, "glyf": glyf}
+	// A content-derived PostScript name keeps distinct document metrics distinct.
+	digest := sha256.New()
+	digest.Write(head)
+	digest.Write(hhea)
+	digest.Write(hmtx)
+	digest.Write(cmap)
+	ps := fmt.Sprintf("KeelInline-%x", digest.Sum(nil)[:16])
+	name := make([]byte, 6+12*3)
+	u16(name[2:], 3)
+	u16(name[4:], uint16(len(name)))
+	for i, id := range []uint16{1, 4, 6} {
+		at := 6 + i*12
+		u16(name[at:], 3)
+		u16(name[at+2:], 1)
+		u16(name[at+4:], 0x409)
+		u16(name[at+6:], id)
+		u16(name[at+8:], uint16(len(ps)*2))
+		u16(name[at+10:], uint16(i*len(ps)*2))
+		for _, c := range []byte(ps) {
+			name = append(name, 0, c)
+		}
+	}
+	tables["name"] = name
+	post := make([]byte, 32)
+	u32(post, 0x00030000)
+	tables["post"] = post
 	tags := make([]string, 0, len(tables))
 	for tag := range tables {
 		tags = append(tags, tag)

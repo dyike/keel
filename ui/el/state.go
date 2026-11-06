@@ -115,16 +115,25 @@ type elemState struct {
 	version                                                          int  // ScrollToEndOn's value last frame
 	keepVersion                                                      int  // KeepBottomOn's value last frame
 
+	// Text editing state is large and unused by buttons, keyed rows and scroll
+	// containers. Keep the editor pointer here for generic focus checks.
+	editor       *widget.Editor
+	edInit       bool
+	inputFocused bool
+	*inputState
+}
+
+// inputState and its editor share one allocation. Neither address changes
+// during the element's lifetime: native input and Gio routing retain tags.
+type inputState struct {
+	editorValue           widget.Editor
 	inputObjects          inputObjectLayout
 	inputTokenHits        []*inputTokenHit
 	inputDocument         *InputDocument
 	inputDocumentRevision uint64
 	inputDocumentFilters  []event.Filter
 	inputComposition      key.Range
-	editor                *widget.Editor
 	caret                 editorstyle.Caret
-	edInit                bool
-	inputFocused          bool
 	inputPaste            *inputPasteRequest
 	inputActions          []InputAction
 	inputSelection        *[2]int
@@ -136,7 +145,8 @@ type elemState struct {
 // and virtual rows. Its address remains stable for Gio's focus and event tags.
 func (st *elemState) inputEditor() *widget.Editor {
 	if st.editor == nil {
-		st.editor = new(widget.Editor)
+		st.inputState = new(inputState)
+		st.editor = &st.inputState.editorValue
 	}
 	return st.editor
 }

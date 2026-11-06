@@ -251,6 +251,12 @@ type Shaper struct {
 // ShaperOptions configure text shapers.
 type ShaperOption func(*Shaper)
 
+// BeginFrame marks a new frame using this shaper. Recently used paragraph
+// layouts may share a larger, bounded working set than inactive layouts.
+// It is optional: shapers used without it retain the ordinary byte budget.
+// Like other Shaper methods, call it serially. Keel patch.
+func (l *Shaper) BeginFrame() { l.layoutCache.beginFrame() }
+
 // NoSystemFonts can be used to disable system font loading.
 func NoSystemFonts() ShaperOption {
 	return func(s *Shaper) {
@@ -697,6 +703,24 @@ func (l *Shaper) GlyphFileInstance(id GlyphID) (path string, index, instance int
 // is tied to this shaper; callers must neither release nor retain Go pointers
 // in native objects. Returns false when the Go engine is in use.
 func (l *Shaper) GlyphNativeFont(id GlyphID) (uintptr, fixed.Int26_6, uint16, bool) {
+	l.init()
+	if n := l.shaper.native; n != nil {
+		if p, ok := n.(interface {
+			pinGlyphFont(GlyphID) (uintptr, fixed.Int26_6, uint16, bool)
+		}); ok {
+			return p.pinGlyphFont(id)
+		}
+		return n.glyphFont(id)
+	}
+	return 0, 0, 0, false
+}
+
+// BorrowGlyphNativeFont is GlyphNativeFont for synchronous rasterization. The
+// handle is valid until the next call on the shaper. It may be evicted later;
+// the GlyphID remains valid and reacquires the exact font on demand. Callers
+// must keep the shaper alive for all native calls using the borrowed handle.
+// Keel patch.
+func (l *Shaper) BorrowGlyphNativeFont(id GlyphID) (uintptr, fixed.Int26_6, uint16, bool) {
 	l.init()
 	if n := l.shaper.native; n != nil {
 		return n.glyphFont(id)

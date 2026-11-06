@@ -288,10 +288,10 @@ func (e *engine) inputDocumentIME(n *Node, st *elemState, g layout.Context) {
 }
 
 func documentFilters(st *elemState) []event.Filter {
+	ed := st.inputEditor()
 	if st.inputDocumentFilters != nil {
 		return st.inputDocumentFilters
 	}
-	ed := st.inputEditor()
 	filters := make([]event.Filter, 0, 13)
 	filters = append(filters, key.FocusFilter{Target: ed}, transfer.TargetFilter{Target: ed, Type: "application/text"})
 	for _, name := range []key.Name{"C", "X", "V", "Z", "Y"} {

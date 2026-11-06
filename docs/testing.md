@@ -4,6 +4,298 @@ English | [简体中文](testing.zh-CN.md)
 
 Most interface tests do not require opening a window: the `ui/internal/uitest` testing tool sends clicks, keys, and text through Gio's real input routing. The code executed by the component is exactly the same as that of the real window. `go test -race ./...` takes about 10 seconds to run on this machine.
 
+## Components inline-font memory, 2026-11-06 (local)
+
+Three alternating before/after native-window trials reduce the full gallery's
+post-interaction idle physical footprint from **75.55 to 67.27 MiB (−11.0%)**.
+This is a local, unpublished change on top of the text-cache/font-reclamation
+work below. It does not establish a broad reduction during animation or scrolling.
+
+Inline input objects used a synthetic font without native font data or a name
+table. This made the whole editor fall back to Go shaping, loading a system font
+index and parsed font tables even though ordinary text already used CoreText.
+The synthetic font now supplies immutable SFNT data, Unicode name records and an
+glyph-name-free `post` table. Its PostScript name derives from metrics and rune
+mappings, so independent editors with different object widths retain distinct
+font identities. The font remains local to its shaper; it is not registered
+system-wide. Go shaping remains available on other platforms and when native
+shaping is unavailable.
+
+The host is Apple M4, darwin/arm64, Go 1.27.3, `CGO_ENABLED=0`, with identical
+stripped builds and unlocked foreground windows. Each trial opens the full
+Components gallery at 1200×860dp / 2400×1720 pixels, keeps its default Button
+animations running, scrolls VirtualList through 600 acknowledged updates,
+resizes 20 times between 1040×760dp and 1200×860dp, and visits Input, Table,
+TextView, Button, Table, Input, TextView and VirtualList. It then idles for 20
+seconds and resumes scrolling. The baseline renders 601–602 callbacks during the
+scroll phase; the modified build renders 601. Measurements are serial, without
+builds/tests/profiling or fixture GC; the default idle collector stays enabled. `proc_pid_rusage` v4 provides
+physical footprint and the kernel lifetime peak. Samples are nominally 50ms;
+idle is the last three seconds before resume.
+
+| Measurement, MiB | Before median (range) | After median (range) |
+| --- | ---: | ---: |
+| Idle physical footprint | 75.55 (73.89–75.94) | 67.27 (66.97–68.08) |
+| Kernel lifetime peak | 187.95 (187.08–189.77) | 184.63 (179.89–184.64) |
+| Startup sampled peak | 135.35 (135.17–135.85) | 152.05 (135.45–152.35) |
+| Home animation sampled peak | 136.17 (136.17–136.80) | 152.11 (136.28–152.70) |
+| Scrolling sampled peak | 161.25 (161.03–161.45) | 161.69 (161.33–161.75) |
+| Resizing sampled peak | 172.63 (163.70–180.03) | 171.97 (171.86–184.61) |
+| Page-switching sampled peak | 182.56 (181.69–184.38) | 174.17 (173.89–175.03) |
+
+The 8.28 MiB idle reduction is reproducible in this series. The lifetime-peak
+median decreases only 1.8%; scrolling is unchanged and resize ranges overlap.
+Startup/home ranges also overlap: the change has not run before visiting Input,
+so their different medians must not be credited to it. Separate diagnostics show
+16 MiB drawable-count steps; unexplained driver-owned allocations remain.
+Window-layer experiments without reproducible benefit were discarded.
+
+The maximum layout callback during page switching is 34.79–54.64ms before and
+16.07–22.05ms after. Startup maxima are 16.32–20.07ms and 15.56–16.62ms;
+request-to-resumed-layout completion is 13.76–15.83ms and 11.45–14.63ms. These
+are CPU/layout timings, not presentation latency or end-to-end FPS. In particular,
+the first native/font initialization still has a visible-frame latency cost.
+Regression tests cover native font identity, BMP/supplementary private-use runes,
+1×/2× advances, wrapping and caret selection, while existing input tests cover
+Unicode composition, undo and source-preserving reference content. Raw serial
+samples and the local scenario overlay are under `work/components-total/`.
+
+Validation passes default full tests and vet, CGO-free full tests, Windows
+CGO-free builds, Linux native/cmd vet, and 99 gallery pages plus nine native
+interaction groups. The first full race run failed an existing icon allocation
+count assertion; five isolated runs and a subsequent full race run passed,
+without relaxing the assertion. Go 1.27.3 also passes editorstyle, el and
+components tests. English/Chinese input screenshots were visually checked;
+byte-identical native/Go text shaping is not claimed.
+
+An early experiment accidentally compared a Go 1.27.3 baseline against a
+Go 1.27.1 modified build. That series is excluded from these results. All final
+`matched-*` trials use Go 1.27.3, with build metadata checked before startup and
+saved per trial. The raw data summary is
+`work/components-total/matched-summary.json`.
+
+## Text cache and native font reclamation, 2026-11-06 (local)
+
+The retained changes reduce long-text physical footprint: three alternating
+real-window trials give **105.96 → 68.14 MiB idle (−35.7%)** and
+**193.60 → 151.31 MiB lifetime peak (−21.8%)**. The ordinary Components list
+shows no improvement. These are unpublished working-tree changes, not results
+for an existing release.
+
+Paragraph layouts now have an estimated 8 MiB ordinary byte budget, with up to
+64 MiB for layouts used within eight explicit shaper frames; the existing 1,000
+entry limit still applies. `Shaper.BeginFrame` protects a larger visible working
+set from repeated eviction. Without it, the ordinary budget applies. Cached
+paragraph keys own their strings, so a short substring does not keep an entire
+input document alive. This follows MyGo's byte-budget approach without changing
+line wrapping or glyph positions.
+
+On macOS, the theme borrows native fonts synchronously. A 512-object LRU reclaims
+unpinned sized fonts while preserving their face indices and exact descriptors.
+A descriptor is eligible only after it recreates a `CFEqual` font; other fonts
+remain pinned. Existing `GlyphNativeFont` handles retain their shaper-long
+lifetime. Descriptors, stable identity records, the existing 256-entry primary
+font cache and pinned fonts are outside that LRU budget. This is not an upper
+bound on all text or native memory.
+
+Measurements use Apple M4, Go 1.27.3, `CGO_ENABLED=0`, identical stripped builds,
+unlocked native windows on a 2× display, and serial trials without concurrent
+builds/tests. The baseline retains the preceding lazy-state and idle-collector
+changes. `proc_pid_rusage` v4 provides physical footprint and the kernel lifetime
+peak; polling is nominally 50 ms, with foreground-activation overhead. Idle is
+the mean of the last three seconds of a 12-second quiet period, before resume.
+The fixture forces no GC; Keel's existing default idle collector remains enabled.
+
+The long-text window contains 600 mixed-language paragraphs of about 2,000
+characters each, at 800×600dp (1600×1200 pixels). It executes 600 scrolling
+updates, 20 resizes alternating 900×660dp and 800×600dp, and 480 text-size
+updates. Every scroll/text-size update waits for its layout callback; each
+accepted trial rendered 600 scrolling and 481 size-change/reset callbacks.
+Input is requested at 60 Hz; the framework's frame rate is unchanged. The
+ordinary text component rounds sizes to pixels, so these size updates alone
+do not exercise the 512-font limit.
+
+| Long-text measurement, MiB | Before median (range) | After median (range) |
+| --- | ---: | ---: |
+| Idle physical footprint | 105.96 (103.63–107.64) | 68.14 (66.52–69.33) |
+| Kernel lifetime peak | 193.60 (190.31–196.67) | 151.31 (151.16–151.67) |
+| Startup sampled peak | 105.02 | 105.02 |
+| Scrolling sampled peak | 169.19 | 131.70 |
+| Resizing sampled peak | 186.25 | 151.16 |
+| Text-size changes sampled peak | 193.31 | 140.78 |
+
+The layout-budget-only control gives 68.42 MiB idle and 151.45 MiB kernel peak
+(medians, three trials), locating the main benefit in paragraph caching.
+Startup maximum layout callbacks range 7.75–8.76 ms before and 8.72–10.83 ms
+after; size-change maxima reach 17.72 ms before and 15.76 ms after. The median
+request-to-resumed-layout completion is 15.03 → 16.12 ms. These measurements do
+not establish improved latency, presentation timing or end-to-end frame rate.
+
+A separate real-window font stress case compares the layout-budget-only control
+with the complete change. Four font families render the same short mixed-language
+text across 640 fractional pixel sizes, with each update acknowledged by layout,
+at 800×600dp. Three alternating trials give:
+
+| Font stress measurement | Layout budget only | With font reclamation |
+| --- | ---: | ---: |
+| Idle physical footprint, MiB median (range) | 218.78 (218.72–219.92) | 212.22 (212.19–212.37) |
+| Kernel lifetime peak, MiB median (range) | 310.30 (302.86–313.50) | 306.20 (304.67–306.55) |
+| Resident sized font objects after churn | 3,841 | 1,623 |
+
+The font change independently saves 6.56 MiB (3.0%) at idle in this stress case;
+peak ranges overlap, so a reproducible peak benefit is not established. The
+1,623 resident objects comprise 512 reclaimable and 1,111 pinned fonts. All
+3,841 stable identities remain valid. This is not a claim that ordinary clients
+create thousands of fonts or will obtain the same saving.
+
+The existing Components VirtualList regression fixture uses 680×860dp, 600
+scroll requests, 40 resizes alternating 820×720dp, then 12 idle seconds. Three
+trials per build render 598–599 scrolling callbacks. Idle physical footprint is
+53.65 (52.93–55.11) → 55.62 (54.22–58.20) MiB; kernel peak is
+148.20 (148.05–148.30) → 148.88 (139.58–149.14) MiB. There is no demonstrated
+saving here: the idle median is 1.97 MiB higher, with overlapping ranges. Final
+Go heaps stay about 5.4 MiB. The measurements do not identify the cause of the
+remaining native/driver/process difference.
+
+Byte/entry limits, oversized paragraphs, visible working-set reuse and substring
+ownership have regression tests. Native tests cover old glyph IDs after layout
+and font eviction, permanent-handle compatibility and redundant-descriptor
+release. Raw masks remain byte-identical for Latin, Chinese, Arabic, emoji and
+variable weight/italic text in light and dark ink. Full default/no-cgo tests,
+focused race tests, vet, Windows/Linux no-cgo builds and unlocked `RealWindows`
+passed. No resolution reduction, frame-rate cap or per-frame GC was introduced.
+
+Raw records, binaries, source overlays, hashes and the aggregate `results.json`
+are under local `work/text-memory/`. Locked, occluded, incomplete-frame and
+concurrent-check pilots are excluded. Phase sample peaks must not be substituted
+for the kernel lifetime peak; layout acknowledgements do not prove GPU
+presentation. These results apply to the measured workloads, not every client.
+
+
+## Idle physical-footprint follow-up, 2026-11-06 (local)
+
+The allocation-only patch above did not meet a total-memory goal. A separate
+follow-up allows the existing idle collector to consider a 4 MiB heap after
+at least 8 MiB of new allocations, instead of requiring an 8 MiB heap.
+The unused-page threshold remains 8 MiB; two seconds of quiet, the five-second
+cooldown, frame-lock exclusion and no periodic collection of static windows
+remain unchanged. Applications can still disable idle reclamation.
+
+The same native VirtualList workload and sampling method was repeated against
+the preceding allocation-only working tree. Three uncontended trials per
+version, including one confirmation build from final source, gave:
+
+| Measurement (MiB) | Previous version median (range) | Follow-up median (range) |
+| --- | ---: | ---: |
+| Idle physical footprint | 55.17 (54.85–55.20) | 53.53 (51.62–54.93) |
+| Kernel lifetime physical peak | 146.35 (146.28–146.41) | 146.66 (137.56–146.85) |
+| Final Go heap | 7.34 (7.28–7.69) | 5.37 (5.37–5.37) |
+
+Idle physical footprint improves by 1.64 MiB (3.0%) in this series, with some
+range overlap. Peak does not improve. This is not a demonstrated improvement
+across all client workloads or over every earlier baseline: the earlier
+pre-allocation-patch idle median was 52.23 MiB in a different series. The
+fixture itself forces no GC; the default collector ran once in each follow-up
+trial and zero times in the comparison trials. Resume latency after idle has
+not been profiled. A trial overlapping gallery checks was excluded.
+
+An experiment lazily parsing all 74 Chroma styles showed overlapping physical
+memory results and was reverted, including copied assets and API changes.
+Full tests, focused loop/el/window race tests, vet and the complete unlocked
+`RealWindows` gate pass for the retained follow-up. Boundary tests verify
+both allocation and heap thresholds and that unchanged state never schedules
+periodic collection. This remains an unpublished local change.
+
+
+## Lazy input state, 2026-11-06 (local)
+
+Element state now allocates text-editing metadata only for inputs. The editor
+and its metadata share one allocation with stable addresses; buttons, keyed
+virtual rows and scroll containers retain only their common state. Rendering,
+font selection, buffering and reclamation policy are unchanged.
+
+Against `9545628`, Apple M4, Go 1.27.1, three benchmark runs:
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| Ordinary element struct | 2,392 B | 1,888 B |
+| Ordinary state heap allocation (allocator size class) | 2,688 B | 2,048 B |
+| Input state plus editor heap allocation | 4,480 B | 4,352 B |
+| 60 keyed rows, replacing three per update | 12,832 B/update | 10,912 B/update |
+| Same row benchmark allocation count | 74/update | 74/update |
+| Components VirtualList scroll, median | 92,017 B/frame | 90,112 B/frame |
+| VirtualList scroll CPU time, median | 148.38 µs/frame | 150.74 µs/frame |
+
+The scene allocation reduction is 2.1%, not the synthetic benchmark's 15%.
+CPU time did not improve. These are layout/input-routing benchmarks without
+GPU presentation, not physical footprint or end-to-end frame rate.
+
+The original locked-screen native attempt rendered only one frame and is
+excluded. After unlocking, three interleaved comparisons used the actual
+Components VirtualList window at 680×860dp (2×), 10 seconds of programmatic
+scrolling, 10 seconds alternating 820×720dp and 680×860dp, then 12 idle seconds.
+Both versions rendered about 598 scroll frames and 60 resize frames. A first
+trial overlapping another diagnostic is excluded. Go/GPU reclamation defaults
+were retained; the fixture did not force GC. Physical footprint was sampled
+every 50ms; idle is the final three seconds. Medians in MiB:
+
+| Native measurement | Before | After |
+| --- | ---: | ---: |
+| Kernel lifetime physical peak | 146.69 | 146.38 |
+| Idle physical footprint | 52.23 | 55.76 |
+| Total Go allocation during 10s scrolling | 66.57 | 65.51 |
+| Total Go allocation during 10s resizing | 4.79 | 4.72 |
+
+No material peak improvement is established, and observed idle footprint
+increases. Default idle reclamation ran once in the median before run and
+zero times after; that difference may contribute to the idle result, but is
+not proof of its cause. This is an allocation improvement, not a demonstrated
+client-memory reduction. Native and headless gallery interaction checks each
+pass all 99 scenes. The changes remain local and unpublished.
+
+Regression coverage checks that ordinary states allocate no editor metadata,
+input addresses survive rerenders, and removed input states leave the store.
+All 792 fixed-time GPU screenshots are byte-identical; Windows/Linux no-cgo
+cross-builds pass.
+Existing input/document/IME, selection, clipboard, undo and disabled-state tests
+pass, as do full cgo/no-cgo tests, vet and focused race tests.
+
+
+### Headless lifecycle diagnostic
+
+Run while the desktop is locked or in a session without native windows:
+
+```sh
+KEEL_MEMORY_REPORT=/tmp/keel-memory.json KEEL_MEMORY_ROUNDS=120 go test ./examples/components -run '^TestComponentMemoryLifecycle$' -count=1
+KEEL_MEMORY_REPORT=/tmp/keel-memory-gpu.json KEEL_MEMORY_GPU=1 go test ./examples/components -run '^TestComponentMemoryLifecycle$' -count=1
+```
+
+Each round opens and closes 20 windows across VirtualList, Table, Input and
+TextView, exercises list scrolling and two sizes, then collects Go memory.
+The GPU mode also renders screenshots for each scene at both sizes. The last
+sample follows six idle seconds and another collection. `KEEL_MEMORY_PROFILE=1`
+adds a heap profile. These forced collections belong only to this opt-in
+diagnostic; they do not establish idle physical footprint. A passing run
+validates operations, not leak freedom: inspect the retained-memory series.
+
+
+The headless gallery passed all 99 scenes while the desktop was locked.
+The extended lifecycle run then completed 8,000 windows per version. Both
+versions stabilize after roughly 4,000 windows: the last 100 rounds retain
+19.06–19.37 MiB before and 19.09–19.42 MiB after, with final post-idle heaps
+of 19.22 MiB in both and two goroutines. An earlier 2,400-window run was too
+short to reveal this plateau; sampled growth was concentrated in the bounded
+CoreText glyph cache. This finite run shows no continuing linear growth in
+that workload, not proof that all components are leak-free.
+
+A separate GPU lifecycle run per version completed 140 windows and 56
+screenshots across both sizes, ending near 4.69 MiB retained Go heap. These
+are not GPU/driver-memory measurements. The new diagnostic passes a focused
+race run; native gallery checks and the native resize-specific test pass
+after unlocking. The broader native gate was not rerun. Detailed local
+artifacts are under `work/components-memory/`.
+
+
 ## Components dependency selection, local follow-up
 
 Components keeps all 99 scenes and selects only the optional dependencies its

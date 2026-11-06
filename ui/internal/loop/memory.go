@@ -16,6 +16,10 @@ const reclaimQuiet = 2 * time.Second
 const reclaimCooldown = 5 * time.Second
 const reclaimMinimum = 8 << 20
 
+// Allocation volume, rather than live heap size, establishes useful work.
+// A small live set can still retain several MiB of garbage after scrolling.
+const reclaimObjectMinimum = 4 << 20
+
 // Idle reclamation is on by default: startup (reading the system's font
 // index, the first layouts) leaves garbage and unused pages that the
 // runtime can keep for minutes, and the OS counts all of it. Go's heap belongs
@@ -123,7 +127,7 @@ func (r *idleReclaimer) fire(generation uint64) {
 	// the scavenger has already returned all known idle pages. Also collect
 	// after a bounded amount of allocation since our last idle collection.
 	allocated := stats.TotalAlloc >= r.reclaimedAlloc && stats.TotalAlloc-r.reclaimedAlloc >= reclaimMinimum
-	if !reclaimable(stats.HeapIdle, stats.HeapReleased) && !(allocated && stats.HeapAlloc >= reclaimMinimum) {
+	if !reclaimable(stats.HeapIdle, stats.HeapReleased) && !(allocated && stats.HeapAlloc >= reclaimObjectMinimum) {
 		return
 	}
 	r.reclaim()
