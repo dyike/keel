@@ -17,6 +17,7 @@ Third-party components retain their own copyright notices and license terms. See
 - Gio (`gioui.org`), copied with changes into `gio`: Unlicense or MIT, see `gio/LICENSE`
 - go-text/typesetting, copied with changes into `typesetting`: Unlicense or BSD-3-Clause, see `typesetting/LICENSE`
 - goldmark, chroma, jezek/xgb, and others: MIT or BSD
+- oksvg, copied with changes into `internal/oksvg`: BSD-3-Clause, see `internal/oksvg/LICENSE`
 - `golang.org/x/*`: BSD-3-Clause
 - modelcontextprotocol/go-sdk: MIT
 
@@ -25,3 +26,5 @@ The documentation gallery’s Noto Sans SC font is licensed under SIL Open Font 
 ## Contributions
 
 External contributors must agree to the [Contributor License Agreement (CLA)](CLA.md). Contributions are released under MIT. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Selected Chroma v2.27.0 lexer rules are copied into `ui/highlight/golang` under MIT; see `ui/highlight/golang/LICENSE`.

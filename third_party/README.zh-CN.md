@@ -28,6 +28,26 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- `gio/text`：按估算字节数限制段落排版缓存，常规预算 8 MiB，最近八个显式帧
+  使用的排版可保留至 64 MiB，同时维持 1,000 条上限。短段落复制自己的字符串，
+  避免通过子串保留整个输入文档。`Shaper.BeginFrame` 保护可见工作集；未调用
+  它的使用方仍采用常规预算。测试覆盖字节与条数上限、超大段落、字符串所有权
+  和工作集复用。借鉴 MyGo 的字节预算思路，排版输出保持不变。
+- `gio/text`，macOS：保留稳定的字体身份，超过 512 个未固定的 CoreText 字体
+  对象时回收最近未使用者。复制的描述符必须先证明能恢复出 `CFEqual` 的字体，
+  无法精确恢复的身份继续固定保留。旧字形编号按需恢复原字体。原有
+  `GlyphNativeFont` 返回的对象继续保留到 shaper 销毁，以兼容生命周期约定；
+  theme 的同步栅格化改用 `BorrowGlyphNativeFont`。描述符、字体编号元数据、
+  既有的 256 条主字体缓存和固定字体不计入 512 个对象的预算，因此这不是全部
+  原生内存的上限。回收、旧接口和像素测试覆盖旧字形、中文、可变样式与 Emoji。
+
+- `gio/app`：macOS、Windows 的窗口构建不再包含备用标题栏的 Material 组件和
+  文本排版器。AppKit、Win32 直接实现窗口装饰选项；其他平台保留原有备用标题栏、
+  高度测量、动作及最大化状态。原生和备用装饰状态测试、依赖检查覆盖这一拆分。
+- `gio/gpu`：`noopengl` 同时排除 OpenGL 注册导入及 EGL/WebGL 无窗口上下文。此前该标签只移除窗口上下文，
+  GPU 初始化仍会保留后端。带标签的测试验证请求 OpenGL 返回后端不可用错误，
+  其他后端维持原行为。
+
 - `gio/app`：交付帧时重新允许请求重绘，使布局期间到达的外部更新能请求下一帧。此前必须等事件队列排空才重新允许请求，这段时间的请求会丢失。`TestInvalidateDuringFrame` 复现该问题，并检查重复请求仍会合并。
 
 - `gio/internal/ops`：写入操作时，数据缓冲区有余量就原地扩展，不再用 `append(o.data, make([]byte, n)...)`。编译器只在普通构建中把这种写法变成原地扩展；在 `-race` 下每次写入都会分配临时切片，组件画廊的分配上限因此超标（label 每帧 40 次，普通构建 26 次），`go test -race ./...` 失败。普通构建不变：分配次数相同，操作写入和画廊帧耗时都在噪声范围内。测试检查一帧操作写入不分配内存且返回清零的字节；在 `-race` 下去掉补丁时失败。
@@ -273,3 +293,13 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
 - `gio/gpu/internal/metal`：不超过 4 KiB 的缓冲放在 Go 内存里（通过 `set*Bytes` 传给 GPU，每条重建的路径都用到），其存储按 2 的幂分级复用，每级最多 256 个，`Trim` 时清空。`set*Bytes` 会把内容复制进编码器，所以缓冲释放后存储即可复用。60 Hz 的 Mirage 会话原先每秒分配数 MB。`TestSmallBufferStoresReused` 检查复用、清零，以及一个小的不可变缓冲只分配一次（`*Buffer` 本身）。
 - `gio/op/paint`、`gio/gpu`、`gio/internal/dirty`：`NewSharedImageOp(src, mu)` 是由所有者在帧外写像素的可变图片。渲染器只在读取 `src` 时（创建纹理，或版本变化后上传变化区域）持有 `mu`，且都在帧内完成。远程桌面客户端可以把解码器的帧缓冲用 `SubImage` 切成共用一把锁的 tile 直接交给渲染器，不必再复制一份 tile 图片（5K 屏幕约 60 MB）。`TestSharedImageReadsUnderLock` 检查每次上传都持有锁、未变化的 tile 不取锁，并在 `go test -race` 下验证并发写入。
 - `gio/app`（macOS）：2026-10-18 复查两个 drawable 是否够用（2560x1680 时每个 16.7 MB）：`maximumDrawableCount = 2` 时 `TestMetalResizeWindow` 3 次运行 3 次停顿，因此保持三个。
+
+## SVG 解析器
+
+`internal/oksvg` 来自 `github.com/srwiley/oksvg` 的 `v0.0.0-20221011165216-be6e8873101c`，许可为 BSD-3-Clause（`internal/oksvg/LICENSE`）。它是 Keel 模块内的内部包，没有嵌套模块或 replace 指令。光栅化继续使用上游 `github.com/srwiley/rasterx`。
+
+补丁：`public.go` 改用本地字符集读取函数。默认构建接受 UTF-8，拒绝其他编码声明；`-tags keel_legacy_svg` 使用原来的 `charset.NewReaderLabel`。这样旧字符集编解码表及其初始化代码不会进入每个 kit 客户端。绘制代码保持不变；副本旁包含与上游的像素对比及编码测试。更新时复制上游非测试 Go 文件和 LICENSE，再应用读取函数选择补丁。
+
+### 按需选择 Chroma 规则
+
+`ui/highlight/golang` 复制 Chroma v2.27.0 的 Go lexer 和 Go 模板、纯文本 XML 规则（MIT，附许可证）。改为独立注册表，省略 Go HTML 模板，避免 Components 链入数百种无关语言。token 转换与完整语言入口共用。对比测试覆盖支持的别名、不完整代码、Unicode、原始字符串模板及配色。

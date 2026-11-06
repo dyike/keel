@@ -79,8 +79,6 @@ type bitmap struct {
 	size image.Point
 }
 
-type layoutCache = lru[layoutKey, document]
-
 type glyphValue[V any] struct {
 	v      V
 	glyphs []glyphInfo

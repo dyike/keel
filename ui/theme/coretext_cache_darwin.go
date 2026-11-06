@@ -145,6 +145,7 @@ var ct struct {
 // after the previous frame are copied before they change again, so textures
 // the GPU already holds never show different pixels. el calls it.
 func BeginTextFrame() {
+	Material.Shaper.BeginFrame()
 	ct.Lock()
 	ct.frame++
 	ct.Unlock()
@@ -256,7 +257,7 @@ func ctGlyphFor(sh *text.Shaper, g text.Glyph, phaseX, phaseY uint8, dark bool) 
 	var ppem fixed.Int26_6
 	var gid uint16
 	var ok bool
-	native, ppem, gid, ok = sh.GlyphNativeFont(g.ID)
+	native, ppem, gid, ok = sh.BorrowGlyphNativeFont(g.ID)
 	var path string
 	var index, instance int
 	if !ok {

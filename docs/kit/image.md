@@ -55,3 +55,5 @@ cache := kit.NewImageCache(32 << 20).Disk(filepath.Join(dir, "myapp", "images"),
 ```
 
 `Disk(directory, maxBytes, lifetime)` (also requires `ui/netimage`) saves the raw bytes of the HTTP(S) image to disk, without having to download it again after restarting. Use the local copy directly during the validity period; after expiration, use `If-None-Match` / `If-Modified-Since` to re-verify. If the server returns 304, continue to use the local copy and refresh the validity period. Use expired copy in case of network failure or server 5xx. When the total size exceeds the upper limit, it will be eliminated based on the latest usage time. The response of `Cache-Control: no-store` is not written to disk; local files and data URLs are not copied. The local copy will be deleted if it fails to decode. Directory is empty or upper limit ≤ 0 Turn off disk caching. The memory layer still works according to the original rules, and the disk layer only reads when the memory misses.
+
+SVG images use the same encoding policy as [SVG icons](icon.md#svg-files-and-bytes): UTF-8 by default, with legacy encodings available through `-tags keel_legacy_svg`.

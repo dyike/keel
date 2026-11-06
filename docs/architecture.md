@@ -41,6 +41,7 @@ github.com/dyike/keel
 ├── internal/
 │   ├── gogio/            Gio packager shared by keel and gogio; no GUI imports
 │   ├── deps/             Module bounds checking
+│   ├── oksvg/            Internal SVG parser; UTF-8 by default, optional legacy charsets
 │   ├── svgicon/          Draw SVG icons to PNG (common to site and scaffolding)
 │   ├── appicon/          Cut out application icons according to macOS, Windows, and GNOME specifications (shared by scaffolding and ui/window)
 │   └── site/             Documentation site generator
@@ -121,6 +122,7 @@ These rules are enforced by the test of `internal/deps`: it writes the packages 
 | `ui/internal/imageload` | Image source analysis, asynchronous loading, size restrictions, loading and failed placeholder | Component appearance, click and other interactions |
 | `gio` | Gio windows, layout, input and GPU implementation; typesetting dependencies | Keel UI/native/CLI packages |
 | `typesetting` | Font parsing, shaping and rasterization | Gio or other Keel packages |
+| `internal/oksvg` | SVG parsing for kit; optional legacy charset decoding | Other Keel packages, window or GPU APIs |
 | `internal/gogio` | Packaging commands, linker symbols, platform resources | GUI imports or application components |
 
 ### When to create a new module
@@ -231,8 +233,14 @@ When adding new window methods (setting position, sticking to top, changing titl
 
 `native/clipboard` relies on native/internal/sys, native/internal/wlclip and native; wlclip reads the Linux Wayland clipboard, loading libwayland-client at run time through purego. It is packaged separately, so a program that only uses modules such as screenshots and shortcut keys never loads libwayland. The Wayland connection is taken from `window.Window.WaylandDisplay()` by the application and handed over to `clipboard.UseWaylandDisplay`. The two sets of modules still do not reference each other. macOS reads the clipboard snapshot from the main queue and then delivers it to the background goroutine. The application adapts the result to core.ClipboardData and accesses it through Input/TextArea.PasteReader; el is processed after core.Update and does not wait for the main thread in the frame lock. The UI module does not have a new native dependency.
 
-The SVG icon is parsed by `oksvg` and `rasterx` in `ui/kit` and rasterized by physical pixels, and is still drawn by Gio; no new Keel module dependency is added. See [Icon](kit/icon.md) for entries, format subsets, and cache limits.
+SVG icons are parsed by `internal/oksvg` and rasterized at physical resolution by `rasterx` in `ui/kit`, then drawn by Gio. See [Icon](kit/icon.md) for entries, format subsets, and cache limits.
+
+SVG parsing uses the local `internal/oksvg` copy from `ui/kit`; it depends only on external rasterization packages and the standard library. UTF-8 is the default SVG encoding. Build with `-tags keel_legacy_svg` to include the upstream legacy charset decoder tables. The tag affects both SVG icons and SVG images.
 
 `native/process` follows the native module boundary: only `native` and `native/internal/sys` dependencies, with no UI or Gio imports. Terminal foreground-process and working-directory bindings live in `native/internal/sys`.
 
 `native/tray` depends only on `native` and `native/internal/sys`, never UI or Gio. It uses purego/AppKit on macOS, Win32 on Windows and pure Go SNI/DBusMenu on Linux. Native events enter a separate queue and each tray serializes callbacks on a Go goroutine; UI writes still use `core.Update`. The application explicitly chooses residence; creating a tray does not alter window lifetime.
+
+On macOS and Windows, `gio/app` uses native window decorations and does not import the fallback Material/text stack. Keel UI widgets still depend on text and theme normally. Other targets retain Gio's client-side decoration fallback.
+
+The optional `ui/highlight/golang` provider includes Go, Go text templates and plain text only. Both highlighting providers use `ui/internal/codehighlight` for token conversion. Components selects this provider; its image fixtures are local/data URLs and do not require `ui/netimage`.

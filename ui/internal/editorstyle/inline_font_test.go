@@ -1,6 +1,7 @@
 package editorstyle
 
 import (
+	"bytes"
 	"image"
 	"testing"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/dyike/keel/gio/text"
 	"github.com/dyike/keel/gio/unit"
 	"github.com/dyike/keel/gio/widget"
+	"github.com/dyike/keel/typesetting/font/opentype"
+	"github.com/dyike/keel/typesetting/font/opentype/tables"
 )
 
 func TestInlineFontMetricsAndOwnership(t *testing.T) {
@@ -30,6 +33,25 @@ func TestInlineFontMetricsAndOwnership(t *testing.T) {
 			t.Fatal("invalid glyph metrics", tc)
 		}
 	}
+	data, index := face.Face.(interface{ NativeFontData() ([]byte, int) }).NativeFontData()
+	if index != 0 || inlineChecksum(data) != 0xb1b0afba {
+		t.Fatal("invalid native font data")
+	}
+	loader, err := opentype.NewLoader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := loader.RawTable(opentype.MustNewTag("name"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	names, _, err := tables.ParseName(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ps := names.Name(6); ps == "" || len(ps) > 63 {
+		t.Fatal("invalid PostScript name", ps)
+	}
 	if _, ok := f.NominalGlyph('A'); ok {
 		t.Fatal("font claimed ordinary text")
 	}
@@ -44,12 +66,21 @@ func TestInlineFontMetricsAndOwnership(t *testing.T) {
 }
 
 func TestInlineFontUsesEditorWrappingAndSelectionGeometry(t *testing.T) {
+	testInlineFontEditorGeometry(t, false)
+}
+
+func testInlineFontEditorGeometry(t *testing.T, platform bool) {
+	t.Helper()
 	for _, scale := range []int{1, 2} {
 		face, err := InlineFont("Keel Inline", InlineFontMetrics{1000, 800, 200}, []InlineGlyph{{0xe000, 3750}}) // 60px at 16sp
 		if err != nil {
 			t.Fatal(err)
 		}
-		shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(append([]font.FontFace{face}, gofont.Collection()...)))
+		option := text.NoSystemFonts()
+		if platform {
+			option = text.WithPlatformFonts()
+		}
+		shaper := text.NewShaper(option, text.WithCollection(append([]font.FontFace{face}, gofont.Collection()...)))
 		var ed widget.Editor
 		ed.SetText("AA \ue000")
 		var ops op.Ops

@@ -17,7 +17,7 @@ func UsePlatformText(on bool) {}
 
 // BeginTextFrame marks the start of a window's layout for platform glyph
 // caches. el calls it.
-func BeginTextFrame() {}
+func BeginTextFrame() { Material.Shaper.BeginFrame() }
 
 // PlatformText reports whether sh draws solid text with a platform
 // rasterizer. Only macOS does.

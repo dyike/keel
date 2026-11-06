@@ -84,6 +84,9 @@ type ctStyle struct {
 }
 type ctNativeFace struct {
 	font            uintptr
+	descriptor      uintptr // exact identity, kept when the sized font is evicted
+	prev, next      *ctNativeFace
+	pinned          bool       // legacy GlyphNativeFont promises shaper-long validity
 	face            *font.Face // identity only; never parsed or passed to HarfBuzz
 	location        string
 	index, instance int
@@ -139,6 +142,9 @@ type ctShaper struct {
 	clusters           []int
 	rects              []cgRect
 	bitmapsCache       bitmapCache
+
+	fontOldest, fontNewest *ctNativeFace
+	fontCount              int // only unpinned resident fonts in this LRU
 }
 
 func newNativeFontShaper(collection []FontFace) nativeFontShaper {
@@ -457,7 +463,7 @@ func (e *ctShaper) faceOf(s *shaperImpl, native uintptr) *ctNativeFace {
 	h := ct.hash(native)
 	for _, i := range e.byHash[h] {
 		f := e.faces[i]
-		if ct.equal(f.font, native) {
+		if cached := e.useFont(f); cached != 0 && ct.equal(cached, native) {
 			return f
 		}
 	}
@@ -465,6 +471,9 @@ func (e *ctShaper) faceOf(s *shaperImpl, native uintptr) *ctNativeFace {
 	e.byHash[h] = append(e.byHash[h], len(e.faces))
 	e.faces = append(e.faces, f)
 	s.addFace(f.face, e.query)
+	e.fontCount++
+	e.touchFont(f)
+	e.trimFonts()
 	return f
 }
 func (e *ctShaper) shape(s *shaperImpl, size fixed.Int26_6, locale system.Locale, txt []rune) []shaping.Output {
@@ -594,7 +603,8 @@ func (e *ctShaper) glyphFont(id GlyphID) (uintptr, fixed.Int26_6, uint16, bool) 
 	if size <= 0 || index < 0 || index >= len(e.faces) || gid > 0xffff {
 		return 0, 0, 0, false
 	}
-	return e.faces[index].font, size, uint16(gid), true
+	native := e.useFont(e.faces[index])
+	return native, size, uint16(gid), native != 0
 }
 func (e *ctShaper) glyphFile(id GlyphID) (string, int, int, fixed.Int26_6, uint16, bool) {
 	native, size, gid, ok := e.glyphFont(id)

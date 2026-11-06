@@ -4,7 +4,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"image"
 	"image/color"
 	"runtime"
@@ -13,7 +12,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/dyike/keel/gio/f32"
-	"github.com/dyike/keel/gio/font/gofont"
 	"github.com/dyike/keel/gio/gpu"
 	"github.com/dyike/keel/gio/internal/debug"
 	"github.com/dyike/keel/gio/internal/ops"
@@ -22,12 +20,8 @@ import (
 	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/gio/io/system"
-	"github.com/dyike/keel/gio/layout"
 	"github.com/dyike/keel/gio/op"
-	"github.com/dyike/keel/gio/text"
 	"github.com/dyike/keel/gio/unit"
-	"github.com/dyike/keel/gio/widget"
-	"github.com/dyike/keel/gio/widget/material"
 )
 
 // Option configures a window.
@@ -73,8 +67,7 @@ type Window struct {
 		Config
 		height        unit.Dp
 		currentHeight int
-		*material.Theme
-		*widget.Decorations
+		fallbackDecorations
 	}
 	nocontext bool
 	// semantic data, lazily evaluated if requested by a backend to speed up
@@ -810,7 +803,7 @@ func (w *Window) processEvent(e event.Event) bool {
 		}
 		w.coalesced.view = &e2
 	case ConfigEvent:
-		w.decorations.Decorations.Maximized = e2.Config.Mode == Maximized
+		w.updateDecorationMode(e2.Config.Mode)
 		wasFocused := w.decorations.Config.Focused
 		w.decorations.Config = e2.Config
 		e2.Config = w.effectiveConfig()
@@ -885,20 +878,7 @@ func (w *Window) Event() event.Event {
 
 func (w *Window) init() {
 	debug.Parse()
-	// Measure decoration height.
-	deco := new(widget.Decorations)
-	theme := material.NewTheme()
-	theme.Shaper = text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Regular()))
-	decoStyle := material.Decorations(theme, deco, 0, "")
-	gtx := layout.Context{
-		Ops: new(op.Ops),
-		// Measure in Dp.
-		Metric: unit.Metric{},
-	}
-	// Allow plenty of space.
-	gtx.Constraints.Max.Y = 200
-	dims := decoStyle.Layout(gtx)
-	decoHeight := unit.Dp(dims.Size.Y)
+	decoHeight := w.initDecorations()
 	defaultOptions := []Option{
 		Size(800, 600),
 		Title("Gio"),
@@ -911,8 +891,6 @@ func (w *Window) init() {
 	cnf.apply(unit.Metric{}, options)
 
 	w.nocontext = cnf.CustomRenderer
-	w.decorations.Theme = theme
-	w.decorations.Decorations = deco
 	w.decorations.enabled = cnf.Decorated
 	w.decorations.height = decoHeight
 	w.imeState.compose = key.Range{Start: -1, End: -1}
@@ -929,59 +907,6 @@ func (w *Window) updateCursor() {
 		w.cursor = c
 		w.driver.SetCursor(c)
 	}
-}
-
-func (w *Window) fallbackDecorate() bool {
-	cnf := w.decorations.Config
-	return w.decorations.enabled && !cnf.Decorated && cnf.Mode != Fullscreen && !w.nocontext
-}
-
-// decorate the window if enabled and returns the corresponding Insets.
-func (w *Window) decorate(e FrameEvent, o *op.Ops) image.Point {
-	if !w.fallbackDecorate() {
-		return image.Pt(0, 0)
-	}
-	deco := w.decorations.Decorations
-	allActions := system.ActionMinimize | system.ActionMaximize | system.ActionUnmaximize |
-		system.ActionClose | system.ActionMove
-	style := material.Decorations(w.decorations.Theme, deco, allActions, w.decorations.Config.Title)
-	// Update the decorations based on the current window mode.
-	var actions system.Action
-	switch m := w.decorations.Config.Mode; m {
-	case Windowed:
-		actions |= system.ActionUnmaximize
-	case Minimized:
-		actions |= system.ActionMinimize
-	case Maximized:
-		actions |= system.ActionMaximize
-	case Fullscreen:
-		actions |= system.ActionFullscreen
-	default:
-		panic(fmt.Errorf("unknown WindowMode %v", m))
-	}
-	gtx := layout.Context{
-		Ops:         o,
-		Now:         e.Now,
-		Source:      e.Source,
-		Metric:      e.Metric,
-		Constraints: layout.Exact(e.Size),
-	}
-	// Update the window based on the actions on the decorations.
-	opts, acts := splitActions(deco.Update(gtx))
-	if len(opts) > 0 {
-		w.driver.Configure(opts)
-	}
-	if acts != 0 {
-		w.driver.Perform(acts)
-	}
-	style.Layout(gtx)
-	// Offset to place the frame content below the decorations.
-	decoHeight := gtx.Dp(w.decorations.Config.decoHeight)
-	if w.decorations.currentHeight != decoHeight {
-		w.decorations.currentHeight = decoHeight
-		w.coalesced.cfg = &ConfigEvent{Config: w.effectiveConfig()}
-	}
-	return image.Pt(0, decoHeight)
 }
 
 func (w *Window) effectiveConfig() Config {

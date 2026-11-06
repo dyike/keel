@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/io/input"
+	"github.com/dyike/keel/gio/io/pointer"
 	"github.com/dyike/keel/gio/layout"
 	"github.com/dyike/keel/gio/op"
 	"github.com/dyike/keel/gio/unit"
@@ -118,5 +120,42 @@ func TestGalleryCategoriesCoverEverySection(t *testing.T) {
 		if !categories[category] {
 			t.Errorf("%s is unreachable in the gallery: category %q has no sidebar section", section.name, category)
 		}
+	}
+}
+
+// BenchmarkVirtualListScroll measures the real gallery scene while recycling
+// rows, including input routing. It is a CPU/allocation benchmark, not FPS.
+func BenchmarkVirtualListScroll(b *testing.B) {
+	var section demoSection
+	for _, candidate := range demoSections {
+		if candidate.name == "virtual_list" {
+			section = candidate
+			break
+		}
+	}
+	if section.build == nil {
+		b.Fatal("missing virtual list scene")
+	}
+	widget := section.build()
+	var ops op.Ops
+	var router input.Router
+	frame := func() {
+		ops.Reset()
+		widget.Layout(layout.Context{Ops: &ops, Source: router.Source(), Now: time.Unix(0, 0), Constraints: layout.Constraints{Max: image.Pt(680, 860)}, Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}})
+		router.Frame(&ops)
+	}
+	for range 3 {
+		frame()
+	}
+	i := 0
+	b.ReportAllocs()
+	for b.Loop() {
+		dy := float32(72)
+		if i%600 >= 300 {
+			dy = -dy
+		}
+		i++
+		router.Queue(pointer.Event{Kind: pointer.Scroll, Source: pointer.Mouse, Position: f32.Pt(100, 240), Scroll: f32.Pt(0, dy)})
+		frame()
 	}
 }

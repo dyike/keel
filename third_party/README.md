@@ -44,6 +44,33 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/text`: bound retained paragraph layouts by estimated bytes (8 MiB
+  ordinarily, at most 64 MiB for layouts used within eight explicit frames),
+  retaining the 1,000-entry cap. A short cached paragraph owns its string rather
+  than retaining the input document through a substring. `Shaper.BeginFrame`
+  protects visible working sets; callers without it keep the ordinary budget.
+  Tests cover byte/entry caps, oversized paragraphs, key ownership and working-set
+  reuse. This follows MyGo's byte-budget approach without changing layout output.
+- `gio/text`, macOS: retain stable face identities but reclaim least-recently-used
+  sized CoreText fonts above 512 unpinned objects. A copied descriptor must first
+  reconstruct a `CFEqual` font; unsupported identities remain pinned. Old glyph
+  IDs recreate their original fonts on demand. The existing `GlyphNativeFont`
+  API pins its returned handle to preserve its lifetime contract; the theme uses
+  `BorrowGlyphNativeFont` for synchronous rasterization. Descriptors, face-index
+  metadata, the existing 256-entry primary cache, and pinned fonts are outside
+  the 512-object budget, so this is not a bound on all native memory. Eviction,
+  legacy-handle and raster tests cover old glyphs, CJK, variable styles and emoji.
+
+- `gio/app`: keep the fallback title bar's Material widgets and text shaper
+  out of macOS and Windows window builds. AppKit and Win32 implement the
+  decoration option directly; the other platforms retain the existing
+  fallback, its measured height, actions and maximized state. Native and
+  fallback state tests and dependency checks cover the split.
+- `gio/gpu`: make `noopengl` exclude the OpenGL registration import and EGL/WebGL headless contexts. Previously
+  the tag removed window contexts but the GPU initializer still retained
+  the backend. A tagged test verifies that requesting OpenGL returns an
+  unsupported-backend error; other backends keep their existing behavior.
+
 - `gio/app`: reopen invalidation when a frame is delivered, so an external
   update arriving during layout can request the following frame. Previously
   the pending-request flag stayed closed until the event queue drained,
@@ -724,3 +751,13 @@ immediately, causing a use-after-free in `wlScrollWatch.close` on Linux.
 - `gio/app` (macOS): rechecked on 2026-10-18 whether two drawables would do
   (16.7 MB each at 2560x1680): `TestMetalResizeWindow` stalled in 3 of 3
   runs with `maximumDrawableCount = 2`, so it stays at three.
+
+## SVG parser
+
+`internal/oksvg` copies `github.com/srwiley/oksvg` at `v0.0.0-20221011165216-be6e8873101c` under BSD-3-Clause (`internal/oksvg/LICENSE`). It is an internal package of Keel's module, with no nested module or replace directive. Rasterization continues to use upstream `github.com/srwiley/rasterx`.
+
+Patch: `public.go` selects a local charset reader. Default builds accept UTF-8 and reject other declared encodings; `-tags keel_legacy_svg` uses the original `charset.NewReaderLabel`. This prevents legacy encoder/decoder tables and their initialization from entering every kit client. Rendering code is unchanged. Parser pixel comparisons against upstream and encoding tests live next to the copy. To update, copy upstream non-test Go files and LICENSE, then reapply this reader selection.
+
+### Selected Chroma lexer
+
+`ui/highlight/golang` copies the Go lexer and Go-template/plaintext XML rules from Chroma v2.27.0 (MIT, license included). Registration uses a private registry; Go HTML templates are omitted. This avoids linking hundreds of unrelated language rules into Components. The token adapter is shared with the unchanged full-language provider. Parity tests cover supported aliases, malformed code, Unicode, raw-string templates and styles.

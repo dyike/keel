@@ -8,8 +8,10 @@
 - 实现要求：[组件开发规范](../../docs/component-development.zh-CN.md)。
 - 配套示例：[组件库](../../examples/components/README.zh-CN.md)。
 
-直接依赖 `core`、`theme`、`locale`、`el`、`base`，不依赖 `window`。SVG 解析和栅格化使用 `oksvg`、`rasterx`，支持范围见 [Icon](../../docs/kit/icon.zh-CN.md) 和 [Image](../../docs/kit/image.zh-CN.md)。
+直接依赖 `core`、`theme`、`locale`、`el`、`base`，不依赖 `window`。SVG 解析和栅格化使用 `internal/oksvg`、`rasterx`，支持范围见 [Icon](../../docs/kit/icon.zh-CN.md) 和 [Image](../../docs/kit/image.zh-CN.md)。
 
 一个组件对应一个 `<name>.go`，共享字段外框在 `field.go`，共享表面和浮层样式由 `surface()`、`floating()` 提供。`conventions_test.go` 检查配套文档、示例、Agent 测试和公开 API 约定。
 
 原子输入引用经 `el.InputDocument` 接入 `ui/internal/inputcontent`；kit 不直接依赖这个内部包。
+
+SVG 解析使用 Keel 的 `internal/oksvg` 副本。默认支持 UTF-8；`-tags keel_legacy_svg` 恢复上游旧字符集支持。

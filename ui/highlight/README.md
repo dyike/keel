@@ -13,3 +13,5 @@ import _ "github.com/dyike/keel/ui/highlight"
 - The language name supports aliases and extensions (`go`, `golang`, `Go`); the default color matching is `github` / `github-dark`, which can be selected according to the depth of the code background. Markdown can use `markdown.CodeStyle` to specify the chroma style name.
 
 To change to another highlighting implementation, implement `core.Highlighter` and call `core.SetHighlighter`.
+
+For Go-only applications, import `ui/highlight/golang` instead. It includes Go, Go text templates and plain text, with the same token conversion and styles; other languages are uncolored. The full provider here is unchanged.

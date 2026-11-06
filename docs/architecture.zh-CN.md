@@ -41,6 +41,7 @@ github.com/dyike/keel
 ├── internal/
 │   ├── gogio/            keel 与 gogio 共用的 Gio 打包器，不导入 GUI
 │   ├── deps/             模块边界检查
+│   ├── oksvg/            内部 SVG 解析器；默认 UTF-8，可选旧字符集
 │   ├── svgicon/          把 SVG 图标画成 PNG（站点和脚手架共用）
 │   ├── appicon/          按 macOS、Windows、GNOME 规范裁出应用图标（脚手架和 ui/window 共用）
 │   └── site/             文档站生成器
@@ -121,6 +122,7 @@ Gio 和 go-text 是 Keel 根模块内的普通包，分别通过 `github.com/dyi
 | `ui/internal/imageload` | 图片来源解析、异步加载、尺寸限制、加载中和失败占位 | 组件外观、点击等交互 |
 | `gio` | Gio 窗口、布局、输入与 GPU 实现；typesetting 依赖 | Keel UI/native/CLI 包 |
 | `typesetting` | 字体解析、shaping 与栅格化 | Gio 或其他 Keel 包 |
+| `internal/oksvg` | kit 的 SVG 解析；可选旧字符集解码 | 其他 Keel 包、窗口或 GPU API |
 | `internal/gogio` | 打包命令、链接符号、平台资源 | GUI 导入或应用组件 |
 
 ### 什么时候新建模块
@@ -224,8 +226,14 @@ kit.Button("刷新", func() {
 
 `native/clipboard` 依赖 native/internal/sys、native/internal/wlclip 与 native；wlclip 读取 Linux Wayland 剪贴板，运行时通过 purego 加载 libwayland-client，单独成包，只用截图、快捷键等模块的程序因此不会加载 libwayland。Wayland 连接由应用从 `window.Window.WaylandDisplay()` 取出交给 `clipboard.UseWaylandDisplay`，两组模块仍互不引用。macOS 在主队列读取剪贴板快照，再由后台 goroutine 交付。应用将结果适配为 core.ClipboardData，通过 Input/TextArea.PasteReader 接入；el 在 core.Update 后处理完成，不在帧锁内等待主线程。UI 模块没有新增 native 依赖。
 
-SVG 图标由 `ui/kit` 内的 `oksvg` 与 `rasterx` 解析并按物理像素栅格化，仍通过 Gio 绘制；不新增 Keel 模块依赖。入口、格式子集和缓存上限见 [Icon](kit/icon.zh-CN.md)。
+SVG 图标由 `internal/oksvg` 解析，在 `ui/kit` 内通过 `rasterx` 按物理像素栅格化，再通过 Gio 绘制。入口、格式子集和缓存上限见 [Icon](kit/icon.zh-CN.md)。
+
+`ui/kit` 通过本地 `internal/oksvg` 解析 SVG；该包只依赖外部光栅化包和标准库。SVG 默认使用 UTF-8。需要旧字符编码时，用 `-tags keel_legacy_svg` 构建以启用上游字符集解码表；此选项同时影响 SVG 图标和 SVG 图片。
 
 `native/process` 仅依赖 `native` 和 `native/internal/sys`，不引用 UI 或 Gio。终端前台进程组和进程工作目录的平台绑定位于 `native/internal/sys`，业务项目通过 Go API 调用。
 
 `native/tray` 仅依赖 `native` 和 `native/internal/sys`，不引用 UI 或 Gio。macOS 使用 purego/AppKit，Windows 使用 Win32，Linux 使用纯 Go 的 SNI/DBusMenu。原生事件进入独立的队列，由每个托盘的 Go goroutine 串行执行回调；写 UI 状态仍经过 `core.Update`。驻留策略由应用显式设置，创建托盘不会自动改变窗口生命周期。
+
+macOS、Windows 上的 `gio/app` 使用系统窗口装饰，不导入备用标题栏的 Material/文本依赖。Keel UI 组件仍按正常方式依赖文字和主题；其他目标保留 Gio 自绘标题栏回退。
+
+可选的 `ui/highlight/golang` 仅包含 Go、Go 文本模板和纯文本。两个高亮入口共用 `ui/internal/codehighlight` 转换 token。Components 使用 Go 高亮入口；图片演示均为本地内容或 data URL，无需引入 `ui/netimage`。
