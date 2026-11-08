@@ -303,3 +303,7 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
 ### 按需选择 Chroma 规则
 
 `ui/highlight/golang` 复制 Chroma v2.27.0 的 Go lexer 和 Go 模板、纯文本 XML 规则（MIT，附许可证）。改为独立注册表，省略 Go HTML 模板，避免 Components 链入数百种无关语言。token 转换与完整语言入口共用。对比测试覆盖支持的别名、不完整代码、Unicode、原始字符串模板及配色。
+
+## 从 Mirage 迁入的 Linux 集成
+
+增加 DMA-BUF 注册与 EGL 外部图像导入、GPU fence 生命周期、Wayland 组合文本批处理、IBus 有序更新、X11 无边框提示与手势、Wayland 无边框装饰协商和标题栏配色扩展。这些修改归属 Keel，不应放在应用的 vendor 副本中。包含表面生命周期、输入法和 X11 回归测试，未新增 cgo。

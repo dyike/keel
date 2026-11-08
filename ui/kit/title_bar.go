@@ -29,6 +29,26 @@ type TitleBarView struct {
 	title             string
 	leading, trailing []el.View
 	goos              string // runtime.GOOS; tests set others
+	colors            *titleBarColors
+}
+
+type titleBarColors struct{ background, foreground, border, hover color.NRGBA }
+
+// Colors lets application chrome follow the current page's palette while
+// preserving the standard titlebar controls and native move actions.
+func (v *TitleBarView) Colors(background, foreground, border, hover color.NRGBA) *TitleBarView {
+	if v.colors == nil {
+		v.colors = new(titleBarColors)
+	}
+	*v.colors = titleBarColors{background, foreground, border, hover}
+	return v
+}
+
+func (v *TitleBarView) palette() titleBarColors {
+	if v.colors != nil {
+		return *v.colors
+	}
+	return titleBarColors{theme.Subtle, theme.Text, theme.Border, theme.SubtleHover}
 }
 
 func TitleBar(title string) *TitleBarView { return &TitleBarView{title: title, goos: runtime.GOOS} }
@@ -70,14 +90,15 @@ func (v *TitleBarView) Render(cx *el.Context) el.Element {
 	w := core.CurrentWindow()
 	controls := w != nil && w.Frameless()
 	mac := v.goos == "darwin"
-	bar := el.Div().Role("banner").Name(v.title).Row().Items(el.Center).H(el.Dp(TitleBarHeight)).Bg(theme.Subtle).Px(theme.SpaceMd).Gap(theme.SpaceMd)
+	colors := v.palette()
+	bar := el.Div().Role("banner").Name(v.title).Row().Items(el.Center).H(el.Dp(TitleBarHeight)).Bg(colors.background).Px(theme.SpaceMd).Gap(theme.SpaceMd)
 	if controls && mac {
 		bar.Child(v.lights(cx, w))
 	}
 	for _, l := range v.leading {
 		bar.Child(renderOptional(cx, l))
 	}
-	fg := theme.Text
+	fg := colors.foreground
 	if w != nil && !w.Focused() {
 		fg = theme.Muted
 	}
@@ -97,7 +118,7 @@ func (v *TitleBarView) Render(cx *el.Context) el.Element {
 	if controls && !mac {
 		bar.Pr(0).Child(v.buttons(cx, w))
 	}
-	return el.Div().Items(el.Stretch).Child(bar, el.Div().H(el.Dp(1)).Bg(theme.Border))
+	return el.Div().Items(el.Stretch).Child(bar, el.Div().H(el.Dp(1)).Bg(colors.border))
 }
 
 // lights draws the macOS window buttons. Their colors are the platform's,
@@ -131,23 +152,24 @@ func (v *TitleBarView) lights(cx *el.Context, w core.WindowControls) el.Element 
 // buttons draws minimize, maximize / restore and close at the right edge.
 func (v *TitleBarView) buttons(cx *el.Context, w core.WindowControls) el.Element {
 	text := locale.Current()
+	colors := v.palette()
 	btn := func(name string, icon el.Element, hover color.NRGBA, fn func()) el.Element {
 		return el.Div().Role("button").Name(name).W(el.Dp(46)).H(el.Dp(TitleBarHeight)).Center().
 			CursorPointer().Focusable(false).OnClick(fn).Hover(func(s *el.Style) { s.Bg(hover) }).Child(icon)
 	}
-	line := func(wd, ht float32) el.Element { return el.Div().W(el.Dp(wd)).H(el.Dp(ht)).Bg(theme.Text) }
-	square := el.Div().Size(el.Dp(10)).Border(1, theme.Text)
+	line := func(wd, ht float32) el.Element { return el.Div().W(el.Dp(wd)).H(el.Dp(ht)).Bg(colors.foreground) }
+	square := el.Div().Size(el.Dp(10)).Border(1, colors.foreground)
 	maxName := text.Maximize
 	if w.Maximized() {
 		maxName = text.Restore
 		square = el.Div().Size(el.Dp(10)).Child(
-			el.Div().Absolute().Top(0).Left(2).Size(el.Dp(8)).Border(1, theme.Text),
-			el.Div().Absolute().Top(2).Left(0).Size(el.Dp(8)).Border(1, theme.Text).Bg(theme.Subtle))
+			el.Div().Absolute().Top(0).Left(2).Size(el.Dp(8)).Border(1, colors.foreground),
+			el.Div().Absolute().Top(2).Left(0).Size(el.Dp(8)).Border(1, colors.foreground).Bg(colors.background))
 	}
 	return el.Div().Row().Child(
-		btn(text.Minimize, line(10, 1), theme.SubtleHover, w.Minimize),
-		btn(maxName, square, theme.SubtleHover, w.ToggleMaximize),
-		btn(text.Close, Icon(IconClose).Size(14).Color(theme.Text).Render(cx), theme.Danger, w.Close),
+		btn(text.Minimize, line(10, 1), colors.hover, w.Minimize),
+		btn(maxName, square, colors.hover, w.ToggleMaximize),
+		btn(text.Close, Icon(IconClose).Size(14).Color(colors.foreground).Render(cx), theme.Danger, w.Close),
 	)
 }
 

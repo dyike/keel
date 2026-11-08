@@ -185,10 +185,12 @@ type window struct {
 	serial uint32
 	scale  int
 	// size is the unscaled window size (unlike config.Size which is scaled).
-	size         image.Point
-	config       Config
-	wsize        image.Point // window config size before going fullscreen or maximized
-	inCompositor bool        // window is moving or being resized
+	size   image.Point
+	config Config
+	// Keep the requested mode separate from the compositor-confirmed config.
+	requestedDecorated bool
+	wsize              image.Point // window config size before going fullscreen or maximized
+	inCompositor       bool        // window is moving or being resized
 
 	clipReads chan transfer.DataEvent
 
@@ -389,10 +391,6 @@ func (d *wlDisplay) createNativeWindow(options []Option) (*window, error) {
 	wlAddListener(w.wmSurf, lk_xdg_surface, unsafe.Pointer(w.surf))
 	wlAddListener(w.topLvl, lk_xdg_toplevel, unsafe.Pointer(w.surf))
 
-	if d.decor != nil {
-		w.decor = zxdgDecorationManagerV1GetToplevelDecoration(d.decor, w.topLvl)
-		wlAddListener(w.decor, lk_zxdg_toplevel_decoration_v1, unsafe.Pointer(w.surf))
-	}
 	w.updateOpaqueRegion()
 	return w, nil
 }
@@ -1020,7 +1018,23 @@ func (w *window) Configure(options []Option) {
 	_, cfg := w.getConfig()
 	prev := w.config
 	cnf := w.config
+	cnf.Decorated = w.requestedDecorated
 	cnf.apply(cfg, options)
+	w.requestedDecorated = cnf.Decorated
+	// A frameless window must not negotiate server decorations: compositors
+	// may override a client-side preference. Without a decoration object,
+	// xdg-decoration leaves decoration ownership with the client.
+	if cnf.Decorated && w.disp.decor != nil && w.decor == nil {
+		w.decor = zxdgDecorationManagerV1GetToplevelDecoration(w.disp.decor, w.topLvl)
+		wlAddListener(w.decor, lk_zxdg_toplevel_decoration_v1, unsafe.Pointer(w.surf))
+		zxdgToplevelDecorationV1SetMode(w.decor, _ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE)
+	} else if !cnf.Decorated && w.decor != nil {
+		zxdgToplevelDecorationV1Destroy(w.decor)
+		w.decor = nil
+	}
+	if w.decor == nil {
+		w.config.Decorated = false
+	}
 	w.config.decoHeight = cnf.decoHeight
 
 	switch cnf.Mode {
@@ -1711,7 +1725,10 @@ func wlOnTextInputDone(data unsafe.Pointer, im unsafe.Pointer, serial uint32) {
 			s.activateTextInput(s.imFocus)
 			return
 		}
-		s.refreshTextInput(s.imFocus)
+		// Applying the edit invalidates the window. Send one coherent update
+		// after layout instead of committing the old caret here and committing
+		// again from EditorStateChanged a frame later.
+		s.imFocus.w.Invalidate()
 	}
 }
 
@@ -1974,7 +1991,6 @@ func (w *window) EditorStateChanged(old, new editorState) {
 	}
 	if s.imState.dirty {
 		s.imState.external = s.imState.external || textChanged
-		s.refreshTextInput(w)
 		return
 	}
 	cancelled := shouldCancelComposition(old, new) && new.compose.Start != -1
@@ -1983,31 +1999,16 @@ func (w *window) EditorStateChanged(old, new editorState) {
 	}
 	surroundingChanged := cancelled || selectionChanged || old.Snippet != new.Snippet
 	caretChanged := old.Selection.Caret != new.Selection.Caret || old.Selection.Transform != new.Selection.Transform
-	needsCommit := false
-	if surroundingChanged {
-		snapshot, status := prepareSurroundingText(w.w)
-		switch status {
-		case surroundingReady:
-			if !s.imState.sentValid {
-				s.activateTextInput(w)
-				return
-			}
-			s.sendSurroundingText(snapshot)
-			if textChanged {
-				zwpTextInputV3SetTextChangeCause(s.im, _ZWP_TEXT_INPUT_V3_CHANGE_CAUSE_OTHER)
-			}
-			needsCommit = true
-		}
+	s.imState.dirty = surroundingChanged || caretChanged
+	s.imState.external = s.imState.external || textChanged
+}
+
+func (w *window) FlushTextInput() {
+	s := w.disp.seat
+	if s == nil || s.im == nil || s.imFocus != w || !w.textInput || !s.imActive || s.imState.stale || !s.imState.dirty {
+		return
 	}
-	if caretChanged {
-		s.sendCursorRectangle(w)
-		needsCommit = true
-	}
-	if needsCommit {
-		s.commitTextInput()
-		s.imState.dirty = false
-		s.imState.external = false
-	}
+	s.refreshTextInput(w)
 }
 
 func (w *window) NewContext() (context, error) {

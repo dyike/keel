@@ -20,7 +20,8 @@ import (
 
 // Backend implements driver.Device.
 type Backend struct {
-	funcs *gl.Functions
+	funcs    *gl.Functions
+	surfaces surfaceState
 
 	clear      bool
 	glstate    glState
@@ -86,6 +87,7 @@ type glState struct {
 
 type state struct {
 	pipeline *pipeline
+	program  *program
 	buffer   bufferBinding
 }
 
@@ -100,20 +102,23 @@ type timer struct {
 }
 
 type texture struct {
-	backend  *Backend
-	obj      gl.Texture
-	fbo      gl.Framebuffer
-	hasFBO   bool
-	triple   textureTriple
-	width    int
-	height   int
-	mipmap   bool
-	bindings driver.BufferBinding
-	foreign  bool
+	backend        *Backend
+	obj            gl.Texture
+	fbo            gl.Framebuffer
+	hasFBO         bool
+	triple         textureTriple
+	width          int
+	height         int
+	mipmap         bool
+	bindings       driver.BufferBinding
+	foreign        bool
+	external       bool
+	surfaceRelease func()
 }
 
 type pipeline struct {
 	prog     *program
+	external *program
 	inputs   []shader.InputLocation
 	layout   driver.VertexLayout
 	blend    driver.BlendDesc
@@ -221,10 +226,12 @@ func newOpenGLDevice(api driver.OpenGL) (driver.Device, error) {
 		// instead of at each frame.
 		b.glstate = b.queryState()
 	}
+	b.initSurfaces()
 	return b, nil
 }
 
 func (b *Backend) BeginFrame(target driver.RenderTarget, clear bool, viewport image.Point) driver.Texture {
+	b.collectSurfaces(false)
 	b.clear = clear
 	if b.sharedCtx {
 		b.glstate = b.queryState()
@@ -780,6 +787,7 @@ func glErr(f *gl.Functions) error {
 }
 
 func (b *Backend) Release() {
+	b.releaseSurfaces()
 	if b.sRGBFBO != nil {
 		b.sRGBFBO.Release()
 	}
@@ -927,8 +935,14 @@ func (b *Backend) NewPipeline(desc driver.PipelineDesc) (driver.Pipeline, error)
 			return nil, fmt.Errorf("opengl: data size mismatch for %q: got %d expected %d", inp.Name, got, exp)
 		}
 	}
+	ext, err := b.newExternalProgram(desc)
+	if err != nil {
+		p.Release()
+		return nil, err
+	}
 	return &pipeline{
 		prog:     p,
+		external: ext,
 		inputs:   vsrc.Inputs,
 		layout:   layout,
 		blend:    desc.BlendDesc,
@@ -989,8 +1003,8 @@ func (b *Backend) BindUniforms(buf driver.Buffer) {
 	if bf.typ&driver.BufferBindingUniforms == 0 {
 		panic("not a uniform buffer")
 	}
-	b.state.pipeline.prog.vertUniforms.update(b.funcs, bf)
-	b.state.pipeline.prog.fragUniforms.update(b.funcs, bf)
+	b.state.program.vertUniforms.update(b.funcs, bf)
+	b.state.program.fragUniforms.update(b.funcs, bf)
 }
 
 func (b *Backend) BindProgram(prog driver.Program) {
@@ -1183,7 +1197,12 @@ func (t *texture) ReadPixels(src image.Rectangle, pixels []byte, stride int) err
 func (b *Backend) BindPipeline(pl driver.Pipeline) {
 	p := pl.(*pipeline)
 	b.state.pipeline = p
-	b.glstate.useProgram(b.funcs, p.prog.obj)
+	prog := p.prog
+	if b.externalTexture() && p.external != nil {
+		prog = p.external
+	}
+	b.state.program = prog
+	b.glstate.useProgram(b.funcs, prog.obj)
 	b.SetBlend(p.blend.IsEnabled())
 	b.BlendFunc(p.blend.SrcFactor, p.blend.DstFactor)
 }
@@ -1213,6 +1232,9 @@ func (b *Backend) EndRenderPass() {
 func (f *texture) ImplementsRenderTarget() {}
 
 func (p *pipeline) Release() {
+	if p.external != nil {
+		p.external.Release()
+	}
 	p.prog.Release()
 	*p = pipeline{}
 }
@@ -1233,10 +1255,18 @@ func toTexFilter(f driver.TextureFilter) (int, bool) {
 func (b *Backend) PrepareTexture(tex driver.Texture) {}
 
 func (b *Backend) BindTexture(unit int, t driver.Texture) {
-	b.glstate.bindTexture(b.funcs, unit, t.(*texture).obj)
+	tex := t.(*texture)
+	if b.bindSurfaceTexture(unit, tex) {
+		return
+	}
+	b.glstate.bindTexture(b.funcs, unit, tex.obj)
 }
 
 func (t *texture) Release() {
+	if t.surfaceRelease != nil {
+		t.backend.retireSurface(t)
+		return
+	}
 	if t.foreign {
 		panic("texture not created by NewTexture")
 	}

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"github.com/dyike/keel/gio/internal/debug"
 	"github.com/dyike/keel/gio/io/key"
@@ -24,10 +25,13 @@ type EventHandler interface {
 const inputContextIface = "org.freedesktop.IBus.InputContext"
 
 type IBus struct {
-	inputContextObject   dbus.BusObject
-	ibusConn             *dbus.Conn
-	h                    EventHandler
-	visible, compositing bool
+	inputContextObject dbus.BusObject
+	ibusConn           *dbus.Conn
+	h                  EventHandler
+	visible            bool
+	compositing        atomic.Bool
+	cursor             image.Rectangle
+	cursorSet          bool
 }
 
 var imeLogger = log.New(log.Writer(), "[ime] ", log.Default().Flags())
@@ -247,7 +251,7 @@ func (h *messageHandler) DeliverSignal(iface, name string, signal *dbus.Signal) 
 
 	ibus := (*IBus)(h)
 
-	if h.ibusConn == nil || !h.compositing {
+	if !h.compositing.Load() {
 		return
 	}
 
@@ -284,7 +288,11 @@ func (ibus *IBus) SetCursorLocation(pos image.Rectangle) {
 	if ibus == nil || ibus.ibusConn == nil {
 		return
 	}
-	ibus.inputContextObject.Call(inputContextIface+".SetCursorLocation", 0, int(pos.Min.X), int(pos.Min.Y), pos.Dx(), pos.Dy())
+	if ibus.cursorSet && ibus.cursor == pos {
+		return
+	}
+	ibus.cursor, ibus.cursorSet = pos, true
+	ibus.inputContextObject.Call(inputContextIface+".SetCursorLocation", dbus.FlagNoReplyExpected, int(pos.Min.X), int(pos.Min.Y), pos.Dx(), pos.Dy())
 }
 
 // Stop closes the connection to IBus
@@ -293,6 +301,7 @@ func (ibus *IBus) Stop() {
 		return
 	}
 
+	ibus.compositing.Store(false)
 	ibus.ibusConn.Close()
 	ibus.ibusConn = nil
 }
@@ -303,11 +312,11 @@ func (ibus *IBus) ProcessKey(sym, keycode, state uint32) bool {
 		return false
 	}
 
+	// Preedit signals may precede the method reply on the same connection.
+	// Enable delivery before sending the key; otherwise the first update is lost.
+	ibus.compositing.Store(true)
 	var out bool
 	ibus.inputContextObject.Call(inputContextIface+".ProcessKeyEvent", 0, sym, keycode, state).Store(&out)
-	if out {
-		ibus.compositing = true
-	}
 	return out
 }
 
@@ -317,9 +326,10 @@ func (ibus *IBus) Focused(focused bool) {
 		return
 	}
 	if focused {
-		ibus.inputContextObject.Call(inputContextIface+".FocusIn", 0)
+		ibus.inputContextObject.Call(inputContextIface+".FocusIn", dbus.FlagNoReplyExpected)
 	} else {
-		ibus.inputContextObject.Call(inputContextIface+".FocusOut", 0)
+		ibus.compositing.Store(false)
+		ibus.inputContextObject.Call(inputContextIface+".FocusOut", dbus.FlagNoReplyExpected)
 	}
 }
 
@@ -328,6 +338,6 @@ func (ibus *IBus) Reset() {
 	if ibus == nil || ibus.ibusConn == nil {
 		return
 	}
-	ibus.compositing = false
-	ibus.inputContextObject.Call(inputContextIface+".Reset", 0)
+	ibus.compositing.Store(false)
+	ibus.inputContextObject.Call(inputContextIface+".Reset", dbus.FlagNoReplyExpected)
 }

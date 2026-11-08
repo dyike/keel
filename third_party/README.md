@@ -761,3 +761,7 @@ Patch: `public.go` selects a local charset reader. Default builds accept UTF-8 a
 ### Selected Chroma lexer
 
 `ui/highlight/golang` copies the Go lexer and Go-template/plaintext XML rules from Chroma v2.27.0 (MIT, license included). Registration uses a private registry; Go HTML templates are omitted. This avoids linking hundreds of unrelated language rules into Components. The token adapter is shared with the unchanged full-language provider. Parity tests cover supported aliases, malformed code, Unicode, raw-string templates and styles.
+
+## Linux integration migrated from Mirage
+
+Added DMA-BUF registry and EGL external-image import with GPU-fenced lifetime, batched Wayland preedit and ordered IBus updates, X11 frameless hints and gestures, Wayland frameless decoration negotiation, and titlebar palette extensions. These changes belong to Keel rather than application-vendored copies. Regression tests accompany the surface lifetime, IME and X11 changes. No new cgo.

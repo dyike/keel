@@ -369,6 +369,11 @@ func (w *Window) updateState() {
 		w.imeState = newState
 		w.driver.EditorStateChanged(oldState, newState)
 	}
+	if d, ok := w.driver.(interface{ FlushTextInput() }); ok {
+		// Wayland batches IME state after the editor has supplied its final
+		// selection and caret geometry, including an otherwise unchanged frame.
+		d.FlushTextInput()
+	}
 	if t, ok := q.WakeupTime(); ok {
 		w.setNextFrame(t)
 	}

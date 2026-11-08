@@ -335,7 +335,8 @@ type x11Window struct {
 		// _NET_WM_STATE_MAXIMIZED_HORZ
 		wmStateMaximizedHorz xAtom
 		// _NET_WM_STATE_MAXIMIZED_VERT
-		wmStateMaximizedVert xAtom
+		wmStateMaximizedVert   xAtom
+		motifHints, moveResize xAtom
 	}
 	metric unit.Metric
 	notify struct {
@@ -344,7 +345,10 @@ type x11Window struct {
 
 	animating bool
 
-	pointerBtns pointer.Buttons
+	pointerBtns        pointer.Buttons
+	decorationsSet     bool
+	titleClickTime     uintptr
+	titleClickPosition image.Point
 
 	clipboard struct {
 		content []byte
@@ -354,8 +358,7 @@ type x11Window struct {
 	closing   *ClosingEvent
 	delivered *ClosingEvent
 
-	wakeups     chan struct{}
-	dispatchFns chan func()
+	wakeups chan struct{}
 	// Keel patch: Run queues its functions for the event loop, which
 	// drains them in Event. started reports that the loop has begun;
 	// done is closed when the window is destroyed.
@@ -417,8 +420,9 @@ func (w *x11Window) Configure(options []Option) {
 	prev := w.config
 	cnf := w.config
 	cnf.apply(w.metric, options)
-	// Decorations are never disabled.
-	cnf.Decorated = true
+	if !x11FramelessSupported {
+		cnf.Decorated = true
+	}
 
 	switch cnf.Mode {
 	case Fullscreen:
@@ -484,7 +488,10 @@ func (w *x11Window) Configure(options []Option) {
 			xSetWMNormalHints(w.x, w.xw, &shints)
 		}
 	}
-	if cnf.Decorated != prev.Decorated {
+	if !w.decorationsSet || cnf.Decorated != prev.Decorated {
+		hints := x11DecorationHints(cnf.Decorated)
+		xChangeProperty(w.x, w.xw, w.atoms.motifHints, w.atoms.motifHints, 32, xPropModeReplace, unsafe.Pointer(&hints[0]), int32(len(hints)))
+		w.decorationsSet = true
 		w.config.Decorated = cnf.Decorated
 	}
 	// Keel patch: see Perform.
@@ -733,16 +740,6 @@ func (w *x11Window) dispatch() {
 	default:
 	}
 
-dispatchFnsLoop:
-	for {
-		select {
-		case fn := <-w.dispatchFns:
-			fn()
-		default:
-			break dispatchFnsLoop
-		}
-	}
-
 	xfd := xConnectionNumber(w.x)
 
 	// Poll for events and notifications.
@@ -909,6 +906,15 @@ func (h *x11EventHandler) handleEvents() bool {
 			}
 		case xButtonPress, xButtonRelease:
 			bevt := (*xButtonEvent)(unsafe.Pointer(xev))
+			if bevt.Type == xButtonPress && bevt.Button == xButton1 && !w.config.Decorated && w.config.Mode != Fullscreen {
+				at := f32.Pt(float32(bevt.X), float32(bevt.Y))
+				action, _ := w.w.ActionAt(at)
+				edge := max(1, w.metric.Dp(4))
+				if direction, ok := x11MoveResizeDirection(w.config.Size, edge, image.Pt(int(bevt.X), int(bevt.Y)), action, w.config.Mode == Windowed); ok {
+					w.beginMoveResize(bevt, direction)
+					continue
+				}
+			}
 			ev := pointer.Event{
 				Kind:   pointer.Press,
 				Source: pointer.Mouse,
@@ -1158,7 +1164,6 @@ func newX11Window(gioWin *callbacks, options []Option) error {
 		xkb:          xkb,
 		xkbEventBase: xkbEventBase,
 		wakeups:      make(chan struct{}, 1),
-		dispatchFns:  make(chan func(), 20),
 		done:         make(chan struct{}),
 		config:       Config{Size: cnf.Size},
 	}
@@ -1195,6 +1200,8 @@ func newX11Window(gioWin *callbacks, options []Option) error {
 	w.atoms.wmActiveWindow = w.atom("_NET_ACTIVE_WINDOW", false)
 	w.atoms.wmStateMaximizedHorz = w.atom("_NET_WM_STATE_MAXIMIZED_HORZ", false)
 	w.atoms.wmStateMaximizedVert = w.atom("_NET_WM_STATE_MAXIMIZED_VERT", false)
+	w.atoms.motifHints = w.atom("_MOTIF_WM_HINTS", false)
+	w.atoms.moveResize = w.atom("_NET_WM_MOVERESIZE", false)
 
 	// extensions
 	xSetWMProtocols(dpy, win, []xAtom{w.atoms.evDelWindow})
@@ -1291,9 +1298,7 @@ func (h *ibusEventHandler) Event(new string, sel key.Range, visible, preedit boo
 	// If we block in this function dbus will not be able to use its connection
 	// which means that as soon as we receive a keypress from the X server the
 	// dbus call to process it will also block, leading to a deadlock.
-	select {
-	case w.dispatchFns <- handlefn:
-		w.invalidate()
-	default:
-	}
+	// Queue every update without waiting for the event-loop thread. A bounded
+	// channel with a default case silently lost commits during typing bursts.
+	w.runFuncs.add(handlefn, w.invalidate)
 }

@@ -74,6 +74,7 @@ const (
 	zxdgDecorationManagerDestroyOp = 0
 	zxdgDecorationManagerGetOp     = 1
 	zxdgToplevelDecorationDestroy  = 0
+	zxdgToplevelDecorationSetMode  = 1
 
 	zwpTextInputV3DestroyOp             = 0
 	zwpTextInputV3EnableOp              = 1
@@ -381,6 +382,10 @@ func zxdgDecorationManagerV1Destroy(m unsafe.Pointer) {
 
 func zxdgDecorationManagerV1GetToplevelDecoration(m, toplevel unsafe.Pointer) unsafe.Pointer {
 	return marshal(m, zxdgDecorationManagerGetOp, wlIface.zxdg_toplevel_decoration_v1, 0, 0, uintptr(toplevel))
+}
+
+func zxdgToplevelDecorationV1SetMode(d unsafe.Pointer, mode uint32) {
+	marshal(d, zxdgToplevelDecorationSetMode, nil, 0, uintptr(mode))
 }
 
 func zxdgToplevelDecorationV1Destroy(d unsafe.Pointer) {

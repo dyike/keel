@@ -225,6 +225,37 @@ func (s *textInputState) apply(e *callbacks) bool {
 	beforeState := e.EditorState()
 	update := s.pending
 	s.pending = textInputUpdate{}
+	if update.deleteBefore == 0 && update.deleteAfter == 0 {
+		// A preedit update replaces the previous composition directly. Clearing
+		// it first sends an empty-text edit to application bindings and makes
+		// the editor reshape/filter the same input twice for every IME key.
+		if !update.commitSet && !update.preeditSet && beforeState.compose.Start == -1 {
+			return false
+		}
+		rng := imeRange(beforeState)
+		text := update.commit + update.preedit
+		if !update.commitSet {
+			text = update.preedit
+		}
+		if !update.preeditSet {
+			text = update.commit
+		}
+		e.EditorReplace(rng, text)
+		pos := rng.Start + utf8.RuneCountInString(text)
+		selection := key.Range{Start: pos, End: pos}
+		compose := key.Range{Start: -1, End: -1}
+		if update.preeditSet {
+			compose = key.Range{Start: pos - utf8.RuneCountInString(update.preedit), End: pos}
+			start, ok1 := byteOffsetToRune(update.preedit, update.preeditSelection.Start)
+			end, ok2 := byteOffsetToRune(update.preedit, update.preeditSelection.End)
+			if ok1 && ok2 {
+				selection = key.Range{Start: compose.Start + start, End: compose.Start + end}
+			}
+		}
+		e.SetComposingRegion(compose)
+		e.SetEditorSelection(selection)
+		return e.EditorState() != beforeState
+	}
 	if state := e.EditorState(); state.compose.Start != -1 {
 		compose := normRange(state.compose)
 		e.EditorReplace(compose, "")
