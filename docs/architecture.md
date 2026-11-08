@@ -22,7 +22,7 @@ github.com/dyike/keel
 │   ├── markdown/         Markdown Rendering, for AI streaming output
 │   ├── highlight/        Optional: code highlighting (chroma), kit and markdown are colored after introduction
 │   ├── netimage/         Optional: http(s) image loading (net/http), only after importing can the image use the network address
-│   └── internal/         loop（Frame lock), editorstyle (input drawing), inputcontent (atomic reference editing), imageload (image loading), appkit (AppKit through purego, for window), wayland (libwayland through purego, for window), uitest (test tool)
+│   └── internal/         loop（Frame lock), editorstyle (input drawing), inputcontent (atomic reference editing), imageload (image loading), appkit (AppKit through purego, for window), wayland (libwayland through purego, for window), atspi (AT-SPI over D-Bus, for window), uitest (test tool)
 ├── native/
 │   ├── permission/       Permission check and application
 │   ├── screen/           Monitor list, screenshots
@@ -117,6 +117,7 @@ These rules are enforced by the test of `internal/deps`: it writes the packages 
 | `ui/internal/loop` | Mutable state shared across windows: frame locks, update queues | any Gio type |
 | `ui/internal/appkit` | macOS: the Objective-C runtime through purego (messages, pools, main queue, blocks, classes) | Keel modules, Gio, cgo |
 | `ui/internal/wayland` | Linux: libwayland-client through purego (requests, private queues, one event dispatcher) | Keel modules, Gio, cgo |
+| `ui/internal/atspi` | Linux: AT-SPI accessibility objects over D-Bus, used by window | Other Keel modules, Gio |
 | `ui/internal/inputcontent` | Atomic input references, grapheme boundaries, coordinate mapping and undo transactions | Gio, other Keel modules and platform events |
 | `ui/internal/editorstyle` | Input box cursor, selection drawing and glyph measurement | Specific Keel components, windows and themes |
 | `ui/internal/imageload` | Image source analysis, asynchronous loading, size restrictions, loading and failed placeholder | Component appearance, click and other interactions |

@@ -22,7 +22,7 @@ github.com/dyike/keel
 │   ├── markdown/         Markdown 渲染，针对 AI 流式输出
 │   ├── highlight/        可选：代码高亮（chroma），引入后 kit 和 markdown 才着色
 │   ├── netimage/         可选：http(s) 图片加载（net/http），引入后图片才能用网络地址
-│   └── internal/         loop（帧锁）、editorstyle（输入绘制）、inputcontent（原子引用编辑）、imageload（图片加载）、appkit（通过 purego 调 AppKit，供 window 用）、wayland（通过 purego 调 libwayland，供 window 用）、uitest（测试工具）
+│   └── internal/         loop（帧锁）、editorstyle（输入绘制）、inputcontent（原子引用编辑）、imageload（图片加载）、appkit（通过 purego 调 AppKit，供 window 用）、wayland（通过 purego 调 libwayland，供 window 用）、atspi（通过 D-Bus 调 AT-SPI，供 window 用）、uitest（测试工具）
 ├── native/
 │   ├── permission/       权限检查与申请
 │   ├── screen/           显示器列表、截图
@@ -117,6 +117,7 @@ Gio 和 go-text 是 Keel 根模块内的普通包，分别通过 `github.com/dyi
 | `ui/internal/loop` | 跨窗口共享的可变状态：帧锁、更新队列 | 任何 Gio 类型 |
 | `ui/internal/appkit` | macOS：通过 purego 驱动 Objective-C 运行时（消息、自动释放池、主队列、block、类） | Keel 模块、Gio、cgo |
 | `ui/internal/wayland` | Linux：通过 purego 调用 libwayland-client（请求、私有队列、统一的事件分发） | Keel 模块、Gio、cgo |
+| `ui/internal/atspi` | Linux：通过 D-Bus 实现 AT-SPI 无障碍对象，供 window 使用 | 其他 Keel 模块、Gio |
 | `ui/internal/inputcontent` | 原子输入引用、字素边界、坐标映射与撤销事务 | Gio、其他 Keel 模块及平台事件 |
 | `ui/internal/editorstyle` | 输入框的光标、选区绘制和字形测量 | 具体 Keel 组件、窗口和主题 |
 | `ui/internal/imageload` | 图片来源解析、异步加载、尺寸限制、加载中和失败占位 | 组件外观、点击等交互 |
