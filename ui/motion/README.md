@@ -49,3 +49,11 @@ When the last particle expires, the active slice becomes empty and no frame is
 requested. Reduced motion clears the burst. `Apply` owns `Decorate`; wrap an
 element if it must also use another decoration.
 
+
+## Spring presets
+
+`Smooth()`, `Snappy()` and `Bouncy()` return independent transition values with
+a 500ms duration and 0 / 0.15 / 0.3 bounce parameters. They use Keel's
+existing solver and preserve velocity when retargeted. Duration describes the
+perceptual response, not an exact settling deadline. Compare them interactively
+with `go run ./examples/motion -section presets`.

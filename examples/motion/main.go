@@ -16,7 +16,10 @@ import (
 )
 
 type demo struct {
-	onlyEffects              bool
+	section                  string
+	presetTarget             float32
+	presets                  [3]motion.Value
+	pages                    *el.RootWidget
 	right                    bool
 	spring, tween            motion.Value
 	keyframe                 motion.Value
@@ -44,6 +47,7 @@ func newDemo() *demo {
 		minDrag: -120, maxDrag: 120,
 		keyValues: []float32{0, 1.2, .9, 1}, keyTimes: []float32{0, .45, .75, 1},
 	}
+	d.pages = newPageDemo()
 	d.spring.Set(0)
 	d.tween.Set(0)
 	d.keyframe.Set(0)
@@ -60,12 +64,19 @@ func (d *demo) Render(cx *el.Context) el.Element {
 	if content > viewport {
 		progress = offset / (content - viewport)
 	}
-	body := el.Div().P(24).Gap(22).Child(
-		d.header(cx),
-		d.effectsSection(cx),
-	)
-	if !d.onlyEffects {
+	body := el.Div().P(24).Gap(22).Child(d.header(cx))
+	switch d.section {
+	case "effects":
+		body.Child(d.effectsSection(cx))
+	case "presets":
+		body.Child(d.presetsSection(cx))
+	case "pages":
+		body.Child(d.pagesSection(cx))
+	default:
 		body.Child(
+			d.presetsSection(cx),
+			d.pagesSection(cx),
+			d.effectsSection(cx),
 			d.springSection(cx),
 			d.easingSection(cx),
 			d.keyframeSection(cx),
@@ -275,23 +286,23 @@ func (d *demo) effectsSection(cx *el.Context) el.Element {
 func main() {
 	screenshot := flag.String("screenshot", "", "render a PNG to this path and exit")
 	language := flag.String("lang", "en", "example language: en or zh-CN")
-	section := flag.String("section", "", "section to show: effects")
+	section := flag.String("section", "", "section to show: effects, presets, pages (empty shows all)")
 	flag.Parse()
 	applyLanguage(*language)
 	d := newDemo()
 	switch *section {
 	case "":
-	case "effects":
-		d.onlyEffects = true
+	case "effects", "presets", "pages":
+		d.section = *section
 	default:
 		log.Fatalf("unknown section %q", *section)
 	}
 	content := el.Root(d)
 	if *screenshot != "" {
-		// The focused effects page is idle until pointer input, so it can be
+		// Focused sections are idle until user input, so they can be
 		// captured with motion enabled. The complete lab starts value
 		// animations immediately and uses reduced motion for deterministic PNGs.
-		theme.SetReducedMotion(!d.onlyEffects)
+		theme.SetReducedMotion(d.section == "")
 		if err := window.Screenshot(content, 900, 720, *screenshot); err != nil {
 			log.Fatal(err)
 		}

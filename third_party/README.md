@@ -765,3 +765,12 @@ Patch: `public.go` selects a local charset reader. Default builds accept UTF-8 a
 ## Linux integration migrated from Mirage
 
 Added DMA-BUF registry and EGL external-image import with GPU-fenced lifetime, batched Wayland preedit and ordered IBus updates, X11 frameless hints and gestures, Wayland frameless decoration negotiation, and titlebar palette extensions. These changes belong to Keel rather than application-vendored copies. Regression tests accompany the surface lifetime, IME and X11 changes. No new cgo.
+
+## MyGo application patterns
+
+`ui/kit/app_shell.go` adapts the peer-page fade and retained-page approach from
+[MyGo ui/router.go](https://github.com/egoist/mygo/blob/96334a46826e59b2bf4ef9dff7321bd57b18927c/ui/router.go).
+`ui/motion/transition.go` uses the Smooth/Snappy/Bouncy preset parameters from
+`ui/motion.go` at that revision: 500ms with bounce 0, 0.15 and 0.3.
+Keel retains its own renderer and spring solver; no MyGo runtime is linked.
+Copyright (c) 2026 MyGo contributors. [MIT license](mygo/LICENSE).

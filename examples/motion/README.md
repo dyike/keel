@@ -11,9 +11,11 @@ starts at the entry or press position. Click **Place order** to emit determinist
 Gio-drawn confetti from the button centre. Turn on **Reduced motion** to suppress
 both effects.
 
-Run `go run ./examples/motion` for the complete nine-section Motion lab. Use
-`-lang zh-CN` for Chinese, or capture the focused section with:
 
-```sh
-go run ./examples/motion -section effects -screenshot /tmp/keel-motion-effects.png
-```
+All animation demonstrations live here. Run `go run ./examples/motion` for the complete lab, or choose a section:
+
+- `-section presets`: Smooth / Snappy / Bouncy, including mid-animation reversal.
+- `-section pages`: page fades with retained input.
+- `-section effects`: pointer glow, ripples and confetti.
+
+Use `-lang zh-CN` for Chinese. `examples/app-shell` demonstrates application layout.

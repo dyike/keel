@@ -57,6 +57,15 @@ func SpringDuration(visual time.Duration, bounce float32) Transition {
 	return Transition{Kind: KindSpring, Stiffness: omega * omega, Damping: 2 * zeta * omega, Mass: 1}
 }
 
+// Smooth returns a critically damped 500ms perceptual spring.
+func Smooth() Transition { return SpringDuration(500*time.Millisecond, 0) }
+
+// Snappy returns a 500ms perceptual spring with a small overshoot.
+func Snappy() Transition { return SpringDuration(500*time.Millisecond, .15) }
+
+// Bouncy returns a 500ms perceptual spring with a visible overshoot.
+func Bouncy() Transition { return SpringDuration(500*time.Millisecond, .3) }
+
 // Tween creates a duration-based interpolation.
 func Tween(duration time.Duration, ease Easing) Transition {
 	return Transition{Kind: KindTween, Duration: duration, Ease: ease}

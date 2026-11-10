@@ -122,6 +122,7 @@
 | 组件 | 用途 |
 | --- | --- |
 | [TitleBar](kit/title_bar.zh-CN.md) | 无边框窗口的标题栏 |
+| [AppShell](kit/app_shell.zh-CN.md) | 应用布局、页面状态保留和切页动效 |
 | [Sidebar](kit/sidebar.zh-CN.md) | 导航侧栏 |
 | [Toolbar](kit/toolbar.zh-CN.md) | 工具栏与溢出菜单 |
 | [StatusBar](kit/status_bar.zh-CN.md) | 固定 24dp 左右状态栏 |

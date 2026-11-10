@@ -307,3 +307,10 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
 ## 从 Mirage 迁入的 Linux 集成
 
 增加 DMA-BUF 注册与 EGL 外部图像导入、GPU fence 生命周期、Wayland 组合文本批处理、IBus 有序更新、X11 无边框提示与手势、Wayland 无边框装饰协商和标题栏配色扩展。这些修改归属 Keel，不应放在应用的 vendor 副本中。包含表面生命周期、输入法和 X11 回归测试，未新增 cgo。
+
+## MyGo 应用模式
+
+`ui/kit/app_shell.go` 参考并改写了 [MyGo ui/router.go](https://github.com/egoist/mygo/blob/96334a46826e59b2bf4ef9dff7321bd57b18927c/ui/router.go) 的平级页面淡入与页面状态保留方式。
+`ui/motion/transition.go` 使用该版本 `ui/motion.go` 的 Smooth/Snappy/Bouncy 预设参数：500ms，回弹分别为 0、0.15、0.3。
+Keel 保留自己的渲染器和弹簧求解器，不链接 MyGo 运行时。
+Copyright (c) 2026 MyGo contributors。[MIT 许可证](mygo/LICENSE)。
