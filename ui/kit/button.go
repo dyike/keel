@@ -110,7 +110,7 @@ func (v *ButtonView) Appearance(fn func(ButtonAppearance) ButtonAppearance) *But
 	return v
 }
 
-// Size sets the height in dp. Recommended heights are 28, 32 and 40.
+// Size sets the minimum height in dp. Recommended heights are 28, 32 and 40.
 func (v *ButtonView) Size(dp float32) *ButtonView {
 	if dp > 0 && !math.IsInf(float64(dp), 0) {
 		v.height = dp
@@ -245,7 +245,7 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 		gradient = g
 	}
 	styles := resolveButtonStyles(appearance, gradient)
-	box := el.Div().ID(v.id).Role("button").Name(name).H(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(theme.SpaceSm).Items(el.Center).Justify(el.Center)
+	box := el.Div().ID(v.id).Role("button").Name(name).MinH(el.Dp(v.height)).MaxW(el.Full).Px(padding).Row().Gap(theme.SpaceSm).Items(el.Center).Justify(el.Center)
 	if corners[0] == corners[1] && corners[0] == corners[2] && corners[0] == corners[3] {
 		box.Rounded(corners[0])
 	} else {
@@ -254,6 +254,9 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 	box.Bg(bg).TextColor(fg).TextSize(font).Focusable(true).OnClick(v.activate).
 		Disabled(v.disabled).
 		FocusStyle(styles.focus)
+	if v.text != "" || v.content != nil {
+		box.Py(2)
+	}
 	if v.content == nil && v.text == "" && v.icon != nil {
 		box.W(el.Dp(v.height)).Px(0)
 	}

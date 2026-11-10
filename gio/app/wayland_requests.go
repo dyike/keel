@@ -145,16 +145,18 @@ const (
 	lk_data_device
 	lk_data_offer
 	lk_data_source
+	lk_fractional_scale
 )
 
 // wlIface holds the wl_interface pointers the bindings provide.
 var wlIface struct {
-	wl_registry, wl_compositor, wl_surface, wl_region, wl_callback unsafe.Pointer
-	wl_seat, wl_pointer, wl_keyboard, wl_touch, wl_output, wl_shm  unsafe.Pointer
-	wl_data_device_manager, wl_data_device, wl_data_source         unsafe.Pointer
-	xdg_wm_base, xdg_surface, xdg_toplevel                         unsafe.Pointer
-	zxdg_decoration_manager_v1, zxdg_toplevel_decoration_v1        unsafe.Pointer
-	zwp_text_input_manager_v3, zwp_text_input_v3                   unsafe.Pointer
+	wp_viewporter, wp_viewport, wp_fractional_scale_manager_v1, wp_fractional_scale_v1 unsafe.Pointer
+	wl_registry, wl_compositor, wl_surface, wl_region, wl_callback                     unsafe.Pointer
+	wl_seat, wl_pointer, wl_keyboard, wl_touch, wl_output, wl_shm                      unsafe.Pointer
+	wl_data_device_manager, wl_data_device, wl_data_source                             unsafe.Pointer
+	xdg_wm_base, xdg_surface, xdg_toplevel                                             unsafe.Pointer
+	zxdg_decoration_manager_v1, zxdg_toplevel_decoration_v1                            unsafe.Pointer
+	zwp_text_input_manager_v3, zwp_text_input_v3                                       unsafe.Pointer
 }
 
 // wlCursor and wlCursorImage are libwayland-cursor's struct wl_cursor and
@@ -422,4 +424,8 @@ func zwpTextInputV3SetContentType(t unsafe.Pointer, hint, purpose uint32) {
 
 func zwpTextInputV3SetCursorRectangle(t unsafe.Pointer, x, y, w, h int32) {
 	marshal(t, zwpTextInputV3SetCursorRectangleOp, nil, 0, wlArg(uint32(x)), wlArg(uint32(y)), wlArg(uint32(w)), wlArg(uint32(h)))
+}
+
+func xdgSurfaceSetWindowGeometry(surface unsafe.Pointer, width, height int32) {
+	marshal(surface, 3, nil, 0, 0, 0, wlArg(uint32(width)), wlArg(uint32(height)))
 }

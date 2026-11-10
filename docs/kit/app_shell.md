@@ -54,3 +54,7 @@ The title and blank area drag the window; double-click follows the platform titl
 Applications with wide selectors or many actions should set an appropriate `MinWidth` and adapt custom views to compact layouts. The example uses a 560×420dp minimum. Platform-branch tests cover layout and control callbacks; cross-compilation does not establish Windows or Linux runtime behavior.
 
 `HideSidebarOnCollapse(true)` removes navigation, its footer and the vertical divider when collapsed, giving content the full width. The title-bar toggle remains available, and expanding restores the previous width. The default `false` keeps the icon rail. This also applies to automatic collapse in narrow windows. A 1dp horizontal divider starts at the sidebar’s right edge when expanded and spans the entire window when collapsed. `examples/app-shell` defaults to complete hiding; its top-right collapse-mode selector switches between the icon rail and complete hiding at runtime, including while collapsed.
+
+Titlebar height is a minimum: large text can grow controls and their container.
+The Workspace example adapts select widths to text scaling and opts into
+AutoSize and persistent normal window size (see ui/window README).

@@ -91,7 +91,7 @@ func (v *TitleBarView) Render(cx *el.Context) el.Element {
 	controls := w != nil && w.Frameless()
 	mac := v.goos == "darwin"
 	colors := v.palette()
-	bar := el.Div().Role("banner").Name(v.title).Row().Items(el.Center).H(el.Dp(TitleBarHeight)).Bg(colors.background).Px(theme.SpaceMd).Gap(theme.SpaceMd)
+	bar := el.Div().Role("banner").Name(v.title).Row().Items(el.Center).MinH(el.Dp(TitleBarHeight)).Bg(colors.background).Px(theme.SpaceMd).Gap(theme.SpaceMd)
 	if controls && mac {
 		if native, ok := w.(core.NativeTitleBarControls); ok && native.NativeTitleBarInset() > 0 {
 			bar.Child(el.Div().W(el.Dp(max(0, native.NativeTitleBarInset()-theme.SpaceMd))).NoShrink())
@@ -107,7 +107,7 @@ func (v *TitleBarView) Render(cx *el.Context) el.Element {
 		fg = theme.Muted
 	}
 	title := el.Text(v.title).TextSize(theme.TextMd).Bold().MaxLines(1).TextColor(fg)
-	middle := el.Div().Grow().W(el.Dp(0)).H(el.Dp(TitleBarHeight)).Row().Items(el.Center).Child(title)
+	middle := el.Div().Grow().W(el.Dp(0)).MinH(el.Dp(TitleBarHeight)).Row().Items(el.Center).Child(title)
 	if mac {
 		middle.Justify(el.Center) // macOS centers window titles
 	}
@@ -158,7 +158,7 @@ func (v *TitleBarView) buttons(cx *el.Context, w core.WindowControls) el.Element
 	text := locale.Current()
 	colors := v.palette()
 	btn := func(name string, icon el.Element, hover color.NRGBA, fn func()) el.Element {
-		return el.Div().Role("button").Name(name).W(el.Dp(46)).H(el.Dp(TitleBarHeight)).Center().
+		return el.Div().Role("button").Name(name).W(el.Dp(46)).MinH(el.Dp(TitleBarHeight)).Center().
 			CursorPointer().Focusable(false).OnClick(fn).Hover(func(s *el.Style) { s.Bg(hover) }).Child(icon)
 	}
 	line := func(wd, ht float32) el.Element { return el.Div().W(el.Dp(wd)).H(el.Dp(ht)).Bg(colors.foreground) }

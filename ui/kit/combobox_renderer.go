@@ -27,7 +27,7 @@ func (v *ComboboxView) optionHeight() float32 {
 	if v.rowHeight > 0 {
 		return max(1+2*v.sizeRatio(), v.rowHeight)
 	}
-	return max(1+2*v.sizeRatio(), 30*v.sizeRatio())
+	return max(1+2*v.sizeRatio(), 30*v.sizeRatio()*max(1, v.fontScale))
 }
 func (v *ComboboxView) renderItem(cx *el.Context, value string, selected bool) el.Element {
 	var content el.View

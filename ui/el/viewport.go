@@ -206,3 +206,17 @@ func (cx *Context) ScrollToX(id string, offset float32) {
 	st.scrollPendingX = max(int(offset*px+0.5), 0) - st.scrollX
 	cx.root.e.gtx.Execute(op.InvalidateCmd{})
 }
+
+// TextScale returns the font scale relative to layout dp for this frame.
+// Use it for fixed-height virtual rows; ordinary controls should size to content.
+func (cx *Context) TextScale() float32 {
+	m := cx.root.e.m
+	dp, sp := m.PxPerDp, m.PxPerSp
+	if dp <= 0 {
+		dp = 1
+	}
+	if sp <= 0 {
+		sp = 1
+	}
+	return sp / dp
+}

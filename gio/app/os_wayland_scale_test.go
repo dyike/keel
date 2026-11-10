@@ -37,3 +37,42 @@ func TestParseWaylandTextScale(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestWaylandFractionalMetricsAndCoordinates(t *testing.T) {
+	for _, numerator := range []uint32{120, 150, 180, 240} {
+		for _, text := range []float32{1, 1.6364, 2} {
+			w := window{scale: 2, fractionalScale: numerator, textScale: text, size: image.Pt(801, 603)}
+			size, metric := w.getConfig()
+			scale := float32(numerator) / 120
+			if metric.PxPerDp != scale || metric.PxPerSp != scale*text {
+				t.Fatal(metric)
+			}
+			if w.surfaceSize(size) != w.size {
+				t.Fatalf("round trip: %v -> %v", w.size, size)
+			}
+			if got := w.bufferSize(image.Pt(2, 2)); numerator == 150 && got != image.Pt(3, 3) {
+				t.Fatalf("half pixels must round away from zero: %v", got)
+			}
+		}
+	}
+	w := window{scale: 2, textScale: 1, size: image.Pt(800, 600)}
+	size, _ := w.getConfig()
+	if size != image.Pt(1600, 1200) {
+		t.Fatal("integer fallback", size)
+	}
+}
+
+func TestWaylandFramelessHasNoDecorationHeight(t *testing.T) {
+	w := window{config: Config{decoHeight: 40}}
+	if w.decoHeight() != 0 {
+		t.Fatal("frameless window gained titlebar height")
+	}
+	w.requestedDecorated = true
+	if w.decoHeight() != 40 {
+		t.Fatal("client-side titlebar height lost")
+	}
+	w.config.Decorated = true
+	if w.decoHeight() != 0 {
+		t.Fatal("server titlebar counted as client pixels")
+	}
+}

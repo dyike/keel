@@ -53,18 +53,19 @@ import (
 //go:generate sed -i "1s;^;//go:build ((linux \\&\\& !android) || freebsd) \\&\\& !nowayland\\n\\n;" wayland_text_input.c
 
 type wlDisplay struct {
-	disp              unsafe.Pointer
-	reg               unsafe.Pointer
-	compositor        unsafe.Pointer
-	wm                unsafe.Pointer
-	imm               unsafe.Pointer
-	shm               unsafe.Pointer
-	dataDeviceManager unsafe.Pointer
-	decor             unsafe.Pointer
-	seat              *wlSeat
-	xkb               *xkb.Context
-	outputMap         map[uint32]unsafe.Pointer
-	outputConfig      map[unsafe.Pointer]*wlOutput
+	viewporter, fractionalManager unsafe.Pointer
+	disp                          unsafe.Pointer
+	reg                           unsafe.Pointer
+	compositor                    unsafe.Pointer
+	wm                            unsafe.Pointer
+	imm                           unsafe.Pointer
+	shm                           unsafe.Pointer
+	dataDeviceManager             unsafe.Pointer
+	decor                         unsafe.Pointer
+	seat                          *wlSeat
+	xkb                           *xkb.Context
+	outputMap                     map[uint32]unsafe.Pointer
+	outputConfig                  map[unsafe.Pointer]*wlOutput
 
 	// Notification pipe fds.
 	notify struct {
@@ -129,14 +130,19 @@ type repeatState struct {
 }
 
 type window struct {
-	w         *callbacks
-	disp      *wlDisplay
-	surf      unsafe.Pointer
-	wmSurf    unsafe.Pointer
-	topLvl    unsafe.Pointer
-	decor     unsafe.Pointer
-	textScale float32
-	scroll    struct {
+	suggestedBounds      image.Point
+	viewportSize         image.Point
+	geometrySize         image.Point
+	viewport, fractional unsafe.Pointer
+	fractionalScale      uint32
+	w                    *callbacks
+	disp                 *wlDisplay
+	surf                 unsafe.Pointer
+	wmSurf               unsafe.Pointer
+	topLvl               unsafe.Pointer
+	decor                unsafe.Pointer
+	textScale            float32
+	scroll               struct {
 		time  time.Duration
 		steps image.Point
 		dist  f32.Point
@@ -148,6 +154,7 @@ type window struct {
 	inputHint   key.InputHint
 
 	cursor struct {
+		scale  int
 		theme  unsafe.Pointer
 		cursor *wlCursor
 		// system is the active cursor for system gestures
@@ -346,6 +353,7 @@ func (d *wlDisplay) createNativeWindow(options []Option) (*window, error) {
 	}
 	wlSurfaceSetBufferScale(w.surf, int32(w.scale))
 	callbackStore(unsafe.Pointer(w.surf), w)
+	w.initFractionalScale()
 	w.wmSurf = xdgWmBaseGetXdgSurface(d.wm, w.surf)
 	if w.wmSurf == nil {
 		w.destroy()
@@ -384,7 +392,8 @@ func (d *wlDisplay) createNativeWindow(options []Option) (*window, error) {
 		w.destroy()
 		return nil, errors.New("wayland: wl_compositor_create_surface failed")
 	}
-	wlSurfaceSetBufferScale(w.cursor.surf, int32(w.scale))
+	w.cursor.scale = w.scale
+	wlSurfaceSetBufferScale(w.cursor.surf, int32(w.cursor.scale))
 	wlAddListener(d.wm, lk_xdg_wm_base, unsafe.Pointer(w.surf))
 	wlAddListener(w.surf, lk_surface, unsafe.Pointer(w.surf))
 	wlAddListener(w.wmSurf, lk_xdg_surface, unsafe.Pointer(w.surf))
@@ -548,8 +557,35 @@ func wlOnToplevelClose(data unsafe.Pointer, topLvl unsafe.Pointer) {
 
 func wlOnToplevelConfigure(data unsafe.Pointer, topLvl unsafe.Pointer, width, height int32, states unsafe.Pointer) {
 	w := callbackLoad(data).(*window)
+	mode := Windowed
+	if states != nil {
+		array := (*struct {
+			size, alloc uintptr
+			data        unsafe.Pointer
+		})(states)
+		for _, state := range unsafe.Slice((*uint32)(array.data), int(array.size/4)) {
+			if state == 2 {
+				mode = Fullscreen
+				break
+			}
+			if state == 1 {
+				mode = Maximized
+			}
+		}
+	}
+	if mode != w.config.Mode {
+		if w.config.Mode == Windowed {
+			w.wsize = w.config.Size
+		}
+		w.config.Mode = mode
+		w.ProcessEvent(ConfigEvent{Config: w.config})
+	}
 	if width != 0 && height != 0 {
 		w.size = image.Pt(int(width), int(height))
+		if w.config.Bounds != w.suggestedBounds && w.suggestedBounds.X > 0 && w.suggestedBounds.Y > 0 {
+			w.config.Bounds = w.suggestedBounds
+			w.ProcessEvent(ConfigEvent{Config: w.config})
+		}
 		w.updateOpaqueRegion()
 	}
 }
@@ -641,6 +677,7 @@ func wlOnSurfaceLeave(data unsafe.Pointer, surf unsafe.Pointer, output unsafe.Po
 }
 
 func wlOnRegistryGlobal(data unsafe.Pointer, reg unsafe.Pointer, name uint32, intf string, version uint32) {
+	bindFractionalGlobal(callbackLoad(data).(*wlDisplay), reg, name, intf)
 	d := callbackLoad(data).(*wlDisplay)
 	switch intf {
 	case "wl_compositor":
@@ -673,7 +710,7 @@ func wlOnRegistryGlobal(data unsafe.Pointer, reg unsafe.Pointer, name uint32, in
 	case "wl_shm":
 		d.shm = wlRegistryBind(reg, name, wlIface.wl_shm, "wl_shm", 1)
 	case "xdg_wm_base":
-		d.wm = wlRegistryBind(reg, name, wlIface.xdg_wm_base, "xdg_wm_base", 1)
+		d.wm = wlRegistryBind(reg, name, wlIface.xdg_wm_base, "xdg_wm_base", waylandShellVersion(version))
 	case "zxdg_decoration_manager_v1":
 		d.decor = wlRegistryBind(reg, name, wlIface.zxdg_decoration_manager_v1, "zxdg_decoration_manager_v1", 1)
 	case "zwp_text_input_manager_v3":
@@ -756,8 +793,8 @@ func wlOnTouchDown(data unsafe.Pointer, touch unsafe.Pointer, serial, t uint32, 
 	w := callbackLoad(unsafe.Pointer(surf)).(*window)
 	s.touchFoci[id] = w
 	w.lastTouch = f32.Point{
-		X: fromFixed(x) * float32(w.scale),
-		Y: fromFixed(y) * float32(w.scale),
+		X: fromFixed(x) * w.renderScale(),
+		Y: fromFixed(y) * w.renderScale(),
 	}
 	w.ProcessEvent(pointer.Event{
 		Kind:      pointer.Press,
@@ -788,8 +825,8 @@ func wlOnTouchMotion(data unsafe.Pointer, touch unsafe.Pointer, t uint32, id int
 	s := callbackLoad(data).(*wlSeat)
 	w := s.touchFoci[id]
 	w.lastTouch = f32.Point{
-		X: fromFixed(x) * float32(w.scale),
-		Y: fromFixed(y) * float32(w.scale),
+		X: fromFixed(x) * w.renderScale(),
+		Y: fromFixed(y) * w.renderScale(),
 	}
 	w.ProcessEvent(pointer.Event{
 		Kind:      pointer.Move,
@@ -910,7 +947,7 @@ func wlOnPointerButton(data unsafe.Pointer, p unsafe.Pointer, serial, t, wbtn, s
 func wlOnPointerAxis(data unsafe.Pointer, p unsafe.Pointer, t, axis uint32, value int32) {
 	s := callbackLoad(data).(*wlSeat)
 	w := s.pointerFocus
-	v := fromFixed(value)
+	v := fromFixed(value) * w.renderScale()
 	w.resetFling()
 	if w.scroll.dist == (f32.Point{}) {
 		w.scroll.time = time.Duration(t) * time.Millisecond
@@ -1065,34 +1102,40 @@ func (w *window) Configure(options []Option) {
 		switch prev.Mode {
 		case Fullscreen:
 			w.config.Mode = Windowed
-			w.size = w.wsize.Div(w.scale)
+			w.size = w.surfaceSize(w.wsize)
 			xdgToplevelUnsetFullscreen(w.topLvl)
 		case Minimized:
 			w.config.Mode = Windowed
 		case Maximized:
 			w.config.Mode = Windowed
-			w.size = w.wsize.Div(w.scale)
+			w.size = w.surfaceSize(w.wsize)
 			xdgToplevelUnsetMaximized(w.topLvl)
 		}
 		w.setTitle(prev, cnf)
 		if prev.Size != cnf.Size {
 			w.config.Size = cnf.Size
-			w.config.Size.Y += int(w.decoHeight()) * w.scale
-			w.size = w.config.Size.Div(w.scale)
+			w.config.Size.Y += int(math.Round(float64(w.decoHeight()) * float64(w.renderScale())))
+			w.size = w.surfaceSize(w.config.Size)
 		}
 		w.config.MinSize = cnf.MinSize
 		w.config.MaxSize = cnf.MaxSize
 		w.setWindowConstraints()
 	}
 	w.ProcessEvent(ConfigEvent{Config: w.config})
+	if prev.Size != w.config.Size {
+		w.updateOpaqueRegion()
+		// A programmatic resize needs the same surface refresh as a compositor
+		// resize. A plain animation frame would keep the old EGL/Vulkan buffers.
+		w.draw(true)
+	}
 }
 
 func (w *window) setWindowConstraints() {
 	decoHeight := w.decoHeight()
-	if scaled := w.config.MinSize.Div(w.scale); scaled != (image.Point{}) {
+	if scaled := w.surfaceSize(w.config.MinSize); scaled != (image.Point{}) {
 		xdgToplevelSetMinSize(w.topLvl, int32(scaled.X), int32(scaled.Y+decoHeight))
 	}
-	if scaled := w.config.MaxSize.Div(w.scale); scaled != (image.Point{}) {
+	if scaled := w.surfaceSize(w.config.MaxSize); scaled != (image.Point{}) {
 		xdgToplevelSetMaxSize(w.topLvl, int32(scaled.X), int32(scaled.Y+decoHeight))
 	}
 }
@@ -1100,7 +1143,7 @@ func (w *window) setWindowConstraints() {
 // decoHeight returns the adjustment for client-side decorations, if applicable.
 // The unit is in surface-local coordinates.
 func (w *window) decoHeight() int {
-	if !w.config.Decorated {
+	if w.requestedDecorated && !w.config.Decorated {
 		return int(w.config.decoHeight)
 	}
 	return 0
@@ -1171,7 +1214,7 @@ func (w *window) setCursor(pointer unsafe.Pointer, serial uint32) {
 	if buf == nil {
 		return
 	}
-	wlPointerSetCursor(pointer, serial, w.cursor.surf, int32(img.HotspotX/uint32(w.scale)), int32(img.HotspotY/uint32(w.scale)))
+	wlPointerSetCursor(pointer, serial, w.cursor.surf, int32(img.HotspotX/uint32(w.cursor.scale)), int32(img.HotspotY/uint32(w.cursor.scale)))
 	wlSurfaceAttach(w.cursor.surf, buf, 0, 0)
 	wlSurfaceDamage(w.cursor.surf, 0, 0, int32(img.Width), int32(img.Height))
 	wlSurfaceCommit(w.cursor.surf)
@@ -1521,6 +1564,7 @@ func (d *wlDisplay) wakeup() {
 }
 
 func (w *window) destroy() {
+	w.destroyFractionalScale()
 	if s := w.disp.seat; s != nil && s.imFocus == w {
 		s.imState.clearPreedit(w.w)
 		s.imFocus = nil
@@ -1606,7 +1650,7 @@ func (s *wlSeat) sendCursorRectangle(w *window) {
 	sel := w.w.EditorState().Selection
 	top := sel.Transform.Transform(sel.Caret.Pos.Sub(f32.Pt(0, sel.Caret.Ascent)))
 	bottom := sel.Transform.Transform(sel.Caret.Pos.Add(f32.Pt(0, sel.Caret.Descent)))
-	scale := float32(max(1, w.scale))
+	scale := w.renderScale()
 	minX, maxX := min(top.X, bottom.X)/scale, max(top.X, bottom.X)/scale
 	minY, maxY := min(top.Y, bottom.Y)/scale, max(top.Y, bottom.Y)/scale
 	x, y := math.Floor(float64(minX)), math.Floor(float64(minY))
@@ -1803,8 +1847,8 @@ func (w *window) flushScroll() {
 func (w *window) onPointerMotion(x, y int32, t uint32) {
 	w.flushScroll()
 	w.lastPos = f32.Point{
-		X: fromFixed(x) * float32(w.scale),
-		Y: fromFixed(y) * float32(w.scale),
+		X: fromFixed(x) * w.renderScale(),
+		Y: fromFixed(y) * w.renderScale(),
 	}
 	w.ProcessEvent(pointer.Event{
 		Kind:      pointer.Move,
@@ -1881,19 +1925,22 @@ func (w *window) updateOutputs() {
 	}
 	if found && scale != w.scale {
 		w.scale = scale
-		wlSurfaceSetBufferScale(w.surf, int32(w.scale))
+		if w.fractionalScale == 0 {
+			wlSurfaceSetBufferScale(w.surf, int32(w.scale))
+		}
 		w.draw(true)
 	}
 	if found {
+		w.suggestBounds()
 		w.draw(true)
 	}
 }
 
 func (w *window) getConfig() (image.Point, unit.Metric) {
-	size := w.size.Mul(w.scale)
+	size := w.bufferSize(w.size)
 	return size, unit.Metric{
-		PxPerDp: float32(w.scale),
-		PxPerSp: w.textScale * float32(w.scale),
+		PxPerDp: w.renderScale(),
+		PxPerSp: w.textScale * w.renderScale(),
 	}
 }
 
@@ -1902,6 +1949,13 @@ func (w *window) draw(sync bool) {
 		return
 	}
 	w.flushScroll()
+	w.updateViewport()
+	if w.size.X > 0 && w.size.Y > 0 && w.geometrySize != w.size {
+		// Explicit logical geometry is needed before the first buffer is mapped,
+		// especially when a viewport decouples buffer pixels from surface size.
+		xdgSurfaceSetWindowGeometry(w.wmSurf, int32(w.size.X), int32(w.size.Y))
+		w.geometrySize = w.size
+	}
 	size, cfg := w.getConfig()
 	if cfg == (unit.Metric{}) {
 		return
@@ -2091,6 +2145,7 @@ func newWLDisplay() (*wlDisplay, error) {
 }
 
 func (d *wlDisplay) destroy() {
+	d.destroyFractionalScale()
 	if d.readClipClose != nil {
 		close(d.readClipClose)
 		d.readClipClose = nil

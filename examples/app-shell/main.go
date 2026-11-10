@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dyike/keel/ui/el"
@@ -70,7 +71,7 @@ func newApp() *kit.AppShellView {
 		if width < 760 {
 			modelWidth = 120
 		}
-		return el.Div().W(el.Dp(modelWidth)).Child(model.Render(cx))
+		return el.Div().W(el.Dp(modelWidth * max(1, cx.TextScale()))).Child(model.Render(cx))
 	}))
 	collapseMode := kit.Select("", "保留图标栏", "完全隐藏").Hint("折叠方式").OnChange(func(mode string) {
 		shell.HideSidebarOnCollapse(mode == "完全隐藏")
@@ -82,7 +83,7 @@ func newApp() *kit.AppShellView {
 		if width >= 900 {
 			row.Child(el.Text("折叠方式").TextSize(12).TextColor(theme.Muted))
 		}
-		return row.Child(el.Div().W(el.Dp(140)).Child(collapseMode.Render(cx)))
+		return row.Child(el.Div().W(el.Dp(140 * max(1, cx.TextScale()))).Child(collapseMode.Render(cx)))
 	}))
 
 	shell.Footer(el.ViewFunc(func(cx *el.Context) el.Element {
@@ -121,6 +122,14 @@ func main() {
 			log.Fatal(err)
 		}
 		return
+	}
+	options.AutoSize = true
+	if dir, err := os.UserCacheDir(); err == nil {
+		state, err := window.LoadSizeState(filepath.Join(dir, "keel-examples", "workspace-size.json"))
+		if err != nil {
+			log.Print(err)
+		}
+		options.SizeState = state
 	}
 	window.Open(options)
 	window.Main()

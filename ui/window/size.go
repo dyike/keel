@@ -60,6 +60,9 @@ func (w *Window) observeSize(gtx core.C) {
 		return
 	}
 	w.storeSize(size.X, size.Y)
+	if w.normalMode {
+		w.opts.SizeState.remember(size)
+	}
 	if size == w.lastSize {
 		return
 	}

@@ -7,6 +7,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"image"
 	"sync"
 	"unsafe"
 
@@ -109,7 +110,10 @@ func initWayland() error {
 		return err
 	}
 	for name, dst := range map[string]*unsafe.Pointer{
-		"xdg_wm_base": &wlIface.xdg_wm_base, "xdg_surface": &wlIface.xdg_surface,
+		"wp_viewporter": &wlIface.wp_viewporter, "wp_viewport": &wlIface.wp_viewport,
+		"wp_fractional_scale_manager_v1": &wlIface.wp_fractional_scale_manager_v1,
+		"wp_fractional_scale_v1":         &wlIface.wp_fractional_scale_v1,
+		"xdg_wm_base":                    &wlIface.xdg_wm_base, "xdg_surface": &wlIface.xdg_surface,
 		"xdg_toplevel":                &wlIface.xdg_toplevel,
 		"zxdg_decoration_manager_v1":  &wlIface.zxdg_decoration_manager_v1,
 		"zxdg_toplevel_decoration_v1": &wlIface.zxdg_toplevel_decoration_v1,
@@ -291,6 +295,10 @@ func wlDispatch(implementation, proxy uintptr, opcode uint32, msg, args uintptr)
 	p, a := cptr(proxy), wlArgs{cptr(args)}
 	data := wlProxyGetUserData(p)
 	switch implementation - 1 {
+	case lk_fractional_scale:
+		if opcode == 0 {
+			callbackLoad(data).(*window).preferredScale(a.u(0))
+		}
 	case lk_registry:
 		switch opcode {
 		case 0:
@@ -310,6 +318,11 @@ func wlDispatch(implementation, proxy uintptr, opcode uint32, msg, args uintptr)
 			wlOnXdgSurfaceConfigure(data, p, a.u(0))
 		}
 	case lk_xdg_toplevel:
+		if opcode == 2 {
+			w := callbackLoad(data).(*window)
+			w.suggestedBounds = image.Pt(int(a.i(0)), int(a.i(1)))
+			break
+		}
 		switch opcode {
 		case 0:
 			wlOnToplevelConfigure(data, p, a.i(0), a.i(1), a.o(2))

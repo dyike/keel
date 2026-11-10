@@ -750,6 +750,11 @@ func (w *Window) processEvent(e event.Event) bool {
 	case wakeupEvent:
 		w.coalesced.wakeup = true
 	case frameEvent:
+		// Coalescing may replace a resize/scale frame with an animation frame.
+		// Preserve the surface refresh until that pending frame is delivered.
+		if pending := w.coalesced.frame; pending != nil {
+			e2.Sync = e2.Sync || pending.Sync
+		}
 		if e2.Size == (image.Point{}) {
 			panic(errors.New("internal error: zero-sized Draw"))
 		}

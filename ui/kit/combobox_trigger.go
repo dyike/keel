@@ -112,6 +112,6 @@ func (v *ComboboxView) popupSearch(cx *el.Context, id string) el.Element {
 		})
 	}
 	return el.Div().ID(id + "/search-frame").Px(theme.SpaceSm).Py(theme.SpaceXs * v.sizeRatio()).Child(
-		el.Input().ID(id + "/search").Name(name).Placeholder(locale.Current().Search).Bind(&v.text).H(el.Dp(float32(theme.ControlHeight) * v.sizeRatio())).TextSize(float32(theme.BodySize) * v.sizeRatio()).OnChange(func(string) { v.searchChanged(); cx.ScrollTo(v.virtual.ID(), 0) }).OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) }).OnSubmit(func(string) { v.submit(); cx.Focus(v.selectionFocusID()) }),
+		el.Input().ID(id + "/search").Name(name).Placeholder(locale.Current().Search).Bind(&v.text).MinH(el.Dp(float32(theme.ControlHeight) * v.sizeRatio())).TextSize(float32(theme.BodySize) * v.sizeRatio()).OnChange(func(string) { v.searchChanged(); cx.ScrollTo(v.virtual.ID(), 0) }).OnKey(func(e el.KeyEvent) bool { return v.optionKey(cx, e) }).OnSubmit(func(string) { v.submit(); cx.Focus(v.selectionFocusID()) }),
 	)
 }

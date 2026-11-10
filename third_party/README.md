@@ -44,6 +44,19 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- Wayland purego: fractional-scale-v1 plus viewporter use the shared dispatcher
+  and native-owned protocol metadata, with integer fallback. Metrics, buffer
+  rounding, input/IME coordinates and scroll deltas use the render scale;
+  cursor hotspots retain the cursor buffer's own integer scale. Logical xdg
+  window geometry is explicitly committed; programmatic resizes refresh GPU
+  surfaces and coalesced frames retain pending refreshes, fixing stale buffers.
+  Explicit geometry fixes startup at minimum size on
+  Hyprland. Frameless windows no longer accumulate fallback titlebar height.
+  xdg-shell v4 bounds (or conservative output estimates) support initial size
+  selection. Tests cover metrics/rounding, decoration height and native resize,
+  scroll and reopening. Protocol definitions: wayland-protocols
+  staging/fractional-scale and stable/viewporter (MIT); no new cgo bindings.
+
 - Linux desktop bindings now default to purego, even with CGO enabled. No
   build tag or native development headers are needed. `-tags giocgo` opts into
   the old cgo bindings; `purego` or CGO_ENABLED=0 takes precedence. Android, BSD

@@ -58,11 +58,11 @@ func (v *AppShellView) titlebar(cx *el.Context, p *shellPage) el.Element {
 	if p != nil {
 		title, description = p.spec.Title, p.spec.Description
 	}
-	bar := el.Div().Grow().W(el.Dp(0)).Role("banner").Name(title).H(el.Dp(AppShellTitleBarHeight)).NoShrink().Row().Items(el.Center).Gap(12).Px(16)
+	bar := el.Div().Grow().W(el.Dp(0)).Role("banner").Name(title).MinH(el.Dp(AppShellTitleBarHeight)).NoShrink().Row().Items(el.Center).Gap(12).Px(16)
 	w := core.CurrentWindow()
 	controls := w != nil && w.Frameless()
 	mac := v.chrome.goos == "darwin"
-	drag := el.Div().Grow().W(el.Dp(0)).MinW(el.Dp(24)).H(el.Dp(AppShellTitleBarHeight)).Justify(el.Center).Gap(2)
+	drag := el.Div().Grow().W(el.Dp(0)).MinW(el.Dp(24)).MinH(el.Dp(AppShellTitleBarHeight)).Justify(el.Center).Gap(2)
 	if v.header != nil {
 		bar.Child(v.header.Render(cx))
 	} else {
@@ -93,7 +93,7 @@ func (v *AppShellView) sidebarTitlebar(cx *el.Context) el.Element {
 	if v.Collapsed() {
 		width = 56
 	}
-	top := el.Div().H(el.Dp(AppShellTitleBarHeight)).NoShrink().Row().Items(el.Center).Px(12).Gap(8)
+	top := el.Div().MinH(el.Dp(AppShellTitleBarHeight)).NoShrink().Row().Items(el.Center).Px(12).Gap(8)
 	w := core.CurrentWindow()
 	if w != nil && w.Frameless() && v.chrome.goos == "darwin" {
 		if native, ok := w.(core.NativeTitleBarControls); ok && native.NativeTitleBarInset() > 0 {

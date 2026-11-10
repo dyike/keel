@@ -32,3 +32,6 @@ Verify: `go run ./examples/components -section button`, add `-theme dark` to che
 `Selected(true)` / `SetSelected(on)` displays the button as selected, such as the current view in the toolbar and enabled filtering; the Agent sees `selected` as true. Solid buttons darken; secondary, lightweight, text, and tinted buttons use the `Highlight` background with `PrimaryText`. Clicking does not toggle automatically; set it in OnClick. For mutually exclusive options, use [ToggleGroup](toggle_group.md).
 
 Button group see [ButtonGroup](button_group.md).
+
+Button size sets a minimum height. Text and custom content can grow the button
+vertically with accessibility font scaling, retaining vertical padding.

@@ -510,3 +510,10 @@ It only constrains sequential navigation. Mouse clicks and `cx.Focus` can switch
 The component library `focus` page provides opening, entering, and exiting demonstrations. Automatic testing covers parallel/nested areas, two-way loops, input boxes, TabIndex/TabStop, dynamic disabling/unlocking/removal, mouse exit, and modal overlay priority and return; native keyboard acceptance is still to be completed.
 
 `Translate(x, y)` Press dp to move the drawing, click area and overlay anchor point of elements and subtrees without changing the original layout space or scrolling content length. It can be used for carousel tracks to reuse the same item; the visible range after shifting determines whether to draw, and the parent container cropping still takes effect.
+
+### Independent text scaling
+
+`cx.TextScale()` returns the current sp-to-dp ratio. Ordinary controls should
+measure their content and use minimum heights; fixed-height virtual lists can
+use this ratio to keep row measurement and drawing consistent. Display density
+and accessibility text scaling are independent.

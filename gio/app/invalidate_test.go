@@ -2,7 +2,10 @@
 
 package app
 
-import "testing"
+import (
+	"image"
+	"testing"
+)
 
 type invalidationDriver struct {
 	stubDriver
@@ -32,5 +35,14 @@ func TestInvalidateDuringFrame(t *testing.T) {
 	w.Invalidate()
 	if d.calls != 2 {
 		t.Fatal("duplicate next-frame invalidation was not coalesced")
+	}
+}
+
+func TestCoalescedFrameRetainsSurfaceRefresh(t *testing.T) {
+	w := &Window{driver: new(invalidationDriver)}
+	w.processEvent(frameEvent{FrameEvent: FrameEvent{Size: image.Pt(800, 600)}, Sync: true})
+	w.processEvent(frameEvent{FrameEvent: FrameEvent{Size: image.Pt(1000, 750)}})
+	if !w.lastFrame.sync || !w.coalesced.frame.Sync || w.lastFrame.size != image.Pt(1000, 750) {
+		t.Fatal("animation frame discarded pending resize refresh")
 	}
 }

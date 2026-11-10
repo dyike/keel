@@ -28,6 +28,16 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- Wayland purego：通过共享 dispatcher 和原生内存中的协议元数据实现
+  fractional-scale-v1 与 viewporter，并保留整数缩放回退。度量、缓冲区
+  舍入、输入/输入法坐标和滚动距离使用实际渲染比例；光标热点仍使用光标
+  缓冲区自己的整数比例。显式提交 xdg 逻辑几何，修复 Hyprland 启动时
+  缩到最小尺寸；程序 resize 刷新 GPU surface，帧合并保留待处理的刷新
+  标记，避免旧缓冲区继续使用。无边框窗口不再累加备用标题栏高度。xdg-shell v4 边界
+  （或保守的输出尺寸估计）支持初始尺寸选择。测试覆盖度量/舍入、标题栏
+  高度及原生 resize、滚动、重新打开。协议定义来自 wayland-protocols 的
+  staging/fractional-scale 和 stable/viewporter（MIT）；没有新增 cgo 绑定。
+
 - Linux 桌面绑定现在默认使用 purego，即使开启 CGO 也无需指定标签或安装
   原生开发头文件。`-tags giocgo` 可选择旧 cgo 绑定；`purego` 或 CGO_ENABLED=0
   优先。Android、BSD 和 macOS 的选择规则不变。源码选择回归测试覆盖

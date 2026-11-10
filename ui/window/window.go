@@ -42,6 +42,11 @@ const (
 
 // Options configures a window. Width and Height are in dp; zero uses 640×480.
 type Options struct {
+	// AutoSize uses a comfortable portion of compositor-provided bounds on the
+	// first launch. Without bounds it keeps Width/Height (or 960x640).
+	AutoSize bool
+	// SizeState restores/saves the normal client size. Load it before Open.
+	SizeState     *SizeState
 	MenuDisplay   MenuDisplay
 	Title         string
 	Width, Height int
@@ -82,6 +87,8 @@ type Options struct {
 }
 
 type Window struct {
+	initialSizeApplied        bool
+	normalMode                bool
 	closeRequested            atomic.Bool
 	actionMu                  sync.Mutex
 	resizeVersion             atomic.Uint64
@@ -154,6 +161,18 @@ func newWindow(o Options) *Window {
 		layout := *o.TrafficLightLayout
 		o.TrafficLightLayout = &layout
 	}
+	if saved := o.SizeState.snapshot(); saved.X > 0 && saved.Y > 0 {
+		o.Width, o.Height = saved.X, saved.Y
+		o.AutoSize = false
+	}
+	if o.AutoSize {
+		if o.Width == 0 {
+			o.Width = 960
+		}
+		if o.Height == 0 {
+			o.Height = 640
+		}
+	}
 	if o.Width == 0 {
 		o.Width = 640
 	}
@@ -162,7 +181,7 @@ func newWindow(o Options) *Window {
 	}
 	o.Width = max(o.Width, o.MinWidth)
 	o.Height = max(o.Height, o.MinHeight)
-	w := &Window{opts: o, focused: true, shortcuts: mustParseShortcuts(o.Shortcuts), shown: make(chan struct{})}
+	w := &Window{normalMode: true, opts: o, focused: true, shortcuts: mustParseShortcuts(o.Shortcuts), shown: make(chan struct{})}
 	w.storeSize(o.Width, o.Height)
 	return w
 }
@@ -343,7 +362,15 @@ func (w *Window) run() {
 			w.destroy()
 			return
 		case gioapp.ConfigEvent:
+			if !w.initialSizeApplied && e.Config.Bounds.X > 0 && e.Config.Bounds.Y > 0 {
+				w.initialSizeApplied = true
+				size := initialWindowSize(image.Pt(w.opts.Width, w.opts.Height), e.Config.Bounds, w.opts.AutoSize)
+				if size != image.Pt(w.opts.Width, w.opts.Height) {
+					_ = w.Resize(size.X, size.Y)
+				}
+			}
 			loop.Lock()
+			w.normalMode = e.Config.Mode == gioapp.Windowed
 			w.nativeTrafficLightsDirty = true
 			w.setFocused(e.Config.Focused)
 			if m := e.Config.Mode == gioapp.Maximized; m != w.maximized {
@@ -455,6 +482,7 @@ func (w *Window) finish() int {
 	unregisterApplicationWindow(w)
 	remaining := loop.Unregister(w)
 	loop.Unlock()
+	w.saveSizeState()
 	return remaining
 }
 

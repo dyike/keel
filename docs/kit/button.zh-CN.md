@@ -32,3 +32,6 @@ Agent 角色为 button，name 为文案；加载时 value 为 loading，disabled
 `Selected(true)` / `SetSelected(on)` 把按钮显示为已选中，例如工具栏里当前的视图、已启用的筛选；Agent 看到的 `selected` 为 true。实心按钮颜色加深；次要、轻量、文字和着色按钮使用 `Highlight` 底色与 `PrimaryText` 文字。点击不会自动切换，需要在 OnClick 里设置；一组互斥选项直接用 [ToggleGroup](toggle_group.zh-CN.md)。
 
 按钮组见 [ButtonGroup](button_group.zh-CN.md)。
+
+按钮尺寸设置最小高度。文字与自定义内容可随无障碍字体缩放撑高按钮，
+并保留上下留白。

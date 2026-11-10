@@ -16,6 +16,7 @@ import (
 // the highlighted option. Without AllowCustom, leaving the field with text
 // that is not an option restores the last choice.
 type ComboboxView struct {
+	fontScale                            float32
 	multiple, loading, cached            bool
 	values, filtered                     []string
 	onValues                             func([]string)
@@ -188,6 +189,7 @@ func (v *ComboboxView) submit() {
 }
 
 func (v *ComboboxView) Render(cx *el.Context) el.Element {
+	v.fontScale = max(1, cx.TextScale())
 	id := autoID("combobox", v)
 	ratio := v.sizeRatio()
 	if v.focused && !cx.Enabled(id) {

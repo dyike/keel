@@ -39,3 +39,6 @@ The trigger behaves like a button: keyboard focus uses a subtle background fill 
 `Appearance(false)` Removes field background and borders, retaining labels, error text, keyboard, options, and disabled behavior. The menu still uses the theme overlay appearance.
 
 `MenuAlign(el.End)` aligns the popup with the right edge of the field, useful for wider menus in right-aligned settings controls. The default is `el.Start`.
+
+Default virtual row heights also follow accessibility text scaling. An explicit
+`RowHeight` remains an application-owned fixed dp height.

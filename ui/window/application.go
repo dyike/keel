@@ -68,18 +68,24 @@ func Quit() {
 // Snapshot and callbacks share the frame lock with Open and destruction, so Quit
 // cannot skip a window that was still finishing its OnClose callback.
 func runApplicationCleanup() {
-	loop.Lock()
-	defer loop.Unlock()
-	application.Lock()
-	windows := make([]*Window, 0, len(application.windows))
-	for w := range application.windows {
-		windows = append(windows, w)
-	}
-	onQuit := application.onQuit
-	application.onQuit = nil
-	application.Unlock()
-	closeWindowsLocked(windows)
-	if onQuit != nil {
-		onQuit()
+	var windows []*Window
+	func() {
+		loop.Lock()
+		defer loop.Unlock()
+		application.Lock()
+		windows = make([]*Window, 0, len(application.windows))
+		for w := range application.windows {
+			windows = append(windows, w)
+		}
+		onQuit := application.onQuit
+		application.onQuit = nil
+		application.Unlock()
+		closeWindowsLocked(windows)
+		if onQuit != nil {
+			onQuit()
+		}
+	}()
+	for _, w := range windows {
+		w.saveSizeState()
 	}
 }

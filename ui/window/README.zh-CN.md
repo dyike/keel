@@ -75,3 +75,20 @@ window.MainWithOptions(window.MainOptions{
 ```
 
 通过 `window.Quit()` 显式退出，可以在 UI 回调、后台 goroutine 或没有窗口时调用。它依次执行仍打开窗口的 `OnClose` 和应用 `OnQuit`，各执行一次并持有 frame lock，然后退出进程；`Main` 不返回，普通 defer 不会执行。回调中不要等待下一次 `core.Update` 或同步等待主线程。关闭后的窗口仍不能重新显示，需要重新 `window.Open`；将业务状态保存在窗口之外。`OnClose` 是销毁后的通知，不能拦截关闭。参见 `examples/tray`。
+
+## 初始尺寸与恢复
+
+`Options.AutoSize` 使用建议区域的 75%，上限为 1600×1000dp。
+目前由 Wayland 的 xdg-shell v4 提供该区域；合成器未提供时，使用窗口所在
+显示器逻辑尺寸的 90% 作为保守估计。该估计不是精确的桌面工作区查询。
+没有边界信息时保留显式尺寸；AutoSize 模式下省略的尺寸默认为 960×640dp。
+未启用 AutoSize 的窗口仍默认 640×480dp。合成器可以覆盖尺寸请求，特别是
+平铺窗口；应用设置的最小尺寸仍优先。
+
+打开窗口前调用 `state, err := window.LoadSizeState(path)`，然后设置
+`Options.SizeState = state`。每个逻辑窗口使用独立文件。文件不存在时使用
+空状态；文件损坏时返回错误及可继续使用的空状态。恢复的尺寸优先于 AutoSize，
+并受已知屏幕边界约束。只记录普通窗口的客户区尺寸，不记录位置或最大化状态。
+关闭/退出时在帧锁外原子保存，错误输出到 stderr；后台工作也可显式调用
+`state.Save()`。应用决定存储位置和清理策略，不修改全局偏好。
+`examples/app-shell` 将尺寸保存在用户缓存目录。

@@ -74,3 +74,23 @@ window.MainWithOptions(window.MainOptions{
 ```
 
 Call `window.Quit()` for explicit exit, from UI callbacks, background goroutines or with no windows. It runs remaining windows' `OnClose` callbacks followed by application `OnQuit`, once each under the frame lock, then exits the process. Main does not return and ordinary defers do not run. Callbacks must not wait for another `core.Update` or synchronously wait for the main thread. Closed windows remain closed: reopen with `window.Open` and keep business state outside the window. `OnClose` reports destruction and cannot intercept closure. See `examples/tray`.
+
+## Initial size and restoration
+
+`Options.AutoSize` chooses 75% of the suggested area, capped at 1600×1000dp.
+Currently Wayland supplies this area through xdg-shell v4, or estimates it as
+90% of the entered output's logical size when the compositor omits bounds.
+The estimate is not an exact work-area query. Without bounds, explicit sizes
+remain unchanged; omitted dimensions use 960×640dp in AutoSize mode. Existing
+windows without AutoSize keep the 640×480dp default. Compositors can override
+requests, especially for tiled windows. Minimum sizes still take precedence.
+
+Load `state, err := window.LoadSizeState(path)` before opening a window, then
+set `Options.SizeState = state`. Use a unique file for each logical window.
+Missing files start empty; malformed files return an error and usable empty
+state. A restored size takes precedence over AutoSize and is clamped to known
+bounds. State records normal client size only, not position or maximized mode.
+It is saved atomically on close/quit, outside the frame lock; errors go to stderr.
+`state.Save()` supports explicit saves from background work. The application
+chooses storage location and owns cleanup; no global preferences are modified.
+See `examples/app-shell`, which stores its size in the user cache directory.

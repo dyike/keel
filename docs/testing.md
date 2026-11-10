@@ -4,6 +4,36 @@ English | [简体中文](testing.zh-CN.md)
 
 Most interface tests do not require opening a window: the `ui/internal/uitest` testing tool sends clicks, keys, and text through Gio's real input routing. The code executed by the component is exactly the same as that of the real window. `go test -race ./...` takes about 10 seconds to run on this machine.
 
+## Linux scaling and window size (local, 2026-11-10)
+
+On Linux amd64 / Hyprland, the 3840×2160 output uses 125% display scaling and
+GNOME text-scaling-factor 1.6364. Native protocol traces confirm preferred_scale
+150, viewport destinations in logical units and a 2000×1250 buffer for a
+1600×1000 window. Before explicit xdg geometry, the same test window could map
+at its 560×460 minimum. Programmatic resize also exposed a lost surface-refresh
+flag during frame coalescing; a regression test now preserves that flag.
+
+The native scaling fixture exercises 20 resize requests with strict size
+acknowledgements, scroll offsets, a saved size and reopening. Both EGL and
+Vulkan (`noopengl`) passed on this host. Existing real-window lifecycle tests
+also passed. Unit tests cover 100/125/150/200% display densities, independent
+font scale, half-pixel rounding, integer fallback, frameless titlebar accounting
+and state-file round trips. Focused race tests and vet pass; Linux amd64/arm64
+and Windows no-cgo builds pass. A native Workspace screenshot was inspected.
+
+The full suite still fails in existing fontscan, input ink alignment,
+hover/status layout and EGL pixel tests. The legacy `giocgo` build cannot be
+validated here because Vulkan development headers are absent; disabling Vulkan
+then hits a legacy cgo listener pointer-type compiler error. Local commands
+use `-gcflags=all=-goversion=go1.27.3` for this host's toolchain-version mismatch.
+
+This is unpublished local work. The first native frame can use integer output
+scale before the compositor reports its preferred fractional scale; AutoSize
+may adjust once after mapping. Tiling/window-manager policy can override size
+requests. Other fractional densities, cross-monitor transitions and real IME
+candidate placement have unit coverage or code changes, not native acceptance
+on this host. No end-to-end frame-rate or memory improvement is claimed.
+
 ## Linux default binding selection (local, 2026-11-10)
 
 Linux desktop now selects purego without build tags, including when CGO is

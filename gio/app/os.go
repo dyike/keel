@@ -23,6 +23,10 @@ var errOutOfDate = errors.New("app: GPU surface out of date")
 
 // Config describes a Window configuration.
 type Config struct {
+	// Bounds is a suggested window area in logical dp, when available. Wayland
+	// uses configure_bounds or a conservative output-size estimate. Zero means
+	// unknown, not unrestricted.
+	Bounds image.Point
 	// Size is the window dimensions (Width, Height).
 	Size image.Point
 	// MaxSize is the window maximum allowed dimensions.

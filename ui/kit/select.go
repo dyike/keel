@@ -16,6 +16,7 @@ import (
 // and focus returns to the field. Searchable adds a filter box on top; ↓
 // moves from it into the list.
 type SelectView struct {
+	fontScale                                float32
 	menuAlign                                el.Align
 	renderItem                               func(*el.Context, SelectItemContext) el.Element
 	renderValue                              func(*el.Context, []SelectOption) el.Element
@@ -154,6 +155,7 @@ func (v *SelectView) choose(value string) {
 }
 
 func (v *SelectView) Render(cx *el.Context) el.Element {
+	v.fontScale = max(1, cx.TextScale())
 	id := v.FocusID()
 	name := v.a11y()
 	if name == "" { // name an unlabelled select after the hint it shows
@@ -270,5 +272,5 @@ func (v *SelectView) optionHeight() float32 {
 	if v.rowHeight > 0 {
 		return v.rowHeight
 	}
-	return 30 * v.sizeRatio()
+	return 30 * v.sizeRatio() * max(1, v.fontScale)
 }
