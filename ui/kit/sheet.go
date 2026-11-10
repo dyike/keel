@@ -1,13 +1,11 @@
 package kit
 
 import (
-	"image"
 	"slices"
 	"time"
 
 	"github.com/dyike/keel/ui/locale"
 
-	"github.com/dyike/keel/gio/op"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/theme"
@@ -32,7 +30,6 @@ type SheetView struct {
 	onResize                                            func(float32)
 	open                                                bool
 	disabled                                            bool
-	openedAt                                            time.Time
 	onClose                                             func()
 	footer                                              []el.View
 	keyboardOff, overlayOff, outsideOff, closeOff       bool
@@ -52,7 +49,6 @@ func (v *SheetView) Value() bool                  { return v.open }
 func (v *SheetView) SetValue(open bool) {
 	v.open = open && !v.disabled
 	if !v.open {
-		v.openedAt = time.Time{}
 		v.resizing = false
 	}
 }
@@ -101,20 +97,23 @@ func (v *SheetView) close() {
 }
 
 func (v *SheetView) Render(cx *el.Context) el.Element {
-	if !v.open {
-		v.openedAt = time.Time{}
+	id := autoID("sheet", v)
+	closed := el.Pose{Fade: 1}
+	switch v.side {
+	case el.Left:
+		closed.XPercent = -100
+	case el.Right:
+		closed.XPercent = 100
+	case el.Top:
+		closed.YPercent = -100
+	case el.Bottom:
+		closed.YPercent = 100
+	}
+	presence := cx.Presence(id, v.open, el.PresenceOptions{Enter: closed, Exit: closed, Animation: el.Tween(SheetSlide, sheetEaseOut)})
+	if !presence.Visible {
 		return el.Div().Hidden(true)
 	}
-	if v.openedAt.IsZero() {
-		v.openedAt = cx.Now()
-	}
-	progress := float32(1)
-	if d := cx.Now().Sub(v.openedAt); d < SheetSlide && !el.ReducedMotion() {
-		progress = float32(d) / float32(SheetSlide)
-		cx.Animating()
-	}
 	horizontal := v.side == el.Left || v.side == el.Right
-	id := autoID("sheet", v)
 	panel := el.Div().Bg(theme.Surface).Shadow(theme.ElevationLg).P(20).Gap(theme.SpaceXl).Items(el.Stretch)
 	if v.panelStyle != nil {
 		v.panelStyle(panel)
@@ -137,7 +136,7 @@ func (v *SheetView) Render(cx *el.Context) el.Element {
 	if v.outsideOff {
 		layer.KeepOnOutsidePress()
 	}
-	cx.Overlay(id, layer)
+	cx.Overlay(id, layer.Presence(presence))
 	if v.body != nil {
 		panel.Child(el.Div().ID(id + "/body").Grow().MinH(el.Dp(0)).ScrollY().Child(v.body.Render(cx)))
 	}
@@ -162,27 +161,12 @@ func (v *SheetView) Render(cx *el.Context) el.Element {
 		if !horizontal {
 			v.resizePainted = h
 		}
-		if progress >= 1 {
-			draw()
-			return
-		}
-		// Slide in from the edge: shift painting and hit areas together.
-		remaining := 1 - progress
-		size := w
-		if !horizontal {
-			size = h
-		}
-		scale := gtx.Metric.PxPerDp
-		if scale <= 0 {
-			scale = 1
-		}
-		d := scale * size * remaining * remaining // ease out using the fitted size
-		off := map[el.Side]image.Point{el.Right: {int(d), 0}, el.Left: {-int(d), 0}, el.Bottom: {0, int(d)}, el.Top: {0, -int(d)}}[v.side]
-		defer op.Offset(off).Push(gtx.Ops).Pop()
 		draw()
 	})
 	return el.Div().ID(id).Absolute().Size(el.Dp(0)).Disabled(v.disabled)
 }
+
+func sheetEaseOut(t float32) float32 { return 1 - (1-t)*(1-t) }
 
 func (v *SheetView) SetDisabled(on bool) {
 	v.disabled = on

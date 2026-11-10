@@ -334,3 +334,20 @@ Wayland 后端在返回无效的 `WaylandViewEvent` 后，等调用方下一次�
 `ui/motion/transition.go` 使用该版本 `ui/motion.go` 的 Smooth/Snappy/Bouncy 预设参数：500ms，回弹分别为 0、0.15、0.3。
 Keel 保留自己的渲染器和弹簧求解器，不链接 MyGo 运行时。
 Copyright (c) 2026 MyGo contributors。[MIT 许可证](mygo/LICENSE)。
+
+## 变换后的语义边界
+
+`gio/io/input` 用四个角计算变换后的语义区域，避免旋转、反射、斜切造成无障碍及自动化矩形倒置或缺失。`TestSemanticTransformedBounds` 覆盖这些变换；元素动画测试覆盖嵌套变换和指针路由。
+
+## 命令重放时的指针结束事件
+
+前面仍有输入等待重放时，保留无人订阅的指针释放与取消事件。此前动画重绘或焦点命令会重放按下事件，却丢失合并进去的释放事件，导致浮层关闭、重开后仍被旧接收者捕获指针。`gio/io/input/pointer_replay_test.go` 覆盖只订阅按下的接收者、命令重放和随后在另一位置的点击。这是开发分支中的 Keel 本地补丁，尚未进入上游或 v0.4.2。
+
+## 仿射变换下的线性渐变
+
+`gio/gpu` 通过绘制变换的逆矩阵映射渐变坐标。原先套用纹理包围盒映射，忽略了
+缩放，旋转和剪切的结果也不正确，导致共享元素在缩放衔接时跳色。新映射也处理
+重合端点，避免 NaN。`gradient_transform_test.go` 覆盖平移、非等比缩放、旋转和
+剪切；无头 GPU 测试比较等效缩放的像素，允许两个通道级别的 GPU 舍入差异。
+Keel 的共享渐变/阴影首帧在所测 Apple silicon 主机上逐字节一致。
+此补丁仍在本地工作分支，不属于 v0.4.2。

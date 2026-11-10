@@ -800,3 +800,22 @@ Added DMA-BUF registry and EGL external-image import with GPU-fenced lifetime, b
 `ui/motion.go` at that revision: 500ms with bounce 0, 0.15 and 0.3.
 Keel retains its own renderer and spring solver; no MyGo runtime is linked.
 Copyright (c) 2026 MyGo contributors. [MIT license](mygo/LICENSE).
+
+## Semantic bounds under transforms
+
+`gio/io/input` bounds transformed semantic areas by all four corners, so rotation, reflection and shear cannot invert or truncate accessibility and automation rectangles. `TestSemanticTransformedBounds` covers these transforms; element pose tests exercise nested transforms and pointer routing.
+
+## Terminal pointer events during command replay
+
+Retain unobserved pointer releases/cancellations when an earlier input event is pending replay. An animation invalidation or focus command could previously replay a press without its merged release, retaining pointer capture across a closing/reopening overlay. `gio/io/input/pointer_replay_test.go` exercises press-only receivers, command replay and a subsequent click elsewhere. This is a local Keel patch in the development branch, not an upstream or v0.4.2 fix.
+
+## Linear gradients under affine transforms
+
+`gio/gpu` maps gradient coordinates through the inverse paint transform. The
+previous texture-bounds mapping ignored scale and mishandled shear/rotation,
+so a scaled shared element changed colors at handoff. The mapping also handles
+coincident stops without NaNs. `gradient_transform_test.go` covers translation,
+nonuniform scaling, rotation and shear; the headless gradient test compares
+pixels at equivalent scales with a two-channel-level GPU rounding tolerance.
+Keel's shared gradient/shadow handoff test is byte-identical on the inspected
+Apple silicon host. This patch is local and is not part of v0.4.2.

@@ -23,7 +23,7 @@ func (s *Styled[T]) DragAccept(fn func(dx, dy float32) bool) *T {
 
 type conditionalDrag struct {
 	active, decided bool
-	blocked         []image.Rectangle
+	blocked         []dragBlock
 	id              pointer.ID
 	start           f32.Point
 }
@@ -42,8 +42,9 @@ func (d *conditionalDrag) update(m unit.Metric, source input.Source, accept func
 		switch e.Kind {
 		case pointer.Press:
 			blocked := false
-			for _, rect := range d.blocked {
-				if image.Pt(int(e.Position.X), int(e.Position.Y)).In(rect) {
+			for _, block := range d.blocked {
+				p := block.fromParent.Transform(e.Position)
+				if p.X >= float32(block.bounds.Min.X) && p.X < float32(block.bounds.Max.X) && p.Y >= float32(block.bounds.Min.Y) && p.Y < float32(block.bounds.Max.Y) {
 					blocked = true
 					break
 				}
@@ -88,9 +89,14 @@ func (d *conditionalDrag) update(m unit.Metric, source input.Source, accept func
 	}
 }
 
-// Descendant interactive areas are recorded in the conditional parent's local
-// coordinates. This prevents competing captures regardless of dispatch order.
+// Descendant interactive areas retain a mapping from the conditional parent's
+// local coordinates, so posed children prevent capture where they are painted.
 type dragScope struct {
 	drag   *conditionalDrag
-	origin image.Point
+	toRoot f32.Affine2D
+}
+
+type dragBlock struct {
+	bounds     image.Rectangle
+	fromParent f32.Affine2D
 }

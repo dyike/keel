@@ -23,6 +23,9 @@ func semanticNode(h *uitest.Harness, role string) (input.SemanticNode, bool) {
 	ok := false
 	var walk func(input.SemanticNode)
 	walk = func(n input.SemanticNode) {
+		if n.Desc.Description == "el-inert" {
+			return
+		} // Match platform accessibility and automation.
 		if n.Desc.Description == role {
 			found = n
 			ok = true
@@ -31,8 +34,8 @@ func semanticNode(h *uitest.Harness, role string) (input.SemanticNode, bool) {
 			walk(c)
 		}
 	}
-	for _, n := range h.Router.AppendSemantics(nil) {
-		walk(n)
+	if nodes := h.Router.AppendSemantics(nil); len(nodes) > 0 {
+		walk(nodes[0])
 	}
 	return found, ok
 }
@@ -46,6 +49,9 @@ func node(h *uitest.Harness, name string) (input.SemanticNode, bool) {
 	ok := false
 	var walk func(input.SemanticNode)
 	walk = func(n input.SemanticNode) {
+		if n.Desc.Description == "el-inert" {
+			return
+		} // Match platform accessibility and automation.
 		if ok {
 			return
 		}
@@ -58,14 +64,35 @@ func node(h *uitest.Harness, name string) (input.SemanticNode, bool) {
 			walk(c)
 		}
 	}
-	for _, n := range h.Router.AppendSemantics(nil) {
-		walk(n)
+	if nodes := h.Router.AppendSemantics(nil); len(nodes) > 0 {
+		walk(nodes[0])
 	}
 	return found, ok
 }
 func bounds(h *uitest.Harness, name string) image.Rectangle {
-	n, _ := node(h, name)
-	return n.Desc.Bounds
+	// Geometry tests also inspect anchors behind modal layers. Interaction
+	// helpers above deliberately omit those inert subtrees.
+	if n, ok := node(h, name); ok {
+		return n.Desc.Bounds
+	}
+	var found image.Rectangle
+	var walk func(input.SemanticNode) bool
+	walk = func(n input.SemanticNode) bool {
+		if n.Desc.Label == name {
+			found = n.Desc.Bounds
+			return true
+		}
+		for _, child := range n.Children {
+			if walk(child) {
+				return true
+			}
+		}
+		return false
+	}
+	if nodes := h.Router.AppendSemantics(nil); len(nodes) > 0 {
+		walk(nodes[0])
+	}
+	return found
 }
 func click(t *testing.T, h *uitest.Harness, name string) {
 	t.Helper()
@@ -83,6 +110,9 @@ func clickRole(t *testing.T, h *uitest.Harness, role, name string) {
 	var found image.Rectangle
 	var walk func(input.SemanticNode)
 	walk = func(n input.SemanticNode) {
+		if n.Desc.Description == "el-inert" {
+			return
+		} // Match platform accessibility and automation.
 		d := n.Desc.Description
 		if found.Empty() && n.Desc.Label == name && (d == role || len(d) > len(role) && d[:len(role)+1] == role+":") {
 			found = n.Desc.Bounds
@@ -91,8 +121,8 @@ func clickRole(t *testing.T, h *uitest.Harness, role, name string) {
 			walk(c)
 		}
 	}
-	for _, n := range h.Router.AppendSemantics(nil) {
-		walk(n)
+	if nodes := h.Router.AppendSemantics(nil); len(nodes) > 0 {
+		walk(nodes[0])
 	}
 	if found.Empty() {
 		t.Fatalf("missing %s %q", role, name)
@@ -107,6 +137,9 @@ func clickClass(t *testing.T, h *uitest.Harness, class, name string) {
 	var found image.Rectangle
 	var walk func(input.SemanticNode)
 	walk = func(n input.SemanticNode) {
+		if n.Desc.Description == "el-inert" {
+			return
+		} // Match platform accessibility and automation.
 		if found.Empty() && n.Desc.Label == name && n.Desc.Class.String() == class {
 			found = n.Desc.Bounds
 		}
@@ -114,8 +147,8 @@ func clickClass(t *testing.T, h *uitest.Harness, class, name string) {
 			walk(c)
 		}
 	}
-	for _, n := range h.Router.AppendSemantics(nil) {
-		walk(n)
+	if nodes := h.Router.AppendSemantics(nil); len(nodes) > 0 {
+		walk(nodes[0])
 	}
 	if found.Empty() {
 		t.Fatalf("missing %s %q", class, name)

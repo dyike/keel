@@ -39,6 +39,8 @@ func (cx *Context) Mounted(key any) bool {
 
 // renderTree renders the root view and then the mounted ones.
 func (r *RootWidget) renderTree(cx *Context) *Node {
+	r.presenceEpoch++
+	defer r.sweepPresences()
 	prior := buildingArena
 	buildingArena = &r.arena
 	defer func() { buildingArena = prior }()

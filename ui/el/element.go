@@ -33,6 +33,7 @@ type Node struct {
 	tabConfigured, tabSkip      bool
 	tabIndex                    int
 	disabled, effectiveDisabled bool
+	inert, effectiveInert       bool
 	disabledRoot                bool // disabled here, not only by an ancestor
 	disabledStyle               func(*Style)
 	onKey                       func(KeyEvent) bool
@@ -41,13 +42,22 @@ type Node struct {
 	keyHint                     *actionKeyHint
 	children                    []Element
 
-	text       string
-	shimmer    *textShimmer
-	textRanges []TextRange
-	isText     bool
-	input      *inputSpec
-	widget     core.Widget
-	decorate   func(core.C, func())
+	text                                string
+	shimmer                             *textShimmer
+	content                             *ContentTransition
+	contentOverflow                     *image.Rectangle
+	textRanges                          []TextRange
+	isText                              bool
+	input                               *inputSpec
+	widget                              core.Widget
+	decorate                            func(core.C, func())
+	pose                                *poseSpec
+	layoutMotion                        *Animation
+	sharedLayout                        *sharedLayoutSpec
+	sharedText, sharedAuto, contentAuto bool
+	sharedSubtree                       bool
+	sharedFly                           bool
+	dragMotion                          *DragOptions
 
 	onClick       func()
 	onContextMenu func()
@@ -91,10 +101,10 @@ type layoutMemo struct {
 func (n *Node) node() *Node { return n }
 
 func (n *Node) isFocusable() bool {
-	return !n.effectiveDisabled && (n.focusable || !n.focusSet && n.onClick != nil)
+	return !n.effectiveDisabled && !n.effectiveInert && (n.focusable || !n.focusSet && n.onClick != nil)
 }
 func (n *Node) interactive() bool {
-	return n.focusable || n.onClick != nil || n.onContextMenu != nil || n.onDoubleClick != nil || n.onDrag != nil || n.hover != nil || n.active != nil || n.style.cursor != pointer.CursorDefault
+	return n.focusable || n.onClick != nil || n.onContextMenu != nil || n.onDoubleClick != nil || n.hasDrag() || n.hover != nil || n.active != nil || n.style.cursor != pointer.CursorDefault
 }
 
 // Styled carries the builder methods every element shares. T is the element
@@ -653,4 +663,9 @@ func (s *Styled[T]) ContentBottom(target Element) *T {
 		n.style.contentBottom = child
 	}
 	return s.self
+}
+
+func (n *Node) hasDrag() bool { return n.onDrag != nil || n.dragMotion != nil }
+func (n *Node) hasVisualMotion() bool {
+	return n.pose != nil || n.layoutMotion != nil || n.dragMotion != nil || n.sharedLayout != nil
 }

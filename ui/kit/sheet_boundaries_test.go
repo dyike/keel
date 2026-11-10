@@ -45,7 +45,7 @@ func TestSheetNestedPopoverAndOwnerDisable(t *testing.T) {
 		t.Fatal("disabled sheet reopened or notified")
 	}
 }
-func TestSheetAnimationUsesFittedSizeAndRestarts(t *testing.T) {
+func TestSheetAnimationUsesFittedSizeAndKeepsContinuity(t *testing.T) {
 	c := &clock{now: time.Unix(100, 0)}
 	s := Sheet(el.Right, "Details").Size(1000).Body(text("Body"))
 	s.Size(float32(math.NaN()))
@@ -66,8 +66,11 @@ func TestSheetAnimationUsesFittedSizeAndRestarts(t *testing.T) {
 	s.SetValue(false)
 	s.SetValue(true)
 	h.Frame()
-	if s.openedAt != c.now {
-		t.Fatal("reopen without closed frame reused old animation")
+	n, _ = semanticNode(h, "dialog")
+	// Without an intervening closed frame there was no visual departure.
+	// Reentry keeps the displayed position instead of jumping offscreen.
+	if n.Desc.Bounds.Min.X != 0 {
+		t.Fatal("reopen without closed frame jumped offscreen")
 	}
 	c.advance(h, SheetSlide)
 	n, _ = semanticNode(h, "dialog")

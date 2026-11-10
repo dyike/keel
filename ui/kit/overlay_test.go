@@ -20,6 +20,16 @@ func (c *clock) harness(fn viewFunc) *uitest.Harness {
 }
 func (c *clock) advance(h *uitest.Harness, d time.Duration) { c.now = c.now.Add(d); h.Frame() }
 
+// advanceFrames lets entry/exit-driven queue changes occur between timer
+// deadlines, as in a visible window. advance remains useful for clock jumps.
+func (c *clock) advanceFrames(h *uitest.Harness, d time.Duration) {
+	for d > 0 {
+		step := min(d, time.Second/60)
+		c.advance(h, step)
+		d -= step
+	}
+}
+
 func center(b image.Rectangle) (float32, float32) {
 	p := b.Min.Add(b.Size().Div(2))
 	return float32(p.X), float32(p.Y)
@@ -42,7 +52,7 @@ func TestPopoverToggleOutsideAndEscape(t *testing.T) {
 	click(t, h, "筛选") // the trigger itself toggles; it is not an outside press
 	h.Frame()
 	if p.Value() || shown(h, "筛选内容") {
-		t.Fatal("trigger did not close")
+		t.Fatalf("trigger did not close: open=%v shown=%v", p.Value(), shown(h, "筛选内容"))
 	}
 	click(t, h, "筛选")
 	click(t, h, "外部")

@@ -67,6 +67,7 @@ func main() {
 		}
 	}
 	if *screenshot != "" {
+		theme.SetReducedMotion(true) // Capture settled content, including entry animations.
 		if err := window.ScreenshotAtScale(content, *width, *height, float32(*scale), *screenshot); err != nil {
 			log.Fatal(err)
 		}

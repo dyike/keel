@@ -62,6 +62,9 @@ func (cx *Context) ScrollState(id string) (offset, viewport, content float32) {
 	if st == nil {
 		return 0, 0, 0
 	}
+	if cx.root.e.gtx.Enabled() {
+		st.scrollObservedFrame = cx.root.store.frame
+	}
 	px := cx.root.e.m.PxPerDp
 	if px == 0 {
 		px = 1
@@ -105,6 +108,9 @@ func (cx *Context) ScrollStateX(id string) (offset, viewport, content float32) {
 	st := cx.scrollElem(id)
 	if st == nil {
 		return
+	}
+	if cx.root.e.gtx.Enabled() {
+		st.scrollObservedFrame = cx.root.store.frame
 	}
 	px := cx.root.e.m.PxPerDp
 	if px == 0 {

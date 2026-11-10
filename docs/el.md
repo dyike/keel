@@ -517,3 +517,260 @@ The component library `focus` page provides opening, entering, and exiting demon
 measure their content and use minimum heights; fixed-height virtual lists can
 use this ratio to keep row measurement and drawing consistent. Display density
 and accessibility text scaling are independent.
+
+## Element pose animation
+
+`AnimatePose` declares a visual target. The element keeps its layout size and position; its drawing, pointer region, semantic bounds and anchored overlays follow the animated transform. The first declaration shows its target immediately. A subsequent target change animates from the current value, preserving spring velocity when interrupted.
+
+```go
+pose := el.Pose{}
+if v.expanded {
+    pose = el.Pose{X: 160, Scale: 1.05, Rotate: 8, Fade: 0.1}
+}
+card := el.Div().ID("card").W(el.Dp(160)).H(el.Dp(90)).
+    AnimatePose(pose, el.Snappy).
+    OnClick(func() { v.expanded = !v.expanded })
+```
+
+`X` and `Y` are dp, `XPercent` and `YPercent` are percentages of the element's own size, `Rotate` is degrees around its center, and `Scale` defaults to one. `Fade` ranges from zero (opaque) to one (transparent). Use `Smooth`, `Snappy`, `Bouncy`, `Spring(stiffness, damping)` or `Tween(duration, ease)`. The animation type is shared with `ui/motion.Transition`.
+
+Give reordered siblings stable IDs. Animation channels are allocated only for posed elements, discarded when the declaration is omitted, and removed with the element. Reduced motion jumps to the target. Settled poses request no more frames; changing only the easing at rest does not start an animation.
+
+A window-owned root can repaint the retained tree and layout while the pose moves. Input, state changes, resizing, pending timers or Render-time reads of `Context.Now` still require a full build. Poses use display frames, not the 30 Hz ambient-indicator cadence. This reduces work in eligible frames; it is not a measured total-memory or presentation-FPS guarantee.
+
+`AnimatePose` composes with `Translate`, `Opacity` and `Decorate` without replacing the decoration. Custom transforms applied inside `Decorate` still have their existing geometry limitations. Pose text uses the vector/native path instead of the optional numeric image atlas, preserving scaled and rotated glyph rendering.
+
+Run `go run ./examples/motion -section pose` for an interactive card and an anchored overlay. This section describes the current development branch, not v0.4.2. Presence, layout transitions and draggable elements are described below.
+
+
+### Layout transitions
+
+Declare `.AnimateLayout(el.Snappy)` on keyed siblings to animate reordering and
+size changes. The layout takes its final size immediately; painting scales the
+final content from the previous box, then settles at the new box. Text and
+children scale during that transition. This is not intermediate text reflow.
+It composes with `AnimatePose`, including hit testing, caret transforms and
+anchored overlays. Finite springs/tweens are supported; repeating layout
+transitions are rejected.
+
+Positions are relative to the same parent, so scrolling does not trigger a
+layout transition. Reparenting starts a new identity. The initial frame,
+pixel-density changes and zero-size axes snap. State is discarded when the
+declaration or element disappears. As with poses, retained frames are possible
+only when the rest of the view allows them. This is working-branch code, not
+part of v0.4.2.
+
+
+### Shared elements across parents
+
+Use `.SharedLayout(identity, el.Snappy)` when a thumbnail and its detail view
+have different parents. Give both the same application identity, with only one
+present at a time:
+
+```go
+type photoMatch struct{ ID int }
+photo := el.Div().ID("thumbnail").Size(el.Dp(80))
+if v.open {
+    photo = el.Div().ID("detail").Size(el.Dp(240))
+}
+photo.SharedLayout(photoMatch{v.photoID}, el.Snappy)
+```
+
+The incoming box starts at the previous box's displayed position, size and
+rotation, including nested parent transforms. Rotations take the short path;
+interrupting a spring preserves its velocity. The destination content scales
+with the box. Pointer routing, caret and anchored overlays use that same
+transform. Components' Motion page includes an image you can click while it is
+moving to reverse the transition.
+
+The identity is root-local and must be non-nil and comparable. Duplicate
+identities in one painted frame are rejected. The same owner follows scrolling
+without starting another transition. The first appearance, a missing frame,
+viewport or density changes, and reduced motion snap. Omitting the declaration
+or removing the element releases its geometry. No old tree is retained.
+
+Without `Fly`, this API preserves the destination parent's clips, opacity and
+stacking order. Add `.Fly()` to paint a handoff above that root's content, or
+above its own overlay's content, escaping ancestor clips and opacity. Later
+overlays still cover the flight. The flying element keeps its own opacity and
+the destination subtree's theme; its input and anchored overlays follow the
+visible position. At rest it returns to the destination parent's normal paint
+order and clips. A flying child outside a dialog's rectangle still counts as
+inside that dialog for outside-press dismissal.
+
+```go
+photo.SharedLayout(photoMatch{v.photoID}, el.Snappy).Fly()
+```
+
+An inert ancestor keeps its flying descendants non-interactive and hidden from
+accessibility. Its exit fade still applies, and the flight keeps advancing until
+it settles or its declaration is removed. Queued paint work is cleared in the
+same frame; no departing tree is retained. `Fly` requires `SharedLayout`.
+
+Shared handoffs also interpolate base solid background, border and text colors,
+border width, rounded corners and own opacity. Hover, focus and disabled variants
+still override those base styles immediately. Radii and border widths are normalized
+by the shorter side; a changing aspect ratio scales circular corners with the box.
+Linear gradients interpolate their colors and directions; their unit-box stops
+preserve the source gradient under a change of aspect ratio. Opposite directions
+turn without collapsing the gradient to a point. Elevation shadows interpolate
+offset, blur and theme shadow color, fading to/from transparency when removed or
+added. Custom decorators still use the destination declaration.
+
+For text in different owners, declare both `SharedLayout` and `ContentTransition`
+on the two `Text` elements with the same shared identity:
+
+```go
+el.Text(title).TextSize(size).
+    ContentTransition(el.ContentTransition{Morph: true, Animation: el.Snappy}).
+    SharedLayout(titleMatch{id}, el.Snappy).Fly()
+```
+
+The incoming label starts from the last displayed glyphs, including an interrupted
+transition and different box proportions. Shared shaping clusters move; changed
+font outlines crossfade. Only the new label enters semantics. Old drawing glyphs
+are released at rest or removal.
+
+To match labels inside a shared container without individual shared identities,
+add `MatchText()` to that container:
+
+```go
+el.Div().SharedLayout(cardMatch{id}, el.Snappy).MatchText().Fly().Child(
+    el.Text(title).ID("title"),
+    el.Text(subtitle).ID("subtitle"),
+)
+```
+
+Labels pair by relative paths, using IDs or sibling positions. Stable IDs are
+required when labels reorder. Matching does not guess from the string contents;
+a changed hierarchy is a new path. Labels get Morph unless they already declare
+a ContentTransition. Explicit SharedLayout descendants start independent scopes.
+Omitting MatchText releases its automatic child matches, including cached nodes.
+
+`AnimateLayout` still handles changes within one parent; `SharedLayout` handles
+handoffs between owners. Both use final layout immediately, rather than
+reflowing text at every intermediate size.
+
+
+### Entry, exit and keyed collections
+
+`Context.Presence` keeps a small set of motion values under a root-local key.
+Declare it every Render, including after the logical state becomes false:
+
+```go
+p := cx.Presence("details", v.show, el.PresenceOptions{
+    Enter: el.Pose{Y: 12, Fade: 1},
+    Exit: el.Pose{Y: -12, Fade: 1},
+    Animation: el.Snappy,
+})
+if p.Visible {
+    body.Child(el.Div().ID("details").Presence(p).Child(el.Text("Details")))
+}
+```
+
+`element.Presence(p)` applies the sampled pose and makes the exiting subtree
+inert: its appearance remains, but pointer input, keyboard focus, owned
+overlays, automation and platform accessibility are suppressed. `Inert(true)`
+is also available independently. `layer.Presence(p)` applies the same lifecycle
+to an overlay and its scrim. Logical closing immediately releases modality and
+restores focus; the remaining visual exit takes no input. Reopening during exit
+retargets from the displayed pose; springs preserve velocity. Reduced motion
+finishes immediately. The first entry is animated. An omitted presence
+declaration cancels the lifecycle rather than retaining a hidden tree.
+
+For a collection, `el.PresentItems(cx, groupKey, items, id, options)` returns
+`PresentItem[T]` values, including removed items until their exits finish.
+Each contains `Value`, `Key` and `Frame`; apply `element.Presence(item.Frame)`.
+Group/item keys must be comparable and unique, and elements still need stable
+IDs. The returned slice is reused on the next call. Existing order is retained
+during exits; otherwise it follows source order. `PresenceListOptions` embeds
+`PresenceOptions`; `ExitBeforeEnter` holds new keys until departures finish,
+while a reintroduced key reverses immediately. Empty input must still be
+declared to finish exits. Omitting the group frees its retained values, including
+callbacks. Neither API snapshots or retains element trees.
+
+Presence samples in Render while moving. It requests no further frames after
+settling and allows unrelated paint-only animations to retain settled content.
+These APIs are in the working branch, not v0.4.2.
+
+
+### Dragging and release motion
+
+`Div().Draggable(options)` moves a box along its parent's axes without changing
+layout. The offset composes outside its pose and layout transition; hit testing,
+caret geometry and anchored overlays follow it. Interactive children retain
+their clicks, text editing and scroll input.
+
+```go
+card.Draggable(el.DragOptions{
+    Axis: el.DragHorizontal,
+    Bounds: &el.DragBounds{MaxX: 240},
+    Snap: []el.DragPoint{{}, {X: 240}},
+    Elastic: .4,
+    Momentum: true,
+    Animation: el.Snappy,
+})
+```
+
+Bounds limit the translation in dp, not the element's rectangle. `Elastic` is
+0–1: zero clamps direct manipulation, positive values allow rubber-band
+overshoot. At release, `Momentum` projects 200ms of measured velocity, selects
+the nearest snap point if provided, and constrains the destination. Spring
+settling preserves release velocity; tweens follow their easing curve. The
+spring may overshoot while settling, even with rigid direct manipulation.
+Without momentum or snap points the element stays where released, within bounds.
+A canceled gesture returns to the drag's starting offset.
+
+`Initial` sets the first offset. Increment `Reset` to jump back to `Initial` and
+cancel a gesture; changing `Initial` alone does not reset an existing element.
+`OnMove` reports direct manipulation, including a changed final release position;
+`OnRelease` reports the settling destination after a drag or cancellation.
+A tap triggers neither a move nor a release callback. These callbacks do not run
+on settling frames. Do not combine `Draggable` with `OnDrag` or `DragAccept`.
+Keep bounds and snap slices immutable while the declaration is in use.
+
+Stable IDs preserve offsets. Omission frees the drag state, and disabling or
+making the subtree inert stops a gesture without invoking callbacks. Reduced
+motion preserves direct manipulation but settles immediately. Eligible settling
+frames repaint retained content; a frame immediately after input still rebuilds
+the view. Once settled, the drag requests no frames. Try the Motion page in
+Components. This API is in the working branch, not v0.4.2.
+
+
+Spring settling stops outward velocity at the elastic limit, at most `100*Elastic` dp beyond the bounds. This also keeps a very fast release inside the allowed overshoot region.
+
+### Changing text
+
+`Text(value).ContentTransition(options)` animates a changed string or color
+ranges. The default crossfades. `Numeric` rolls changed clusters on one line;
+`Down` reverses the direction. `Morph` moves matching clusters to their new
+positions, including across wrapped lines. Numeric and Morph are alternatives.
+
+```go
+el.Text(fmt.Sprintf("%04d", count)).ID("count").TextSize(32).
+    ContentTransition(el.ContentTransition{Numeric: true, Down: decreased, Animation: el.Snappy})
+el.Text(title).ID("title").ContentTransition(el.ContentTransition{Morph: true})
+```
+
+Shaping still processes the complete string. Combining marks, ligatures, emoji
+sequences and RTL clusters stay together; range colors cover whole clusters.
+A numeric transition on multiline or RTL content crossfades without rolling.
+Morph preserves common sequence order, then pairs remaining matching clusters;
+long labels use linear-space matching instead of an unbounded LCS matrix. A font
+outline change crossfades while moving and scaling, and colors mix with
+premultiplied alpha. `Shimmer` takes precedence over content transitions.
+
+The first declaration is immediate. Later changes start from the currently
+painted glyph positions, colors, opacity and clipping, including during an
+unfinished transition. Old drawing has no input or accessibility nodes; layout
+and semantics use the current string. Plain `Text` remains nonselectable;
+editable and selectable text widgets retain their existing behavior.
+
+Animations can repaint the retained tree. At rest, state retains only the current
+text declaration, not old glyphs or paths. Finished, omitted and offscreen
+transitions release their glyph data; an offscreen return starts immediately.
+Repeated retargeting preserves each old cluster's original opacity clock; it
+does not restart its exit or impose a separate time limit on a slow spring. Reduced motion and pixel-density
+changes snap. Width or typography changes alone follow layout immediately.
+These APIs are in the working branch, not v0.4.2. Components' Motion page has
+interactive counter and text-reordering examples.

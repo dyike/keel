@@ -111,6 +111,7 @@ func (v *NotifierView) Render(cx *el.Context) el.Element {
 	anchors := el.Div().ID(id).Absolute().Top(0).Left(0).Size(el.Dp(0))
 	for position := NoticeTopRight; position <= NoticeRightCenter; position++ {
 		stack := el.Div().W(el.Dp(320)).MaxW(el.Dp(max(0, w-32))).MaxH(el.Dp(max(0, h-32))).ScrollY().Gap(theme.SpaceMd).Items(el.Stretch)
+		var visible [MaxNotifications]notice
 		count := 0
 		for _, it := range v.items {
 			if !it.inApp() || v.position(it.Placement) != position {
@@ -119,13 +120,17 @@ func (v *NotifierView) Render(cx *el.Context) el.Element {
 			if count == MaxNotifications {
 				break
 			}
-			stack.Child(v.card(cx, id, it))
+			visible[count] = it
 			count++
 		}
-		if count == 0 {
+		anchorID := id + "/position/" + strconv.Itoa(int(position))
+		items := el.PresentItems(cx, anchorID, visible[:count], func(n notice) any { return n.id }, el.PresenceListOptions{PresenceOptions: el.PresenceOptions{Enter: el.Pose{Fade: 1}, Exit: el.Pose{Fade: 1}, Animation: el.Tween(160*time.Millisecond, el.EaseOut)}})
+		for _, it := range items {
+			stack.Child(v.card(cx, id, it.Value, it.Frame))
+		}
+		if len(items) == 0 {
 			continue
 		}
-		anchorID := id + "/position/" + strconv.Itoa(int(position))
 		x, y, side, align := noticeAnchor(position, w, h)
 		anchors.Child(el.Div().ID(anchorID).Absolute().Left(x).Top(y).Size(el.Dp(0)))
 		cx.Overlay(anchorID, el.Anchored(anchorID, stack).Placement(side, align).Offset(0))
@@ -133,13 +138,13 @@ func (v *NotifierView) Render(cx *el.Context) el.Element {
 	return anchors
 }
 
-func (v *NotifierView) card(cx *el.Context, base string, n notice) el.Element {
+func (v *NotifierView) card(cx *el.Context, base string, n notice, presence el.PresenceFrame) el.Element {
 	id := base + "/" + strconv.Itoa(n.id)
 	timeout := n.Timeout
 	if timeout == 0 {
 		timeout = NotificationTimeout
 	}
-	if timeout > 0 {
+	if timeout > 0 && !presence.Exiting {
 		cx.Countdown(id, noticeKey{base, n.id, n.revision}, timeout, cx.Hovered(id) || cx.FocusWithin(id), func() { v.expire(n.id) })
 	}
 	text := el.Div().ID(id + "/text").Grow().MinW(el.Dp(0)).Gap(theme.SpaceXs).Child(el.Text(n.Title).Bold().TextColor(n.Tone.color()))
@@ -156,6 +161,7 @@ func (v *NotifierView) card(cx *el.Context, base string, n notice) el.Element {
 	}
 	text.Child(action.Hidden(n.Action == nil))
 	card := floating(theme.ElevationMd).NoShrink().ID(id).Role("status").Name(n.Title).Value(n.Tone.name()).P(theme.SpaceLg).Row().Gap(10).Items(el.Start)
+	card.Presence(presence).AnimateLayout(el.Snappy)
 	if n.OnClick != nil {
 		// A sibling hit surface lets interactive content consume clicks without
 		// also activating the notification's background.

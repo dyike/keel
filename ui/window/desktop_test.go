@@ -18,6 +18,7 @@ func TestRealWindows(t *testing.T) {
 	}
 	cases := [][]string{
 		{"./testdata/scaling"},
+		{"./testdata/pose"}, // transforms advance on paint-only frames and settle without redraws
 		{"./testdata/resident"},
 		{"./testdata/resident", "quit-open"},
 		{"./testdata/raise"},                   // Raise/Close from UI code must not deadlock

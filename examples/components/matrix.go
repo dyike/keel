@@ -15,6 +15,9 @@ type matrixImage struct{ Name, File string }
 
 // Each case builds fresh state so themes and viewports cannot inherit layout.
 func renderMatrix(dir string) error {
+	oldMotion := theme.ReducedMotion
+	theme.SetReducedMotion(true)
+	defer theme.SetReducedMotion(oldMotion)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
@@ -56,5 +59,5 @@ func renderMatrix(dir string) error {
 
 var matrixHTML = template.Must(template.New("matrix").Parse(`<!doctype html><meta charset="utf-8"><title>Keel component matrix</title>
 <style>body{font:14px system-ui;background:#ddd}main{display:flex;flex-wrap:wrap;gap:16px}figure{margin:0}img{width:320px;height:auto;display:block}figcaption{padding:8px 0}</style>
-<h1>Keel component matrix</h1><p>First-frame screenshots; inspect interactions separately. Each image links to its full resolution.</p><main>
+<h1>Keel component matrix</h1><p>Reduced-motion first-frame screenshots; inspect interactions separately. Each image links to its full resolution.</p><main>
 {{range .}}<figure><figcaption>{{.Name}}</figcaption><a href="{{.File}}"><img loading="lazy" src="{{.File}}" alt="{{.Name}}"></a></figure>{{end}}</main>`))

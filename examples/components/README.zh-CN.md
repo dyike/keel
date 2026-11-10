@@ -32,3 +32,11 @@ go run ./examples/components -section chart -screenshot /tmp/keel-chart.png
 `-section variable_list` 验证 10 万行自然高度列表：定位、插入历史、展开内容与窗口宽度变化。
 
 `-section layout` 验证换行布局和简单网格，缩窄窗口可检查换行、行列间距和最小尺寸。
+
+运行 `go run ./examples/components -section motion -lang zh-CN`，查看姿态反向、移动中的点击区域与浮层、列表进退场、先退后进、布局缩放，以及组件共用的过渡。
+
+截图和矩阵命令开启减少动态效果，避免首帧截图恰好捕获透明的进入状态；交互运行保留动画。
+
+Motion 页面还演示文字变形、数字滚动、图标与图片替换，以及图片在缩略图和详情父容器之间的共享转场。
+
+Motion 还演示渐变、阴影过渡，以及在容器上用 MatchText 自动匹配文字，无需逐个标签声明共享身份。

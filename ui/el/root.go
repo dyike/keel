@@ -163,6 +163,9 @@ type RootWidget struct {
 	layerSerial    uint64
 	timerEpoch     uint64
 	timers         map[any]*viewTimer
+	presences      map[any]*presenceState
+	presenceLists  map[any]presenceCollection
+	presenceEpoch  uint64
 	polls          map[any]*viewPoll
 	source         input.Source
 	callbacks      bool
@@ -189,6 +192,7 @@ type RootWidget struct {
 	// AmbientPhase requested while painting.
 	retainFrames bool
 	ambientDue   time.Time
+	motionDue    bool // paint-time pose animation requests the next display frame
 
 	pointerDispatch  bool
 	focusFromPointer bool
@@ -259,9 +263,15 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	buildingArena = nil
 	defer func() { buildingArena = priorArena }()
 	e := &r.e
+	priorSource := e.frameSource
+	e.frameSource = gtx.Source
+	defer func() { e.frameSource = priorSource }()
 	priorOffset, priorParents := e.paintOffset, e.scrollParents
 	e.paintOffset, e.scrollParents = origin, parents
 	defer func() { e.paintOffset, e.scrollParents = priorOffset, priorParents }()
+	if gtx.Enabled() {
+		e.paintSerial++
+	}
 	if r.canRepaint(gtx, visible, origin, parents) {
 		return r.repaint(gtx, visible)
 	}
@@ -376,6 +386,7 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	paintingRoot = r
 	defer func() { paintingRoot = priorPainting }()
 	e.paint(tree)
+	e.paintFlights(visible.Intersect(image.Rectangle{Max: max}), nil)
 	e.textAtlasActive = false
 	area.Pop()
 	e.blockInput, e.blockFocus = false, false
@@ -384,6 +395,8 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	if live {
 		flushClipboard(gtx) // from shortcuts and widget callbacks during this frame
 		st.sweep()
+		e.sweepContentStates()
+		e.sweepSharedLayouts()
 		r.cache.sweep(st.frame)
 	}
 	r.retain(gtx, tree, &cx, visible, origin, parents, quiet)
@@ -491,7 +504,7 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			}
 			r.clickModifiers = 0
 		}
-		for st.onDrag != nil {
+		for st.onDrag != nil || st.dragMotion != nil {
 			var ev pointer.Event
 			var ok bool
 			if st.dragAccept != nil {
@@ -517,6 +530,17 @@ func (r *RootWidget) dispatch(gtx core.C) {
 			px := r.e.m.PxPerDp
 			if px == 0 {
 				px = 1
+			}
+			if st.dragMotion != nil {
+				options := st.dragMotion.options
+				notify := st.dragMotion.handle(ev, gtx.Now, px, st.conditionalDrag.decided)
+				if notify.moved && options.OnMove != nil {
+					core.Call(gtx, func() { r.callbacks = true; options.OnMove(notify.position) })
+				}
+				if notify.released && options.OnRelease != nil {
+					core.Call(gtx, func() { r.callbacks = true; options.OnRelease(notify.target) })
+				}
+				continue
 			}
 			de := DragEvent{Kind: kind, Canceled: ev.Kind == pointer.Cancel, X: ev.Position.X / px, Y: ev.Position.Y / px, W: float32(st.size.X) / px, H: float32(st.size.Y) / px}
 			fn := st.onDrag

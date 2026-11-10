@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 GPUI-style elements and views: Views are ordinary structs, and each frame `Render` returns an element tree built with chained styles; flexbox layout; element status (hover, scroll, input box content) is automatically saved according to element path or ID; Agent semantics are automatically generated.
 
-- **Dependencies**: `core`, `theme`, `locale`, and internally `ui/internal/loop`, `ui/internal/editorstyle`, `ui/internal/inputcontent`. Not dependent on `kit`, `window`.
+- **Dependencies**: `core`, `theme`, `locale`, and internally `ui/internal/loop`, `ui/internal/editorstyle`, `ui/internal/inputcontent`, `ui/internal/animation`. Not dependent on `kit`, `window`.
 - **Used by**: Application code. `window` recognizes `el.Root` through the `FillsWindow` interface and does not reference this package.
 
 | File | Responsibility |
@@ -34,3 +34,15 @@ Usage Guide: [Elements and Views](../../docs/el.md).
 `input_paste.go` handles OnPaste before default text insertion; can be connected to core.ClipboardReader, and falls back to the Gio plain text path if native reading fails. Completed asynchronously via core.Update, old results are discarded after editing content or selection changes.
 
 Atomic input references are connected to `ui/internal/inputcontent` by `el.InputDocument`, which only saves text, reference range, selection and editing transactions, and does not rely on Gio or other Keel modules. kit and markdown only depend on it indirectly via el.
+
+Draggable boxes support parent-axis movement, bounds, rubber-band overshoot, release velocity and snap points. See [Dragging and release motion](../../docs/el.md#dragging-and-release-motion).
+
+Text content transitions crossfade, roll numeric changes or morph whole shaping clusters. See [Changing text](../../docs/el.md#changing-text).
+
+SharedLayout connects successive elements across parents, with matching input and anchor geometry. See [Shared elements](../../docs/el.md#shared-elements-across-parents).
+
+Add `.Fly()` to a shared layout for handoffs beyond ancestor clips, scoped below later overlays; inert exit state still suppresses input and semantics.
+
+Shared handoffs interpolate base solid colors, corners, border width and opacity. Combine SharedLayout with ContentTransition on Text for cross-owner glyph continuity, including interrupted moves and font changes.
+
+MatchText on a shared container pairs descendant labels by relative ID/path. Shared handoffs also interpolate linear gradients and Elevation shadows.

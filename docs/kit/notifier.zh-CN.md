@@ -109,3 +109,6 @@ n.NotifyKey("download", kit.Notice{
 `NoticeSystemActivationBackend` 增加 `PostActivated(id,title,body,activated,done)`，其中 activated 接收 `NoticeActivation{Token: ...}`。后端同时实现两种交互接口时优先使用带激活数据的接口；只实现 PostInteractive 的后端继续工作，激活数据为空。
 
 `OnSystemActivation(func(NoticeActivation))` 在 UI 帧内接收数据，顺序为：移除通知并安排撤回 → OnSystemActivation → OnSystemActivate → 尚需执行的 OnClose → OnClick。重复事件或通知已删除时不再交付令牌。应用在这个回调中把令牌交给自己的窗口后端；组件不会修改环境变量或推断令牌格式。
+
+
+通知现使用根视图管理的 presence 生命周期处理进退场，剩余卡片使用布局过渡。关闭和 `OnClose` 仍在逻辑关闭时发生；淡出的卡片不可交互，停止倒计时，保留的通知值在退场结束或通知组件离开根视图后释放。减少动态效果会跳过过渡。这些行为位于工作分支，尚未包含在 v0.4.2 中。

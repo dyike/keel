@@ -221,3 +221,26 @@ func benchmarkFrames(b *testing.B, retain bool) {
 
 func BenchmarkAmbientFrameFull(b *testing.B)      { benchmarkFrames(b, false) }
 func BenchmarkAmbientFramePaintOnly(b *testing.B) { benchmarkFrames(b, true) }
+
+// A retained tree must keep requesting click events while it skips dispatch.
+func TestPaintOnlyFramesKeepClickSubscriptions(t *testing.T) {
+	now := time.Unix(500, 0)
+	clicks := 0
+	var phases []float32
+	root := Root(ViewFunc(func(*Context) Element {
+		return Div().Items(Start).Child(Div().Size(Dp(50)).OnClick(func() { clicks++ }), ring(&phases))
+	}))
+	root.RetainFrames()
+	h := uitest.NewFunc(func(gtx core.C) { gtx.Now = now; root.Layout(gtx) })
+	for range 4 {
+		now = now.Add(AmbientFrameInterval)
+		h.Frame()
+	}
+	if root.repaints != 4 {
+		t.Fatalf("expected four retained frames, got %d", root.repaints)
+	}
+	h.Click(20, 20)
+	if clicks != 1 {
+		t.Fatalf("click subscription lost after retained frames: %d", clicks)
+	}
+}

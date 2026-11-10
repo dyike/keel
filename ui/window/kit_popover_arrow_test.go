@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/theme"
 	"image/color"
 	"image/png"
 	"testing"
 )
 
 func TestPopoverArrowPixels(t *testing.T) {
+	oldMotion := theme.ReducedMotion
+	theme.SetReducedMotion(true) // Compare settled pixels; animation has separate frame-time tests.
+	defer theme.SetReducedMotion(oldMotion)
 	red := color.NRGBA{R: 255, A: 255}
 	p := kit.Popover(el.ViewFunc(func(*el.Context) el.Element { return el.Div().Size(el.Dp(40)) })).Width(80).Arrow(true).PanelStyle(func(e *el.DivEl) { e.Name("Panel").Bg(red) })
 	p.Trigger(kit.Button("Target", p.Toggle))

@@ -5,12 +5,16 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
 	"github.com/dyike/keel/ui/locale"
+	"github.com/dyike/keel/ui/theme"
 	"image/color"
 	"image/png"
 	"testing"
 )
 
 func TestDialogOverlayPixelsAndCloseFocus(t *testing.T) {
+	oldMotion := theme.ReducedMotion
+	theme.SetReducedMotion(true) // Compare settled pixels; animation has separate frame-time tests.
+	defer theme.SetReducedMotion(oldMotion)
 	d := kit.Dialog("Options").Width(180).Keyboard(false).OverlayClosable(false).CloseButton(true)
 	opens := 0
 	b := kit.Button("Open", func() { opens++; d.SetValue(true) }).ID("opener")

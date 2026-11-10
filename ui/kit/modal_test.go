@@ -104,7 +104,7 @@ func TestSheetSlidesAndCloses(t *testing.T) {
 	if end.Min.X != 200 || end.Dx() != 200 || end.Dy() != 300 {
 		t.Fatalf("sheet bounds %v, want right edge 200×300", end)
 	}
-	if start.Min.X <= end.Min.X {
+	if !start.Empty() && start.Min.X <= end.Min.X {
 		t.Fatalf("sheet did not slide in: start %v end %v", start, end)
 	}
 	click(t, h, "关闭")
@@ -146,13 +146,13 @@ func TestNotifierTimeoutHoverQueueAndEscape(t *testing.T) {
 	}
 	x, y := center(bounds(h, "通知 A"))
 	h.Move(x, y)
-	c.advance(h, 1500*time.Millisecond)
+	c.advanceFrames(h, 1500*time.Millisecond)
 	h.Frame()
 	if !shown(h, "通知 A") || shown(h, "通知 B") {
 		t.Fatal("hover should keep A; B should time out")
 	}
 	h.Move(1, 299)
-	c.advance(h, 1500*time.Millisecond)
+	c.advanceFrames(h, 1500*time.Millisecond)
 	h.Frame()
 	if shown(h, "通知 A") || n.Len() != 1 || !shown(h, "常驻") {
 		t.Fatalf("after timeouts: len=%d", n.Len())

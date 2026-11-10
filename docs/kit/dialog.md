@@ -66,3 +66,6 @@ The program calls SetValue(false) and SetDisabled(true) without cancellation ver
 dlg.Icon(kit.IconWarning).ConfirmDanger("Delete order", "This cannot be undone.", "Delete", remove)
 dlg.Icon(kit.IconCheck).IconTone(kit.ToneSuccess).Alert("Export complete", "36 records in total.", nil)
 ```
+
+
+Entry and exit share the root-owned presence lifecycle. Logical closing immediately disables the departing content and releases modality/focus; its visual exit continues briefly. Reopening in flight reverses from the current pose. Reduced motion skips transitions. `Show` mounts remain until exit completes. Removing the component cancels its lifecycle. This behavior is in the working branch, not v0.4.2.

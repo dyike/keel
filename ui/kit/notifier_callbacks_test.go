@@ -97,10 +97,10 @@ func TestNotifierTimeoutCloseCallback(t *testing.T) {
 	calls := 0
 	id := n.Notify(Notice{Title: "Expires", Timeout: time.Second, OnClose: func() { calls++; n.Notify(Notice{Title: "Replacement", Timeout: -1}) }})
 	h := c.harness(func(cx *el.Context) el.Element { return el.Div().Child(n.Render(cx)) })
-	c.advance(h, time.Second)
+	c.advanceFrames(h, time.Second)
 	h.Frame()
 	n.Dismiss(id)
-	c.advance(h, 5*time.Second)
+	c.advanceFrames(h, 5*time.Second)
 	if calls != 1 || n.Len() != 1 || !shown(h, "Replacement") {
 		t.Fatal("timeout callback mutation", calls, n.Len())
 	}

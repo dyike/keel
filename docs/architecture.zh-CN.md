@@ -238,3 +238,5 @@ SVG 图标由 `internal/oksvg` 解析，在 `ui/kit` 内通过 `rasterx` 按物�
 macOS、Windows 上的 `gio/app` 使用系统窗口装饰，不导入备用标题栏的 Material/文本依赖。Keel UI 组件仍按正常方式依赖文字和主题；其他目标保留 Gio 自绘标题栏回退。
 
 可选的 `ui/highlight/golang` 仅包含 Go、Go 文本模板和纯文本。两个高亮入口共用 `ui/internal/codehighlight` 转换 token。Components 使用 Go 高亮入口；图片演示均为本地内容或 data URL，无需引入 `ui/netimage`。
+
+`ui/internal/animation` 保存帧时间动画的数值采样器（弹簧、补间、关键帧、惯性），只依赖标准库。`ui/el` 和 `ui/motion` 共用它；元素动画状态、绘制变换和退出生命周期由 `ui/el` 管理，组件通过公开的 el API 使用，不反向导入 `ui/motion`。

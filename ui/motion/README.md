@@ -57,3 +57,40 @@ a 500ms duration and 0 / 0.15 / 0.3 bounce parameters. They use Keel's
 existing solver and preserve velocity when retargeted. Duration describes the
 perceptual response, not an exact settling deadline. Compare them interactively
 with `go run ./examples/motion -section presets`.
+
+The numerical sampler is shared with `ui/el` through `ui/internal/animation` (standard library only). For element transforms whose frames can repaint retained layout, use `element.AnimatePose(el.Pose{...}, transition)`. Existing `Value.To` remains a Render-time value API, and the experimental `Transform`/`LayoutGroup` limitations above still apply.
+
+
+## Timelines
+
+Build a `Timeline` once in view state. Tracks share one playhead; labels and
+placements allow sequences, overlap and stagger without independent timers:
+
+```go
+v.timeline.Track("x", motion.TweenSpec{To: 200, Duration: time.Second}).
+    Label("arrival", motion.WithPrevious(600*time.Millisecond)).
+    Track("fade", motion.TweenSpec{From: 1, To: 0, Duration: 400*time.Millisecond}, motion.AtLabel("arrival", 0))
+// In Render:
+f := v.timeline.Sample(cx, motion.TimelineOptions{Run: v.opened})
+card.AnimatePose(el.Pose{X: f.Value("x"), Fade: f.Value("fade")}, el.Instant)
+```
+
+`AfterPrevious` is relative to the previous track's end (negative offsets
+create overlap); `WithPrevious` uses its start; `AtTime` uses an absolute time.
+A track name is unique. Composition is immutable after the first sample.
+`TimelineOptions` supports pause, reverse, initial/repeat delays, extra repeat
+count (`-1` for forever), alternating direction, and held `Seek` or `Progress`.
+Bind a container directly with `TimelineOptions{Scroll: &motion.ScrollBinding{
+ID: "list"}}`. The full scrollable extent maps to one cycle; `Horizontal` selects
+ScrollX and `Start`/`End` choose a dp range. Missing/non-scrollable sources hold
+zero. Scroll, Seek and Progress are mutually exclusive. A changed observed
+content/viewport extent requests one follow-up frame; unchanged reads do not poll.
+You can still supply Progress for custom mapping. Explicit seeks remain available with reduced
+motion. Otherwise reduced motion finishes playback immediately. Infinite
+playback then finishes its first play. A paused or settled timeline requests
+no frames; sampling and track lookup allocate nothing after construction.
+
+`Sample` runs in Render and therefore rebuilds that view for active playback.
+Use `el.Instant` for its sampled poses to avoid a second interpolation. This
+API does not make callbacks or report end-to-end display frame rate. These
+additions are in the working branch and are not part of v0.4.2.

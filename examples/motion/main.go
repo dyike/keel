@@ -20,6 +20,14 @@ type demo struct {
 	presetTarget             float32
 	presets                  [3]motion.Value
 	pages                    *el.RootWidget
+	onlyPose                 bool
+	onlyTimeline             bool
+	timeline                 motion.Timeline
+	timelineOptions          motion.TimelineOptions
+	timelineProgress         float32
+	timelineScroll           bool
+	poseRight                bool
+	poseClicks               int
 	right                    bool
 	spring, tween            motion.Value
 	keyframe                 motion.Value
@@ -53,12 +61,22 @@ func newDemo() *demo {
 	d.keyframe.Set(0)
 	d.hover.Set(1)
 	d.tap.Set(1)
+	d.timeline.Track("position", motion.TweenSpec{To: 260, Duration: 900 * time.Millisecond, Ease: motion.EaseInOut}).
+		Label("arrival", motion.WithPrevious(500*time.Millisecond)).
+		Track("title", motion.TweenSpec{From: 1, To: 0, Duration: 400 * time.Millisecond}, motion.AtLabel("arrival", 0)).
+		Track("turn", motion.TweenSpec{To: 12, Duration: 300 * time.Millisecond})
 	d.dragX.Set(0)
 	d.dragY.Set(0)
 	return d
 }
 
 func (d *demo) Render(cx *el.Context) el.Element {
+	if d.onlyTimeline {
+		return d.timelinePage(cx)
+	}
+	if d.onlyPose {
+		return d.posePage(cx)
+	}
 	offset, viewport, content := cx.ScrollState("motion-page")
 	progress := float32(0)
 	if content > viewport {
@@ -286,7 +304,7 @@ func (d *demo) effectsSection(cx *el.Context) el.Element {
 func main() {
 	screenshot := flag.String("screenshot", "", "render a PNG to this path and exit")
 	language := flag.String("lang", "en", "example language: en or zh-CN")
-	section := flag.String("section", "", "section to show: effects, presets, pages (empty shows all)")
+	section := flag.String("section", "", "section to show: effects, presets, pages, pose, timeline (empty shows all)")
 	flag.Parse()
 	applyLanguage(*language)
 	d := newDemo()
@@ -294,6 +312,10 @@ func main() {
 	case "":
 	case "effects", "presets", "pages":
 		d.section = *section
+	case "pose":
+		d.onlyPose = true
+	case "timeline":
+		d.onlyTimeline = true
 	default:
 		log.Fatalf("unknown section %q", *section)
 	}
@@ -302,7 +324,7 @@ func main() {
 		// Focused sections are idle until user input, so they can be
 		// captured with motion enabled. The complete lab starts value
 		// animations immediately and uses reduced motion for deterministic PNGs.
-		theme.SetReducedMotion(d.section == "")
+		theme.SetReducedMotion(d.section == "" && !d.onlyPose)
 		if err := window.Screenshot(content, 900, 720, *screenshot); err != nil {
 			log.Fatal(err)
 		}

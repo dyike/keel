@@ -57,3 +57,6 @@ Listeners will not swallow events that trigger the element itself. When selectin
 `Arrow(true)` Shows an arrow pointing to the trigger, off by default. Arrows are 6dp deep, panels have a corresponding 6dp spacing, and Offset is measured to the tip. The direction flips to follow the actual positioning, aligning with Start/Center/End along the edges of the panel and avoiding rounded corners; narrow panels shrink arrows. Arrows may be clipped at the edge of the window. The arrows scroll independently of the content, and clicking on the arrows does not close the panel.
 
 The arrow uses the solid color background set by PanelStyle, which takes the current theme Surface when not set; no shadows or borders are drawn separately, and gradient backgrounds are not sampled. Appearance(false) does not automatically turn off the arrow. Arrow(false) can be called independently.
+
+
+Entry and exit share the root-owned presence lifecycle. Logical closing immediately disables the departing content and releases modality/focus; its visual exit continues briefly. Reopening in flight reverses from the current pose. Reduced motion skips transitions. Removing the component cancels its lifecycle. This behavior is in the working branch, not v0.4.2.

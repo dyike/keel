@@ -113,7 +113,8 @@ func (v *PopoverView) change(open bool) {
 
 func (v *PopoverView) Render(cx *el.Context) el.Element {
 	id := autoID("popover", v)
-	if v.open {
+	presence := floatingPresence(cx, id, v.open)
+	if presence.Visible {
 		w, h := cx.ViewportSize()
 		panel := el.Div()
 		if !v.plain {
@@ -126,7 +127,7 @@ func (v *PopoverView) Render(cx *el.Context) el.Element {
 			v.panelStyle(panel)
 		}
 		panel.ID(id + "/panel").Role("dialog").MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().ScrollX()
-		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).Offset(v.offset).Arrow(v.arrow).OnDismiss(func() { v.change(false) }))
+		cx.Overlay(id, el.Anchored(id, panel).Placement(v.side, v.align).Offset(v.offset).Arrow(v.arrow).OnDismiss(func() { v.change(false) }).Presence(presence))
 		if v.content != nil {
 			panel.Child(v.content.Render(cx))
 		}
