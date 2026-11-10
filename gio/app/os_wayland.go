@@ -129,14 +129,14 @@ type repeatState struct {
 }
 
 type window struct {
-	w          *callbacks
-	disp       *wlDisplay
-	surf       unsafe.Pointer
-	wmSurf     unsafe.Pointer
-	topLvl     unsafe.Pointer
-	decor      unsafe.Pointer
-	ppdp, ppsp float32
-	scroll     struct {
+	w         *callbacks
+	disp      *wlDisplay
+	surf      unsafe.Pointer
+	wmSurf    unsafe.Pointer
+	topLvl    unsafe.Pointer
+	decor     unsafe.Pointer
+	textScale float32
+	scroll    struct {
 		time  time.Duration
 		steps image.Point
 		dist  f32.Point
@@ -329,13 +329,12 @@ func (d *wlDisplay) createNativeWindow(options []Option) (*window, error) {
 			scale = s
 		}
 	}
-	ppdp := detectUIScale()
+	textScale := detectTextScale()
 
 	w := &window{
 		disp:      d,
 		scale:     scale,
-		ppdp:      ppdp,
-		ppsp:      ppdp,
+		textScale: textScale,
 		wakeups:   make(chan struct{}, 1),
 		done:      make(chan struct{}),
 		clipReads: make(chan transfer.DataEvent, 1),
@@ -1893,8 +1892,8 @@ func (w *window) updateOutputs() {
 func (w *window) getConfig() (image.Point, unit.Metric) {
 	size := w.size.Mul(w.scale)
 	return size, unit.Metric{
-		PxPerDp: w.ppdp * float32(w.scale),
-		PxPerSp: w.ppsp * float32(w.scale),
+		PxPerDp: float32(w.scale),
+		PxPerSp: w.textScale * float32(w.scale),
 	}
 }
 
@@ -2033,15 +2032,20 @@ func (w *window) NewContext() (context, error) {
 	return nil, errors.New("wayland: no available GPU backends")
 }
 
-// detectUIScale reports the system UI scale, or 1.0 if it fails.
-func detectUIScale() float32 {
+// detectTextScale affects scalable text (sp), never layout dimensions (dp).
+// Wayland output scale already supplies the layout and backing-buffer density.
+func detectTextScale() float32 {
 	// TODO: What about other window environments?
 	out, err := exec.Command("gsettings", "get", "org.gnome.desktop.interface", "text-scaling-factor").Output()
 	if err != nil {
 		return 1.0
 	}
+	return parseTextScale(out)
+}
+
+func parseTextScale(out []byte) float32 {
 	scale, err := strconv.ParseFloat(string(bytes.TrimSpace(out)), 32)
-	if err != nil {
+	if err != nil || scale <= 0 || math.IsNaN(scale) || math.IsInf(scale, 0) {
 		return 1.0
 	}
 	return float32(scale)

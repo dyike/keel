@@ -44,6 +44,13 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- `gio/app`, Wayland: apply GNOME text-scaling-factor only to sp, not dp.
+  Output scale continues to control window geometry and backing buffers. This
+  prevents accessibility font scaling from enlarging titlebars, icons and
+  minimum window sizes; tests cover layout/text metric separation and invalid
+  settings.
+
+
 - `gio/text`: bound retained paragraph layouts by estimated bytes (8 MiB
   ordinarily, at most 64 MiB for layouts used within eight explicit frames),
   retaining the 1,000-entry cap. A short cached paragraph owns its string rather
