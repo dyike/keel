@@ -28,6 +28,11 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- Linux 桌面绑定现在默认使用 purego，即使开启 CGO 也无需指定标签或安装
+  原生开发头文件。`-tags giocgo` 可选择旧 cgo 绑定；`purego` 或 CGO_ENABLED=0
+  优先。Android、BSD 和 macOS 的选择规则不变。源码选择回归测试覆盖
+  amd64/arm64 及覆盖标签的组合。
+
 - `gio/app`，Wayland：GNOME 的 text-scaling-factor 仅作用于 sp，不再放大 dp。
   输出缩放继续控制窗口几何与缓冲区密度，避免文字辅助缩放连带放大标题栏、
   图标和最小窗口尺寸。测试覆盖布局/文字缩放分离及非法设置。

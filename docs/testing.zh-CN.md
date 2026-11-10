@@ -4,6 +4,22 @@
 
 界面测试大部分不需要开窗口：`ui/internal/uitest` 测试工具通过 Gio 真实的输入路由送入点击、按键、文字，组件走的代码和真实窗口完全一样。`go test -race ./...` 在本机跑完大约 10 秒。
 
+## Linux 默认绑定选择（本地，2026-11-10）
+
+Linux 桌面现在无需标签即可选择 purego，开启 CGO 时也一样。
+`TestLinuxDefaultBindings` 检查 amd64/arm64 的源码选择、`giocgo` 回退，
+以及 `purego` / 禁用 CGO 的优先级。CI 在无 cgo 运行时任务中增加了
+开启 CGO 的源码选择检查。
+
+本机 Linux amd64 的全模块构建、vet、绑定专项测试、真实窗口生命周期测试、
+Linux/Windows 无 cgo 构建及带 `purego`、`nox11`、`nowayland`、`novulkan`
+的 hello 构建通过。本机 Go 工具链版本字符串不一致，验证编译使用了
+`-gcflags=all=-goversion=go1.27.3`；这不是 Keel 所需的构建选项。
+完整测试未通过：fontscan、输入文字对齐、hover/status 布局和 EGL 像素测试失败。
+显式指定 `purego` 也能复现 EGL 失败。这是尚未发布的源码选择改动，
+不代表已验证不同 Linux 硬件上的 GPU / 输入法一致性。
+
+
 ## Components 内嵌字体内存，2026-11-06（本地）
 
 三组交替运行的真实窗口对比中，完整组件库交互后的空闲物理内存中位数从

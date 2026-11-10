@@ -8,7 +8,7 @@ Create an application with the `keel` scaffold, develop its UI in the generated 
 
 - Go 1.26.1 or newer.
 - macOS: install Xcode Command Line Tools (`xcode-select --install`). Gio uses cgo (`native/` does not); native capabilities require macOS 14+.
-- Windows: install Go. Linux also requires development packages for Wayland/X11, xkbcommon, and EGL. See [Native APIs](native.md) for platform support.
+- Windows: install Go. Linux desktop bindings default to purego: ordinary `go build` needs no `-tags purego` or native development headers. Wayland/X11, xkbcommon and GPU shared libraries are still required at runtime. `-tags giocgo` opts into legacy cgo bindings. See [Native APIs](native.md) for platform support.
 
 ## Check the environment
 
@@ -24,7 +24,7 @@ projects that build with Keel alone. To try unreleased changes from a Keel
 checkout, run `go build -o /tmp/keel ./cmd/keel` from the repository root,
 then `/tmp/keel new /tmp/my-notes -replace "$PWD"`.
 
-On macOS, `keel doctor` checks Xcode Command Line Tools and `iconutil`. On Linux, it checks window-system and font development packages. The first run or build downloads dependencies and compiles cgo code. See [the macOS `-lobjc` warning](troubleshooting.md#-lobjc-warning-when-linking) if it appears during linking.
+On macOS, `keel doctor` checks Xcode Command Line Tools and `iconutil`. On Linux, it checks window-system and font development packages. The first run or build downloads dependencies. The Linux doctor development-package checks apply to the legacy cgo backend. See [the macOS `-lobjc` warning](troubleshooting.md#-lobjc-warning-when-linking) if it appears during linking.
 
 ## Create a project
 
@@ -58,8 +58,7 @@ building; dependencies must then be cached or downloadable.
 Keel's copies of Gio and go-text are packages inside the Keel module, so the
 generated `go.mod` has a single requirement and an existing app only needs
 `go get github.com/dyike/keel@<version>`. Ordinary `go build` uses the same
-copies without CLI assistance. This does not yet mean no-cgo macOS/Linux UI
-builds; see [implementation evidence](desktop-cgo-free-validation.md).
+copies without CLI assistance. Linux uses purego by default; macOS can opt in with `CGO_ENABLED=0` or `-tags purego`. See [implementation evidence](desktop-cgo-free-validation.md) for runtime validation limits.
 
 ## Write your first window
 

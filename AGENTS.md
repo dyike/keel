@@ -116,8 +116,9 @@ and performance patches; replace native bindings, not the renderers. The
 
 On Linux, EGL, GL, Vulkan, xkbcommon and the X11 and Wayland windows have
 purego bindings (CI: "Linux without cgo", amd64 and arm64), so the desktop
-path builds and runs without cgo there; cgo stays the default until Linux
-is promoted too. Windows already builds without cgo. iOS/Android migration is deferred.
+path builds and runs without cgo there; purego is now the Linux desktop default even with cgo enabled.
+Use `-tags giocgo` to opt into legacy Linux bindings; `purego` or
+`CGO_ENABLED=0` takes precedence. Windows already builds without cgo. iOS/Android migration is deferred.
 On the inspected Apple silicon host, `CGO_ENABLED=0 go build ./examples/hello`
 passes and `CGO_ENABLED=0 go test ./...` passes, including real windows
 (`KEEL_DESKTOP=1`). The macOS default stays cgo until the promotion gate in the
@@ -156,7 +157,7 @@ go test ./gio/... ./typesetting/...                        # the Gio and go-text
 go test ./...                                    # includes internal/deps and convention checks
 go test -race ./...
 CGO_ENABLED=0 GOOS=windows go build ./...       # Windows is already cgo-free; keep it so
-CGO_ENABLED=0 GOOS=linux go vet ./native/... ./cmd/...   # Linux ui/* still needs cgo (Gio)
+CGO_ENABLED=0 GOOS=linux go vet ./native/... ./cmd/...   # Linux desktop defaults to purego
 KEEL_DESKTOP=1 go test -run RealWindows ./ui/window      # real windows; after any ui/window or loop change
 go run ./examples/hello -screenshot /tmp/after.png       # pixel comparison for refactors
 go run ./examples/components -matrix /tmp/keel-component-matrix

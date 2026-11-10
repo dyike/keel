@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build (linux && cgo && !purego) || freebsd
+//go:build (linux && cgo && !purego && (android || giocgo)) || freebsd
 
 package vk
 

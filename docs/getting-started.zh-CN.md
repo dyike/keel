@@ -8,7 +8,7 @@
 
 - Go 1.26.1 或更新。
 - macOS：安装 Xcode Command Line Tools（`xcode-select --install`）。Gio 走 cgo（`native/` 不用）；原生能力要求 macOS 14+。
-- Windows：安装 Go 即可开始；Linux 需要 Wayland/X11、xkbcommon、EGL 的开发包。各平台的原生能力见 [原生能力](native.zh-CN.md)。
+- Windows：安装 Go 即可开始；Linux 桌面绑定默认使用 purego，普通 `go build` 无需 `-tags purego` 或原生开发头文件，运行时仍需 Wayland/X11、xkbcommon 和 GPU 动态库。`-tags giocgo` 可选择旧 cgo 绑定。各平台的原生能力见 [原生能力](native.zh-CN.md)。
 
 ## 检查环境
 
@@ -24,7 +24,7 @@ keel doctor
 `go build -o /tmp/keel ./cmd/keel`，再执行
 `/tmp/keel new /tmp/my-notes -replace "$PWD"`。
 
-macOS 会检查 Xcode 命令行工具和 `iconutil`；Linux 会检查窗口系统与字体相关的开发包。首次运行或打包需要下载依赖并编译 cgo。macOS 的 `-lobjc` 链接警告见 [常见问题](troubleshooting.zh-CN.md#链接时出现--lobjc-警告)。
+macOS 会检查 Xcode 命令行工具和 `iconutil`；Linux 会检查窗口系统与字体相关的开发包。首次运行或打包需要下载依赖。Linux doctor 的开发包检查适用于旧 cgo 后端。macOS 的 `-lobjc` 链接警告见 [常见问题](troubleshooting.zh-CN.md#链接时出现--lobjc-警告)。
 
 ## 新建项目
 
@@ -50,7 +50,7 @@ keel run
 
 `-keel <版本>` 选择精确的 Keel 发布（默认为 CLI 自身版本，或最新版）。`-replace <Keel 检出目录>` 改为从本地检出目录引用 Keel，用于开发 Keel，路径可含空格。`-offline` 不拉依赖而写入文件：精确的 `-keel vX.Y.Z` 不需要缓存元数据，`latest` 等查询需要缓存解析结果。构建前执行 `go mod tidy`，届时依赖须已缓存或可下载。
 
-Keel 的 Gio 和 go-text 副本是 Keel 模块里的包，所以生成的 `go.mod` 只有一条 require，已有应用只需 `go get github.com/dyike/keel@<版本>`。直接 `go build` 即可使用同样的副本，无需 CLI 包装。这还不代表 macOS/Linux UI 可以无 CGO 构建，见[实现验证记录](desktop-cgo-free-validation.zh-CN.md)。
+Keel 的 Gio 和 go-text 副本是 Keel 模块里的包，所以生成的 `go.mod` 只有一条 require，已有应用只需 `go get github.com/dyike/keel@<版本>`。直接 `go build` 即可使用同样的副本，无需 CLI 包装。Linux 默认使用 purego；macOS 可通过 `CGO_ENABLED=0` 或 `-tags purego` 启用。运行时验证范围见[实现验证记录](desktop-cgo-free-validation.zh-CN.md)。
 
 ## 写第一个窗口
 

@@ -294,3 +294,23 @@ func TestAppShellFullyHiddenSidebar(t *testing.T) {
 		t.Fatal("default icon rail not preserved")
 	}
 }
+
+func TestAppShellCollapsedToolbarKeepsControlWidths(t *testing.T) {
+	for _, hidden := range []bool{false, true} {
+		shell := AppShell("App").HideSidebarOnCollapse(hidden).
+			SidebarHeader(Button("", nil).Name("New conversation").Icon(IconPlus).Variant(ButtonGhost))
+		shell.chrome.goos = "linux"
+		root := el.Root(shell)
+		h := uitest.NewFunc(func(gtx core.C) { gtx.Constraints.Max = image.Pt(1000, 600); root.Layout(gtx) })
+		expandedToggle, expandedNew := bounds(h, "收起侧栏"), bounds(h, "New conversation")
+		shell.SetCollapsed(true)
+		h.Frame()
+		toggle, newButton := bounds(h, "展开侧栏"), bounds(h, "New conversation")
+		if toggle.Dx() != expandedToggle.Dx() || toggle.Dx() != 32 || newButton.Dx() != expandedNew.Dx() || newButton.Empty() {
+			t.Fatalf("hidden=%v: controls shrank: %v / %v -> %v / %v", hidden, expandedToggle, expandedNew, toggle, newButton)
+		}
+		if toggle.Max.X > newButton.Min.X {
+			t.Fatalf("overlapping controls: %v / %v", toggle, newButton)
+		}
+	}
+}

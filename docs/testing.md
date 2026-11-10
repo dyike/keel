@@ -4,6 +4,24 @@ English | [简体中文](testing.zh-CN.md)
 
 Most interface tests do not require opening a window: the `ui/internal/uitest` testing tool sends clicks, keys, and text through Gio's real input routing. The code executed by the component is exactly the same as that of the real window. `go test -race ./...` takes about 10 seconds to run on this machine.
 
+## Linux default binding selection (local, 2026-11-10)
+
+Linux desktop now selects purego without build tags, including when CGO is
+on. `TestLinuxDefaultBindings` checks amd64/arm64 source selection, the
+`giocgo` fallback and precedence of `purego` / disabled CGO. CI runs this
+selection check with CGO enabled alongside the no-cgo runtime jobs.
+
+On this Linux amd64 host, whole-module builds, vet, focused binding tests,
+real-window lifecycle tests, no-cgo Linux/Windows builds and hello builds with
+`purego`, `nox11`, `nowayland` and `novulkan` passed. Local compilation required
+`-gcflags=all=-goversion=go1.27.3` because the installed Go toolchain reports
+inconsistent version strings; this is not a required Keel build option.
+The full test suite did not pass: fontscan, input ink alignment, hover/status
+layout and EGL pixel tests failed. Explicit `purego` also reproduces the EGL
+failures. This is an unpublished source-selection change, not new evidence of
+GPU/IME parity across Linux hardware.
+
+
 ## Components inline-font memory, 2026-11-06 (local)
 
 Three alternating before/after native-window trials reduce the full gallery's

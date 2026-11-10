@@ -118,5 +118,10 @@ func (v *AppShellView) sidebarTitlebar(cx *el.Context) el.Element {
 			width += 36
 		}
 	}
+	if v.Collapsed() {
+		// Custom controls remain visible when the navigation collapses. Measure
+		// their full width instead of squeezing them into the 56dp icon rail.
+		return top.MinW(el.Dp(width))
+	}
 	return top.W(el.Dp(width))
 }

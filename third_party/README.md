@@ -44,6 +44,12 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- Linux desktop bindings now default to purego, even with CGO enabled. No
+  build tag or native development headers are needed. `-tags giocgo` opts into
+  the old cgo bindings; `purego` or CGO_ENABLED=0 takes precedence. Android, BSD
+  and macOS selection is unchanged. A source-selection regression test covers
+  amd64/arm64 and the override combinations.
+
 - `gio/app`, Wayland: apply GNOME text-scaling-factor only to sp, not dp.
   Output scale continues to control window geometry and backing buffers. This
   prevents accessibility font scaling from enlarging titlebars, icons and

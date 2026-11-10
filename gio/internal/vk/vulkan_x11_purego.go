@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build linux && !android && !nox11 && (!cgo || purego)
+//go:build linux && !android && !nox11 && (!cgo || !giocgo || purego)
 
 package vk
 

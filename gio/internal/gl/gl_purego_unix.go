@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build ((darwin && !ios) || (linux && !android)) && (!cgo || purego)
+//go:build (darwin && !ios && (!cgo || purego)) || (linux && !android && (!cgo || !giocgo || purego))
 
 package gl
 

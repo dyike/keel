@@ -26,6 +26,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Default Linux backend selection with CGO enabled
+        env:
+          CGO_ENABLED: '1'
+        run: go test ./internal/deps -run '^TestLinuxDefaultBindings$' -count=1
       - name: Install runtime libraries only
         run: |
           sudo apt-get update

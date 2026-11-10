@@ -41,10 +41,10 @@ func (v *AppShellView) sidebarToggle(cx *el.Context) el.Element {
 		name = locale.Current().ExpandSidebar
 	}
 	// Standard sidebar glyph: a window outline with a narrow navigation pane.
-	glyph := el.Div().W(el.Dp(18)).H(el.Dp(14)).Rounded(3).Border(1, theme.Text).Child(
+	glyph := el.Div().W(el.Dp(18)).H(el.Dp(14)).NoShrink().Rounded(3).Border(1, theme.Text).Child(
 		el.Div().Absolute().Left(5).Top(1).Bottom(1).W(el.Dp(1)).Bg(theme.Text))
 	return el.Div().ID(autoID("app-shell-toggle", v)).Role("button").Name(name).Focusable(true).CursorPointer().
-		Size(el.Dp(32)).Rounded(6).Center().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
+		Size(el.Dp(32)).NoShrink().Rounded(6).Center().Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) }).
 		FocusStyle(func(s *el.Style) { s.Bg(theme.SubtleHover) }).OnClick(func() { v.SetCollapsed(!v.Collapsed()) }).Child(glyph)
 }
 func (v *AppShellView) sidebarDivider(cx *el.Context) el.Element {
