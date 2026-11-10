@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"github.com/dyike/keel/gio/f32"
 	"testing"
 
 	"github.com/dyike/keel/ui/core"
@@ -39,6 +40,20 @@ func TestTitleBarButtonsPerPlatform(t *testing.T) {
 		click(t, h, "关闭")
 		if got := len(w.calls); got != 4 || w.calls[3] != "close" || w.maximized {
 			t.Errorf("%s: calls %v maximized %v", goos, w.calls, w.maximized)
+		}
+	}
+}
+
+func TestTitleBarNativeActionRegionExcludesControls(t *testing.T) {
+	w := &fakeWindow{frameless: true}
+	bar := TitleBar("Title").Leading(Button("Left", nil)).Trailing(Button("Right", nil))
+	root := el.Root(viewFunc(func(cx *el.Context) el.Element { return el.Div().Items(el.Stretch).Child(bar.Render(cx)) }))
+	h := uitest.NewFunc(func(gtx core.C) { defer core.SetCurrentWindow(w)(); root.Layout(gtx) })
+	for _, name := range []string{"Left", "Right", "关闭", "最小化", "最大化"} {
+		b := bounds(h, name)
+		x, y := center(b)
+		if action, ok := h.Router.ActionAt(f32.Pt(x, y)); ok {
+			t.Errorf("%s at %v inherited native action %v", name, b, action)
 		}
 	}
 }

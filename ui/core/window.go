@@ -31,3 +31,10 @@ func SetCurrentWindow(w WindowControls) (restore func()) {
 	currentWindow = w
 	return func() { currentWindow = prev }
 }
+
+// NativeTitleBarControls is implemented by windows with OS-owned titlebar
+// buttons. The inset is the reserved extent from the window's left edge in dp;
+// zero means the application should draw its own controls.
+type NativeTitleBarControls interface {
+	NativeTitleBarInset() float32
+}

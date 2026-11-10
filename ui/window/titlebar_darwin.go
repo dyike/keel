@@ -119,7 +119,8 @@ func setTitleBarArea(handle uintptr, area appkit.Rect) {
 
 // titleBarMouseDown runs on the main thread for every left mouse down.
 func titleBarMouseDown(event appkit.ID) appkit.ID {
-	if len(titleBars.regions) == 0 || int(appkit.Send(event, "clickCount")) != 2 {
+	clickCount := int(appkit.Send(event, "clickCount"))
+	if len(titleBars.regions) == 0 || clickCount < 2 {
 		return event
 	}
 	window := appkit.Send(event, "window")
@@ -132,7 +133,20 @@ func titleBarMouseDown(event appkit.ID) appkit.ID {
 			p.Y = appkit.MsgRect(view, appkit.Sel("bounds")).Size.Height - p.Y
 		}
 		if !area.Contains(p) {
-			continue
+			// NSWindow may interpret repeated clicks in its transparent title
+			// bar before delivering it to the content view. Route clicks on
+			// Gio content directly to its responder so toolbar buttons cannot
+			// also zoom the window. Native controls keep AppKit dispatch.
+			if p.Y >= area.Origin.Y && p.Y < area.Origin.Y+area.Size.Height && titleBarContentHit(view, event) {
+				appkit.Send(view, "mouseDown:", uintptr(event))
+				return 0
+			}
+			return event
+		}
+		// Later clicks in the same sequence must not fall through to
+		// AppKit or start another zoom/drag. Only the double-click acts.
+		if clickCount != 2 {
+			return 0
 		}
 		var command int
 		appkit.Pool(func() {
@@ -152,6 +166,19 @@ func titleBarMouseDown(event appkit.ID) appkit.ID {
 		return 0 // Do not let Gio start another native window drag.
 	}
 	return event
+}
+
+func titleBarContentHit(view, event appkit.ID) bool {
+	root := appkit.Send(appkit.Send(appkit.Send(view, "window"), "contentView"), "superview")
+	if root == 0 {
+		return false
+	}
+	p := appkit.MsgPoint(event, appkit.Sel("locationInWindow"))
+	if parent := appkit.Send(root, "superview"); parent != 0 {
+		p = appkit.MsgPointFromView(parent, appkit.Sel("convertPoint:fromView:"), p, 0)
+	}
+	hit := appkit.MsgIDForPoint(root, appkit.Sel("hitTest:"), p)
+	return hit == view || hit != 0 && appkit.SendBool(hit, "isDescendantOf:", uintptr(view))
 }
 
 // trafficLights is the geometry applied to one view's window buttons. Main

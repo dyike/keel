@@ -93,7 +93,11 @@ func (v *TitleBarView) Render(cx *el.Context) el.Element {
 	colors := v.palette()
 	bar := el.Div().Role("banner").Name(v.title).Row().Items(el.Center).H(el.Dp(TitleBarHeight)).Bg(colors.background).Px(theme.SpaceMd).Gap(theme.SpaceMd)
 	if controls && mac {
-		bar.Child(v.lights(cx, w))
+		if native, ok := w.(core.NativeTitleBarControls); ok && native.NativeTitleBarInset() > 0 {
+			bar.Child(el.Div().W(el.Dp(max(0, native.NativeTitleBarInset()-theme.SpaceMd))).NoShrink())
+		} else {
+			bar.Child(v.lights(cx, w))
+		}
 	}
 	for _, l := range v.leading {
 		bar.Child(renderOptional(cx, l))
