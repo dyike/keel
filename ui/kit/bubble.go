@@ -138,7 +138,7 @@ func (v *BubbleView) Render(cx *el.Context) el.Element {
 	if v.content != nil {
 		box.Child(v.content.Render(cx))
 	}
-	reaction := el.Div().Bg(theme.Surface).TextColor(theme.Text).Border(1, theme.Border).Rounded(theme.RadiusFull).Px(theme.SpaceSm).Py(theme.SpaceXs)
+	reaction := el.Div().Bg(theme.Surface).TextColor(theme.Text).Border(1, theme.Outline).Rounded(theme.RadiusFull).Px(theme.SpaceSm).Py(theme.SpaceXs)
 	if len(v.reactionActions) > 0 {
 		reaction.P(0).Row().WrapFit().Items(el.Center).Gap(theme.SpaceXs)
 	}

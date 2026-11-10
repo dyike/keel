@@ -21,7 +21,11 @@ func init() {
 				label = demoText("Country: ", "国家：") + state.Selection[0].Label
 			}
 			return el.ViewFunc(func(cx *el.Context) el.Element {
-				return el.Div().P(12).Rounded(theme.RadiusMd).Border(1, theme.Primary).Child(el.Text(label))
+				bg := theme.Surface
+				if cx.FocusVisibleWithin(country.FocusID()) {
+					bg = theme.SubtleHover
+				}
+				return el.Div().P(12).Rounded(theme.RadiusMd).Bg(bg).Child(el.Text(label))
 			})
 		})
 		country.RowHeight(52).RenderItem(func(item kit.ComboboxItem, selected bool) el.View {

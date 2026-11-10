@@ -66,7 +66,7 @@ Other configurations and status:
 
 - `Placeholder(string)`: Search placeholder text, empty value restores localization default.
 - `MaxHeight(dp)`: Result viewport maximum height, 0 restores 360dp; window space and headers and footers may shrink it further.
-- `Bordered(false)`: Remove the default borders, rounded corners and shadows; `PanelStyle(func(*el.DivEl))` can adjust the width, background and other styles of the new panel in each frame.
+- `Bordered(false)`: Remove the optional border, rounded corners and shadows; `Bordered(true)` explicitly enables the border; `PanelStyle(func(*el.DivEl))` can adjust the width, background and other styles of the new panel in each frame.
 - `Query()` / `SetQuery(string)`: read/set query; process and notify according to user input when it is opened and searchable, and the same text will not be notified repeatedly. Only saves when closed or not searchable; re-opening still resets the query.
 - `SelectedIndex()`: Index of the currently highlighted original entry, −1 means none; data updates are reconciled on the next render.
 - `MatchedCount()`: The current number of matches, including disabled items, excluding headers/separators.

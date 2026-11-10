@@ -204,7 +204,7 @@ func (v *ChartView) Render(cx *el.Context) el.Element {
 		name = strings.Join(names, ", ")
 	}
 	root := el.Div().Disabled(v.disabled).Role("figure").Name(name).Value(strconv.Itoa(len(v.labels))+"x"+strconv.Itoa(len(v.series))).
-		Gap(10).P(theme.SpaceLg).Rounded(theme.RadiusLg).Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch)
+		Gap(10).P(theme.SpaceLg).Rounded(theme.RadiusLg).Bg(theme.Surface).Border(1, theme.Outline).Items(el.Stretch)
 	head := el.Div().Row().Wrap().Items(el.Center).Gap(theme.SpaceLg)
 	if v.title != "" {
 		head.Child(el.Text(v.title).Bold())
@@ -314,7 +314,7 @@ func (v *ChartView) tooltip(cx *el.Context) el.Element {
 
 func (v *ChartView) tooltipPanel(cx *el.Context) *el.DivEl {
 	tip := el.Div().P(theme.SpaceMd).Gap(theme.SpaceXs).Rounded(theme.RadiusMd).
-		Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch).
+		Bg(theme.Surface).Border(1, theme.Outline).Items(el.Stretch).
 		Child()
 	if v.options.tooltip != nil {
 		return tip.Child(v.options.tooltip(cx, v.tooltipData()))

@@ -39,6 +39,7 @@ type CommandItem struct {
 // finds "New window"). ↑ ↓ move, Enter runs, Esc closes. Bind it to a
 // shortcut yourself: cx.Shortcut("mod+k", palette.Toggle).
 type CommandView struct {
+	bordered                            bool
 	closeButton                         bool
 	list                                *VirtualListView
 	variable                            *VariableListView
@@ -316,6 +317,9 @@ func (v *CommandView) Render(cx *el.Context) el.Element {
 		})
 	}
 	panel := floating(theme.ElevationLg).ID(id + "/panel").Role("group").Name(text.Commands).Disabled(v.disabled).W(el.Dp(560)).MaxW(el.Full).Items(el.Stretch)
+	if v.bordered {
+		panel.Border(1, theme.Border)
+	}
 	if v.borderless {
 		panel.Border(0, color.NRGBA{}).Rounded(0).Shadow(theme.Elevation{})
 	}

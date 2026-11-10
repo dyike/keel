@@ -16,7 +16,8 @@ var (
 	Frameless    bool            // opt-in borderless controls; see Palette.Frameless
 	Bg           = RGB(0xf5f6f8) // window background
 	Surface      = RGB(0xffffff) // cards and fields
-	Border       = RGB(0xe3e5e8) // borders and dividers
+	Border       = RGB(0xe3e5e8) // explicit borders and dividers
+	Outline      color.NRGBA     // optional component outlines; transparent by default
 	Text         = RGB(0x1f2328) // body text
 	Muted        = RGB(0x6b7280) // secondary text, hints, unchecked icons
 	Primary      = RGB(0x2563eb) // primary buttons, links, focus, checked icons

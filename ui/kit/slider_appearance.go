@@ -25,8 +25,8 @@ func (v *SliderView) Appearance(fn func(*SliderAppearance)) *SliderView {
 func (v *SliderView) resolveAppearance() SliderAppearance {
 	a := SliderAppearance{
 		TrackColor: theme.Border, FillColor: theme.Primary,
-		ThumbColor: theme.Surface, ThumbBorderColor: theme.Primary,
-		TrackSize: 4, ThumbSize: 16, ThumbBorderWidth: 2,
+		ThumbColor: theme.Primary, ThumbBorderColor: theme.Primary,
+		TrackSize: 4, ThumbSize: 16, ThumbBorderWidth: 0,
 		TrackRadius: theme.RadiusFull, ThumbRadius: theme.RadiusLg,
 	}
 	defaults := a
@@ -53,7 +53,7 @@ func (v *SliderView) resolveAppearance() SliderAppearance {
 	a.TrackRadius = min(a.TrackRadius, 1024)
 	a.ThumbRadius = min(a.ThumbRadius, a.ThumbSize/2)
 	if v.disabled {
-		a.FillColor, a.ThumbBorderColor = theme.Muted, theme.Muted
+		a.FillColor, a.ThumbColor, a.ThumbBorderColor = theme.Muted, theme.Muted, theme.Muted
 	}
 	return a
 }

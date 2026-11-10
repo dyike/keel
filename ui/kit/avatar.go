@@ -228,7 +228,7 @@ func (v *AvatarView) Render(cx *el.Context) el.Element {
 			c = theme.Warning
 		}
 		d := v.size * .22
-		box.Child(el.Div().Absolute().Right(v.size*.14).Bottom(v.size*.14).Size(el.Dp(d)).Rounded(d/2).Border(1, theme.Surface).Bg(c))
+		box.Child(el.Div().Absolute().Right(v.size*.14).Bottom(v.size*.14).Size(el.Dp(d)).Rounded(d/2).Border(1, theme.Outline).Bg(c))
 	}
 	if v.style != nil {
 		v.style(box)

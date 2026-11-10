@@ -44,7 +44,7 @@ func (v *focusGallery) Render(cx *el.Context) el.Element {
 			}
 		}),
 		el.Text(demoText("When enabled, Tab cycles within the region below. Click outside or use the exit button to release focus.", "开启后，Tab 只在下方区域循环；可点击外部控件，或按退出按钮解除。")),
-		el.Div().FocusTrap(v.trapped).Border(1, theme.Border).Rounded(8).P(12).Gap(8).Child(
+		el.Div().FocusTrap(v.trapped).Border(1, theme.Outline).Rounded(8).P(12).Gap(8).Child(
 			button("trap-first", demoText("First button in the region", "区域内第一个按钮"), func() { v.count++ }),
 			el.Input().ID("trap-input").Placeholder(demoText("Input in the region", "区域内输入框")),
 			button("trap-exit", demoText("Exit focus cycle", "退出焦点循环"), func() { v.trapped = false; cx.Focus("trap-toggle") })),

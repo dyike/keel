@@ -19,6 +19,8 @@ Built-in themes: `light`, `dark`, `nord`, `paper`, `solarized-dark`, `high-contr
 
 ## Palette and caching
 
+Components have no decorative outline by default. `Palette.Outline` is transparent; `Border` remains visible for dividers and explicit borders. To enable default component outlines, set `p.Outline = p.Border` and apply the palette, or use `cx.Themed(p, view)` for one subtree. Per-component `Bordered(true)`, outline variants and style callbacks such as `.Border(1, theme.Border)` remain explicit overrides. Input fields use a subtle background fill for keyboard focus; enabling Outline restores their focus border. Validation errors retain their state indicators.
+
 Set `Palette.Frameless` to remove element outlines, including focus borders. Keyboard and input focus use a background fill instead; per-edge separators remain visible. This is opt-in and follows palette scopes.
 
 `Light()`, `Dark()`, `Current()` returns a copy of the palette. Modify the copy when customizing and replace all colors with `Apply`; zero value fields are also applied.
@@ -35,6 +37,7 @@ theme.Apply(p)
 | --- | --- | --- |
 | `Bg` | `#f5f6f8` | Window background |
 | `Surface` | `#ffffff` | Card and input box background color |
+| `Outline` | transparent | Optional default component outlines |
 | `Border` | `#e3e5e8` | Borders, dividers |
 | `Text` / `Muted` | `#1f2328` / `#6b7280` | Main text / secondary text, placeholder text |
 | `Primary` / `PrimaryHover` / `PrimaryText` | `#2563eb` / `#1d4ed8` / `#1d4ed8` | Main button, focus border/hover/link and other blue text |

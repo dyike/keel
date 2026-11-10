@@ -1,7 +1,5 @@
 # 主题
 
-设置 `Palette.Frameless` 可去掉元素外框，包括焦点边框。键盘和输入框焦点改用背景填充，单边分隔线保留。该选项默认关闭，并随局部调色板生效。
-
 [English](theme.md) | 简体中文
 
 `ui/theme` 管颜色、尺寸刻度和字体。组件每次 Render 都从 theme 读取，所以切换主题后所有窗口下一帧就换成新样子，不用重建视图。
@@ -21,6 +19,10 @@ theme.Apply(myPalette)     // 应用一个没有名字的调色板
 
 ## 调色板与缓存
 
+组件默认不绘制装饰描边。`Palette.Outline` 默认为透明色，`Border` 继续用于分隔线和显式边框。需要开启默认外框时，设置 `p.Outline = p.Border` 后应用主题；只改局部可用 `cx.Themed(p, view)`。组件的 `Bordered(true)`、Outline 外观，以及样式回调中的 `.Border(1, theme.Border)` 仍可显式开启描边。输入框的键盘焦点默认用浅底色提示；开启 Outline 后恢复焦点描边。校验错误保留状态提示。
+
+设置 `Palette.Frameless` 可去掉元素外框，包括焦点边框。键盘和输入框焦点改用背景填充，单边分隔线保留。该选项默认关闭，并随局部调色板生效。
+
 `Light()`、`Dark()`、`Current()` 返回调色板副本。自定义时修改副本，再用 `Apply` 替换全部颜色；零值字段也会应用。
 
 ```go
@@ -35,6 +37,7 @@ theme.Apply(p)
 | --- | --- | --- |
 | `Bg` | `#f5f6f8` | 窗口背景 |
 | `Surface` | `#ffffff` | 卡片、输入框底色 |
+| `Outline` | 透明 | 默认组件外框，显式设色后开启 |
 | `Border` | `#e3e5e8` | 边框、分隔线 |
 | `Text` / `Muted` | `#1f2328` / `#6b7280` | 正文 / 次要文字、占位文字 |
 | `Primary` / `PrimaryHover` / `PrimaryText` | `#2563eb` / `#1d4ed8` / `#1d4ed8` | 主按钮、焦点边框 / 悬停 / 链接等蓝色文字 |

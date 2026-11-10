@@ -99,14 +99,18 @@ func (v *OtpInputView) Render(cx *el.Context) el.Element {
 					ch = "•"
 				}
 			}
-			border := theme.Border
+			border, bg := theme.Outline, theme.Surface
 			switch {
 			case v.err != "":
 				border = theme.Danger
 			case focused && !v.disabled && i == min(len(digits), v.length-1):
-				border = theme.Primary
+				if theme.Outline.A > 0 {
+					border = theme.Primary
+				} else {
+					bg = theme.SubtleHover
+				}
 			}
-			cell := el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(box)).H(el.Dp(v.size)).Rounded(theme.RadiusMd).Border(1, border).Bg(theme.Surface).Center().
+			cell := el.Div().W(el.Dp(0)).Grow().MaxW(el.Dp(box)).H(el.Dp(v.size)).Rounded(theme.RadiusMd).Border(1, border).Bg(bg).Center().
 				Child(el.Text(ch).TextSize(theme.TextXl * v.size / 48).Bold())
 			if v.disabled {
 				cell.Bg(theme.Subtle).TextColor(theme.Muted)

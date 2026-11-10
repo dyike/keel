@@ -136,7 +136,7 @@ func (v *ChartView) orientedBars(cx *el.Context, root *el.DivEl) el.Element {
 	}
 	if v.hover >= 0 && v.hover < len(v.labels) {
 		datum := v.tooltipData()
-		tip := el.Div().Absolute().Left(8).Top(8).W(el.Dp(min(168, width))).P(theme.SpaceMd).Gap(theme.SpaceXs).Rounded(theme.RadiusMd).Bg(theme.Surface).Border(1, theme.Border)
+		tip := el.Div().Absolute().Left(8).Top(8).W(el.Dp(min(168, width))).P(theme.SpaceMd).Gap(theme.SpaceXs).Rounded(theme.RadiusMd).Bg(theme.Surface).Border(1, theme.Outline)
 		if horizontal {
 			tip.Top(max(0, min(v.height-60, (float32(v.hover)+.5)*v.height/float32(max(1, v.categoryCount()))+8)))
 		}

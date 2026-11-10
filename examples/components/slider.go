@@ -17,7 +17,7 @@ func init() {
 		price := kit.RangeSlider(demoText("Price range", "价格区间"), 0, 100).Step(5).Appearance(func(a *kit.SliderAppearance) {
 			a.TrackSize, a.ThumbSize = 8, 24
 			a.TrackRadius, a.ThumbRadius = 2, 4
-			a.FillColor, a.ThumbBorderColor = theme.Success, theme.Success
+			a.FillColor, a.ThumbColor = theme.Success, theme.Success
 		})
 		price.SetValues(20, 80)
 		level := kit.RangeSlider(demoText("Vertical range", "竖向区间"), 0, 100).Vertical(180).Step(5)

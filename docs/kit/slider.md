@@ -43,10 +43,10 @@ Programmatic assignment, drag cancellation, key release after defocusing, and di
 price.Appearance(func(a *kit.SliderAppearance) {
     a.TrackSize, a.ThumbSize = 8, 24
     a.TrackRadius, a.ThumbRadius = 2, 4
-    a.FillColor, a.ThumbBorderColor = theme.Success, theme.Success
+    a.FillColor, a.ThumbColor = theme.Success, theme.Success
 })
 ```
 
-Colors include `TrackColor`, `FillColor`, `ThumbColor`, `ThumbBorderColor`; sizes are dp. The default track is 4, the slider is 16, and the border is 2; the track/slider size must be a finite positive number, and invalid values fall back to the default, with a maximum of 1024dp. The border and rounded corners are allowed to be 0, and invalid values will fall back to the default; the border and slider rounded corners can be up to half the size of the slider; the track rounded corners can be up to 1024dp. The horizontal minimum width and vertical minimum height are the slider size, and pointer value mapping uses the distance between the slider centers. When disabled itself, the padding and slider borders change to theme Muted, and keyboard focus still shows the theme focus color.
+Colors include `TrackColor`, `FillColor`, `ThumbColor`, `ThumbBorderColor`; sizes are dp. The default track is 4, the slider is 16, and the border is 0 (a solid primary-colored thumb); the track/slider size must be a finite positive number, and invalid values fall back to the default, with a maximum of 1024dp. The border and rounded corners are allowed to be 0, and invalid values will fall back to the default; the border and slider rounded corners can be up to half the size of the slider; the track rounded corners can be up to 1024dp. The horizontal minimum width and vertical minimum height are the slider size, and pointer value mapping uses the distance between the slider centers. When disabled itself, the fill, thumb and thumb border change to theme Muted. Keyboard focus uses a background fill.
 
 Verified landscape orientation, double-ended range, double ratio layout, default restoration, disabling and keyboard operation, and overriding window pixel regression with custom colors.

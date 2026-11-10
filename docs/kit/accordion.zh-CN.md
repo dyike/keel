@@ -19,4 +19,4 @@ Agent：容器角色 `group`；每个标题是 `disclosure`，`value` 为 expand
 
 `SetDisabled` 禁用整组，`SetItemDisabled` 同时禁用该项的标题与已展开内容，但保留展开状态。展开/收起有 180ms 动画，连续切换从当前高度反转；减少动画立即切换。收起时输入状态保留，焦点若在正文中会回到标题，收起过程不能继续操作正文。
 
-`Bordered(false)` 隐藏外框与分节分隔线，保留背景、圆角和展开状态；默认有边框。`Size` 支持 `AccordionSizeXSmall`、`AccordionSizeSmall`、`AccordionSizeMedium`（默认）、`AccordionSizeLarge`，统一调整标题、箭头、间距与正文继承字号。默认档保留原有字号继承；自定义标题或正文显式设置的字号优先。
+`Bordered(false)` 隐藏外框与分节分隔线，保留背景、圆角和展开状态；默认无外框，`Bordered(true)` 显式开启外框。`Size` 支持 `AccordionSizeXSmall`、`AccordionSizeSmall`、`AccordionSizeMedium`（默认）、`AccordionSizeLarge`，统一调整标题、箭头、间距与正文继承字号。默认档保留原有字号继承；自定义标题或正文显式设置的字号优先。

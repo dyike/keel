@@ -233,5 +233,5 @@ func listFrame(d *el.DivEl, plain bool) *el.DivEl {
 	if plain {
 		return d.Rounded(theme.RadiusMd).Border(1, color.NRGBA{}).Py(theme.SpaceXs).Items(el.Stretch)
 	}
-	return d.Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface).Py(theme.SpaceXs).Items(el.Stretch)
+	return d.Rounded(theme.RadiusMd).Border(1, theme.Outline).Bg(theme.Surface).Py(theme.SpaceXs).Items(el.Stretch)
 }

@@ -8,7 +8,7 @@ import (
 type GroupBoxVariant uint8
 
 const (
-	GroupBoxSurface GroupBoxVariant = iota // legacy surface and border
+	GroupBoxSurface GroupBoxVariant = iota // surface with an optional theme outline
 	GroupBoxNormal
 	GroupBoxFill
 	GroupBoxOutline
@@ -69,7 +69,7 @@ func (v *GroupBoxView) Render(cx *el.Context) el.Element {
 	content := el.Div().P(theme.SpaceXl).Gap(theme.SpaceLg).Rounded(theme.RadiusMd)
 	switch v.variant {
 	case GroupBoxSurface:
-		content.Border(1, theme.Border).Bg(theme.Surface)
+		content.Border(1, theme.Outline).Bg(theme.Surface)
 	case GroupBoxFill:
 		content.Bg(theme.Subtle)
 	case GroupBoxOutline:

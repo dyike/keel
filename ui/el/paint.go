@@ -247,7 +247,11 @@ func (e *engine) paintContent(n *Node) {
 		}
 	}
 	if n.input != nil && (state.editor != nil && gtx.Focused(state.editor)) && state.inputRing {
-		st.borderColor = theme.Primary
+		if theme.Outline.A > 0 {
+			st.borderColor = theme.Primary
+		} else if st.bg.set && st.bg.value.A != 0 {
+			st.Bg(theme.SubtleHover)
+		}
 		if n.focus != nil {
 			st, callbackStyle = applyVisualStyle(n.focus, st, callbackStyle)
 		}

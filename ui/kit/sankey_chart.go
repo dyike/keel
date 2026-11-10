@@ -496,7 +496,7 @@ func (v *SankeyChartView) Render(cx *el.Context) el.Element {
 		if v.tooltip != nil {
 			content = v.tooltip(cx, data)
 		}
-		plot.Child(el.Div().Absolute().Top(4).Left(4).MaxW(el.Full).P(theme.SpaceSm).Bg(theme.Surface).Border(1, theme.Border).Child(content))
+		plot.Child(el.Div().Absolute().Top(4).Left(4).MaxW(el.Full).P(theme.SpaceSm).Bg(theme.Surface).Border(1, theme.Outline).Child(content))
 	}
 	return box.Child(plot)
 }

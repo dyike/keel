@@ -41,7 +41,6 @@ func TestKitTagCustomAppearancePixelsAndContent(t *testing.T) {
 	v := kit.Tag("Custom").Size(32).Rounded(0).Content(el.ViewFunc(func(*el.Context) el.Element { return el.Div().W(el.Dp(60)).H(el.Dp(20)) })).Appearance(func(a kit.TagAppearance) kit.TagAppearance {
 		a.Background = blue
 		a.SelectedBackground = red
-		a.Border = color.NRGBA{}
 		return a
 	}).Selectable()
 	w := openTest(t, kitPage(v))
@@ -57,6 +56,12 @@ func TestKitTagCustomAppearancePixelsAndContent(t *testing.T) {
 			t.Fatal(err)
 		}
 		got := color.NRGBAModel.Convert(img.At(e.X+2, e.Y+2)).(color.NRGBA)
+		if equal {
+			edge := color.NRGBAModel.Convert(img.At(e.X, e.Y+e.Height/2)).(color.NRGBA)
+			if edge != want {
+				t.Fatalf("appearance callback added an unrequested outline: %v want %v", edge, want)
+			}
+		}
 		if (got == want) != equal {
 			t.Fatalf("tag corner got=%v want=%v equal=%v", got, want, equal)
 		}

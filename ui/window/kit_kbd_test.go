@@ -41,7 +41,9 @@ func TestKitKbdRuntimeTheme(t *testing.T) {
 	v := views[0]
 	w := openTest(t, Options{Width: 200, Height: 100, Content: el.Embed(el.ViewFunc(func(cx *el.Context) el.Element { return v.Render(cx) }))})
 	var width, height int
-	for _, palette := range []theme.Palette{theme.Light(), theme.Dark()} {
+	lightOutline, darkOutline := theme.Light(), theme.Dark()
+	lightOutline.Outline, darkOutline.Outline = lightOutline.Border, darkOutline.Border
+	for _, palette := range []theme.Palette{theme.Light(), theme.Dark(), lightOutline, darkOutline} {
 		core.Update(func() { theme.Apply(palette) })
 		for i, view := range views {
 			v = view
@@ -68,7 +70,8 @@ func TestKitKbdRuntimeTheme(t *testing.T) {
 					}
 				}
 			}
-			if text == 0 || (!plain && border == 0) || (plain && border != 0) {
+			wantBorder := !plain && palette.Outline.A > 0
+			if text == 0 || (wantBorder && border == 0) || (!wantBorder && border != 0) {
 				t.Fatalf("keycap colors plain=%v: border=%d text=%d", plain, border, text)
 			}
 			if width != 0 && (e.Width != width || e.Height != height) {

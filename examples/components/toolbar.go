@@ -27,7 +27,7 @@ func init() {
 		bar.Leading(el.ViewFunc(func(*el.Context) el.Element { return el.Div().Px(8).Child(el.Text(demoText("Files", "文件"))) })).Trailing(kit.Button(demoText("Help", "帮助"), do(demoText("Help", "帮助"))).Variant(kit.ButtonGhost))
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(12).Items(el.Stretch).Child(
-				el.Div().Border(1, theme.Border).Rounded(8).P(4).Items(el.Stretch).Child(bar.Render(cx)),
+				el.Div().Border(1, theme.Outline).Rounded(8).P(4).Items(el.Stretch).Child(bar.Render(cx)),
 				el.Text(msg).TextColor(theme.Muted))
 		}))
 	})

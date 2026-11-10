@@ -65,11 +65,11 @@ func (v *CheckboxView) Render(cx *el.Context) el.Element {
 	box := el.Div().Size(el.Dp(size)).NoShrink().Rounded(theme.RadiusSm).Center()
 	switch {
 	case v.disabled:
-		box.Bg(theme.Subtle).Border(1, theme.Border)
+		box.Bg(theme.Subtle).Border(1, theme.Outline)
 	case on:
 		box.Bg(theme.Primary)
 	default:
-		box.Bg(theme.Surface).Border(1, theme.Muted)
+		box.Bg(theme.Subtle).Border(1, theme.Outline)
 	}
 	mark := theme.OnColor
 	if v.disabled {

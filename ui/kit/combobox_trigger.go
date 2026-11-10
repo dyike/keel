@@ -5,6 +5,7 @@ import (
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
+	"image/color"
 	"strings"
 )
 
@@ -72,6 +73,12 @@ func (v *ComboboxView) renderCustomTrigger(cx *el.Context, id string) *el.DivEl 
 		return nil
 	}
 	surface := el.Div().ID(v.FocusID()).Role("button").Name(v.a11y()).Value(strings.Join(v.Values(), ", ")).Focusable(true).
+		FocusStyle(func(s *el.Style) {
+			if theme.Outline.A == 0 {
+				s.BorderColor(color.NRGBA{})
+				s.Bg(theme.SubtleHover)
+			}
+		}).
 		OnKey(func(e el.KeyEvent) bool {
 			name := key.Name(e.Name)
 			if name == key.NameReturn || name == key.NameSpace || name == key.NameDownArrow || name == key.NameUpArrow {

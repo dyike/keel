@@ -66,7 +66,7 @@ root.Child(quick.Render(cx))
 
 - `Placeholder(string)`：搜索占位文字，空值恢复本地化默认。
 - `MaxHeight(dp)`：结果视口最大高度，0 恢复 360dp；窗口空间和页头页尾可能进一步缩小它。
-- `Bordered(false)`：移除默认边框、圆角和阴影；`PanelStyle(func(*el.DivEl))` 可调整每帧新建面板的宽度、背景等样式。
+- `Bordered(false)`：移除可选边框、圆角和阴影；`Bordered(true)` 显式开启边框；`PanelStyle(func(*el.DivEl))` 可调整每帧新建面板的宽度、背景等样式。
 - `Query()` / `SetQuery(string)`：读取/设置查询；已打开且可搜索时按用户输入处理并通知，相同文本不重复通知。关闭或不可搜索时只保存；重新打开仍重置查询。
 - `SelectedIndex()`：当前高亮的原始条目索引，−1 表示没有；数据更新在下一次渲染中重新协调。
 - `MatchedCount()`：当前匹配项数量，含禁用项，不计标题/分隔项。

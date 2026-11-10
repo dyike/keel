@@ -111,7 +111,7 @@ func (v *CommandView) MaxHeight(dp float32) *CommandView {
 }
 
 // Bordered controls the default frame border, rounding and shadow.
-func (v *CommandView) Bordered(on bool) *CommandView { v.borderless = !on; return v }
+func (v *CommandView) Bordered(on bool) *CommandView { v.borderless, v.bordered = !on, on; return v }
 
 // PanelStyle refines each freshly built panel, e.g. width and background.
 // Do not retain the element. Nil removes the customization.

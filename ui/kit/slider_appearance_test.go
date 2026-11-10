@@ -100,9 +100,17 @@ func TestSliderAppearanceValidationAndTheme(t *testing.T) {
 		t.Fatal(a)
 	}
 	v.Appearance(nil)
-	theme.Apply(theme.Dark())
-	a = v.resolveAppearance()
-	if a.TrackColor != theme.Border || a.ThumbColor != theme.Surface {
-		t.Fatal("stale theme colors")
+	for _, palette := range []theme.Palette{theme.Light(), theme.Dark()} {
+		theme.Apply(palette)
+		v.SetDisabled(false)
+		a = v.resolveAppearance()
+		if a.TrackColor != theme.Border || a.ThumbColor != theme.Primary || a.ThumbBorderWidth != 0 {
+			t.Fatal("default thumb must use a solid theme color without a border", a)
+		}
+		v.SetDisabled(true)
+		a = v.resolveAppearance()
+		if a.ThumbColor != theme.Muted || a.FillColor != theme.Muted || a.ThumbBorderWidth != 0 {
+			t.Fatal("disabled thumb must remain borderless and muted", a)
+		}
 	}
 }

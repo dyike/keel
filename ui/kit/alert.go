@@ -121,7 +121,7 @@ func (v *AlertView) Render(cx *el.Context) el.Element {
 	if v.banner {
 		box.Bg(tint(v.tone.color(), 24))
 	} else {
-		box.Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface).Child(el.Div().W(el.Dp(4)).NoShrink().Bg(v.tone.color()))
+		box.Rounded(theme.RadiusMd).Border(1, theme.Outline).Bg(theme.Surface).Child(el.Div().W(el.Dp(4)).NoShrink().Bg(v.tone.color()))
 	}
 	return box.Child(body)
 }

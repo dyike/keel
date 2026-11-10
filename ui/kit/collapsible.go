@@ -6,7 +6,7 @@ import (
 )
 
 // CollapsibleView owns one disclosure's state. Trigger and Content can be
-// composed separately; Render combines them in a bordered panel.
+// composed separately; Render combines them in a filled panel.
 type CollapsibleView struct {
 	label          string
 	body, heading  el.View
@@ -43,5 +43,5 @@ func (v *CollapsibleView) Content() el.View {
 	})
 }
 func (v *CollapsibleView) Render(cx *el.Context) el.Element {
-	return el.Div().Role("group").Items(el.Stretch).Rounded(theme.RadiusLg).Border(1, theme.Border).Bg(theme.Surface).Child(v.Trigger().Render(cx), v.Content().Render(cx))
+	return el.Div().Role("group").Items(el.Stretch).Rounded(theme.RadiusLg).Border(1, theme.Outline).Bg(theme.Surface).Child(v.Trigger().Render(cx), v.Content().Render(cx))
 }

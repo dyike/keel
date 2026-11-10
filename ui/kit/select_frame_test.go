@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"github.com/dyike/keel/ui/theme"
 	"image"
 	"testing"
 	"time"
@@ -56,9 +57,9 @@ func TestSelectWholeFieldTrigger(t *testing.T) {
 	}
 }
 
-// ringHarness renders view on a headless GPU. ringed reports whether the
-// field frame whose left border passes through (x, y) shows the primary ring.
-func ringHarness(t *testing.T, view func(cx *el.Context) el.Element) (*uitest.Harness, func(x, y int) bool) {
+// fieldFocusHarness renders view on a headless GPU. The probe checks that the
+// field has a subtle focus fill and never adds a blue outline.
+func fieldFocusHarness(t *testing.T, view func(cx *el.Context) el.Element) (*uitest.Harness, func(x, y int) bool) {
 	t.Helper()
 	gpu, err := headless.NewWindow(320, 240)
 	if err != nil {
@@ -80,27 +81,31 @@ func ringHarness(t *testing.T, view func(cx *el.Context) el.Element) (*uitest.Ha
 	})
 	h.Frame()
 	return h, func(x, y int) bool {
-		// Render reads focus from the previous frame. Rendering blends the
-		// 1dp border, so tell the gray border from the ring by its blue.
+		// Render reads focus from the previous frame. Check both the
+		// outer edge and the fill inside its padding.
 		h.Frame()
 		h.Frame()
 		c := img.RGBAAt(x, y)
-		return int(c.B)-int(c.R) > 32
+		if int(c.B)-int(c.R) > 32 {
+			t.Fatal("focus added a blue outline")
+		}
+		inside := img.RGBAAt(x+4, y)
+		return inside.R == theme.SubtleHover.R && inside.G == theme.SubtleHover.G && inside.B == theme.SubtleHover.B
 	}
 }
 
-// A pointer pick returns focus to the trigger without its focus ring, as a
-// click on a button does; keyboard focus still shows the ring.
-func TestSelectRingsOnlyForKeyboardFocus(t *testing.T) {
+// A pointer pick returns focus without a focus fill; keyboard navigation
+// highlights the field without adding an outline.
+func TestSelectFillsOnlyForKeyboardFocus(t *testing.T) {
 	v := Select("", "完全访问", "只读访问").Hint("访问权限")
-	h, ringed := ringHarness(t, func(cx *el.Context) el.Element {
+	h, focusFilled := fieldFocusHarness(t, func(cx *el.Context) el.Element {
 		return el.Div().P(10).Gap(10).W(el.Dp(320)).Items(el.Stretch).Child(v.Render(cx), Button("下一步", func() {}).Render(cx))
 	})
 	trigger, _ := node(h, "访问权限")
 	b := trigger.Desc.Bounds
 	x, y := b.Min.X-1, (b.Min.Y+b.Max.Y)/2 // the frame's border, just outside the trigger
-	if ringed(x, y) {
-		t.Fatal("ring before focus")
+	if focusFilled(x, y) {
+		t.Fatal("fill before focus")
 	}
 	h.Click(center(b))
 	h.Frame()
@@ -108,51 +113,51 @@ func TestSelectRingsOnlyForKeyboardFocus(t *testing.T) {
 	if v.Value() != "只读访问" || v.open {
 		t.Fatalf("pointer pick: value %q open %v", v.Value(), v.open)
 	}
-	if ringed(x, y) {
-		t.Fatal("ring after a pointer pick")
+	if focusFilled(x, y) {
+		t.Fatal("focus fill after a pointer pick")
 	}
 	h.Key(key.NameTab, 0) // to the button
 	h.Key(key.NameTab, key.ModShift)
-	if !ringed(x, y) {
-		t.Fatal("no ring with keyboard focus")
+	if !focusFilled(x, y) {
+		t.Fatal("no fill with keyboard focus")
 	}
 }
 
 // Text fields clicked into show the caret alone, through typing and a
-// Combobox pick; reaching them with Tab rings their frame.
-func TestTextFieldsRingOnlyForKeyboardFocus(t *testing.T) {
+// Combobox pick; reaching them with Tab fills their frame.
+func TestTextFieldsFillOnlyForKeyboardFocus(t *testing.T) {
 	in := Input("").Placeholder("名称")
 	combo := Combobox("", "苹果", "香蕉").Placeholder("水果")
-	h, ringed := ringHarness(t, func(cx *el.Context) el.Element {
+	h, focusFilled := fieldFocusHarness(t, func(cx *el.Context) el.Element {
 		return el.Div().P(10).Gap(10).W(el.Dp(320)).Items(el.Stretch).Child(in.Render(cx), combo.Render(cx))
 	})
 	// Left borders, 10dp in, halfway down each 36dp field.
-	inputRing := func() bool { return ringed(10, 28) }
-	comboRing := func() bool { return ringed(10, 74) }
+	inputFilled := func() bool { return focusFilled(10, 28) }
+	comboFilled := func() bool { return focusFilled(10, 74) }
 	field := innermost(h, "名称")
 	h.Click(float32(field.Min.X+4), float32(field.Min.Y+field.Max.Y)/2)
 	h.Type("值")
-	if in.Value() != "值" || inputRing() {
-		t.Fatalf("clicked input: value %q ring %v", in.Value(), inputRing())
+	if in.Value() != "值" || inputFilled() {
+		t.Fatalf("clicked input: value %q focus fill %v", in.Value(), inputFilled())
 	}
 	field = innermost(h, "水果")
 	h.Click(float32(field.Min.X+4), float32(field.Min.Y+field.Max.Y)/2)
 	h.Type("香")
-	if !combo.open || comboRing() {
-		t.Fatalf("clicked combobox: open %v ring %v", combo.open, comboRing())
+	if !combo.open || comboFilled() {
+		t.Fatalf("clicked combobox: open %v focus fill %v", combo.open, comboFilled())
 	}
 	h.Click(center(innermost(h, "香蕉")))
-	if combo.Value() != "香蕉" || combo.open || comboRing() {
-		t.Fatalf("pointer pick: value %q open %v ring %v", combo.Value(), combo.open, comboRing())
+	if combo.Value() != "香蕉" || combo.open || comboFilled() {
+		t.Fatalf("pointer pick: value %q open %v focus fill %v", combo.Value(), combo.open, comboFilled())
 	}
 	// Without TabIndex the window moves focus on Tab itself, through Gio.
 	h.Router.MoveFocus(key.FocusBackward)
-	if !inputRing() || comboRing() {
-		t.Fatalf("Shift+Tab to the input: input ring %v combobox ring %v", inputRing(), comboRing())
+	if !inputFilled() || comboFilled() {
+		t.Fatalf("Shift+Tab to the input: input fill %v combobox fill %v", inputFilled(), comboFilled())
 	}
 	h.Router.MoveFocus(key.FocusForward)
-	if inputRing() || !comboRing() {
-		t.Fatalf("Tab to the combobox: input ring %v combobox ring %v", inputRing(), comboRing())
+	if inputFilled() || !comboFilled() {
+		t.Fatalf("Tab to the combobox: input fill %v combobox fill %v", inputFilled(), comboFilled())
 	}
 }
 
@@ -205,5 +210,18 @@ func TestEmptyFieldShowsCaretBeforePlaceholder(t *testing.T) {
 	h.Frame()
 	if n := caret(); n < hint.Dy()/2 {
 		t.Fatalf("%d caret pixels before the placeholder, want a caret", n)
+	}
+}
+
+func TestPrimitiveInputKeyboardFocusUsesFill(t *testing.T) {
+	h, focused := fieldFocusHarness(t, func(*el.Context) el.Element {
+		return el.Div().P(10).W(el.Dp(320)).Items(el.Stretch).Child(el.Input().Placeholder("Primitive"))
+	})
+	if focused(10, 28) {
+		t.Fatal("focus fill before focus")
+	}
+	h.Router.MoveFocus(key.FocusForward)
+	if !focused(10, 28) {
+		t.Fatal("primitive input missing keyboard focus fill")
 	}
 }

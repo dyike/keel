@@ -47,7 +47,7 @@ func (v *headlessGallery) Render(cx *el.Context) el.Element {
 func (v *headlessGallery) swatches() el.Element {
 	v.nav.Count = len(v.colors)
 	box := el.Div().ID("swatches").Role("listbox").Name(demoText("Color", "颜色")).Focusable(true).Wrap().Gap(8).P(8).Rounded(theme.RadiusLg).
-		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).Border(1, theme.Border).
+		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).Border(1, theme.Outline).
 		OnKey(func(e el.KeyEvent) bool {
 			if t, ok := base.Text(e.Name, e.Modifiers&(key.ModCtrl|key.ModCommand|key.ModAlt) != 0); ok {
 				if e.State == el.KeyPress {
@@ -83,7 +83,7 @@ func (v *headlessGallery) swatches() el.Element {
 
 // fileList is a multi-select list with click, Cmd/Ctrl and Shift rules.
 func (v *headlessGallery) fileList(cx *el.Context) el.Element {
-	list := el.Div().ID("files").Role("listbox").Name(demoText("Files", "文件")).Gap(2).P(4).Rounded(theme.RadiusLg).Border(1, theme.Border)
+	list := el.Div().ID("files").Role("listbox").Name(demoText("Files", "文件")).Gap(2).P(4).Rounded(theme.RadiusLg).Border(1, theme.Outline)
 	for i, f := range v.files {
 		on := v.sel.Has(f)
 		row := el.Div().Role("option").Name(f).Selected(on).Row().Px(10).Py(6).Rounded(theme.RadiusMd).

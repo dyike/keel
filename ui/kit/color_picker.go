@@ -254,7 +254,7 @@ func (p *ColorPickerView) renderPanel(cx *el.Context) el.Element {
 		}
 	}
 	svH := m.square
-	sv := el.Div().ID(id+"/shade").Border(1, theme.Border).Role("slider").Name(text.ColorShade).Value(strconv.Itoa(int(p.s*100)) + "," + strconv.Itoa(int(p.v*100))).
+	sv := el.Div().ID(id+"/shade").Border(1, theme.Outline).Role("slider").Name(text.ColorShade).Value(strconv.Itoa(int(p.s*100)) + "," + strconv.Itoa(int(p.v*100))).
 		WFull().H(el.Dp(svH)).Rounded(theme.RadiusMd).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnDrag(func(e el.DragEvent) {
@@ -275,7 +275,7 @@ func (p *ColorPickerView) renderPanel(cx *el.Context) el.Element {
 	// inside the bounds even at an endpoint.
 	svBox := el.Div().WFull().H(el.Dp(svH)).Child(sv).Decorate(thumb(p.s, 1-p.v))
 	bar := func(slot, name, value string, x float64, draw func(gtx core.C, box image.Rectangle), drag func(f float64), step func(d float64)) el.Element {
-		slider := el.Div().ID(id+"/"+slot).Border(1, theme.Border).Center().Role("slider").Name(name).Value(value).WFull().H(el.Dp(24)).Rounded(theme.RadiusFull).Focusable(true).
+		slider := el.Div().ID(id+"/"+slot).Border(1, theme.Outline).Center().Role("slider").Name(name).Value(value).WFull().H(el.Dp(24)).Rounded(theme.RadiusFull).Focusable(true).
 			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 			OnDrag(func(e el.DragEvent) {
 				if e.Canceled || e.W <= 0 {

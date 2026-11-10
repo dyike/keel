@@ -30,7 +30,7 @@ func appendAutoID(dst []byte, kind string, v any) []byte {
 // surface is the panel of cards that sit in the page. Colors are read on
 // every call, so theme.Apply takes effect on the next frame.
 func surface() *el.DivEl {
-	return el.Div().Bg(theme.Surface).Border(1, theme.Border).Rounded(theme.RadiusLg)
+	return el.Div().Bg(theme.Surface).Border(1, theme.Outline).Rounded(theme.RadiusLg)
 }
 
 // floating is the panel of a layer above the page (menus, popovers,

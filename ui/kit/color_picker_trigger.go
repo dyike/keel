@@ -100,7 +100,7 @@ func (p *ColorPickerView) Render(cx *el.Context) el.Element {
 			if p.icon != IconNone {
 				row.Child(Icon(p.icon).Size(16).Render(cx))
 			} else {
-				row.Child(el.Div().Size(el.Dp(16)).Rounded(theme.RadiusSm).Border(1, theme.Border).Bg(p.Value()))
+				row.Child(el.Div().Size(el.Dp(16)).Rounded(theme.RadiusSm).Border(1, theme.Outline).Bg(p.Value()))
 			}
 			return row.Child(el.Text(p.Text()).MaxLines(1))
 		}))

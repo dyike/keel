@@ -17,10 +17,10 @@ type overlayGallery struct {
 
 func (v *overlayGallery) Render(cx *el.Context) el.Element {
 	action := func(id, label string, fn func()) el.Element {
-		return el.Div().ID(id).Name(label).Px(14).Py(8).Rounded(6).Bg(theme.Surface).Border(1, theme.Border).OnClick(fn).Child(el.Text(label))
+		return el.Div().ID(id).Name(label).Px(14).Py(8).Rounded(6).Bg(theme.Surface).Border(1, theme.Outline).OnClick(fn).Child(el.Text(label))
 	}
 	if v.popover {
-		cx.Overlay("popover", el.Anchored("anchor", el.Div().W(el.Dp(280)).P(16).Gap(8).Bg(theme.Surface).Border(1, theme.Border).Rounded(8).Role("dialog").Name(demoText("Nonmodal overlay", "非模态浮层")).Child(
+		cx.Overlay("popover", el.Anchored("anchor", el.Div().W(el.Dp(280)).P(16).Gap(8).Bg(theme.Surface).Border(1, theme.Outline).Rounded(8).Role("dialog").Name(demoText("Nonmodal overlay", "非模态浮层")).Child(
 			el.Text(demoText("Anchor to this frame's position", "锚定本帧位置")).Bold(), el.Text(demoText("Clicking outside closes the overlay and activates the button underneath.", "外部点击会关闭浮层，同时触发下面的按钮。")),
 			action("close-popover", demoText("Close overlay", "关闭浮层"), func() { v.popover = false }),
 		)).OnDismiss(func() { v.popover = false }))

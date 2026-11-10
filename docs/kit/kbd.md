@@ -2,7 +2,7 @@
 
 English | [简体中文](kbd.zh-CN.md)
 
-Kbd displays shortcut key caps, does not register shortcut keys, and does not participate in Tab navigation. The font size is inherited from the parent element, the text color uses theme.Muted, and the border uses theme.Border. Switching the theme at runtime takes effect immediately.
+Kbd displays shortcut key caps, does not register shortcut keys, and does not participate in Tab navigation. The font size is inherited from the parent element, the text color uses theme.Muted, and the optional border uses theme.Outline (transparent by default). Switching the theme at runtime takes effect immediately.
 
 ```go
 el.Div().Row().Items(el.Center).TextSize(16).Child(
@@ -12,7 +12,7 @@ el.Div().Row().Items(el.Center).TextSize(16).Child(
 )
 ```
 
-`Kbd(shortcut string)` returns `*KbdView`. `Plain()` hides borders and preserves spacing. `Size(sp)` sets the font size and adjusts padding proportionally; 0 restores font size inheritance and default padding, negative values, NaN, infinity, and values greater than 128 are ignored. `Style(func(*el.TextEl))` adjusts the background, text/border color, rounded corners, spacing, etc. after the default style of each frame; nil returns to default. The callback does not retain element references, and the Agent name always uses the original shortcut. Default border 1dp, rounded corners 4dp, horizontal padding 6dp, vertical padding 3dp. Keep a single line in narrow containers and truncate.
+`Kbd(shortcut string)` returns `*KbdView`. `Plain()` hides borders and preserves spacing. `Size(sp)` sets the font size and adjusts padding proportionally; 0 restores font size inheritance and default padding, negative values, NaN, infinity, and values greater than 128 are ignored. `Style(func(*el.TextEl))` adjusts the background, text/border color, rounded corners, spacing, etc. after the default style of each frame; nil returns to default. The callback does not retain element references, and the Agent name always uses the original shortcut. The optional border is 1dp, rounded corners 4dp, horizontal padding 6dp, vertical padding 3dp. Keep a single line in narrow containers and truncate.
 
 Formatting is provided by `core.ShortcutLabel(s, goos string) string`, which is shared by kit and window shortcut keys. The syntax is the same as core.ParseShortcut; mod is displayed as Command on macOS and Ctrl on Windows/Linux. Unparsable copy is displayed as is, making it easier to use custom key names. This function only formats and does not query action bindings.
 

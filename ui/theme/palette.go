@@ -12,8 +12,11 @@ import (
 type Palette struct {
 	// Frameless suppresses element outlines and uses a fill for keyboard focus.
 	// Explicit per-edge separators are preserved.
-	Frameless                                      bool
-	PrimaryText, DangerText, CodeBg, CodeText      color.NRGBA
+	Frameless                                 bool
+	PrimaryText, DangerText, CodeBg, CodeText color.NRGBA
+	// Outline is the optional default component border, transparent in built-in palettes.
+	// Border remains the color for separators and explicitly requested outlines.
+	Outline                                        color.NRGBA
 	Bg, Surface, Border, Text, Muted               color.NRGBA
 	Primary, PrimaryHover, Danger, DangerHover     color.NRGBA
 	Success, Warning, Info                         color.NRGBA
@@ -66,7 +69,7 @@ func Dark() Palette {
 // Current returns a copy of the current colors. Read it under the UI lock,
 // like the public color variables, or before opening the first window.
 func Current() Palette {
-	return Palette{PrimaryText: PrimaryText, DangerText: DangerText, CodeBg: CodeBg, CodeText: CodeText, Bg: Bg, Surface: Surface, Border: Border, Text: Text, Muted: Muted,
+	return Palette{PrimaryText: PrimaryText, DangerText: DangerText, CodeBg: CodeBg, CodeText: CodeText, Bg: Bg, Surface: Surface, Border: Border, Outline: Outline, Text: Text, Muted: Muted,
 		Primary: Primary, PrimaryHover: PrimaryHover, Danger: Danger, DangerHover: DangerHover,
 		Success: Success, Warning: Warning, Info: Info, Subtle: Subtle, SubtleHover: SubtleHover,
 		OnColor: OnColor, Highlight: Highlight, Scrim: Scrim, Shadow: Shadow, Chart: Chart,
@@ -104,7 +107,7 @@ func set(p Palette) {
 	Frameless = p.Frameless
 	BgGradient, PrimaryGradient = p.BgGradient, p.PrimaryGradient
 	PrimaryText, DangerText, CodeBg, CodeText = p.PrimaryText, p.DangerText, p.CodeBg, p.CodeText
-	Bg, Surface, Border, Text, Muted = p.Bg, p.Surface, p.Border, p.Text, p.Muted
+	Bg, Surface, Border, Outline, Text, Muted = p.Bg, p.Surface, p.Border, p.Outline, p.Text, p.Muted
 	Primary, PrimaryHover, Danger, DangerHover = p.Primary, p.PrimaryHover, p.Danger, p.DangerHover
 	Success, Warning, Info = p.Success, p.Warning, p.Info
 	Subtle, SubtleHover, OnColor, Highlight, Scrim = p.Subtle, p.SubtleHover, p.OnColor, p.Highlight, p.Scrim

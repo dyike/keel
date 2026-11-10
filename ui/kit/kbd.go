@@ -63,7 +63,7 @@ func (v *KbdView) Render(cx *el.Context) el.Element {
 }
 
 func (v *KbdView) keycap(shortcut string) el.Element {
-	border := theme.Border
+	border := theme.Outline
 	if v.plain {
 		border = color.NRGBA{}
 	}

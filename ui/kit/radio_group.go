@@ -320,20 +320,21 @@ func (v *RadioGroupView) a11y() string {
 	return v.name
 }
 
-// radioDot draws a radio's ring, filled with a dot when on; size 0 is 18dp.
+// radioDot draws a filled radio with a contrasting dot when on; size 0 is 18dp.
 func radioDot(size float32, on, disabled bool) *el.DivEl {
 	if size == 0 {
 		size = 18
 	}
-	ring, fill := theme.Muted, theme.Surface
+	fill, mark := theme.Subtle, theme.OnColor
+	if on && !disabled {
+		fill = theme.Primary
+	}
 	if disabled {
-		ring, fill = theme.Border, theme.Subtle
-	} else if on {
-		ring = theme.Primary
+		mark = theme.Muted
 	}
-	inner := el.Div().Size(el.Dp(size * 16 / 18)).Rounded(theme.RadiusFull).Bg(fill).Center()
+	box := el.Div().Size(el.Dp(size)).NoShrink().Rounded(theme.RadiusFull).Bg(fill).Border(1, theme.Outline).Center()
 	if on {
-		inner.Child(el.Div().Size(el.Dp(size * 8 / 18)).Rounded(theme.RadiusFull).Bg(ring))
+		box.Child(el.Div().Size(el.Dp(size * 8 / 18)).Rounded(theme.RadiusFull).Bg(mark))
 	}
-	return el.Div().Size(el.Dp(size)).NoShrink().Rounded(theme.RadiusFull).Bg(ring).Center().Child(inner)
+	return box
 }

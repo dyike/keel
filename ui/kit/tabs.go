@@ -199,7 +199,18 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		on := i == v.current
 		tab := el.Div().ID(v.tabID(i)).Role("tab").Name(p.Title).Selected(on).
 			Px(14).H(el.Dp(v.height - 2)).CursorPointer().TextColor(theme.Muted).Focusable(on).Disabled(p.Disabled).DisabledStyle(func(s *el.Style) { s.TextColor(theme.Muted) }).
-			Rounded(theme.RadiusMd).FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}); s.Bg(theme.SubtleHover) }).
+			Rounded(theme.RadiusMd).FocusStyle(func(s *el.Style) {
+			s.BorderColor(color.NRGBA{})
+			// Focus must not cover the selected variant with a different fill.
+			switch v.variant {
+			case TabsPill, TabsOutline:
+				s.Bg(theme.Highlight)
+			case TabsSegmented:
+				s.Bg(theme.Surface)
+			default:
+				s.Bg(theme.SubtleHover)
+			}
+		}).
 			Hover(func(s *el.Style) { s.TextColor(theme.Text) }).
 			OnClick(func() { v.choose(cx, i) }).
 			OnKey(func(e el.KeyEvent) bool {
@@ -276,6 +287,9 @@ func (v *TabsView) Render(cx *el.Context) el.Element {
 		}
 		switch v.variant {
 		case TabsPill:
+			// Focus fills the interactive tab inside the selected head. Both
+			// must stay pill-shaped when a click or arrow key moves focus.
+			tab.Rounded(theme.RadiusFull)
 			head.Rounded(theme.RadiusFull)
 			if on {
 				head.Bg(theme.Highlight)

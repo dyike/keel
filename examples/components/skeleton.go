@@ -14,7 +14,7 @@ func init() {
 type skeletonGallery struct{ loaded bool }
 
 func (v *skeletonGallery) Render(cx *el.Context) el.Element {
-	card := el.Div().P(20).MinH(el.Dp(200)).Gap(12).W(el.Dp(360)).MaxW(el.Full).Rounded(theme.RadiusMd).Bg(theme.Surface).Border(1, theme.Border)
+	card := el.Div().P(20).MinH(el.Dp(200)).Gap(12).W(el.Dp(360)).MaxW(el.Full).Rounded(theme.RadiusMd).Bg(theme.Surface).Border(1, theme.Outline)
 	label := demoText("Simulate loading complete", "模拟加载完成")
 	if v.loaded {
 		label = demoText("Reload", "重新加载")

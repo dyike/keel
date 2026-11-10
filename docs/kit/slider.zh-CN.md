@@ -43,10 +43,10 @@ frequency := kit.Slider("频率 Hz", 20, 20000).
 price.Appearance(func(a *kit.SliderAppearance) {
     a.TrackSize, a.ThumbSize = 8, 24
     a.TrackRadius, a.ThumbRadius = 2, 4
-    a.FillColor, a.ThumbBorderColor = theme.Success, theme.Success
+    a.FillColor, a.ThumbColor = theme.Success, theme.Success
 })
 ```
 
-颜色包括 `TrackColor`、`FillColor`、`ThumbColor`、`ThumbBorderColor`；尺寸为 dp。默认轨道 4、滑块 16、边框 2；轨道/滑块尺寸必须为有限正数，无效值回退默认，最大 1024dp。边框与圆角允许 0，无效值回退默认；边框和滑块圆角最大为滑块尺寸的一半；轨道圆角最大 1024dp。横向最小宽度、竖向最小高度为滑块尺寸，指针数值映射使用滑块中心之间的距离。自身禁用时填充和滑块边框改为主题 Muted，键盘焦点仍显示主题焦点色。
+颜色包括 `TrackColor`、`FillColor`、`ThumbColor`、`ThumbBorderColor`；尺寸为 dp。默认轨道 4、滑块 16、边框 0，滑块使用主题主色实心填充；轨道/滑块尺寸必须为有限正数，无效值回退默认，最大 1024dp。边框与圆角允许 0，无效值回退默认；边框和滑块圆角最大为滑块尺寸的一半；轨道圆角最大 1024dp。横向最小宽度、竖向最小高度为滑块尺寸，指针数值映射使用滑块中心之间的距离。自身禁用时轨道填充、滑块和滑块边框改为主题 Muted。键盘焦点用背景填充提示。
 
 已验证横纵方向、双端范围、双倍率布局、默认恢复、禁用与键盘操作，并覆盖自定义颜色的窗口像素回归。

@@ -85,7 +85,7 @@ func (v *AvatarGroupView) Render(cx *el.Context) el.Element {
 				Child(el.Text(label).TextSize(size * .32).TextColor(theme.Text).MaxLines(1))
 		}
 		row.Child(el.Div().Absolute().Left(float32(i)*stride).Top(0).Size(el.Dp(size)).Rounded(theme.RadiusFull).
-			Child(content, el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Rounded(theme.RadiusFull).Border(2, theme.Surface)))
+			Child(content, el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Rounded(theme.RadiusFull).Border(2, theme.Outline)))
 	}
 	return el.Div().Role("group").W(el.Dp(width)).MaxW(el.Full).ScrollX().Pb(scrollbarGutter).Child(row)
 }

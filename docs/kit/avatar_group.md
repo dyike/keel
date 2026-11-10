@@ -12,7 +12,7 @@ team := kit.AvatarGroup(
 ).Size(40).Limit(2)
 ```
 
-`Size(dp)` Unifies the diameter within the group, defaults to 40dp, limited to 16–256dp; does not modify the size of member avatars themselves. The avatars overlap by a quarter and are distinguished by the theme surface color strokes. Narrow windows provide horizontal scrolling.
+`Size(dp)` Unifies the diameter within the group, defaults to 40dp, limited to 16–256dp; does not modify the size of member avatars themselves. The avatars overlap by a quarter without default outlines. Set the local palette's Outline color to enable their 2dp outlines. Narrow windows provide horizontal scrolling.
 
 `Limit(n)` limits the number of avatars actually displayed, and the overflow mark occupies an additional space. By default, a negative number means no limit, and 0 only displays the total number of hidden people. `Ellipsis(true)` Replace the visible `+N` with an ellipsis, and the Agent can still read the hidden number of people.
 

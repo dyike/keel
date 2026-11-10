@@ -41,7 +41,7 @@ func (v *themeGallery) Render(cx *el.Context) el.Element {
 func themedCard(cx *el.Context, name string, field *kit.InputView) el.Element {
 	p, _ := theme.Named(name)
 	return cx.Themed(p, el.ViewFunc(func(cx *el.Context) el.Element {
-		return el.Div().W(el.Dp(260)).MaxW(el.Full).P(16).Gap(10).Rounded(theme.RadiusLg).Bg(theme.Surface).Border(1, theme.Border).Child(
+		return el.Div().W(el.Dp(260)).MaxW(el.Full).P(16).Gap(10).Rounded(theme.RadiusLg).Bg(theme.Surface).Border(1, theme.Outline).Child(
 			el.Text(name).Bold(),
 			field.Render(cx),
 			el.Div().Wrap().Gap(8).Child(kit.Button(demoText("Primary", "主要"), nil).Render(cx), kit.Button(demoText("Secondary", "次要"), nil).Variant(kit.ButtonSecondary).Render(cx)),

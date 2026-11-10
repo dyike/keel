@@ -156,7 +156,7 @@ func (p *ColorPickerView) fields(cx *el.Context, id string, focused bool) el.Ele
 		sw.Child(b)
 	}
 	box.Child(sw)
-	preview := el.Div().Size(el.Dp(m.control)).NoShrink().Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(p.Value())
+	preview := el.Div().Size(el.Dp(m.control)).NoShrink().Rounded(theme.RadiusMd).Border(1, theme.Outline).Bg(p.Value())
 	row := el.Div().Row().Items(el.Center).Gap(theme.SpaceSm).Child(preview)
 	field := func(slot, name string, bind *string, filter string, maxLen int) el.Element {
 		in := fieldText(el.Input().ID(id + "/" + slot).Name(name).Bind(bind)).Filter(filter).MaxLen(maxLen).

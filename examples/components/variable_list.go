@@ -28,7 +28,7 @@ func init() {
 			if expanded[k] {
 				text += strings.Repeat(demoText(" Expanded content increases the row height.", " 展开后的内容继续增加当前行高度。"), 5)
 			}
-			row := el.Div().Py(12).Px(16).Gap(6).Bg(theme.Surface).Border(1, theme.Border).Child(
+			row := el.Div().Py(12).Px(16).Gap(6).Bg(theme.Surface).Border(1, theme.Outline).Child(
 				el.Text(demoText("Message ", "消息 ")+k).Bold(), el.Text(text),
 				kit.Button(demoText("Expand / collapse", "展开 / 收起"), func() { expanded[k] = !expanded[k] }).Variant(kit.ButtonGhost).Render(cx))
 			if horizontal {

@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"image/color"
 	"math"
 	"strconv"
 
@@ -325,7 +326,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 				name = locale.Current().UpperValue
 			}
 			thumb.ID(v.endpointID(upper)).Role("slider").Name(locale.Current().Name(name, v.a11y())).Value(strconv.FormatFloat(x, 'f', -1, 64)).Focusable(true).
-				FocusStyle(func(s *el.Style) { s.BorderColor(theme.Text) }).OnKey(keyHandler(upper))
+				FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}); s.Bg(theme.PrimaryHover) }).OnKey(keyHandler(upper))
 		}
 		layer := el.Div().Absolute()
 		if v.vertical > 0 {
@@ -343,7 +344,7 @@ func (v *SliderView) Render(cx *el.Context) el.Element {
 		track.Child(knob(v.upper, true))
 	} else {
 		track.Role("slider").Name(v.a11y()).Value(strconv.FormatFloat(v.value, 'f', -1, 64)).Focusable(true).OnKey(keyHandler(false)).
-			FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) })
+			FocusStyle(func(s *el.Style) { s.BorderColor(color.NRGBA{}); s.Bg(theme.Highlight) })
 	}
 	track.OnDrag(func(e el.DragEvent) {
 		if e.Canceled {

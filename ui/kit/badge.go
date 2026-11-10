@@ -84,7 +84,7 @@ func (v *BadgeView) badge(cx *el.Context) el.Element {
 		b.Size(el.Dp(size * 8 / 18)).Rounded(theme.RadiusFull)
 	} else if v.icon != IconNone {
 		value = "icon"
-		b.Size(el.Dp(size)).Rounded(theme.RadiusFull).Border(1, theme.Surface).Center().Child(Icon(v.icon).Size(size * 2 / 3).Color(fg).Render(cx))
+		b.Size(el.Dp(size)).Rounded(theme.RadiusFull).Border(1, theme.Outline).Center().Child(Icon(v.icon).Size(size * 2 / 3).Color(fg).Render(cx))
 	} else {
 		b.H(el.Dp(size)).MinW(el.Dp(size)).Px(size * 5 / 18).Rounded(theme.RadiusFull).Center().TextSize(size * theme.TextXs / 18).Child(el.Text(label).Bold())
 	}

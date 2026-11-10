@@ -535,7 +535,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 		When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
 		Child(head, el.Div().H(el.Dp(1)).NoShrink().Bg(theme.Border), body)
 	table := el.Div().ID(autoID("table", v)).ScrollX().Pb(scrollbarGutter).Role("table").Value(locale.Current().Rows(len(v.order))).Disabled(v.disabled).When(v.list.fill, func(d *el.DivEl) { d.Grow() }).
-		Rounded(theme.RadiusMd).Border(1, theme.Border).Bg(theme.Surface).Items(el.Stretch).
+		Rounded(theme.RadiusMd).Border(1, theme.Outline).Bg(theme.Surface).Items(el.Stretch).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
 			if key.Name(e.Name) == key.NameF10 && e.Modifiers == key.ModShift && (v.rowMenu != nil || v.cellMenu != nil) {
@@ -581,7 +581,7 @@ func (v *TableView) Render(cx *el.Context) el.Element {
 	// Status belongs to the viewport, not the horizontally scrolling content.
 	overlay := el.Div().Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Child(status)
 	if v.loadError != "" {
-		overlay.Bg(theme.Surface).Rounded(theme.RadiusMd).Border(1, theme.Border)
+		overlay.Bg(theme.Surface).Rounded(theme.RadiusMd).Border(1, theme.Outline)
 	}
 	return wrapper.Child(overlay)
 }

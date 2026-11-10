@@ -15,7 +15,7 @@ func init() {
 		express.OnChange(func(bool) { pickup.SetValue(false) })
 		pickup.OnChange(func(bool) { express.SetValue(false) })
 		card := func(r *kit.RadioView, note string, cx *el.Context) el.Element {
-			return el.Div().P(12).Rounded(theme.RadiusMd).Border(1, theme.Border).Gap(4).
+			return el.Div().P(12).Rounded(theme.RadiusMd).Border(1, theme.Outline).Bg(theme.Surface).Gap(4).
 				Child(r.Render(cx), el.Text(note).TextSize(theme.TextSm).TextColor(theme.Muted))
 		}
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {

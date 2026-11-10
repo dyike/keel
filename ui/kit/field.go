@@ -51,19 +51,23 @@ func labelled(label string, control el.Element, errMsg string) el.Element {
 }
 
 // fieldFrame is the one box every text field in kit draws: same height,
-// padding, radius and border colors (error, then focus, then rest). Change
+// padding and radius. Errors use a border; keyboard focus uses a subtle fill
+// unless the palette explicitly enables outlines. Change
 // how fields look here, not in each component. Frames around a text input
 // also call FocusOnPress, so a press anywhere in the frame focuses the text. A field that wraps (tags in a
 // multiple Combobox) grows past theme.ControlHeight.
 func fieldFrame(id string, focused, invalid, disabled, readOnly bool) *el.DivEl {
-	border := theme.Border
+	border := theme.Outline
 	switch {
 	case invalid:
 		border = theme.Danger
-	case focused && !disabled:
+	case focused && !disabled && theme.Outline.A > 0:
 		border = theme.Primary
 	}
 	bg := theme.Surface
+	if focused && !invalid && theme.Outline.A == 0 {
+		bg = theme.SubtleHover
+	}
 	if disabled || readOnly {
 		bg = theme.Subtle
 	}

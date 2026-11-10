@@ -30,6 +30,7 @@ type accordionItem struct {
 // at a time unless Multiple. Headers take focus: ↑ ↓ Home End move between
 // them, Enter or Space toggles.
 type AccordionView struct {
+	bordered   bool
 	items      []accordionItem
 	open       []int
 	multiple   bool
@@ -39,8 +40,11 @@ type AccordionView struct {
 	size       AccordionSize
 }
 
-// Bordered controls the outer border and section separators, on by default.
-func (v *AccordionView) Bordered(on bool) *AccordionView { v.borderless = !on; return v }
+// Bordered controls the outer border and section separators. The outline is opt-in.
+func (v *AccordionView) Bordered(on bool) *AccordionView {
+	v.borderless, v.bordered = !on, on
+	return v
+}
 
 // Size sets the title, chevron, spacing and inherited body text scale.
 func (v *AccordionView) Size(size AccordionSize) *AccordionView {
@@ -170,7 +174,11 @@ func (v *AccordionView) Content(i int) el.View {
 func (v *AccordionView) Render(cx *el.Context) el.Element {
 	out := el.Div().Role("group").Items(el.Stretch).Rounded(theme.RadiusLg).Bg(theme.Surface)
 	if !v.borderless {
-		out.Border(1, theme.Border)
+		border := theme.Outline
+		if v.bordered {
+			border = theme.Border
+		}
+		out.Border(1, border)
 	}
 	for i := range v.items {
 		if i > 0 {

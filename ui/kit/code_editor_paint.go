@@ -645,7 +645,7 @@ func panel(gtx core.C, r image.Rectangle, radius int) {
 		paint.FillShape(gtx.Ops, sh, clip.UniformRRect(image.Rect(r.Min.X-g, r.Min.Y-g+gtx.Dp(3), r.Max.X+g, r.Max.Y+g+gtx.Dp(3)), radius+g).Op(gtx.Ops))
 	}
 	paint.FillShape(gtx.Ops, theme.Surface, clip.UniformRRect(r, radius).Op(gtx.Ops))
-	paint.FillShape(gtx.Ops, theme.Border, clip.Stroke{Path: clip.UniformRRect(r, radius).Path(gtx.Ops), Width: 1}.Op())
+	paint.FillShape(gtx.Ops, theme.Outline, clip.Stroke{Path: clip.UniformRRect(r, radius).Path(gtx.Ops), Width: 1}.Op())
 }
 
 // squiggle draws a wavy line from x0 to x1 at y.

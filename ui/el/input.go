@@ -43,10 +43,10 @@ func Input() *InputEl {
 	}
 	e.init(newNode(), e)
 	e.node().input = &inputSpec{}
-	// A bordered box by default, the same as kit's fields: theme.ControlHeight
-	// tall with the line centered. Every part can be restyled; the border
-	// turns Primary while the box has focus.
-	e.Border(1, theme.Border).Rounded(6).Bg(theme.Surface).Px(10).MinH(Dp(float32(theme.ControlHeight)))
+	// A filled box by default, the same as kit's fields: theme.ControlHeight
+	// tall with the line centered. Keyboard focus uses a subtle fill; an
+	// outlined palette uses a Primary border. Every part can be restyled.
+	e.Border(1, theme.Outline).Rounded(6).Bg(theme.Surface).Px(10).MinH(Dp(float32(theme.ControlHeight)))
 	return e
 }
 

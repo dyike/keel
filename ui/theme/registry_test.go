@@ -41,3 +41,25 @@ func TestRegisterAndNamed(t *testing.T) {
 		t.Fatal("missing theme found")
 	}
 }
+
+func TestDefaultOutlinesAndThemeFileOptIn(t *testing.T) {
+	for _, name := range []string{"light", "dark", "nord", "paper", "solarized-dark", "high-contrast", "aurora"} {
+		p, ok := Named(name)
+		if !ok || p.Outline.A != 0 || p.Border.A == 0 {
+			t.Fatalf("%s must have no default outline and retain visible separators", name)
+		}
+	}
+	_, p, err := ParseTheme([]byte(`{"name":"outlined","colors":{"outline":"#123456"}}`))
+	if err != nil || p.Outline != RGB(0x123456) {
+		t.Fatal("outline opt-in did not load", p.Outline, err)
+	}
+	old := Current()
+	restore := Scope(p)
+	if Current().Outline != p.Outline {
+		t.Fatal("outline not scoped")
+	}
+	restore()
+	if Current() != old {
+		t.Fatal("outline scope leaked")
+	}
+}

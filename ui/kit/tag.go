@@ -74,9 +74,9 @@ func (v *TagView) Appearance(fn func(TagAppearance) TagAppearance) *TagView {
 func (v *TagView) Render(cx *el.Context) el.Element {
 	c, name := v.tone.color(), v.tone.name()
 
-	a := TagAppearance{Background: tint(c, 24), Foreground: c, Border: c, SelectedBackground: tint(c, 48)}
+	a := TagAppearance{Background: tint(c, 24), Foreground: c, SelectedBackground: tint(c, 48)}
 	if v.outline {
-		a.Background = color.NRGBA{}
+		a.Background, a.Border = color.NRGBA{}, c
 	}
 	if v.appearance != nil {
 		a = v.appearance(a)

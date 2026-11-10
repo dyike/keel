@@ -21,7 +21,7 @@ func init() {
 		disabled := false
 		showSidebar := true
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Items(el.Stretch).Child(kit.Button(demoText("Enable / disable split panel", "启用 / 禁用分隔面板"), func() { disabled = !disabled; outer.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button(demoText("Show / hide sidebar", "显示 / 隐藏侧栏"), func() { showSidebar = !showSidebar; outer.Visible(showSidebar, true) }).Render(cx), el.Div().H(el.Dp(360)).Border(1, theme.Border).Items(el.Stretch).Child(outer.Render(cx)))
+			return el.Div().P(24).Gap(12).Items(el.Stretch).Child(kit.Button(demoText("Enable / disable split panel", "启用 / 禁用分隔面板"), func() { disabled = !disabled; outer.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button(demoText("Show / hide sidebar", "显示 / 隐藏侧栏"), func() { showSidebar = !showSidebar; outer.Visible(showSidebar, true) }).Render(cx), el.Div().H(el.Dp(360)).Border(1, theme.Outline).Items(el.Stretch).Child(outer.Render(cx)))
 		}))
 	})
 }

@@ -12,7 +12,7 @@ import (
 // StaticTable creates a non-virtualized table container. Build its elements
 // during Render; retain stateful child views in the application.
 func StaticTable() *el.DivEl {
-	return el.Div().Role("table").Items(el.Stretch).Border(1, theme.Border).Rounded(theme.RadiusMd).Bg(theme.Surface)
+	return el.Div().Role("table").Items(el.Stretch).Border(1, theme.Outline).Rounded(theme.RadiusMd).Bg(theme.Surface)
 }
 
 // TableHeader groups heading rows. Column widths are configured on each cell.

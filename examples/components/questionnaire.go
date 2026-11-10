@@ -34,7 +34,7 @@ func init() {
 			}
 			return el.Div().Gap(12).Items(el.Stretch).Child(
 				parts.Progress,
-				el.Div().Border(1, theme.Border).Rounded(theme.RadiusLg).P(16).Gap(12).Items(el.Stretch).Child(parts.Title, parts.Description, parts.Answer, parts.Freeform, parts.Error),
+				el.Div().Border(1, theme.Outline).Rounded(theme.RadiusLg).P(16).Gap(12).Items(el.Stretch).Child(parts.Title, parts.Description, parts.Answer, parts.Freeform, parts.Error),
 				el.Div().Row().Gap(8).Child(parts.Previous, el.Div().Grow(), parts.Skip, parts.Forward),
 			)
 		})

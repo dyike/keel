@@ -254,7 +254,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 			left -= 12 + 160 + 12
 		}
 		box.Child(el.Div().Absolute().Left(max(left+12, 0)).Top(max(top-40, 0)).W(el.Dp(min(float32(160), v.plotW))).P(theme.SpaceMd).Gap(theme.SpaceXxs).Rounded(theme.RadiusMd).
-			Bg(theme.Surface).Border(1, theme.Border).Child(
+			Bg(theme.Surface).Border(1, theme.Outline).Child(
 			el.Text(v.series[s].Name).TextSize(theme.TextSm).Bold(),
 			el.Text("x "+v.format(p.X)+"   y "+v.format(p.Y)).TextSize(theme.TextSm).TextColor(theme.Muted)))
 	}
@@ -270,7 +270,7 @@ func (v *PlotView) Render(cx *el.Context) el.Element {
 		previous = fraction
 	}
 	return el.Div().Disabled(v.disabled).ID(autoID("plot", v)).Role("figure").Name(name).Gap(10).P(theme.SpaceLg).Rounded(theme.RadiusLg).
-		Bg(theme.Surface).Border(1, theme.Border).Items(el.Stretch).Focusable(true).
+		Bg(theme.Surface).Border(1, theme.Outline).Items(el.Stretch).Focusable(true).
 		FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnKey(func(e el.KeyEvent) bool {
 			ok := true
