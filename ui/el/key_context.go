@@ -108,7 +108,7 @@ func (cx *Context) prepareActionBindings(tree *Node) {
 	}
 	var collect func(*Node, []string, []string, int)
 	collect = func(n *Node, contexts, ancestors []string, depth int) {
-		if n.style.hidden || n.disabled {
+		if n.style.hidden || n.disabled || n.inert {
 			return
 		}
 		if n.keyContext != "" {

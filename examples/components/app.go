@@ -12,7 +12,7 @@ import (
 )
 
 // foundations are the sections that demonstrate el itself, not a component.
-var foundations = map[string]bool{"theme": true, "layout": true, "scrollable": true, "focus": true, "headless": true, "time": true, "overlay": true}
+var foundations = map[string]bool{"theme": true, "layout": true, "scrollable": true, "focus": true, "headless": true, "time": true, "overlay": true, "motion": true}
 
 func categoryTitles() []struct{ id, title string } {
 	return []struct{ id, title string }{

@@ -15,3 +15,9 @@ go run ./examples/motion -section effects -lang zh-CN
 ```sh
 go run ./examples/motion -section effects -lang zh-CN -screenshot /tmp/keel-motion-effects.zh-CN.png
 ```
+
+运行 `go run ./examples/motion -section pose -lang zh-CN` 查看只重绘的元素动画。点击“移动 / 反向”或移动中的卡片，点击区域和锚定浮层同步跟随；减少动态效果开启时直接到达目标。
+
+运行 `go run ./examples/motion -section timeline -lang zh-CN` 查看轨道重叠、重播、暂停、倒放和跳转。
+
+时间线页面新增“滚动驱动 / 时间驱动”：滚动下方区域即可直接控制同一组动画轨道。

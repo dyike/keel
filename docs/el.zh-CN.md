@@ -478,3 +478,216 @@ row := el.Div().Row().Items(el.ContentBottom).Child(avatar, body)
 组件库 `focus` 页提供开启、输入和退出演示。自动测试覆盖并列/嵌套区域、双向循环、输入框、TabIndex/TabStop、动态禁用/解除/移除、鼠标退出及模态浮层优先与返回；原生键盘验收仍待完成。
 
 `Translate(x, y)` 按 dp 移动元素及子树的绘制、点击区域和浮层锚点，不改变原来的布局占位或滚动内容长度。可用于轮播轨道复用同一项目；移位后的可见范围决定是否绘制，父容器裁剪仍生效。
+
+## 元素姿态动画
+
+`AnimatePose` 声明视觉目标。元素保留布局尺寸和位置，绘制、指针区域、语义边界和锚定浮层跟随动画变换。首次声明直接显示目标；后续修改从当前值开始过渡，中途反向时保留弹簧速度。
+
+```go
+pose := el.Pose{}
+if v.expanded {
+    pose = el.Pose{X: 160, Scale: 1.05, Rotate: 8, Fade: 0.1}
+}
+card := el.Div().ID("card").W(el.Dp(160)).H(el.Dp(90)).
+    AnimatePose(pose, el.Snappy).
+    OnClick(func() { v.expanded = !v.expanded })
+```
+
+`X`、`Y` 的单位是 dp；`XPercent`、`YPercent` 是自身尺寸的百分比；`Rotate` 是绕中心旋转的角度；`Scale` 默认为一。`Fade` 从零（不透明）到一（透明）。可使用 `Smooth`、`Snappy`、`Bouncy`、`Spring(stiffness, damping)` 或 `Tween(duration, ease)`；动画类型与 `ui/motion.Transition` 共用。
+
+会重排的同级元素需要稳定 ID。只有声明动画的元素才分配动画通道，省略声明即释放通道，移除元素时释放其状态。减少动态效果开启时直接到达目标。静止后不再请求帧；静止时只修改缓动配置也不会启动动画。
+
+窗口持有的根可以在姿态动画期间只重绘已有元素树和布局。输入、状态变化、窗口缩放、待执行计时器或 Render 中读取 `Context.Now` 仍要求完整构建。姿态动画跟随显示帧，不套用循环指示器的 30 Hz 节奏。这减少符合条件帧的工作量，不代表已经证实总内存下降或端到端帧率提高。
+
+`AnimatePose` 与 `Translate`、`Opacity`、`Decorate` 组合使用，不覆盖装饰回调。用户在 `Decorate` 内自行加入的变换仍有原有几何限制。姿态内文字使用矢量或原生绘制，不使用可选的数字图片图集，以保留缩放、旋转时的文字质量。
+
+运行 `go run ./examples/motion -section pose -lang zh-CN` 可操作卡片和跟随浮层。本节描述当前开发分支，不属于 v0.4.2。进退场、布局过渡和拖拽能力见下文。
+
+
+### 布局过渡
+
+给带稳定 ID 的兄弟元素声明 `.AnimateLayout(el.Snappy)`，即可平滑过渡重排和
+尺寸变化。布局立即使用最终尺寸，绘制时将最终内容从先前的矩形缩放、移动到新位置。
+文字和子元素会随矩形缩放，不会逐帧重新排版。可与 `AnimatePose` 组合，点击、
+光标和锚定浮层使用同一个变换。支持有限的弹簧和补间，不接受循环布局动画。
+
+位置相对于同一父元素，滚动不会触发布局过渡；换父元素意味着新身份。首次布局、
+像素密度变化和零尺寸轴直接到达目标。省略声明或移除元素时释放状态。能否只重绘
+仍取决于视图其余部分是否允许保留布局。这些代码位于工作分支，尚未包含在 v0.4.2 中。
+
+
+### 跨父容器的共享元素
+
+缩略图和详情图位于不同父容器时，用 `.SharedLayout(identity, el.Snappy)`
+连接它们。两处使用相同的业务标识，每帧只声明其中一个：
+
+```go
+type photoMatch struct{ ID int }
+photo := el.Div().ID("thumbnail").Size(el.Dp(80))
+if v.open {
+    photo = el.Div().ID("detail").Size(el.Dp(240))
+}
+photo.SharedLayout(photoMatch{v.photoID}, el.Snappy)
+```
+
+新元素从旧元素已显示的位置、尺寸和旋转角度开始，包括父容器的嵌套变换。
+旋转走短路径；中途改变弹簧目标会保留速度。内容随盒子缩放，点击区域、
+输入光标和锚定浮层使用相同变换。Components 的 Motion 页面提供图片演示，
+可以点击移动中的图片，让它反向返回。
+
+标识限定在一个 Root 内，必须非 nil 且可比较。同一绘制帧出现重复标识会报错。
+元素身份不变时，滚动直接带动元素，不启动新动画。首次出现、间隔一帧未显示、
+窗口尺寸或像素密度变化，以及减少动态效果模式，都直接显示目标状态。
+省略声明或移除元素后释放几何状态，不保留旧元素树。
+
+不加 `Fly` 时，接口沿用目标父容器的裁剪、透明度和绘制顺序。加上 `.Fly()`，
+衔接期间的元素会绘制在所在 Root 或所在浮层的其他内容上方，越过祖先容器的
+裁剪和透明度；后面的浮层仍可遮住它。元素保留自身透明度和目标子树的主题，
+点击区域与锚定浮层跟随可见位置。停止后回到目标父容器正常的绘制顺序和裁剪。
+对话框中的子元素即使飞出面板范围，点击它也不会被误判为外部点击而关闭对话框。
+
+```go
+photo.SharedLayout(photoMatch{v.photoID}, el.Snappy).Fly()
+```
+
+祖先处于 Inert 退场状态时，飞行中的子元素仍不可点击、不向辅助功能暴露，
+并跟随祖先的退场淡出。动画继续到停止或声明被移除。绘制队列在当帧清空，
+不会保存离场元素树。`Fly` 必须与 `SharedLayout` 一起使用。
+
+共享元素切换时，纯色背景、边框色、文字色、边框宽度、圆角和自身透明度也会插值。
+悬停、焦点和禁用样式仍立即覆盖这些基础样式。圆角与边框宽度按短边归一化；
+宽高比变化时，圆角随盒子一起缩放。线性渐变会插值颜色和方向，按盒子归一化的
+端点保持切换首帧的渐变；相反方向的渐变旋转过渡，不会在中点缩成一个点。
+Elevation 阴影插值偏移、模糊和主题阴影颜色，新增或移除时从透明淡入或淡出。
+自定义 Decorate 仍使用目标声明。
+
+不同父容器中的文字需要在两个 `Text` 上同时声明 `SharedLayout` 和
+`ContentTransition`，共享同一个匹配身份：
+
+```go
+el.Text(title).TextSize(size).
+    ContentTransition(el.ContentTransition{Morph: true, Animation: el.Snappy}).
+    SharedLayout(titleMatch{id}, el.Snappy).Fly()
+```
+
+新文字从上一帧已显示的字形开始，支持不同宽高比和中途反向。相同整形簇移动到
+新位置，字体轮廓变化时交叉淡入淡出。辅助功能只读取新文字；结束或移除后释放旧字形。
+容器内的文字若不想逐个声明共享身份，可在共享容器上加 `MatchText()`：
+
+```go
+el.Div().SharedLayout(cardMatch{id}, el.Snappy).MatchText().Fly().Child(
+    el.Text(title).ID("title"),
+    el.Text(subtitle).ID("subtitle"),
+)
+```
+
+标签按相对路径配对，优先用 ID，否则用兄弟位置；重排文字时应设置稳定 ID。
+不会按字符串猜测配对，层级改变就是新路径。未声明 ContentTransition 的标签
+自动使用 Morph；显式声明 SharedLayout 的子孙节点建立独立范围。
+省略 MatchText 后释放自动匹配，包括缓存子节点上的自动声明。
+
+`AnimateLayout` 处理同一父容器内的变化，
+`SharedLayout` 处理元素身份之间的衔接；两者都立即使用最终布局，动画期间缩放内容，
+不会按每个中间尺寸重新折行。
+
+
+### 进入、退出与列表生命周期
+
+`Context.Presence` 按根视图内的键保存少量动画数值。每次 Render 都要声明，
+逻辑状态变为 false 后仍然声明，直到退场完成：
+
+```go
+p := cx.Presence("details", v.show, el.PresenceOptions{
+    Enter: el.Pose{Y: 12, Fade: 1},
+    Exit: el.Pose{Y: -12, Fade: 1},
+    Animation: el.Snappy,
+})
+if p.Visible {
+    body.Child(el.Div().ID("details").Presence(p).Child(el.Text("详情")))
+}
+```
+
+`element.Presence(p)` 应用已经采样的姿态，并让退场子树进入 inert 状态：
+保留外观，停止指针输入和键盘焦点，关闭它拥有的浮层，从自动化及平台辅助功能树
+中移除。也可单独使用 `Inert(true)`。`layer.Presence(p)` 将同一生命周期应用于
+浮层及遮罩。逻辑关闭时立即解除模态并恢复原焦点，余下的退场画面不再接收输入。
+退场中重新打开会从当前姿态反向，弹簧保留速度；减少动态效果时立即完成。
+首次出现也会播放进入动画。省略 presence 声明会取消生命周期，不会留下隐藏的树。
+
+列表使用 `el.PresentItems(cx, groupKey, items, id, options)`，返回包含退场项的
+`PresentItem[T]`。每项含 `Value`、`Key` 和 `Frame`，用
+`element.Presence(item.Frame)` 应用。组键和项键必须可比较且不重复，元素仍须
+使用稳定 ID。返回的切片在下次调用时复用；退场期间保留原有顺序，其他时候跟随
+源数据顺序。`PresenceListOptions` 内嵌 `PresenceOptions`，开启
+`ExitBeforeEnter` 后，新项等到离开项退场完成再进入；重新加入的旧项直接反向。
+空列表也要继续声明才能完成退场。省略整个组会释放保留的值，包括回调引用。
+这两个 API 都不快照或保留元素树。
+
+运动期间 presence 在 Render 中采样；静止后不再请求帧，也不会阻止其他动画复用
+已经稳定的布局。这些 API 位于当前工作分支，尚未包含在 v0.4.2 中。
+
+
+### 拖拽与松手动画
+
+`Div().Draggable(options)` 沿父元素的坐标轴移动盒子，不改变布局。拖拽位移叠加在
+位姿和布局过渡之外，点击区域、光标和锚定浮层随之移动。内部按钮、输入框和滚动区域
+继续处理自己的输入。
+
+```go
+card.Draggable(el.DragOptions{
+    Axis: el.DragHorizontal,
+    Bounds: &el.DragBounds{MaxX: 240},
+    Snap: []el.DragPoint{{}, {X: 240}},
+    Elastic: .4,
+    Momentum: true,
+    Animation: el.Snappy,
+})
+```
+
+`Bounds` 限制以 dp 为单位的位移，不是元素矩形。`Elastic` 取 0–1：零会在拖动时
+直接限制位置，正值允许越界后逐渐增加阻力。松手后，`Momentum` 根据实测速度预测
+200ms 后的位置，再选择最近吸附点并限制最终目标。弹簧保留松手速度，补间遵循缓动
+曲线。即使拖动阶段限制越界，弹簧回落时仍可能越过边界。没有惯性和吸附点时，元素
+停在松手位置或最近边界。取消手势会返回本次拖动的起点。
+
+`Initial` 设置初始位移；递增 `Reset` 会立即返回 `Initial` 并取消手势，单独改变
+`Initial` 不会重置现有元素。`OnMove` 报告直接拖动，包括松手时的最后一次位置变化；
+`OnRelease` 在拖动结束或取消时报告回落目标。单击不会触发这两个回调。回落动画帧
+不调用它们。不要与 `OnDrag` 或 `DragAccept` 同用；声明有效期间不要修改边界或
+吸附点切片。
+
+稳定 ID 保留位移，省略声明会释放拖拽状态。禁用元素或将子树设为 inert 会停止手势，
+不触发回调。减少动态效果时仍可直接拖动，松手立即到达目标。满足条件的回落帧只重绘；
+输入后的首个安静帧仍会重建视图。静止后不再请求帧。Components 的 Motion 页面可
+直接操作。这些 API 位于工作分支，尚未包含在 v0.4.2 中。
+
+
+弹簧回弹到达弹性边界时会停止向外的速度，最多超出边界 `100*Elastic` dp。快速松手也不会把元素甩出这段范围。
+
+### 文字内容变化
+
+`Text(value).ContentTransition(options)` 为字符串或颜色范围变化添加动画。默认淡入
+淡出；`Numeric` 让单行中变化的字符滚动，`Down` 反转方向；`Morph` 将相同字符移动
+到新位置，支持换行后的重排。Numeric 和 Morph 不能同时开启。
+
+```go
+el.Text(fmt.Sprintf("%04d", count)).ID("count").TextSize(32).
+    ContentTransition(el.ContentTransition{Numeric: true, Down: decreased, Animation: el.Snappy})
+el.Text(title).ID("title").ContentTransition(el.ContentTransition{Morph: true})
+```
+
+塑形仍以完整字符串为单位，组合音标、连字、emoji 序列和从右向左书写的字符簇不会
+被拆开，颜色范围也覆盖完整字符簇。多行或 RTL 内容的 Numeric 使用淡入淡出，不滚动。
+Morph 先保持公共序列的顺序，再匹配其余相同字符；长文本使用线性空间匹配，避免
+最长公共子序列矩阵无限增长。字体轮廓变化会在移动、缩放时交叉淡化，颜色按预乘透明度
+混合。`Shimmer` 优先于内容过渡。
+
+首次声明立即显示。之后的变化从当前画面的字形位置、颜色、透明度和裁剪范围接续，
+中途再次改字也如此。旧文字只负责绘制，不接收输入，也不进入辅助功能树；布局和语义
+使用当前字符串。普通 `Text` 仍不可选中，输入框和可选择文字组件保持原有行为。
+
+动画可以复用已构建的树。静止时只保存当前文字声明，不缓存旧字形或路径。完成、省略
+声明或离开可见区域后释放过渡字形，重新进入视口时直接显示当前文字。连续改字会保留旧字符原有的透明度时钟，
+不会重新启动其退出动画，也不会给慢速弹簧另加时限。减少动态效果或像素密度
+变化时直接到达目标；仅宽度或字体样式变化时直接跟随布局。这些 API 位于工作分支，
+尚未包含在 v0.4.2 中。Components 的 Motion 页面提供计数器和文字重排演示。

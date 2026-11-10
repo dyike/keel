@@ -32,3 +32,11 @@ The interaction test of the component is in `ui/kit/*_test.go`, and the agent sn
 `-section variable_list` Validates 100,000 row natural height list: positioning, insertion history, expanded content and window width changes.
 
 `-section layout` Validates line wrapping layouts and simple grids, narrowing the window to check wrapping, row and column spacing, and minimum size.
+
+Run `go run ./examples/components -section motion` for pose retargeting, moving hit regions and anchors, keyed entry/exit, ordered replacement, layout resizing and shared component transitions.
+
+Screenshot and matrix commands enable reduced motion so entry transitions do not leave content transparent in first-frame captures. Interactive runs retain animations.
+
+The Motion page also demonstrates text morphing, rolling numbers, icon/image replacement and a shared image moving between thumbnail and detail parents.
+
+Motion also demonstrates gradient/shadow handoffs and container-level MatchText without separate identities on each label.

@@ -617,7 +617,15 @@ func (q *Router) changeState(e event.Event, state inputState, evts []taggedEvent
 	if len(q.changes) == 0 {
 		q.changes = append(q.changes, stateChange{})
 	}
-	if e != nil && len(evts) > 0 {
+	// Keel: terminal pointer events must survive command replay even when no
+	// handler subscribes to them. Merging an unobserved Release into a Press
+	// loses the Release when a later Invalidate/Focus command replays the Press,
+	// leaving the mouse captured by its old receiver across layer reentry.
+	terminalPointer := false
+	if p, ok := e.(pointer.Event); ok {
+		terminalPointer = p.Kind == pointer.Release || p.Kind == pointer.Cancel
+	}
+	if e != nil && (len(evts) > 0 || terminalPointer && len(q.changes) > 1) {
 		// An event triggered events bound for user receivers. Add a state change to be
 		// able to redo the change in case of a command execution.
 		q.changes = append(q.changes, stateChange{event: e, state: state, events: evts})

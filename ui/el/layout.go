@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/io/input"
 	"github.com/dyike/keel/gio/layout"
 	"github.com/dyike/keel/gio/op"
@@ -21,6 +22,14 @@ const inf = 1 << 24
 
 // engine lays out and paints one element tree for one frame.
 type engine struct {
+	paintOnly              bool
+	paintSerial            uint64
+	sharedLayouts          map[any]*sharedLayoutState
+	flights                []sharedFlight
+	frameSource            input.Source
+	flightExitFade         float32
+	contentStates          map[*elemState]struct{}
+	poseWorld              f32.Affine2D // logical root coordinates to the posed root coordinates
 	textMeasurements       map[uint64]int
 	textMeasurementSeed    maphash.Seed
 	textMeasurementEntries []textMeasurement
@@ -439,6 +448,11 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 
 // place positions the children of n inside its final size, recursively.
 func (e *engine) place(n *Node) {
+	if len(e.contentStates) > 0 {
+		defer e.placeContentOverflow(n)
+	} else {
+		n.contentOverflow = nil
+	}
 	if n.reused {
 		return // children keep the positions of the frame that laid them out
 	}

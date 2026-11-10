@@ -160,18 +160,70 @@ func (e *engine) paint(n *Node) {
 	}
 	pos = pos.Add(image.Pt(e.dp(n.style.translate[0]), e.dp(n.style.translate[1])))
 	abs := image.Rectangle{Min: e.origin.Add(pos), Max: e.origin.Add(pos).Add(n.size)}
-	if !n.style.absolute && !abs.Overlaps(e.visible) {
+	// A pose is sampled at paint time. Keep layout in its original coordinate
+	// space while Gio and the anchor map see the same composed transform.
+	var posed f32.Affine2D
+	var fade float32
+	var moving, sharedMoving bool
+	destinationVisible := abs.Overlaps(e.visible)
+	if n.pose != nil || n.dragMotion != nil {
+		target := f32.AffineId()
+		if n.pose != nil {
+			target = e.poseTransform(n, n.pose.target.values())
+		}
+		if st := e.store.of(n); st != nil && st.dragMotion != nil {
+			target = target.Offset(f32.Pt(st.dragMotion.target.X*e.dragScale(), st.dragMotion.target.Y*e.dragScale()))
+		}
+		target = target.Offset(f32.Pt(float32(abs.Min.X), float32(abs.Min.Y)))
+		destinationVisible = affineBounds(target, image.Rectangle{Max: n.size}).Overlaps(e.visible)
+	}
+	if n.hasVisualMotion() {
+		posed, fade, moving = e.sampleVisualMotion(n)
+		if n.sharedLayout != nil {
+			posed, sharedMoving = e.sampleSharedLayout(n, posed, abs.Min)
+			moving = moving || sharedMoving
+		}
+		if st := e.store.of(n); st != nil && st.dragMotion != nil {
+			st.dragMotion.toParent = posed.Offset(f32.Pt(float32(pos.X), float32(pos.Y)))
+		}
+		world, visible := e.poseWorld, e.visible
+		local := f32.AffineId().Offset(f32.Pt(float32(abs.Min.X), float32(abs.Min.Y))).Mul(posed)
+		local = local.Mul(f32.AffineId().Offset(f32.Pt(-float32(abs.Min.X), -float32(abs.Min.Y))))
+		e.poseWorld = world.Mul(local)
+		e.visible = affineBounds(local.Invert(), visible)
+		defer func() { e.poseWorld, e.visible = world, visible }()
+	}
+	if n.sharedFly && sharedMoving && e.frameSource.Enabled() {
+		e.queueFlight(n, abs.Min, fade)
+		return
+	}
+	// An animation may begin outside the clip and enter it later. Keep its
+	// clock alive when either its current or destination box can be seen.
+	if moving && gtx.Enabled() && (destinationVisible || abs.Overlaps(e.visible)) {
+		gtx.Execute(op.InvalidateCmd{})
+		if r := paintingRoot; r != nil {
+			r.motionDue = true
+		}
+	}
+	paintBounds := abs
+	if n.contentOverflow != nil {
+		paintBounds = paintBounds.Union(n.contentOverflow.Add(abs.Min))
+	}
+	if !n.style.absolute && !n.sharedSubtree && !paintBounds.Overlaps(e.visible) {
 		if loop.Accessibility() {
 			e.paintSemantics(n, pos)
 		}
 		return
+	}
+	if n.sharedLayout != nil && (destinationVisible || abs.Overlaps(e.visible)) {
+		e.markSharedLayout(n)
 	}
 	if n.id != "" && e.anchors != nil {
 		// A zero-size element anchors at its position: a notification
 		// corner, the point a context menu opens at.
 		if !abs.Intersect(e.visible).Empty() || abs.Empty() && abs.Min.In(e.visible) {
 			if _, found := e.anchors[n.id]; !found {
-				e.anchors[n.id] = abs
+				e.anchors[n.id] = affineBounds(e.poseWorld, abs)
 			}
 		}
 	}
@@ -179,8 +231,20 @@ func (e *engine) paint(n *Node) {
 	e.origin = abs.Min
 	defer func() { e.origin = saved }()
 	defer op.Offset(pos).Push(gtx.Ops).Pop()
-	if a := n.style.opacity; n.style.opacitySet && a < 1 {
+	if n.hasVisualMotion() {
+		defer op.Affine(posed).Push(gtx.Ops).Pop()
+		if fade > 0 {
+			defer paint.PushOpacity(gtx.Ops, 1-fade).Pop()
+		}
+	}
+	if a := e.sharedOpacity(n); a < 1 {
 		defer paint.PushOpacity(gtx.Ops, a).Pop()
+	}
+	if n.inert {
+		prior := e.flightExitFade
+		opacity := e.sharedOpacity(n)
+		e.flightExitFade = 1 - (1-prior)*(1-fade)*opacity
+		defer func() { e.flightExitFade = prior }()
 	}
 	if n.decorate != nil {
 		g := gtx
@@ -192,6 +256,15 @@ func (e *engine) paint(n *Node) {
 }
 
 func (e *engine) paintContent(n *Node) {
+	if n.inert {
+		input, focus := e.blockInput, e.blockFocus
+		e.blockInput, e.blockFocus = true, true
+		defer func() { e.blockInput, e.blockFocus = input, focus }()
+		// Keep the semantic marker on its own enclosing clip. Descendant
+		// labels and roles cannot overwrite it; visual styles stay unchanged.
+		defer clip.Rect(e.visible.Sub(e.origin)).Push(e.gtx.Ops).Pop()
+		core.Role("el-inert").Add(e.gtx.Ops)
+	}
 	if n.palette != nil {
 		defer theme.Scope(*n.palette)()
 	}
@@ -207,22 +280,22 @@ func (e *engine) paintContent(n *Node) {
 		defer func() { e.visible = savedVisible }()
 		defer clip.Rect(image.Rectangle{Max: n.size}).Push(gtx.Ops).Pop()
 	}
-	st := n.style // a copy: hover and active variants change it for this frame only
+	st := e.sharedPaintStyle(n, n.style) // a copy: variants apply to this frame only
 	var callbackStyle *Style
 	var state *elemState
 	if n.id != "" || n.interactive() || n.onScroll != nil || (n.style.scrollY || n.style.scrollX) || n.input != nil {
 		state = e.store.get(n.key)
 	}
 	if gtx.Enabled() {
-		if n.onClick != nil || n.onDoubleClick != nil || n.onDrag != nil || n.input != nil || n.widget != nil || n.style.scrollX || n.style.scrollY {
+		if n.onClick != nil || n.onDoubleClick != nil || n.hasDrag() || n.input != nil || n.widget != nil || n.style.scrollX || n.style.scrollY {
 			bounds := image.Rectangle{Min: e.origin, Max: e.origin.Add(n.size)}.Intersect(e.visible)
 			for _, scope := range e.dragScopes {
-				scope.drag.blocked = append(scope.drag.blocked, bounds.Sub(scope.origin))
+				scope.drag.blocked = append(scope.drag.blocked, dragBlock{bounds, e.poseWorld.Invert().Mul(scope.toRoot)})
 			}
 		}
-		if state != nil && n.onDrag != nil && n.dragAccept != nil {
+		if state != nil && n.hasDrag() && n.dragPredicate() != nil {
 			state.conditionalDrag.blocked = state.conditionalDrag.blocked[:0]
-			e.dragScopes = append(e.dragScopes, dragScope{&state.conditionalDrag, e.origin})
+			e.dragScopes = append(e.dragScopes, dragScope{&state.conditionalDrag, e.poseWorld.Mul(f32.AffineId().Offset(f32.Pt(float32(e.origin.X), float32(e.origin.Y))))})
 			defer func() { e.dragScopes = e.dragScopes[:len(e.dragScopes)-1] }()
 		}
 	}
@@ -299,8 +372,8 @@ func (e *engine) paintContent(n *Node) {
 
 	// The shadow lies outside the element, so it goes down before the
 	// element's own clip.
-	if n.style.shadow != nil {
-		e.paintShadow(*n.style.shadow, rect, radius)
+	if shadow, color, layers, ok := e.sharedShadow(n); ok {
+		e.paintShadow(shadow, color, layers, rect, radius)
 	}
 	// Elements that take input or report semantics get their own clip area;
 	// others do not, so their children can overflow them.
@@ -333,14 +406,16 @@ func (e *engine) paintContent(n *Node) {
 			event.Op(gtx.Ops, state)
 		}
 		if state != nil && n.interactive() && !n.effectiveDisabled && !e.blockInput {
-			if state.fresh && gtx.Enabled() {
+			if (state.fresh || e.paintOnly) && gtx.Enabled() {
 				// Gio drops areas whose handler asked for no events this
-				// frame. dispatch asks from the next frame on; ask now so
+				// frame. Paint-only frames skip dispatch and must renew the
+				// filters too (canRepaint already rejected pending input).
+				// dispatch asks on full frames; ask now so
 				// the element is clickable, and visible to agents, at once.
 				state.click.Update(gtx.Source)
-				if n.onDrag != nil {
-					if n.dragAccept != nil {
-						state.conditionalDrag.update(gtx.Metric, gtx.Source, n.dragAccept)
+				if n.hasDrag() {
+					if n.dragPredicate() != nil {
+						state.conditionalDrag.update(gtx.Metric, gtx.Source, n.dragPredicate())
 					} else {
 						state.drag.Update(gtx.Metric, gtx.Source, gesture.Both)
 					}
@@ -359,8 +434,8 @@ func (e *engine) paintContent(n *Node) {
 				}()
 			}
 			state.click.Add(gtx.Ops)
-			if n.onDrag != nil {
-				if n.dragAccept != nil {
+			if n.hasDrag() {
+				if n.dragPredicate() != nil {
 					state.conditionalDrag.add(gtx.Ops)
 				} else {
 					state.drag.Add(gtx.Ops)
@@ -516,11 +591,15 @@ func (e *engine) addSemantics(n *Node) {
 // areas only, with no drawing and no input. Only while a platform
 // accessibility client reads the window (loop.Accessibility).
 func (e *engine) paintSemantics(n *Node, pos image.Point) {
-	if n.style.hidden || n.widget != nil {
+	if n.style.hidden || n.effectiveInert || n.widget != nil {
 		return
 	}
 	gtx := e.gtx
 	defer op.Offset(pos).Push(gtx.Ops).Pop()
+	if n.hasVisualMotion() {
+		m, _, _ := e.sampleVisualMotion(n)
+		defer op.Affine(m).Push(gtx.Ops).Pop()
+	}
 	scroll := n.style.scrollY || n.style.scrollX
 	if sem := hasSemantics(n); sem || scroll || n.isText && n.text != "" {
 		defer clip.Rect(image.Rectangle{Max: n.size}).Push(gtx.Ops).Pop()
@@ -540,7 +619,7 @@ func (e *engine) paintSemantics(n *Node, pos image.Point) {
 	}
 	for _, c := range n.children {
 		child := c.node()
-		e.paintSemantics(child, child.pos)
+		e.paintSemantics(child, child.pos.Add(image.Pt(e.dp(child.style.translate[0]), e.dp(child.style.translate[1]))))
 	}
 }
 
@@ -579,7 +658,15 @@ func (c corners) max() int { return max(c[0], c[1], c[2], c[3]) }
 
 func (e *engine) paintBox(st Style, rect image.Rectangle, radius corners) {
 	ops := e.gtx.Ops
-	if g := st.gradient; g != nil {
+	if g := st.sharedGradient; g != nil {
+		gradientClip := radius.rrect(rect).Push(ops)
+		point := func(p f32.Point) f32.Point {
+			return f32.Pt(float32(rect.Min.X)+p.X*float32(rect.Dx()), float32(rect.Min.Y)+p.Y*float32(rect.Dy()))
+		}
+		paint.LinearGradientOp{Stop1: point(g.start), Stop2: point(g.end), Color1: g.from, Color2: g.to}.Add(ops)
+		paint.PaintOp{}.Add(ops)
+		gradientClip.Pop()
+	} else if g := st.gradient; g != nil {
 		paintGradient(ops, *g, rect, radius)
 	} else if st.bg.set {
 		paint.FillShape(ops, st.bg.value, radius.rrect(rect).Op(ops))
@@ -600,15 +687,17 @@ func (e *engine) paintBox(st Style, rect image.Rectangle, radius corners) {
 // paintShadow approximates a blurred shadow with rounded rectangles that grow
 // and fade: their translucent layers add up to theme.Shadow under the element
 // and thin out to nothing Blur dp beyond its edge.
-func (e *engine) paintShadow(sh theme.Elevation, rect image.Rectangle, radius corners) {
+func (e *engine) paintShadow(sh theme.Elevation, color color.NRGBA, layers int, rect image.Rectangle, radius corners) {
 	ops := e.gtx.Ops
 	blur, offset := e.dp(sh.Blur), e.dp(sh.Offset)
-	if blur <= 0 || theme.Shadow.A == 0 {
+	if blur <= 0 || color.A == 0 {
 		return
 	}
-	layers := min(max(blur/2, 3), 16)
-	c := theme.Shadow
-	c.A = uint8(max(1, int(theme.Shadow.A)/layers))
+	if layers == 0 {
+		layers = min(max(blur/2, 3), 16)
+	}
+	c := color
+	c.A = uint8(max(1, int(color.A)/layers))
 	base := rect.Add(image.Pt(0, offset))
 	for i := 1; i <= layers; i++ {
 		grow := blur * i / layers
@@ -618,6 +707,9 @@ func (e *engine) paintShadow(sh theme.Elevation, rect image.Rectangle, radius co
 }
 
 func (e *engine) paintText(n *Node, inner image.Rectangle) {
+	if n.content != nil && n.shimmer == nil && e.paintTextContent(n, inner) {
+		return
+	}
 	gtx := e.gtx
 	defer op.Offset(inner.Min.Add(image.Pt(0, e.textShift(n, scriptOf(n.text))))).Push(gtx.Ops).Pop()
 	g := gtx
@@ -849,6 +941,7 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		st = &copy
 	}
 	previousX, previousY := st.scrollX, st.scrollY
+	previousRanges := [4]int{st.scrollViewX, st.scrollContentX, st.scrollView, st.scrollContent}
 	viewportHovered := st.scrollHover.Update(gtx.Source)
 	bw := e.dp(n.style.borderWidth)
 	pl, pt, pr, pb := e.edges(n.style.pad)
@@ -906,8 +999,10 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		}
 	}
 
-	if gtx.Enabled() && (st.scrollX != previousX || st.scrollY != previousY) {
-		// Virtual content is built before paint; rebuild at the new offset.
+	rangesChanged := previousRanges != [4]int{st.scrollViewX, st.scrollContentX, st.scrollView, st.scrollContent}
+	if gtx.Enabled() && (st.scrollX != previousX || st.scrollY != previousY || rangesChanged && st.scrollObservedFrame == e.store.frame) {
+		// Render-time scroll readers also depend on viewport/content dimensions.
+		// Schedule only a changed observed range, never a resident polling frame.
 		gtx.Execute(op.InvalidateCmd{})
 	}
 

@@ -17,7 +17,11 @@ type unmountWhenClosed struct {
 func (u unmountWhenClosed) Render(cx *el.Context) el.Element {
 	e := u.view.Render(cx)
 	if !u.isOpen() {
-		cx.Unmount(u.key)
+		// Dialog and Sheet return a hidden marker only after their visual
+		// exit finishes. Keep the mount alive for those remaining frames.
+		if marker, ok := e.(interface{ IsHidden() bool }); e == nil || ok && marker.IsHidden() {
+			cx.Unmount(u.key)
+		}
 	}
 	return e
 }

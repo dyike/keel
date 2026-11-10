@@ -106,7 +106,7 @@ func TestNotifierClearCancelsVisibleAndQueuedTimers(t *testing.T) {
 	n.Clear()
 	n.Notify(Notice{Title: "New", Timeout: -1})
 	h.Frame()
-	c.advance(h, 5*time.Second)
+	c.advanceFrames(h, 5*time.Second)
 	if closes != MaxNotifications+2 || n.Len() != 1 || !shown(h, "New") {
 		t.Fatal("clear left old timer/callback", closes)
 	}

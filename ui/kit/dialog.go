@@ -198,7 +198,9 @@ func (v *DialogView) message(title, message, okText string, variant ButtonVarian
 }
 
 func (v *DialogView) Render(cx *el.Context) el.Element {
-	if !v.open {
+	id := autoID("dialog", v)
+	presence := floatingPresence(cx, id, v.open)
+	if !presence.Visible {
 		v.opened = false
 		return el.Div().Hidden(true)
 	}
@@ -206,7 +208,6 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 	if v.alert {
 		role = "alertdialog"
 	}
-	id := autoID("dialog", v)
 	w, h := cx.ViewportSize()
 	panel := floating(theme.ElevationLg).Rounded(theme.RadiusXl).Role(role).Name(v.title).W(el.Dp(v.width)).MaxW(el.Dp(max(0, w-16))).MaxH(el.Dp(max(0, h-16))).ScrollY().P(20).Gap(theme.SpaceXl).Items(el.Stretch)
 	layer := el.Modal(panel).Owner(id).BeforeDismiss(v.canCancel).OnDismiss(v.closeAccepted).Scrim(!v.overlayOff)
@@ -220,7 +221,7 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 	if !outside {
 		layer.KeepOnOutsidePress()
 	}
-	cx.Overlay(id, layer)
+	cx.Overlay(id, layer.Presence(presence))
 	if v.title != "" || v.closeButton {
 		header := el.Div().ID(id + "/header").Row().Items(el.Center).Gap(theme.SpaceMd)
 		if v.icon != IconNone {
@@ -254,10 +255,10 @@ func (v *DialogView) Render(cx *el.Context) el.Element {
 		}
 		panel.Child(row)
 	}
-	if !v.opened && v.focus != "" {
+	if v.open && !v.opened && v.focus != "" {
 		cx.Focus(v.focus)
 	}
-	v.opened = true
+	v.opened = v.open
 	return el.Div().ID(id).Absolute().Size(el.Dp(0)).Disabled(v.disabled)
 }
 

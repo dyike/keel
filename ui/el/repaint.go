@@ -84,10 +84,10 @@ func AmbientPhase(gtx core.C, period time.Duration) float32 {
 // canRepaint reports whether this frame may repaint the retained one.
 func (r *RootWidget) canRepaint(gtx core.C, visible image.Rectangle, origin image.Point, parents []*elemState) bool {
 	// The tick the previous frame's AmbientPhase calls requested.
-	due := r.ambientDue
-	r.ambientDue = time.Time{}
+	due, motion := r.ambientDue, r.motionDue
+	r.ambientDue, r.motionDue = time.Time{}, false
 	p := &r.retained
-	if !r.retainFrames || p.tree == nil || !gtx.Enabled() || due.IsZero() || gtx.Now.Before(due) {
+	if !r.retainFrames || p.tree == nil || !gtx.Enabled() || !motion && (due.IsZero() || gtx.Now.Before(due)) {
 		return false
 	}
 	if !p.quiet || gtx.Source.Pending() {
@@ -140,6 +140,8 @@ func (r *RootWidget) retain(gtx core.C, tree *Node, cx *Context, visible image.R
 // previous frame's.
 func (r *RootWidget) repaint(gtx core.C, visible image.Rectangle) core.D {
 	e := &r.e
+	e.paintOnly = true
+	defer func() { e.paintOnly = false }()
 	st := r.store
 	st.beginStateStats()
 	defer st.endStateStats()
@@ -168,10 +170,13 @@ func (r *RootWidget) repaint(gtx core.C, visible image.Rectangle) core.D {
 	paintingRoot = r
 	defer func() { paintingRoot = prior }()
 	e.paint(tree)
+	e.paintFlights(visible.Intersect(image.Rectangle{Max: max}), nil)
 	e.textAtlasActive = false
 	area.Pop()
 	e.blockInput, e.blockFocus = false, false
 	r.paintLayers(cx, base, r.focusedTag())
+	e.sweepContentStates()
+	e.sweepSharedLayouts()
 	r.repaints++
 	if r.fill {
 		return core.D{Size: max}

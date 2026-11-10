@@ -1096,8 +1096,15 @@ func (op *areaOp) Hit(pos f32.Point) bool {
 }
 
 func (a *areaNode) bounds() image.Rectangle {
+	// Keel patch: rotated or reflected areas need all four corners. Transforming
+	// only Min and Max can invert a semantic box or omit its visible corners.
+	r := a.area.rect
+	p0 := a.trans.Transform(f32internal.FPt(r.Min))
+	p1 := a.trans.Transform(f32.Pt(float32(r.Max.X), float32(r.Min.Y)))
+	p2 := a.trans.Transform(f32.Pt(float32(r.Min.X), float32(r.Max.Y)))
+	p3 := a.trans.Transform(f32internal.FPt(r.Max))
 	return f32internal.Rectangle{
-		Min: a.trans.Transform(f32internal.FPt(a.area.rect.Min)),
-		Max: a.trans.Transform(f32internal.FPt(a.area.rect.Max)),
+		Min: f32.Pt(min(p0.X, p1.X, p2.X, p3.X), min(p0.Y, p1.Y, p2.Y, p3.Y)),
+		Max: f32.Pt(max(p0.X, p1.X, p2.X, p3.X), max(p0.Y, p1.Y, p2.Y, p3.Y)),
 	}.Round()
 }

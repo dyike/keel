@@ -2,6 +2,7 @@ package window
 
 import (
 	"bytes"
+	"github.com/dyike/keel/ui/theme"
 	"image/color"
 	"image/png"
 	"testing"
@@ -11,6 +12,9 @@ import (
 )
 
 func TestPopoverPanelStylePixels(t *testing.T) {
+	oldMotion := theme.ReducedMotion
+	theme.SetReducedMotion(true) // Compare settled pixels; animation has separate frame-time tests.
+	defer theme.SetReducedMotion(oldMotion)
 	p := kit.Popover(el.ViewFunc(func(*el.Context) el.Element { return el.Div().Size(el.Dp(40)) })).Width(120)
 	p.Trigger(kit.Button("Open", p.Toggle))
 	p.SetValue(true)

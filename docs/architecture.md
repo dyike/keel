@@ -244,3 +244,5 @@ SVG parsing uses the local `internal/oksvg` copy from `ui/kit`; it depends only 
 On macOS and Windows, `gio/app` uses native window decorations and does not import the fallback Material/text stack. Keel UI widgets still depend on text and theme normally. Other targets retain Gio's client-side decoration fallback.
 
 The optional `ui/highlight/golang` provider includes Go, Go text templates and plain text only. Both highlighting providers use `ui/internal/codehighlight` for token conversion. Components selects this provider; its image fixtures are local/data URLs and do not require `ui/netimage`.
+
+`ui/internal/animation` owns frame-time numerical sampling (springs, tweens, keyframes and inertia) and depends only on the standard library. `ui/el` and `ui/motion` share it. Element animation state, paint transforms and exit lifecycles belong to `ui/el`; components use public el APIs without importing `ui/motion` back into lower layers.

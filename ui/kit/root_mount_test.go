@@ -6,9 +6,13 @@ import (
 	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/uitest"
+	"github.com/dyike/keel/ui/theme"
 )
 
 func TestShowAndWindowNotifierNeedNoTree(t *testing.T) {
+	oldMotion := theme.ReducedMotion
+	theme.SetReducedMotion(true) // This test verifies mounting; timed exits have separate coverage.
+	defer theme.SetReducedMotion(oldMotion)
 	dlg := Dialog("Rename").Body(text("New name"))
 	sheet := Sheet(el.Right, "Details").Body(text("Order 42"))
 	var notifiers []*NotifierView

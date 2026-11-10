@@ -40,18 +40,22 @@ func childKey(parent stateKey, id string, index int) stateKey {
 
 // elemState is what an element keeps between frames.
 type elemState struct {
-	hoverTag   int
-	hovered    bool
-	blocked    bool
-	id         string
-	focusable  bool
-	disabled   bool
-	onKey      func(KeyEvent) bool
-	keyParent  *elemState
-	keyFrame   uint64
-	pressedKey key.Name
-	keyFilters []event.Filter
-	filterMode uint8
+	pose         *poseState
+	content      *textContentState
+	layoutMotion *layoutMotionState
+	dragMotion   *dragMotionState
+	hoverTag     int
+	hovered      bool
+	blocked      bool
+	id           string
+	focusable    bool
+	disabled     bool
+	onKey        func(KeyEvent) bool
+	keyParent    *elemState
+	keyFrame     uint64
+	pressedKey   key.Name
+	keyFilters   []event.Filter
+	filterMode   uint8
 	// Pointer focus keeps keyboard routing without drawing a focus ring.
 	pointerFocus bool
 	// inputRing: the editor took focus from the keyboard or a program, so its
@@ -100,6 +104,7 @@ type elemState struct {
 	scrollWantedAt           time.Time // the last frame the bars were wanted
 	scrollAlpha              float32
 	scrollableX, scrollableY bool
+	scrollObservedFrame      uint64
 
 	scrollHorizontal                                                 gesture.Scroll
 	scrollX, scrollPendingX, scrollMaxX, scrollViewX, scrollContentX int
@@ -215,8 +220,14 @@ func (s *store) sweep() {
 
 // assignKeys gives every node its state key, and keeps the state of every
 // element in the tree alive, painted or not (it may be scrolled out of view).
-func (s *store) assignKeys(n *Node, key stateKey) {
+func (s *store) assignKeys(n *Node, key stateKey) { s.assignSharedKeys(n, key, nil, 0) }
+
+func (s *store) assignNodeKeys(n *Node, key stateKey) {
 	n.key = key
+	n.sharedSubtree = n.sharedLayout != nil
+	if n.sharedFly && n.sharedLayout == nil {
+		panic("el: Fly requires SharedLayout")
+	}
 	if s.stats != nil {
 		s.stats.labels[key] = labelState(n)
 	}
@@ -224,10 +235,18 @@ func (s *store) assignKeys(n *Node, key stateKey) {
 	n.state = st
 	if st != nil {
 		st.frame = s.frame
-	}
-	for i, c := range n.children {
-		cn := c.node()
-		s.assignKeys(cn, childKey(key, cn.id, i))
+		if n.dragMotion == nil {
+			st.dragMotion = nil
+		}
+		if n.content == nil || n.shimmer != nil {
+			st.content = nil
+		}
+		if n.pose == nil {
+			st.pose = nil
+		}
+		if n.layoutMotion == nil {
+			st.layoutMotion = nil
+		}
 	}
 }
 

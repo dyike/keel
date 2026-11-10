@@ -4,7 +4,7 @@
 
 GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回一棵链式样式搭起来的元素树；flexbox 布局；元素状态（悬停、滚动、输入框内容）按元素路径或 ID 自动保存；Agent 语义自动生成。
 
-- **依赖**：`core`、`theme`、`locale`，以及内部的 `ui/internal/loop`、`ui/internal/editorstyle`、`ui/internal/inputcontent`。不依赖 `kit`、`window`。
+- **依赖**：`core`、`theme`、`locale`，以及内部的 `ui/internal/loop`、`ui/internal/editorstyle`、`ui/internal/inputcontent`, `ui/internal/animation`。不依赖 `kit`、`window`。
 - **被谁依赖**：应用代码。`window` 通过 `FillsWindow` 接口认出 `el.Root`，不引用本包。
 
 | 文件 | 内容 |
@@ -34,3 +34,15 @@ GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回�
 `input_paste.go` 在默认文本插入前处理 OnPaste；可接入 core.ClipboardReader，原生读取失败回退 Gio 纯文本通路。异步完成通过 core.Update，编辑内容或选区变化后丢弃旧结果。
 
 原子输入引用由 `el.InputDocument` 接入 `ui/internal/inputcontent`，后者只保存文本、引用范围、选区和编辑事务，不依赖 Gio 或其他 Keel 模块。kit 和 markdown 仅经 el 间接依赖它。
+
+可拖拽盒子支持父坐标轴移动、边界阻力、松手速度与吸附点，详见[拖拽与松手动画](../../docs/el.zh-CN.md#拖拽与松手动画)。
+
+文字内容过渡支持淡入淡出、数字滚动和完整塑形簇的重排，详见[文字内容变化](../../docs/el.zh-CN.md#文字内容变化)。
+
+SharedLayout 连接不同父容器中的前后两个元素，点击区域与锚定浮层同步移动。参见[共享元素](../../docs/el.zh-CN.md#跨父容器的共享元素)。
+
+共享布局加 `.Fly()` 后可越过祖先裁剪，仍绘制在后续浮层下方；Inert 退场状态仍禁止交互并隐藏语义。
+
+共享元素切换还会插值基础纯色、圆角、边框宽度和透明度。Text 同时声明 SharedLayout 与 ContentTransition 后，可跨父容器衔接文字，支持中途反向和字体变化。
+
+共享容器加 MatchText 后，按相对 ID/路径自动配对子文字。共享过渡也支持线性渐变和 Elevation 阴影插值。

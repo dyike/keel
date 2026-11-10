@@ -4,6 +4,7 @@ import (
 	"image"
 	"math"
 
+	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/io/event"
 	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/gio/io/pointer"
@@ -42,6 +43,8 @@ type Layer struct {
 	dismiss                      func()
 	beforeDismiss                func() bool
 	onEscape                     func() bool
+	presenceFade                 float32
+	exiting                      bool
 }
 
 func Anchored(anchorID string, content Element) *Layer {
@@ -104,6 +107,25 @@ func (l *Layer) KeepOnOutsidePress() *Layer { l.keepOnOutside = true; return l }
 func (l *Layer) KeepOnEscape() *Layer { l.keepOnEscape = true; return l }
 func (l *Layer) Scrim(on bool) *Layer { l.scrim = on; return l }
 
+// Presence applies an entry/exit sample to the content and scrim. An exiting
+// layer immediately releases modality and returns focus. Its visual exit
+// cannot handle dismissal or pointer input and is hidden from accessibility.
+func (l *Layer) Presence(p PresenceFrame) *Layer {
+	n := l.content.node()
+	n.pose = &poseSpec{p.Pose, Instant}
+	n.inert = p.Exiting
+	l.presenceFade = p.Pose.Fade
+	if !p.Visible {
+		n.style.hidden = true
+	}
+	if p.Exiting {
+		l.exiting, l.modal, l.trap = true, false, false
+		l.keepOnEscape, l.keepOnOutside = true, true
+		l.dismiss, l.beforeDismiss, l.onEscape = nil, nil, nil
+	}
+	return l
+}
+
 type overlayDecl struct {
 	eligible bool
 	key      any
@@ -119,6 +141,10 @@ type layerState struct {
 	arrowBounds       image.Rectangle
 	returnFocus       event.Tag
 	active, dismissed bool
+	trapped           bool // focus ownership from the preceding painted frame
+	flightAreas       []flightHit
+	inputTransform    f32.Affine2D // visual root coordinates to the layout box
+	clipBounds        image.Rectangle
 }
 
 // Overlay declares a layer in paint order. key must be comparable and unique
@@ -164,7 +190,7 @@ func (r *RootWidget) prepareLayers(cx *Context) {
 	ids := map[string]bool{}
 	var collect func(*Node)
 	collect = func(n *Node) {
-		if n.style.hidden || n.effectiveDisabled || n.disabled {
+		if n.style.hidden || n.effectiveDisabled || n.effectiveInert || n.disabled || n.inert {
 			return
 		}
 		if n.id != "" {
@@ -214,6 +240,7 @@ func (r *RootWidget) prepareLayers(cx *Context) {
 	}
 }
 func (r *RootWidget) blockTree(n *Node, blocked bool) {
+	blocked = blocked || n.effectiveInert
 	if !r.e.gtx.Enabled() {
 		return
 	}
@@ -254,7 +281,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 	// notification stack above a dialog does not swallow it.
 	for i := len(cx.layers) - 1; i >= 0; i-- {
 		d := cx.layers[i]
-		if !d.state.active || (d.layer.dismiss == nil && d.layer.onEscape == nil && !d.layer.keepOnEscape) {
+		if !d.state.active || d.layer.exiting || (d.layer.dismiss == nil && d.layer.onEscape == nil && !d.layer.keepOnEscape) {
 			continue
 		}
 		for {
@@ -280,7 +307,7 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 	for i := len(cx.layers) - 1; i >= 0; i-- {
 		d := cx.layers[i]
 		st := d.state
-		if !st.active {
+		if !st.active || d.layer.exiting {
 			continue
 		}
 		for {
@@ -290,8 +317,19 @@ func (r *RootWidget) dispatchLayers(cx *Context) {
 			}
 			r.keyboardModality = false
 			p := ev.(pointer.Event).Position
-			pos := image.Pt(int(p.X), int(p.Y))
-			if !d.layer.keepOnOutside && !pos.In(st.bounds) && !pos.In(st.arrowBounds) && (d.layer.modal || !pos.In(st.anchor)) {
+			local := st.inputTransform.Transform(p)
+			pos := image.Pt(int(math.Floor(float64(local.X))), int(math.Floor(float64(local.Y))))
+			anchorPos := image.Pt(int(math.Floor(float64(p.X))), int(math.Floor(float64(p.Y))))
+			outside := !anchorPos.In(st.clipBounds) || !pos.In(st.bounds) && !pos.In(st.arrowBounds)
+			if anchorPos.In(st.clipBounds) {
+				for _, area := range st.flightAreas {
+					if area.contains(p) {
+						outside = false
+						break
+					}
+				}
+			}
+			if !d.layer.keepOnOutside && outside && (d.layer.modal || !anchorPos.In(st.anchor)) {
 				r.dismissLayer(st, d.layer, false)
 			}
 		}
@@ -409,6 +447,7 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 			}
 			n.pos, actualSide = layerPlacement(anchor, n.size, maxSize, l.side, l.align, gap)
 		}
+		reentering := st.layer != nil && st.layer.exiting && !l.exiting
 		st.layer, st.tree, st.anchor = l, n, anchor
 		st.bounds = image.Rectangle{Min: n.pos, Max: n.pos.Add(n.size)}
 		st.arrowBounds = image.Rectangle{}
@@ -417,7 +456,18 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 			arrow = newLayerArrow(st.bounds, anchor, actualSide, l.align, r.e.dp(6), r.e.dp(n.style.radius))
 			st.arrowBounds = arrow.bounds
 		}
-		if !st.active {
+		visual, layerFade := f32.AffineId(), float32(0)
+		if n.hasVisualMotion() {
+			m, fade, _ := r.e.sampleVisualMotion(n)
+			if n.sharedLayout != nil {
+				m, _ = r.e.sampleSharedLayout(n, m, n.pos)
+			}
+			visual = f32.AffineId().Offset(f32.Pt(float32(n.pos.X), float32(n.pos.Y))).Mul(m).Mul(f32.AffineId().Offset(f32.Pt(-float32(n.pos.X), -float32(n.pos.Y))))
+			layerFade = fade
+		}
+		st.inputTransform = visual.Invert()
+		st.clipBounds = image.Rectangle{Min: image.Pt(0, inset), Max: maxSize}
+		if !st.active || reentering || !st.trapped && l.trap {
 			st.returnFocus = priorFocus
 			st.dismissed = false
 		}
@@ -426,9 +476,11 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 		macro := op.Record(gtx.Ops)
 		area := clip.Rect{Max: maxSize}.Push(gtx.Ops)
 		if l.centered && l.scrim {
-			paint.Fill(gtx.Ops, theme.Scrim)
+			scrim := theme.Scrim
+			scrim.A = uint8(float32(scrim.A) * (1 - l.presenceFade))
+			paint.Fill(gtx.Ops, scrim)
 		}
-		if !r.e.blockInput {
+		if !r.e.blockInput && !l.exiting {
 			// Pass-through observes outside presses without consuming the target click.
 			var pass pointer.PassStack
 			if !l.modal {
@@ -440,19 +492,33 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 				pass.Pop()
 			}
 			// Content is an opaque hit area, even between its interactive children.
+			surfaceViewport := clip.Rect(st.clipBounds).Push(gtx.Ops)
+			transformed := op.Affine(visual).Push(gtx.Ops)
 			surface := clip.Rect(st.bounds.Union(st.arrowBounds)).Push(gtx.Ops)
 			gtx.Event(pointer.Filter{Target: &st.surface, Kinds: pointer.Press | pointer.Release})
 			event.Op(gtx.Ops, &st.surface)
 			surface.Pop()
+			transformed.Pop()
+			surfaceViewport.Pop()
 		}
 		if i < modal {
 			core.Role("el-inert").Add(gtx.Ops)
 		}
 		contentClip := clip.Rect{Min: image.Pt(0, inset), Max: maxSize}.Push(gtx.Ops)
 		r.e.paint(n)
+		st.flightAreas = st.flightAreas[:0]
+		r.e.paintFlights(st.clipBounds, &st.flightAreas)
 		contentClip.Pop()
 		if arrow != nil {
-			arrow.paint(gtx.Ops, n.style)
+			transformed := op.Affine(visual).Push(gtx.Ops)
+			if layerFade > 0 {
+				opacity := paint.PushOpacity(gtx.Ops, 1-layerFade)
+				arrow.paint(gtx.Ops, n.style)
+				opacity.Pop()
+			} else {
+				arrow.paint(gtx.Ops, n.style)
+			}
+			transformed.Pop()
 		}
 		area.Pop()
 		call := macro.Stop()
@@ -479,7 +545,7 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 				break
 			}
 		}
-		if !present && st.layer.trap {
+		if st.trapped && (!present || !st.layer.trap) {
 			restore, closed = st.returnFocus, true
 		}
 	}
@@ -487,15 +553,17 @@ func (r *RootWidget) paintLayers(cx *Context, base textStyle, priorFocus event.T
 		r.focusTag(restore)
 	}
 	for _, st := range active {
-		if !st.active && st.layer.trap {
+		if !st.trapped && st.layer.trap {
 			r.focusFirst(st.tree)
 		}
 	}
 	for _, st := range old {
 		st.active = false
+		st.trapped = false
 	}
 	for _, st := range active {
 		st.active = true
+		st.trapped = st.layer.trap
 	}
 	r.activeLayers = active
 	used := map[any]bool{}

@@ -66,3 +66,6 @@ dlg.Confirm("提交", "确认提交？", submit)
 dlg.Icon(kit.IconWarning).ConfirmDanger("删除订单", "删除后不能恢复。", "删除", remove)
 dlg.Icon(kit.IconCheck).IconTone(kit.ToneSuccess).Alert("导出完成", "共 36 条记录。", nil)
 ```
+
+
+进退场共用根视图管理的 presence 生命周期。逻辑关闭时立即禁用退场内容并解除模态、释放焦点，画面继续完成短暂退场；中途重开从当前姿态反向，减少动态效果时跳过过渡。`Show` 挂载持续到退场完成，移除组件会取消生命周期。这些行为位于工作分支，尚未包含在 v0.4.2 中。

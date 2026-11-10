@@ -1474,7 +1474,7 @@ func (d *drawState) materialFor(rect f32.Rectangle, off f32.Point, partTrans f32
 		m.color2 = f32color.LinearFromSRGB(d.color2)
 		m.opaque = m.color1.A == 1.0 && m.color2.A == 1.0
 
-		m.uvTrans = partTrans.Mul(gradientSpaceTransform(clip, off, d.stop1, d.stop2))
+		m.uvTrans = gradientSpaceTransform(clip, d.t, d.stop1, d.stop2)
 	case materialTexture:
 		m.material = materialTexture
 		dr := rect.Add(off).Round()
@@ -1817,20 +1817,26 @@ func texSpaceTransform(r f32.Rectangle, bounds image.Point) (f32.Point, f32.Poin
 	return scale, offset
 }
 
-// gradientSpaceTransform transforms stop1 and stop2 to [(0,0), (1,1)].
-func gradientSpaceTransform(clip image.Rectangle, off f32.Point, stop1, stop2 f32.Point) f32.Affine2D {
-	d := stop2.Sub(stop1)
-	l := float32(math.Sqrt(float64(d.X*d.X + d.Y*d.Y)))
-	a := float32(math.Atan2(float64(-d.Y), float64(d.X)))
-
-	// TODO: optimize
-	zp := f32.Point{}
-	return f32.AffineId().
-		Scale(zp, layout.FPt(clip.Size())).            // scale to pixel space
-		Offset(zp.Sub(off).Add(layout.FPt(clip.Min))). // offset to clip space
-		Offset(zp.Sub(stop1)).                         // offset to first stop point
-		Rotate(zp, a).                                 // rotate to align gradient
-		Scale(zp, f32.Pt(1/l, 1/l))                    // scale gradient to right size
+// gradientSpaceTransform maps normalized quad coordinates through the inverse
+// paint transform into the local gradient. Texture bounding-box transforms do
+// not apply to gradients: scaling or shearing the infinite paint rectangle
+// otherwise changes the stops' positions and produces a color jump.
+func gradientSpaceTransform(clip image.Rectangle, transform f32.Affine2D, stop1, stop2 f32.Point) f32.Affine2D {
+	a, b, x, c, e, y := transform.Invert().Elems()
+	dx, dy := float64(stop2.X-stop1.X), float64(stop2.Y-stop1.Y)
+	length2 := dx*dx + dy*dy
+	if length2 == 0 {
+		return f32.NewAffine2D(0, 0, 0, 0, 0, 0)
+	}
+	// Build coefficients directly, avoiding reciprocal-scale Affine2D values
+	// close to zero (its diagonal is represented relative to one).
+	px := float64(a)*float64(clip.Min.X) + float64(b)*float64(clip.Min.Y) + float64(x-stop1.X)
+	py := float64(c)*float64(clip.Min.X) + float64(e)*float64(clip.Min.Y) + float64(y-stop1.Y)
+	w, h := float64(clip.Dx()), float64(clip.Dy())
+	return f32.NewAffine2D(
+		float32((dx*float64(a)+dy*float64(c))*w/length2), float32((dx*float64(b)+dy*float64(e))*h/length2), float32((dx*px+dy*py)/length2),
+		float32((-dy*float64(a)+dx*float64(c))*w/length2), float32((-dy*float64(b)+dx*float64(e))*h/length2), float32((-dy*px+dx*py)/length2),
+	)
 }
 
 // clipSpaceTransform returns the scale and offset that transforms the given

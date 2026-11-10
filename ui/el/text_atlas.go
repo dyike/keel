@@ -49,7 +49,7 @@ func (e *engine) prepareTextAtlas(tree *Node) {
 }
 
 func (e *engine) prepareAtlasNode(n *Node, origin image.Point, visible image.Rectangle) {
-	if n.style.hidden || n.decorate != nil || n.style.scrollX || n.style.scrollY {
+	if n.style.hidden || n.content != nil || n.decorate != nil || n.hasVisualMotion() || n.style.scrollX || n.style.scrollY {
 		return
 	}
 	pos := origin.Add(n.pos).Add(image.Pt(e.dp(n.style.translate[0]), e.dp(n.style.translate[1])))

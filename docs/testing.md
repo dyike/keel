@@ -4,6 +4,157 @@ English | [简体中文](testing.zh-CN.md)
 
 Most interface tests do not require opening a window: the `ui/internal/uitest` testing tool sends clicks, keys, and text through Gio's real input routing. The code executed by the component is exactly the same as that of the real window. `go test -race ./...` takes about 10 seconds to run on this machine.
 
+## Motion integration, 2026-11-06 (working branch)
+
+The animation work is **not part of v0.4.2**. Native-window validation now covers
+pose, layout-size, shaping-cluster text morph and numeric rolling, including a
+resize from 640×400dp to 720×460dp at 2×. Each 600ms animation is observed for
+1.2 seconds. Three alternating runs compare the same executable and content
+with retained painting enabled versus `-full`, which rebuilds every frame.
+
+Each phase submits **37–38 layout callbacks**. Retained painting runs Render
+**once per phase**, versus 37–38 times with full rebuilding. All six runs finish
+with **zero additional layout callbacks during three idle seconds**. This proves
+retained rendering and settled scheduling, not display presentation FPS or
+zero process CPU usage; delayed memory collection can still run without a frame.
+
+| Small native fixture, MiB | Full rebuild median (range) | Retained median (range) |
+| --- | ---: | ---: |
+| Physical footprint, final two sampled seconds | 46.09 (45.16–46.39) | 45.49 (45.44–46.31) |
+| Kernel lifetime peak | 108.50 (108.38–112.52) | 108.14 (107.92–112.30) |
+
+The ranges overlap. **No significant total-memory reduction is established.**
+Measurements use `proc_pid_rusage` v4, nominally every 50ms, on Apple M4,
+darwin/arm64, Go 1.27.3, `CGO_ENABLED=0`, with identical stripped, trimpath
+builds. The display is unlocked, trials are serial, and no tests or builds run
+alongside them. No fixture GC is forced; normal idle reclamation remains on.
+Three seconds of idle is shorter than the gallery's 20-second recovery period.
+
+The fixture is `ui/window/testdata/pose`; raw samples and phase logs are under
+`work/motion-integration/motion-{full,retained}-*.{log,json}`. Text tests also
+compare real headless-GPU pixels at entry, interruption, retained/full frames
+and rest, including CJK, combining accents, color ranges and emoji. They verify
+that an empty string completes its exit and that offscreen/omitted transitions
+release old glyphs. These checks do not replace native scroll, drag, presence
+interaction or the final validation after shared-element support is added.
+
+### Shared elements and native interaction
+
+The later shared-layout checkpoint adds two native fixture phases: thumbnail
+expansion and return, each a 600ms tween observed for 1.2 seconds. The six-phase
+`TestRealWindows/./testdata/pose` run passes with retained painting, window resize
+and a three-second idle check (`native-shared.log`). This is animation validation;
+it does not update the earlier memory measurements.
+
+Native mouse interaction in Components additionally verifies transformed-card
+clicks, horizontal drag/snap to 240dp and back to 0dp, scrolling, number/text
+changes, icon/image replacement, thumbnail/detail round trips, list replacement
+and reordering, width changes, and dialog close/reopen/Esc. A fast release exposed
+excessive spring overshoot; settling now absorbs outward velocity at the same
+elastic limit as direct dragging. The extreme-velocity regression and a native
+mouse rerun pass. These observations are not presentation frame-rate measurements.
+
+Shared-layout tests cover cross-parent interruption, short-path rotation,
+spring velocity continuity, destination clips, pointer/anchor geometry, resize,
+density, reduced motion and cleanup. Retained/full pixels match byte-for-byte.
+Equivalent rounded paths across a change of scale use a two-channel-level edge
+quantization tolerance for handoff/interruption comparisons.
+
+The subsequent `Fly` checkpoint passes a seven-phase native fixture, including
+an inert ancestor while its shared child is still moving (`native-fly-final.log`).
+Real mouse input in the rebuilt Components gallery expands the photo out of its
+scroll container and returns it by clicking the displayed image. Pixel/input
+tests verify that ancestor clips and opacity do not hide a flight, its own opacity
+and local theme survive, anchored overlays follow it, and later modals stay above
+it. A flying child outside its dialog's rectangle does not dismiss that dialog;
+a genuinely outside click still does. Inert flights continue moving and fading
+while input, automation and platform accessibility remain suppressed.
+
+
+The appearance/text checkpoint adds base color, radius, border-width and opacity
+interpolation and cross-owner Text transitions. GPU tests cover different box
+proportions, font sizes, interrupted reversal, retained/full parity and exact rest;
+they also caught and fixed precision loss from reciprocal affine scales. The
+seven-phase native fixture now includes these properties and an inert shared
+label (`native-shared-look.log`, passed). A rebuilt native Components window
+expands the rounded photo and title together; clicking the displayed title
+returns both. These are animation results, not new memory measurements.
+
+
+Final integration checks pass with Go 1.27.3 on darwin/arm64: `go test ./...`,
+`CGO_ENABLED=0 go test ./...`, `go test -race ./...`, `go vet ./...`, the
+CGO-free Windows build and Linux native/CLI vet. The component workflow passes
+800 matrix images, 100 headless scenes and nine interaction groups. Logs are
+`work/motion-integration/final-*.log` and `component-final/summary.json`.
+These checks do not establish native runtime support on Windows or Linux.
+
+### Gradient, automatic text and scroll binding, 2026-11-07
+
+The working branch now interpolates shared-element gradients and Elevation shadows,
+matches descendant Text by relative paths with `MatchText`, and binds timelines to
+scroll containers with `ScrollBinding`. Explicit text identities and manual scroll
+sampling already exist in the inspected MyGo implementation; the latter two APIs
+are Keel conveniences, not evidence of previously missing MyGo behavior.
+
+GPU tests cover gradient/shadow handoff, interrupted reversal and retained/full
+parity. A scaled gradient exposed a Gio paint-transform bug: gradient sampling now
+uses the inverse paint transform. Dedicated Gio affine and headless pixel tests
+cover that fix. Text tests cover nested owners, cached children, explicit scopes
+and cleanup. Vertical and horizontal scroll tests verify content-range changes,
+explicit ranges and no repeated wakeups after settling.
+
+Default and CGO-free full tests, race tests, vet, Windows CGO-free builds and Linux
+native/CLI vet pass on Go 1.27.3. The updated seven-phase native fixture passes,
+including resize, an inert text container and three idle seconds. Evidence is in
+`work/motion-integration/followup-*.log`. The component rerun passes 800 matrix
+images, 100 headless scenes and nine interaction groups (`component-followup/summary.json`).
+The two GIF previews use actual Keel GPU
+rendering with a controlled clock; they are not desktop recordings or FPS evidence.
+These changes are local and unreleased. Intermediate-size text reflow and arbitrary
+multi/inset shadows are still outside this implementation; full MyGo parity is not
+claimed. This checkpoint does not update the memory measurements below.
+
+### Matching Components comparison
+
+Three alternating unlocked native-window trials compare v0.4.2 (`d4d26d0`) with
+the motion integration checkpoint. Both show the same gallery: the new Motion
+example is excluded from this comparison's registry so content stays identical.
+The scenario uses 1200×860dp / 2400×1720 pixels, default home animations,
+600 acknowledged scroll updates, 20 resizes, eight page visits, 20 seconds idle
+and resumed scrolling. All six scroll phases render 601 callbacks. The same
+Go 1.27.3/CGO-free build settings and serial physical-footprint sampling apply.
+
+| MiB | v0.4.2 median (range) | Motion checkpoint median (range) |
+| --- | ---: | ---: |
+| Startup sampled peak | 151.88 (151.77–152.41) | 151.97 (136.02–152.11) |
+| Home animation sampled peak | 152.50 (152.35–152.66) | 152.24 (136.53–152.28) |
+| Continuous-scroll sampled peak | 161.44 (161.33–161.60) | 161.50 (161.16–161.95) |
+| Resize sampled peak | 172.99 (172.06–180.02) | 172.42 (172.03–179.94) |
+| Page-switching sampled peak | 174.13 (173.80–175.75) | 173.86 (173.67–174.22) |
+| Idle physical footprint | 68.14 (68.11–68.74) | 67.99 (67.97–72.51) |
+| Kernel lifetime peak | 184.35 (180.75–184.41) | 184.39 (184.35–184.61) |
+
+There is **no material total-memory reduction**. Current trial 3 has eight idle
+layout callbacks versus one in the other five trials, and a higher final idle
+reading. It remains in the results. An extra diagnostic rerun has one idle
+callback with no pending input and 67.67 MiB idle footprint; it does not reproduce
+or explain the earlier event. Do not classify it as a fixed leak or discard it.
+
+Maximum layout callback time over the scenario is 15.78–19.39ms before and
+19.84–20.56ms at this checkpoint. Startup-phase maxima are 15.49–16.67ms and
+15.32–20.16ms; resumed-layout completion is 13.92–14.45ms and 14.73–16.30ms.
+These CPU timings do not measure first-frame presentation latency or display FPS.
+The higher page-switching maxima and isolated idle activity remain under review.
+
+The matched, stripped scenario executables are 20,153,666 and 20,325,282 bytes:
++171,616 bytes (+0.85%). This excludes the new gallery demo and is not a packaged
+application-size measurement. The native/memory/size samples precede the later
+text-exit-clock refinement; final measurements after remaining features are
+still required. Source hashes and all raw data are in `work/motion-integration/`.
+The first attempted baseline used `/tmp` overlay keys while Go resolved
+`/private/tmp`, so it ran the ordinary entry point. It is explicitly excluded
+under `excluded-overlay-path/`; corrected builds verify the entry and commit.
+
 ## Components inline-font memory, 2026-11-06 (local)
 
 Three alternating before/after native-window trials reduce the full gallery's

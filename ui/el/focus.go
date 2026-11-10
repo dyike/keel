@@ -151,6 +151,11 @@ func (cx *Context) Focus(id string) {
 }
 
 func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
+	r.prepareKeysInert(n, parent, disabled, false)
+}
+
+func (r *RootWidget) prepareKeysInert(n *Node, parent *elemState, disabled, inert bool) {
+	n.effectiveInert = inert || n.inert
 	n.effectiveDisabled = disabled || n.disabled || n.style.hidden || n.style.revealSet && n.style.reveal <= 0
 	n.disabledRoot = n.effectiveDisabled && !disabled
 	st := r.store.of(n)
@@ -164,19 +169,28 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 	if st != nil && r.e.gtx.Enabled() {
 		st.id = n.id
 		st.scrollableX, st.scrollableY = n.style.scrollX, n.style.scrollY
-		st.disabled = n.effectiveDisabled
+		st.disabled = n.effectiveDisabled || n.effectiveInert
 		st.focusable = n.isFocusable() && n.input == nil
 		st.onKey, st.keyParent = n.onKey, parent
 		st.onContextMenu, st.contextButton = n.onContextMenu, n.contextButton
 		st.onClick, st.onDoubleClick, st.onDrag = n.onClick, n.onDoubleClick, n.onDrag
 		st.onScroll = n.onScroll
-		if (st.dragAccept == nil) != (n.dragAccept == nil) {
+		if (st.dragAccept == nil) != (n.dragPredicate() == nil) {
 			st.drag = gesture.Drag{}
 			st.conditionalDrag = conditionalDrag{}
 			st.fresh = true
 		}
-		st.dragAccept = n.dragAccept
+		st.dragAccept = n.dragPredicate()
+		if n.dragMotion != nil {
+			if n.onDrag != nil || n.dragAccept != nil {
+				panic("el: Draggable cannot be combined with OnDrag or DragAccept")
+			}
+			st.prepareDrag(*n.dragMotion)
+		}
 		if st.disabled {
+			if st.dragMotion != nil {
+				st.dragMotion.cancel()
+			}
 			if st.inputState != nil {
 				st.inputPaste = nil
 			}
@@ -195,7 +209,7 @@ func (r *RootWidget) prepareKeys(n *Node, parent *elemState, disabled bool) {
 		parent = st
 	}
 	for _, c := range n.children {
-		r.prepareKeys(c.node(), parent, n.effectiveDisabled)
+		r.prepareKeysInert(c.node(), parent, n.effectiveDisabled, n.effectiveInert)
 	}
 }
 func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
@@ -209,7 +223,7 @@ func (r *RootWidget) applyFocus(gtx core.C, n *Node) {
 	}
 	var find func(*Node) bool
 	find = func(n *Node) bool {
-		if n.effectiveDisabled {
+		if n.effectiveDisabled || n.effectiveInert {
 			return false
 		}
 		if n.id == r.focusID && (n.isFocusable() || n.input != nil) {

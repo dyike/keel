@@ -17,3 +17,9 @@ Run `go run ./examples/motion` for the complete nine-section Motion lab. Use
 ```sh
 go run ./examples/motion -section effects -screenshot /tmp/keel-motion-effects.png
 ```
+
+Run `go run ./examples/motion -section pose` for paint-only element transforms. Click Move/reverse or catch the moving card; its hit region and anchored overlay follow it. Reduced motion jumps to the target.
+
+Run `go run ./examples/motion -section timeline` for overlapping tracks, replay, pause, reverse and seek.
+
+The timeline page also has Scroll / clock: scroll its lower pane to drive the same tracks directly.

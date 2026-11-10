@@ -761,3 +761,22 @@ Patch: `public.go` selects a local charset reader. Default builds accept UTF-8 a
 ### Selected Chroma lexer
 
 `ui/highlight/golang` copies the Go lexer and Go-template/plaintext XML rules from Chroma v2.27.0 (MIT, license included). Registration uses a private registry; Go HTML templates are omitted. This avoids linking hundreds of unrelated language rules into Components. The token adapter is shared with the unchanged full-language provider. Parity tests cover supported aliases, malformed code, Unicode, raw-string templates and styles.
+
+## Semantic bounds under transforms
+
+`gio/io/input` bounds transformed semantic areas by all four corners, so rotation, reflection and shear cannot invert or truncate accessibility and automation rectangles. `TestSemanticTransformedBounds` covers these transforms; element pose tests exercise nested transforms and pointer routing.
+
+## Terminal pointer events during command replay
+
+Retain unobserved pointer releases/cancellations when an earlier input event is pending replay. An animation invalidation or focus command could previously replay a press without its merged release, retaining pointer capture across a closing/reopening overlay. `gio/io/input/pointer_replay_test.go` exercises press-only receivers, command replay and a subsequent click elsewhere. This is a local Keel patch in the development branch, not an upstream or v0.4.2 fix.
+
+## Linear gradients under affine transforms
+
+`gio/gpu` maps gradient coordinates through the inverse paint transform. The
+previous texture-bounds mapping ignored scale and mishandled shear/rotation,
+so a scaled shared element changed colors at handoff. The mapping also handles
+coincident stops without NaNs. `gradient_transform_test.go` covers translation,
+nonuniform scaling, rotation and shear; the headless gradient test compares
+pixels at equivalent scales with a two-channel-level GPU rounding tolerance.
+Keel's shared gradient/shadow handoff test is byte-identical on the inspected
+Apple silicon host. This patch is local and is not part of v0.4.2.

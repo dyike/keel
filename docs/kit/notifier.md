@@ -109,3 +109,6 @@ The example selects a native adapter that supports clicks on macOS/Linux/Windows
 `NoticeSystemActivationBackend` increments `PostActivated(id,title,body,activated,done)`, which activated receives `NoticeActivation{Token: ...}`. When the backend implements two interactive interfaces at the same time, the interface with activation data is preferred; the backend that only implements PostInteractive continues to work, and the activation data is empty.
 
 `OnSystemActivation(func(NoticeActivation))` receives data in the UI frame in the following order: remove notification and schedule recall → OnSystemActivation → OnSystemActivate → OnClose that needs to be executed → OnClick. Tokens are no longer delivered when a duplicate event or notification is deleted. The application hands the token to its own window backend in this callback; the component does not modify environment variables or infer the token format.
+
+
+Notices now use the root-owned presence lifecycle for entry and exit, and layout transitions for remaining cards. Dismissal and `OnClose` still happen at logical close; fading cards are inert, their countdowns stop, and retained notice values are released after exit or when the notifier leaves the root. Reduced motion skips transitions. This behavior is in the working branch, not v0.4.2.

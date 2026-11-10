@@ -79,6 +79,7 @@ const (
 // shared by all elements (see Styled); Hover and Active take a func that
 // changes a Style, whose methods mirror the element ones.
 type Style struct {
+	sharedGradient          *sharedGradient // paint-only shared handoff
 	reveal                  float32
 	revealSet               bool
 	wrap                    bool
@@ -179,14 +180,17 @@ func (t textStyle) inherit(parent textStyle) textStyle {
 }
 
 // Visual changes, usable in Hover and Active. They return the Style so calls chain.
-func (s *Style) Bg(c color.NRGBA) *Style { s.bg, s.gradient = some(c), nil; return s }
+func (s *Style) Bg(c color.NRGBA) *Style {
+	s.bg, s.gradient, s.sharedGradient = some(c), nil, nil
+	return s
+}
 
 // BgGradient fills the background with a linear gradient instead of a solid
 // color; a later Bg replaces it. A zero gradient changes nothing, so a
 // theme's optional gradient can be passed as is.
 func (s *Style) BgGradient(g theme.Gradient) *Style {
 	if !g.IsZero() {
-		s.gradient = &g
+		s.gradient, s.sharedGradient = &g, nil
 	}
 	return s
 }
