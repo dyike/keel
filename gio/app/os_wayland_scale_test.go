@@ -76,3 +76,17 @@ func TestWaylandFramelessHasNoDecorationHeight(t *testing.T) {
 		t.Fatal("server titlebar counted as client pixels")
 	}
 }
+
+func TestTextScaleDesktopSource(t *testing.T) {
+	for _, tc := range []struct{ current, session, want string }{
+		{"GNOME", "", "org.gnome.desktop.interface"},
+		{"ubuntu:GNOME", "", "org.gnome.desktop.interface"},
+		{"X-Cinnamon", "", "org.cinnamon.desktop.interface"},
+		{"", "gnome", "org.gnome.desktop.interface"},
+		{"Hyprland", "gnome", ""}, {"KDE", "", ""}, {"", "", ""},
+	} {
+		if got := textScaleSchema(tc.current, tc.session); got != tc.want {
+			t.Errorf("%q/%q: %q, want %q", tc.current, tc.session, got, tc.want)
+		}
+	}
+}

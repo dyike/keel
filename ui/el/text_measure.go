@@ -4,9 +4,12 @@ import (
 	"hash/maphash"
 	"image"
 
+	"github.com/dyike/keel/gio/font"
 	"github.com/dyike/keel/gio/layout"
 	"github.com/dyike/keel/gio/text"
+	"github.com/dyike/keel/gio/unit"
 	"github.com/dyike/keel/gio/widget/material"
+	"github.com/dyike/keel/ui/theme"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -113,4 +116,15 @@ func (e *engine) beginTextMeasurements() {
 		clear(e.textMeasurementEntries)
 		e.textMeasurementEntries = e.textMeasurementEntries[:0]
 	}
+}
+
+// MeasureText measures a single unconstrained line in dp using the current
+// theme and frame metrics. Measurements share the layout engine's frame cache.
+func (cx *Context) MeasureText(value string, size float32, weight font.Weight) (width, height float32) {
+	e := &cx.root.e
+	label := material.Label(theme.Material, unit.Sp(size), value)
+	label.Font.Weight = weight
+	label.MaxLines = 1
+	dims := e.measureLabel(e.measureGtx(layout.Constraints{Max: image.Pt(inf, inf)}), label)
+	return float32(e.m.PxToDp(dims.Size.X)), float32(e.m.PxToDp(dims.Size.Y))
 }

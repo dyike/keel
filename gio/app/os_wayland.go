@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -2089,8 +2090,12 @@ func (w *window) NewContext() (context, error) {
 // detectTextScale affects scalable text (sp), never layout dimensions (dp).
 // Wayland output scale already supplies the layout and backing-buffer density.
 func detectTextScale() float32 {
-	// TODO: What about other window environments?
-	out, err := exec.Command("gsettings", "get", "org.gnome.desktop.interface", "text-scaling-factor").Output()
+	// Do not inherit unrelated GNOME settings on other compositors.
+	schema := textScaleSchema(os.Getenv("XDG_CURRENT_DESKTOP"), os.Getenv("XDG_SESSION_DESKTOP"))
+	if schema == "" {
+		return 1
+	}
+	out, err := exec.Command("gsettings", "get", schema, "text-scaling-factor").Output()
 	if err != nil {
 		return 1.0
 	}
@@ -2202,4 +2207,21 @@ func fromFixed(v int32) float32 {
 	b := ((1023 + 44) << 52) + (1 << 51) + uint64(v)
 	f := math.Float64frombits(b) - (3 << 43)
 	return float32(f)
+}
+
+// Only consult settings owned by the active desktop. A GNOME preference can
+// remain installed under another compositor without being its font policy.
+func textScaleSchema(current, session string) string {
+	if current == "" {
+		current = session
+	}
+	for _, desktop := range strings.Split(strings.ToLower(current), ":") {
+		switch strings.TrimSpace(desktop) {
+		case "gnome", "unity", "budgie", "pantheon":
+			return "org.gnome.desktop.interface"
+		case "cinnamon", "x-cinnamon":
+			return "org.cinnamon.desktop.interface"
+		}
+	}
+	return ""
 }

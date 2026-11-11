@@ -117,7 +117,7 @@ func (v *SidebarView) focusItem(cx *el.Context, id string) {
 	}
 	base := autoID("sidebar", v)
 	if top, ok := v.positions[id]; ok {
-		cx.ScrollIntoView(base+"/scroll", top, top+36)
+		cx.ScrollIntoView(base+"/scroll", top, top+v.rowHeight)
 	}
 	cx.Focus(base + "/" + id)
 }

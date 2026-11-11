@@ -819,3 +819,7 @@ nonuniform scaling, rotation and shear; the headless gradient test compares
 pixels at equivalent scales with a two-channel-level GPU rounding tolerance.
 Keel's shared gradient/shadow handoff test is byte-identical on the inspected
 Apple silicon host. This patch is local and is not part of v0.4.2.
+
+### Wayland desktop text scaling
+
+`gio/app/os_wayland.go` selects the text-scale schema by the active desktop: GNOME-family sessions use GNOME, Cinnamon uses Cinnamon, and other sessions fall back to 1. This avoids enlarging fonts alone on Hyprland due to unrelated GNOME preferences. Display/output scaling is unchanged. Desktop-source and scale-parsing tests cover the selection; no new cgo.

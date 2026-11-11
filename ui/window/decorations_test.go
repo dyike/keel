@@ -2,12 +2,18 @@ package window
 
 import (
 	"bytes"
+	"image"
 	"image/png"
 	"os"
 	"testing"
 
 	"github.com/dyike/keel/gio/f32"
+	"github.com/dyike/keel/gio/layout"
+	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/gio/unit"
+	"github.com/dyike/keel/gio/widget/material"
 
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/internal/loop"
 	"github.com/dyike/keel/ui/theme"
@@ -78,5 +84,36 @@ func TestKeelDrawsTitleBarWithoutPlatformDecorations(t *testing.T) {
 	loop.Unlock()
 	if w3.drawsTitle {
 		t.Fatal("a frameless window got a second title bar")
+	}
+}
+
+func TestFallbackTitleBarFitsScaledText(t *testing.T) {
+	for _, density := range []float32{1, 1.25, 1.5, 2} {
+		for _, textScale := range []float32{1, 1.6364, 2} {
+			for _, title := range []string{"Keel Native Capabilities", "Keel 原生能力"} {
+				var ops op.Ops
+				gtx := core.C{Ops: &ops, Metric: unit.Metric{PxPerDp: density, PxPerSp: density * textScale}, Constraints: layout.Exact(image.Pt(900, 500))}
+				// Measure an unclipped single line independently of the decoration box.
+				label := material.Label(theme.Material, theme.Material.TextSize*theme.TextMd/theme.TextBody, title)
+				label.Font.Weight = 600
+				label.MaxLines = 1
+				textContext := gtx
+				textContext.Constraints.Min = image.Point{}
+				record := op.Record(&ops)
+				textHeight := label.Layout(textContext).Size.Y
+				record.Stop()
+				w := &Window{opts: Options{Title: title}, focused: true, drawsTitle: true}
+				content, pop := w.belowTitleBar(gtx)
+				pop()
+				height := gtx.Constraints.Max.Y - content.Constraints.Max.Y
+				minimum := textHeight + 2*gtx.Dp(10) + gtx.Dp(1)
+				if height < minimum {
+					t.Fatalf("density=%g text=%g title=%q: bar=%d, needs at least %d", density, textScale, title, height, minimum)
+				}
+				if content.Constraints.Min.Y > content.Constraints.Max.Y {
+					t.Fatal("invalid content constraints")
+				}
+			}
+		}
 	}
 }

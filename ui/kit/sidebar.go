@@ -43,6 +43,9 @@ type SidebarView struct {
 	borderWidth    float32
 	collapsible    bool
 	width          float32
+	autoWidth      bool
+	compact        bool
+	rowHeight      float32
 	height         float32
 	disabled       bool
 	header, footer el.View
@@ -51,12 +54,13 @@ type SidebarView struct {
 	expanded       map[string]bool
 	positions      map[string]float32
 	revealID       string
+	labelIDs       map[string]string
 	tips           map[string]*TooltipView
 	onChange       func(id string)
 }
 
 func Sidebar() *SidebarView {
-	return &SidebarView{width: 220, side: el.Left, borderWidth: 1, collapsible: true, tips: map[string]*TooltipView{}, expanded: map[string]bool{}}
+	return &SidebarView{width: 220, autoWidth: true, rowHeight: 36, side: el.Left, borderWidth: 1, collapsible: true, labelIDs: map[string]string{}, tips: map[string]*TooltipView{}, expanded: map[string]bool{}}
 }
 
 // Section adds a titled group of items; an empty title adds no heading.
@@ -85,9 +89,15 @@ func (v *SidebarView) SectionTitleWeight(w font.Weight) *SidebarView { v.titleWe
 func (v *SidebarView) Width(dp float32) *SidebarView {
 	if dp > 0 && finiteNumber(float64(dp)) {
 		v.width = dp
+		v.autoWidth = false
 	}
 	return v
 }
+
+// AutoWidth adapts the preferred width to large text and uses an icon rail
+// when the viewport cannot fit it. Width disables this; call AutoWidth after Width.
+func (v *SidebarView) AutoWidth(on bool) *SidebarView { v.autoWidth = on; return v }
+
 func (v *SidebarView) OnChange(fn func(id string)) *SidebarView { v.onChange = fn; return v }
 func (v *SidebarView) Value() string                            { return v.selected }
 func (v *SidebarView) SetValue(id string) {
@@ -95,7 +105,7 @@ func (v *SidebarView) SetValue(id string) {
 	v.revealID = id
 	v.expandParents(id)
 }
-func (v *SidebarView) Collapsed() bool      { return v.collapsed }
+func (v *SidebarView) Collapsed() bool      { return v.collapsed || v.compact }
 func (v *SidebarView) SetCollapsed(on bool) { v.collapsed = on }
 
 // SetBadge updates an item's count.
@@ -125,8 +135,9 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 	if disabled {
 		fg = theme.Muted
 	}
-	row := el.Div().ID(prefix + "/" + it.ID).Role("link").Name(it.Label).Selected(on).Disabled(disabled).
-		Row().Items(el.Center).Gap(10).H(el.Dp(36)).Px(10).Pl(float32(10 + depth*14)).Rounded(theme.RadiusLg).CursorPointer().TextColor(theme.Text).TextSize(theme.TextControl).
+	id := prefix + "/" + it.ID
+	row := el.Div().ID(id).Role("link").Name(it.Label).Selected(on).Disabled(disabled).
+		Row().Items(el.Center).Gap(10).H(el.Dp(v.rowHeight)).Px(10).Pl(float32(10 + depth*14)).Rounded(theme.RadiusLg).CursorPointer().TextColor(theme.Text).TextSize(theme.TextControl).
 		Focusable(true).FocusStyle(func(s *el.Style) { s.BorderColor(theme.Primary) }).
 		OnClick(func() {
 			if len(it.Children) > 0 {
@@ -172,7 +183,7 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 		row.Child(el.Div().Size(el.Dp(16)).NoShrink().Center().Child(it.IconView.Render(cx)))
 	} else if it.Icon != IconNone {
 		row.Child(Icon(it.Icon).Size(16).Color(fg).Render(cx))
-	} else if v.collapsed {
+	} else if v.Collapsed() {
 		row.Child(el.Text(string([]rune(it.Label)[:min(1, len([]rune(it.Label)))])))
 	}
 	if len(it.Children) > 0 {
@@ -186,10 +197,15 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 	} else {
 		row.Hover(func(s *el.Style) { s.Bg(theme.SubtleHover) })
 	}
-	if !v.collapsed {
+	if !v.Collapsed() {
 		// Keep the tag and disclosure next to the label, while the label can
 		// still truncate within the remaining space before independent suffixes.
-		label := el.Div().Row().Items(el.Center).Gap(6).Grow().W(el.Dp(0)).Child(el.Text(it.Label).MaxLines(1))
+		labelID := v.labelIDs[it.ID]
+		if labelID == "" {
+			labelID = id + "/label"
+			v.labelIDs[it.ID] = labelID
+		}
+		label := el.Div().Row().Items(el.Center).Gap(6).Grow().W(el.Dp(0)).Child(el.Text(it.Label).ID(labelID).MaxLines(1))
 		if it.Tag != nil {
 			// A selected row is bold; its marker keeps its own weight.
 			label.Child(el.Div().NoShrink().Weight(font.Normal).Child(it.Tag.Render(cx)))
@@ -208,14 +224,14 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 				count = "99+"
 			}
 			row.Child(el.Div().Role("badge").Name(strconv.Itoa(it.Badge)).Value(count).
-				MinW(el.Dp(24)).H(el.Dp(20)).Center().NoShrink().Rounded(theme.RadiusSm).
+				MinW(el.Dp(24)).H(el.Dp(20 * max(1, cx.TextScale()))).Center().NoShrink().Rounded(theme.RadiusSm).
 				TextSize(theme.TextXs).TextColor(theme.Muted).Child(el.Text(count)))
 		}
 		var content el.Element = row
 		if it.Suffix != nil {
 			row.Grow().W(el.Dp(0))
 			frameID := prefix + "/" + it.ID + "/frame"
-			frame := el.Div().ID(frameID).Row().Items(el.Center).H(el.Dp(36)).Rounded(theme.RadiusLg).Disabled(disabled)
+			frame := el.Div().ID(frameID).Row().Items(el.Center).H(el.Dp(v.rowHeight)).Rounded(theme.RadiusLg).Disabled(disabled)
 			if on {
 				frame.Bg(theme.Subtle)
 			} else if !disabled {
@@ -227,6 +243,23 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 				suffix.Opacity(0).Disabled(true)
 			}
 			content = frame.Child(row, suffix)
+		}
+		if cx.Hovered(id) || cx.FocusWithin(id) {
+			available, _ := cx.LastSize(labelID)
+			weight := font.Normal
+			if on {
+				weight = font.Bold
+			}
+			needed, _ := cx.MeasureText(it.Label, theme.TextControl, weight)
+			if needed > available+1 {
+				tip := v.itemTooltip(it.ID)
+				tip.text = it.Label
+				tip.renderHint(cx, id)
+			} else if tip := v.tips[it.ID]; tip != nil {
+				tip.shown, tip.muted = false, false
+			}
+		} else if tip := v.tips[it.ID]; tip != nil {
+			tip.shown, tip.muted = false, false
 		}
 		return v.itemMenu(cx, it, content)
 	}
@@ -251,12 +284,13 @@ func (v *SidebarView) item(cx *el.Context, prefix string, it SidebarItem, ids []
 func (v *SidebarView) Render(cx *el.Context) el.Element {
 	base := autoID("sidebar", v)
 	text := locale.Current()
-	width := v.width
-	if v.collapsed {
+	width := v.adapt(cx)
+	scale := max(float32(1), cx.TextScale())
+	if v.Collapsed() {
 		width = 56
 	}
 	nav := el.Div().Role("navigation").Name(text.Menu).W(el.Dp(width)).NoShrink().When(theme.BgGradient.IsZero(), func(d *el.DivEl) { d.Bg(theme.Bg) }).Px(theme.SpaceLg).Py(theme.SpaceLg).Gap(theme.SpaceMd).Items(el.Stretch).Disabled(v.disabled)
-	if v.collapsed {
+	if v.Collapsed() {
 		nav.Px(theme.SpaceMd)
 	}
 	if v.height > 0 {
@@ -269,7 +303,7 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 	// between it and the rows. Extend into the existing navigation padding
 	// so expanded labels keep their available width.
 	body := el.Div().ID(base + "/scroll").Grow().MinH(el.Dp(0)).ScrollY().Gap(theme.SpaceXs).Items(el.Stretch).Mx(-12).Px(theme.SpaceLg)
-	if v.collapsed {
+	if v.Collapsed() {
 		body.Mx(-8).Pl(theme.SpaceMd)
 	}
 	_, viewportHeight := cx.ViewportSize()
@@ -306,7 +340,7 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 				continue
 			}
 			v.positions[it.ID] = y
-			y += 40
+			y += v.rowHeight + theme.SpaceXs
 			body.Child(v.item(cx, base, it, ids, depth))
 			if v.open(it) {
 				addItems(it.Children, depth+1)
@@ -314,17 +348,17 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 		}
 	}
 	for i, s := range v.sections {
-		if !slices.ContainsFunc(s.items, v.shown) && (s.action == nil || v.query != "" || v.collapsed) {
+		if !slices.ContainsFunc(s.items, v.shown) && (s.action == nil || v.query != "" || v.Collapsed()) {
 			continue
 		}
-		if s.title != "" && !v.collapsed {
-			heading := el.Div().H(el.Dp(28)).Px(10).Row().Items(el.Center).Child(el.Text(s.title).Grow().TextSize(theme.TextSm).TextColor(theme.Muted).Weight(v.titleWeight))
+		if s.title != "" && !v.Collapsed() {
+			heading := el.Div().H(el.Dp(28 * scale)).Px(10).Row().Items(el.Center).Child(el.Text(s.title).Grow().TextSize(theme.TextSm).TextColor(theme.Muted).Weight(v.titleWeight))
 			if s.action != nil {
 				// Trailing actions sit flush with the content edge, like a header toolbar.
 				heading.Pr(0).Child(s.action.Render(cx))
 			}
 			body.Child(heading)
-			y += 32
+			y += 28*scale + theme.SpaceXs
 		} else if i > 0 {
 			body.Child(el.Div().H(el.Dp(17)).Px(theme.SpaceMd).Justify(el.Center).Child(el.Div().H(el.Dp(1)).Bg(theme.Border)))
 			y += 21
@@ -336,20 +370,20 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 		nav.Child(el.Div().ID(base + "/footer").NoShrink().Child(v.footer.Render(cx)))
 	}
 	name, icon := text.CollapseSidebar, IconChevronLeft
-	if v.collapsed {
+	if v.Collapsed() {
 		name, icon = text.ExpandSidebar, IconChevronRight
 	}
 	if v.side == el.Right {
 		icon = IconChevronRight
-		if v.collapsed {
+		if v.Collapsed() {
 			icon = IconChevronLeft
 		}
 	}
 	label := name
-	if v.collapsed {
+	if v.Collapsed() {
 		label = ""
 	}
-	if v.collapsible {
+	if v.collapsible && !v.compact {
 		nav.Child(el.Div().H(el.Dp(1)).NoShrink().Mx(8).Bg(theme.Border),
 			el.Div().NoShrink().Items(el.Stretch).Child(Button(label, func() { v.collapsed = !v.collapsed; v.revealID = v.selected }).Name(name).Icon(icon).Variant(ButtonGhost).Size(28).Render(cx)))
 	}
@@ -357,7 +391,7 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 		target := v.revealID
 		cx.AfterEnabled(base+"/scroll", sidebarRevealKey{v, target}, 0, func() {
 			if top, ok := v.positions[target]; ok {
-				cx.ScrollIntoView(base+"/scroll", top, top+36)
+				cx.ScrollIntoView(base+"/scroll", top, top+v.rowHeight)
 			}
 			v.revealID = ""
 		})
@@ -368,4 +402,37 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 		return root.Child(border, nav)
 	}
 	return root.Child(nav, border)
+}
+
+// adapt keeps display density separate from accessibility text scaling.
+func (v *SidebarView) adapt(cx *el.Context) float32 {
+	scale := max(float32(1), cx.TextScale())
+	v.rowHeight = 36 * scale
+	v.compact = false
+	width := v.width
+	if v.autoWidth && scale > 1 {
+		width *= scale
+		viewport, _ := cx.ViewportSize()
+		// Keep room for the page; never grow a navigation column indefinitely.
+		limit := min(float32(420), max(float32(0), viewport-240))
+		if limit < v.width {
+			v.compact = true
+		} else {
+			width = min(width, limit)
+		}
+	}
+	return width
+}
+
+func (v *SidebarView) itemTooltip(id string) *TooltipView {
+	tip := v.tips[id]
+	if tip == nil {
+		tip = &TooltipView{}
+		v.tips[id] = tip
+	}
+	tip.Placement(el.Right, el.Center).Offset(4)
+	if v.side == el.Right {
+		tip.Placement(el.Left, el.Center)
+	}
+	return tip
 }

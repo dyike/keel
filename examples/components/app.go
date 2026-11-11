@@ -54,7 +54,7 @@ func newGallery() *gallery {
 		Prefix(el.ViewFunc(func(cx *el.Context) el.Element {
 			return kit.Icon(kit.IconSearch).Size(16).Color(theme.Muted).Render(cx)
 		}))
-	g.nav = kit.Sidebar().Width(232).Header(el.ViewFunc(g.header))
+	g.nav = kit.Sidebar().Width(232).AutoWidth(true).Header(el.ViewFunc(g.header))
 	for _, c := range categoryTitles() {
 		items := byCategory[c.id]
 		sort.Slice(items, func(i, j int) bool { return items[i].Label < items[j].Label })

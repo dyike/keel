@@ -22,7 +22,7 @@ import (
 // window manager always decorates) and draws the bar itself when the
 // platform reports no decorations.
 
-// titleBarHeight is the drawn bar's height in dp, like kit.TitleBarHeight.
+// titleBarHeight is the minimum bar height in dp, like kit.TitleBarHeight.
 const titleBarHeight = 38
 
 // askDecorations is what to request from Gio for a window with a title
@@ -60,7 +60,8 @@ func (w *Window) layoutTitleBar(gtx core.C) int {
 	style.Title.Alignment = gtext.Start
 	bar := gtx
 	bar.Constraints.Min.Y = gtx.Dp(titleBarHeight)
-	bar.Constraints.Max.Y = bar.Constraints.Min.Y
+	// Let the label and action buttons determine their natural height. A fixed
+	// maximum clips scaled text after Material applies its 10dp vertical insets.
 	bar.Constraints.Min.X = gtx.Constraints.Max.X
 	dims := style.Layout(bar)
 	h := max(dims.Size.Y, bar.Constraints.Min.Y)

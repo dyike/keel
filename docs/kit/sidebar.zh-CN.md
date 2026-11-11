@@ -39,3 +39,5 @@ Sidebar 跳过滚动视口外的行绘制，但每帧仍会构建和布局展开
 Agent：容器角色 `navigation`；叶项是 `link`，分支是带展开布尔值的 `button`，`selected` 表示当前页；收起按钮名为"收起侧栏""展开侧栏"。
 
 验证：`go run ./examples/components -section sidebar`，加 `-theme dark` 检查深色。
+
+大字体会自动增加导航行和分组标题高度。默认侧栏宽度也随字体缩放增加，最多 420dp，并为正文预留 240dp；无法容纳原始宽度时显示图标栏，窗口变宽后恢复。`Width(dp)` 保持显式宽度；`Width(dp).AutoWidth(true)` 可重新启用自适应。自动宽度调整在字体缩放大于 1 时生效。被截断的标签在悬停或聚焦时显示完整提示，Escape 可关闭。自定义页头、页脚仍需应用自行适配。

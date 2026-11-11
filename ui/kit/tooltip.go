@@ -54,6 +54,13 @@ func (v *TooltipView) Offset(dp float32) *TooltipView {
 
 func (v *TooltipView) Render(cx *el.Context) el.Element {
 	id := autoID("tooltip", v)
+	v.renderHint(cx, id)
+	return el.Div().Disabled(v.disabled).Child(anchor(id, cx, v.target))
+}
+
+// renderHint also supports an existing interactive anchor, avoiding an extra
+// wrapper for truncated sidebar labels.
+func (v *TooltipView) renderHint(cx *el.Context, id string) {
 	hovered, focused := cx.Hovered(id), cx.FocusWithin(id)
 	if !hovered {
 		v.shown = false
@@ -78,7 +85,6 @@ func (v *TooltipView) Render(cx *el.Context) el.Element {
 			tip.Child(el.Text(core.ShortcutLabel(bindings[0], runtime.GOOS)).Name(bindings[0]).TextColor(theme.Surface))
 		}
 	}
-	return el.Div().Disabled(v.disabled).Child(anchor(id, cx, v.target))
 }
 
 type tooltipKey struct{ id string }

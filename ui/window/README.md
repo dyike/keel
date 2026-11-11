@@ -94,3 +94,9 @@ It is saved atomically on close/quit, outside the frame lock; errors go to stder
 `state.Save()` supports explicit saves from background work. The application
 chooses storage location and owns cleanup; no global preferences are modified.
 See `examples/app-shell`, which stores its size in the user cache directory.
+
+The fallback client title bar uses a minimum height and grows to fit the actual
+scaled title plus padding. Its content offset follows the measured height, so
+accessibility text scaling does not clip the title or overlap the body.
+
+Font scaling: `Options.TextScale` defaults to zero (platform preference). Set it to 1 for design-size text or a positive factor for an app preference; display density and dp geometry are unchanged. On Wayland, GNOME-family and Cinnamon sessions read their own text-scale setting; other desktops currently use 1 rather than inheriting an unrelated GNOME setting. Settings are read at startup, not watched live.

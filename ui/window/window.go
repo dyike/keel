@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"log"
+	"math"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -42,6 +43,9 @@ const (
 
 // Options configures a window. Width and Height are in dp; zero uses 640×480.
 type Options struct {
+	// TextScale overrides font scaling relative to dp. Zero follows the platform;
+	// 1 uses design sizes. It does not change window, icon or spacing dimensions.
+	TextScale float32
 	// AutoSize uses a comfortable portion of compositor-provided bounds on the
 	// first launch. Without bounds it keeps Width/Height (or 960x640).
 	AutoSize bool
@@ -149,6 +153,9 @@ func Open(o Options) *Window {
 }
 
 func newWindow(o Options) *Window {
+	if o.TextScale < 0 || math.IsNaN(float64(o.TextScale)) || math.IsInf(float64(o.TextScale), 0) {
+		panic("window: invalid text scale")
+	}
 	if o.Glass != nil {
 		glass := *o.Glass
 		glass.validate()
@@ -429,6 +436,13 @@ func (w *Window) run() {
 }
 
 func (w *Window) layout(gtx core.C) {
+	if w.opts.TextScale > 0 {
+		density := gtx.Metric.PxPerDp
+		if density == 0 {
+			density = 1
+		}
+		gtx.Metric.PxPerSp = density * w.opts.TextScale
+	}
 	defer core.SetCurrentWindow(w)()
 	w.observeSize(gtx)
 	w.titleArea = [4]float32{}

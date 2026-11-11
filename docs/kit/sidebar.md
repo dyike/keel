@@ -39,3 +39,5 @@ Sidebar skips painting rows outside the scroll viewport, but still constructs an
 Agent: container role `navigation`; the leaf item is `link`, the branch is `button` with an expanded Boolean value, `selected` represents the current page; the collapse button is named "Collapse Sidebar" and "Expand Sidebar".
 
 Verify: `go run ./examples/components -section sidebar`, add `-theme dark` to check the dark theme.
+
+Large text automatically increases row and heading heights. The default sidebar also grows its preferred width with text scale, capped at 420dp while reserving 240dp for page content; if that cannot fit the original width, it uses an icon rail and restores on resize. `Width(dp)` keeps an explicit width; `Width(dp).AutoWidth(true)` opts back into adaptation. Automatic width adjustment applies when text scale exceeds 1. Truncated labels expose their full text on hover or focus, dismissible with Escape. Custom header/footer content remains the application’s responsibility.

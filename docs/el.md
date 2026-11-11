@@ -774,3 +774,5 @@ does not restart its exit or impose a separate time limit on a slow spring. Redu
 changes snap. Width or typography changes alone follow layout immediately.
 These APIs are in the working branch, not v0.4.2. Components' Motion page has
 interactive counter and text-reordering examples.
+
+`cx.MeasureText(value, size, weight)` measures a single unconstrained line in dp using the current theme and frame metrics. It shares the layout measurement cache; use it for plain text overflow decisions (custom fonts and inherited styles require their own measurement).
