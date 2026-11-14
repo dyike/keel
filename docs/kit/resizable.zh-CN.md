@@ -31,3 +31,5 @@ Agent：分隔条的角色是 `separator`，名字是"调整大小"，`value` �
 把手的命中区域仍为 6dp，默认视觉线宽为空闲 1dp、悬停/聚焦 2dp、按下 3dp、拖动 4dp。拖出命中区域仍保持拖动态；释放后恢复悬停或焦点态，取消保留最后有效尺寸。线宽过渡默认 150ms，遵守减少动画设置。
 
 `HandleAppearance(fn)` 每帧传入当前主题默认值，可修改 `Idle/Hover/Pressed/Dragging` 线宽、`Color/ActiveColor` 和 `Duration`。线宽限制在 0–6dp，0 隐藏该状态，非有限值回退 1dp；Duration≤0 立即切换。nil 恢复默认。仅线宽渐变，状态颜色立即切换。此配置不改变命中宽度和面板范围。
+
+`SetVertical(bool)` 支持运行时切换横纵方向，不会重建面板内容或触发 `OnChange`。尺寸及限制应用于新方向；如需分别记住横纵布局，请由应用保存两组尺寸。Gallery 在窄屏上下排列面板，并恢复各方向已保存的尺寸。

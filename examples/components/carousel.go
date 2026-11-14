@@ -13,7 +13,7 @@ func init() {
 	registerSection("carousel", "display", func() core.Widget {
 		slide := func(title, body string) el.View {
 			return el.ViewFunc(func(*el.Context) el.Element {
-				return el.Div().P(24).Gap(8).Child(el.Text(title).TextSize(20).Bold(), el.Text(body).TextColor(theme.Muted))
+				return el.Div().ScrollY().P(24).Gap(8).Child(el.Text(title).TextSize(20).Bold(), el.Text(body).TextColor(theme.Muted))
 			})
 		}
 		car := kit.Carousel(
@@ -29,7 +29,8 @@ func init() {
 		vertical := false
 		wheelStep := false
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
-			return el.Div().P(24).Gap(12).Items(el.Start).Child(el.Div().W(el.Dp(480)).MaxW(el.Full).Gap(theme.SpaceMd).Child(content.Render(cx), el.Div().Row().Wrap().Items(el.Center).Gap(theme.SpaceSm).Child(previous.Render(cx), pages[0].Render(cx), pages[1].Render(cx), pages[2].Render(cx), next.Render(cx))), kit.Button(demoText("Toggle horizontal / vertical", "切换横向 / 竖向"), func() { vertical = !vertical; car.Vertical(vertical) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button(demoText("Toggle continuous / item scrolling", "切换连续 / 逐项滚动"), func() { wheelStep = !wheelStep; car.WheelStep(wheelStep) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button(demoText("Enable / disable carousel", "启用 / 禁用轮播"), func() { disabled = !disabled; car.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx))
+			car.Height(180 * max(float32(1), cx.TextScale()))
+			return el.Div().ScrollY().P(24).Gap(12).Items(el.Start).Child(el.Div().W(el.Dp(480)).MaxW(el.Full).Gap(theme.SpaceMd).Child(content.Render(cx), el.Div().Row().Wrap().Items(el.Center).Gap(theme.SpaceSm).Child(previous.Render(cx), pages[0].Render(cx), pages[1].Render(cx), pages[2].Render(cx), next.Render(cx))), kit.Button(demoText("Toggle horizontal / vertical", "切换横向 / 竖向"), func() { vertical = !vertical; car.Vertical(vertical) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button(demoText("Toggle continuous / item scrolling", "切换连续 / 逐项滚动"), func() { wheelStep = !wheelStep; car.WheelStep(wheelStep) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button(demoText("Enable / disable carousel", "启用 / 禁用轮播"), func() { disabled = !disabled; car.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx))
 		}))
 	})
 }

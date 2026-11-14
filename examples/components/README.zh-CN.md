@@ -72,3 +72,9 @@ Motion 还演示渐变、阴影过渡，以及在容器上用 MatchText 自动�
 Web 发布可使用独立链接的分类程序（`go run ./internal/gallerybuild -out demo`）。站点加载器为 `?section=button` 或深链接选择对应分类，组件库入口默认加载通用分类。跨分类会重新加载程序，并重置实例内示例状态。`?bundle=all` 加载完整程序，保留跨分类状态。这是独立 Go 运行时，不是共享运行时的 WASM 动态链接。
 
 浏览器入口不包含截图矩阵导出和文件主题监听。没有代码/Markdown 示例的分类不加载可选 Go 语法高亮提供者。中文字体使用共享资源地址。浏览器安全区跟随 CSS 环境边距，在尺寸变化时更新；Gio 已提供可视视口的键盘边距。实体手机键盘、输入法和手势仍需真机验收。
+
+Layout 示例在 480 dp 以下使用一列，720 dp 以下两列，桌面三列；断点随文字缩放调整。Dialog 和 Sheet 示例的操作按钮支持换行，窄屏高度为 44 dp。移动端交互测试覆盖 320／390 dp 下 Dialog、Sheet、Popover、Select 的打开与关闭，以及缩短视口后编辑、保存并重新进入对话框。这些离屏测试不能替代实体手机键盘和输入法验收。
+
+运行 `KEEL_MOBILE_AUDIT=/tmp/keel-mobile KEEL_MOBILE_AUDIT_IMAGES=1 go test ./examples/components -run '^TestGalleryMobileAudit$'` 可生成全量移动端首帧盘点，包括语义候选项和 320 dp 下正常／放大文字截图；裁剪后的语义边界不能证明布局正确。
+
+窄屏下，Resizable 面板上下排列并分别保存横纵尺寸，Dock 使用紧凑标签切换而不改写桌面布局。ToggleGroup 支持横向滚动，Radio 卡片和操作栏换行，StaticTable 横向滚动以保持订单编号、金额可读。这些适配保留已有组件接口；示例负责选择响应式展示方式。

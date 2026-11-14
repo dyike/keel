@@ -115,3 +115,12 @@ func galleryBundleURL(path, search, name, category, language, palette string) st
 	q.Del("section")
 	return path + "?" + q.Encode() + "#component=" + url.QueryEscape(name)
 }
+
+// Enlarge demo actions on compact screens without changing desktop density.
+func galleryTouchSize(cx *el.Context) float32 {
+	width, _ := cx.ViewportSize()
+	if width < 720*max(float32(1), cx.TextScale()) {
+		return 44
+	}
+	return 0
+}

@@ -74,7 +74,7 @@ func newMenuGallery() *menuGallery {
 
 func (g *menuGallery) Render(cx *el.Context) el.Element {
 	cx.ActionAt("menu-gallery", "gallery.menu.inspect", func() { g.last = demoText("Executed: context command", "已执行：上下文命令") })
-	return el.Div().ID("menu-gallery").KeyContext("menu-gallery").P(24).Gap(12).Items(el.Start).Child(
+	return el.Div().ID("menu-gallery").KeyContext("menu-gallery").ScrollY().P(24).Gap(12).Items(el.Start).Child(
 		el.Text(demoText("Menu: ↑ ↓ moves; → opens a submenu; ← or Esc goes back.", "Menu：↑ ↓ 移动，→ 打开子菜单，← / Esc 返回")).Bold(),
 		el.Text(demoText("Context commands in this region use F6; the global default is F7", "本区域的上下文命令使用 F6；全局默认是 F7")).TextColor(theme.Muted),
 		g.menu.Render(cx),

@@ -10,10 +10,11 @@ import (
 )
 
 type framelessDemo struct {
-	bar     *kit.TitleBarView
-	nav     *kit.SidebarView
-	palette *kit.CommandView
-	search  *kit.InputView
+	compact, layoutKnown, desktopCollapsed bool
+	bar                                    *kit.TitleBarView
+	nav                                    *kit.SidebarView
+	palette                                *kit.CommandView
+	search                                 *kit.InputView
 }
 
 func newFramelessDemo() *framelessDemo {
@@ -30,17 +31,31 @@ func newFramelessDemo() *framelessDemo {
 	a.nav.SetValue("inbox")
 	a.bar = kit.TitleBar(demoText("Keel Frameless Window", "Keel 无边框窗口")).
 		Leading(kit.Button("", func() { a.nav.SetCollapsed(!a.nav.Collapsed()) }).Name(demoText("Toggle sidebar", "切换侧栏")).Icon(kit.IconChevronLeft).Variant(kit.ButtonGhost).Size(26)).
-		Trailing(el.ViewFunc(func(cx *el.Context) el.Element { return el.Div().W(el.Dp(200)).Child(a.search.Render(cx)) }),
+		Trailing(el.ViewFunc(func(cx *el.Context) el.Element {
+			width, _ := cx.ViewportSize()
+			return el.Div().W(el.Dp(min(float32(200), max(float32(80), width-170)))).Child(a.search.Render(cx))
+		}),
 			kit.Button(demoText("Commands", "命令"), a.palette.Toggle).Variant(kit.ButtonSecondary).Size(26))
 	return a
 }
 
 func (a *framelessDemo) Render(cx *el.Context) el.Element {
 	cx.Shortcut("mod+k", a.palette.Toggle)
+	width, _ := cx.ViewportSize()
+	compact := width < 640*max(float32(1), cx.TextScale())
+	if !a.layoutKnown || compact != a.compact {
+		if compact {
+			a.desktopCollapsed = a.nav.Collapsed()
+			a.nav.SetCollapsed(true)
+		} else if a.layoutKnown {
+			a.nav.SetCollapsed(a.desktopCollapsed)
+		}
+	}
+	a.compact, a.layoutKnown = compact, true
 	return el.Div().Items(el.Stretch).Child(
 		a.bar.Render(cx),
 		el.Div().Row().Grow().Items(el.Stretch).Child(a.nav.Render(cx),
-			el.Div().Grow().P(24).Gap(8).Child(
+			el.Div().Grow().W(el.Dp(0)).ScrollY().P(24).Gap(8).Child(
 				el.Text(demoText("Drag an empty area of the title bar to move the window", "拖动标题栏的空白处移动窗口")).TextSize(18).Bold(),
 				el.Text(demoText("Window controls are on the left on macOS and on the right elsewhere. Search and buttons in the title bar remain interactive.", "macOS 上窗口按钮在左侧，其他平台在右侧；标题栏里的搜索框和按钮照常可用。")).TextColor(theme.Muted))),
 		a.palette.Render(cx),

@@ -18,11 +18,19 @@ func init() {
 				label := label
 				wrap.Child(kit.Button(label, func() { selected = demoText("Selected: ", "已选：") + label }).Variant(kit.ButtonSecondary).Render(cx))
 			}
-			grid := el.Div().Grid(3).Gap(12)
+			width, _ := cx.ViewportSize()
+			columns := 3
+			if width < 720*max(float32(1), cx.TextScale()) {
+				columns = 1
+				if width >= 480*max(float32(1), cx.TextScale()) {
+					columns = 2
+				}
+			}
+			grid := el.Div().Grid(columns).Gap(12)
 			for i := range 7 {
 				grid.Child(el.Div().P(16).MinW(el.Dp(90)).Rounded(8).Bg(theme.Subtle).Gap(8).Child(el.Text(fmt.Sprintf(demoText("Card %d", "卡片 %d"), i+1)).Bold(), el.Text([]string{demoText("Short description", "短说明"), demoText("This card has a longer description to check wrapping and equal heights within a row.", "这一张有更长的说明文字，用来检查自动换行以及同一行的高度对齐。"), demoText("Mixed 123 text", "Mixed 123 中文")}[i%3])))
 			}
-			return el.Div().ScrollY().P(24).Gap(20).Child(el.Text(demoText("Layout containers", "Layout · 布局容器")).TextSize(24).Bold(), el.Text(demoText("Layout arranges components. Resize the window to see how these two layouts adapt.", "Layout 用来排列组件。下面演示两种布局；缩窄窗口可观察变化。")), el.Text(demoText("Wrap · Buttons move to the next line when space runs out", "Wrap · 空间不足时，按钮整体移到下一行")).Bold(), wrap, el.Text(selected).TextColor(theme.Muted), el.Text(demoText("Grid · Three equal columns; cards in each row have equal height", "Grid · 三列等宽，同一行的卡片等高")).Bold(), el.Text(demoText("Three fixed columns; text wraps to column width and the longest content determines row height.", "列数固定为三列；文字随列宽换行，行高由最长内容决定。")).TextColor(theme.Muted), grid)
+			return el.Div().ScrollY().P(24).Gap(20).Child(el.Text(demoText("Layout containers", "Layout · 布局容器")).TextSize(24).Bold(), el.Text(demoText("Layout arranges components. Resize the window to see how these two layouts adapt.", "Layout 用来排列组件。下面演示两种布局；缩窄窗口可观察变化。")), el.Text(demoText("Wrap · Buttons move to the next line when space runs out", "Wrap · 空间不足时，按钮整体移到下一行")).Bold(), wrap, el.Text(selected).TextColor(theme.Muted), el.Text(demoText("Grid · Responsive columns; cards in each row have equal height", "Grid · 自适应列数，同一行的卡片等高")).Bold(), el.Text(demoText("One column on phones, two on wider compact screens, and three on desktop. Text scaling also adjusts the breakpoint.", "手机一列，较宽的窄屏两列，桌面三列；断点也随文字缩放调整。")).TextColor(theme.Muted), grid)
 		}))
 	})
 }

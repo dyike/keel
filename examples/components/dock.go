@@ -13,11 +13,11 @@ import (
 func init() {
 	registerSection("dock", "navigation", func() core.Widget {
 		txt := func(s string) el.View {
-			return el.ViewFunc(func(*el.Context) el.Element { return el.Div().P(12).Child(el.Text(s).TextSize(13)) })
+			return el.ViewFunc(func(*el.Context) el.Element { return el.Div().ScrollY().P(12).Child(el.Text(s).TextSize(13)) })
 		}
 		code := func(s string) el.View {
 			return el.ViewFunc(func(*el.Context) el.Element {
-				return el.Div().Grow().P(16).Bg(theme.Surface).Child(el.Text(s).Mono().TextSize(13))
+				return el.Div().Grow().ScrollY().P(16).Bg(theme.Surface).Child(el.Text(s).Mono().TextSize(13))
 			})
 		}
 		saved := demoText("Move, close, split, or resize panels to see the saved layout JSON here", "移动、关闭、拆分或调整面板后，这里显示保存的布局 JSON")
@@ -59,7 +59,7 @@ func init() {
 					})
 				}}, kit.DockBottom).
 			Panel(kit.DockPanel{ID: "layout", Title: demoText("Layout", "布局"), View: el.ViewFunc(func(*el.Context) el.Element {
-				return el.Div().P(12).Child(el.Text(saved).TextSize(12).TextColor(theme.Muted))
+				return el.Div().ScrollY().P(12).Child(el.Text(saved).TextSize(12).TextColor(theme.Muted))
 			})}, kit.DockBottom).
 			OnLayoutChange(func(l kit.DockLayout) {
 				b, _ := json.Marshal(l)
@@ -131,10 +131,13 @@ func init() {
 		})
 		toggles := []el.View{d.RegionButton(kit.DockLeft), d.RegionButton(kit.DockBottom), d.RegionButton(kit.DockRight)}
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
+			width, _ := cx.ViewportSize()
+			compact := width < 720*max(float32(1), cx.TextScale())
+			d.Compact(compact)
 			return el.Div().Grow().Items(el.Stretch).Child(
-				el.Div().Row().Wrap().Items(el.Center).Gap(theme.SpaceSm).P(theme.SpaceSm).Child(save.Render(cx), restore.Render(cx), style.Render(cx),
-					el.Div().Grow(), toggles[0].Render(cx), toggles[1].Render(cx), toggles[2].Render(cx)),
-				el.Text(status).TextSize(theme.TextSm).TextColor(theme.Muted), d.Render(cx))
+				el.Div().Row().Wrap().NoShrink().Items(el.Center).Gap(theme.SpaceSm).P(theme.SpaceSm).Child(save.Render(cx), restore.Render(cx), style.Render(cx),
+					el.Div().Row().Hidden(compact).Gap(theme.SpaceSm).Child(toggles[0].Render(cx), toggles[1].Render(cx), toggles[2].Render(cx))),
+				el.Text(status).NoShrink().TextSize(theme.TextSm).TextColor(theme.Muted), d.Render(cx))
 		}))
 	})
 }

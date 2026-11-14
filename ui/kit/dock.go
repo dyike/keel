@@ -115,6 +115,9 @@ type DockView struct {
 	factories             map[string]DockPanelFactory
 	skin                  *DockSkin
 	layoutGeneration      uint64
+	compact               bool
+	compactActive         string
+	compactMenu           *MenuView
 }
 
 func Dock(center el.View) *DockView {
@@ -642,6 +645,9 @@ func (v *DockView) fitted(s DockSide) float32 {
 
 func (v *DockView) Render(cx *el.Context) el.Element {
 	id := autoID("dock", v)
+	if v.compact {
+		return v.renderCompact(cx)
+	}
 	width, height := cx.ViewportSize()
 	viewport := [2]float32{width, height}
 	if v.total == [2]float32{} || v.viewport != viewport {

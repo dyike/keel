@@ -138,3 +138,7 @@ toolbar.Child(d.RegionButton(kit.DockLeft).Render(cx), d.RegionButton(kit.DockBo
 ```
 
 `RegionButton(side)` 返回一个切换按钮，侧栏展开时为选中状态，可放进标题栏或工具栏；按钮建一次后复用。`SetRegionOpen(side, open)` / `RegionOpen(side)` / `ToggleRegion(side)` 是对应的程序接口，`ToggleRegion` 会触发 OnLayoutChange。收起只是隐藏整块区域，面板的标签、拆分和尺寸都保留，再展开原样回来；收起状态存在布局的 `LeftClosed/RightClosed/BottomClosed` 里。中心区不能收起。收起最大化面板所在的侧栏会先退出最大化。
+
+`Compact(true)` 将所有已打开的面板呈现为可横向滚动的标签栏，一次显示一个全宽面板。断点由宿主决定（Gallery 使用随字体缩放调整的 720dp）。区域折叠是桌面布局偏好，紧凑模式仍可访问其中已打开的面板；已关闭和已分离的面板不显示。保留面板内容、自定义标签、工具栏、自定义菜单动作、外观与禁止关闭设置。拆分、移动、调整尺寸和分离操作在桌面模式使用。
+
+紧凑模式的当前面板独立于持久化布局：切换标签或调用 `Compact(false)` 不会覆盖桌面的分栏树、尺寸、活动标签和缩放，也不会触发 `OnLayoutChange`。关闭面板仍正常改变保存布局并通知；当前面板关闭后会选择另一个已打开面板，没有面板时显示中心占位内容。与普通 Dock 标签一样，输入状态应保存在面板视图中。

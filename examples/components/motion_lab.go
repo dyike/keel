@@ -130,7 +130,7 @@ func (d *motionLab) root(topic func(*motionLab, *el.Context) []el.Element) core.
 		}
 		d.reduced.SetValue(theme.ReducedMotion)
 		body := el.Div().P(24).Gap(22).Items(el.Stretch).Child(
-			el.Div().Row().Items(el.Center).Justify(el.SpaceBetween).Gap(12).Child(
+			el.Div().Row().Wrap().Items(el.Center).Justify(el.SpaceBetween).Gap(12).Child(
 				el.Text(demoText("Pure Go, frame-time driven, event-idle animation.", "纯 Go、按帧时间采样、静止时事件驱动的动效。")).TextColor(theme.Muted),
 				d.reduced.Render(cx),
 			),

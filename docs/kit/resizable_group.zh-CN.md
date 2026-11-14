@@ -21,3 +21,5 @@ g := kit.ResizableGroup(
 Sizes 返回按 ID 索引的尺寸副本。SetSizes 设置已知 ID 的有限非负尺寸，不触发回调，下一帧按容器范围收敛；显式 0 不再作为自动均分。OnChange 仅在用户实际调整后返回完整尺寸副本。
 
 SetVisible(id, visible) 控制单面板显隐，隐藏内容继续声明并保留状态及尺寸；剩余面板重新分配空间，单侧仍遵守自身 Max。SetPanels 替换/重排配置，保留相同 ID 的尺寸，新 ID 使用 Size；更改已有 ID 的大小请用 SetSizes。被移除的面板及把手状态清理。显隐、配置和窗口变化不触发 OnChange。
+
+`SetVertical(bool)` 支持运行时切换横纵方向，不会重建面板内容或触发 `OnChange`。尺寸及限制应用于新方向；如需分别记住横纵布局，请由应用保存两组尺寸。Gallery 在窄屏上下排列面板，并恢复各方向已保存的尺寸。

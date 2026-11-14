@@ -37,7 +37,18 @@ func Resizable(first, second el.View) *ResizableView {
 }
 
 // Vertical stacks the panes, first on top.
-func (v *ResizableView) Vertical() *ResizableView { v.vertical = true; return v }
+func (v *ResizableView) Vertical() *ResizableView { return v.SetVertical(true) }
+
+// SetVertical changes the layout axis without replacing pane content or
+// notifying OnChange. Pane limits and sizes apply to the new axis.
+func (v *ResizableView) SetVertical(vertical bool) *ResizableView {
+	if v.vertical != vertical {
+		v.vertical = vertical
+		v.measured = false
+		v.pressed, v.dragging = false, false
+	}
+	return v
+}
 
 // Min sets the smallest sizes of the two panes in dp (80 each by default).
 func (v *ResizableView) Min(first, second float32) *ResizableView {

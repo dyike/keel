@@ -413,7 +413,7 @@ func (v *SankeyChartView) Render(cx *el.Context) el.Element {
 	if v.table {
 		toggle = text.ShowChart
 	}
-	box.Child(el.Div().Row().Items(el.Center).Child(el.Text(v.title).Bold(), el.Div().Grow(), Button(toggle, func() { v.table = !v.table }).Variant(ButtonGhost).Size(24).Render(cx)))
+	box.Child(el.Div().Row().Wrap().Items(el.Center).Child(el.Text(v.title).Bold(), el.Div().Grow(), Button(toggle, func() { v.table = !v.table }).Variant(ButtonGhost).Size(24).Render(cx)))
 	if v.err != nil {
 		return box.Child(el.Text(v.err.Error()).TextColor(theme.Danger))
 	}

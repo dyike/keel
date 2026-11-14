@@ -114,7 +114,7 @@ func init() {
 						}
 					}).Variant(kit.ButtonSecondary).Size(28).Render(cx),
 				),
-				el.Div().Row().Gap(8).Items(el.Center).Child(query.Render(cx), kit.Button(demoText("Previous match", "上一处"), ed.PreviousSearchMatch).Render(cx), kit.Button(demoText("Next match", "下一处"), ed.NextSearchMatch).Render(cx), el.Text(fmt.Sprintf(demoText("%d matches", "%d 处"), len(ed.SearchSession().Matches)))),
+				el.Div().Row().Wrap().Gap(8).Items(el.Center).Child(el.Div().W(el.Dp(240)).MaxW(el.Full).Child(query.Render(cx)), kit.Button(demoText("Previous match", "上一处"), ed.PreviousSearchMatch).Render(cx), kit.Button(demoText("Next match", "下一处"), ed.NextSearchMatch).Render(cx), el.Text(fmt.Sprintf(demoText("%d matches", "%d 处"), len(ed.SearchSession().Matches)))),
 				ed.Render(cx),
 				el.Text(status).TextSize(theme.TextSm).TextColor(theme.Muted),
 				el.Div().Row().Gap(8).Items(el.Center).Child(

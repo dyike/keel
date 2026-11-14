@@ -29,11 +29,11 @@ func multiwindowContent() core.Widget {
 	result := demoText("The main and settings windows keep independent state.", "主窗口和设置窗口拥有各自的状态。")
 	return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 		cx.Shortcut("mod+,", openSettings)
-		return el.Div().P(24).Gap(16).Child(
+		return el.Div().ScrollY().P(24).Gap(16).Child(
 			el.Text(demoText("Keel · Gio", "Keel · Gio")).TextSize(22).Bold(),
 			el.Div().P(16).Gap(12).Rounded(8).Bg(theme.Surface).Border(1, theme.Border).Child(
 				name.Render(cx),
-				el.Div().Row().Gap(8).Child(
+				el.Div().Row().Wrap().Gap(8).Child(
 					kit.Button(demoText("Say hello", "打招呼"), func() {
 						if v := strings.TrimSpace(name.Value()); v != "" {
 							result = fmt.Sprintf(demoText("Hello, %s!", "你好，%s！"), v)
@@ -64,10 +64,10 @@ func newMultiwindowSettings(n int) *multiwindowSettings {
 }
 
 func (p *multiwindowSettings) Render(cx *el.Context) el.Element {
-	return el.Div().P(24).Gap(12).Items(el.Start).Child(
+	return el.Div().ScrollY().P(24).Gap(12).Items(el.Start).Child(
 		el.Text(demoText("Settings", "设置")).TextSize(22).Bold(),
 		p.enabled.Render(cx),
-		el.Div().W(el.Dp(320)).Child(p.note.Render(cx)),
+		el.Div().W(el.Dp(320)).MaxW(el.Full).Child(p.note.Render(cx)),
 		kit.Button(demoText("Save", "保存"), func() {
 			p.status = fmt.Sprintf(demoText("Saved: %s, tips=%t", "已保存：%s，提示=%t"), p.note.Value(), p.enabled.Value())
 		}).Render(cx),

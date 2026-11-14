@@ -75,8 +75,21 @@ func (v *ResizableGroupView) SetPanels(panels ...ResizablePanel) {
 	v.panels, v.sizes, v.auto = out, sizes, autos
 	v.handles = make(map[string]*ResizableView)
 }
-func (v *ResizableGroupView) Vertical() *ResizableGroupView { v.vertical = true; return v }
-func (v *ResizableGroupView) SetDisabled(on bool)           { v.disabled = on }
+func (v *ResizableGroupView) Vertical() *ResizableGroupView { return v.SetVertical(true) }
+
+// SetVertical changes the layout axis while retaining panels, visibility and
+// sizes. It does not notify OnChange; sizes are fitted to the new axis at layout.
+func (v *ResizableGroupView) SetVertical(vertical bool) *ResizableGroupView {
+	if v.vertical != vertical {
+		v.vertical = vertical
+		v.measured = false
+		for _, state := range v.handles {
+			state.pressed, state.dragging = false, false
+		}
+	}
+	return v
+}
+func (v *ResizableGroupView) SetDisabled(on bool) { v.disabled = on }
 func (v *ResizableGroupView) HandleAppearance(fn func(ResizableHandleAppearance) ResizableHandleAppearance) *ResizableGroupView {
 	v.appearance = fn
 	return v

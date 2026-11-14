@@ -36,10 +36,10 @@ func (v *overlayGallery) Render(cx *el.Context) el.Element {
 	if cx.Hovered("anchor") {
 		hover = demoText("Anchor is hovered", "锚点正在悬停")
 	}
-	return el.Div().P(24).Gap(16).Child(
+	return el.Div().ScrollY().P(24).Gap(16).Child(
 		el.Text(demoText("Overlays and focus constraints E4 / E5", "浮层与焦点约束 E4 / E5")).TextSize(24).Bold(),
 		el.Text(demoText("Nonmodal overlays let outside clicks through; modal backdrops intercept them.", "非模态外部点击穿透；模态遮罩拦截点击。")),
-		el.Div().Row().Gap(12).Child(action("anchor", demoText("Toggle anchored overlay", "切换锚定浮层"), func() { v.popover = !v.popover }), action("modal-trigger", demoText("Open modal overlay", "打开模态浮层"), func() { v.modal = true })),
+		el.Div().Row().Wrap().Gap(12).Child(action("anchor", demoText("Toggle anchored overlay", "切换锚定浮层"), func() { v.popover = !v.popover }), action("modal-trigger", demoText("Open modal overlay", "打开模态浮层"), func() { v.modal = true })),
 		el.Text(hover).TextColor(theme.Muted),
 	)
 }

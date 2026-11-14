@@ -71,7 +71,7 @@ func (v *ToggleGroupView) Render(cx *el.Context) el.Element {
 	if v.gap != nil {
 		gap = *v.gap
 	}
-	row := el.Div().Role("group").Row().Gap(gap)
+	row := el.Div().ID(id).Role("group").Row().ScrollX().Gap(gap)
 	for i, o := range v.options {
 		o := o
 		itemID := id + "/" + strconv.Itoa(i)
@@ -93,7 +93,7 @@ func (v *ToggleGroupView) Render(cx *el.Context) el.Element {
 		if v.segmented && gap == 1 {
 			decorateToggleSegment(button, i == 0, i == len(v.options)-1, on)
 		}
-		row.Child(button)
+		row.Child(button.NoShrink())
 	}
 	return row
 }

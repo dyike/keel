@@ -32,9 +32,9 @@ func newSheetGallery() *sheetGallery {
 func (g *sheetGallery) Render(cx *el.Context) el.Element {
 	return el.Div().P(24).Gap(12).Items(el.Start).Child(
 		el.Text(demoText("Sheet: drag the inner edge to resize. Esc or clicking the backdrop closes it.", "Sheet：拖动内侧边缘调整尺寸，Esc 或点遮罩关闭")).Bold(),
-		el.Div().Row().Gap(8).Child(
-			kit.Button(demoText("Details on the right", "右侧详情"), func() { g.right.SetValue(true) }).Render(cx),
-			kit.Button(demoText("Bottom panel", "底部面板"), func() { g.bottom.SetValue(true) }).Variant(kit.ButtonSecondary).Render(cx),
+		el.Div().Row().Wrap().Gap(8).Child(
+			kit.Button(demoText("Details on the right", "右侧详情"), func() { g.right.SetValue(true) }).Size(galleryTouchSize(cx)).Render(cx),
+			kit.Button(demoText("Bottom panel", "底部面板"), func() { g.bottom.SetValue(true) }).Size(galleryTouchSize(cx)).Variant(kit.ButtonSecondary).Render(cx),
 		),
 		g.right.Render(cx), g.bottom.Render(cx),
 	)

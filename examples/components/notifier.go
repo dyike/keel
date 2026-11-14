@@ -46,7 +46,7 @@ func (g *notifierGallery) Render(cx *el.Context) el.Element {
 	}
 	return el.Div().P(24).Gap(12).Items(el.Start).Child(
 		el.Text(demoText("Notifier: top right by default; each position displays up to 5 notifications.", "Notifier：默认右上角，每个位置最多显示 5 条")).Bold(),
-		el.Div().Row().Gap(8).Child(
+		el.Div().Row().Wrap().Gap(8).Child(
 			kit.Button(demoText("Success", "成功"), notify(kit.ToneSuccess, demoText("Saved successfully", "保存成功"))).Render(cx),
 			kit.Button(demoText("Warning", "警告"), notify(kit.ToneWarning, demoText("Slow network", "网络较慢"))).Variant(kit.ButtonSecondary).Render(cx),
 			kit.Button(demoText("Error", "错误"), notify(kit.ToneDanger, demoText("Sync failed", "同步失败"))).Variant(kit.ButtonDanger).Render(cx),
