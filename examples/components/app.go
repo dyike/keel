@@ -34,6 +34,10 @@ func categoryTitles() []struct{ id, title string } {
 // sectionDoc is the document a section demonstrates.
 func sectionDoc(s demoSection) string {
 	switch {
+	case s.name == "multiwindow":
+		return "docs/app.md"
+	case s.name == "hotkey":
+		return "docs/native.md"
 	case s.name == "attachment_vertical":
 		return "docs/kit/attachment.md"
 	case s.name == "command_async":
@@ -93,6 +97,10 @@ func newGallery() *gallery {
 // becomes ColorPicker.
 func displayName(name string) string {
 	switch name {
+	case "multiwindow":
+		return demoText("Multiple windows", "多窗口")
+	case "hotkey":
+		return demoText("Global shortcuts & displays", "全局快捷键与显示器")
 	case "motion":
 		return demoText("Element transitions", "元素过渡")
 	case "motion_values":

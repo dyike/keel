@@ -130,7 +130,7 @@ openSettings := func() {
 }
 ```
 
-完整示例见 `examples/multiwindow`。
+完整示例见 `examples/components/multiwindow.go`。
 
 ## 窗口快捷键
 

@@ -239,3 +239,5 @@ Gio 的好处：界面完全由 Go 绘制，组件只是普通 Go 结构体，�
 **原因**：Gio 的 macOS ActionMove 在按下时直接调用 AppKit 原生拖动，普通组件双击回调收不到第二次完整点击。`window` 使用当前 NSView 的本地事件监视器，只在已登记区域内截获双击，按系统的无操作/最小化/缩放偏好处理。头部控件继续接收普通输入。
 
 **线程与生命周期**：传递 NSView 句柄时先 retain，异步提交到主线程后 release；原生登记表在视图更换或窗口关闭时移除。原生回调只向 Go 更新队列提交动作，不在主线程等待帧锁。UI 不引用 `native`，`kit` 不引用 `window`。
+
+上述订单回归应用现已移至 cmd/keel-mcp/testdata/orders，MCP 端到端测试仍保留，不再作为公开 examples 入口。

@@ -26,7 +26,7 @@ window.Open(window.Options{Title: "Editor", Frameless: true, NativeTrafficLights
 
 Agent: The role of the title bar is `banner`, and the name is the title; the window buttons are named "Close", "Minimize", "Maximize" or "Restore", and the application content is listed separately.
 
-Verification: `go run ./examples/frameless -lang en` opens a real borderless window for dragging the title bar and clicking window buttons; `go run ./examples/components -section title_bar -lang en` shows the header style in an ordinary window.
+Verification: run `go run ./examples/components -section title_bar -lang en`, then click **Open frameless window** to test dragging, window controls, title-bar search and the command palette. The same example is in Layout & shell → TitleBar in the gallery. The standalone frameless example has been merged here.
 
 Title uses secondary text color when window is out of focus, macOS window buttons are grayed out; restored after reactivation. Slices for front and rear slots are copied, and empty slots are ignored.
 

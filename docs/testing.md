@@ -1004,10 +1004,10 @@ The interfaceless test cannot cover these, so you need to change the relevant co
 
 | Scenario | How to verify |
 | --- | --- |
-| Open, close, and bring to front the real window | `go run ./examples/multiwindow -lang en`, click "Open settings" twice; there should be only one settings window |
+| Open, close, and bring to front the real window | `go run ./examples/components -section multiwindow -lang en`, click "Open settings" twice; there should be only one settings window |
 | Exit after closing the last window | Close all windows and the process in the terminal should end |
 | Window shortcut keys | Press ⌘+, | in the main window
-| Global shortcut keys | `go run ./examples/hotkey -lang en`, switch to another application and press ⌘⇧K; the count will increase |
+| Global shortcut keys | `go run ./examples/components -section hotkey -lang en`, open the preview and enable the shortcut, then switch applications and press Cmd+Shift+K on macOS or Ctrl+Shift+K elsewhere; the count increases |
 | Backend `core.Update` | The clock in the hotkey example ticks every second |
 | Permissions, screenshots, synthetic input | Authorization required, manual test according to the instructions of [native capability](native.md) |
 | Chinese input method | Use Pinyin to input in the input box, the candidate box is in the correct position, and the content is correct after it is displayed on the screen |

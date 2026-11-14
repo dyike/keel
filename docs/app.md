@@ -130,7 +130,7 @@ openSettings := func() {
 }
 ```
 
-See `examples/multiwindow` for a complete example.
+See `examples/components/multiwindow.go` for a complete example.
 
 ## Shortcuts
 

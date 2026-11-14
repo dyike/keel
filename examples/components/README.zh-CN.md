@@ -58,3 +58,9 @@ Motion 还演示渐变、阴影过渡，以及在容器上用 MatchText 自动�
 - rising_glow、shimmer_text：装饰粒子及文字动效。
 
 例如：go run ./examples/components -section motion_effects -lang zh-CN。
+
+原 frameless 示例已合并到 TitleBar。在“布局与外壳 → TitleBar”点击 **打开无边框窗口** 可打开原生预览；重复点击会唤起已打开的窗口，关闭预览不会关闭组件库。标题栏内保留搜索、命令和侧栏开关。
+
+原 hotkey 示例已合并到“基础能力 → 全局快捷键与显示器”（section hotkey）。打开预览后显式启用/停用全局快捷键，按需刷新显示器信息。macOS 使用 Cmd+Shift+K，其他平台使用 Ctrl+Shift+K。关闭预览会注销快捷键；平台错误会显示出来，不启动后台时钟或轮询。原生调用在帧锁外执行，回调通过 core.Update 更新界面。
+
+“布局与外壳 → 多窗口”（section multiwindow）展示设置子窗口：重复打开复用现有窗口，关闭后重开创建新设置，主页面输入独立保留。页面激活时 Ctrl/Cmd+, 可打开设置。原 orders 应用不再作为公开示例，MCP 回归夹具移至 cmd/keel-mcp/testdata/orders；表格、表单、对话框等演示仍在组件库中。

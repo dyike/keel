@@ -24,10 +24,10 @@ claude mcp add keel -- keel-mcp
 
 ## 一次测试长什么样
 
-Agent 调用 `launch`，参数 `{"command": "go run ./examples/multiwindow -lang zh-CN"}`，得到：
+Agent 调用 `launch`，参数 `{"command": "go run ./examples/components -section multiwindow -lang zh-CN"}`，得到：
 
 ```
-Window w1 "Keel 主窗口" 640×420
+Window w1 "Keel · 组件" 680×860
 e1 text "Keel · Gio" @24,24 582×34
 e2 text "你的名字" @42,88 546×21
 e3 textbox "你的名字" value="" @42,115 546×40
@@ -42,7 +42,7 @@ e7 text "⌘ + , 打开设置。" @42,253 546×21
 ```
 type       {"ref": "e3", "text": "小明"}
 click      {"text": "打招呼"}          → e6 text "你好，小明！"
-press_key  {"key": "mod+,"}           → Open windows: w1 "Keel 主窗口" (shown above); w2 "设置" (new)
+press_key  {"key": "mod+,"}           → Open windows: w1 "Keel · 组件" (shown above); w2 "设置" (new)
 click      {"window": "w2", "text": "保存"}
 screenshot {"window": "w2"}           → PNG
 ```
@@ -54,10 +54,10 @@ screenshot {"window": "w2"}           → PNG
 应用正常显示在屏幕上，你先手动操作到某个状态，再让 Agent 接着做，你看着它操作：
 
 ```sh
-KEEL_AUTOMATION=1 go run ./examples/multiwindow -lang zh-CN
+KEEL_AUTOMATION=1 go run ./examples/components -section multiwindow -lang zh-CN
 ```
 
-应用启动后打印连接地址，比如 `keel automation: listening on /var/folders/…/T/keel/multiwindow-4821.sock`。然后让 Agent 调用 `attach`（不带参数）：
+应用启动后打印连接地址，比如 `keel automation: listening on /var/folders/…/T/keel/components-4821.sock`。然后让 Agent 调用 `attach`（不带参数）：
 
 - 只有一个应用在跑时，直接连上，返回它当前的窗口和元素；
 - 有多个时，列出所有地址，让 Agent 选一个传 `socket` 参数；

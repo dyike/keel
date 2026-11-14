@@ -56,3 +56,9 @@ All demonstrations previously in examples/motion now live here. Use the Motion s
 - rising_glow and shimmer_text: decorative particle and text effects.
 
 For example: go run ./examples/components -section motion_effects.
+
+TitleBar includes the former frameless example. Open Layout & shell → TitleBar and click **Open frameless window** to launch the native preview; repeated clicks raise that window, and closing it leaves the gallery open. Search, commands and sidebar toggling remain available in the title bar.
+
+The former hotkey example is under Core capabilities → Global shortcuts & displays (section hotkey). Its preview explicitly enables/disables the global shortcut and refreshes display information on demand. macOS uses Cmd+Shift+K; other platforms use Ctrl+Shift+K. Closing the preview unregisters the shortcut. Platform errors are shown; no background clock or polling is started. Native calls run off the frame lock, and callbacks update the UI through core.Update.
+
+Multiple windows is under Layout & shell (section multiwindow). Open settings repeatedly to reuse its window; close and reopen it to create fresh settings while the main page keeps its input. Ctrl/Cmd+, opens settings while the page is active. The former orders application is no longer a public example; its MCP regression fixture lives in cmd/keel-mcp/testdata/orders. Table, Form, Dialog and related components remain in the gallery.

@@ -24,10 +24,10 @@ When modifying keel-mcp itself, use `go install ./cmd/keel-mcp` to install the l
 
 ## What does a test look like?
 
-Agent calls `launch` with parameter `{"command": "go run ./examples/multiwindow -lang zh-CN"}` and gets:
+Agent calls `launch` with parameter `{"command": "go run ./examples/components -section multiwindow -lang zh-CN"}` and gets:
 
 ```
-Window w1 "Keel 主窗口" 640×420
+Window w1 "Keel · 组件" 680×860
 e1 text "Keel · Gio" @24,24 582×34
 e2 text "你的名字" @42,88 546×21
 e3 textbox "你的名字" value="" @42,115 546×40
@@ -42,7 +42,7 @@ Each line is an element: reference (`e3`), role, name, status, position (`@x,y w
 ```
 type       {"ref": "e3", "text": "小明"}
 click      {"text": "打招呼"}          → e6 text "你好，小明！"
-press_key  {"key": "mod+,"}           → Open windows: w1 "Keel 主窗口" (shown above); w2 "设置" (new)
+press_key  {"key": "mod+,"}           → Open windows: w1 "Keel · 组件" (shown above); w2 "设置" (new)
 click      {"window": "w2", "text": "保存"}
 screenshot {"window": "w2"}           → PNG
 ```
@@ -54,10 +54,10 @@ Each operation returns the element list after the operation, and the Agent does 
 The application is displayed on the screen normally. You first manually operate it to a certain state, and then let the Agent continue to do it. You watch it operate:
 
 ```sh
-KEEL_AUTOMATION=1 go run ./examples/multiwindow -lang zh-CN
+KEEL_AUTOMATION=1 go run ./examples/components -section multiwindow -lang zh-CN
 ```
 
-After the application starts, print the connection address, such as `keel automation: listening on /var/folders/…/T/keel/multiwindow-4821.sock`. Then have the Agent call `attach` (without parameters):
+After the application starts, print the connection address, such as `keel automation: listening on /var/folders/…/T/keel/components-4821.sock`. Then have the Agent call `attach` (without parameters):
 
 - When only one application is running, it connects directly and returns its current window and elements;
 - If there are multiple addresses, list all addresses and let the Agent select one and pass the `socket` parameter;

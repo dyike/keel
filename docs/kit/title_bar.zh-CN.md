@@ -26,7 +26,7 @@ window.Open(window.Options{Title: "编辑器", Frameless: true, NativeTrafficLig
 
 Agent：标题栏的角色是 `banner`，名字是标题；窗口按钮名为"关闭""最小化""最大化"或"还原"，应用内容单独列出。
 
-验证：`go run ./examples/frameless -lang zh-CN` 打开真正的无边框窗口，拖动标题栏、点击窗口按钮；`go run ./examples/components -section title_bar -lang zh-CN` 查看普通窗口里的页头样式。
+验证：运行 `go run ./examples/components -section title_bar -lang zh-CN`，点击 **打开无边框窗口**，体验窗口拖动、窗口按钮、标题栏搜索和命令面板。组件库中的入口为“布局与外壳 → TitleBar”。原独立 frameless 示例已合并到这里。
 
 窗口失焦时标题使用次要文字颜色，macOS 窗口按钮变灰；重新激活后恢复。前后插槽切片会被复制，空插槽忽略。
 

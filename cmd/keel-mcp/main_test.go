@@ -25,8 +25,8 @@ func TestEndToEnd(t *testing.T) {
 
 	call, _ := startServer(t, nil)
 
-	expect(t, call("launch", map[string]any{"command": "go run ./examples/multiwindow -lang zh-CN", "dir": root}),
-		`Window w1 "Keel 主窗口"`, `textbox "你的名字" value=""`, `button "打招呼"`)
+	expect(t, call("launch", map[string]any{"command": "go run ./examples/components -section multiwindow -lang zh-CN", "dir": root}),
+		`Window w1 "Keel · 组件"`, `textbox "你的名字" value=""`, `button "打招呼"`)
 	call("type", map[string]any{"text": "小明", "ref": "e3"})
 	expect(t, call("click", map[string]any{"text": "打招呼"}), `text "你好，小明！"`)
 	expect(t, call("press_key", map[string]any{"key": "mod+,"}), `w2 "设置" (new)`)
@@ -61,12 +61,12 @@ func TestAttach(t *testing.T) {
 	env := append(os.Environ(), "TMPDIR="+tmp)
 
 	bin := filepath.Join(tmp, "multiwindow")
-	build := exec.Command("go", "build", "-o", bin, "./examples/multiwindow")
+	build := exec.Command("go", "build", "-o", bin, "./examples/components")
 	build.Dir = repoRoot()
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build: %v\n%s", err, out)
 	}
-	appCmd := exec.Command(bin, "-lang", "zh-CN")
+	appCmd := exec.Command(bin, "-section", "multiwindow", "-lang", "zh-CN")
 	appCmd.Env = append(env, "KEEL_AUTOMATION=1", "KEEL_HEADLESS=1")
 	if err := appCmd.Start(); err != nil {
 		t.Fatal(err)
@@ -174,8 +174,8 @@ func TestVisible(t *testing.T) {
 		t.Skip("set KEEL_DESKTOP=1 to open real windows")
 	}
 	call, _ := startServer(t, nil)
-	expect(t, call("launch", map[string]any{"command": "go run ./examples/multiwindow -lang zh-CN", "dir": repoRoot(), "visible": true}),
-		`Window w1 "Keel 主窗口" 640×420`)
+	expect(t, call("launch", map[string]any{"command": "go run ./examples/components -section multiwindow -lang zh-CN", "dir": repoRoot(), "visible": true}),
+		`Window w1 "Keel · 组件"`)
 	call("type", map[string]any{"text": "小明", "ref": "e3"})
 	expect(t, call("click", map[string]any{"text": "打招呼"}), `text "你好，小明！"`)
 	expect(t, call("click", map[string]any{"text": "打开设置窗口"}), `w2 "设置" (new)`)
@@ -199,7 +199,7 @@ func TestOrders(t *testing.T) {
 		t.Skip("builds and runs the example app")
 	}
 	call, _ := startServer(t, nil)
-	got := call("launch", map[string]any{"command": "go run ./examples/orders -lang zh-CN", "dir": repoRoot()})
+	got := call("launch", map[string]any{"command": "go run ./cmd/keel-mcp/testdata/orders -lang zh-CN", "dir": repoRoot()})
 	expect(t, got, `tab "订单列表" selected`, `table "" value="36 行"`, `columnheader "金额"`, `row "SO-1001 | 华东物流 | 待付款 | 300.00"`)
 
 	expect(t, call("type", map[string]any{"text": "华东", "ref": "e5"}), "显示 6 条")
@@ -332,7 +332,7 @@ func TestOrdersKeyboardOnly(t *testing.T) {
 		t.Skip("builds and runs the example app")
 	}
 	call, _ := startServer(t, nil)
-	call("launch", map[string]any{"command": "go run ./examples/orders -lang zh-CN", "dir": repoRoot()})
+	call("launch", map[string]any{"command": "go run ./cmd/keel-mcp/testdata/orders -lang zh-CN", "dir": repoRoot()})
 	press := func(key string) string { return call("press_key", map[string]any{"key": key}) }
 	press("mod+n")
 	expect(t, call("type", map[string]any{"text": "键盘客户"}), `textbox "客户" value="键盘客户"`)

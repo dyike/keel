@@ -239,3 +239,5 @@ The code editor, HTML rich text, complete TeX, partial topic coverage, and Kbd a
 **Reason**: Gio's macOS ActionMove directly calls AppKit native drag when pressed, and ordinary component double-click callbacks cannot receive the second complete click. `window` Use the current NSView's local event monitor to intercept double clicks only within the registered area, handling them according to the system's no-op/minimize/zoom preferences. The header control continues to receive normal input.
 
 **Threads and life cycle**: retain first when passing the NSView handle, asynchronously submit it to the main thread and then release it; the native registration table is removed when the view is changed or the window is closed. The native callback only submits actions to the Go update queue and does not wait for the frame lock on the main thread. UI does not reference `native`, `kit` does not reference `window`.
+
+The orders regression application mentioned above now lives in cmd/keel-mcp/testdata/orders; its MCP end-to-end tests remain. It is no longer a public examples entry.
