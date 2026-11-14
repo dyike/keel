@@ -47,7 +47,21 @@ type demoGroup struct {
 	Script   string   `json:"script"`
 	Sections []string `json:"sections"`
 }
+
+// Shared build metadata names assets paired with one Go runtime. The full
+// program remains available through ?bundle=all during rollout.
+type demoShared struct {
+	Primary    string            `json:"primary"`
+	Loader     string            `json:"loader"`
+	Startup    string            `json:"startup"`
+	FullWasm   string            `json:"fullWasm"`
+	FullScript string            `json:"fullScript"`
+	Sections   map[string]string `json:"sections"`
+	Categories map[string]string `json:"categories,omitempty"`
+}
+
 type demoConfig struct {
+	Shared   *demoShared          `json:"shared,omitempty"`
 	Assets   map[string]demoAsset `json:"assets"`
 	Groups   map[string]demoGroup `json:"groups,omitempty"`
 	Sections map[string]string    `json:"sections,omitempty"`
@@ -59,6 +73,41 @@ func (s *site) copyDemo(dir string) error {
 		if err := json.Unmarshal(data, &config); err != nil {
 			return err
 		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	allowed := map[string]bool{}
+	if data, err := os.ReadFile(filepath.Join(dir, "shared-build.json")); err == nil {
+		var shared demoShared
+		if err := json.Unmarshal(data, &shared); err != nil {
+			return err
+		}
+		if len(config.Groups) != 0 {
+			return fmt.Errorf("cannot mix shared and independent category manifests")
+		}
+		for _, name := range []string{shared.Primary, shared.Loader, shared.Startup, shared.FullWasm, shared.FullScript} {
+			if !fs.ValidPath(name) || name == "." {
+				return fmt.Errorf("invalid shared asset %q", name)
+			}
+			allowed[name] = true
+		}
+		if len(shared.Sections) == 0 {
+			return fmt.Errorf("shared build has no section ownership")
+		}
+		children := make([]string, 0, len(shared.Sections)+len(shared.Categories))
+		for _, name := range shared.Sections {
+			children = append(children, name)
+		}
+		for _, name := range shared.Categories {
+			children = append(children, name)
+		}
+		for _, name := range children {
+			if !fs.ValidPath(name) || name == "." {
+				return fmt.Errorf("invalid child asset %q", name)
+			}
+			allowed[name] = true
+		}
+		config.Shared = &shared
 	} else if !os.IsNotExist(err) {
 		return err
 	}
@@ -74,6 +123,9 @@ func (s *site) copyDemo(dir string) error {
 			return err
 		}
 		name = filepath.ToSlash(name)
+		if config.Shared != nil && !allowed[name] && name != "font.otf" {
+			return nil
+		}
 		if e.Name() == "index.html" || e.Name() == "groups.json" || strings.HasSuffix(name, ".gz") || strings.HasSuffix(name, ".br") {
 			return nil
 		}
@@ -90,6 +142,15 @@ func (s *site) copyDemo(dir string) error {
 	})
 	if err != nil {
 		return err
+	}
+	if shared := config.Shared; shared != nil {
+		for name := range allowed {
+			if a, ok := config.Assets[name]; !ok || a.Bytes == 0 {
+				return fmt.Errorf("shared build missing %s", name)
+			}
+		}
+		config.Assets["main.wasm"] = config.Assets[shared.Primary]
+		config.Assets["wasm.js"] = config.Assets[shared.Startup]
 	}
 	for _, required := range []string{"main.wasm", "wasm.js"} {
 		if a, ok := config.Assets[required]; !ok || a.Bytes == 0 {

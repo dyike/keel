@@ -69,12 +69,24 @@ Motion 还演示渐变、阴影过渡，以及在容器上用 MatchText 自动�
 
 宽度低于 720 dp（随无障碍文字缩放调整）时，组件库显示可搜索的分类列表。点击组件进入占满宽度的示例页，44 dp 返回按钮回到列表。同一运行实例内，搜索条件和已创建的示例状态在返回、桌面/窄屏切换时保留。浏览器使用历史记录管理组件库页面，支持 `#component=button` 深链接。原生组件库仍是完整的单一应用。
 
-Web 发布可使用独立链接的分类程序（`go run ./internal/gallerybuild -out demo`）。站点加载器为 `?section=button` 或深链接选择对应分类，组件库入口默认加载通用分类。跨分类会重新加载程序，并重置实例内示例状态。`?bundle=all` 加载完整程序，保留跨分类状态。这是独立 Go 运行时，不是共享运行时的 WASM 动态链接。
+Web 发布可使用独立链接的分类程序（`go run ./internal/gallerybuild -out demo`）。完整组件库（包括 `#component=input` 深链接）默认加载同一个完整程序，切换分类保留示例状态。嵌入式 `?section=button` 预览选择较小的分类程序。显式指定 `?bundle=general` 可使用独立分类程序；这种模式跨分类仍会重载并重置实例内状态。`?bundle=all` 显式选择默认的完整程序。这是独立 Go 运行时，不是共享运行时的 WASM 动态链接。
 
 浏览器入口不包含截图矩阵导出和文件主题监听。没有代码/Markdown 示例的分类不加载可选 Go 语法高亮提供者。中文字体使用共享资源地址。浏览器安全区跟随 CSS 环境边距，在尺寸变化时更新；Gio 已提供可视视口的键盘边距。实体手机键盘、输入法和手势仍需真机验收。
 
 Layout 示例在 480 dp 以下使用一列，720 dp 以下两列，桌面三列；断点随文字缩放调整。Dialog 和 Sheet 示例的操作按钮支持换行，窄屏高度为 44 dp。移动端交互测试覆盖 320／390 dp 下 Dialog、Sheet、Popover、Select 的打开与关闭，以及缩短视口后编辑、保存并重新进入对话框。这些离屏测试不能替代实体手机键盘和输入法验收。
 
-运行 `KEEL_MOBILE_AUDIT=/tmp/keel-mobile KEEL_MOBILE_AUDIT_IMAGES=1 go test ./examples/components -run '^TestGalleryMobileAudit$'` 可生成全量移动端首帧盘点，包括语义候选项和 320 dp 下正常／放大文字截图；裁剪后的语义边界不能证明布局正确。
+组件深链接优先于过期的 `bundle` 参数；显式指定 `bundle=all` 仍保留完整运行时。修改地址片段和浏览器前进后退会恢复选中的组件，不额外压入历史记录。当前运行时缺少该组件时，会把当前地址替换为对应分类地址。
+
+### 尚未闭环的对照工作
+
+与 NSH 对照后仍有五类工作，不能理解为五个独立小 bug：
+
+- 逐个验收组件在窄屏、大字体和触控下的表现。目前覆盖的是组件库外壳和部分布局、输入、弹层示例。
+- 跨分类运行时重载后的状态保留。目前完整包可以在同一运行实例内保持状态。
+- 研究共享 WASM 运行时。目前每个分类程序都包含自己的 Go 运行时。
+- 实际浏览器、真机及部署验收：键盘／输入法、手势、安全区、历史记录、缓存命中与协商压缩。离屏／Node 测试和生成 gzip 文件不代表这些验收已经通过。
+- 建立逐组件能力差距清单并确定新增优先级。组件库导航与加载优化尚未完成组件丰富度扩充。
+
+运行 `KEEL_MOBILE_AUDIT=/tmp/keel-mobile KEEL_MOBILE_AUDIT_IMAGES=1 go test ./examples/components -run '^TestGalleryMobileAudit$'` 可生成全量移动端首帧盘点，包括语义候选项和 320 dp 下正常／放大文字截图；裁剪后的语义边界不能证明布局正确。分类包通过 HTTP 提供后，运行 `node scripts/verify-gallery-web.cjs http://127.0.0.1:8766/demo/`，并确保 Node 能找到 Playwright（例如通过 `NODE_PATH`）。脚本使用 Chromium 触控模拟，将截图和请求报告保存到 `work/gallery-web`；不代表实体手机键盘／输入法或部署响应头已验收。
 
 窄屏下，Resizable 面板上下排列并分别保存横纵尺寸，Dock 使用紧凑标签切换而不改写桌面布局。ToggleGroup 支持横向滚动，Radio 卡片和操作栏换行，StaticTable 横向滚动以保持订单编号、金额可读。这些适配保留已有组件接口；示例负责选择响应式展示方式。

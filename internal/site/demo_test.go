@@ -96,3 +96,45 @@ func TestDemoLoaderBehavior(t *testing.T) {
 		t.Fatalf("%v\n%s", err, out)
 	}
 }
+
+func TestSharedDemoOnlyPublishesPairedAssetsAndFullFallback(t *testing.T) {
+	input, out := t.TempDir(), t.TempDir()
+	for name, data := range map[string]string{
+		"shared-build.json": `{"primary":"primary.abc.wasm","loader":"shared.abc.js","startup":"start.abc.js","fullWasm":"full.abc.wasm","fullScript":"full.abc.js","sections":{"input":"inputs.abc.wasm"}}`,
+		"primary.abc.wasm":  "primary", "shared.abc.js": "shared loader", "start.abc.js": "start",
+		"full.abc.wasm": "full runtime", "full.abc.js": "full start", "inputs.abc.wasm": "input child",
+		"font.otf": "font", "baseline-opt.wasm": "must not ship", "functions.txt": "must not ship",
+	} {
+		if err := os.WriteFile(filepath.Join(input, name), []byte(data), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := (&site{out: out}).copyDemo(input); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(out, "demo/assets.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config demoConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatal(err)
+	}
+	if config.Shared == nil || config.Assets["main.wasm"] != config.Assets[config.Shared.Primary] || config.Assets["wasm.js"] != config.Assets[config.Shared.Startup] {
+		t.Fatal("missing shared runtime aliases")
+	}
+	if config.Assets[config.Shared.FullWasm].Bytes == 0 || config.Assets[config.Shared.FullScript].Bytes == 0 {
+		t.Fatal("missing complete fallback")
+	}
+	for _, name := range []string{"baseline-opt.wasm", "functions.txt", "shared-build.json"} {
+		if _, ok := config.Assets[name]; ok {
+			t.Fatal("shipped build-only artifact", name)
+		}
+	}
+	if err := os.Remove(filepath.Join(input, "inputs.abc.wasm")); err != nil {
+		t.Fatal(err)
+	}
+	if err := (&site{out: t.TempDir()}).copyDemo(input); err == nil {
+		t.Fatal("accepted missing child")
+	}
+}

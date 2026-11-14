@@ -124,3 +124,19 @@ func galleryTouchSize(cx *el.Context) float32 {
 	}
 	return 0
 }
+
+// restoreRoute applies history/hash navigation without creating another history
+// entry. A nonempty result requests the category missing from this runtime.
+func (g *gallery) restoreRoute(name string) string {
+	section, ok := g.sections[name]
+	if !ok {
+		g.mobileDetail = false
+		return ""
+	}
+	if section.build == nil {
+		return section.category
+	}
+	g.nav.SetValue(name)
+	g.mobileDetail = true
+	return ""
+}

@@ -44,6 +44,18 @@ func init() {
 // One listener per gallery lifetime, with state mutations posted to the frame
 // lock. Component previews (-section) don't change their host's history.
 func setupGalleryNavigation(g *gallery) {
+	// Optional shared-runtime host. Ordinary and independent category builds
+	// have no hook and retain their existing synchronous construction path.
+	if status := js.Global().Get("keelSectionStatus"); status.Type() == js.TypeFunction {
+		g.sectionStatus = func(name string) string { return status.Invoke(name).String() }
+		g.retrySection = func(name string) { js.Global().Call("keelRetrySection", name) }
+		loaded := js.FuncOf(func(_ js.Value, args []js.Value) any {
+			name := args[0].Get("detail").String()
+			core.UpdateIf(func() bool { return g.nav.Value() == name && (!g.compact || g.mobileDetail) })
+			return nil
+		})
+		js.Global().Call("addEventListener", "keel-section-loaded", loaded)
+	}
 	location := js.Global().Get("location")
 	history := js.Global().Get("history")
 	read := func() string {
@@ -87,17 +99,19 @@ func setupGalleryNavigation(g *gallery) {
 	}
 	callback := js.FuncOf(func(js.Value, []js.Value) any {
 		name := read()
-		core.Update(func() {
-			if _, ok := g.sections[name]; ok {
-				g.nav.SetValue(name)
-				g.mobileDetail = true
-			} else {
-				g.mobileDetail = false
+		core.UpdateIf(func() bool {
+			previous, detail := g.nav.Value(), g.mobileDetail
+			if category := g.restoreRoute(name); category != "" {
+				// The hash/history operation already created the destination.
+				// Replace it rather than adding a second, stale-bundle entry.
+				location.Call("replace", galleryBundleURL(location.Get("pathname").String(), location.Get("search").String(), name, category, locale.Current().Lang, theme.CurrentName()))
 			}
+			return previous != g.nav.Value() || detail != g.mobileDetail
 		})
 		return nil
 	})
 	js.Global().Call("addEventListener", "popstate", callback)
+	js.Global().Call("addEventListener", "hashchange", callback)
 }
 
 func galleryReady() {

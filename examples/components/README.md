@@ -67,12 +67,24 @@ Multiple windows is under Layout & shell (section multiwindow). Open settings re
 
 Below 720 dp (scaled with accessibility text size), the gallery opens a searchable category index. Tap a component to open a full-width page; the 44 dp back button returns to the index. Search and built section instances survive navigation and desktop/compact layout changes within one runtime. The browser records gallery pages in history and accepts `#component=button` deep links. The native gallery remains a single complete application.
 
-Web publication can use independently linked category programs (`go run ./internal/gallerybuild -out demo`). The site loader chooses the category for `?section=button` or a deep link; the complete gallery starts with General. Moving to another category reloads its program and resets runtime-local demo state. `?bundle=all` loads the complete program, retaining cross-category state. These are independent Go runtimes, not shared/dynamically linked WASM modules.
+Web publication can use independently linked category programs (`go run ./internal/gallerybuild -out demo`). The complete gallery, including `#component=input` deep links, loads one full program by default so category changes retain demo state. Embedded `?section=button` previews select the smaller category program. Explicit `?bundle=general` opts into category programs; moving between these programs reloads and resets runtime-local state. `?bundle=all` explicitly selects the default full program. These are independent Go runtimes, not shared/dynamically linked WASM modules.
 
 The browser entry excludes screenshot/matrix export and filesystem theme watching. Categories without code/Markdown examples omit the optional Go syntax-highlighting provider. Chinese font resources are shared by URL. Browser safe-area padding follows CSS environment insets on resize; Gio already reports visual-viewport keyboard insets. Physical-phone keyboard/IME and gesture acceptance still requires real-device testing.
 
 The Layout demo uses one column below 480 dp, two below 720 dp and three on desktop; thresholds follow text scaling. Dialog and Sheet demo launch buttons wrap and use 44 dp heights on compact screens. Mobile interaction tests cover opening and closing Dialog, Sheet, Popover and Select at 320/390 dp, plus editing, saving and revisiting a dialog after a shortened viewport. These headless checks do not replace real-device keyboard/IME testing.
 
-Run the full mobile first-frame census with `KEEL_MOBILE_AUDIT=/tmp/keel-mobile KEEL_MOBILE_AUDIT_IMAGES=1 go test ./examples/components -run '^TestGalleryMobileAudit$'`. It emits semantic candidates and 320 dp images at normal/enlarged text sizes; clipped semantic bounds are not proof of layout correctness.
+Component deep links take precedence over an outdated `bundle` parameter; explicit `bundle=all` still keeps the full runtime. Hash changes and browser history restore the selected component without pushing another history entry. If the current runtime lacks that component, the route is replaced with its category URL.
+
+### Remaining comparison work
+
+The NSH comparison has five open workstreams; these are not five isolated bugs:
+
+- Audit every component at narrow widths, enlarged text and touch input. Current coverage is the gallery shell and selected layout/input/overlay examples.
+- Preserve state across category runtime reloads. The full bundle currently provides state continuity within one runtime.
+- Investigate a shared WASM runtime. Current category executables each include their own Go runtime.
+- Validate real browsers/devices and deployment: keyboard/IME, gestures, safe areas, history, cache hits and negotiated compression. Headless/Node tests and generated gzip files do not establish these outcomes.
+- Build a component-by-component capability gap list and prioritize additions. A larger catalog has not been delivered by the gallery/loading work.
+
+Run the full mobile first-frame census with `KEEL_MOBILE_AUDIT=/tmp/keel-mobile KEEL_MOBILE_AUDIT_IMAGES=1 go test ./examples/components -run '^TestGalleryMobileAudit$'`. It emits semantic candidates and 320 dp images at normal/enlarged text sizes; clipped semantic bounds are not proof of layout correctness. For a served category build, run `node scripts/verify-gallery-web.cjs http://127.0.0.1:8766/demo/` with Playwright available to Node (for example through `NODE_PATH`). It uses Chromium touch emulation and saves screenshots and a request report under `work/gallery-web`; it does not validate physical keyboards/IME or deployment headers.
 
 Narrow layouts also stack Resizable panes with separate saved sizes per orientation and use Dock compact tabs without rewriting its desktop layout. ToggleGroup scrolls horizontally, Radio cards and action rows wrap, and StaticTable scrolls horizontally to keep order identifiers and amounts readable. These adaptations preserve the existing component APIs; responsive presentation is selected by the examples.

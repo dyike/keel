@@ -50,3 +50,5 @@ python3 -m http.server --directory _site
 `demo/assets.json` 记录原始和 gzip 字节数，每个资源另有 `.gz` 副本。磁盘上存在 gzip 不代表实际压缩传输：GitHub Pages 自行控制响应头。对于可配置主机，以 `application/wasm` 返回 WASM，协商预压缩响应并设置 `Content-Encoding: gzip`、`Vary: Accept-Encoding`，为哈希资源设置 `Cache-Control: public,max-age=31536000,immutable`，让 `index.html` 和 `assets.json` 重新验证。在部署站点检查响应头和冷/热缓存传输量。旧 HTML 仍可能缓存时，发布时应保留旧哈希资源。
 
 组件库接入浏览器安全区边距，这不等于已经验证原生手机输入法或手势。`go test ./internal/site` 还检查哈希资源发布；安装 Node 时会执行加载器测试。这些单元测试不能证明浏览器渲染、手机输入或真实网络启动时延。
+
+示例目录包含 `shared-build.json` 时使用可选的共享运行时流程，只发布被引用的资源及字体，排除分析中间产物；`?bundle=all` 仍可回退到完整运行时。普通组件库默认使用完整运行时保留状态，`?section=` 预览可选择独立分类包。共享构建命令及当前验收边界见[共享 WASM](../../docs/shared-wasm.zh-CN.md)，本次不改变 CI 默认流程。

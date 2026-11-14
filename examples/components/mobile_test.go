@@ -202,6 +202,36 @@ func TestGalleryMobileDialogInputAndShortViewport(t *testing.T) {
 	app.Want("Search components")
 }
 
+func TestGalleryHistoryRoutes(t *testing.T) {
+	g := newGallery()
+	g.search.SetValue("input")
+	navigations := 0
+	g.onNavigate = func(string) { navigations++ }
+	if category := g.restoreRoute("input"); category != "" || !g.mobileDetail || g.nav.Value() != "input" {
+		t.Fatal("available route not restored")
+	}
+	for _, route := range []string{"", "unknown-component"} {
+		if category := g.restoreRoute(route); category != "" || g.mobileDetail {
+			t.Fatal("invalid/index route did not return to index")
+		}
+		if g.nav.Value() != "input" || g.search.Value() != "input" {
+			t.Fatal("index navigation lost selection/query")
+		}
+	}
+	section := g.sections["dialog"]
+	section.build = nil
+	g.sections["dialog"] = section
+	if category := g.restoreRoute("dialog"); category != "overlays" {
+		t.Fatalf("missing runtime category: %q", category)
+	}
+	if g.nav.Value() != "input" || g.mobileDetail {
+		t.Fatal("unavailable section was selected before loading")
+	}
+	if navigations != 0 {
+		t.Fatal("history restoration pushed new navigation")
+	}
+}
+
 func TestGalleryMobileAvatarGeometry(t *testing.T) {
 	content, ok := sectionContent("avatar")
 	if !ok {
@@ -274,4 +304,50 @@ func TestResizableGroupDemoResponsiveState(t *testing.T) {
 	app.Resize(820, 844)
 	app.Want("keep across orientations")
 	app.Want("Preview")
+}
+
+func TestGalleryDeferredSectionRetryAndNavigation(t *testing.T) {
+	old := locale.Current()
+	locale.Apply(locale.English())
+	defer locale.Apply(old)
+	g := newGallery()
+	status := "loading"
+	g.sectionStatus = func(name string) string {
+		if name == "dialog" {
+			return status
+		}
+		return ""
+	}
+	retries := 0
+	g.retrySection = func(string) { retries++; status = "loading" }
+	g.open("dialog")
+	app := windowtest.New(t, window.Options{Width: 390, Height: 844, Content: el.Root(g)})
+	app.Want("Loading component")
+	if g.built["dialog"] != nil {
+		t.Fatal("built unloaded section")
+	}
+	status = "error"
+	app.Render()
+	app.Click("Retry")
+	if retries != 1 {
+		t.Fatal("retry not invoked")
+	}
+	g.open("input")
+	app.Render()
+	input := g.built["input"]
+	status = ""
+	app.Render()
+	if g.nav.Value() != "input" || g.built["dialog"] != nil {
+		t.Fatal("late completion changed destination")
+	}
+	g.open("dialog")
+	app.Render()
+	if g.built["dialog"] == nil {
+		t.Fatal("ready section not constructed")
+	}
+	g.open("input")
+	app.Render()
+	if g.built["input"] != input {
+		t.Fatal("loaded navigation discarded existing state")
+	}
 }

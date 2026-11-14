@@ -48,5 +48,8 @@
 - [渲染内存与复用](rendering-memory.zh-CN.md)：渲染器分配改动、原生测量、回归覆盖和限制。
 - [桌面端无 CGO 交付设计](desktop-cgo-free.zh-CN.md)：原生绑定迁移与验收门槛。
 - [桌面无 CGO 实现验证记录](desktop-cgo-free-validation.zh-CN.md)：已验证的构建和 ABI 结果、限制与待验收事项。
+- [组件库能力差距](gallery-gaps.zh-CN.md)：对比范围及待补齐行为。
+- [共享 WebAssembly 实验](shared-wasm.zh-CN.md)：单运行时模块加载、测量结果与生产门槛。
+
 
 各模块目录下的 README 记录源码职责和实现文件；提交贡献前阅读仓库的 [贡献说明](../CONTRIBUTING.zh-CN.md)。

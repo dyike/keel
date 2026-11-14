@@ -39,6 +39,6 @@ func main() {
 			log.Fatalf("unknown section %q", *section)
 		}
 	}
-	mainWindow = window.Open(window.Options{Title: demoText("Keel · Components", "Keel · 组件"), Content: &galleryFirstFrame{Widget: content}})
+	mainWindow = window.Open(window.Options{CustomBrowserHistory: *section == "", Title: demoText("Keel · Components", "Keel · 组件"), Content: &galleryFirstFrame{Widget: content}})
 	window.Main()
 }

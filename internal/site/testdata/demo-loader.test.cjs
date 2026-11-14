@@ -3,14 +3,15 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const source = fs.readFileSync('assets/demo-loader.js','utf8');
-function boot(fetch, search='', hash='') {
+function boot(fetch, search='', hash='', shared=null) {
  const handlers={}, timers=[], elements={},requests=[];
  const element=(id)=>elements[id]??=( {hidden:true,value:0,textContent:'',setAttribute(){},remove(){this.removed=true},addEventListener(name,fn){this[name]=fn}} );
  const location={search,hash,href:'https://example.test/sub/demo/'+search+hash,reload(){this.reloaded=true}};
  const assets={ 'main.wasm':{url:'main.hash.wasm',bytes:4}, 'wasm.js':{url:'wasm.hash.js',bytes:1}, 'font.otf':{url:'font.hash.otf',bytes:1}, 'general.wasm':{url:'general.hash.wasm',bytes:4}, 'general.js':{url:'general.hash.js',bytes:1} };
+ if(shared) Object.assign(assets,{'shared.js':{url:'shared.hash.js',bytes:1},'full.wasm':{url:'full.hash.wasm',bytes:4},'full.js':{url:'full.hash.js',bytes:1},'primary.wasm':assets['main.wasm']});
  const context={URL,URLSearchParams,Request,Response,ReadableStream,Error,location,
   document:{documentElement:{},getElementById:element,createElement:()=>({}),body:{append(script){elements.script=script}}},
-  keelDemo:{assets,groups:{general:{wasm:'general.wasm',script:'general.js'}},sections:{button:'general'}},
+  keelDemo:{shared,assets,groups:{general:{wasm:'general.wasm',script:'general.js'}},sections:{button:'general'}},
   fetch:async(url,init)=>{requests.push(url);return fetch(url,init)},
   addEventListener:(name,fn)=>handlers[name]=fn,
   setTimeout:(fn)=>{timers.push(fn);return timers.length},clearTimeout:(id)=>{timers[id-1]=null}
@@ -55,4 +56,42 @@ test('slow download offers retry without polling or aborting',()=>{
 test('runtime exit before readiness fails; after readiness it stays dismissed',()=>{
  const early=boot(async()=>new Response(''));early.handlers['keel-exit']({detail:{code:2}});assert.equal(early.elements.retry.hidden,false);
  const ready=boot(async()=>new Response(''));ready.handlers['keel-ready']();ready.handlers['keel-exit']({detail:{code:0}});assert.ok(ready.elements.loading.removed);
+});
+
+test('component routes override stale bundles but preserve explicit full mode',()=>{
+ for (const [search,hash,script] of [
+  ['?bundle=missing','#component=button','general.hash.js'],
+  ['?bundle=missing&section=button','','general.hash.js'],
+  ['?bundle=all','#component=button','wasm.hash.js'],
+  ['?bundle=general&section=all','','wasm.hash.js'],
+ ]) {
+  const b=boot(async()=>new Response('ok'),search,hash);
+  assert.equal(b.elements.script.src,script,search+hash);
+ }
+});
+
+ test('full gallery and deep links retain a single runtime by default',()=>{
+  for (const hash of ['', '#component=button', '#component=input']) {
+   const b=boot(async()=>new Response('ok'),'?lang=en',hash);
+   assert.equal(b.elements.script.src,'wasm.hash.js');
+   assert.equal(b.requests[0],'main.hash.wasm');
+  }
+ });
+
+test('shared loader precedes startup, uses one primary transfer and allows full fallback',async()=>{
+ const shared={primary:'primary.wasm',loader:'shared.js',fullWasm:'full.wasm',fullScript:'full.js'};
+ const b=boot(async()=>new Response(new Uint8Array([0,1,2,3])),'?section=button','',shared);
+ assert.equal(b.elements.script.src,'shared.hash.js');
+ b.elements.script.onload();assert.equal(b.elements.script.src,'wasm.hash.js');
+ await (await b.context.fetch('primary.wasm')).arrayBuffer();
+ assert.equal(b.elements.progress.value,100);
+ assert.equal(b.requests.filter(url=>url==='main.hash.wasm').length,1);
+ assert.ok(!b.requests.includes('general.hash.wasm'));
+ const full=boot(async()=>new Response('full'),'?bundle=all','',shared);
+ assert.equal(full.elements.script.src,'full.hash.js');
+ await full.context.fetch('main.wasm');
+ assert.equal(full.requests.filter(url=>url==='full.hash.wasm').length,1);
+ assert.ok(!full.requests.includes('main.hash.wasm'));
+ const all=boot(async()=>new Response('all'),'?section=all','',shared);
+ assert.equal(all.elements.script.src,'full.hash.js');
 });

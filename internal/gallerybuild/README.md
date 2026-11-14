@@ -17,3 +17,5 @@ Each category has its own runtime. This reduces first-category download size, bu
 Browser categories without Markdown/code demos use the internal `keel_gallery_small` tag to omit syntax highlighting. Desktop builds keep their existing provider. Update that category allowlist if a demo begins using highlighting.
 
 Tests cover registration parsing and pruning. Build all categories to verify actual compiler/linker compatibility. Measure raw/compressed sizes and real cold/warm startup separately; code splitting alone does not establish lower total downloads or higher frame rates.
+
+Use `-analysis` without `-categories` to preserve Go symbols, keep optional imports identical across all builds, and add `groups/baseline/` with no example builders. This output supports candidate shared-runtime ownership analysis; it is not the ordinary publication format. See [shared WASM](../../docs/shared-wasm.md) for analysis, splitting, site integration and acceptance limits.

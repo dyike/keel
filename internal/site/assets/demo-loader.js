@@ -4,11 +4,19 @@
   const config = window.keelDemo;
   const params = new URLSearchParams(location.search);
   const chinese = params.get("lang") === "zh-CN";
+  const shared = params.get("bundle") === "all" || params.get("section") === "all" ? null : config.shared;
+  if (config.shared && !shared) {
+    config.assets["main.wasm"] = config.assets[config.shared.fullWasm];
+    config.assets["wasm.js"] = config.assets[config.shared.fullScript];
+  }
+
   const section = params.get("section") || new URLSearchParams(location.hash.slice(1)).get("component");
   // Each category is a standalone Go program, not a dynamically linked plugin.
-  // Explicit "all" keeps the complete runtime and its cross-category state.
-  if (params.get("bundle") !== "all" && section !== "all") {
-    const name = params.get("bundle") || config.sections?.[section] || "general";
+  // Full gallery navigation keeps one runtime and its demo state by default.
+  // Embedded section previews and explicit category bundles remain smaller programs.
+  if (!shared && (params.has("section") || params.has("bundle")) && params.get("bundle") !== "all" && section !== "all") {
+    // A component address takes precedence over a stale category parameter.
+    const name = config.sections?.[section] || params.get("bundle") || "general";
     const group = config.groups?.[name];
     if (group) {
       config.assets["main.wasm"] = config.assets[group.wasm];
@@ -87,7 +95,7 @@
       pending.delete(asset.url);
       const response = await (prefetched || fetchAsset(asset.url, init));
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${asset.url}`);
-      if (address !== new URL("main.wasm", location.href).href || !response.body) return response;
+      if (asset.url !== config.assets["main.wasm"].url || !response.body) return response;
       const reader = response.body.getReader();
       let received = 0;
       const stream = new ReadableStream({
@@ -110,8 +118,14 @@
       return new Response(stream, {headers: {"Content-Type": "application/wasm"}});
     } catch (error) { fail(error); throw error; }
   };
-  const script = document.createElement("script");
-  script.src = config.assets["wasm.js"].url;
-  script.onerror = () => fail(new Error(`Unable to load ${script.src}`));
-  document.body.append(script);
+  const appendScript = (asset, onload) => {
+    const script = document.createElement("script");
+    script.src = asset.url;
+    script.onload = onload;
+    script.onerror = () => fail(new Error(`Unable to load ${script.src}`));
+    document.body.append(script);
+  };
+  const start = () => appendScript(config.assets["wasm.js"]);
+  if (shared) appendScript(config.assets[shared.loader], start);
+  else start();
 })();

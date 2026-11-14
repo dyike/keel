@@ -48,5 +48,8 @@ Start with Getting started to open your first window. Use Guides to build your a
 - [Rendering memory and reuse](rendering-memory.md): renderer allocation changes, native measurements, regression coverage and limitations.
 - [Desktop CGO-free delivery design](desktop-cgo-free.md): native binding migration and acceptance gates.
 - [Desktop no-cgo implementation evidence](desktop-cgo-free-validation.md): verified build and ABI results, limitations, and pending acceptance.
+- [Gallery capability gaps](gallery-gaps.md): comparison scope and remaining component behavior.
+- [Shared WebAssembly experiment](shared-wasm.md): single-runtime module loading, measurements and production gates.
+
 
 Module READMEs describe source responsibilities and implementation files. Read the repository’s [contribution guide](../CONTRIBUTING.md) before contributing.

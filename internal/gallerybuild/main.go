@@ -102,7 +102,11 @@ func prune(src source, category string) []byte {
 func run() error {
 	out := flag.String("out", "demo", "output directory")
 	categories := flag.String("categories", "", "comma-separated categories; empty builds all")
+	analysis := flag.Bool("analysis", false, "keep WASM symbols, identical optional imports and a builder-free baseline for ownership analysis")
 	flag.Parse()
+	if *analysis && *categories != "" {
+		return fmt.Errorf("ownership analysis requires all categories; omit -categories")
+	}
 	root, err := os.Getwd()
 	if err != nil {
 		return err
@@ -162,12 +166,17 @@ func run() error {
 	defer os.RemoveAll(temp)
 	build := func(dest, overlay, category string) error {
 		tags := "osusergo"
-		switch category {
-		case "", "inputs", "display", "shell", "feedback", "chat":
+		switch {
+		case *analysis:
+		case category == "" || category == "inputs" || category == "display" || category == "shell" || category == "feedback" || category == "chat":
 		default:
 			tags += ",keel_gallery_small"
 		}
-		cmd := exec.Command("go", "run", "./cmd/gogio", "-target", "js", "-tags", tags, "-ldflags=-s -w", "-o", dest, "./examples/components")
+		ldflags := "-s -w"
+		if *analysis {
+			ldflags = ""
+		}
+		cmd := exec.Command("go", "run", "./cmd/gogio", "-target", "js", "-tags", tags, "-ldflags="+ldflags, "-o", dest, "./examples/components")
 		cmd.Env = os.Environ()
 		// GOFLAGS also reaches gogio's subprocess build. The outer tool remains
 		// native; setting GOOS here would attempt to execute a wasm gogio binary.
@@ -183,7 +192,11 @@ func run() error {
 		return err
 	}
 	m := manifest{Groups: map[string]group{}}
-	for _, name := range names {
+	buildNames := append([]string(nil), names...)
+	if *analysis {
+		buildNames = append(buildNames, "baseline")
+	}
+	for _, name := range buildNames {
 		replace := map[string]string{}
 		for i, src := range sources {
 			path := filepath.Join(temp, fmt.Sprintf("%s-%d.go", name, i))
@@ -201,6 +214,9 @@ func run() error {
 		fmt.Println("Building gallery category:", name)
 		if err := build(dest, overlay, name); err != nil {
 			return fmt.Errorf("%s: %w", name, err)
+		}
+		if name == "baseline" {
+			continue
 		}
 		sort.Strings(groups[name])
 		m.Groups[name] = group{Wasm: "groups/" + name + "/main.wasm", Script: "groups/" + name + "/wasm.js", Sections: groups[name]}

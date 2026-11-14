@@ -71,6 +71,8 @@ type gallery struct {
 	categoryBundle                     bool
 	onNavigate                         func(string)
 	onBack                             func()
+	sectionStatus                      func(string) string
+	retrySection                       func(string)
 }
 
 func newGallery() *gallery {
@@ -171,6 +173,7 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 		}
 		next.compact, next.layoutKnown, next.mobileDetail = g.compact, g.layoutKnown, g.mobileDetail
 		next.onNavigate, next.onBack = g.onNavigate, g.onBack
+		next.sectionStatus, next.retrySection = g.sectionStatus, g.retrySection
 		next.nav.OnChange(func(name string) { g.open(name) })
 		next.nav.SetValue(selected)
 		next.search.SetValue(query)
@@ -195,6 +198,26 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	s, ok := g.sections[name]
 	if !ok {
 		return el.Div().Row().Items(el.Stretch).Grow().Child(g.nav.Render(cx))
+	}
+	if g.sectionStatus != nil {
+		if status := g.sectionStatus(name); status != "" {
+			title := demoText("Loading component…", "正在加载组件…")
+			if status != "loading" {
+				title = demoText("Unable to load component", "无法加载组件")
+			}
+			body := el.Div().Grow().P(24).Gap(12).Child(el.Text(title))
+			if status != "loading" {
+				body.Child(el.Text(demoText("Component loading failed. Please retry.", "组件加载失败，请重试。")), kit.Button(demoText("Retry", "重试"), func() {
+					if g.retrySection != nil {
+						g.retrySection(name)
+					}
+				}).Size(44).Render(cx))
+			}
+			if compact {
+				return g.mobilePage(cx, name, s.category, body)
+			}
+			return el.Div().Row().Grow().Items(el.Stretch).Child(g.nav.Render(cx), body)
+		}
 	}
 	w := g.built[name]
 	if w == nil {
