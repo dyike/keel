@@ -2,7 +2,9 @@ package kit
 
 import (
 	"github.com/dyike/keel/gio/io/key"
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
+	"image"
 	"testing"
 	"time"
 )
@@ -75,9 +77,27 @@ func TestHoverCardNestedMenuSurvivesCloseDelay(t *testing.T) {
 
 func TestHoverCardCustomDelaysAndPlacement(t *testing.T) {
 	c := &clock{now: time.Unix(100, 0)}
-	card := HoverCard(text("Target"), text("Preview")).Width(80).
+	var target el.Element
+	var anchor image.Rectangle
+	trigger := viewFunc(func(*el.Context) el.Element {
+		target = el.Text("Target")
+		return target
+	})
+	card := HoverCard(trigger, text("Preview")).Width(80).
 		OpenDelay(100*time.Millisecond).CloseDelay(500*time.Millisecond).Placement(el.Right, el.Start).Offset(12)
-	h := c.harness(func(cx *el.Context) el.Element { return el.Div().P(100).Items(el.Start).Child(card.Render(cx)) })
+	h := c.harness(func(cx *el.Context) el.Element {
+		root := el.Div().P(100).Items(el.Start).Child(card.Render(cx))
+		return root.Decorate(func(_ core.C, draw func()) {
+			// Placement uses the layout box, not the font-dependent glyph padding
+			// included in the text's semantic bounds.
+			var ok bool
+			anchor, ok = el.ElementBounds(root, target)
+			if !ok {
+				t.Fatal("missing target layout box")
+			}
+			draw()
+		})
+	})
 	x, y := center(bounds(h, "Target"))
 	h.Move(x, y)
 	c.advance(h, 90*time.Millisecond)
@@ -90,7 +110,6 @@ func TestHoverCardCustomDelaysAndPlacement(t *testing.T) {
 	if !ok {
 		t.Fatal("custom opening delay ignored")
 	}
-	anchor := bounds(h, "Target")
 	if panel.Desc.Bounds.Min.X != anchor.Max.X+12 {
 		t.Fatalf("right offset: anchor %v panel %v", anchor, panel.Desc.Bounds)
 	}
