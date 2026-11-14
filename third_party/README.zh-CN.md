@@ -355,3 +355,7 @@ Keel 的共享渐变/阴影首帧在所测 Apple silicon 主机上逐字节一�
 ### Wayland 桌面字体缩放
 
 `gio/app/os_wayland.go` 按当前桌面选择字体缩放来源：GNOME 系使用 GNOME，Cinnamon 使用 Cinnamon，其他会话回退为 1。避免 Hyprland 因无关的 GNOME 偏好而仅放大字体。显示器缩放不变，桌面来源和缩放解析均有测试，未引入 cgo。
+
+### 2026-11-14：Wayland EGL 交换间隔
+
+两种原生绑定均在 `Lock` 绑定绘制表面后设置 Wayland EGL 交换间隔。原先在构造函数中调用可能返回 `EGL_BAD_CONTEXT`，导致 Mesa 在 `eglSwapBuffers` 中等待隐藏窗口的帧回调，阻塞窗口事件。`TestWaylandEGLCurrentSurface` 在真实 Mesa 上验证调用有效性（Wayland 下设置 `KEEL_DESKTOP=1`）。

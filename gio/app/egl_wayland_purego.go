@@ -75,10 +75,6 @@ func init() {
 		if err := ctx.CreateSurface(egl.NativeWindowType(uintptr(eglWin))); err != nil {
 			return nil, err
 		}
-		// We're in charge of the frame callbacks, don't let eglSwapBuffers
-		// wait for callbacks that may never arrive.
-		ctx.EnableVSync(false)
-
 		return &wlContext{Context: ctx, win: w, eglWin: eglWin}, nil
 	}
 }
@@ -104,7 +100,15 @@ func (c *wlContext) Refresh() error {
 }
 
 func (c *wlContext) Lock() error {
-	return c.Context.MakeCurrent()
+	if err := c.Context.MakeCurrent(); err != nil {
+		return err
+	}
+	// eglSwapInterval applies to the current draw surface. Setting it before
+	// MakeCurrent fails with EGL_BAD_CONTEXT (or affects another window).
+	// Wayland already schedules frames; Mesa must not wait for an extra frame
+	// callback when the surface is hidden and this event loop needs to answer pings.
+	c.Context.EnableVSync(false)
+	return nil
 }
 
 func (c *wlContext) Unlock() {

@@ -823,3 +823,7 @@ Apple silicon host. This patch is local and is not part of v0.4.2.
 ### Wayland desktop text scaling
 
 `gio/app/os_wayland.go` selects the text-scale schema by the active desktop: GNOME-family sessions use GNOME, Cinnamon uses Cinnamon, and other sessions fall back to 1. This avoids enlarging fonts alone on Hyprland due to unrelated GNOME preferences. Display/output scaling is unchanged. Desktop-source and scale-parsing tests cover the selection; no new cgo.
+
+### 2026-11-14: Wayland EGL swap interval
+
+Set the Wayland EGL swap interval only after binding its draw surface in `Lock`, for both native bindings. The previous constructor call could fail with `EGL_BAD_CONTEXT` and leave Mesa waiting for a frame callback inside `eglSwapBuffers`, blocking window events when hidden. `TestWaylandEGLCurrentSurface` exercises real Mesa state validation (`KEEL_DESKTOP=1` on Wayland).
