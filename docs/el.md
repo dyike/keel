@@ -776,3 +776,9 @@ These APIs are in the working branch, not v0.4.2. Components' Motion page has
 interactive counter and text-reordering examples.
 
 `cx.MeasureText(value, size, weight)` measures a single unconstrained line in dp using the current theme and frame metrics. It shares the layout measurement cache; use it for plain text overflow decisions (custom fonts and inherited styles require their own measurement).
+
+## Pointer motion
+
+`OnPointerMove(func(x, y float32))` observes pointer entry and movement in local dp coordinates, including element transforms. It passes input through to clickable children. Disabled elements and elements behind modal overlays do not receive callbacks. Use it for proximity effects; it does not poll or report movement outside the element.
+
+`AnimatedFloat` retains a numeric animation for layout-driven effects. Initialize with `Set`, then use `Sample(cx, target, transition)` during Render. It uses the frame clock, preserves spring velocity when retargeted, honors reduced motion and stops requesting frames when settled. Prefer `AnimatePose` for paint-only transforms.

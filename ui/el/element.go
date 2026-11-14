@@ -66,6 +66,7 @@ type Node struct {
 	palette       *theme.Palette // Themed: colors for this subtree
 	onDoubleClick func()
 	onDrag        func(DragEvent)
+	onPointerMove func(x, y float32)
 	dragAccept    func(float32, float32) bool
 	onScroll      *scrollHandler
 	role, name    string
@@ -668,4 +669,12 @@ func (s *Styled[T]) ContentBottom(target Element) *T {
 func (n *Node) hasDrag() bool { return n.onDrag != nil || n.dragMotion != nil }
 func (n *Node) hasVisualMotion() bool {
 	return n.pose != nil || n.layoutMotion != nil || n.dragMotion != nil || n.sharedLayout != nil
+}
+
+// OnPointerMove observes pointer entry and movement in local dp without
+// consuming clicks from children. Disabled or modal-blocked elements do not
+// receive these callbacks.
+func (s *Styled[T]) OnPointerMove(fn func(x, y float32)) *T {
+	s.node().onPointerMove = fn
+	return s.self
 }

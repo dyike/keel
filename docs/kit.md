@@ -123,6 +123,7 @@ English | [简体中文](kit.zh-CN.md)
 | Components | Purpose |
 | --- | --- |
 | [TitleBar](kit/title_bar.md) | The title bar of a borderless window |
+| [GooeyDock](kit/gooey_dock.md) | Proximity magnification dock with spring lift |
 | [AppShell](kit/app_shell.md) | Retained application pages, navigation and page transitions |
 | [Sidebar](kit/sidebar.md) | Navigation sidebar |
 | [Toolbar](kit/toolbar.md) | Toolbar and overflow menu |

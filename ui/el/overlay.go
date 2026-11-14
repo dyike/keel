@@ -669,11 +669,23 @@ func (r *RootWidget) dispatchHover(gtx core.C) {
 			continue
 		}
 		for {
-			ev, ok := gtx.Event(pointer.Filter{Target: &st.hoverTag, Kinds: pointer.Enter | pointer.Leave})
+			kinds := pointer.Enter | pointer.Leave
+			if st.onPointerMove != nil {
+				kinds |= pointer.Move
+			}
+			ev, ok := gtx.Event(pointer.Filter{Target: &st.hoverTag, Kinds: kinds})
 			if !ok {
 				break
 			}
-			hovered := ev.(pointer.Event).Kind == pointer.Enter
+			pe := ev.(pointer.Event)
+			if st.onPointerMove != nil && (pe.Kind == pointer.Enter || pe.Kind == pointer.Move) {
+				scale := gtx.Metric.PxPerDp
+				if scale <= 0 {
+					scale = 1
+				}
+				core.Call(gtx, func() { r.callbacks = true; st.onPointerMove(pe.Position.X/scale, pe.Position.Y/scale) })
+			}
+			hovered := pe.Kind != pointer.Leave
 			if st.hovered != hovered {
 				st.hovered = hovered
 				r.callbacks = true

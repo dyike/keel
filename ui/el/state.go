@@ -40,22 +40,23 @@ func childKey(parent stateKey, id string, index int) stateKey {
 
 // elemState is what an element keeps between frames.
 type elemState struct {
-	pose         *poseState
-	content      *textContentState
-	layoutMotion *layoutMotionState
-	dragMotion   *dragMotionState
-	hoverTag     int
-	hovered      bool
-	blocked      bool
-	id           string
-	focusable    bool
-	disabled     bool
-	onKey        func(KeyEvent) bool
-	keyParent    *elemState
-	keyFrame     uint64
-	pressedKey   key.Name
-	keyFilters   []event.Filter
-	filterMode   uint8
+	pose          *poseState
+	content       *textContentState
+	layoutMotion  *layoutMotionState
+	dragMotion    *dragMotionState
+	hoverTag      int
+	hovered       bool
+	onPointerMove func(x, y float32)
+	blocked       bool
+	id            string
+	focusable     bool
+	disabled      bool
+	onKey         func(KeyEvent) bool
+	keyParent     *elemState
+	keyFrame      uint64
+	pressedKey    key.Name
+	keyFilters    []event.Filter
+	filterMode    uint8
 	// Pointer focus keeps keyboard routing without drawing a focus ring.
 	pointerFocus bool
 	// inputRing: the editor took focus from the keyboard or a program, so its

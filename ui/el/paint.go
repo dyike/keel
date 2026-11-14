@@ -283,7 +283,7 @@ func (e *engine) paintContent(n *Node) {
 	st := e.sharedPaintStyle(n, n.style) // a copy: variants apply to this frame only
 	var callbackStyle *Style
 	var state *elemState
-	if n.id != "" || n.interactive() || n.onScroll != nil || (n.style.scrollY || n.style.scrollX) || n.input != nil {
+	if n.id != "" || n.onPointerMove != nil || n.interactive() || n.onScroll != nil || (n.style.scrollY || n.style.scrollX) || n.input != nil {
 		state = e.store.get(n.key)
 	}
 	if gtx.Enabled() {
@@ -382,11 +382,18 @@ func (e *engine) paintContent(n *Node) {
 	// Elements that take input or report semantics get their own clip area;
 	// others do not, so their children can overflow them.
 	sem := hasSemantics(n)
-	if state != nil && n.id != "" && !n.effectiveDisabled && !e.blockInput {
+	if state != nil {
+		state.onPointerMove = n.onPointerMove
+	}
+	if state != nil && (n.id != "" || n.onPointerMove != nil) && !n.effectiveDisabled && !e.blockInput {
 		// Register above children so interactive descendants cannot hide hover.
 		defer func() {
 			hoverArea := clip.Rect(rect).Push(gtx.Ops)
-			gtx.Event(pointer.Filter{Target: &state.hoverTag, Kinds: pointer.Enter | pointer.Leave})
+			kinds := pointer.Enter | pointer.Leave
+			if n.onPointerMove != nil {
+				kinds |= pointer.Move
+			}
+			gtx.Event(pointer.Filter{Target: &state.hoverTag, Kinds: kinds})
 			pass := pointer.PassOp{}.Push(gtx.Ops)
 			event.Op(gtx.Ops, &state.hoverTag)
 			pass.Pop()
