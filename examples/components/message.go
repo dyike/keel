@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("message", "data", func() core.Widget {
+	registerSection("message", "chat", func() core.Widget {
 		say := func(s string) el.View { return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) }) }
 		answer := demoText("Order SO-1021 is paid and should arrive within 3 days. Should I ask the warehouse to prioritize it?", "订单 SO-1021 已付款，预计 3 天内送达。需要我通知仓库优先处理吗？")
 		copy := kit.CopyButton(func() string { return answer })

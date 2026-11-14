@@ -113,12 +113,8 @@ func TestGalleryCategoriesCoverEverySection(t *testing.T) {
 			t.Errorf("duplicate gallery section %q", section.name)
 		}
 		names[section.name] = true
-		category := section.category
-		if foundations[section.name] {
-			category = "foundations"
-		}
-		if !categories[category] {
-			t.Errorf("%s is unreachable in the gallery: category %q has no sidebar section", section.name, category)
+		if !categories[section.category] {
+			t.Errorf("%s is unreachable in the gallery: category %q has no sidebar section", section.name, section.category)
 		}
 	}
 }

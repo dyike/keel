@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("link", "controls", func() core.Widget {
+	registerSection("link", "general", func() core.Widget {
 		msg := demoText("Click the link, or focus with Tab and press Enter", "点击链接，或 Tab 聚焦后按回车")
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).Gap(8).Items(el.Start).Child(

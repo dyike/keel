@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	registerSection("avatar", "controls", func() core.Widget {
+	registerSection("avatar", "display", func() core.Widget {
 		img := image.NewNRGBA(image.Rect(0, 0, 80, 40))
 		for y := 0; y < 40; y++ {
 			for x := 0; x < 80; x++ {

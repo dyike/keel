@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("message_content", "data", func() core.Widget {
+	registerSection("message_content", "chat", func() core.Widget {
 		mixed := kit.MessageContent(
 			kit.Bubble(kit.Label(demoText("Export complete. The file is below.", "导出已完成，文件在下方。"))),
 			kit.Attachment(demoText("order-summary.csv", "订单汇总.csv"), 2048),

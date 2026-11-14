@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	registerSection("tag", "controls", func() core.Widget {
+	registerSection("tag", "display", func() core.Widget {
 		return el.Embed(&tagGallery{interactive: kit.Tag(demoText("Selectable and removable", "可选择和移除")).Selectable()})
 	})
 }

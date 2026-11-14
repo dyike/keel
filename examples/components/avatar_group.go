@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("avatar_group", "controls", func() core.Widget {
+	registerSection("avatar_group", "display", func() core.Widget {
 		avatars := []*kit.AvatarView{kit.Avatar(demoText("Alex Chen", "张三")).Status(kit.AvatarOnline), kit.Avatar("Ada Lovelace"), kit.Avatar("Bob"), kit.Avatar("Carol"), kit.Avatar("Dave")}
 		small := kit.AvatarGroup(avatars...).Size(24)
 		limited := kit.AvatarGroup(avatars...).Limit(3)

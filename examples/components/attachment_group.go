@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("attachment_group", "data", func() core.Widget {
+	registerSection("attachment_group", "chat", func() core.Widget {
 		first := kit.Attachment(demoText("report.pdf", "报告.pdf"), 2048)
 		second := kit.Attachment(demoText("image.png", "图片.png"), 4096)
 		pending := kit.Attachment(demoText("pending-upload.zip", "待上传.zip"), 8192)

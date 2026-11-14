@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	registerSection("slider", "controls", func() core.Widget {
+	registerSection("slider", "inputs", func() core.Widget {
 		volume := kit.Slider(demoText("Volume", "音量"), 0, 100).Step(5)
 		volume.SetValue(40)
 		temp := kit.Slider(demoText("Temperature (°C)", "温度 °C"), -10, 40).Step(0.5)

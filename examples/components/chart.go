@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("chart", "data", func() core.Widget {
+	registerSection("chart", "charts", func() core.Widget {
 		months := []string{demoText("January", "1月"), demoText("February", "2月"), demoText("March", "3月"), demoText("April", "4月"), demoText("May", "5月"), demoText("June", "6月"), demoText("July", "7月"), demoText("August", "8月"), demoText("September", "9月"), demoText("October", "10月"), demoText("November", "11月"), demoText("December", "12月")}
 		sales := kit.AreaChart(months,
 			kit.Series{Name: demoText("East China", "华东"), Values: []float64{120, 132, 101, 134, 190, 230, 210, 182, 191, 234, 290, 330}},

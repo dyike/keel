@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("toolbar", "shell", func() core.Widget {
+	registerSection("toolbar", "navigation", func() core.Widget {
 		msg := demoText("Narrow the window to move overflowing buttons into More; ←→ moves between buttons", "缩小窗口，放不下的按钮会移到「更多」里；←→ 在按钮间移动")
 		do := func(s string) func() { return func() { msg = demoText("Executed: ", "已执行：") + s } }
 		zoom := kit.Select("", "75%", "100%", "125%", "150%").OnChange(func(value string) { msg = demoText("Zoom: ", "缩放：") + value })

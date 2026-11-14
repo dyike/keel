@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("time", "controls", func() core.Widget { return el.Embed(&timeGallery{}) })
+	registerSection("time", "foundations", func() core.Widget { return el.Embed(&timeGallery{}) })
 }
 
 type timeGallery struct {

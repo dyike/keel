@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("candlestick_chart", "data", func() core.Widget {
+	registerSection("candlestick_chart", "charts", func() core.Widget {
 		chart := kit.CandlestickChart(
 			kit.Candle{Label: demoText("Monday", "周一"), Open: 100, High: 112, Low: 98, Close: 108},
 			kit.Candle{Label: demoText("Tuesday", "周二"), Open: 108, High: 115, Low: 103, Close: 105},

@@ -29,7 +29,7 @@ window.Open(window.Options{Title: "工作区", Width: 1000, Height: 680, Framele
 
 切换平级页面时，旧页立即退出，新页在 150ms 内淡入，避免两页文字叠加。`Transition(duration)` 修改时长，零禁用动画；减少动态效果设置会跳过动画。首次显示不淡入，也没有后台计时器。这是平级应用布局，尚不包含历史路由和共享元素过渡。
 
-运行 `go run ./examples/app-shell` 查看完整应用和输入保留。运行 `go run ./examples/motion -section pages` 查看切页动效，使用 `-section presets` 查看弹簧对照。运行 `go run ./examples/components -section app_shell` 查看组件示例。
+运行 `go run ./examples/app-shell` 查看完整应用和输入保留。运行 `go run ./examples/components -section motion_pages` 查看切页动效，使用 `-section motion_presets` 查看弹簧对照。运行 `go run ./examples/components -section app_shell` 查看组件示例。
 
 ## 自定义区域
 

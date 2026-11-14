@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("alert", "controls", func() core.Widget {
+	registerSection("alert", "feedback", func() core.Widget {
 		return el.Embed(&alertGallery{closable: kit.Alert(demoText("Dismissible alert", "可关闭提示")).Description(demoText("Can be restored after closing", "关闭后可以恢复")).OnClose(func() {})})
 	})
 }

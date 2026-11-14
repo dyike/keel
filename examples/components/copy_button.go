@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("copy_button", "controls", func() core.Widget {
+	registerSection("copy_button", "general", func() core.Widget {
 		cb := kit.CopyButton(func() string { return "SO-1001" })
 		last := demoText("Not copied yet", "尚未复制")
 		custom := kit.CopyButton(func() string { return "SO-1001" }).OnCopied(func(value string) { last = demoText("Last copied: ", "最近复制：") + value })

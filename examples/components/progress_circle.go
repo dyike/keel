@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	registerSection("progress_circle", "controls", func() core.Widget {
+	registerSection("progress_circle", "feedback", func() core.Widget {
 		done := kit.ProgressCircle(demoText("Import", "导入")).Size(88)
 		done.SetValue(.42)
 		done.Child(el.ViewFunc(func(*el.Context) el.Element { return el.Text(fmt.Sprintf("%.0f%%", done.Value()*100)) }))

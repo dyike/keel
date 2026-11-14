@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	registerSection("notifier", "overlays", func() core.Widget {
+	registerSection("notifier", "feedback", func() core.Widget {
 		n := kit.Notifier()
 		g := &notifierGallery{n: n}
 		n.Notify(kit.Notice{Title: demoText("Default placement", "默认位置"), Body: demoText("This notification follows the container's placement.", "这条通知跟随容器的位置设置。"), Timeout: -1})

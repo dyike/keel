@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	registerSection("plot_primitives", "data", func() core.Widget {
+	registerSection("plot_primitives", "charts", func() core.Widget {
 		return el.Embed(el.ViewFunc(func(cx *el.Context) el.Element {
 			return el.Div().P(24).W(el.Dp(640)).MaxW(el.Full).Gap(12).Child(
 				el.Text(demoText("Drawing primitives: stacked bars, trend lines, and donut charts", "绘图基础件：堆叠柱、趋势线与环图")),

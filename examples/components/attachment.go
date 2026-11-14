@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	registerSection("attachment", "data", func() core.Widget {
+	registerSection("attachment", "chat", func() core.Widget {
 		up := kit.Attachment(demoText("quarterly-report-Q3.xlsx", "季度报表 Q3.xlsx"), 2_400_000)
 		up.SetProgress(0.6)
 		up.OnCancel(func() {}).OnRetry(func() {})

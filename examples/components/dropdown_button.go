@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("dropdown_button", "overlays", func() core.Widget {
+	registerSection("dropdown_button", "general", func() core.Widget {
 		msg := demoText("No action yet", "还没有操作")
 		set := func(s string) func() { return func() { msg = s } }
 		export := kit.DropdownButton(demoText("Export", "导出"), kit.Menu().Item("PDF", "", set(demoText("Export PDF", "导出 PDF"))).Item("CSV", "", set(demoText("Export CSV", "导出 CSV")))).Variant(kit.ButtonSecondary)

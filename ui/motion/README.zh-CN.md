@@ -45,7 +45,7 @@ v.confetti.Apply(cx, stage)
 
 ## 弹簧预设
 
-`Smooth()`、`Snappy()`、`Bouncy()` 返回独立的过渡配置，采用 500ms 时长与 0 / 0.15 / 0.3 回弹参数。它们使用 Keel 现有求解器，重定向时保留速度。时长描述感知响应，不是精确停止时间。运行 `go run ./examples/motion -section presets` 可交互对比。
+`Smooth()`、`Snappy()`、`Bouncy()` 返回独立的过渡配置，采用 500ms 时长与 0 / 0.15 / 0.3 回弹参数。它们使用 Keel 现有求解器，重定向时保留速度。时长描述感知响应，不是精确停止时间。运行 `go run ./examples/components -section motion_presets` 可交互对比。
 
 数值采样器通过 `ui/internal/animation` 与 `ui/el` 共用，只依赖标准库。元素变换可使用 `element.AnimatePose(el.Pose{...}, transition)`，让合适的动画帧只重绘已有布局。原有 `Value.To` 仍在 Render 中采样；实验性 `Transform`、`LayoutGroup` 的上述限制仍然适用。
 

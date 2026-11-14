@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("collapsible", "shell", func() core.Widget {
+	registerSection("collapsible", "display", func() core.Widget {
 		field := kit.Input(demoText("Order number", "订单编号"))
 		field.SetValue("SO-1001")
 		details := kit.Collapsible(demoText("Order details", "订单详情"), field)

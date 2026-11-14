@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	registerSection("motion", "shell", func() core.Widget {
+	registerSection("motion", "motion", func() core.Widget {
 		v := &motionGallery{items: []int{1, 2, 3}, next: 3, count: 19}
 		v.heroImage = motionPhoto()
 		v.dialog = kit.Dialog(demoText("Animated dialog", "进退场对话框")).Body(el.ViewFunc(func(*el.Context) el.Element {

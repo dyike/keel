@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("progress", "controls", func() core.Widget {
+	registerSection("progress", "feedback", func() core.Widget {
 		done := kit.Progress(demoText("Import orders", "导入订单"))
 		done.SetValue(0.42)
 		busy := kit.Progress(demoText("Syncing · Thin bar", "同步中 · 细条")).Height(4).Rounded(0)

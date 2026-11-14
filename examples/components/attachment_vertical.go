@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	registerSection("attachment_vertical", "data", func() core.Widget {
+	registerSection("attachment_vertical", "chat", func() core.Widget {
 		pixels := image.NewNRGBA(image.Rect(0, 0, 400, 200))
 		for y := 0; y < 200; y++ {
 			for x := 0; x < 400; x++ {

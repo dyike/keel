@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("theme", "controls", func() core.Widget {
+	registerSection("theme", "foundations", func() core.Widget {
 		return el.Embed(&themeGallery{inputs: [2]*kit.InputView{
 			kit.Input("").Placeholder(demoText("Input field", "输入框")),
 			kit.Input("").Placeholder(demoText("Input field", "输入框")),

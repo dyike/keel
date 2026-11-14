@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("checkbox", "controls", func() core.Widget {
+	registerSection("checkbox", "inputs", func() core.Widget {
 		all, a, b := kit.Checkbox(demoText("Select all", "全选"), false), kit.Checkbox(demoText("Order SO-1001", "订单 SO-1001"), true), kit.Checkbox(demoText("Order SO-1002", "订单 SO-1002"), false)
 		sync := func() {
 			n := 0

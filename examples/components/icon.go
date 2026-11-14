@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("icon", "controls", func() core.Widget {
+	registerSection("icon", "general", func() core.Widget {
 		svg, err := kit.SVGIcon([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 24"><path fill="currentColor" d="M2 2L30 12L2 22L8 12Z"/></svg>`))
 		if err != nil {
 			panic(err)

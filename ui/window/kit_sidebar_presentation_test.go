@@ -2,9 +2,11 @@ package window
 
 import (
 	"bytes"
+	"github.com/dyike/keel/gio/io/key"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
+	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 	"image/color"
 	"image/png"
@@ -47,5 +49,25 @@ func TestSidebarDividerPixelsAndSuffixAgent(t *testing.T) {
 		if calls != 2 || v.Value() != "" {
 			t.Fatal("suffix activation selected navigation", calls, v.Value())
 		}
+	}
+}
+
+func TestSidebarResizeSeparatorAgent(t *testing.T) {
+	v := kit.Sidebar().Width(200).Height(180).Resizable(160, 300).Section("Pages", kit.SidebarItem{ID: "a", Label: "Alpha"})
+	w := openTest(t, Options{Width: 400, Height: 200, Content: el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
+		return el.Div().Row().Items(el.Stretch).Child(v.Render(cx), el.Div().Grow())
+	}))})
+	w.render()
+	handle := element(t, w, locale.Current().Resize)
+	if handle.Role != "separator" || handle.Value != "200" {
+		t.Fatalf("resize handle not exposed as a separator with its width: %+v", handle)
+	}
+	w.click(handle.center())
+	if err := w.press(string(key.NameEnd)); err != nil {
+		t.Fatal(err)
+	}
+	w.render()
+	if got := element(t, w, locale.Current().Resize).Value; got != "300" || v.CurrentWidth() != 300 {
+		t.Fatal("End did not resize to the maximum", got, v.CurrentWidth())
 	}
 }

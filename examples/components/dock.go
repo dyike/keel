@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	registerSection("dock", "shell", func() core.Widget {
+	registerSection("dock", "navigation", func() core.Widget {
 		txt := func(s string) el.View {
 			return el.ViewFunc(func(*el.Context) el.Element { return el.Div().P(12).Child(el.Text(s).TextSize(13)) })
 		}

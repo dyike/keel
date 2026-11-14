@@ -143,7 +143,7 @@ Agent 的每次操作都会立刻反映在屏幕上的窗口里：输入的文�
 | `navigation` | `kit.Pagination` | `value` 为"当前页/总页数" |
 | `log` / `article` | `kit.MessageScroller` / `kit.Message` | 消息以作者为名，内容单独列出 |
 | `attachment` | `kit.Attachment` | 名字是文件名，`value` 为上传进度或 error |
-| `separator` | `kit.Resizable`、`kit.Dock` 的分隔条 | `value` 为第一个面板的尺寸（Resizable） |
+| `separator` | `kit.Resizable`、`kit.Dock`、`kit.Sidebar` 的分隔条 | `value` 为第一个面板的尺寸（Resizable） |
 | `region` | `kit.Dock` 的停靠区 | 名字是当前面板标题；标签、菜单按钮和内容单独列出 |
 | `toolbar` | `kit.Toolbar` | 按钮单独列出 |
 | `banner` | `kit.TitleBar` | 名字是标题；窗口按钮和应用内容单独列出 |

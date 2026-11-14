@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("empty", "controls", func() core.Widget { return el.Embed(emptyGallery{}) })
+	registerSection("empty", "display", func() core.Widget { return el.Embed(emptyGallery{}) })
 }
 
 type emptyGallery struct{}

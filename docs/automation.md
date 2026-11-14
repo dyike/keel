@@ -143,7 +143,7 @@ Except for `launch`, `attach`, `logs` and `stop`, `window` (such as `w2`) can be
 | `navigation` | `kit.Pagination` | `value` is "current page/total number of pages" |
 | `log` / `article` | `kit.MessageScroller` / `kit.Message` | The message is named after the author and the content is listed separately |
 | `attachment` | `kit.Attachment` | The name is the file name, `value` is the upload progress or error |
-| `separator` | Separator bars of `kit.Resizable`, `kit.Dock` | `value` is the size of the first panel (Resizable) |
+| `separator` | Separator bars of `kit.Resizable`, `kit.Dock`, `kit.Sidebar` | `value` is the size of the first panel (Resizable) |
 | Dock area for `region` | `kit.Dock` | Name is the current panel title; labels, menu buttons, and content are listed separately |
 | `toolbar` | `kit.Toolbar` | Buttons listed separately |
 | `banner` | `kit.TitleBar` | The name is the title; window buttons and application content are listed separately |

@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("rating", "controls", func() core.Widget {
+	registerSection("rating", "inputs", func() core.Widget {
 		mine := kit.Rating(demoText("Your rating · Click a filled star again to reduce the rating", "你的评分 · 再点已填星可减分"), 5).Size(32)
 		avg := kit.Rating(demoText("Average 3.7/5 · Small", "平均 3.7/5 · 小尺寸"), 5).Size(16).ReadOnly()
 		avg.SetScore(3.7)

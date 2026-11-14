@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("status_marker", "controls", func() core.Widget {
+	registerSection("status_marker", "display", func() core.Widget {
 		loading := kit.StatusMarker(demoText("Generating answer…", "正在生成回答…")).Loading(true).LoadingStyle(kit.StatusMarkerLoadingStyleShimmer).Role("status")
 		synced := kit.StatusMarker(demoText("Synced", "已同步")).Icon(kit.Icon(kit.IconCheck).Size(16))
 		today := kit.StatusMarker(demoText("Today", "今天")).Variant(kit.StatusMarkerSeparator)

@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	registerSection("headless", "controls", func() core.Widget {
+	registerSection("headless", "foundations", func() core.Widget {
 		return el.Embed(&headlessGallery{
 			colors: []string{"Red", "Orange", "Olive", "Green", "Teal", "Blue", "Violet"},
 			files:  []string{"main.go", "app.go", "theme.go", "README.md", "go.mod", "go.sum"},

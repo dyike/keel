@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("accordion", "controls", func() core.Widget {
+	registerSection("accordion", "display", func() core.Widget {
 		txt := func(s string) el.View { return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) }) }
 		name := kit.Input(demoText("Display name", "显示名称")).Placeholder(demoText("Input is preserved when collapsed", "收起后保留输入内容"))
 		one := kit.Accordion().Add(demoText("Profile", "个人资料"), name).Add(demoText("Notification settings", "通知设置"), kit.Switch(demoText("Receive notifications", "接收通知"), true)).Add(demoText("Unavailable", "暂不可用"), txt(demoText("Disabled item", "禁用项目")))

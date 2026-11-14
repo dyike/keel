@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("sidebar", "shell", func() core.Widget {
+	registerSection("sidebar", "navigation", func() core.Widget {
 		nav := kit.Sidebar().
 			Section(demoText("Workspace", "工作台"), kit.SidebarItem{ID: "inbox", Label: demoText("Inbox", "收件箱"), Icon: kit.IconInbox, Badge: 12},
 				kit.SidebarItem{ID: "orders", Label: demoText("Orders", "订单"), Icon: kit.IconReceipt, Children: []kit.SidebarItem{

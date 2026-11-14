@@ -22,7 +22,7 @@ import (
 
 func main() {
 	language := flag.String("lang", "en", "example language: en or zh-CN")
-	section := flag.String("section", "", "show one component, or a category (controls, inputs, overlays, data, shell), instead of the app")
+	section := flag.String("section", "", "show one component, or a category (general, inputs, display, data, charts, chat, feedback, navigation, overlays, shell, motion, foundations), instead of the app")
 	screenshot := flag.String("screenshot", "", "render a PNG and exit")
 	width := flag.Int("width", 680, "viewport width in dp")
 	height := flag.Int("height", 1040, "screenshot height in dp")

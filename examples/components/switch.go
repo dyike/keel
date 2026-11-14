@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("switch", "controls", func() core.Widget {
+	registerSection("switch", "inputs", func() core.Widget {
 		on, off := kit.Switch(demoText("Receive notifications", "接收通知"), true), kit.Switch(demoText("Unavailable", "不可用"), false)
 		off.SetDisabled(true)
 		small := kit.Switch(demoText("Small · Left label", "小尺寸 · 左侧标签"), true).Size(kit.SwitchSmall).LabelSide(el.Left)

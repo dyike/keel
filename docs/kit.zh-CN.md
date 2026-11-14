@@ -80,6 +80,7 @@
 | [Progress](kit/progress.zh-CN.md) | 进度条、自定义高度/颜色/圆角与轨道样式 |
 | [ProgressCircle](kit/progress_circle.zh-CN.md) | 圆形进度、中心内容与不确定状态 |
 | [ShimmerText](kit/shimmer_text.zh-CN.md) | 文字扫光 |
+| [RisingGlow](kit/rising_glow.zh-CN.md) | 上升淡入淡出的装饰粒子 |
 
 ## 列表与表格
 

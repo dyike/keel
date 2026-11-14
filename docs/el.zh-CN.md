@@ -507,7 +507,7 @@ card := el.Div().ID("card").W(el.Dp(160)).H(el.Dp(90)).
 
 `AnimatePose` 与 `Translate`、`Opacity`、`Decorate` 组合使用，不覆盖装饰回调。用户在 `Decorate` 内自行加入的变换仍有原有几何限制。姿态内文字使用矢量或原生绘制，不使用可选的数字图片图集，以保留缩放、旋转时的文字质量。
 
-运行 `go run ./examples/motion -section pose -lang zh-CN` 可操作卡片和跟随浮层。本节描述当前开发分支，不属于 v0.4.2。进退场、布局过渡和拖拽能力见下文。
+运行 `go run ./examples/components -section motion_pose -lang zh-CN` 可操作卡片和跟随浮层。本节描述当前开发分支，不属于 v0.4.2。进退场、布局过渡和拖拽能力见下文。
 
 
 ### 布局过渡

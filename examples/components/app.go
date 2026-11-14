@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/dyike/keel/gio/font"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
@@ -11,18 +12,44 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
-// foundations are the sections that demonstrate el itself, not a component.
-var foundations = map[string]bool{"theme": true, "layout": true, "scrollable": true, "focus": true, "headless": true, "time": true, "overlay": true, "motion": true}
-
+// categoryTitles orders the sidebar: components grouped by purpose, then
+// motion, then the el capabilities they are built on.
 func categoryTitles() []struct{ id, title string } {
 	return []struct{ id, title string }{
-		{"foundations", demoText("Core capabilities", "基础能力")},
-		{"controls", demoText("Basic components", "基础组件")},
-		{"inputs", demoText("Input", "输入")},
+		{"general", demoText("General", "通用")},
+		{"inputs", demoText("Form & input", "表单输入")},
+		{"display", demoText("Data display", "数据展示")},
+		{"data", demoText("Lists & tables", "列表与表格")},
+		{"charts", demoText("Charts", "图表")},
+		{"chat", demoText("Chat & messages", "消息与对话")},
+		{"feedback", demoText("Feedback", "反馈")},
+		{"navigation", demoText("Navigation", "导航")},
 		{"overlays", demoText("Overlay", "浮层")},
-		{"data", demoText("Data", "数据")},
-		{"shell", demoText("App shell", "应用外壳")},
+		{"shell", demoText("Layout & shell", "布局与外壳")},
+		{"motion", demoText("Motion", "动效")},
+		{"foundations", demoText("Core capabilities", "基础能力")},
 	}
+}
+
+// sectionDoc is the document a section demonstrates.
+func sectionDoc(s demoSection) string {
+	switch {
+	case s.name == "attachment_vertical":
+		return "docs/kit/attachment.md"
+	case s.name == "command_async":
+		return "docs/kit/command.md"
+	case s.name == "table_data", s.name == "table_static":
+		return "docs/kit/table.md"
+	case s.name == "text_view":
+		return "docs/el.md"
+	case s.name == "headless":
+		return "docs/base.md"
+	case s.category == "foundations", s.name == "motion":
+		return "docs/el.md"
+	case strings.HasPrefix(s.name, "motion_"):
+		return "ui/motion/README.md"
+	}
+	return "docs/kit/" + s.name + ".md"
 }
 
 // gallery is the components app: a searchable sidebar of every section and
@@ -34,6 +61,7 @@ type gallery struct {
 	built            map[string]core.Widget
 	sections         map[string]demoSection
 	themes           *kit.SelectView
+	navWidth         float32 // a width the user dragged the sidebar to; 0 keeps the automatic width
 	languageRevision uint64
 }
 
@@ -44,17 +72,14 @@ func newGallery() *gallery {
 	byCategory := map[string][]kit.SidebarItem{}
 	for _, s := range demoSections {
 		g.sections[s.name] = s
-		category := s.category
-		if foundations[s.name] {
-			category = "foundations"
-		}
-		byCategory[category] = append(byCategory[category], kit.SidebarItem{ID: s.name, Label: displayName(s.name)})
+		byCategory[s.category] = append(byCategory[s.category], kit.SidebarItem{ID: s.name, Label: displayName(s.name)})
 	}
 	g.search = kit.Input("").Placeholder(demoText("Search components", "搜索组件")).OnChange(func(q string) { g.nav.Filter(q) }).
 		Prefix(el.ViewFunc(func(cx *el.Context) el.Element {
 			return kit.Icon(kit.IconSearch).Size(16).Color(theme.Muted).Render(cx)
 		}))
-	g.nav = kit.Sidebar().Width(232).AutoWidth(true).Header(el.ViewFunc(g.header))
+	g.nav = kit.Sidebar().Width(232).AutoWidth(true).Resizable(180, 420).OnResize(func(dp float32) { g.navWidth = dp }).
+		SectionTitleWeight(font.SemiBold).SectionTitleSize(16).Header(el.ViewFunc(g.header))
 	for _, c := range categoryTitles() {
 		items := byCategory[c.id]
 		sort.Slice(items, func(i, j int) bool { return items[i].Label < items[j].Label })
@@ -67,6 +92,28 @@ func newGallery() *gallery {
 // displayName turns a section name into its component name: color_picker
 // becomes ColorPicker.
 func displayName(name string) string {
+	switch name {
+	case "motion":
+		return demoText("Element transitions", "元素过渡")
+	case "motion_values":
+		return demoText("Springs & keyframes", "弹簧与关键帧")
+	case "motion_gestures":
+		return demoText("Hover, press & drag", "悬停、按压与拖拽")
+	case "motion_layout":
+		return demoText("Presence & layout", "进退场与布局")
+	case "motion_scroll":
+		return demoText("Scroll-linked motion", "滚动联动")
+	case "motion_presets":
+		return demoText("Spring presets", "弹簧预设")
+	case "motion_pages":
+		return demoText("Page transitions", "页面切换")
+	case "motion_pose":
+		return demoText("Transforms & anchors", "变换与锚定浮层")
+	case "motion_timeline":
+		return demoText("Timeline", "时间线")
+	case "motion_effects":
+		return demoText("Cursor glow & confetti", "指针光晕与彩纸")
+	}
 	parts := strings.Split(name, "_")
 	for i, p := range parts {
 		if p != "" {
@@ -94,11 +141,18 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	if g.languageRevision != locale.Revision() {
 		selected, query := g.nav.Value(), g.search.Value()
 		next := newGallery()
+		if g.navWidth > 0 {
+			next.navWidth = g.navWidth
+			next.nav.Width(g.navWidth)
+		}
 		next.nav.SetValue(selected)
 		next.search.SetValue(query)
 		next.nav.Filter(query)
 		*g = *next
 	}
+	// Section headings use body text so they stand out from the items;
+	// set every frame so they follow theme changes.
+	g.nav.SectionTitleColor(theme.Text)
 	name := g.nav.Value()
 	s, ok := g.sections[name]
 	if !ok {
@@ -110,21 +164,12 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 		g.built[name] = w
 	}
 	category := s.category
-	if foundations[name] {
-		category = "foundations"
-	}
 	for _, c := range categoryTitles() {
 		if c.id == category {
 			category = c.title
 		}
 	}
-	doc := "docs/kit/" + name + ".md"
-	if foundations[name] {
-		doc = "docs/el.md"
-	}
-	if name == "headless" {
-		doc = "docs/base.md"
-	}
+	doc := sectionDoc(s)
 	langLabel := "English"
 	if !strings.HasPrefix(locale.Current().Lang, "zh") {
 		langLabel = "中文"
@@ -153,7 +198,6 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	}
 	return el.Div().Row().Grow().Items(el.Stretch).Child(
 		g.nav.Render(cx),
-		el.Div().W(el.Dp(1)).NoShrink().Bg(theme.Border),
 		el.Div().Grow().W(el.Dp(0)).Items(el.Stretch).Child(
 			head,
 			el.Div().H(el.Dp(1)).NoShrink().Bg(theme.Border),

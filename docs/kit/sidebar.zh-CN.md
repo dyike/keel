@@ -24,7 +24,8 @@ nav := kit.Sidebar().
 - `Filter(query)` 只显示名称包含 query 的项（不区分大小写），以及通向它们的父项，父项会临时展开；没有匹配项的分组连同标题一起隐藏。传空字符串恢复全部。选中项被过滤掉时仍保持选中。组件库应用 `go run ./examples/components` 用它做搜索。
 - `Side(el.Right)` 将分隔线放到左边，并调整折叠箭头与收起状态的提示方向；默认 `el.Left`。应用仍需把侧栏放在主内容右边，组件不改变父布局顺序。`BorderWidth(dp)` 调整分隔线，0 隐藏。
 - `SidebarItem.Tag` 在名称后、展开箭头前放置仅展示的内容，通常是 `Tag`。名称截断时它保持尺寸；选中行加粗时它保持常规字重；折叠时隐藏。
-- `SectionAction(title, view, items...)` 在分组标题末尾放置内容（如添加按钮）；这样的分组为空时仍显示标题（筛选时隐藏）。`SectionTitleWeight(font.Weight)` 设置分组标题字重，默认常规。
+- `SectionAction(title, view, items...)` 在分组标题末尾放置内容（如添加按钮）；这样的分组为空时仍显示标题（筛选时隐藏）。`SectionTitleWeight(font.Weight)` 设置分组标题字重，默认常规；`SectionTitleColor(color)` 设置分组标题颜色，默认 `theme.Muted`（在 Render 中设置，如 `theme.Text`，即可跟随主题切换）。
+- `Resizable(min, max)` 把分隔线变成 `separator`：拖动，或聚焦后用方向键（每次 16dp，Home / End 到达上下限）在 min 与 max dp 之间调整展开宽度。调整后的宽度与 `Width` 一样是显式宽度，会关闭 `AutoWidth`。`OnResize(fn)` 通知新宽度，`CurrentWidth()` 读取当前宽度。收起后的图标栏不可调整。
 - `Collapsible(false)` 隐藏内置折叠按钮；程序仍可调用 `SetCollapsed`。
 - `SidebarItem.Suffix` / `SetSuffix(id, view)` 添加独立尾部内容，可以放按钮或开关；点击尾部不选择或展开导航项。收起时隐藏尾部内容，展开时最大宽度为侧栏配置宽度的一半，高度应适配 36dp 行。Badge 仍可同时显示。
 - `SidebarItem.ContextMenu` / `SetContextMenu(id, menu)` 为条目添加右键菜单，支持 Menu 的子菜单、快捷键提示、链接及自定义内容。一个 Menu 实例只属于一个条目，其 Trigger 不使用；菜单外观与位置仍由 Menu 配置。隐藏、禁用或替换条目菜单会关闭旧菜单。右键不改变选中项。
@@ -36,8 +37,10 @@ nav := kit.Sidebar().
 
 Sidebar 跳过滚动视口外的行绘制，但每帧仍会构建和布局展开的条目，尚不是完整的虚拟列表。菜单清理通过已列出的 ID 集合一次遍历整份数据，行内 hover 和焦点查询复用 el 的本轮渲染索引。回归测试覆盖 1×/2× 下的 1000 行列表、屏外绘制、键盘定位与选择，以及收起父项后的菜单关闭。运行 `go test ./ui/kit -run '^$' -bench BenchmarkSidebarScroll -benchmem`，可测量带逐项菜单和 hover 按钮的平铺列表及已收起的项目树。
 
-Agent：容器角色 `navigation`；叶项是 `link`，分支是带展开布尔值的 `button`，`selected` 表示当前页；收起按钮名为"收起侧栏""展开侧栏"。
+Agent：容器角色 `navigation`；叶项是 `link`，分支是带展开布尔值的 `button`，`selected` 表示当前页；收起按钮名为"收起侧栏""展开侧栏"；开启 `Resizable` 后，分隔线是名为"调整大小"的 `separator`，值为当前宽度。
 
 验证：`go run ./examples/components -section sidebar`，加 `-theme dark` 检查深色。
 
 大字体会自动增加导航行和分组标题高度。默认侧栏宽度也随字体缩放增加，最多 420dp，并为正文预留 240dp；无法容纳原始宽度时显示图标栏，窗口变宽后恢复。`Width(dp)` 保持显式宽度；`Width(dp).AutoWidth(true)` 可重新启用自适应。自动宽度调整在字体缩放大于 1 时生效。被截断的标签在悬停或聚焦时显示完整提示，Escape 可关闭。自定义页头、页脚仍需应用自行适配。
+
+SectionTitleSize(sp) 设置分类标题字号，零恢复 theme.TextSm，非法值忽略。标题行高及滚动定位会随字号调整。

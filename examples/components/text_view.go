@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	registerSection("text_view", "data", func() core.Widget {
+	registerSection("text_view", "display", func() core.Widget {
 		status := ""
 		expanded := false
 		fadeDoc := markdown.New("").StreamFade(true)

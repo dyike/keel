@@ -20,7 +20,8 @@ import (
 // Shared icons/shapers alternate colors and sizes across all its sections.
 // This includes CPU paint-op generation, but not GPU execution or OS footprint.
 func BenchmarkCategoryFrame(b *testing.B) {
-	for _, category := range []string{"controls", "inputs", "overlays", "data", "shell"} {
+	for _, c := range categoryTitles() {
+		category := c.id
 		b.Run(category, func(b *testing.B) {
 			content, ok := sectionContent(category)
 			if !ok {

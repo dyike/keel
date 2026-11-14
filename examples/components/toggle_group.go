@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("toggle_group", "controls", func() core.Widget {
+	registerSection("toggle_group", "general", func() core.Widget {
 		align := kit.ToggleGroup(demoText("Align left", "左对齐"), demoText("Center", "居中"), demoText("Align right", "右对齐")).Variant(kit.ToggleOutline).Size(kit.ToggleSizeLarge).Segmented(true)
 		align.SetValue(demoText("Center", "居中"))
 		separated := kit.ToggleGroup(demoText("Day", "日"), demoText("Week", "周"), demoText("Month", "月")).Segmented(true).Gap(8).Variant(kit.ToggleOutline)

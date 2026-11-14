@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	registerSection("carousel", "shell", func() core.Widget {
+	registerSection("carousel", "display", func() core.Widget {
 		slide := func(title, body string) el.View {
 			return el.ViewFunc(func(*el.Context) el.Element {
 				return el.Div().P(24).Gap(8).Child(el.Text(title).TextSize(20).Bold(), el.Text(body).TextColor(theme.Muted))

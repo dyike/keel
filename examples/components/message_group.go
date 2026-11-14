@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("message_group", "data", func() core.Widget {
+	registerSection("message_group", "chat", func() core.Widget {
 		say := func(s string) el.View { return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) }) }
 		received := kit.MessageGroup(
 			kit.Message(demoText("Support", "客服"), say(demoText("Order confirmed.", "订单已确认。"))).Header(kit.Label(demoText("Support · 10:24", "客服 · 10:24"))),

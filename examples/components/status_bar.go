@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	registerSection("status_bar", "controls", func() core.Widget { return el.Embed(newStatusBarGallery()) })
+	registerSection("status_bar", "shell", func() core.Widget { return el.Embed(newStatusBarGallery()) })
 }
 
 // The bars live in the view: an overflowing bar remembers its item widths.

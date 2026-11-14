@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("bubble", "data", func() core.Widget {
+	registerSection("bubble", "chat", func() core.Widget {
 		say := func(s string) el.View { return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) }) }
 		incoming := kit.Bubble(say(demoText("Yes, shipping by 10am.", "可以，预计 10:00 前出库。Shipping by 10am.")))
 		outgoing := kit.Bubble(say(demoText("Can it ship tomorrow morning?", "明天上午能发货吗？"))).Mine()

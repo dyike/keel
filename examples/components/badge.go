@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("badge", "controls", func() core.Widget {
+	registerSection("badge", "display", func() core.Widget {
 		unread := kit.Badge(9)
 		unread.Child(kit.Button(demoText("Notifications", "通知"), func() { unread.SetValue(0) }).Variant(kit.ButtonSecondary))
 		online := kit.Badge(1).Dot().Tone(kit.ToneSuccess).Child(kit.Avatar(demoText("Alex Chen", "张三")))

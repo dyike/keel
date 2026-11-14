@@ -56,7 +56,7 @@ element if it must also use another decoration.
 a 500ms duration and 0 / 0.15 / 0.3 bounce parameters. They use Keel's
 existing solver and preserve velocity when retargeted. Duration describes the
 perceptual response, not an exact settling deadline. Compare them interactively
-with `go run ./examples/motion -section presets`.
+with `go run ./examples/components -section motion_presets`.
 
 The numerical sampler is shared with `ui/el` through `ui/internal/animation` (standard library only). For element transforms whose frames can repaint retained layout, use `element.AnimatePose(el.Pose{...}, transition)`. Existing `Value.To` remains a Render-time value API, and the experimental `Transform`/`LayoutGroup` limitations above still apply.
 

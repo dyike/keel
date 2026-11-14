@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	registerSection("focus", "controls", func() core.Widget { return el.Embed(&focusGallery{}) })
+	registerSection("focus", "foundations", func() core.Widget { return el.Embed(&focusGallery{}) })
 }
 
 type focusGallery struct {

@@ -540,7 +540,7 @@ A window-owned root can repaint the retained tree and layout while the pose move
 
 `AnimatePose` composes with `Translate`, `Opacity` and `Decorate` without replacing the decoration. Custom transforms applied inside `Decorate` still have their existing geometry limitations. Pose text uses the vector/native path instead of the optional numeric image atlas, preserving scaled and rotated glyph rendering.
 
-Run `go run ./examples/motion -section pose` for an interactive card and an anchored overlay. This section describes the current development branch, not v0.4.2. Presence, layout transitions and draggable elements are described below.
+Run `go run ./examples/components -section motion_pose` for an interactive card and an anchored overlay. This section describes the current development branch, not v0.4.2. Presence, layout transitions and draggable elements are described below.
 
 
 ### Layout transitions

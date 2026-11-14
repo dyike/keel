@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("marker", "controls", func() core.Widget { return el.Embed(markerGallery{}) })
+	registerSection("marker", "display", func() core.Widget { return el.Embed(markerGallery{}) })
 }
 
 type markerGallery struct{}

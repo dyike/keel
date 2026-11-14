@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	registerSection("scrollable", "shell", func() core.Widget {
+	registerSection("scrollable", "foundations", func() core.Widget {
 		mode := el.ScrollbarAlways
 		names := []string{demoText("Always visible", "常显"), demoText("Show on hover", "悬停显示"), demoText("Show while scrolling", "滚动时显示")}
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {

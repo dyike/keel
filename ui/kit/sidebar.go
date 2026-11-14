@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"image/color"
 	"slices"
 	"strconv"
 
@@ -50,6 +51,14 @@ type SidebarView struct {
 	disabled       bool
 	header, footer el.View
 	titleWeight    font.Weight
+	titleSize      float32
+	titleColor     *color.NRGBA
+	resizable      bool
+	resizing       bool
+	minWidth       float32
+	maxWidth       float32
+	resizeGrab     float32
+	onResize       func(dp float32)
 	query          string
 	expanded       map[string]bool
 	positions      map[string]float32
@@ -84,6 +93,14 @@ func (v *SidebarView) SectionAction(title string, action el.View, items ...Sideb
 
 // SectionTitleWeight sets the weight of section headings, regular by default.
 func (v *SidebarView) SectionTitleWeight(w font.Weight) *SidebarView { v.titleWeight = w; return v }
+
+// SectionTitleSize sets section heading size in sp; zero restores theme.TextSm.
+func (v *SidebarView) SectionTitleSize(sp float32) *SidebarView {
+	if sp >= 0 && finiteNumber(float64(sp)) {
+		v.titleSize = sp
+	}
+	return v
+}
 
 // Width sets the expanded width in dp, 220 by default.
 func (v *SidebarView) Width(dp float32) *SidebarView {
@@ -286,6 +303,11 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 	text := locale.Current()
 	width := v.adapt(cx)
 	scale := max(float32(1), cx.TextScale())
+	titleSize := v.titleSize
+	if titleSize == 0 {
+		titleSize = theme.TextSm
+	}
+	headingHeight := max(float32(28), titleSize+12) * scale
 	if v.Collapsed() {
 		width = 56
 	}
@@ -352,13 +374,17 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 			continue
 		}
 		if s.title != "" && !v.Collapsed() {
-			heading := el.Div().H(el.Dp(28 * scale)).Px(10).Row().Items(el.Center).Child(el.Text(s.title).Grow().TextSize(theme.TextSm).TextColor(theme.Muted).Weight(v.titleWeight))
+			titleColor := theme.Muted
+			if v.titleColor != nil {
+				titleColor = *v.titleColor
+			}
+			heading := el.Div().H(el.Dp(headingHeight)).Px(10).Row().Items(el.Center).Child(el.Text(s.title).Grow().TextSize(titleSize).TextColor(titleColor).Weight(v.titleWeight))
 			if s.action != nil {
 				// Trailing actions sit flush with the content edge, like a header toolbar.
 				heading.Pr(0).Child(s.action.Render(cx))
 			}
 			body.Child(heading)
-			y += 28*scale + theme.SpaceXs
+			y += headingHeight + theme.SpaceXs
 		} else if i > 0 {
 			body.Child(el.Div().H(el.Dp(17)).Px(theme.SpaceMd).Justify(el.Center).Child(el.Div().H(el.Dp(1)).Bg(theme.Border)))
 			y += 21
@@ -397,7 +423,7 @@ func (v *SidebarView) Render(cx *el.Context) el.Element {
 		})
 	}
 	root := el.Div().Row().Items(el.Stretch)
-	border := el.Div().W(el.Dp(v.borderWidth)).NoShrink().Bg(theme.Border)
+	border := v.border(cx, base, width)
 	if v.side == el.Right {
 		return root.Child(border, nav)
 	}

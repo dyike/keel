@@ -9,7 +9,7 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
-func init() { registerSection("kbd", "controls", kbdGallery) }
+func init() { registerSection("kbd", "general", kbdGallery) }
 func kbdGallery() core.Widget {
 	core.Bind("demo.palette", "mod+shift+p")
 	opened := 0

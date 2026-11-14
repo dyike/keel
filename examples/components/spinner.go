@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	registerSection("spinner", "controls", func() core.Widget { return el.Embed(spinnerGallery{}) })
+	registerSection("spinner", "feedback", func() core.Widget { return el.Embed(spinnerGallery{}) })
 }
 
 type spinnerGallery struct{}

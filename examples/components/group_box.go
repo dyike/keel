@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("group_box", "controls", func() core.Widget {
+	registerSection("group_box", "display", func() core.Widget {
 		hint := el.ViewFunc(func(*el.Context) el.Element {
 			return el.Text(demoText("Settings apply to this device only; the footer sits outside the content box.", "设置只用于当前设备，底部说明位于内容框外。"))
 		})

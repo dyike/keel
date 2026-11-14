@@ -29,7 +29,7 @@ Pages receive 24dp padding and a vertical scroll area by default. Set `AppPage.F
 
 Peer-page changes fade in over 150ms: the old page disappears immediately so text does not blend. `Transition(duration)` changes this duration; zero disables it. Reduced motion skips the fade. There is no initial entrance animation or background timer. This is a flat application shell, not a history router or shared-element transition engine.
 
-Run `go run ./examples/app-shell` for a complete application with retained input. Preview page transitions with `go run ./examples/motion -section pages`, and spring presets with `-section presets`. Run `go run ./examples/components -section app_shell` for the component gallery.
+Run `go run ./examples/app-shell` for a complete application with retained input. Preview page transitions with `go run ./examples/components -section motion_pages`, and spring presets with `-section motion_presets`. Run `go run ./examples/components -section app_shell` for the component gallery.
 
 ## Custom regions
 

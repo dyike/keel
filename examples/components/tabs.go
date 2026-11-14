@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	registerSection("tabs", "controls", func() core.Widget {
+	registerSection("tabs", "navigation", func() core.Widget {
 		tabs := kit.Tabs().
 			Add(demoText("General", "基本"), kit.Input(demoText("Name", "名称")).Placeholder(demoText("Content is preserved after switching", "切换后内容保留"))).
 			Add(demoText("Notifications", "通知"), kit.Switch(demoText("Email reminders", "邮件提醒"), true)).

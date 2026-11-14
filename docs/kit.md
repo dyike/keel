@@ -80,6 +80,7 @@ English | [简体中文](kit.zh-CN.md)
 | [Progress](kit/progress.md) | Progress bar, custom height/color/rounded corners and track style |
 | [ProgressCircle](kit/progress_circle.md) | Circle progress, center content and indeterminate state |
 | [ShimmerText](kit/shimmer_text.md) | Text sweep |
+| [RisingGlow](kit/rising_glow.md) | Rising and fading decorative particles |
 
 ## Lists and tables
 

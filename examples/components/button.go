@@ -9,7 +9,7 @@ import (
 	"image/color"
 )
 
-func init() { registerSection("button", "controls", buttonGallery) }
+func init() { registerSection("button", "general", buttonGallery) }
 
 type buttonDemo struct {
 	save    *kit.ButtonView

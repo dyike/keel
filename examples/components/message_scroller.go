@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	registerSection("message_scroller", "data", func() core.Widget {
+	registerSection("message_scroller", "chat", func() core.Widget {
 		var msgs []string
 		for i := 20; i < 40; i++ {
 			msgs = append(msgs, demoText("Message #", "消息 #")+strconv.Itoa(i))

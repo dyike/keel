@@ -7,7 +7,7 @@ import (
 	"github.com/dyike/keel/ui/theme"
 )
 
-func init() { registerSection("button_group", "controls", buttonGroupGallery) }
+func init() { registerSection("button_group", "general", buttonGroupGallery) }
 
 func buttonGroupGallery() core.Widget {
 	// The selected view follows clicks.

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("bubble_group", "data", func() core.Widget {
+	registerSection("bubble_group", "chat", func() core.Widget {
 		say := func(s string) el.View { return el.ViewFunc(func(*el.Context) el.Element { return el.Text(s) }) }
 		received := kit.BubbleGroup(
 			kit.Bubble(say(demoText("Order confirmed.", "订单已确认。"))),

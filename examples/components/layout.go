@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	registerSection("layout", "shell", func() core.Widget {
+	registerSection("layout", "foundations", func() core.Widget {
 		selected := demoText("Click any tag", "点击任一标签")
 		return el.Root(el.ViewFunc(func(cx *el.Context) el.Element {
 			wrap := el.Div().Wrap().Gap(8).Items(el.Center)

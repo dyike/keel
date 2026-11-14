@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	registerSection("plot", "data", func() core.Widget {
+	registerSection("plot", "charts", func() core.Widget {
 		var wave, damped []kit.PlotPoint
 		for i := 0; i <= 200; i++ {
 			x := float64(i) / 10

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerSection("overlay", "controls", func() core.Widget { return el.Root(&overlayGallery{popover: true}) })
+	registerSection("overlay", "foundations", func() core.Widget { return el.Root(&overlayGallery{popover: true}) })
 }
 
 type overlayGallery struct {

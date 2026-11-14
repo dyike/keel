@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	registerSection("pagination", "data", func() core.Widget {
+	registerSection("pagination", "navigation", func() core.Widget {
 		p := kit.Pagination(195, 10)
 		compact := kit.Pagination(195, 10).Compact(true).Size(24)
 		wide := kit.Pagination(1000, 10).VisiblePages(9).Size(36)

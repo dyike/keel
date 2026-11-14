@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("description_list", "controls", func() core.Widget {
+	registerSection("description_list", "display", func() core.Widget {
 		order := kit.DescriptionList().Columns(2).Vertical().Bordered(true).
 			Item(demoText("Order number", "订单号"), "SO-123").Item(demoText("Customer", "客户"), demoText("Alex / Ada Lovelace", "张三 / Ada Lovelace")).
 			Separator().Item(demoText("Notes", "备注"), demoText("Mixed description; long values wrap. This description spans two columns.", "中英文 mixed description；长值可以换行，这条说明跨两列展示。")).Span(2).

@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	registerSection("image", "controls", func() core.Widget {
+	registerSection("image", "display", func() core.Widget {
 		img := image.NewNRGBA(image.Rect(0, 0, 240, 72))
 		colors := []color.NRGBA{{R: 224, G: 96, B: 86, A: 255}, {R: 89, G: 171, B: 137, A: 255}, {R: 87, G: 139, B: 209, A: 255}}
 		for y := 0; y < 72; y++ {

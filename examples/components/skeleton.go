@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerSection("skeleton", "controls", func() core.Widget { return el.Embed(&skeletonGallery{}) })
+	registerSection("skeleton", "feedback", func() core.Widget { return el.Embed(&skeletonGallery{}) })
 }
 
 type skeletonGallery struct{ loaded bool }
