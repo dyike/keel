@@ -100,3 +100,5 @@ scaled title plus padding. Its content offset follows the measured height, so
 accessibility text scaling does not clip the title or overlap the body.
 
 Font scaling: `Options.TextScale` defaults to zero (platform preference). Set it to 1 for design-size text or a positive factor for an app preference; display density and dp geometry are unchanged. On Wayland, GNOME-family and Cinnamon sessions read their own text-scale setting; other desktops currently use 1 rather than inheriting an unrelated GNOME setting. Settings are read at startup, not watched live.
+
+Browser applications with their own URL router can set `Options.CustomBrowserHistory: true` when opening their window. This disables Gio's history sentinel and automatic Back-key translation, so the app owns `popstate` and `hashchange`. Leave it false for Gio's default Back behavior. Native windows ignore it.

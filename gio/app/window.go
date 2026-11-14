@@ -1074,3 +1074,10 @@ func (t flushEvent) ImplementsEvent() {}
 // theFlushEvent avoids allocating garbage when sending
 // flushEvents.
 var theFlushEvent flushEvent
+
+// CustomBrowserHistory disables Gio's browser history sentinel and Back-key
+// translation when the host owns URL routing. Set at window creation; ignored
+// outside the browser. The default preserves Gio's Back-key behavior.
+func CustomBrowserHistory(custom bool) Option {
+	return func(_ unit.Metric, cnf *Config) { cnf.CustomBrowserHistory = custom }
+}

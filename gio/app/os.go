@@ -47,6 +47,9 @@ type Config struct {
 	// CustomRenderer is true when the window content is rendered by the
 	// client.
 	CustomRenderer bool
+	// CustomBrowserHistory delegates browser back/forward navigation to the host.
+	// Set at window creation. Ignored on non-browser platforms.
+	CustomBrowserHistory bool
 	// Decorated reports whether window decorations are provided automatically.
 	Decorated bool
 	// TopMost windows render above all other non-top-most windows.

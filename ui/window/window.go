@@ -43,6 +43,9 @@ const (
 
 // Options configures a window. Width and Height are in dp; zero uses 640×480.
 type Options struct {
+	// CustomBrowserHistory lets a browser application own URL/back navigation.
+	// Set when opening the window. It has no effect on native windows.
+	CustomBrowserHistory bool
 	// TextScale overrides font scaling relative to dp. Zero follows the platform;
 	// 1 uses design sizes. It does not change window, icon or spacing dimensions.
 	TextScale float32
@@ -196,6 +199,9 @@ func newWindow(o Options) *Window {
 func (w *Window) nativeOptions() []gioapp.Option {
 	o := w.opts
 	options := []gioapp.Option{gioapp.Title(o.Title), gioapp.Size(unit.Dp(o.Width), unit.Dp(o.Height)), gioapp.Decorated(askDecorations(o.Frameless))}
+	if o.CustomBrowserHistory {
+		options = append(options, gioapp.CustomBrowserHistory(true))
+	}
 	if o.TopMost {
 		options = append(options, gioapp.TopMost(true))
 	}

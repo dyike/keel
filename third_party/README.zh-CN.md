@@ -360,6 +360,10 @@ Keel 的共享渐变/阴影首帧在所测 Apple silicon 主机上逐字节一�
 
 两种原生绑定均在 `Lock` 绑定绘制表面后设置 Wayland EGL 交换间隔。原先在构造函数中调用可能返回 `EGL_BAD_CONTEXT`，导致 Mesa 在 `eglSwapBuffers` 中等待隐藏窗口的帧回调，阻塞窗口事件。`TestWaylandEGLCurrentSurface` 在真实 Mesa 上验证调用有效性（Wayland 下设置 `KEEL_DESKTOP=1`）。
 
+### 浏览器历史记录归属
+
+`gio/app` 增加可选的 `CustomBrowserHistory` 窗口选项。自行管理 URL 路由的浏览器应用不应再创建 Gio 的额外历史记录或使用其返回键处理器：否则应用恢复路由后，Gio 可能再次执行 `history.back()`。默认行为不变。选项测试位于 `gio/app/browser_history_test.go`；`scripts/verify-gallery-web.cjs` 在实际 Chromium 中验证触控导航、浏览器返回和跨分类链接。这是本地工作区补丁。
+
 EmojiPicker 目录来自 Unicode 17.0 emoji-test.txt，由 scripts/generate-emoji.py 生成；源文件 SHA256 为 1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda。Unicode License V3 见 unicode/LICENSE。生成结果保留所有 fully-qualified 序列，将统一肤色变体归入基础条目，混合肤色序列仍独立可选。
 
 ### WASM 大型处理器表中的无焦点输入提示

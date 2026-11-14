@@ -97,3 +97,5 @@ window.MainWithOptions(window.MainOptions{
 正文偏移跟随实际测量高度，避免无障碍字体缩放造成标题裁切或正文重叠。
 
 字体缩放：`Options.TextScale` 默认为零（平台设置），设为 1 使用设计字号，或设为正数实现应用字号偏好；显示密度和 dp 布局不变。Wayland 下 GNOME 系桌面与 Cinnamon 读取各自的字体缩放；其他桌面目前使用 1，不继承无关的 GNOME 设置。设置在启动时读取，暂不实时监听。
+
+自行管理 URL 路由的浏览器应用，可在打开窗口时设置 `Options.CustomBrowserHistory: true`。此选项停用 Gio 的历史记录占位项和自动返回键转换，由应用负责 `popstate` 与 `hashchange`。保持 false 则沿用 Gio 默认返回行为。原生窗口忽略此选项。

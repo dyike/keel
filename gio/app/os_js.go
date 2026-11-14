@@ -111,8 +111,16 @@ func newWindow(win *callbacks, options []Option) {
 		})
 		return nil
 	})
+	// Apply routing ownership before installing listeners or history entries.
+	var initial Config
+	for _, option := range options {
+		option(unit.Metric{PxPerDp: 1, PxPerSp: 1}, &initial)
+	}
+	w.config.CustomBrowserHistory = initial.CustomBrowserHistory
 	w.addEventListeners()
-	w.addHistory()
+	if !w.config.CustomBrowserHistory {
+		w.addHistory()
+	}
 
 	w.Configure(options)
 	w.blur()
@@ -199,6 +207,9 @@ func (w *window) addEventListeners() {
 		return nil
 	})
 	w.addEventListener(w.window, "popstate", func(this js.Value, args []js.Value) interface{} {
+		if w.config.CustomBrowserHistory {
+			return nil
+		}
 		if w.processEvent(key.Event{Name: key.NameBack}) {
 			return w.browserHistory.Call("forward")
 		}
