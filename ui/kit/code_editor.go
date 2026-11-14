@@ -49,44 +49,46 @@ type CodeCompletion struct {
 //
 // Tab indents; press Esc first to move focus on with Tab.
 type CodeEditorView struct {
-	shapeScratch  []gtext.Glyph // borrowed by one synchronous shape/paint call
-	onPaste       func(core.ClipboardData) bool
-	pasteReader   core.ClipboardReader
-	onPasteError  func(error)
-	pendingPaste  *codePasteRequest
-	buf           *codeBuffer
-	lang, name    string
-	height        float32
-	fill          bool
-	readOnly      bool
-	disabled      bool
-	autoClose     bool
-	noSmartIndent bool
-	editingRules  *codeLanguageRules
-	syntaxContext func(int, int) CodeSyntaxContext
-	ruleRev       uint64
-	ruleLine      int
-	ruleLang      string
-	whitespace    bool
-	tabSize       int
-	hardTabs      int // 0 detect, 1 tabs, 2 spaces
-	sels          []codeSel
-	prim          int // the primary selection, the one the caret APIs report
-	goalX         int // px from the row start, kept across vertical moves of the primary caret
-	wrap          bool
-	vrows         []codeVRow // visual rows with soft wrap; nil without
-	vrowsKey      codeWrapKey
-	rowsGen       uint64 // counts fold row rebuilds
-	scrollX       float32
-	scrollY       float32 // px from the first display row
-	reveal        bool    // scroll the primary caret into view on the next frame
-	tabExits      bool    // Esc pressed: Tab moves focus on
-	onChange      func(string)
-	onComplete    func(line, col int, prefix string) []CodeCompletion
-	onHover       func(line, col int) string
-	onDefinition  func(line, col int)
-	diagnostics   []CodeDiagnostic
-	decorations   []*CodeDecorationCollection
+	blocks            codeBlocks
+	shapeScratch      []gtext.Glyph // borrowed by one synchronous shape/paint call
+	onPaste           func(core.ClipboardData) bool
+	pasteReader       core.ClipboardReader
+	onPasteError      func(error)
+	pendingPaste      *codePasteRequest
+	buf               *codeBuffer
+	lang, name        string
+	height            float32
+	fill              bool
+	readOnly          bool
+	disabled          bool
+	autoClose         bool
+	noSmartIndent     bool
+	editingRules      *codeLanguageRules
+	syntaxContext     func(int, int) CodeSyntaxContext
+	ruleRev           uint64
+	ruleLine          int
+	ruleLang          string
+	whitespace        bool
+	tabSize           int
+	hardTabs          int // 0 detect, 1 tabs, 2 spaces
+	sels              []codeSel
+	prim              int // the primary selection, the one the caret APIs report
+	goalX             int // px from the row start, kept across vertical moves of the primary caret
+	wrap              bool
+	vrows             []codeVRow // visual rows with soft wrap; nil without
+	vrowsKey          codeWrapKey
+	rowsGen           uint64 // counts fold row rebuilds
+	scrollX           float32
+	scrollY           float32 // px from the first display row
+	reveal            bool    // scroll the primary caret into view on the next frame
+	tabExits          bool    // Esc pressed: Tab moves focus on
+	onChange          func(string)
+	onComplete        func(line, col int, prefix string) []CodeCompletion
+	onHover           func(line, col int) string
+	onDefinition      func(line, col int)
+	onLineNumberPress func(int)
+	diagnostics       []CodeDiagnostic
+	decorations       []*CodeDecorationCollection
 
 	// Completion list.
 	comp     []CodeCompletion
@@ -111,12 +113,13 @@ type CodeEditorView struct {
 	pressAt    f32.Point
 
 	// Folding.
-	folds    map[int]bool // folded regions by their first line
-	foldEnds map[int]int  // cached region end by first line, -1 for none
-	foldRev  uint64
-	rows     []int // display row to line, nil when nothing is folded
-	rowsRev  uint64
-	rowsKey  int
+	foldRanges map[int]int  // optional explicit regions owned by a composite view
+	folds      map[int]bool // folded regions by their first line
+	foldEnds   map[int]int  // cached region end by first line, -1 for none
+	foldRev    uint64
+	rows       []int // display row to line, nil when nothing is folded
+	rowsRev    uint64
+	rowsKey    int
 
 	// Find and replace.
 	search searchState
@@ -231,6 +234,13 @@ func (v *CodeEditorView) OnHover(fn func(line, col int) string) *CodeEditorView 
 // While Cmd/Ctrl is held the word under the pointer is underlined.
 func (v *CodeEditorView) OnDefinition(fn func(line, col int)) *CodeEditorView {
 	v.onDefinition = fn
+	return v
+}
+
+// OnLineNumberPress reports a zero-based source line after a gutter number is
+// pressed. Fold-arrow presses remain folding operations; line selection remains.
+func (v *CodeEditorView) OnLineNumberPress(fn func(int)) *CodeEditorView {
+	v.onLineNumberPress = fn
 	return v
 }
 

@@ -360,6 +360,8 @@ Keel 的共享渐变/阴影首帧在所测 Apple silicon 主机上逐字节一�
 
 两种原生绑定均在 `Lock` 绑定绘制表面后设置 Wayland EGL 交换间隔。原先在构造函数中调用可能返回 `EGL_BAD_CONTEXT`，导致 Mesa 在 `eglSwapBuffers` 中等待隐藏窗口的帧回调，阻塞窗口事件。`TestWaylandEGLCurrentSurface` 在真实 Mesa 上验证调用有效性（Wayland 下设置 `KEEL_DESKTOP=1`）。
 
+EmojiPicker 目录来自 Unicode 17.0 emoji-test.txt，由 scripts/generate-emoji.py 生成；源文件 SHA256 为 1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda。Unicode License V3 见 unicode/LICENSE。生成结果保留所有 fully-qualified 序列，将统一肤色变体归入基础条目，混合肤色序列仍独立可选。
+
 ### WASM 大型处理器表中的无焦点输入提示
 
 `gio/io/input` 在没有焦点时直接返回记住的输入提示；nil 不是有效的处理器标签。本机 Go 1.27.4 JS/WASM 工具链在足够大的 map 中查询 nil 接口键时，会在 `runtime.mapaccess2` 越界；只依赖标准库的独立程序也能复现。包含上千个处理器的分类预览在 `Window.updateState` 中触发该查询，异常之后可能表现为 Chrome 157 的 `call to released function`，或 Chromium 159 headless shell 渲染进程崩溃。提前返回保留焦点／输入提示语义，避开无意义的查询，不修改 Go 的 map 实现。`TestInputHintWithoutFocusInLargeHandlerTable` 验证 4,096 项处理器表、无焦点提示不变、焦点切换及不重复通知；同一测试以 JS/WASM 运行，未修复时失败，修复后通过。这是本地工作区补丁，不归属于已发布的 Keel 版本。

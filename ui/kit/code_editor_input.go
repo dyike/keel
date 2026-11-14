@@ -149,7 +149,7 @@ func (v *CodeEditorView) update(gtx core.C) {
 
 func (v *CodeEditorView) pointer(gtx core.C) {
 	m := v.metrics
-	total := v.vrowCount()*m.lh - m.size.Y + m.lh
+	total := v.contentHeight() - m.size.Y + m.lh
 	if d := v.scroll.Update(gtx.Metric, gtx.Source, gtx.Now, 1, pointer.ScrollRange{}, pointer.ScrollRange{Min: -int(v.scrollY), Max: max(0, total-int(v.scrollY))}); d != 0 {
 		v.scrollY += float32(d)
 		v.hoverText = ""
@@ -173,6 +173,9 @@ func (v *CodeEditorView) pointer(gtx core.C) {
 			if !e.Buttons.Contain(pointer.ButtonPrimary) {
 				continue
 			}
+			if v.inBlock(e.Position.Y + v.scrollY) {
+				continue
+			}
 			gtx.Execute(key.FocusCmd{Tag: v})
 			v.hoverText, v.tabExits, v.blink = "", false, gtx.Now
 			if len(v.comp) > 0 {
@@ -187,7 +190,7 @@ func (v *CodeEditorView) pointer(gtx core.C) {
 				v.comp = nil
 			}
 			if e.Position.X < float32(m.gutter) {
-				line := v.vrow(int((e.Position.Y + v.scrollY) / float32(max(1, m.lh)))).line
+				line := v.vrow(v.rowAt(e.Position.Y + v.scrollY)).line
 				if e.Position.X < float32(m.foldW) {
 					v.toggleFold(line)
 					continue
@@ -202,6 +205,9 @@ func (v *CodeEditorView) pointer(gtx core.C) {
 					to = codePos{end, len(v.buf.line(end))}
 				}
 				v.sels, v.prim = []codeSel{{codePos{line, 0}, to}}, 0
+				if fn := v.onLineNumberPress; fn != nil {
+					core.Call(gtx, func() { fn(line) })
+				}
 				continue
 			}
 			if gtx.Now.Sub(v.lastPress) < 400*time.Millisecond && abs32(e.Position.X-v.pressAt.X) < 4 && abs32(e.Position.Y-v.pressAt.Y) < 4 {
@@ -281,9 +287,8 @@ func abs32(f float32) float32 {
 // columnSelect makes one selection per row between two points, spanning the
 // columns between their x positions; short rows get what they have.
 func (v *CodeEditorView) columnSelect(a, b f32.Point) {
-	m := v.metrics
-	ra := int((a.Y + v.scrollY) / float32(max(1, m.lh)))
-	rb := int((b.Y + v.scrollY) / float32(max(1, m.lh)))
+	ra := v.rowAt(a.Y + v.scrollY)
+	rb := v.rowAt(b.Y + v.scrollY)
 	ra, rb = min(max(ra, 0), v.vrowCount()-1), min(max(rb, 0), v.vrowCount()-1)
 	step := 1
 	if rb < ra {
@@ -292,8 +297,8 @@ func (v *CodeEditorView) columnSelect(a, b f32.Point) {
 	var sels []codeSel
 	for r := ra; ; r += step {
 		line := v.vrow(r).line
-		pa := v.posAt(f32.Pt(a.X, float32(r*m.lh)-v.scrollY))
-		pb := v.posAt(f32.Pt(b.X, float32(r*m.lh)-v.scrollY))
+		pa := v.posAt(f32.Pt(a.X, float32(v.rowTop(r))-v.scrollY))
+		pb := v.posAt(f32.Pt(b.X, float32(v.rowTop(r))-v.scrollY))
 		sels = append(sels, codeSel{codePos{line, pa.col}, codePos{line, pb.col}})
 		if r == rb {
 			break
@@ -586,7 +591,23 @@ func (v *CodeEditorView) command(gtx core.C, e key.Event) {
 			if i == prim {
 				x = goal
 			}
-			c := v.vertical(s.caret, rows, x)
+			step := rows
+			if len(v.blocks.items) > 0 && (e.Name == key.NamePageUp || e.Name == key.NamePageDown) {
+				row := v.vrowOf(s.caret)
+				delta := v.metrics.size.Y
+				if rows < 0 {
+					delta = -delta
+				}
+				step = v.rowAt(float32(v.rowTop(row)+delta)) - row
+				if step == 0 {
+					if rows < 0 {
+						step = -1
+					} else {
+						step = 1
+					}
+				}
+			}
+			c := v.vertical(s.caret, step, x)
 			v.sels[i].caret = c
 			if !shift {
 				v.sels[i].anchor = c

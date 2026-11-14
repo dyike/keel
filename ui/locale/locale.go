@@ -17,10 +17,18 @@ import (
 // Strings is every piece of framework text. Start from Chinese or English
 // when customizing: Apply replaces all of it.
 type Strings struct {
-	Hour, Minute, Second, AM, PM, Period string
-	LowerValue, UpperValue               string
-	Clock12                              bool   // Default segmented time format.
-	Lang                                 string // BCP 47 tag of this text, e.g. zh-CN, en
+	Terminal                                                                         string
+	EmojiGroups                                                                      [9]string
+	EmojiResults                                                                     string
+	EmojiChoose                                                                      string
+	EmojiPicker, EmojiSearch, EmojiAll, EmojiRecent                                  string
+	EmojiTones                                                                       [6]string
+	DiffExpand, DiffCollapse                                                         string
+	DiffPrevious, DiffNext, DiffKeep, DiffRevert, DiffBefore, DiffAfter, DiffUnified string
+	Hour, Minute, Second, AM, PM, Period                                             string
+	LowerValue, UpperValue                                                           string
+	Clock12                                                                          bool   // Default segmented time format.
+	Lang                                                                             string // BCP 47 tag of this text, e.g. zh-CN, en
 
 	Year, PrevYear, NextYear, RangeUnavailable string
 	MonthNames                                 [12]string
@@ -98,6 +106,9 @@ func Chinese() Strings {
 	return Strings{
 		LowerValue: "下限", UpperValue: "上限",
 		Hour: "时", Minute: "分", Second: "秒", AM: "上午", PM: "下午", Period: "时段",
+		EmojiGroups: [9]string{"笑脸与情感", "人物与身体", "动物与自然", "食物与饮料", "旅行与地点", "活动", "物品", "符号", "旗帜"},
+		Terminal:    "终端", EmojiPicker: "表情选择器", EmojiSearch: "搜索表情", EmojiAll: "全部", EmojiRecent: "最近使用", EmojiChoose: "选择表情", EmojiResults: "表情结果", EmojiTones: [6]string{"默认肤色", "浅肤色", "较浅肤色", "中等肤色", "较深肤色", "深肤色"},
+		DiffExpand: "展开上下文", DiffCollapse: "折叠上下文", DiffPrevious: "上一个差异", DiffNext: "下一个差异", DiffKeep: "保留更改", DiffRevert: "还原更改", DiffBefore: "更改前", DiffAfter: "更改后", DiffUnified: "统一差异",
 		Lang: "zh-CN", Year: "年份", PrevYear: "上一年", NextYear: "下一年", RangeUnavailable: "范围包含不可选日期，请重新选择", MonthNames: [12]string{"1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"},
 		OK: "确定", Cancel: "取消", Close: "关闭", Remove: "移除", Toggle: "切换", Clear: "清空", Retry: "重试",
 		Cut: "剪切", Paste: "粘贴", SelectAll: "全选",
@@ -136,6 +147,9 @@ func English() Strings {
 	return Strings{
 		LowerValue: "Lower", UpperValue: "Upper",
 		Hour: "Hour", Minute: "Minute", Second: "Second", AM: "AM", PM: "PM", Period: "Period", Clock12: true,
+		EmojiGroups: [9]string{"Smileys & Emotion", "People & Body", "Animals & Nature", "Food & Drink", "Travel & Places", "Activities", "Objects", "Symbols", "Flags"},
+		Terminal:    "Terminal", EmojiPicker: "Emoji picker", EmojiSearch: "Search emoji", EmojiAll: "All", EmojiRecent: "Recent", EmojiChoose: "Choose an emoji", EmojiResults: "Emoji results", EmojiTones: [6]string{"Default skin tone", "Light skin tone", "Medium-light skin tone", "Medium skin tone", "Medium-dark skin tone", "Dark skin tone"},
+		DiffExpand: "Expand context", DiffCollapse: "Collapse context", DiffPrevious: "Previous change", DiffNext: "Next change", DiffKeep: "Keep change", DiffRevert: "Revert change", DiffBefore: "Before", DiffAfter: "After", DiffUnified: "Unified diff",
 		Lang: "en", Year: "Year", PrevYear: "Previous year", NextYear: "Next year", RangeUnavailable: "Range includes unavailable dates; choose again", MonthNames: [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"},
 		OK: "OK", Cancel: "Cancel", Close: "Close", Remove: "Remove", Toggle: "Toggle", Clear: "Clear", Retry: "Retry",
 		Cut: "Cut", Paste: "Paste", SelectAll: "Select All",

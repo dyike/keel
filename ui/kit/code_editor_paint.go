@@ -126,6 +126,7 @@ func (v *CodeEditorView) measure(gtx core.C) {
 	m.size = gtx.Constraints.Max
 	m.textOrigin = m.gutter + m.pad
 	v.visible = max(1, m.size.Y/max(1, m.lh))
+	v.blocks.height = max(gtx.Dp(52), gtx.Sp(52))
 }
 
 // colX returns the x of every column boundary of a line (len+1 values),
@@ -176,7 +177,7 @@ func (v *CodeEditorView) colX(line int) []int {
 // posAt maps a point in the editor to the nearest text position.
 func (v *CodeEditorView) posAt(p f32.Point) codePos {
 	m := v.metrics
-	vr := v.vrow(int((p.Y + v.scrollY) / float32(max(1, m.lh))))
+	vr := v.vrow(v.rowAt(p.Y + v.scrollY))
 	return codePos{vr.line, v.colIn(vr, int(p.X+v.scrollX)-m.textOrigin)}
 }
 
@@ -184,7 +185,7 @@ func (v *CodeEditorView) posAt(p f32.Point) codePos {
 func (v *CodeEditorView) caretPoint(p codePos) image.Point {
 	m := v.metrics
 	x := m.textOrigin + v.rowX(p) - int(v.scrollX)
-	return image.Pt(x, v.vrowOf(p)*m.lh-int(v.scrollY))
+	return image.Pt(x, v.rowTop(v.vrowOf(p))-int(v.scrollY))
 }
 
 func (v *CodeEditorView) layout(gtx core.C) core.D {
@@ -219,7 +220,7 @@ func (v *CodeEditorView) layout(gtx core.C) core.D {
 	v.scrollH.Add(gtx.Ops)
 
 	paint.FillShape(gtx.Ops, theme.CodeBg, clip.Rect{Max: m.size}.Op())
-	first := max(0, int(v.scrollY)/max(1, m.lh))
+	first := v.rowAt(v.scrollY)
 	last := min(v.vrowCount()-1, first+v.visible+1)
 	for row := first; row <= last; row++ {
 		v.paintLine(gtx, row)
@@ -231,8 +232,9 @@ func (v *CodeEditorView) layout(gtx core.C) core.D {
 		v.paintGutter(gtx, row)
 	}
 	v.paintCarets(gtx)
-	v.paintScrollbar(gtx)
 	editor.Pop() // Floating controls are siblings of the textbox in the semantic tree.
+	v.paintBlocks(gtx)
+	v.paintScrollbar(gtx)
 	v.paintCompletions(gtx)
 	v.paintHover(gtx)
 	v.reportIME(gtx)
@@ -263,7 +265,7 @@ func (v *CodeEditorView) paintLine(gtx core.C, row int) {
 	m := v.metrics
 	vr := v.vrow(row)
 	line := vr.line
-	top := row*m.lh - int(v.scrollY)
+	top := v.rowTop(row) - int(v.scrollY)
 	xs := v.colX(line)
 	ox := m.textOrigin - int(v.scrollX) - xs[vr.start]
 	last := vr.end == len(xs)-1 // the row holding the line's end
@@ -460,7 +462,7 @@ func (v *CodeEditorView) paintGutter(gtx core.C, row int) {
 		return // a wrapped line's continuation
 	}
 	line := vr.line
-	top := row*m.lh - int(v.scrollY)
+	top := v.rowTop(row) - int(v.scrollY)
 	num := strconv.Itoa(line + 1)
 	c := theme.Muted
 	for _, s := range v.sels {
@@ -541,7 +543,7 @@ func (v *CodeEditorView) paintScrollbar(gtx core.C) {
 	m := v.metrics
 	// The editor permits one extra line of trailing space. Use the same
 	// extent as clampScroll so the thumb stays in bounds at the bottom.
-	total := v.vrowCount()*m.lh + m.lh
+	total := v.contentHeight() + m.lh
 	if total <= m.size.Y {
 		return
 	}
@@ -555,7 +557,7 @@ func (v *CodeEditorView) paintScrollbar(gtx core.C) {
 	if v.search.open || v.search.active {
 		tc := theme.Warning
 		for _, mt := range v.search.matches {
-			ty := v.vrowOf(mt.from) * m.size.Y / max(1, v.vrowCount())
+			ty := v.rowTop(v.vrowOf(mt.from)) * m.size.Y / max(1, v.contentHeight())
 			paint.FillShape(gtx.Ops, tc, clip.Rect{Min: image.Pt(m.size.X-w-gtx.Dp(2), ty), Max: image.Pt(m.size.X-gtx.Dp(2), ty+max(1, gtx.Dp(2)))}.Op())
 		}
 	}
@@ -720,7 +722,7 @@ func (v *CodeEditorView) highlight() {
 
 func (v *CodeEditorView) clampScroll() {
 	m := v.metrics
-	maxY := float32(max(0, v.vrowCount()*m.lh-m.size.Y+m.lh))
+	maxY := float32(max(0, v.contentHeight()-m.size.Y+m.lh))
 	v.scrollY = min(max(v.scrollY, 0), maxY)
 	v.scrollX = max(v.scrollX, 0)
 	if v.wrap {
@@ -735,9 +737,14 @@ func (v *CodeEditorView) scrollToCaret() {
 		return
 	}
 	c := v.primary().caret
-	y := float32(v.vrowOf(c) * m.lh)
-	if y < v.scrollY {
-		v.scrollY = y
+	row := v.vrowOf(c)
+	y := float32(v.rowTop(row))
+	top := float32(v.rowStart(row))
+	if y+float32(m.lh)-top > float32(m.size.Y) {
+		top = y
+	}
+	if top < v.scrollY {
+		v.scrollY = top
 	} else if bottom := y + float32(m.lh) - float32(m.size.Y); bottom > v.scrollY {
 		v.scrollY = bottom
 	}

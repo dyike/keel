@@ -15,6 +15,8 @@ import "sort"
 func (v *CodeEditorView) spliced(from, removed, added int) {
 	clear(v.foldEnds)
 	if removed < 0 {
+		v.setBlocks(nil)
+		v.foldRanges = nil
 		clear(v.folds)
 		return
 	}
@@ -53,6 +55,12 @@ func (v *CodeEditorView) indentWidth(line int) int {
 // foldEnd is the last line of the region starting at line, or line if it
 // starts none.
 func (v *CodeEditorView) foldEnd(line int) int {
+	if v.foldRanges != nil {
+		if end, ok := v.foldRanges[line]; ok {
+			return end
+		}
+		return line
+	}
 	if v.foldRev != v.buf.revision {
 		clear(v.foldEnds)
 		v.foldRev = v.buf.revision

@@ -58,6 +58,7 @@
 | [Slider](kit/slider.zh-CN.md) | 线性/对数滑块、范围选择与结束回调 |
 | [Rating](kit/rating.zh-CN.md) | 星级评分、已填星减分、自定义尺寸与颜色 |
 | [ColorPicker](kit/color_picker.zh-CN.md) | 颜色选择 |
+| [EmojiPicker](kit/emoji_picker.zh-CN.md) | 表情搜索、肤色和最近使用 |
 | [Form](kit/form.zh-CN.md) | 表单与校验 |
 | [Questionnaire](kit/questionnaire.zh-CN.md) | 分页问卷与答案模型 |
 
@@ -105,6 +106,8 @@
 | [Attachment](kit/attachment.zh-CN.md) | 附件卡片 |
 | [AttachmentGroup](kit/attachment_group.zh-CN.md) | 横向排列、可滚动的附件组 |
 | [CodeEditor](kit/code_editor.zh-CN.md) | 代码编辑器：高亮、补全、诊断、多光标、折叠、软换行、查找替换 |
+| [Diff](kit/diff.zh-CN.md) | 文本比较、差异审阅与统一补丁 |
+| [Terminal](kit/terminal.zh-CN.md) | ANSI 终端显示与应用输入通道 |
 
 ## 图表与绘图
 
@@ -125,6 +128,7 @@
 | [TitleBar](kit/title_bar.zh-CN.md) | 无边框窗口的标题栏 |
 | [GooeyDock](kit/gooey_dock.zh-CN.md) | 指针感应放大、弹簧上浮的 Dock |
 | [AppShell](kit/app_shell.zh-CN.md) | 应用布局、页面状态保留和切页动效 |
+| [NavStack](kit/nav_stack.zh-CN.md) | 保留页面状态的列表／详情导航栈 |
 | [Sidebar](kit/sidebar.zh-CN.md) | 导航侧栏 |
 | [Toolbar](kit/toolbar.zh-CN.md) | 工具栏与溢出菜单 |
 | [StatusBar](kit/status_bar.zh-CN.md) | 固定 24dp 左右状态栏 |

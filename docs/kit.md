@@ -58,6 +58,7 @@ English | [简体中文](kit.zh-CN.md)
 | [Slider](kit/slider.md) | Linear/logarithmic slider, range selection and end callback |
 | [Rating](kit/rating.md) | Star rating, points deduction for filled stars, custom size and color |
 | [ColorPicker](kit/color_picker.md) | Color selection |
+| [EmojiPicker](kit/emoji_picker.md) | Searchable emoji, skin tones and recent choices |
 | [Form](kit/form.md) | Forms and validation |
 | [Questionnaire](kit/questionnaire.md) | Paginated questionnaire and answer model |
 
@@ -105,6 +106,8 @@ English | [简体中文](kit.zh-CN.md)
 | [Attachment](kit/attachment.md) | Attachment Card |
 | [AttachmentGroup](kit/attachment_group.md) | Horizontally arranged, scrollable attachment group |
 | [CodeEditor](kit/code_editor.md) | Code editor: highlighting, completion, diagnosis, multi-cursor, folding, soft line wrapping, find and replace |
+| [Diff](kit/diff.md) | Text comparison, change review and unified patches |
+| [Terminal](kit/terminal.md) | ANSI terminal output and application-owned input |
 
 ## Charts
 
@@ -125,6 +128,7 @@ English | [简体中文](kit.zh-CN.md)
 | [TitleBar](kit/title_bar.md) | The title bar of a borderless window |
 | [GooeyDock](kit/gooey_dock.md) | Proximity magnification dock with spring lift |
 | [AppShell](kit/app_shell.md) | Retained application pages, navigation and page transitions |
+| [NavStack](kit/nav_stack.md) | Retained list/detail navigation stack |
 | [Sidebar](kit/sidebar.md) | Navigation sidebar |
 | [Toolbar](kit/toolbar.md) | Toolbar and overflow menu |
 | [StatusBar](kit/status_bar.md) | Fixed 24dp left and right status bar |
