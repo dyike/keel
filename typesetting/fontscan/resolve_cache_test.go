@@ -9,11 +9,18 @@ import (
 
 // Keel patch test: the ASCII table, the per-query hash and the early return
 // of an unchanged query never change what ResolveFace answers.
-func TestResolveFaceCachesMatchFreshMaps(t *testing.T) {
+func TestResolveFaceCachesMatchUncachedMap(t *testing.T) {
 	cacheDir := t.TempDir()
 	cached := NewFontMap(nil)
 	if err := cached.UseSystemFonts(cacheDir); err != nil {
 		t.Skip("no system fonts:", err)
+	}
+	// Keep the same loading history: last-resort fallback may use the first
+	// loaded face, which is not necessarily the same in a newly
+	// constructed map. Clear only the query caches in the reference map.
+	uncached := NewFontMap(nil)
+	if err := uncached.UseSystemFonts(cacheDir); err != nil {
+		t.Fatal(err)
 	}
 	queries := []Query{
 		{Families: []string{"Menlo", "monospace"}},
@@ -26,19 +33,17 @@ func TestResolveFaceCachesMatchFreshMaps(t *testing.T) {
 	for round := 0; round < 2; round++ {
 		for _, q := range queries {
 			for _, s := range scripts {
-				fresh := NewFontMap(nil)
-				if err := fresh.UseSystemFonts(cacheDir); err != nil {
-					t.Fatal(err)
-				}
-				fresh.SetQuery(q)
-				fresh.SetScript(s)
+				uncached.SetQuery(q)
+				uncached.SetScript(s)
 				cached.SetQuery(q)
 				cached.SetQuery(q) // unchanged: must keep working
 				cached.SetScript(s)
 				for _, r := range runes {
-					got, want := cached.ResolveFace(r), fresh.ResolveFace(r)
-					if (got == nil) != (want == nil) || got != nil && cached.FontLocation(got.Font) != fresh.FontLocation(want.Font) {
-						t.Fatalf("query %v %v script %v rune %q: cached and fresh maps disagree", q.Families, q.Aspect, s, r)
+					uncached.lru.Clear()
+					uncached.resetRuneCaches()
+					got, want := cached.ResolveFace(r), uncached.ResolveFace(r)
+					if (got == nil) != (want == nil) || got != nil && cached.FontLocation(got.Font) != uncached.FontLocation(want.Font) {
+						t.Fatalf("query %v %v script %v rune %q: cached and uncached maps disagree", q.Families, q.Aspect, s, r)
 					}
 				}
 			}

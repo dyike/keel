@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/dyike/keel/gio/gpu"
 )
@@ -27,6 +28,13 @@ type eglContext struct {
 	srgb        bool
 	surfaceless bool
 }
+
+// EGL initialization is display-wide, not reference counted by the driver.
+// Multiple windows may receive the same handle from eglGetDisplay.
+var displays = struct {
+	sync.Mutex
+	refs map[_EGLDisplay]int
+}{refs: make(map[_EGLDisplay]int)}
 
 var (
 	nilEGLDisplay       _EGLDisplay
@@ -56,12 +64,22 @@ const (
 )
 
 func (c *Context) Release() {
+	displays.Lock()
+	defer displays.Unlock()
+	if c.disp == nilEGLDisplay {
+		return
+	}
 	c.ReleaseSurface()
 	if c.eglCtx != nil {
 		eglDestroyContext(c.disp, c.eglCtx.ctx)
 		c.eglCtx = nil
 	}
-	eglTerminate(c.disp)
+	if displays.refs[c.disp] > 1 {
+		displays.refs[c.disp]--
+	} else {
+		delete(displays.refs, c.disp)
+		eglTerminate(c.disp)
+	}
 	c.disp = nilEGLDisplay
 }
 
@@ -86,10 +104,16 @@ func NewContext(disp NativeDisplayType) (*Context, error) {
 	if eglDisp == nilEGLDisplay {
 		return nil, fmt.Errorf("eglGetDisplay failed: 0x%x", eglGetError())
 	}
+	displays.Lock()
+	defer displays.Unlock()
 	eglCtx, err := createContext(eglDisp)
 	if err != nil {
+		if displays.refs[eglDisp] == 0 {
+			eglTerminate(eglDisp)
+		}
 		return nil, err
 	}
+	displays.refs[eglDisp]++
 	c := &Context{
 		disp:   eglDisp,
 		eglCtx: eglCtx,

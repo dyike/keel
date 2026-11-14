@@ -81,6 +81,11 @@ func (s keyState) InputState() (keyState, TextInputState) {
 // InputHint returns the input hint from the focused handler and whether it was
 // changed since the last call.
 func (q *keyQueue) InputHint(handlers map[event.Tag]*handler, state keyState) (key.InputHint, bool) {
+	// No handler can have a nil tag. Avoid an unnecessary interface-map lookup;
+	// Go 1.27.4 js/wasm can trap on nil keys once the map has grown large.
+	if state.focus == nil {
+		return q.hint, false
+	}
 	focused, ok := handlers[state.focus]
 	if !ok {
 		return q.hint, false

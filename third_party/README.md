@@ -827,3 +827,19 @@ Apple silicon host. This patch is local and is not part of v0.4.2.
 ### 2026-11-14: Wayland EGL swap interval
 
 Set the Wayland EGL swap interval only after binding its draw surface in `Lock`, for both native bindings. The previous constructor call could fail with `EGL_BAD_CONTEXT` and leave Mesa waiting for a frame callback inside `eglSwapBuffers`, blocking window events when hidden. `TestWaylandEGLCurrentSurface` exercises real Mesa state validation (`KEEL_DESKTOP=1` on Wayland).
+
+### Unfocused input hints in large WASM handler tables
+
+`gio/io/input` now returns the remembered hint immediately when no handler has focus. Nil is not a valid handler tag. On the inspected Go 1.27.4 JS/WASM toolchain, querying a nil interface key in a sufficiently large map traps in `runtime.mapaccess2`; a standalone standard-library-only reproduction confirms this independently of Keel. Category previews with over a thousand handlers hit this lookup during `Window.updateState`. The resulting exception could surface later as `call to released function` in Chrome 157 or a Chromium 159 headless-shell renderer crash. This guard preserves focus/hint semantics and avoids that unnecessary lookup; it does not patch Go's map implementation. `TestInputHintWithoutFocusInLargeHandlerTable` verifies a 4,096-handler table, unchanged unfocused hints, focus changes and repeat notification suppression. Running the same test as JS/WASM fails without the guard and passes with it. Local workspace patch, not attributed to a released Keel version.
+
+### Nil logger in system font directory discovery
+
+`typesetting/fontscan.DefaultFontDirectories(nil)` now selects the same default logger as the other public fontscan entry points. Previously, a fontconfig parsing/warning path dereferenced nil; the existing mapped-system-font regression encountered this on Linux. `TestDefaultFontDirectoriesNilLoggerWithInvalidConfig` forces malformed fontconfig input and checks the call can return instead of panicking. No system configuration is changed by the test.
+
+### Font query-cache reference test
+
+`TestResolveFaceCachesMatchUncachedMap` retains two independently loaded font maps with the same query history, clearing the reference map's LRU, ASCII, query-hash and candidate caches before each resolution. The former test recreated the reference map for each query, changing its first-loaded last-resort face; this made unsupported script/rune combinations fail despite the documented arbitrary fallback. All queries, scripts, characters and repeated rounds remain checked. Production matching and fallback behavior are unchanged.
+
+### Shared EGL display lifetime
+
+`gio/internal/egl` counts live contexts per EGL display and serializes context creation/destruction. EGL's repeated `eglInitialize` calls do not create independent display lifetimes: terminating a display when one window closes invalidated its surviving peers. Only the last Keel context now calls `eglTerminate`; a failed first context cleans up its initialized display without terminating an existing peer's connection. No frame-path lock, polling or renderer change is added. `TestReleasingPeerPreservesEGLDisplay` reproduces `EGL_BAD_DISPLAY` before the fix, then draws and reads back the surviving window's pixels after closing its peer. The native scaling fixture also exercises scrolling and resizing; results are recorded separately from headless pixel tests.

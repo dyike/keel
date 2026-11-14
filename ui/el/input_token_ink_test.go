@@ -53,7 +53,12 @@ func TestDefaultInputTokenCentersInkWithLineLeading(t *testing.T) {
 						if pixel == p.Subtle {
 							pill = pill.Union(image.Rect(x, y, x+1, y+1))
 						}
-						if pixel.R < 80 && pixel.G < 80 && pixel.B < 80 {
+						// Measure ink relative to the known pill and text colors. A
+						// fixed near-black cutoff drops antialiased thin descenders
+						// on system fonts and mistakes them for empty padding.
+						if int(pixel.R)*2 < int(p.Subtle.R)+int(p.Text.R) &&
+							int(pixel.G)*2 < int(p.Subtle.G)+int(p.Text.G) &&
+							int(pixel.B)*2 < int(p.Subtle.B)+int(p.Text.B) {
 							ink = ink.Union(image.Rect(x, y, x+1, y+1))
 						}
 					}

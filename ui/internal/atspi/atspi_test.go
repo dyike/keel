@@ -146,8 +146,13 @@ func TestBridge(t *testing.T) {
 	if err := b.Register(); err != nil {
 		t.Fatal(err)
 	}
-	if len(reg.plugs) != 1 || reg.plugs[0] != (ref{app.Names()[0], rootPath}) {
-		t.Fatalf("registry got %v", reg.plugs)
+	// The registry handler runs on a D-Bus goroutine. Receiving its reply
+	// does not synchronize this direct read of the handler's Go memory.
+	reg.mu.Lock()
+	plugs := append([]ref(nil), reg.plugs...)
+	reg.mu.Unlock()
+	if len(plugs) != 1 || plugs[0] != (ref{app.Names()[0], rootPath}) {
+		t.Fatalf("registry got %v", plugs)
 	}
 	if err := client.AddMatchSignal(dbus.WithMatchInterface(ifaceObject)); err != nil {
 		t.Fatal(err)

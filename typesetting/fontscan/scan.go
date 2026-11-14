@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -20,6 +21,9 @@ import (
 // fonts, or an error if no one exists.
 // These are the directories used by `FontMap.UseSystemFonts` to locate fonts.
 func DefaultFontDirectories(logger Logger) ([]string, error) {
+	if logger == nil {
+		logger = log.New(log.Writer(), "fontscan", log.Flags())
+	}
 	var dirs []string
 	switch runtime.GOOS {
 	case "windows":

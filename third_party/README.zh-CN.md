@@ -359,3 +359,19 @@ Keel 的共享渐变/阴影首帧在所测 Apple silicon 主机上逐字节一�
 ### 2026-11-14：Wayland EGL 交换间隔
 
 两种原生绑定均在 `Lock` 绑定绘制表面后设置 Wayland EGL 交换间隔。原先在构造函数中调用可能返回 `EGL_BAD_CONTEXT`，导致 Mesa 在 `eglSwapBuffers` 中等待隐藏窗口的帧回调，阻塞窗口事件。`TestWaylandEGLCurrentSurface` 在真实 Mesa 上验证调用有效性（Wayland 下设置 `KEEL_DESKTOP=1`）。
+
+### WASM 大型处理器表中的无焦点输入提示
+
+`gio/io/input` 在没有焦点时直接返回记住的输入提示；nil 不是有效的处理器标签。本机 Go 1.27.4 JS/WASM 工具链在足够大的 map 中查询 nil 接口键时，会在 `runtime.mapaccess2` 越界；只依赖标准库的独立程序也能复现。包含上千个处理器的分类预览在 `Window.updateState` 中触发该查询，异常之后可能表现为 Chrome 157 的 `call to released function`，或 Chromium 159 headless shell 渲染进程崩溃。提前返回保留焦点／输入提示语义，避开无意义的查询，不修改 Go 的 map 实现。`TestInputHintWithoutFocusInLargeHandlerTable` 验证 4,096 项处理器表、无焦点提示不变、焦点切换及不重复通知；同一测试以 JS/WASM 运行，未修复时失败，修复后通过。这是本地工作区补丁，不归属于已发布的 Keel 版本。
+
+### 系统字体目录扫描中的空 logger
+
+`typesetting/fontscan.DefaultFontDirectories(nil)` 现在与其他公共 fontscan 入口一样选择默认 logger。此前 fontconfig 解析／警告路径会解引用 nil，Linux 上已有的系统字体只读映射测试触发了该崩溃。`TestDefaultFontDirectoriesNilLoggerWithInvalidConfig` 使用临时的错误 fontconfig 配置，验证调用能够返回而非 panic；测试不修改系统配置。
+
+### 字体查询缓存对照测试
+
+`TestResolveFaceCachesMatchUncachedMap` 保留两张独立加载且查询历史一致的字体表，每次解析前清空对照表的 LRU、ASCII、查询哈希和候选缓存。原测试每次查询重建对照表，改变了其首个已加载的兜底字体，导致不支持的文字系统／字符组合失败，尽管接口允许这种情况下返回任意字体。所有查询、文字系统、字符及重复轮次仍完整比较；生产匹配和兜底行为不变。
+
+### 共享 EGL 显示连接的生命周期
+
+`gio/internal/egl` 按 EGL 显示连接统计存活上下文，并串行化上下文的创建／销毁。重复调用 `eglInitialize` 不会产生独立的显示连接生命周期；此前关闭一个窗口就终止显示连接，使仍存活的其他窗口失效。现在仅最后一个 Keel 上下文调用 `eglTerminate`；首个上下文创建失败时清理已初始化连接，不终止其他存活上下文的连接。不增加逐帧锁、轮询或修改渲染器。`TestReleasingPeerPreservesEGLDisplay` 在修复前复现 `EGL_BAD_DISPLAY`，修复后关闭一个窗口仍可绘制并读回另一窗口的像素。原生 scaling 测试同时检查滚动和缩放尺寸，结果与无窗口像素测试分别记录。
