@@ -11,3 +11,5 @@ Options 提供工作目录、环境变量和输出流。上游实现保留包级
 打包器不导入 Gio 或其他 Keel 包。Windows 资源和 Keel 的 iOS 模拟器适配仍由 CLI 处理。
 
 在仓库根目录执行 `go test ./internal/gogio/...`。
+
+Web 启动器在实例化或运行时 Promise 失败时发送 `keel-error`，退出时发送包含退出码的 `keel-exit`，供宿主加载器显示错误，避免只留下空白画布。Components 应用另在首次布局后发送 `keel-ready`；其他应用不必发送该事件。

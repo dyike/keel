@@ -1,112 +1,132 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
+	"strings"
 )
 
-// copyDemo publishes gogio's build of the component gallery as demo/, with
-// a page of our own that shows download progress: the WebAssembly binary is
-// tens of megabytes, about ten once compressed in transit.
+type demoAsset struct {
+	URL       string `json:"url"`
+	Bytes     int    `json:"bytes"`
+	GzipBytes int    `json:"gzipBytes"`
+}
+
+// Content-addressed assets separate cache lifetimes from the entry HTML.
+// Gzip siblings are for hosts supporting precompressed files; publishing a .gz
+// alone does not make GitHub Pages serve it with Content-Encoding.
+func (s *site) demoAsset(name string, data []byte) (demoAsset, error) {
+	sum := sha256.Sum256(data)
+	ext := filepath.Ext(name)
+	filename := strings.TrimSuffix(name, ext) + "." + hex.EncodeToString(sum[:8]) + ext
+	var compressed bytes.Buffer
+	z, _ := gzip.NewWriterLevel(&compressed, gzip.BestCompression)
+	if _, err := z.Write(data); err != nil {
+		return demoAsset{}, err
+	}
+	if err := z.Close(); err != nil {
+		return demoAsset{}, err
+	}
+	for path, contents := range map[string][]byte{filename: data, filename + ".gz": compressed.Bytes()} {
+		if err := s.write("demo/"+path, contents); err != nil {
+			return demoAsset{}, err
+		}
+	}
+	return demoAsset{URL: filename, Bytes: len(data), GzipBytes: compressed.Len()}, nil
+}
+
+type demoGroup struct {
+	Wasm     string   `json:"wasm"`
+	Script   string   `json:"script"`
+	Sections []string `json:"sections"`
+}
+type demoConfig struct {
+	Assets   map[string]demoAsset `json:"assets"`
+	Groups   map[string]demoGroup `json:"groups,omitempty"`
+	Sections map[string]string    `json:"sections,omitempty"`
+}
+
 func (s *site) copyDemo(dir string) error {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
+	config := demoConfig{Assets: map[string]demoAsset{}, Sections: map[string]string{}}
+	if data, err := os.ReadFile(filepath.Join(dir, "groups.json")); err == nil {
+		if err := json.Unmarshal(data, &config); err != nil {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
 		return err
 	}
-	size := int64(0)
-	for _, e := range entries {
-		if e.IsDir() || e.Name() == "index.html" {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
+	err := filepath.WalkDir(dir, func(path string, e fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if e.Name() == "main.wasm" {
-			size = int64(len(data))
+		if e.IsDir() {
+			return nil
 		}
-		if err := s.write("demo/"+e.Name(), data); err != nil {
+		name, err := filepath.Rel(dir, path)
+		if err != nil {
 			return err
 		}
+		name = filepath.ToSlash(name)
+		if e.Name() == "index.html" || e.Name() == "groups.json" || strings.HasSuffix(name, ".gz") || strings.HasSuffix(name, ".br") {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		a, err := s.demoAsset(name, data)
+		if err != nil {
+			return err
+		}
+		config.Assets[name] = a
+		return nil
+	})
+	if err != nil {
+		return err
 	}
-	if size == 0 {
-		return fmt.Errorf("%s has no main.wasm; build it with gogio -target js", dir)
+	for _, required := range []string{"main.wasm", "wasm.js"} {
+		if a, ok := config.Assets[required]; !ok || a.Bytes == 0 {
+			return fmt.Errorf("%s has no %s; build with gogio -target js", dir, required)
+		}
 	}
-	return s.write("demo/index.html", fmt.Appendf(nil, demoPage, strconv.FormatInt(size, 10)))
+	for name, group := range config.Groups {
+		for _, file := range []string{group.Wasm, group.Script} {
+			if a, ok := config.Assets[file]; !ok || a.Bytes == 0 {
+				return fmt.Errorf("category %s: missing %s", name, file)
+			}
+		}
+		config.Sections[name] = name
+		for _, section := range group.Sections {
+			config.Sections[section] = name
+		}
+	}
+	loader, err := assets.ReadFile("assets/demo-loader.js")
+	if err != nil {
+		return err
+	}
+	script, err := s.demoAsset("loader.js", loader)
+	if err != nil {
+		return err
+	}
+	page, err := assets.ReadFile("assets/demo.html")
+	if err != nil {
+		return err
+	}
+	data, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+	page = bytes.ReplaceAll(page, []byte("__KEEL_DEMO_CONFIG__"), data)
+	page = bytes.ReplaceAll(page, []byte("__KEEL_DEMO_LOADER__"), []byte(script.URL))
+	if err := s.write("demo/assets.json", data); err != nil {
+		return err
+	}
+	return s.write("demo/index.html", page)
 }
-
-// demoPage wraps gogio's wasm.js. It replaces fetch("main.wasm") with a
-// streaming copy that reports progress against the uncompressed size (the
-// server's Content-Length is the compressed one), and hides the overlay
-// once the program has drawn its canvas.
-const demoPage = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, user-scalable=no">
-<title>Keel component gallery</title>
-<link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<style>
-  html, body { margin: 0; padding: 0; height: 100%%; overflow: hidden; }
-  body { background: #f5f6f8; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; color: #1f2328; }
-  #loading { position: fixed; inset: 0; display: grid; place-content: center; gap: 12px; text-align: center; background: inherit; z-index: 1; }
-  #bar { width: 240px; height: 6px; border-radius: 3px; background: #e3e5e8; overflow: hidden; }
-  #fill { width: 0; height: 100%%; background: #2563eb; transition: width .15s; }
-  #note { color: #6b7280; font-size: 12px; }
-  @media (prefers-color-scheme: dark) { body { background: #111827; color: #f3f4f6; } #bar { background: #374151; } #note { color: #9ca3af; } }
-</style>
-<script>
-(() => {
-  const chinese = new URLSearchParams(location.search).get("lang") === "zh-CN";
-  document.documentElement.lang = chinese ? "zh-CN" : "en";
-  document.title = chinese ? "Keel 组件库" : "Keel component gallery";
-  addEventListener("DOMContentLoaded", () => {
-    if (chinese) {
-      document.getElementById("loading-title").textContent = "正在加载 Keel 组件库";
-      document.getElementById("note").textContent = "首次加载约 10 MB，之后由浏览器缓存";
-    }
-  });
-  const total = %s;
-  const plain = window.fetch.bind(window);
-  window.fetch = async (url, init) => {
-    if (String(url) !== "main.wasm") return plain(url, init);
-    const resp = await plain(url, init);
-    if (!resp.body) return resp;
-    const fill = () => document.getElementById("fill");
-    const note = () => document.getElementById("note");
-    let got = 0;
-    const reader = resp.body.getReader();
-    const stream = new ReadableStream({
-      async pull(c) {
-        const { done, value } = await reader.read();
-        if (done) {
-          note() && (note().textContent = chinese ? "正在启动…" : "Starting…");
-          c.close();
-          return;
-        }
-        got += value.length;
-        const pct = Math.min(100, Math.round(got / total * 100));
-        fill() && (fill().style.width = pct + "%%");
-        note() && (note().textContent = pct + "%% · " + (got / 1048576).toFixed(1) + " / " + (total / 1048576).toFixed(1) + " MB");
-        c.enqueue(value);
-      },
-    });
-    return new Response(stream, { headers: { "Content-Type": "application/wasm" } });
-  };
-  new MutationObserver((_, obs) => {
-    if (document.querySelector("canvas")) {
-      document.getElementById("loading")?.remove();
-      obs.disconnect();
-    }
-  }).observe(document.documentElement, { childList: true, subtree: true });
-})();
-</script>
-<script src="wasm.js"></script>
-</head>
-<body>
-<div id="loading"><div id="loading-title">Loading the Keel component gallery</div><div id="bar"><div id="fill"></div></div><div id="note">About 10 MB on first load; cached by your browser afterwards</div></div>
-</body>
-</html>
-`

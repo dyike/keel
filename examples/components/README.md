@@ -62,3 +62,11 @@ TitleBar includes the former frameless example. Open Layout & shell → TitleBar
 The former hotkey example is under Core capabilities → Global shortcuts & displays (section hotkey). Its preview explicitly enables/disables the global shortcut and refreshes display information on demand. macOS uses Cmd+Shift+K; other platforms use Ctrl+Shift+K. Closing the preview unregisters the shortcut. Platform errors are shown; no background clock or polling is started. Native calls run off the frame lock, and callbacks update the UI through core.Update.
 
 Multiple windows is under Layout & shell (section multiwindow). Open settings repeatedly to reuse its window; close and reopen it to create fresh settings while the main page keeps its input. Ctrl/Cmd+, opens settings while the page is active. The former orders application is no longer a public example; its MCP regression fixture lives in cmd/keel-mcp/testdata/orders. Table, Form, Dialog and related components remain in the gallery.
+
+## Narrow screens and browser bundles
+
+Below 720 dp (scaled with accessibility text size), the gallery opens a searchable category index. Tap a component to open a full-width page; the 44 dp back button returns to the index. Search and built section instances survive navigation and desktop/compact layout changes within one runtime. The browser records gallery pages in history and accepts `#component=button` deep links. The native gallery remains a single complete application.
+
+Web publication can use independently linked category programs (`go run ./internal/gallerybuild -out demo`). The site loader chooses the category for `?section=button` or a deep link; the complete gallery starts with General. Moving to another category reloads its program and resets runtime-local demo state. `?bundle=all` loads the complete program, retaining cross-category state. These are independent Go runtimes, not shared/dynamically linked WASM modules.
+
+The browser entry excludes screenshot/matrix export and filesystem theme watching. Categories without code/Markdown examples omit the optional Go syntax-highlighting provider. Chinese font resources are shared by URL. Browser safe-area padding follows CSS environment insets on resize; Gio already reports visual-viewport keyboard insets. Physical-phone keyboard/IME and gesture acceptance still requires real-device testing.

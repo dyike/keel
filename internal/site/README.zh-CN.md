@@ -42,3 +42,11 @@ python3 -m http.server --directory _site
 | `assets/` | 页面模板、样式、搜索和复制按钮脚本 |
 
 `go test ./internal/site` 会生成整站，检查站内链接、锚点和分类覆盖，并验证当前分类的展开行为与翻页顺序。
+
+## 组件库加载与缓存
+
+使用 `go run ./internal/gallerybuild -out /tmp/demo` 生成完整程序和全部分类程序；上面的单包 gogio 构建仍受支持。发布器输出资源清单和包含内容哈希的 WASM、JS、字体文件名。加载器在启动 Go 前选择分类，流式报告下载进度，处理 HTTP、网络、脚本和编译失败，并提供重新加载按钮。慢加载提示只使用一次定时器，不轮询。应用首次布局后发送 `keel-ready`，不会在刚创建 canvas 时提前移除加载提示。
+
+`demo/assets.json` 记录原始和 gzip 字节数，每个资源另有 `.gz` 副本。磁盘上存在 gzip 不代表实际压缩传输：GitHub Pages 自行控制响应头。对于可配置主机，以 `application/wasm` 返回 WASM，协商预压缩响应并设置 `Content-Encoding: gzip`、`Vary: Accept-Encoding`，为哈希资源设置 `Cache-Control: public,max-age=31536000,immutable`，让 `index.html` 和 `assets.json` 重新验证。在部署站点检查响应头和冷/热缓存传输量。旧 HTML 仍可能缓存时，发布时应保留旧哈希资源。
+
+组件库接入浏览器安全区边距，这不等于已经验证原生手机输入法或手势。`go test ./internal/site` 还检查哈希资源发布；安装 Node 时会执行加载器测试。这些单元测试不能证明浏览器渲染、手机输入或真实网络启动时延。

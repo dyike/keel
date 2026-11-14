@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Keel component gallery</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+ html,body{margin:0;height:100%;overflow:hidden}
+ body{background:#f5f6f8;color:#1f2328;font:14px system-ui,sans-serif}
+ #loading{position:fixed;inset:0;display:grid;place-content:center;gap:16px;padding:24px;text-align:center;background:inherit;z-index:1}
+ #loading[hidden]{display:none}
+ progress{width:min(280px,75vw);justify-self:center;accent-color:#2563eb}
+ #note{color:#6b7280;max-width:36em;overflow-wrap:anywhere}
+ button{min-height:44px;padding:8px 20px;font:inherit;cursor:pointer;justify-self:center}
+ @media(prefers-color-scheme:dark){body{background:#111827;color:#f3f4f6}#note{color:#9ca3af}}
+</style>
+</head>
+<body>
+<div id="loading" role="status" aria-live="polite">
+ <div id="loading-title">Loading Keel components</div>
+ <progress id="progress" max="100" value="0" aria-label="Download progress"></progress>
+ <div id="note"></div>
+ <button id="retry" hidden type="button">Reload</button>
+</div>
+<noscript><style>#loading{display:none}</style>This gallery requires JavaScript and WebAssembly. 此组件库需要启用 JavaScript 和 WebAssembly。</noscript>
+<script>window.keelDemo=__KEEL_DEMO_CONFIG__;</script>
+<script src="__KEEL_DEMO_LOADER__"></script>
+</body>
+</html>

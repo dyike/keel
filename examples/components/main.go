@@ -1,3 +1,5 @@
+//go:build !js
+
 // Components is the kit gallery: a sidebar of every component, the selected
 // one beside it. -section shows a single component on its own:
 //
@@ -15,9 +17,6 @@ import (
 	"github.com/dyike/keel/ui/locale"
 	"github.com/dyike/keel/ui/theme"
 	"github.com/dyike/keel/ui/window"
-
-	// The gallery uses Go snippets and local/data-URL image fixtures.
-	_ "github.com/dyike/keel/ui/highlight/golang"
 )
 
 func main() {
@@ -59,7 +58,11 @@ func main() {
 		}
 		return
 	}
-	var content core.Widget = el.Root(newGallery())
+	g := newGallery()
+	if *section == "" {
+		setupGalleryNavigation(g)
+	}
+	var content core.Widget = el.Root(g)
 	if *section != "" {
 		var ok bool
 		if content, ok = sectionContent(*section); !ok {
@@ -76,6 +79,7 @@ func main() {
 	if *section == "" && *width == 680 {
 		*width = 1200 // the app needs room for its sidebar
 	}
+	content = &galleryFirstFrame{Widget: content}
 	mainWindow = window.Open(window.Options{Title: demoText("Keel · Components", "Keel · 组件"), Width: *width, Height: 860, Content: content})
 	window.Main()
 }

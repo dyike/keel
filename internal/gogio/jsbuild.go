@@ -200,8 +200,16 @@ const (
             return await WebAssembly.instantiate(source, importObject);
         };
     }
+    const originalExit = go.exit.bind(go);
+    go.exit = (code) => {
+        window.dispatchEvent(new CustomEvent("keel-exit", { detail: { code } }));
+        originalExit(code);
+    };
     WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
-        go.run(result.instance);
+        return go.run(result.instance);
+    }).catch((error) => {
+        window.dispatchEvent(new CustomEvent("keel-error", { detail: String(error) }));
+        console.error(error);
     });
 })();`
 )

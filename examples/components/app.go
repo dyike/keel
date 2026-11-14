@@ -60,13 +60,17 @@ func sectionDoc(s demoSection) string {
 // the selected one beside it. Each section is built the first time it is
 // shown and kept, so switching away and back preserves its state.
 type gallery struct {
-	nav              *kit.SidebarView
-	search           *kit.InputView
-	built            map[string]core.Widget
-	sections         map[string]demoSection
-	themes           *kit.SelectView
-	navWidth         float32 // a width the user dragged the sidebar to; 0 keeps the automatic width
-	languageRevision uint64
+	nav                                *kit.SidebarView
+	search                             *kit.InputView
+	built                              map[string]core.Widget
+	sections                           map[string]demoSection
+	themes                             *kit.SelectView
+	navWidth                           float32 // a width the user dragged the sidebar to; 0 keeps the automatic width
+	languageRevision                   uint64
+	compact, layoutKnown, mobileDetail bool
+	categoryBundle                     bool
+	onNavigate                         func(string)
+	onBack                             func()
 }
 
 func newGallery() *gallery {
@@ -76,6 +80,9 @@ func newGallery() *gallery {
 	byCategory := map[string][]kit.SidebarItem{}
 	for _, s := range demoSections {
 		g.sections[s.name] = s
+		if s.build == nil {
+			g.categoryBundle = true
+		}
 		byCategory[s.category] = append(byCategory[s.category], kit.SidebarItem{ID: s.name, Label: displayName(s.name)})
 	}
 	g.search = kit.Input("").Placeholder(demoText("Search components", "搜索组件")).OnChange(func(q string) { g.nav.Filter(q) }).
@@ -89,7 +96,16 @@ func newGallery() *gallery {
 		sort.Slice(items, func(i, j int) bool { return items[i].Label < items[j].Label })
 		g.nav.Section(c.title, items...)
 	}
+	g.nav.OnChange(func(name string) { g.open(name) })
 	g.nav.SetValue("button")
+	if section := g.sections["button"]; section.build == nil {
+		for _, section := range demoSections {
+			if section.build != nil {
+				g.nav.SetValue(section.name)
+				break
+			}
+		}
+	}
 	return g
 }
 
@@ -153,6 +169,9 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 			next.navWidth = g.navWidth
 			next.nav.Width(g.navWidth)
 		}
+		next.compact, next.layoutKnown, next.mobileDetail = g.compact, g.layoutKnown, g.mobileDetail
+		next.onNavigate, next.onBack = g.onNavigate, g.onBack
+		next.nav.OnChange(func(name string) { g.open(name) })
 		next.nav.SetValue(selected)
 		next.search.SetValue(query)
 		next.nav.Filter(query)
@@ -161,6 +180,17 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	// Section headings use body text so they stand out from the items;
 	// set every frame so they follow theme changes.
 	g.nav.SectionTitleColor(theme.Text)
+	width, _ := cx.ViewportSize()
+	compact := width < 720*max(float32(1), cx.TextScale())
+	if g.layoutKnown && compact != g.compact && compact {
+		g.mobileDetail = true
+	}
+	g.compact, g.layoutKnown = compact, true
+	if compact && !g.mobileDetail {
+		return g.mobileIndex(cx)
+	}
+	g.search.Size(kit.InputSizeMedium)
+	g.themes.Size(0)
 	name := g.nav.Value()
 	s, ok := g.sections[name]
 	if !ok {
@@ -168,6 +198,9 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 	}
 	w := g.built[name]
 	if w == nil {
+		if s.build == nil {
+			return g.mobileIndex(cx)
+		}
 		w = s.build()
 		g.built[name] = w
 	}
@@ -176,6 +209,17 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 		if c.id == category {
 			category = c.title
 		}
+	}
+	// A section that fills its window (an el.Root) gets the whole pane and
+	// scrolls itself; one sized to its content scrolls inside the pane.
+	var body el.Element
+	if f, ok := w.(interface{ FillsWindow() bool }); ok && f.FillsWindow() {
+		body = el.Div().ID("page/" + name).Grow().MinH(el.Dp(0)).Items(el.Stretch).Child(el.Widget(w).Grow())
+	} else {
+		body = el.Div().ID("page/" + name).Grow().MinH(el.Dp(0)).ScrollY().P(8).Items(el.Start).Child(el.Widget(w))
+	}
+	if compact {
+		return g.mobilePage(cx, name, category, body)
 	}
 	doc := sectionDoc(s)
 	langLabel := "English"
@@ -196,13 +240,8 @@ func (g *gallery) Render(cx *el.Context) el.Element {
 		}).Variant(kit.ButtonGhost).Size(28).Render(cx),
 		el.Div().W(el.Dp(140)).Child(g.themes.Render(cx)),
 	)
-	// A section that fills its window (an el.Root) gets the whole pane and
-	// scrolls itself; one sized to its content scrolls inside the pane.
-	var body el.Element
-	if f, ok := w.(interface{ FillsWindow() bool }); ok && f.FillsWindow() {
-		body = el.Div().ID("page/" + name).Grow().MinH(el.Dp(0)).Items(el.Stretch).Child(el.Widget(w).Grow())
-	} else {
-		body = el.Div().ID("page/" + name).Grow().MinH(el.Dp(0)).ScrollY().P(8).Items(el.Start).Child(el.Widget(w))
+	if g.categoryBundle {
+		head.Child(kit.Button(demoText("Load full gallery", "加载完整组件库"), func() { switchGalleryBundle(g.nav.Value(), "all") }).Variant(kit.ButtonGhost).Size(36).Render(cx))
 	}
 	return el.Div().Row().Grow().Items(el.Stretch).Child(
 		g.nav.Render(cx),

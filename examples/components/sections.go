@@ -23,6 +23,9 @@ func sectionContent(name string) (core.Widget, bool) {
 	sort.Slice(demoSections, func(i, j int) bool { return demoSections[i].name < demoSections[j].name })
 	var content []core.Widget
 	for _, s := range demoSections {
+		if s.build == nil {
+			continue
+		} // Metadata-only entry in a browser category bundle.
 		if name == "all" || s.name == name || s.category == name {
 			content = append(content, &translatedSection{build: s.build})
 		}

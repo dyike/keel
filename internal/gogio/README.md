@@ -16,3 +16,5 @@ other Keel packages. Windows resources and Keel's iOS simulator adapter stay in
 the CLI.
 
 Run `go test ./internal/gogio/...` from the repository root.
+
+Web startup emits `keel-error` for instantiation/runtime promise failures and `keel-exit` with an exit code. A host loader can report failure instead of leaving a blank canvas. The Components app separately emits `keel-ready` after its first layout; generic apps are not required to emit that event.

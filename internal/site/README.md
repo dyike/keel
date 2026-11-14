@@ -42,3 +42,11 @@ Repository language links connect the paired Markdown files and are omitted from
 | `assets/` | Templates, styles, search, copy, and language-switch scripts |
 
 `go test ./internal/site` builds both languages and checks local links, anchors, translation coverage, category expansion, reading order, search isolation, and gallery source integrity.
+
+## Gallery loading and caching
+
+Use `go run ./internal/gallerybuild -out /tmp/demo` for the complete program plus all category programs; the single gogio build above remains supported. The builder emits an asset manifest and content-hashed WASM, JS and font filenames. The loader selects a category before instantiating Go, streams download progress, handles HTTP/network/script/compilation failures, and offers an explicit reload. A slow-load notice is a single timer, not a polling loop. The app sends `keel-ready` after its first layout, rather than hiding loading on canvas creation.
+
+`demo/assets.json` records raw and gzip byte sizes. Every asset has a `.gz` sibling. A gzip file on disk does not establish compressed delivery: GitHub Pages controls its own headers. For a configurable host, serve WASM as `application/wasm`, negotiate precompressed responses with `Content-Encoding: gzip` and `Vary: Accept-Encoding`, give hashed assets `Cache-Control: public,max-age=31536000,immutable`, and revalidate `index.html` and `assets.json`. Verify response headers and cold/warm network transfer sizes on the deployed site. Preserve older hashed assets when publishing if old HTML can still be cached.
+
+The gallery applies browser safe-area insets; this is separate from native phone IME/gesture verification. `go test ./internal/site` also checks content-addressed publishing and runs the loader's Node tests when Node is installed. These unit tests do not establish browser rendering, phone input, or real network startup latency.
