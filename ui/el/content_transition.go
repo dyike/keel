@@ -19,6 +19,7 @@ import (
 	"github.com/dyike/keel/gio/unit"
 	"github.com/dyike/keel/ui/internal/animation"
 	"github.com/dyike/keel/ui/theme"
+	"golang.org/x/image/math/fixed"
 )
 
 // ContentTransition controls changes to a Text's content. The default crossfades.
@@ -196,9 +197,7 @@ func (e *engine) paintTextContent(n *Node, inner image.Rectangle) bool {
 	p = min(max(p, 0), 1)
 	defer clip.Rect(s.clip).Push(e.gtx.Ops).Pop()
 	semantic.LabelOp(n.text).Add(e.gtx.Ops)
-	for _, track := range s.tracks {
-		track.at(p, now).paint(e.gtx.Ops)
-	}
+	paintContentTracks(e.gtx.Ops, s.tracks, p, now)
 	e.frameSource.Execute(op.InvalidateCmd{})
 	if r := paintingRoot; r != nil {
 		r.motionDue = true
@@ -276,6 +275,55 @@ func (g contentGlyph) inkBounds() image.Rectangle {
 		out = out.Union(r)
 	}
 	return out
+}
+
+// Adjacent opaque clusters with the same transform are one paint run, just
+// like resting labels. Separate vector fills can round antialiased edges
+// differently even when the glyphs have not moved yet.
+func paintContentTracks(ops *op.Ops, tracks []contentTrack, p float32, now time.Time) {
+	if len(tracks) == 0 {
+		return
+	}
+	// Borrow the same bounded scratch used by labels instead of allocating
+	// a glyph batch on every animated frame.
+	shaper := tracks[0].to.shaper
+	glyphs, token := shaper.BorrowGlyphBuffer()
+	defer shaper.ReleaseGlyphBuffer(glyphs, token)
+	var run contentGlyph
+	flush := func() { run.paint(ops); run.glyphs = nil }
+	for _, track := range tracks {
+		g := track.at(p, now)
+		if g.alpha <= 0 || len(g.glyphs) == 0 {
+			continue
+		}
+		if len(run.glyphs) > 0 {
+			dx := g.position.X - run.position.X
+			scale := g.scale * (1 + g.stretch.X)
+			advance := dx / scale * 64
+			compatible := scale > 0 && advance == float32(math.Round(float64(advance))) &&
+				g.alpha == 1 && run.alpha == 1 && g.shaper == run.shaper && g.color == run.color &&
+				g.viewport == run.viewport && g.scale == run.scale && g.stretch == run.stretch &&
+				g.position.Y == run.position.Y && g.rasterSet == run.rasterSet &&
+				(!g.rasterSet || g.raster.Y == run.raster.Y && g.raster.X-run.raster.X == dx/scale) &&
+				len(run.glyphs)+len(g.glyphs) <= cap(glyphs)
+			if compatible {
+				shift := run.glyphs[0].X + fixed.Int26_6(advance) - g.glyphs[0].X
+				for _, glyph := range g.glyphs {
+					glyph.X += shift
+					run.glyphs = append(run.glyphs, glyph)
+				}
+				continue
+			}
+			flush()
+		}
+		run = g
+		if len(g.glyphs) > cap(glyphs) {
+			flush()
+			continue
+		}
+		run.glyphs = append(glyphs[:0], g.glyphs...)
+	}
+	flush()
 }
 
 func (g contentGlyph) paint(ops *op.Ops) {
