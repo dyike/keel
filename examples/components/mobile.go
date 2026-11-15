@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/dyike/keel/ui/el"
 	"github.com/dyike/keel/ui/kit"
@@ -99,11 +100,25 @@ func (g *gallery) mobilePage(cx *el.Context, name, category string, body el.Elem
 		el.Div().NoShrink().P(12).Gap(8).Child(
 			el.Div().Row().Gap(8).Child(
 				kit.Button("", g.back).Icon(kit.IconChevronLeft).Name(demoText("Back to components", "返回组件列表")).Variant(kit.ButtonGhost).Size(44).Render(cx),
-				el.Div().Grow().W(el.Dp(0)).Gap(2).Child(el.Text(displayName(name)).TextSize(20).Bold(), el.Text(category).TextSize(12).TextColor(theme.Muted)),
+				el.Div().Grow().W(el.Dp(0)).Gap(2).Child(el.Text(mobileHeading(displayName(name))).TextSize(20).Bold(), el.Text(category).TextSize(12).TextColor(theme.Muted)),
 			),
 		),
 		el.Div().H(el.Dp(1)).NoShrink().Bg(theme.Border), body,
 	)
+}
+
+// Give component identifiers natural word boundaries in narrow headings.
+// Registry IDs, search results and desktop titles retain their original names.
+func mobileHeading(title string) string {
+	runes := []rune(title)
+	var out strings.Builder
+	for i, r := range runes {
+		if i > 0 && unicode.IsUpper(r) && (unicode.IsLower(runes[i-1]) || unicode.IsDigit(runes[i-1]) || unicode.IsUpper(runes[i-1]) && i+1 < len(runes) && unicode.IsLower(runes[i+1])) {
+			out.WriteByte(' ')
+		}
+		out.WriteRune(r)
+	}
+	return out.String()
 }
 
 // Preserve user preferences and unrelated host parameters across runtime loads.

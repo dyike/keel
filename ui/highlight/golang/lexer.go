@@ -11,28 +11,38 @@ import (
 //go:embed go_template.xml plaintext.xml
 var embedded embed.FS
 
-var registry = NewLexerRegistry()
+func buildRegistry() *LexerRegistry {
+	registry := NewLexerRegistry()
+	goTemplate := registry.Register(MustNewXMLLexer(
+		embedded,
+		"go_template.xml",
+	).SetConfig(
+		&Config{
+			Name:    "Go Text Template",
+			Aliases: []string{"go-text-template"},
+		},
+	))
+	registry.Register(MustNewLexer(
+		&Config{
+			Name:      "Go",
+			Aliases:   []string{"go", "golang"},
+			Filenames: []string{"*.go"},
+			MimeTypes: []string{"text/x-gosrc"},
+		},
+		func() Rules { return goRules(goTemplate) },
+	).SetAnalyser(func(text string) float32 {
+		if strings.Contains(text, "fmt.") && strings.Contains(text, "package ") {
+			return 0.5
+		}
+		if strings.Contains(text, "package ") {
+			return 0.1
+		}
+		return 0.0
+	}))
+	return registry
+}
 
-// Go lexer.
-var Go = registry.Register(MustNewLexer(
-	&Config{
-		Name:      "Go",
-		Aliases:   []string{"go", "golang"},
-		Filenames: []string{"*.go"},
-		MimeTypes: []string{"text/x-gosrc"},
-	},
-	goRules,
-).SetAnalyser(func(text string) float32 {
-	if strings.Contains(text, "fmt.") && strings.Contains(text, "package ") {
-		return 0.5
-	}
-	if strings.Contains(text, "package ") {
-		return 0.1
-	}
-	return 0.0
-}))
-
-func goRules() Rules {
+func goRules(goTemplate Lexer) Rules {
 	return Rules{
 		"root": {
 			{Pattern: `\n`, Type: TextWhitespace, Mutator: nil},
@@ -57,7 +67,7 @@ func goRules() Rules {
 			{Pattern: `0b[01_]+`, Type: LiteralNumberBin, Mutator: nil},
 			{Pattern: `(0|[1-9][0-9_]*)`, Type: LiteralNumberInteger, Mutator: nil},
 			{Pattern: `'(\\['"\\abfnrtv]|\\x[0-9a-fA-F]{2}|\\[0-7]{1,3}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|[^\\])'`, Type: LiteralStringChar, Mutator: nil},
-			{Pattern: "(`)([^`]*)(`)", Type: ByGroups(LiteralString, UsingLexer(TypeRemappingLexer(GoTextTemplate, TypeMapping{{Other, LiteralString, nil}})), LiteralString), Mutator: nil},
+			{Pattern: "(`)([^`]*)(`)", Type: ByGroups(LiteralString, UsingLexer(TypeRemappingLexer(goTemplate, TypeMapping{{Other, LiteralString, nil}})), LiteralString), Mutator: nil},
 			{Pattern: `"(\\\\|\\"|[^"])*"`, Type: LiteralString, Mutator: nil},
 			{Pattern: `(<<=|>>=|<<|>>|<=|>=|&\^=|&\^|\+=|-=|\*=|/=|%=|&=|\|=|&&|\|\||<-|\+\+|--|==|!=|:=|\.\.\.|[+\-*/%&])`, Type: Operator, Mutator: nil},
 			{Pattern: `([a-zA-Z_]\w*)(\s*)(\()`, Type: ByGroups(NameFunction, UsingSelf("root"), Punctuation), Mutator: nil},
@@ -66,13 +76,3 @@ func goRules() Rules {
 		},
 	}
 }
-
-var GoTextTemplate = registry.Register(MustNewXMLLexer(
-	embedded,
-	"go_template.xml",
-).SetConfig(
-	&Config{
-		Name:    "Go Text Template",
-		Aliases: []string{"go-text-template"},
-	},
-))

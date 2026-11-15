@@ -10,6 +10,7 @@ import (
 
 func init() {
 	registerSection("diff", "data", func() core.Widget {
+		enableHighlight()
 		context := strings.Repeat("// unchanged context\n", 16)
 		initial := kit.DiffValue{Before: "package main\n\nfunc greeting() string {\n\treturn \"Hello\"\n}\n\n" + context + "// old note\n", After: "package main\n\nfunc greeting() string {\n\treturn \"Hello, Keel\"\n}\n\n" + context + "// reviewed note\n"}
 		patch := kit.Diff(initial.Before, initial.After).Patch("main.go", "main.go")

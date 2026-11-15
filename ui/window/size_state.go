@@ -90,11 +90,6 @@ func (s *SizeState) Save() error {
 	}
 	return os.Rename(f.Name(), s.path)
 }
-func (w *Window) saveSizeState() {
-	if err := w.opts.SizeState.Save(); err != nil {
-		fmt.Fprintf(os.Stderr, "keel: save window size: %v\n", err)
-	}
-}
 
 // initialWindowSize selects a comfortable first-run size, bounded by the
 // compositor's suggested area. Restored/explicit sizes are only clamped.

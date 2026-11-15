@@ -7,7 +7,7 @@ Builds Keel’s documentation site. Guides under `docs/` and module/example READ
 Local preview:
 
 ```sh
-go run ./cmd/gogio -target js -tags osusergo -o /tmp/demo ./examples/components
+BINARYEN_DIR=/path/to/binaryen/bin go run ./internal/gallerybuild -out /tmp/demo
 python3 internal/site/subset_font.py . NotoSansSC-Regular.otf /tmp/demo/font.otf
 go run ./internal/site -out _site -demo /tmp/demo
 python3 -m http.server --directory _site
@@ -51,4 +51,4 @@ Use `go run ./internal/gallerybuild -out /tmp/demo` for the complete program plu
 
 The gallery applies browser safe-area insets; this is separate from native phone IME/gesture verification. `go test ./internal/site` also checks content-addressed publishing and runs the loader's Node tests when Node is installed. These unit tests do not establish browser rendering, phone input, or real network startup latency.
 
-A demo directory containing `shared-build.json` uses the optional shared-runtime path. Only referenced assets and the font are published; analysis intermediates are excluded. The full runtime remains available with `?bundle=all`. The regular Gallery defaults to one complete runtime for state retention, while `?section=` previews can select independent category builds. Shared-runtime build commands and current acceptance limits are documented in [shared WASM](../../docs/shared-wasm.md); this does not change the CI default.
+A demo directory containing `shared-build.json` uses the shared-runtime path, now produced by the default gallerybuild command and CI. Only referenced assets and the font are published; analysis intermediates are excluded. The equally optimized full runtime remains available with `?bundle=all`. Explicit independent builds still support complete Gallery state retention and category previews. See [shared WASM](../../docs/shared-wasm.md) for loading gates and deployment limits.

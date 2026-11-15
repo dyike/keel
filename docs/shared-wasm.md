@@ -1,6 +1,26 @@
-# Shared Go WebAssembly experiment
+# Shared Go WebAssembly gallery
 
 English | [简体中文](shared-wasm.zh-CN.md)
+
+## Default build and CI (2026-11-15)
+
+`gallerybuild` now defaults to the fine-grained shared-runtime pipeline (28 leaf shards plus shared dependency shards such as `shared_01`..`shared_13` for multi-owner subsystems like Markdown/Goldmark/HTML, CodeEditor, NumberInput, Table/CSV, AppShell, Command, ImageCache, and Tree). Set `BINARYEN_DIR` to Binaryen version_133's bin directory and use a fresh output directory. `-mode independent` retains the Go-only build; `-categories` selects an independent development subset; `-analysis` remains an internal analysis entry point. See [build instructions](../internal/gallerybuild/README.md).
+
+The Site workflow runs on pull requests as well as publication events. It pins Go 1.27.4 and verifies the pinned Binaryen archive SHA-256, builds without cgo, runs loader/ownership tests, then uses **Google Chrome** for all 118 section first frames, cold categories, input retention, full fallback and retry/history. Failures block publication and preserve acceptance artifacts. Pull requests never deploy. CI configuration is local until pushed; an actual hosted CI/deployment run is separate evidence.
+
+Loading acceptance is reproducible with Playwright available to Node:
+
+```sh
+node scripts/verify-wasm-loading.cjs /tmp/site-new work/wasm-loading
+```
+
+The script serves real gzip-9 HTTP responses with immutable hashed-asset caching. Five alternating fresh normal-profile samples (default disk-cache capacity) compare shared Input with the equally optimized full Input, at 390×844, 6 Mbit/s, 40 ms latency and 2× CPU slowdown. It records app readiness, category-ready plus two animation frames, observed WASM transfer/encoded/decoded bytes, cached reload, first Dialog switch and a no-redownload revisit. Gates require zero browser errors, at least 5% lower first total transfer and WASM transfer **including the first child**, cold/warm median no worse than full ×1.15 +100 ms, and first category switch under 3 s. Cache hits and exact requested-module counts are assertions. Reports include browser version, every sample and screenshots; timing failures are not silently retried.
+
+These are controlled loading gates, not physical-phone, production CDN, sustained frame-rate or total process/GPU memory acceptance. The reported shared WASM memory length is only linear memory. Local cache headers do not establish Pages headers. Keep old hashed assets available when updating a deployment if stale open pages must continue loading children; Pages publishes a replacement snapshot and this workflow does not retain prior releases. The full fallback remains available for troubleshooting.
+
+Local Chromium 159.0.8154.6 acceptance on 2026-11-15 with fine-grained leaf and shared-dependency shards (41 child modules total: 28 leaf shards and 13 shared dependency shards, splitting 4,248 functions out of `primary.wasm`) passed all six gates. Desktop-only `ui/window` automation sockets, hot-reload and size-state persistence are excluded on `GOOS=js`, `registerSection` builders are lifted from anonymous `init` closures to named top-level `section_<name>` functions, and `ui/highlight/golang` lexer construction is lazy. Equally optimized (`wasm-opt -Oz --strip-debug`) artifact sizes are **29,006,511 bytes (7,632,520 gzip-9)** for `baseline-opt.wasm` versus **22,803,133 bytes (5,930,064 gzip-9)** for `primary.wasm` (−6,203,378 raw bytes / −1,702,456 gzip-9 bytes, a **22.3% gzip-9 reduction** in the primary bundle; compared with the earlier 6,980,693-byte gzip-9 primary, `primary.wasm` is smaller by **1,050,629 gzip-9 bytes**). Leaf shards range from **8,265 to 118,284 gzip-9 bytes** (`inputs.wasm` is **24,924 gzip-9 bytes**, `overlays.wasm` is **14,246 gzip-9 bytes**), and shared dependency shards range from **9,897 to 296,485 gzip-9 bytes**. Five paired loading samples measured total initial transfer **7,653,684 vs 9,331,465 bytes** (−18.0%), WASM transfer including Input **6,016,294 vs 7,699,119 bytes** (−21.9%), and cold-load median **10.78 vs 13.01 s** (−17.1%, shared vs full). Cached reload was **381 vs 379 ms**, and first Dialog switch **115 vs 39 ms**. All 118 first frames, 28 cold leaf shards, retained input, fallback and retry/history also passed without browser errors. Hosted CI has not been run by this local change.
+
+The sections below preserve earlier experimental measurements and limitations; statements about the old default/CI describe those earlier builds.
 
 The build produces a full program and independent category programs. The full Gallery now defaults to the full program to retain cross-category state; embedded component previews still select category programs. This restores state continuity at the cost of a larger initial download, not shared-runtime splitting. This experiment investigates a different path: split a single linked Go/Gio program with [Binaryen wasm-split](https://github.com/WebAssembly/binaryen/tree/version_133/src/tools/wasm-split), keeping one Go runtime, memory, mutable globals and dispatch tables. It is not a new Go dynamic-linking ABI or a production default.
 

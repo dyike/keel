@@ -55,15 +55,15 @@ func (g *notifierGallery) Render(cx *el.Context) el.Element {
 			}).Variant(kit.ButtonGhost).Render(cx),
 		),
 		el.Div().Row().Wrap().Gap(8).Child(
-			kit.Button(demoText("Top right by default", "默认右上角"), func() { g.n.Placement(kit.NoticeTopRight) }).Render(cx),
-			kit.Button(demoText("Bottom center by default", "默认底部居中"), func() { g.n.Placement(kit.NoticeBottomCenter) }).Render(cx),
-			kit.Button(demoText("Update the same task", "更新同一任务"), func() {
+			kit.Button(demoText("Top right", "默认右上角"), func() { g.n.Placement(kit.NoticeTopRight) }).Render(cx),
+			kit.Button(demoText("Bottom center", "默认底部居中"), func() { g.n.Placement(kit.NoticeBottomCenter) }).Render(cx),
+			kit.Button(demoText("Update task", "更新同一任务"), func() {
 				g.count++
 				g.n.NotifyKey("download", kit.Notice{Title: demoText("Download task", "下载任务"), Body: fmt.Sprintf(demoText("Update %d; only one notification is retained.", "第 %d 次更新，始终只保留一条通知。"), g.count), Timeout: -1})
 			}).Render(cx),
-			kit.Button(demoText("Clear all notifications", "清除全部通知"), func() { g.n.Clear() }).Variant(kit.ButtonGhost).Render(cx),
+			kit.Button(demoText("Clear notifications", "清除全部通知"), func() { g.n.Clear() }).Variant(kit.ButtonGhost).Render(cx),
 		),
-		kit.Button(demoText("Simulate background update", "模拟后台更新"), func() {
+		kit.Button(demoText("Background update", "模拟后台更新"), func() {
 			id := g.n.Notify(kit.Notice{Title: demoText("Syncing", "正在同步"), Timeout: -1})
 			go func() {
 				time.Sleep(time.Second)

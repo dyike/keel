@@ -89,3 +89,17 @@ func runApplicationCleanup() {
 		w.saveSizeState()
 	}
 }
+
+// Caller holds the frame lock. Shared by explicit exit and development reload.
+func closeWindowsLocked(windows []*Window) {
+	for _, w := range windows {
+		if w.closed {
+			continue
+		}
+		w.closed = true
+		if callback := w.opts.OnClose; callback != nil {
+			w.opts.OnClose = nil
+			callback()
+		}
+	}
+}

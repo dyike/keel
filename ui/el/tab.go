@@ -43,25 +43,33 @@ func (r *RootWidget) tabTargets(roots []*Node) ([]tabTarget, bool) {
 func (r *RootWidget) collectTabTargets(roots []*Node) ([]tabTarget, bool) {
 	var targets []tabTarget
 	configured := false
-	var visit func(*Node)
-	visit = func(n *Node) {
+	var visit func(*RootWidget, *Node)
+	visit = func(owner *RootWidget, n *Node) {
+		if n == nil {
+			return
+		}
 		configured = configured || n.tabConfigured || n.focusTrap
 		if n.effectiveDisabled || n.style.hidden {
 			return
 		}
-		if s := r.store.of(n); s != nil && !s.blocked && s.keyFrame+1 >= r.store.frame && s.keyFrame > 0 && !n.tabSkip && n.tabIndex >= 0 {
+		if s := owner.store.of(n); s != nil && !s.blocked && s.keyFrame+1 >= owner.store.frame && s.keyFrame > 0 && !n.tabSkip && n.tabIndex >= 0 {
 			if n.input != nil {
 				targets = append(targets, tabTarget{s.editor, s, n.tabIndex})
 			} else if n.isFocusable() {
 				targets = append(targets, tabTarget{s, s, n.tabIndex})
 			}
 		}
+		// Retained page roots remain independent stores, but their visible
+		// controls belong to the enclosing modal's keyboard traversal.
+		if child, ok := n.widget.(*RootWidget); ok && child != owner {
+			visit(child, child.mainTree)
+		}
 		for _, c := range n.children {
-			visit(c.node())
+			visit(owner, c.node())
 		}
 	}
 	for _, n := range roots {
-		visit(n)
+		visit(r, n)
 	}
 	sort.SliceStable(targets, func(i, j int) bool { return targets[i].index < targets[j].index })
 	return targets, configured

@@ -7,20 +7,22 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,17 +30,37 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
-
-      - name: Check the site's links
-        run: go test ./internal/site
-
-      - name: Build the component gallery for the browser
-        run: go run ./internal/gallerybuild -out demo
+          go-version: "1.27.4" # validated WASM compiler; module minimum stays unchanged
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned Binaryen
+        run: |
+          curl -sSfL -o /tmp/binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_133/binaryen-version_133-x86_64-linux.tar.gz
+          echo "2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489  /tmp/binaryen.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/binaryen.tar.gz -C "$RUNNER_TEMP"
+          echo "BINARYEN_DIR=$RUNNER_TEMP/binaryen-version_133/bin" >> "$GITHUB_ENV"
+
+      - name: Check ownership and loader regressions
+        run: |
+          go test ./internal/gallerybuild ./internal/site
+          python3 scripts/analyze-gallery-wasm_test.py
+          node --test scripts/shared-gallery-loader.test.cjs
+
+      - name: Build the default shared-runtime gallery
+        run: go run ./internal/gallerybuild -out demo
+
+      - name: Install Google Chrome acceptance tools
+        run: |
+          npm install --prefix "$RUNNER_TEMP/browser-qa" --no-audit --no-fund playwright@1.65.1
+          "$RUNNER_TEMP/browser-qa/node_modules/.bin/playwright" install --with-deps chrome
+          echo "NODE_PATH=$RUNNER_TEMP/browser-qa/node_modules" >> "$GITHUB_ENV"
 
       - name: Subset a Chinese font for the gallery
         run: |
@@ -51,11 +73,42 @@ jobs:
           version=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
           go run ./internal/site -out _site -demo demo -repo "https://github.com/${{ github.repository }}" -branch main -version "$version"
 
+      - name: Accept Chrome navigation, fallback and loading performance
+        run: |
+          mkdir -p acceptance
+          python3 -m http.server 8767 --bind 127.0.0.1 --directory _site > acceptance/server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in $(seq 1 50); do
+            curl -sSf http://127.0.0.1:8767/demo/ > /dev/null && break
+            sleep 0.1
+          done
+          node scripts/verify-shared-categories.cjs http://127.0.0.1:8767/demo/ acceptance/categories
+          node scripts/verify-shared-gallery.cjs http://127.0.0.1:8767/demo/ acceptance/retry
+          node scripts/verify-wasm-loading.cjs _site acceptance/loading
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wasm-acceptance
+          path: |
+            acceptance
+            demo/sizes.json
+          if-no-files-found: warn
+
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: _site
 
   deploy:
+    concurrency:
+      group: pages-deployment
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     environment:

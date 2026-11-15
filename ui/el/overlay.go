@@ -617,7 +617,24 @@ func (r *RootWidget) focusedTag() event.Tag {
 	}
 	return nil
 }
+
+func (r *RootWidget) focusedNestedTag() event.Tag {
+	if tag := r.focusedTag(); tag != nil {
+		return tag
+	}
+	var found event.Tag
+	r.visitNestedRoots(func(child *RootWidget) bool { found = child.focusedNestedTag(); return found != nil })
+	return found
+}
 func (r *RootWidget) focusTag(tag event.Tag) {
+	if !r.tryFocusTag(tag) {
+		r.e.gtx.Execute(key.FocusCmd{})
+	}
+}
+func (r *RootWidget) tryFocusTag(tag event.Tag) bool {
+	if tag == nil {
+		return false
+	}
 	for _, s := range r.store.states {
 		if s.keyFrame != r.store.frame || s.disabled || s.blocked {
 			continue
@@ -626,11 +643,51 @@ func (r *RootWidget) focusTag(tag event.Tag) {
 			// After a pointer close the trigger takes focus quietly, as if pressed.
 			s.focusFrom(!r.keyboardModality)
 			r.e.gtx.Execute(key.FocusCmd{Tag: tag})
-			return
+			return true
 		}
 	}
-	r.e.gtx.Execute(key.FocusCmd{})
+	return r.visitNestedRoots(func(child *RootWidget) bool { return child.tryFocusTag(tag) })
 }
+
+// Visit currently mounted embedded roots only. Omitted/disabled page widgets
+// must not become focus restoration targets merely because their state survives.
+func (r *RootWidget) visitNestedRoots(fn func(*RootWidget) bool) bool {
+	if r.visitNestedTree(r.mainTree, fn) {
+		return true
+	}
+	for _, layer := range r.activeLayers {
+		if layer.active && r.visitNestedTree(layer.tree, fn) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *RootWidget) visitNestedTree(tree *Node, fn func(*RootWidget) bool) bool {
+	// Internal reads of already mounted trees do not build or transfer elements.
+	priorArena := buildingArena
+	buildingArena = nil
+	defer func() { buildingArena = priorArena }()
+	var visit func(*Node) bool
+	visit = func(n *Node) bool {
+		if n == nil || n.style.hidden || n.effectiveDisabled {
+			return false
+		}
+		if child, ok := n.widget.(*RootWidget); ok && child != r && child.e.gtx.Enabled() {
+			if fn(child) {
+				return true
+			}
+		}
+		for _, c := range n.children {
+			if visit(c.node()) {
+				return true
+			}
+		}
+		return false
+	}
+	return visit(tree)
+}
+
 func (r *RootWidget) focusFirst(n *Node) bool {
 	if targets, configured := r.collectTabTargets([]*Node{n}); configured {
 		if len(targets) == 0 {

@@ -1,3 +1,5 @@
+//go:build !js
+
 package window
 
 import (
@@ -191,4 +193,10 @@ func listenForReload(reloadNow func()) {
 			}
 		}
 	}()
+}
+
+func (w *Window) saveSizeState() {
+	if err := w.opts.SizeState.Save(); err != nil {
+		fmt.Fprintf(os.Stderr, "keel: save window size: %v\n", err)
+	}
 }

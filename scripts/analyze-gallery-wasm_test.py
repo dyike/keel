@@ -2,7 +2,9 @@ import runpy
 import unittest
 from pathlib import Path
 
-partition = runpy.run_path(str(Path(__file__).with_name('analyze-gallery-wasm.py')))['partition']
+mod = runpy.run_path(str(Path(__file__).with_name('analyze-gallery-wasm.py')))
+partition = mod['partition']
+partition_shared = mod['partition_shared']
 
 
 class OwnershipTests(unittest.TestCase):
@@ -21,6 +23,19 @@ class OwnershipTests(unittest.TestCase):
         self.assertEqual(owned, {'a': ['real'], 'b': []})
         self.assertEqual(shared, [])
         self.assertEqual(unassigned, [])
+
+    def test_partition_shared_extracts_non_resident_shared_clusters(self):
+        members = {
+            'a': {'s1', 's2', 'r1'},
+            'b': {'s1', 's2'},
+            'inputs': {'r1'},
+        }
+        shared_parts, deps, resident = partition_shared(['s1', 's2', 'r1'], members, min_functions=2)
+        self.assertEqual(shared_parts, {'shared_01': {'owners': ['a', 'b'], 'functions': ['s1', 's2']}})
+        self.assertEqual(deps['a'], ['shared_01'])
+        self.assertEqual(deps['b'], ['shared_01'])
+        self.assertEqual(deps['inputs'], [])
+        self.assertEqual(resident, ['r1'])
 
 
 if __name__ == '__main__':

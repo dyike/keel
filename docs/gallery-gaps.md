@@ -25,7 +25,7 @@ Compared against the 41 base component demos in the [NSH Gallery source](https:/
 | Input | [input](../examples/components/input.go) | Entry exists; detailed parity unverified |
 | Link | [link](../examples/components/link.go) | Entry exists; detailed parity unverified |
 | Menu | [menu](../examples/components/menu.go) | Entry exists; detailed parity unverified |
-| NavStack | [nav_stack](../examples/components/nav_stack.go) | Stack/input/scroll implemented; modal/swipe parity still open |
+| NavStack | [nav_stack](../examples/components/nav_stack.go) | Stack/input/scroll, modal dismissal/focus and edge-swipe implemented; physical-device acceptance pending |
 | NumberInput | [number_input](../examples/components/number_input.go) | Entry exists; detailed parity unverified |
 | OtpInput | [otp_input](../examples/components/otp_input.go) | Entry exists; detailed parity unverified |
 | Pagination | [pagination](../examples/components/pagination.go) | Entry exists; detailed parity unverified |
@@ -48,7 +48,7 @@ Compared against the 41 base component demos in the [NSH Gallery source](https:/
 | Tooltip | [tooltip](../examples/components/tooltip.go) | Entry exists; detailed parity unverified |
 | Tree | [tree](../examples/components/tree.go) | Entry exists; detailed parity unverified |
 
-NavStack now provides retained navigation and back behavior; modal and swipe parity remain open. Diff now provides review actions and patch export; synchronized split scrolling and grapheme-aware intraline highlighting are implemented; single-file patch input implemented; split context folding implemented; gutter callbacks implemented; embedded custom hunk actions implemented; broader device/visual parity unverified. EmojiPicker now includes a Unicode catalog, search, tones, recents and adaptive presentation; physical-device/font parity remains unverified. RichEditor remains missing. Terminal now has an ANSI display and interaction tests; full VT compatibility and real PTY/IME/device acceptance are not established. Each new component requires bilingual docs, a gallery entry, interaction tests and window snapshot tests.
+NavStack now provides retained navigation and back behavior; modal dismissal/focus and edge-swipe are implemented; physical-device acceptance remains pending. Diff now provides review actions and patch export; synchronized split scrolling and grapheme-aware intraline highlighting are implemented; single-file patch input implemented; split context folding implemented; gutter callbacks implemented; embedded custom hunk actions implemented; broader device/visual parity unverified. EmojiPicker now includes a Unicode catalog, search, tones, recents and adaptive presentation; physical-device/font parity remains unverified. RichEditor remains missing. Terminal now has an ANSI display and interaction tests; full VT compatibility and real PTY/IME/device acceptance are not established. Each new component requires bilingual docs, a gallery entry, interaction tests and window snapshot tests.
 
 Track primitive-level gaps separately: scroll paging/zoom, sticky lists, Canvas/Shader extensions and Video. The reference WebView dependency is not an equivalent in Keel’s pure-Go drawing architecture; adding HTML/WebView is not a valid shortcut to parity.
 

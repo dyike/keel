@@ -99,6 +99,21 @@ type pendingAction struct {
 	a system.Action
 }
 
+// WindowInfo describes an open window.
+type WindowInfo struct {
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+	Active bool   `json:"active"`
+}
+
+// Snapshot is a window and its elements.
+type Snapshot struct {
+	Window   WindowInfo `json:"window"`
+	Elements []Element  `json:"elements"`
+}
+
 // openVirtual gives w its twin. alone is true for headless windows, which
 // have no real window to redraw.
 func openVirtual(w *Window, alone bool) {

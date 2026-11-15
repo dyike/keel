@@ -15,6 +15,7 @@ import (
 
 func init() {
 	registerSection("text_view", "display", func() core.Widget {
+		enableHighlight()
 		status := ""
 		expanded := false
 		fadeDoc := markdown.New("").StreamFade(true)

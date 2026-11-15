@@ -25,7 +25,7 @@
 | Input | [input](../examples/components/input.go) | 已有入口，细项待验收 |
 | Link | [link](../examples/components/link.go) | 已有入口，细项待验收 |
 | Menu | [menu](../examples/components/menu.go) | 已有入口，细项待验收 |
-| NavStack | [nav_stack](../examples/components/nav_stack.go) | 已实现导航栈与输入／滚动保留；模态／滑动返回仍待补齐 |
+| NavStack | [nav_stack](../examples/components/nav_stack.go) | 已实现导航栈与输入／滚动保留；已实现模态关闭／焦点恢复及边缘滑动返回；真机待验收 |
 | NumberInput | [number_input](../examples/components/number_input.go) | 已有入口，细项待验收 |
 | OtpInput | [otp_input](../examples/components/otp_input.go) | 已有入口，细项待验收 |
 | Pagination | [pagination](../examples/components/pagination.go) | 已有入口，细项待验收 |
@@ -48,7 +48,7 @@
 | Tooltip | [tooltip](../examples/components/tooltip.go) | 已有入口，细项待验收 |
 | Tree | [tree](../examples/components/tree.go) | 已有入口，细项待验收 |
 
-NavStack 已提供页面状态保留与返回行为，模态和滑动返回仍待补齐。Diff 已提供审阅动作和补丁导出，同步滚动及字素级行内高亮已实现，单文件补丁输入已实现；并排上下文折叠已实现；行号回调已实现；已实现嵌入式差异块自定义操作；完整设备／视觉一致性未验收。EmojiPicker 已有 Unicode 目录、搜索、肤色、最近使用及自适应展示，真机／字体一致性仍待验收；RichEditor 仍缺少对应组件。Terminal 已有 ANSI 显示与交互测试，尚未建立完整 VT 兼容及真实 PTY／输入法／设备验收结论。新增组件必须包含双语文档、组件库入口、交互测试和窗口快照测试。
+NavStack 已提供页面状态保留与返回行为，已实现模态关闭／焦点恢复及边缘滑动返回，真机仍待验收。Diff 已提供审阅动作和补丁导出，同步滚动及字素级行内高亮已实现，单文件补丁输入已实现；并排上下文折叠已实现；行号回调已实现；已实现嵌入式差异块自定义操作；完整设备／视觉一致性未验收。EmojiPicker 已有 Unicode 目录、搜索、肤色、最近使用及自适应展示，真机／字体一致性仍待验收；RichEditor 仍缺少对应组件。Terminal 已有 ANSI 显示与交互测试，尚未建立完整 VT 兼容及真实 PTY／输入法／设备验收结论。新增组件必须包含双语文档、组件库入口、交互测试和窗口快照测试。
 
 原语差距另行跟踪：滚动分页／缩放、列表吸顶、Canvas／Shader 扩展、Video。参考库的 WebView 依赖不是本项目纯 Go 绘制架构中的组件替代方案；不能通过引入 HTML/WebView 来宣称补齐。
 

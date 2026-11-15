@@ -4,9 +4,16 @@
     const instantiate = options.instantiate || (url => WebAssembly.instantiateStreaming(fetch(url), {primary: primary.exports}));
     const notify = options.notify || (name => root.dispatchEvent(new CustomEvent('keel-section-loaded', {detail: name})));
     const states = new Map();
-    function ensure(name) {
-      const url = sections[name];
-      if (!url) return Promise.resolve();
+    const urlsOf = name => Array.isArray(sections[name]) ? sections[name] : sections[name] ? [sections[name]] : [];
+    function settled(url) {
+      for (const section of Object.keys(sections)) {
+        const urls = urlsOf(section);
+        if (urls.includes(url) && urls.every(u => states.get(u) && states.get(u).status !== 'loading')) {
+          notify(section);
+        }
+      }
+    }
+    function loadUrl(url) {
       let state = states.get(url);
       if (state) return state.pending;
       state = {status: 'loading', pending: null};
@@ -14,25 +21,37 @@
       state.pending = Promise.resolve().then(() => instantiate(url)).then(result => {
         state.status = '';
         state.instance = result.instance;
-        for (const [section, child] of Object.entries(sections)) if (child === url) notify(section);
+        settled(url);
         return result.instance;
       }, error => {
         state.status = 'error';
-        for (const [section, child] of Object.entries(sections)) if (child === url) notify(section);
+        settled(url);
         throw error;
       });
       // Render-triggered loads report failures through visible UI, not an unhandled rejection.
       state.pending.catch(() => {});
       return state.pending;
     }
+    function ensure(name) {
+      const urls = urlsOf(name);
+      if (!urls.length) return Promise.resolve();
+      if (urls.length === 1) return loadUrl(urls[0]);
+      const pending = Promise.all(urls.map(loadUrl)).then(instances => instances[instances.length - 1]);
+      pending.catch(() => {});
+      return pending;
+    }
     function status(name) {
-      if (!sections[name]) return '';
+      const urls = urlsOf(name);
+      if (!urls.length) return '';
       ensure(name);
-      return states.get(sections[name]).status;
+      if (urls.some(u => states.get(u).status === 'loading')) return 'loading';
+      if (urls.some(u => states.get(u).status === 'error')) return 'error';
+      return '';
     }
     function retry(name) {
-      const url = sections[name], state = states.get(url);
-      if (state?.status === 'error') states.delete(url);
+      for (const url of urlsOf(name)) {
+        if (states.get(url)?.status === 'error') states.delete(url);
+      }
       ensure(name);
     }
     root.keelSectionStatus = status;

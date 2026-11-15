@@ -43,7 +43,7 @@ func (s *Styled[T]) Focusable(on bool) *T {
 // focus. Nested traps use the innermost focused scope. Pointer and explicit
 // Context.Focus requests can move to another scope; this does not open a modal,
 // focus on mount, or restore focus on removal. Use Layer.TrapFocus for overlays.
-// Targets belong to this el root; independently embedded widgets own their focus.
+// Embedded el roots participate in traversal; other widgets own their focus.
 func (s *Styled[T]) FocusTrap(on bool) *T { s.node().focusTrap = on; return s.self }
 
 // TabStop controls sequential Tab traversal without disabling pointer/programmatic

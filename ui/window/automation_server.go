@@ -1,3 +1,5 @@
+//go:build !js
+
 package window
 
 // Automation protocol: one JSON object per line over the KEEL_AUTOMATION unix
@@ -57,21 +59,6 @@ type params struct {
 type response struct {
 	Result any    `json:"result,omitempty"`
 	Error  string `json:"error,omitempty"`
-}
-
-// WindowInfo describes an open window.
-type WindowInfo struct {
-	ID     string `json:"id"`
-	Title  string `json:"title"`
-	Width  int    `json:"width"`
-	Height int    `json:"height"`
-	Active bool   `json:"active"`
-}
-
-// Snapshot is a window and its elements.
-type Snapshot struct {
-	Window   WindowInfo `json:"window"`
-	Elements []Element  `json:"elements"`
 }
 
 func serveAutomation() {

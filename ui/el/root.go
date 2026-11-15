@@ -350,6 +350,20 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 	r.mainTree = tree
 	r.prepareLayers(&cx)
 	priorFocus := r.focusedTag()
+	if priorFocus == nil && len(cx.layers) > 0 {
+		priorFocus = r.focusedNestedTag()
+		// Layer trees are rebuilt each Render. Inspect the current declaration
+		// for focus inside a previously open modal's retained page root.
+		for _, d := range cx.layers {
+			if priorFocus != nil {
+				break
+			}
+			r.visitNestedTree(d.layer.content.node(), func(child *RootWidget) bool {
+				priorFocus = child.focusedNestedTag()
+				return priorFocus != nil
+			})
+		}
+	}
 	if r.requestedFocus != nil {
 		priorFocus = r.requestedFocus
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/dyike/keel/gio/layout"
 	"github.com/dyike/keel/gio/op"
 	"github.com/dyike/keel/gio/unit"
+	"github.com/dyike/keel/ui/locale"
 )
 
 // The runner reads the actual registry rather than parsing Go source or keeping
@@ -23,6 +24,10 @@ func TestComponentManifest(t *testing.T) {
 	if path == "" {
 		t.Skip("requested by scripts/check-components.py")
 	}
+	// The interactive runner starts the gallery with -lang en.
+	old := locale.Current()
+	locale.Apply(locale.English())
+	defer locale.Apply(old)
 	type entry struct {
 		Name  string `json:"name"`
 		Title string `json:"title"`

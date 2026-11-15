@@ -22,3 +22,30 @@ test('single child, shared sections, failure retry and retained successful insta
  assert.equal(calls, 2);
  assert.deepEqual(notifications, ['dialog', 'alias', 'dialog', 'alias']);
 });
+test('multi-shard section deduplicates shared dependency across sections and retries failed shard only', async () => {
+ const fetched = [], notifications = [];
+ let failLeaf = true;
+ const loader = install({}, {
+  code_editor: ['shared_01.wasm', 'code_editor.wasm'],
+  terminal: ['shared_01.wasm', 'terminal.wasm'],
+ }, {
+  notify: name => notifications.push(name),
+  instantiate: async url => {
+   fetched.push(url);
+   if (url === 'code_editor.wasm' && failLeaf) {
+    failLeaf = false;
+    throw Error('leaf failed');
+   }
+   return {instance: {url}};
+  }
+ });
+ await assert.rejects(loader.ensure('code_editor'), /leaf failed/);
+ assert.equal(loader.status('code_editor'), 'error');
+ assert.deepEqual(fetched, ['shared_01.wasm', 'code_editor.wasm']);
+ loader.retry('code_editor');
+ assert.deepEqual(await loader.ensure('code_editor'), {url: 'code_editor.wasm'});
+ assert.equal(loader.status('code_editor'), '');
+ assert.deepEqual(await loader.ensure('terminal'), {url: 'terminal.wasm'});
+ assert.deepEqual(fetched, ['shared_01.wasm', 'code_editor.wasm', 'code_editor.wasm', 'terminal.wasm']);
+ assert.deepEqual(notifications, ['code_editor', 'code_editor', 'terminal']);
+});

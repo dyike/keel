@@ -154,6 +154,9 @@ func (v *StatusMarkerView) Render(cx *el.Context) el.Element {
 	}
 	if v.text != "" || v.content != nil {
 		content := el.Div().Row().MinW(el.Dp(0)).MaxW(el.Full).Items(el.Center).Gap(theme.SpaceSm)
+		if v.content != nil {
+			content.Wrap()
+		}
 		if v.text != "" {
 			v.shimmer.SetText(v.text)
 			v.shimmer.Enabled(v.loading && v.loadingStyle == StatusMarkerLoadingStyleShimmer)

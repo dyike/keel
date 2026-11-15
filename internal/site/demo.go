@@ -51,13 +51,14 @@ type demoGroup struct {
 // Shared build metadata names assets paired with one Go runtime. The full
 // program remains available through ?bundle=all during rollout.
 type demoShared struct {
-	Primary    string            `json:"primary"`
-	Loader     string            `json:"loader"`
-	Startup    string            `json:"startup"`
-	FullWasm   string            `json:"fullWasm"`
-	FullScript string            `json:"fullScript"`
-	Sections   map[string]string `json:"sections"`
-	Categories map[string]string `json:"categories,omitempty"`
+	Primary      string              `json:"primary"`
+	Loader       string              `json:"loader"`
+	Startup      string              `json:"startup"`
+	FullWasm     string              `json:"fullWasm"`
+	FullScript   string              `json:"fullScript"`
+	Sections     map[string]string   `json:"sections"`
+	Categories   map[string]string   `json:"categories,omitempty"`
+	Dependencies map[string][]string `json:"dependencies,omitempty"`
 }
 
 type demoConfig struct {
@@ -100,6 +101,9 @@ func (s *site) copyDemo(dir string) error {
 		}
 		for _, name := range shared.Categories {
 			children = append(children, name)
+		}
+		for _, deps := range shared.Dependencies {
+			children = append(children, deps...)
 		}
 		for _, name := range children {
 			if !fs.ValidPath(name) || name == "." {

@@ -34,7 +34,11 @@ func init() {
 			if compact {
 				height = 480 * max(float32(1), cx.TextScale())
 			}
-			return el.Div().ScrollY().P(24).Gap(12).Items(el.Stretch).Child(kit.Button(demoText("Show / hide preview", "显示 / 隐藏预览"), func() { visible = !visible; g.SetVisible("preview", visible) }).Render(cx), el.Div().H(el.Dp(height)).Items(el.Stretch).Child(g.Render(cx)))
+			label := demoText("Hide preview", "隐藏预览")
+			if !visible {
+				label = demoText("Show preview", "显示预览")
+			}
+			return el.Div().ScrollY().P(24).Gap(12).Items(el.Stretch).Child(kit.Button(label, func() { visible = !visible; g.SetVisible("preview", visible) }).Size(44).Render(cx), el.Div().H(el.Dp(height)).Items(el.Stretch).Child(g.Render(cx)))
 		}))
 	})
 }

@@ -23,3 +23,5 @@ PartStyle 分别配置 Root、Row、Icon、Content、Separator；回调每帧收
 布局使用 Keel 的行布局和主题刻度，不复制上游尺寸。Alignment 同时设置内容组位置和文字行内对齐；子元素可以用 TextAlign 独立覆盖。
 
 验证：`go run ./examples/components -section status_marker`。
+
+设置 Content 时，文字和富内容会按可用宽度换行，让窄屏中的操作按钮保留自然宽度。

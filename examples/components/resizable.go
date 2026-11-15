@@ -38,7 +38,15 @@ func init() {
 			if compact {
 				height = 600 * max(float32(1), cx.TextScale())
 			}
-			return el.Div().ScrollY().P(24).Gap(12).Items(el.Stretch).Child(kit.Button(demoText("Enable / disable split panel", "启用 / 禁用分隔面板"), func() { disabled = !disabled; outer.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Render(cx), kit.Button(demoText("Show / hide sidebar", "显示 / 隐藏侧栏"), func() { showSidebar = !showSidebar; outer.Visible(showSidebar, true) }).Render(cx), el.Div().H(el.Dp(height)).Border(1, theme.Outline).Items(el.Stretch).Child(outer.Render(cx)))
+			toggleLabel := demoText("Disable panels", "禁用面板")
+			if disabled {
+				toggleLabel = demoText("Enable panels", "启用面板")
+			}
+			sidebarLabel := demoText("Hide sidebar", "隐藏侧栏")
+			if !showSidebar {
+				sidebarLabel = demoText("Show sidebar", "显示侧栏")
+			}
+			return el.Div().ScrollY().P(24).Gap(12).Items(el.Stretch).Child(kit.Button(toggleLabel, func() { disabled = !disabled; outer.SetDisabled(disabled) }).Variant(kit.ButtonSecondary).Size(44).Render(cx), kit.Button(sidebarLabel, func() { showSidebar = !showSidebar; outer.Visible(showSidebar, true) }).Size(44).Render(cx), el.Div().H(el.Dp(height)).Border(1, theme.Outline).Items(el.Stretch).Child(outer.Render(cx)))
 		}))
 	})
 }

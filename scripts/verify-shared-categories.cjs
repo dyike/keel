@@ -25,7 +25,8 @@ const fs=require('node:fs'), path=require('node:path'), assert=require('node:ass
   const build=siteConfig ? {
    primary:siteConfig.assets[siteConfig.shared.primary].url,
    fullWasm:siteConfig.assets[siteConfig.shared.fullWasm].url,
-   sections:Object.fromEntries(Object.entries(siteConfig.shared.sections).map(([section,file])=>[section,siteConfig.assets[file].url]))
+   sections:Object.fromEntries(Object.entries(siteConfig.shared.sections).map(([section,file])=>[section,siteConfig.assets[file].url])),
+   dependencies:siteConfig.shared.dependencies ? Object.fromEntries(Object.entries(siteConfig.shared.dependencies).map(([k,files])=>[k,files.map(f=>siteConfig.assets[f].url)])) : null
   } : await (await page.request.get(new URL('shared-build.json',base).href)).json();
   assert.ok(build.sections && Object.keys(build.sections).length>100,'missing full category ownership manifest');
   await page.evaluate(()=>{window.initialMemory=sharedPrimary.exports.mem;window.runtimeToken='retained'});
@@ -62,7 +63,8 @@ const fs=require('node:fs'), path=require('node:path'), assert=require('node:ass
     assert.deepEqual(await page.evaluate(()=>runtimeExits),[],section+' exited a cold runtime');
    }
    const loaded=requests.slice(start).map(r=>new URL(r.url).pathname.split('/').at(-1));
-   assert.deepEqual(loaded.sort(),[build.primary,child].sort(),child+' loaded unexpected dependencies');
+   const expected=[build.primary,...new Set(sections.flatMap(s=>build.dependencies?.[s]||[child]))];
+   assert.deepEqual(loaded.sort(),expected.sort(),child+' loaded unexpected dependencies');
    coldStarts.push({child,sections,loaded});
   }
   const embeds=[];
@@ -74,7 +76,8 @@ const fs=require('node:fs'), path=require('node:path'), assert=require('node:ass
     assert.deepEqual(errors,[],section+' embed failed');
     assert.deepEqual(await page.evaluate(()=>runtimeExits),[],section+' embed exited');
     const loaded=requests.slice(start).map(r=>new URL(r.url).pathname.split('/').at(-1));
-    assert.deepEqual(loaded.sort(),[build.primary,build.sections.input].sort());
+    const expected=[build.primary,...(build.dependencies?.[section]||[build.sections[section]||build.sections.input])];
+    assert.deepEqual(loaded.sort(),expected.sort());
     embeds.push(section);
    }
   }

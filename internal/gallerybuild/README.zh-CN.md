@@ -2,20 +2,21 @@
 
 [English](README.md) | 简体中文
 
-构建完整 Components WebAssembly 应用及独立链接的分类应用。只依赖 Go 标准库，调用 Keel 的 gogio CLI。请在仓库根目录执行：
+默认把 Components Gallery 构建成**一个 Go 运行时与细粒度按需叶子模块及共享依赖模块**。在仓库根目录运行，需要 Python 3 和 Binaryen **version_133**（仅构建工具；应用构建设置 `CGO_ENABLED=0`）：
 
 ```sh
-go run ./internal/gallerybuild -out demo
-# 开发时仅构建完整应用和指定分类。
-go run ./internal/gallerybuild -out /tmp/demo -categories general,inputs
+BINARYEN_DIR=/path/to/binaryen/bin go run ./internal/gallerybuild -out /tmp/demo-new
+# 等价参数：-binaryen-dir /path/to/binaryen/bin
+# 仅依赖 Go 的回退：完整应用及独立分类应用。
+go run ./internal/gallerybuild -mode independent -out /tmp/demo-independent
+# 开发用分类子集（隐式选择 independent）。
+go run ./internal/gallerybuild -categories general,inputs -out /tmp/demo-subset
 ```
 
-AST 扫描器读取使用字面量的 `registerSection(name, category, builder)` 调用。临时 `-overlay` 源码保留选中分类的构造函数，将其他注册改为仅保留元数据。原调用置于恒假的分支中，使导入仍合法，同时不再成为链接保留入口。不修改工作区文件或模块清单。构建失败时，不发布新的 `groups.json` 清单。
+共享模式输出目录必须为空或不存在。构建在临时目录完成链接器归属分析、拆分，以及完整回退包和所有共享模块的同等 `-Oz --strip-debug` 优化。最终只复制带内容哈希的运行资源、`sizes.json` 和最后写入的 `shared-build.json`，排除分析中间文件和独立分类清单。Binaryen 缺失、版本错误或任何阶段失败都会报错，不会静默改变模式。随后提供 `font.otf`，运行 `go run ./internal/site -demo /tmp/demo-new -out /tmp/site-new` 发布站点。站点的 `?bundle=all` 使用同等优化的完整回退包。
 
-每个分类有自己的运行时。这减少首次分类下载，但跨分类会重复下载公共代码，切换程序会重置应用状态。它不是共享运行时的动态链接。站点发布器读取 `groups.json`，生成哈希文件名、共享字体地址，并通过 `?bundle=all` 提供完整程序。CI 构建所有分类，分类子集参数用于开发。
+AST 扫描器识别字面量形式的 `registerSection(name, category, builder)`。临时 `-overlay` 源码保留选定分类的构建器，把其他注册替换为仅元数据条目；恒假分支保持导入有效但不保留链接器根。不会修改源码和模块清单。`-analysis` 保留 Go 符号、统一可选导入并生成不含示例构建器的基线；默认流水线内部使用它。分析模式拒绝分类子集。
 
-没有 Markdown/代码示例的浏览器分类使用内部 `keel_gallery_small` 标签排除语法高亮，桌面版本保留原提供者。示例增加语法高亮需求时，请更新分类白名单。
+独立模式每个分类各有一个运行时。内部 `keel_gallery_small` 白名单在无 Markdown/代码示例的分类中省略语法高亮；示例变化时需要更新名单。普通桌面构建不受影响。
 
-测试覆盖注册解析和裁剪。请构建全部分类来验证实际编译、链接兼容性。原始/压缩大小与冷/热缓存启动时间应分别测量；分包本身不能证明总下载量降低或帧率提升。
-
-使用 `-analysis`（不能同时指定 `-categories`）可保留 Go 符号，使所有构建的可选导入一致，并增加没有示例构造函数的 `groups/baseline/`。该产物用于共享运行时函数归属分析，不是常规发布格式。分析、拆分、站点接入及验收边界见[共享 WASM](../../docs/shared-wasm.zh-CN.md)。
+CI 在 Pages 发布前检查归属和加载器测试、全部组件首帧、输入保留、回退、重试/历史导航，以及受控 Chrome 加载性能。阈值、复现方式和部署限制见[共享 WASM](../../docs/shared-wasm.zh-CN.md)。压缩体积本身不能证明实际启动或内存改善。

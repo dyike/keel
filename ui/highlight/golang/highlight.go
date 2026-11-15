@@ -3,22 +3,23 @@
 package golang
 
 import (
+	"sync"
+
 	"github.com/alecthomas/chroma/v2"
 	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/codehighlight"
 )
 
-func init() {
-	registry.Register(chroma.MustNewXMLLexer(embedded, "plaintext.xml"))
-	core.SetHighlighter(Chroma{})
-}
-
 // Chroma highlights Go, Go text templates and plain text. Its zero value is ready to use.
 type Chroma struct{}
 
-var selected = codehighlight.Highlighter{Get: registry.Get, Analyse: registry.Analyse}
+var selected = sync.OnceValue(func() codehighlight.Highlighter {
+	r := buildRegistry()
+	r.Register(chroma.MustNewXMLLexer(embedded, "plaintext.xml"))
+	return codehighlight.Highlighter{Get: r.Get, Analyse: r.Analyse}
+})
 
-func (Chroma) Language(name string) string { return selected.Language(name) }
+func (Chroma) Language(name string) string { return selected().Language(name) }
 func (Chroma) Highlight(code string, o core.HighlightOptions) ([]core.CodeToken, bool) {
-	return selected.Highlight(code, o)
+	return selected().Highlight(code, o)
 }

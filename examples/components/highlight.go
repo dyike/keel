@@ -2,6 +2,11 @@
 
 package main
 
-// The category builder omits this optional provider only from browser bundles
-// without code/Markdown examples. Desktop and complete galleries retain it.
-import _ "github.com/dyike/keel/ui/highlight/golang"
+import (
+	"github.com/dyike/keel/ui/core"
+	"github.com/dyike/keel/ui/highlight/golang"
+)
+
+// The category builder omits this optional provider from browser bundles
+// without code/Markdown examples. Desktop and code sections enable it.
+func enableHighlight() { core.SetHighlighter(golang.Chroma{}) }

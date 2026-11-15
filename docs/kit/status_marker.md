@@ -23,3 +23,5 @@ PartStyle configures Root, Row, Icon, Content, and Separator respectively; the c
 The layout uses Keel's row layout and theme scales and does not copy upstream dimensions. Alignment simultaneously sets the content group position and text alignment; child elements can be independently overridden with TextAlign.
 
 Verification: `go run ./examples/components -section status_marker`.
+
+When Content is present, text and rich content wrap onto separate rows as needed so an action retains its natural width on narrow layouts.

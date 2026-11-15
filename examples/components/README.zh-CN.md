@@ -87,6 +87,8 @@ Layout 示例在 480 dp 以下使用一列，720 dp 以下两列，桌面三列�
 - 实际浏览器、真机及部署验收：键盘／输入法、手势、安全区、历史记录、缓存命中与协商压缩。离屏／Node 测试和生成 gzip 文件不代表这些验收已经通过。
 - 建立逐组件能力差距清单并确定新增优先级。组件库导航与加载优化尚未完成组件丰富度扩充。
 
-运行 `KEEL_MOBILE_AUDIT=/tmp/keel-mobile KEEL_MOBILE_AUDIT_IMAGES=1 go test ./examples/components -run '^TestGalleryMobileAudit$'` 可生成全量移动端首帧盘点，包括语义候选项和 320 dp 下正常／放大文字截图；裁剪后的语义边界不能证明布局正确。分类包通过 HTTP 提供后，运行 `node scripts/verify-gallery-web.cjs http://127.0.0.1:8766/demo/`，并确保 Node 能找到 Playwright（例如通过 `NODE_PATH`）。脚本使用 Chromium 触控模拟，将截图和请求报告保存到 `work/gallery-web`；不代表实体手机键盘／输入法或部署响应头已验收。
+运行 `KEEL_MOBILE_AUDIT=/tmp/keel-mobile KEEL_MOBILE_AUDIT_IMAGES=1 go test ./examples/components -run '^TestGalleryMobileAudit$'` 可生成全量移动端首帧盘点，包括语义候选项和 320 dp 下正常／放大文字截图；裁剪后的语义边界不能证明布局正确。分类包通过 HTTP 提供后，运行 `node scripts/verify-gallery-web.cjs http://127.0.0.1:8766/demo/`，并确保 Node 能找到 Playwright（例如通过 `NODE_PATH`）。脚本默认使用已安装的 Google Chrome 进行触控模拟，将截图和请求报告保存到 `work/gallery-web`；不代表实体手机键盘／输入法或部署响应头已验收。
 
 窄屏下，Resizable 面板上下排列并分别保存横纵尺寸，Dock 使用紧凑标签切换而不改写桌面布局。ToggleGroup 支持横向滚动，Radio 卡片和操作栏换行，StaticTable 横向滚动以保持订单编号、金额可读。这些适配保留已有组件接口；示例负责选择响应式展示方式。
+
+移动端标题按组件名称的单词边界换行，不缩小文字。长操作文案使用简短标签，分隔面板按钮描述当前可执行的操作；StatusMarker 的富内容操作支持换行。NavStack 示例展示模态导航和左边缘滑动返回，窗口测试覆盖 320／390／600 dp 及 1.6 字体比例。实体设备键盘／输入法仍需单独验收。

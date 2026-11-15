@@ -7,7 +7,7 @@
 本地预览：
 
 ```sh
-go run ./cmd/gogio -target js -tags osusergo -o /tmp/demo ./examples/components
+BINARYEN_DIR=/path/to/binaryen/bin go run ./internal/gallerybuild -out /tmp/demo
 python3 internal/site/subset_font.py . NotoSansSC-Regular.otf /tmp/demo/font.otf
 go run ./internal/site -out _site -demo /tmp/demo
 python3 -m http.server --directory _site
@@ -51,4 +51,4 @@ python3 -m http.server --directory _site
 
 组件库接入浏览器安全区边距，这不等于已经验证原生手机输入法或手势。`go test ./internal/site` 还检查哈希资源发布；安装 Node 时会执行加载器测试。这些单元测试不能证明浏览器渲染、手机输入或真实网络启动时延。
 
-示例目录包含 `shared-build.json` 时使用可选的共享运行时流程，只发布被引用的资源及字体，排除分析中间产物；`?bundle=all` 仍可回退到完整运行时。普通组件库默认使用完整运行时保留状态，`?section=` 预览可选择独立分类包。共享构建命令及当前验收边界见[共享 WASM](../../docs/shared-wasm.zh-CN.md)，本次不改变 CI 默认流程。
+示例目录包含 `shared-build.json` 时使用共享运行时流程，现在默认 gallerybuild 命令和 CI 都生成这种产物。只发布被引用的资源及字体，排除分析中间产物；`?bundle=all` 可回退到同等优化的完整运行时。显式独立构建仍支持完整组件库状态保留和分类预览。加载门槛和部署限制见[共享 WASM](../../docs/shared-wasm.zh-CN.md)。

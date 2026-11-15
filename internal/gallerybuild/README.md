@@ -2,20 +2,21 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Builds the complete Components WebAssembly application and independently linked category applications. Uses only the Go standard library and invokes Keel's gogio CLI. Run from the repository root:
+Builds the Components Gallery with **one Go runtime and fine-grained lazy leaf and shared-dependency modules by default**. Run from the repository root with Python 3 and Binaryen **version_133** installed (build-time tools; application builds set `CGO_ENABLED=0`):
 
 ```sh
-go run ./internal/gallerybuild -out demo
-# Faster development build: complete application and these categories only.
-go run ./internal/gallerybuild -out /tmp/demo -categories general,inputs
+BINARYEN_DIR=/path/to/binaryen/bin go run ./internal/gallerybuild -out /tmp/demo-new
+# Equivalent: -binaryen-dir /path/to/binaryen/bin
+# Go-only fallback: full application and independent category applications.
+go run ./internal/gallerybuild -mode independent -out /tmp/demo-independent
+# Development subset (implicitly independent).
+go run ./internal/gallerybuild -categories general,inputs -out /tmp/demo-subset
 ```
 
-The AST scanner finds literal `registerSection(name, category, builder)` calls. Temporary `-overlay` sources retain selected builders and replace other registrations with metadata-only entries. The original calls remain in constant-false branches to preserve import validity without retaining linker roots. No checkout files or module manifests are rewritten. Failed builds stop before publishing a new `groups.json` manifest.
+Shared output must be empty or absent. Builds run in temporary directories, analyze linker ownership, split, and optimize both the full fallback and all shared modules with the same `-Oz --strip-debug` options. Only content-addressed runtime assets, `sizes.json` and the final `shared-build.json` are copied out; analysis artifacts and independent manifests are excluded. Missing/wrong Binaryen versions and failed stages fail the command; there is no silent change of mode. Supply `font.otf` afterwards, then publish with `go run ./internal/site -demo /tmp/demo-new -out /tmp/site-new`. The site exposes `?bundle=all` for the equally optimized full fallback.
 
-Each category has its own runtime. This reduces first-category download size, but duplicates common code across categories and resets application state when changing programs. This is not shared-runtime dynamic linking. The site publisher consumes `groups.json`, hashes asset names, shares the font URL and exposes `?bundle=all` for the complete program. CI builds all categories; the subset flag is for development.
+The AST scanner finds literal `registerSection(name, category, builder)` calls. Temporary `-overlay` sources retain selected builders and replace other registrations with metadata-only entries. Constant-false branches preserve import validity without retaining linker roots. Source files and module manifests are never rewritten. `-analysis` preserves Go symbols, uses identical optional imports and emits a builder-free baseline; the default pipeline consumes this internally. Partial analysis is rejected.
 
-Browser categories without Markdown/code demos use the internal `keel_gallery_small` tag to omit syntax highlighting. Desktop builds keep their existing provider. Update that category allowlist if a demo begins using highlighting.
+The independent mode uses one runtime per category. Its internal `keel_gallery_small` allowlist omits syntax highlighting from categories without Markdown/code demos; update that list if those demos change. Ordinary desktop builds are unaffected.
 
-Tests cover registration parsing and pruning. Build all categories to verify actual compiler/linker compatibility. Measure raw/compressed sizes and real cold/warm startup separately; code splitting alone does not establish lower total downloads or higher frame rates.
-
-Use `-analysis` without `-categories` to preserve Go symbols, keep optional imports identical across all builds, and add `groups/baseline/` with no example builders. This output supports candidate shared-runtime ownership analysis; it is not the ordinary publication format. See [shared WASM](../../docs/shared-wasm.md) for analysis, splitting, site integration and acceptance limits.
+CI checks ownership/loader tests, all section first frames, retained input, fallback, retry/history, and controlled Chrome loading performance before Pages publication. See [shared WASM](../../docs/shared-wasm.md) for thresholds, reproduction and deployment limits. Compressed file sizes alone do not establish actual startup or memory improvements.

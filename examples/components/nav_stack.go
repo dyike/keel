@@ -14,7 +14,7 @@ func init() {
 			return el.ViewFunc(func(cx *el.Context) el.Element {
 				return el.Div().Gap(16).Child(
 					el.Text(demoText("Type a draft, open details, then go back. Your draft stays here.", "输入草稿，进入详情后返回，草稿仍然保留。")),
-					draft.Render(cx), kit.Button(demoText("Open details", "打开详情"), func() { nav.Push("details") }).Size(44).Render(cx),
+					draft.Render(cx), kit.Button(demoText("Open modal", "打开模态页"), func() { nav.Push("modal") }).Size(44).Render(cx), kit.Button(demoText("Open details", "打开详情"), func() { nav.Push("details") }).Size(44).Render(cx),
 				)
 			})
 		}})
@@ -24,6 +24,12 @@ func init() {
 				return el.Div().Gap(16).Child(notes.Render(cx),
 					kit.Button(demoText("Open settings", "打开设置"), func() { nav.Push("settings") }).Size(44).Render(cx),
 					el.Text(demoText("Back keeps the parent page. Pushing a page again creates a fresh instance.", "返回会保留父页面。重新进入已退出的页面会创建新实例。")))
+			})
+		}})
+		nav.Page(kit.NavPage{ID: "modal", Title: demoText("Edit draft", "编辑草稿"), Modal: true, Create: func() el.View {
+			notes := kit.Input(demoText("Modal notes", "模态页备注"))
+			return el.ViewFunc(func(cx *el.Context) el.Element {
+				return el.Div().Gap(16).Child(notes.Render(cx), el.Text(demoText("Close or press Escape to return. Swipe right from the left edge to go back.", "关闭或按 Esc 返回。也可以从左边缘向右滑动返回。")), kit.Button(demoText("Open settings", "打开设置"), func() { nav.Push("settings") }).Size(44).Render(cx))
 			})
 		}})
 		nav.Page(kit.NavPage{ID: "settings", Title: demoText("Settings", "设置"), Create: func() el.View { return kit.Switch(demoText("Notifications", "通知"), true) }})

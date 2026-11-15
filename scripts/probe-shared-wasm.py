@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Reproduce the multi-module Go/Gio experiment; not a production packager.
+"""Split Go/Gio into a shared runtime and lazy modules for gallerybuild.
 
 Requires Binaryen version_133's wasm-opt/wasm-split and the Go toolchain.
 Run from the repository root. Output is a standalone site; supply font.otf
-there when testing CJK. The default English prototype needs no external font.
+there when testing CJK. Without --ownership-build, the standalone English prototype needs no font.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import gzip
 import hashlib
 import json
@@ -51,16 +52,40 @@ selectors = {
 if ownership:
     selected = {p: info['functions'] for p, info in ownership['partitions'].items()}
     partitions = list(selected)
-    section_modules = {section: p + '.wasm' for p, info in ownership['partitions'].items() for section in info['sections']}
+    leaf_modules = {section: p + '.wasm' for p, info in ownership['partitions'].items() for section in info.get('sections', [])}
+    section_deps = {}
+    for p, info in ownership['partitions'].items():
+        deps = [d + '.wasm' for d in info.get('dependencies', [])] + [p + '.wasm']
+        for section in info.get('sections', []):
+            section_deps[section] = deps
+    category_deps = {}
+    for cat, groups in ownership.get('categories', {}).items():
+        deps = []
+        for g in groups:
+            if g not in ownership['partitions']:
+                continue
+            for d in ownership['partitions'][g].get('dependencies', []) + [g]:
+                w = d + '.wasm'
+                if w not in deps:
+                    deps.append(w)
+        if deps:
+            category_deps[cat] = deps
+    for p, info in ownership['partitions'].items():
+        if p not in category_deps and info.get('sections'):
+            category_deps[p] = [d + '.wasm' for d in info.get('dependencies', [])] + [p + '.wasm']
+    all_deps = {**category_deps, **section_deps}
+    loader_modules = {k: (v[0] if len(v) == 1 else v) for k, v in all_deps.items()}
     category_modules = {p: p + '.wasm' for p in partitions}
 else:
     partitions = args.partitions.split(',')
     if len(set(partitions)) != len(partitions) or any(p not in selectors for p in partitions):
         raise RuntimeError('partitions must be unique known names')
     selected = {p: [n for n in names if selectors[p](n)] for p in partitions}
-    section_modules = {p: p + '.wasm' for p in partitions}
+    leaf_modules = {p: p + '.wasm' for p in partitions}
     categories = {'dialog':'overlays', 'nav_stack':'navigation', 'emoji_picker':'inputs', 'terminal':'data'}
     category_modules = {categories[p]: p + '.wasm' for p in partitions}
+    all_deps = {k: [v] for k, v in {**category_modules, **leaf_modules}.items()}
+    loader_modules = {**category_modules, **leaf_modules}
 if any(name not in names for functions in selected.values() for name in functions):
     raise RuntimeError('ownership contains a function missing from the primary')
 if any(not functions for functions in selected.values()):
@@ -92,7 +117,7 @@ replacement = '''WebAssembly.compileStreaming(fetch("primary.wasm")).then(async 
         else if (section) await loader.ensure(section);
         return go.run(instance);
     })'''
-replacement = replacement.replace('__SECTION_MODULES__', json.dumps({**category_modules, **section_modules}))
+replacement = replacement.replace('__SECTION_MODULES__', json.dumps(loader_modules))
 if script.count(original) != 1:
     raise RuntimeError('gogio startup changed; review the experiment before running it')
 (out / 'wasm.js').write_text(script.replace(original, replacement))
@@ -101,8 +126,12 @@ if script.count(original) != 1:
 print('Split functions:', {p: len(functions) for p, functions in selected.items()})
 
 if args.optimize:
-    for source, target in [('main.wasm', 'baseline-opt.wasm'), ('primary.wasm', 'primary-opt.wasm')] + [(p + '.wasm', p + '-opt.wasm') for p in partitions]:
+    opt_pairs = [('main.wasm', 'baseline-opt.wasm'), ('primary.wasm', 'primary-opt.wasm')] + [(p + '.wasm', p + '-opt.wasm') for p in partitions]
+    def opt_one(pair):
+        source, target = pair
         subprocess.run([str(tools / 'wasm-opt'), str(out / source), *features, '-Oz', '--strip-debug', '-o', str(out / target)], check=True)
+    with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as pool:
+        list(pool.map(opt_one, opt_pairs))
     (out / 'primary.wasm').write_bytes((out / 'primary-opt.wasm').read_bytes())
     for p in partitions:
         (out / (p + '.wasm')).write_bytes((out / (p + '-opt.wasm')).read_bytes())
@@ -133,4 +162,14 @@ for p, filename in children.items():
 loader_name, startup_name = addressed('shared-gallery-loader.js'), addressed('wasm.js')
 index = (out / 'index.html').read_text().replace('src="shared-gallery-loader.js"', 'src="' + loader_name + '"').replace('src="wasm.js"', 'src="' + startup_name + '"')
 (out / 'index.html').write_text(index)
-(out / 'shared-build.json').write_text(json.dumps({'primary': primary_name, 'fullWasm': full_name, 'fullScript': full_script, **children, 'loader': loader_name, 'startup': startup_name, 'categories': {category: children[filename[:-5]] for category, filename in category_modules.items()}, 'sections': {section: children[filename[:-5]] for section, filename in section_modules.items()}}, indent=2) + '\n')
+(out / 'shared-build.json').write_text(json.dumps({
+    'primary': primary_name,
+    'fullWasm': full_name,
+    'fullScript': full_script,
+    **children,
+    'loader': loader_name,
+    'startup': startup_name,
+    'categories': {category: children[filename[:-5]] for category, filename in category_modules.items()},
+    'sections': {section: children[filename[:-5]] for section, filename in leaf_modules.items()},
+    'dependencies': {name: [children[w[:-5]] for w in deps] for name, deps in all_deps.items()},
+}, indent=2) + '\n')

@@ -91,3 +91,17 @@ func TestStatusMarkerLoadingKeepsChildFocusAndDisabled(t *testing.T) {
 		t.Fatal("inherited disabled")
 	}
 }
+
+func TestStatusMarkerNarrowActionWrapsAndActivates(t *testing.T) {
+	calls := 0
+	marker := StatusMarker("3 unread messages").Content(Button("View", func() { calls++ }).Size(44))
+	h := renderView(marker, 150, 1)
+	action := bounds(h, "View")
+	if action.Empty() || action.Dx() < 44 || action.Dy() < 44 || action.Min.X < 0 || action.Max.X > 150 {
+		t.Fatal("clipped action", action)
+	}
+	click(t, h, "View")
+	if calls != 1 {
+		t.Fatal("wrapped action did not activate")
+	}
+}

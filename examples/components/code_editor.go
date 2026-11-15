@@ -48,6 +48,7 @@ func main() {
 
 func init() {
 	registerSection("code_editor", "inputs", func() core.Widget {
+		enableHighlight()
 		words := []kit.CodeCompletion{
 			{Label: "fmt.Println", Detail: "func(a ...any)"}, {Label: "fmt.Sprintf", Detail: "func(format string, a ...any) string"},
 			{Label: "greet", Detail: "func(name string) string"}, {Label: "strings.Builder", Detail: "type"},

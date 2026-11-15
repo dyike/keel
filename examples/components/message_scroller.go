@@ -43,8 +43,8 @@ func init() {
 				el.Text(demoText("Scroll to the top to load earlier messages without shifting the view", "向上滚到顶部加载更早的消息，视图不会跳动")).TextColor(theme.Muted).NoShrink().Px(20).Py(10),
 				sc.Render(cx),
 				el.Div().Row().Wrap().NoShrink().Gap(8).P(12).Child(
-					kit.Button(demoText("Go to message #25", "跳到消息 #25"), func() { sc.ScrollToMessage(demoText("Message #25", "消息 #25")) }).Render(cx),
-					kit.Button(demoText("Send new message", "发送新消息"), func() {
+					kit.Button(demoText("Go to #25", "跳到消息 #25"), func() { sc.ScrollToMessage(demoText("Message #25", "消息 #25")) }).Render(cx),
+					kit.Button(demoText("Send message", "发送新消息"), func() {
 						msgs = append(msgs, demoText("New message #", "新消息 #")+strconv.Itoa(len(msgs)))
 						sc.SetKeys(msgs)
 						sc.ScrollToEnd()

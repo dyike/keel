@@ -42,7 +42,7 @@ func init() {
 				el.Text(fmt.Sprintf(demoText("%d items; resize the window, expand a row, or prepend items to check the reading position.", "%d 条；调整窗口宽度、展开某行或在头部插入，检查阅读位置。"), len(keys))).TextColor(theme.Muted),
 				el.Div().Row().Wrap().Gap(8).Child(
 					kit.Button(demoText("Toggle orientation", "切换横纵方向"), func() { horizontal = !horizontal; list.Horizontal(horizontal) }).Render(cx),
-					kit.Button(demoText("Go to message 50000", "定位消息 50000"), func() { list.ScrollToKey(cx, "50000") }).Render(cx),
+					kit.Button(demoText("Go to #50000", "定位消息 50000"), func() { list.ScrollToKey(cx, "50000") }).Render(cx),
 					kit.Button(demoText("Prepend 10 items", "头部插入 10 条"), func() {
 						var add []string
 						for range 10 {
