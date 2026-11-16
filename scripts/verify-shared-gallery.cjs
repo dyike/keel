@@ -11,7 +11,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   const errors=[],requests=[];page.on('pageerror',e=>errors.push(String(e)));page.on('response',r=>requests.push(r.url()));
   const frames=()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
   await page.goto(new URL('?lang=en#component=input',base).href);
-  await page.waitForFunction(()=>window.galleryReady);await frames();
+  await page.waitForFunction(()=>window.galleryReady && keelSectionStatus('input')==='');await frames();
   const config=await page.evaluate(()=>window.keelDemo || null);
   const build=config ? {sections:Object.fromEntries(Object.entries(config.shared.sections).map(([name,file])=>[name,config.assets[file].url]))} : await (await page.request.get(new URL('shared-build.json',base).href)).json();
   const dialogChild=build.sections?.dialog || build.dialog;
@@ -23,7 +23,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   await page.waitForFunction(()=>document.activeElement.tagName==='TEXTAREA');
   await page.keyboard.insertText('Retained across modules');await frames();
   // Motion also uses DialogView: shared code cannot belong only to Dialog.
-  await page.evaluate(()=>{location.hash='component=motion'});await frames();
+  await page.evaluate(()=>{location.hash='component=motion'});
+  await page.waitForFunction(()=>keelSectionStatus('motion')==='');await frames();
   assert.ok(!requests.some(x=>isDialog(x)),'shared DialogView forced a demo download');
   await page.evaluate(()=>{location.hash='component=input'});await frames();
 
@@ -74,7 +75,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   const requested = new Promise(resolve => { releaseRequest = resolve; });
   await page.route('**/'+dialogChild, route => { heldRoute=route; releaseRequest(); });
   await page.goto(new URL('?lang=en&scenario=history#component=input',base).href);
-  await page.waitForFunction(()=>window.galleryReady);await frames();
+  await page.waitForFunction(()=>window.galleryReady && keelSectionStatus('input')==='');await frames();
   await page.touchscreen.tap(120,150);await frames();
   await page.keyboard.insertText('Kept during pending navigation');await frames();
   await page.evaluate(()=>{location.hash='component=dialog'});

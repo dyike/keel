@@ -14,8 +14,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.event_name == 'pull_request' && github.ref || 'pages-publication' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -51,6 +51,7 @@ jobs:
         run: |
           go test ./internal/gallerybuild ./internal/site
           python3 scripts/analyze-gallery-wasm_test.py
+          python3 scripts/retain-gallery-assets_test.py
           node --test scripts/shared-gallery-loader.test.cjs
 
       - name: Build the default shared-runtime gallery
@@ -86,6 +87,14 @@ jobs:
           node scripts/verify-shared-categories.cjs http://127.0.0.1:8767/demo/ acceptance/categories
           node scripts/verify-shared-gallery.cjs http://127.0.0.1:8767/demo/ acceptance/retry
           node scripts/verify-wasm-loading.cjs _site acceptance/loading
+
+      - name: Retain previous gallery assets
+        if: github.event_name != 'pull_request'
+        env:
+          PREVIOUS_DEMO_URL: ${{ vars.GALLERY_DEMO_URL || format('https://{0}.github.io/{1}/demo/', github.repository_owner, github.event.repository.name) }}
+        run: |
+          python3 scripts/retain-gallery-assets.py --demo _site/demo --previous-url "$PREVIOUS_DEMO_URL" --previous-index-out acceptance/retention/previous-index.html
+          node scripts/verify-gallery-retention.cjs _site/demo acceptance/retention/previous-index.html acceptance/retention
 
       - uses: actions/upload-artifact@v4
         if: always()

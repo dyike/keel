@@ -52,3 +52,5 @@ Use `go run ./internal/gallerybuild -out /tmp/demo` for the complete program plu
 The gallery applies browser safe-area insets; this is separate from native phone IME/gesture verification. `go test ./internal/site` also checks content-addressed publishing and runs the loader's Node tests when Node is installed. These unit tests do not establish browser rendering, phone input, or real network startup latency.
 
 A demo directory containing `shared-build.json` uses the shared-runtime path, now produced by the default gallerybuild command and CI. Only referenced assets and the font are published; analysis intermediates are excluded. The equally optimized full runtime remains available with `?bundle=all`. Explicit independent builds still support complete Gallery state retention and category previews. See [shared WASM](../../docs/shared-wasm.md) for loading gates and deployment limits.
+
+The publication workflow retains two previous distinct demo builds with `scripts/retain-gallery-assets.py`; see [retention policy](../../docs/shared-wasm.md#previous-release-assets) for boundaries and failure handling. This does not change standalone site generation.

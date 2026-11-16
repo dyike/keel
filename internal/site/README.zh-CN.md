@@ -52,3 +52,5 @@ python3 -m http.server --directory _site
 组件库接入浏览器安全区边距，这不等于已经验证原生手机输入法或手势。`go test ./internal/site` 还检查哈希资源发布；安装 Node 时会执行加载器测试。这些单元测试不能证明浏览器渲染、手机输入或真实网络启动时延。
 
 示例目录包含 `shared-build.json` 时使用共享运行时流程，现在默认 gallerybuild 命令和 CI 都生成这种产物。只发布被引用的资源及字体，排除分析中间产物；`?bundle=all` 可回退到同等优化的完整运行时。显式独立构建仍支持完整组件库状态保留和分类预览。加载门槛和部署限制见[共享 WASM](../../docs/shared-wasm.zh-CN.md)。
+
+发布工作流通过 `scripts/retain-gallery-assets.py` 保留前两个不同 demo 版本；边界和失败处理见[保留策略](../../docs/shared-wasm.zh-CN.md#旧发布资源保留)。独立站点生成命令行为不变。
