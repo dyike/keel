@@ -28,6 +28,15 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- Android 输入法冷启动：保留显式显示请求，等 Activity 恢复且窗口取得焦点后，
+  在焦点分发结束后的消息中调用 IMM。窗口焦点不再仅由 `onResume` 决定。
+  请求待处理时声明 Surface 为文本编辑器，避免 Android 初始焦点策略隐藏输入法。
+  隐藏和注销时取消待处理任务，不轮询、不强制显示。
+  模拟器回归：`python3 scripts/check-android-ime.py --device emulator-5554`
+  （API 30+、arm64，启用连接硬件键盘时显示软键盘）。附加
+  `--view-ref v0.4.10 --expect-blocked` 可验证旧代码的启动失败。
+  真机及 API 30 以下系统尚未验证。
+
 - Wayland purego：通过共享 dispatcher 和原生内存中的协议元数据实现
   fractional-scale-v1 与 viewporter，并保留整数缩放回退。度量、缓冲区
   舍入、输入/输入法坐标和滚动距离使用实际渲染比例；光标热点仍使用光标

@@ -44,6 +44,17 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- Android IME startup: retain explicit show requests until the activity is
+  resumed and its window has focus, then post the IMM call after focus dispatch.
+  Report window focus rather than treating `onResume` alone as focus. While a
+  show is pending, identify the surface as a text editor so Android's initial
+  focus policy does not hide the requested IME. Hide/unregister cancels pending
+  work; no polling or forced keyboard flag is used. Emulator regression:
+  `python3 scripts/check-android-ime.py --device emulator-5554` (API 30+, arm64,
+  soft keyboard enabled with a hardware keyboard). Use `--view-ref v0.4.10
+  --expect-blocked` to check the old startup failure. Physical devices and
+  pre-API-30 runtimes remain unverified.
+
 - Wayland purego: fractional-scale-v1 plus viewporter use the shared dispatcher
   and native-owned protocol metadata, with integer fallback. Metrics, buffer
   rounding, input/IME coordinates and scroll deltas use the render scale;

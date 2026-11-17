@@ -67,6 +67,18 @@ public final class GioView extends SurfaceView implements Choreographer.FrameCal
 	private final float scrollYScale;
 	private final AccessibilityManager accessManager;
 	private int keyboardHint;
+	private boolean resumed;
+	private boolean pendingShowTextInput;
+	private final Runnable showTextInputRequest = new Runnable() {
+		@Override public void run() {
+			if (nhandle == 0 || !resumed || !pendingShowTextInput || !hasWindowFocus() || !hasFocus()) {
+				return;
+			}
+			if (imm.showSoftInput(GioView.this, 0)) {
+				pendingShowTextInput = false;
+			}
+		}
+	};
 
 	private long nhandle;
 
@@ -405,6 +417,12 @@ public final class GioView extends SurfaceView implements Choreographer.FrameCal
 		}
 	}
 
+	@Override public boolean onCheckIsTextEditor() {
+		// Preserve an explicit startup request during Android's initial
+		// window-focus policy, without opening an IME for non-editor screens.
+		return pendingShowTextInput;
+	}
+
 	@Override public InputConnection onCreateInputConnection(EditorInfo editor) {
 		Snippet snip = getSnippet();
 		editor.inputType = this.keyboardHint;
@@ -429,12 +447,31 @@ public final class GioView extends SurfaceView implements Choreographer.FrameCal
 	}
 
 	void showTextInput() {
-		GioView.this.requestFocus();
-		imm.showSoftInput(GioView.this, 0);
+		pendingShowTextInput = true;
+		requestFocus();
+		postShowTextInput();
+	}
+
+	private void postShowTextInput() {
+		removeCallbacks(showTextInputRequest);
+		if (pendingShowTextInput && resumed && hasWindowFocus()) {
+			// Window focus dispatch must finish before IMM serves this view.
+			post(showTextInputRequest);
+		}
 	}
 
 	void hideTextInput() {
+		pendingShowTextInput = false;
+		removeCallbacks(showTextInputRequest);
 		imm.hideSoftInputFromWindow(getWindowToken(), 0);
+	}
+
+	@Override public void onWindowFocusChanged(boolean hasWindowFocus) {
+		super.onWindowFocusChanged(hasWindowFocus);
+		if (nhandle != 0) {
+			onFocusChange(nhandle, resumed && hasWindowFocus);
+		}
+		postShowTextInput();
 	}
 
 	@Override protected boolean fitSystemWindows(Rect insets) {
@@ -476,15 +513,19 @@ public final class GioView extends SurfaceView implements Choreographer.FrameCal
 	}
 
 	public void pause() {
+		resumed = false;
+		removeCallbacks(showTextInputRequest);
 		if (nhandle != 0) {
 		    onFocusChange(nhandle, false);
         }
 	}
 
 	public void resume() {
+		resumed = true;
 		if (nhandle != 0) {
-		    onFocusChange(nhandle, true);
-        }
+			onFocusChange(nhandle, hasWindowFocus());
+		}
+		postShowTextInput();
 	}
 
 	public void destroy() {
@@ -494,6 +535,8 @@ public final class GioView extends SurfaceView implements Choreographer.FrameCal
 	}
 
 	protected void unregister() {
+		pendingShowTextInput = false;
+		removeCallbacks(showTextInputRequest);
 		setOnFocusChangeListener(null);
 		getHolder().removeCallback(surfCallbacks);
 		nhandle = 0;
