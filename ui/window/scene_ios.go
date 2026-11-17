@@ -102,6 +102,11 @@ func registerSceneDelegate() {
 			window.Send(sel("setRootViewController:"), controller)
 			controller.Send(sel("release"))
 			window.Send(sel("makeKeyAndVisible"))
+			// showWindow is deferred until the run loop starts. On a slow
+			// launch the scene can already be active before GioView registers
+			// its scene observers. Notifications do not replay that activation;
+			// reconcile the initial focus from the now-attached window.
+			syncIOSSceneFocus(window)
 		}},
 		// The window property UIKit reads from a scene delegate.
 		{Cmd: sel("window"), Fn: func(self objc.ID, _ objc.SEL) objc.ID { return sceneWindow(self) }},
@@ -110,6 +115,32 @@ func registerSceneDelegate() {
 	if err != nil {
 		panic("window: cannot register KeelSceneDelegate: " + err.Error())
 	}
+}
+
+func syncIOSSceneFocus(window objc.ID) {
+	if window == 0 || byte(window.Send(sel("isKeyWindow"))) == 0 {
+		return
+	}
+	scene := window.Send(sel("windowScene"))
+	if scene == 0 || scene.Send(sel("activationState")) != 0 { // foreground active
+		return
+	}
+	var syncView func(objc.ID)
+	syncView = func(view objc.ID) {
+		if view.Send(sel("isKindOfClass:"), objc.GetClass("GioView")) != 0 {
+			if view.Send(sel("handle")) != 0 {
+				// Use Gio's existing focus bridge, not a synthetic global scene
+				// notification. Other scenes and application observers stay alone.
+				view.Send(sel("onSceneDidActivate:"), objc.ID(0))
+			}
+			return
+		}
+		children := view.Send(sel("subviews"))
+		for i, n := uintptr(0), uintptr(children.Send(sel("count"))); i < n; i++ {
+			syncView(children.Send(sel("objectAtIndex:"), i))
+		}
+	}
+	syncView(window.Send(sel("rootViewController")).Send(sel("view")))
 }
 
 func sceneWindow(delegate objc.ID) objc.ID {
