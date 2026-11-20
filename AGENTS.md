@@ -104,15 +104,20 @@ Desktop migration is not complete. Preserve Gio's UI, layout, GPU algorithms
 and performance patches; replace native bindings, not the renderers. The
 2026-10-12 darwin/arm64 dependency scan of `examples/hello` selects cgo in:
 
-- Gio: `app`, `internal/gl`, `internal/cocoainit`, `gpu/internal/metal` and
-  `gpu/headless` (plus Linux `internal/egl`, `internal/vk` and `app/internal/xkb`)
-  use purego exclusively on macOS and Linux desktop, with legacy desktop cgo
-  bindings removed. cgo stays the binding on iOS, Android and the BSDs.
+- Gio: `internal/gl`, `internal/cocoainit`, `internal/egl`, `internal/vk`,
+  `app/internal/xkb`, `gpu/internal/metal` and `gpu/headless` use purego on
+  macOS, Linux, iOS and Android, and `app` uses purego on macOS and Linux
+  desktop, with the duplicate legacy cgo files removed. On iOS and Android cgo
+  remains only for the UIKit/JNI window shell (`gio/app/os_darwin.go`,
+  `os_android*.go`); the BSDs keep their existing bindings.
 - Keel: `ui/theme/coretext_purego_darwin.go` is the sole macOS CoreText
   rasterizer; `coretext_cgo_darwin.go` has been removed.
 
 On macOS, Linux and Windows desktop, Keel now builds with zero cgo bindings
-regardless of `CGO_ENABLED`. iOS/Android migration is deferred.
+regardless of `CGO_ENABLED`. iOS and Android keep cgo for the window shell, and
+`purego` itself requires `CGO_ENABLED=1` there, which Go's mobile build modes
+always set. iOS/Android device runtime parity remains pending hardware
+verification.
 On the inspected Apple silicon host, `CGO_ENABLED=0 go build ./examples/hello`
 passes and `CGO_ENABLED=0 go test ./...` passes, including real windows
 (`KEEL_DESKTOP=1`). Runtime acceptance gates on Intel Mac (`darwin/amd64`),

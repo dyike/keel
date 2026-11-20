@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build android || freebsd || openbsd
+//go:build freebsd || openbsd
 
 package egl
 

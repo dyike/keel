@@ -9,10 +9,12 @@ Baseline: `b2696a6`, inspected on 2026-10-12 with Go 1.26.4 on darwin/arm64.
 
 
 Linux and macOS desktop now use purego exclusively regardless of `CGO_ENABLED`,
-with legacy desktop cgo bindings and the `-tags giocgo` opt-in removed. iOS,
-Android and the BSDs retain their existing bindings. This change does not
-establish untested GPU, IME or hardware parity (including Intel Mac); those
-runtime acceptance gates remain pending.
+with legacy desktop cgo bindings and the `-tags giocgo` opt-in removed. The same
+purego GPU, GL, CocoaInit, Vulkan/EGL and logging bindings now also serve iOS and
+Android, where only the UIKit/JNI window shell stays cgo; the BSDs retain their
+existing bindings. This change does not
+establish untested GPU, IME or hardware parity (including Intel Mac and mobile
+devices); those runtime acceptance gates remain pending.
 ## Goal and boundaries
 
 Deliver reproducible applications using Keel's Gio and go-text patches, and
@@ -24,8 +26,9 @@ System frameworks, shared libraries and GPU drivers remain runtime dependencies.
 
 Targets are macOS arm64/amd64, Windows amd64/arm64, and Linux amd64/arm64 with
 X11 and Wayland. Cross-compilation and execution are separate acceptance gates.
-iOS/Android migration is deferred; their existing builds must keep working.
-WebAssembly remains on its current path. Signing, notarization, icon conversion
+iOS/Android share the purego GPU and logging stacks and keep cgo only for their
+window shells, so `CGO_ENABLED=1` stays required there; WebAssembly remains on
+its current path. Signing, notarization, icon conversion
 and mobile packaging tools are separate from desktop executable compilation.
 
 ## Historical starting point

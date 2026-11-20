@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build android || freebsd
+//go:build freebsd
 
 package vk
 

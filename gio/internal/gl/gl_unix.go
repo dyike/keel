@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build ios || android || freebsd || openbsd
+//go:build freebsd || openbsd
 
 package gl
 

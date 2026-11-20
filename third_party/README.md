@@ -44,6 +44,19 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- Unified GPU, graphics and logging bindings onto purego across macOS, Linux,
+  iOS and Android: removed duplicate iOS cgo files
+  (`gio/gpu/internal/metal/metal_cgo_darwin.go`,
+  `gio/gpu/headless/headless_darwin.go`, `gio/internal/cocoainit/cocoa_darwin.go`)
+  and ported `gio/internal/vk/vulkan_android.go`, `gio/app/egl_android.go`,
+  `gio/app/log_android.go` and `gio/app/log_ios.go` to purego. iOS and Android
+  now share the purego Metal/Vulkan/EGL/GL/CocoaInit stacks with desktop; only
+  their UIKit/JNI window shells remain cgo (as required by Go's mobile build
+  modes). Verified via `internal/deps` source-selection tests; note that
+  `purego` itself requires `CGO_ENABLED=1` on iOS and Android (matching Go's
+  mobile build modes), and iOS/Android device runtime parity remains pending
+  hardware verification.
+
 - macOS and Linux desktop bindings now use purego exclusively regardless of
   `CGO_ENABLED`; legacy macOS desktop cgo files (`gio/app/gl_macos.{go,m}`,
   `gio/app/metal_macos.go`, `gio/app/os_macos.{m,cgo.go}`,

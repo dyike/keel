@@ -4,12 +4,6 @@
 
 package app
 
-/*
-#include <android/native_window_jni.h>
-#include <EGL/egl.h>
-*/
-import "C"
-
 import (
 	"unsafe"
 
@@ -24,7 +18,7 @@ type androidContext struct {
 
 func init() {
 	newAndroidGLESContext = func(w *window) (context, error) {
-		ctx, err := egl.NewContext(nil)
+		ctx, err := egl.NewContext(0)
 		if err != nil {
 			return nil, err
 		}
@@ -45,18 +39,18 @@ func (c *androidContext) Refresh() error {
 		return err
 	}
 	win, _, _ := c.win.nativeWindow()
-	c.eglSurf = egl.NativeWindowType(unsafe.Pointer(win))
+	c.eglSurf = egl.NativeWindowType(uintptr(unsafe.Pointer(win)))
 	return nil
 }
 
 func (c *androidContext) Lock() error {
 	// The Android emulator creates a broken surface if it is not
 	// created on the same thread as the context is made current.
-	if c.eglSurf != nil {
+	if c.eglSurf != 0 {
 		if err := c.Context.CreateSurface(c.eglSurf); err != nil {
 			return err
 		}
-		c.eglSurf = nil
+		c.eglSurf = 0
 	}
 	return c.Context.MakeCurrent()
 }

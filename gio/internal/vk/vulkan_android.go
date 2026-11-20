@@ -1,45 +1,47 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build !nowayland
+//go:build android && !nowayland
 
 package vk
-
-/*
-#define VK_USE_PLATFORM_ANDROID_KHR
-#define VK_NO_PROTOTYPES 1
-#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef uint64_t object;
-#include <android/native_window.h>
-#include <vulkan/vulkan.h>
-
-static VkResult vkCreateAndroidSurfaceKHR(PFN_vkCreateAndroidSurfaceKHR f, VkInstance instance, const VkAndroidSurfaceCreateInfoKHR *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface) {
-	return f(instance, pCreateInfo, pAllocator, pSurface);
-}
-*/
-import "C"
 
 import (
 	"fmt"
 	"unsafe"
 )
 
-var wlFuncs struct {
-	vkCreateAndroidSurfaceKHR C.PFN_vkCreateAndroidSurfaceKHR
+// The Android surface of Vulkan without cgo. Keel patch.
+
+const _VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR vkStructureType = 1000008000
+
+type vkAndroidSurfaceCreateInfoKHR struct {
+	sType  vkStructureType
+	pNext  unsafe.Pointer
+	flags  uint32
+	window unsafe.Pointer
+}
+
+var androidFuncs struct {
+	vkCreateAndroidSurfaceKHR uintptr
 }
 
 func init() {
-	loadFuncs = append(loadFuncs, func(dlopen func(name string) *[0]byte) {
-		wlFuncs.vkCreateAndroidSurfaceKHR = dlopen("vkCreateAndroidSurfaceKHR")
+	loadFuncs = append(loadFuncs, func(dlopen func(name string) uintptr) {
+		androidFuncs.vkCreateAndroidSurfaceKHR = dlopen("vkCreateAndroidSurfaceKHR")
 	})
 }
 
 func CreateAndroidSurface(inst Instance, window unsafe.Pointer) (Surface, error) {
-	inf := C.VkAndroidSurfaceCreateInfoKHR{
-		sType:  C.VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
-		window: (*C.ANativeWindow)(window),
+	inf := vkAndroidSurfaceCreateInfoKHR{
+		sType:  _VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
+		window: window,
 	}
 	var surf Surface
-	if err := vkErr(C.vkCreateAndroidSurfaceKHR(wlFuncs.vkCreateAndroidSurfaceKHR, inst, &inf, nil, &surf)); err != nil {
+	if err := vkErr(vkCreateAndroidSurfaceKHR(androidFuncs.vkCreateAndroidSurfaceKHR, inst, &inf, nil, &surf)); err != nil {
 		return 0, fmt.Errorf("vulkan: vkCreateAndroidSurfaceKHR: %w", err)
 	}
 	return surf, nil
+}
+
+func vkCreateAndroidSurfaceKHR(f uintptr, instance vkInstance, pCreateInfo *vkAndroidSurfaceCreateInfoKHR, pAllocator unsafe.Pointer, pSurface *vkSurfaceKHR) vkResult {
+	return vkResult(int32(vkCall(f, uintptr(instance), uintptr(unsafe.Pointer(pCreateInfo)), uintptr(pAllocator), uintptr(unsafe.Pointer(pSurface)))))
 }

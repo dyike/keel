@@ -2,27 +2,48 @@
 
 package app
 
-/*
-#cgo LDFLAGS: -llog
-
-#include <stdlib.h>
-#include <android/log.h>
-*/
-import "C"
-
 import (
 	"bufio"
 	"log"
 	"os"
 	"runtime"
+	"sync"
 	"syscall"
 	"unsafe"
+
+	"github.com/ebitengine/purego"
 )
 
 // 1024 is the truncation limit from android/log.h, plus a \n.
-const logLineLimit = 1024
+const (
+	logLineLimit   = 1024
+	androidLogInfo = 4 // ANDROID_LOG_INFO
+)
 
-var logTag = C.CString(ID)
+var (
+	androidLogOnce sync.Once
+	androidLogSym  uintptr
+	logTag         = append([]byte(ID), 0)
+)
+
+func androidLogWrite(tag, msg []byte) {
+	androidLogOnce.Do(func() {
+		lib, err := purego.Dlopen("liblog.so", purego.RTLD_NOW|purego.RTLD_LOCAL)
+		if err != nil {
+			return
+		}
+		androidLogSym, _ = purego.Dlsym(lib, "__android_log_write")
+	})
+	if androidLogSym == 0 {
+		return
+	}
+	androidLogSyscall(androidLogSym, androidLogInfo, uintptr(unsafe.Pointer(unsafe.SliceData(tag))), uintptr(unsafe.Pointer(unsafe.SliceData(msg))))
+}
+
+//go:uintptrescapes
+func androidLogSyscall(fn, prio, tag, msg uintptr) {
+	purego.SyscallN(fn, prio, tag, msg)
+}
 
 func init() {
 	// Android's logcat already includes timestamps.
@@ -51,7 +72,7 @@ func (w *androidLogWriter) Write(data []byte) (int, error) {
 		copy(buf, msg)
 		// Terminating '\0'.
 		buf[len(msg)] = 0
-		C.__android_log_write(C.ANDROID_LOG_INFO, logTag, (*C.char)(unsafe.Pointer(unsafe.SliceData(buf))))
+		androidLogWrite(logTag, buf)
 		n += len(msg)
 		data = data[len(msg):]
 	}
@@ -70,7 +91,6 @@ func logFd(fd uintptr) {
 		lineBuf := bufio.NewReaderSize(r, logLineLimit)
 		// The buffer to pass to C, including the terminating '\0'.
 		buf := make([]byte, lineBuf.Size()+1)
-		cbuf := (*C.char)(unsafe.Pointer(unsafe.SliceData(buf)))
 		for {
 			line, _, err := lineBuf.ReadLine()
 			if err != nil {
@@ -78,7 +98,7 @@ func logFd(fd uintptr) {
 			}
 			copy(buf, line)
 			buf[len(line)] = 0
-			C.__android_log_write(C.ANDROID_LOG_INFO, logTag, cbuf)
+			androidLogWrite(logTag, buf[:len(line)+1])
 		}
 		// The garbage collector doesn't know that w's fd was dup'ed.
 		// Avoid finalizing w, and thereby avoid its finalizer closing its fd.

@@ -8,7 +8,7 @@ import (
 )
 
 // Check that Linux desktop always selects purego with zero cgo/C sources,
-// while Android and FreeBSD retain their native bindings.
+// and Android selects purego for EGL, GL and Vulkan.
 func TestLinuxDefaultBindings(t *testing.T) {
 	bindings := []struct{ dir, pure string }{
 		{"app", "os_wayland_purego.go"},
@@ -47,4 +47,27 @@ func TestLinuxDefaultBindings(t *testing.T) {
 			})
 		}
 	}
+
+	// Verify Android uses purego for EGL, GL and Vulkan (zero cgo in graphics packages).
+	t.Run("android", func(t *testing.T) {
+		ctx := build.Default
+		ctx.GOOS, ctx.GOARCH, ctx.CgoEnabled = "android", "arm64", true
+		for _, b := range []struct{ dir, pure string }{
+			{"internal/egl", "egl_purego_linux.go"},
+			{"internal/gl", "gl_purego_unix.go"},
+			{"internal/vk", "vulkan_purego.go"},
+			{"internal/vk", "vulkan_android.go"},
+		} {
+			pkg, err := ctx.ImportDir(filepath.Join("..", "..", "gio", b.dir), 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Contains(pkg.GoFiles, b.pure) {
+				t.Errorf("%s: android did not select purego file %s", b.dir, b.pure)
+			}
+			if len(pkg.CgoFiles) != 0 || len(pkg.CFiles) != 0 {
+				t.Errorf("%s: unexpected android native sources: %v %v", b.dir, pkg.CgoFiles, pkg.CFiles)
+			}
+		}
+	})
 }

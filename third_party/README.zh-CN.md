@@ -28,6 +28,16 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- 统一 macOS、Linux、iOS 与 Android 的 GPU、图形与日志绑定到 purego：删除
+  重复的 iOS cgo 文件（`gio/gpu/internal/metal/metal_cgo_darwin.go`、
+  `gio/gpu/headless/headless_darwin.go`、`gio/internal/cocoainit/cocoa_darwin.go`），
+  并将 `gio/internal/vk/vulkan_android.go`、`gio/app/egl_android.go`、
+  `gio/app/log_android.go` 与 `gio/app/log_ios.go` 迁至 purego。iOS 与 Android
+  现与桌面端共用 Metal/Vulkan/EGL/GL/CocoaInit 绑定，仅保留 Go 移动端构建模式
+  必需的 UIKit/JNI 窗口壳。已通过 `internal/deps` 源码选择测试；注意 `purego` 在
+  iOS/Android 上自身仍要求 `CGO_ENABLED=1`（与 Go 移动端构建模式一致），
+  iOS/Android 真机运行验收仍待在对应设备上完成。
+
 - macOS 与 Linux 桌面绑定现在无论是否开启 CGO 均仅使用 purego，已删除
   macOS 桌面旧 cgo 文件（`gio/app/gl_macos.{go,m}`、`gio/app/metal_macos.go`、
   `gio/app/os_macos.{m,cgo.go}`、`ui/theme/coretext_cgo_darwin.go`）并移除

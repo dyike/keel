@@ -8,13 +8,15 @@
 
 
 Linux 与 macOS 桌面现在无论是否开启 CGO 均仅使用 purego，已移除桌面旧 cgo 绑定及
-`-tags giocgo` 开关；iOS、Android 与 BSD 保持原有绑定不变。
-此改动不代表未经验证的 GPU、输入法或硬件（包括 Intel Mac）已通过兼容验收；这些运行时验收仍待在对应硬件上完成。
+`-tags giocgo` 开关；同一套 purego GPU、GL、CocoaInit、Vulkan/EGL 与日志绑定现已同时
+服务 iOS 与 Android，移动端只保留 UIKit/JNI 窗口壳为 cgo，BSD 保持原有绑定不变。
+此改动不代表未经验证的 GPU、输入法或硬件（包括 Intel Mac 与移动设备）已通过兼容验收；这些运行时验收仍待在对应硬件上完成。
 ## 目标与边界
 
 让应用可靠使用 Keel 的 Gio、go-text 补丁，并在没有 C 编译器和原生开发头文件的环境中通过 `CGO_ENABLED=0` 构建桌面可执行文件。保留原生窗口、Native GPU、组件行为、渲染算法和已有性能补丁；模块合并按迁移指南修改 Gio/go-text 的 import 路径。系统框架、动态库及 GPU 驱动仍是运行时依赖。
 
-目标为 macOS arm64/amd64、Windows amd64/arm64、Linux amd64/arm64 的 X11 与 Wayland。交叉编译与实际运行分开验收。iOS/Android 的 CGO 迁移延期，已有构建不能回退；WebAssembly 保留现有路径。签名、公证、图标转换、移动端打包工具与桌面可执行文件的编译要求分开说明。
+目标为 macOS arm64/amd64、Windows amd64/arm64、Linux amd64/arm64 的 X11 与 Wayland。交叉编译与实际运行分开验收。iOS/Android 复用 desktop 的 purego GPU 与日志绑定，仅为窗口壳保留 cgo，因此仍需
+`CGO_ENABLED=1`；WebAssembly 保留现有路径。签名、公证、图标转换、移动端打包工具与桌面可执行文件的编译要求分开说明。
 
 ## 历史基线
 
