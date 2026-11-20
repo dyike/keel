@@ -45,13 +45,17 @@ func TestRegisterAndNamed(t *testing.T) {
 func TestDefaultOutlinesAndThemeFileOptIn(t *testing.T) {
 	for _, name := range []string{"light", "dark", "nord", "paper", "solarized-dark", "high-contrast", "aurora"} {
 		p, ok := Named(name)
-		if !ok || p.Outline.A != 0 || p.Border.A == 0 {
-			t.Fatalf("%s must have no default outline and retain visible separators", name)
+		if !ok || p.Outline.A == 0 || p.Border.A == 0 {
+			t.Fatalf("%s must provide subtle default outlines and visible separators", name)
 		}
 	}
 	_, p, err := ParseTheme([]byte(`{"name":"outlined","colors":{"outline":"#123456"}}`))
 	if err != nil || p.Outline != RGB(0x123456) {
-		t.Fatal("outline opt-in did not load", p.Outline, err)
+		t.Fatal("outline override did not load", p.Outline, err)
+	}
+	_, noOutline, err := ParseTheme([]byte(`{"name":"borderless","colors":{"outline":"#0000"}}`))
+	if err != nil || noOutline.Outline.A != 0 {
+		t.Fatal("transparent outline override did not load", noOutline.Outline, err)
 	}
 	old := Current()
 	restore := Scope(p)

@@ -62,7 +62,7 @@ func TestTitleBarInactivePixels(t *testing.T) {
 	active := pixel()
 	w.setFocused(false)
 	w.render()
-	if w.Focused() || pixel() == active || pixel() != theme.Border {
+	if w.Focused() || pixel() == active || !colorMatchesOver(pixel(), theme.Border, theme.Subtle) {
 		t.Fatal("inactive traffic light did not dim", pixel(), active)
 	}
 	w.setFocused(true)

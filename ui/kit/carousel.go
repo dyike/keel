@@ -154,7 +154,7 @@ func (v *CarouselView) render(cx *el.Context, navigation bool) el.Element {
 	dots := el.Div().ID(id + "/dots").Row().Gap(theme.SpaceSm).Justify(el.Center)
 	for i := range v.slides {
 		i := i
-		c := theme.Border
+		c := theme.SubtleHover
 		if i == v.current {
 			c = theme.Primary
 		}

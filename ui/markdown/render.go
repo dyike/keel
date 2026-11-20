@@ -218,7 +218,7 @@ func (d *Doc) table(cx *el.Context, b *block) el.Element {
 	// so they line up and the table is as wide as its content, as in a web
 	// page. Font-scaled widths grow with the text; wide tables scroll instead
 	// of shrinking columns and wrapping short labels.
-	grid := el.Div().NoShrink().Role("table").Value(locale.Current().Rows(len(t.rows))).Border(1, theme.Border).Rounded(6)
+	grid := el.Div().NoShrink().Role("table").Value(locale.Current().Rows(len(t.rows))).Border(1, theme.Outline).Rounded(6)
 	head := el.Div().Row().Items(el.Stretch).Bg(theme.Subtle).Role("row").Name(joinCells(t.header))
 	for i := range cols {
 		head.Child(cell("h"+strconv.Itoa(i), t.header[i], i, true))

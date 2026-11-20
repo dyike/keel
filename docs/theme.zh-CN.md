@@ -19,7 +19,7 @@ theme.Apply(myPalette)     // 应用一个没有名字的调色板
 
 ## 调色板与缓存
 
-组件默认不绘制装饰描边。`Palette.Outline` 默认为透明色，`Border` 继续用于分隔线和显式边框。需要开启默认外框时，设置 `p.Outline = p.Border` 后应用主题；只改局部可用 `cx.Themed(p, view)`。组件的 `Bordered(true)`、Outline 外观，以及样式回调中的 `.Border(1, theme.Border)` 仍可显式开启描边。输入框的键盘焦点默认用浅底色提示；开启 Outline 后恢复焦点描边。校验错误保留状态提示。
+组件默认使用柔和的半透明 `Palette.Outline` 作为轻描边，保证卡片、输入框与浮层在任意主题和嵌套底色下都有清晰边界；`Border` 用于对比度稍高的分隔线和显式边框。如需关闭默认外框，可将 `p.Outline = color.NRGBA{}` 后应用主题，或用 `cx.Themed(p, view)` 只作用于局部。组件的 `Bordered(true)`、Outline 外观以及样式回调中的 `.Border(1, theme.Border)` 仍可显式覆盖。输入框在 `Outline` 可见时用 `Primary` 描边提示键盘焦点；将 `Outline` 设为透明后自动回退为浅底色提示。校验错误保留状态提示。
 
 设置 `Palette.Frameless` 可去掉元素外框，包括焦点边框。键盘和输入框焦点改用背景填充，单边分隔线保留。该选项默认关闭，并随局部调色板生效。
 
@@ -37,8 +37,8 @@ theme.Apply(p)
 | --- | --- | --- |
 | `Bg` | `#f5f6f8` | 窗口背景 |
 | `Surface` | `#ffffff` | 卡片、输入框底色 |
-| `Outline` | 透明 | 默认组件外框，显式设色后开启 |
-| `Border` | `#e3e5e8` | 边框、分隔线 |
+| `Outline` | `#0f172a17` | 柔和的默认组件外框 |
+| `Border` | `#0f172a1f` | 显式边框、分隔线 |
 | `Text` / `Muted` | `#1f2328` / `#6b7280` | 正文 / 次要文字、占位文字 |
 | `Primary` / `PrimaryHover` / `PrimaryText` | `#2563eb` / `#1d4ed8` / `#1d4ed8` | 主按钮、焦点边框 / 悬停 / 链接等蓝色文字 |
 | `Danger` / `DangerHover` / `DangerText` | `#dc2626` / `#b91c1c` / `#b91c1c` | 危险按钮 / 悬停 / 错误文字 |

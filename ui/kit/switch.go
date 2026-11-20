@@ -71,7 +71,7 @@ func (v *SwitchView) LabelSide(side el.Side) *SwitchView {
 }
 
 func (v *SwitchView) Render(cx *el.Context) el.Element {
-	track := theme.Border
+	track := theme.SubtleHover
 	if v.value {
 		track = theme.Primary
 		if v.color != nil {
@@ -96,7 +96,7 @@ func (v *SwitchView) Render(cx *el.Context) el.Element {
 	position := v.motion.sample(cx, target, SwitchDuration)
 	knob := el.Div().NoShrink().Size(el.Dp(knobSize)).Rounded(theme.RadiusFull).Bg(theme.Surface)
 	if v.disabled {
-		knob.Bg(theme.Border)
+		knob.Bg(theme.Muted)
 	}
 	spacer := el.Div().W(el.Dp(max(0, width-knobSize-2*theme.SpaceXxs) * position)).NoShrink()
 	body := el.Div().ID("track").W(el.Dp(width)).H(el.Dp(height)).NoShrink().Rounded(theme.RadiusFull).Bg(track).Px(theme.SpaceXxs).Row().Items(el.Center).Child(spacer, knob)

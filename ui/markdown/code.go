@@ -99,7 +99,7 @@ func (d *Doc) code(cx *el.Context, b *block) el.Element {
 			header.Child(el.Div().ID("custom-actions").NoShrink().Child(actions))
 		}
 	}
-	return el.Div().ID(context.ID).Role("code").Name(label).Bg(followColor(CodeBg, theme.CodeBg)).Border(1, followColor(CodeBorder, theme.Border)).Rounded(14).Child(header,
+	return el.Div().ID(context.ID).Role("code").Name(label).Bg(followColor(CodeBg, theme.CodeBg)).Border(1, followColor(CodeBorder, theme.Outline)).Rounded(14).Child(header,
 		el.Div().Px(16).Pt(6).Pb(16).Child(el.Widget(&cv.body)),
 	)
 }

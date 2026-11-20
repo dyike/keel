@@ -57,8 +57,9 @@ func TestSelectWholeFieldTrigger(t *testing.T) {
 	}
 }
 
-// fieldFocusHarness renders view on a headless GPU. The probe checks that the
-// field has a subtle focus fill and never adds a blue outline.
+// fieldFocusHarness renders view on a headless GPU. The probe checks whether the
+// field shows its keyboard focus indicator: a Primary border when theme.Outline
+// is visible, or a SubtleHover fill without a blue outline when Outline is transparent.
 func fieldFocusHarness(t *testing.T, view func(cx *el.Context) el.Element) (*uitest.Harness, func(x, y int) bool) {
 	t.Helper()
 	gpu, err := headless.NewWindow(320, 240)
@@ -86,7 +87,11 @@ func fieldFocusHarness(t *testing.T, view func(cx *el.Context) el.Element) (*uit
 		h.Frame()
 		h.Frame()
 		c := img.RGBAAt(x, y)
-		if int(c.B)-int(c.R) > 32 {
+		blueEdge := int(c.B)-int(c.R) > 32
+		if theme.Outline.A > 0 {
+			return blueEdge
+		}
+		if blueEdge {
 			t.Fatal("focus added a blue outline")
 		}
 		inside := img.RGBAAt(x+4, y)

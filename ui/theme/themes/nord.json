@@ -4,7 +4,8 @@
   "colors": {
     "bg": "#2e3440",
     "surface": "#3b4252",
-    "border": "#4c566a",
+    "outline": "#8896ab16",
+    "border": "#8896ab24",
     "text": "#eceff4",
     "muted": "#a3acbd",
     "primary": "#5e81ac",

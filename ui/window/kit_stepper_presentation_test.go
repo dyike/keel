@@ -34,8 +34,8 @@ func TestCenteredStepperConnectorsFollowProgress(t *testing.T) {
 			want color.NRGBA
 		}{{120, theme.Primary}, {240, theme.Border}} {
 			got := color.NRGBAModel.Convert(im.At(sample.x, 12)).(color.NRGBA)
-			if got != sample.want {
-				t.Fatalf("connector at %d: %v want %v", sample.x, got, sample.want)
+			if !colorMatchesOver(got, sample.want, palette.Bg) {
+				t.Fatalf("connector at %d: %v want %v over %v", sample.x, got, sample.want, palette.Bg)
 			}
 		}
 		w.click(element(t, w, "Third").center())

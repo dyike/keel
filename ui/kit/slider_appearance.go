@@ -24,7 +24,7 @@ func (v *SliderView) Appearance(fn func(*SliderAppearance)) *SliderView {
 
 func (v *SliderView) resolveAppearance() SliderAppearance {
 	a := SliderAppearance{
-		TrackColor: theme.Border, FillColor: theme.Primary,
+		TrackColor: theme.SubtleHover, FillColor: theme.Primary,
 		ThumbColor: theme.Primary, ThumbBorderColor: theme.Primary,
 		TrackSize: 4, ThumbSize: 16, ThumbBorderWidth: 0,
 		TrackRadius: theme.RadiusFull, ThumbRadius: theme.RadiusLg,

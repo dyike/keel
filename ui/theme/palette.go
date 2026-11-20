@@ -14,8 +14,8 @@ type Palette struct {
 	// Explicit per-edge separators are preserved.
 	Frameless                                 bool
 	PrimaryText, DangerText, CodeBg, CodeText color.NRGBA
-	// Outline is the optional default component border, transparent in built-in palettes.
-	// Border remains the color for separators and explicitly requested outlines.
+	// Outline is the subtle default component border; set it to color.NRGBA{} to hide default outlines.
+	// Border is the color for separators and explicitly requested borders.
 	Outline                                        color.NRGBA
 	Bg, Surface, Border, Text, Muted               color.NRGBA
 	Primary, PrimaryHover, Danger, DangerHover     color.NRGBA
@@ -47,7 +47,8 @@ func (g Gradient) IsZero() bool { return g == Gradient{} }
 // Light returns an independent copy of the default light palette.
 func Light() Palette {
 	return Palette{
-		PrimaryText: RGB(0x1d4ed8), DangerText: RGB(0xb91c1c), CodeBg: RGB(0xf0f1f3), CodeText: RGB(0x1f2328), Bg: RGB(0xf5f6f8), Surface: RGB(0xffffff), Border: RGB(0xe3e5e8),
+		PrimaryText: RGB(0x1d4ed8), DangerText: RGB(0xb91c1c), CodeBg: RGB(0xf0f1f3), CodeText: RGB(0x1f2328), Bg: RGB(0xf5f6f8), Surface: RGB(0xffffff),
+		Outline: color.NRGBA{R: 0x0f, G: 0x17, B: 0x2a, A: 0x17}, Border: color.NRGBA{R: 0x0f, G: 0x17, B: 0x2a, A: 0x1f},
 		Text: RGB(0x1f2328), Muted: RGB(0x6b7280), Primary: RGB(0x2563eb), PrimaryHover: RGB(0x1d4ed8),
 		Danger: RGB(0xdc2626), DangerHover: RGB(0xb91c1c), Success: RGB(0x15803d), Warning: RGB(0xa16207), Info: RGB(0x0369a1),
 		Subtle: RGB(0xeceef1), SubtleHover: RGB(0xe2e5e9), OnColor: RGB(0xffffff), Highlight: RGB(0xdbeafe), Scrim: color.NRGBA{A: 0x66}, Shadow: color.NRGBA{R: 0x10, G: 0x18, B: 0x28, A: 0x2e},
@@ -58,7 +59,8 @@ func Light() Palette {
 // Dark returns an independent copy of the dark palette.
 func Dark() Palette {
 	return Palette{
-		PrimaryText: RGB(0x93c5fd), DangerText: RGB(0xfca5a5), CodeBg: RGB(0x161b22), CodeText: RGB(0xe6edf3), Bg: RGB(0x111827), Surface: RGB(0x1f2937), Border: RGB(0x4b5563),
+		PrimaryText: RGB(0x93c5fd), DangerText: RGB(0xfca5a5), CodeBg: RGB(0x161b22), CodeText: RGB(0xe6edf3), Bg: RGB(0x111827), Surface: RGB(0x1f2937),
+		Outline: color.NRGBA{R: 0x94, G: 0xa3, B: 0xb8, A: 0x14}, Border: color.NRGBA{R: 0x94, G: 0xa3, B: 0xb8, A: 0x1f},
 		Text: RGB(0xf3f4f6), Muted: RGB(0x9ca3af), Primary: RGB(0x2563eb), PrimaryHover: RGB(0x1d4ed8),
 		Danger: RGB(0xdc2626), DangerHover: RGB(0xb91c1c), Success: RGB(0x4ade80), Warning: RGB(0xfacc15), Info: RGB(0x7dd3fc),
 		Subtle: RGB(0x374151), SubtleHover: RGB(0x4b5563), OnColor: RGB(0xffffff), Highlight: RGB(0x1e3a5f), Scrim: color.NRGBA{A: 0x99}, Shadow: color.NRGBA{A: 0x8c},

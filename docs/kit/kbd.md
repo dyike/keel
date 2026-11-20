@@ -2,7 +2,7 @@
 
 English | [简体中文](kbd.zh-CN.md)
 
-Kbd displays shortcut key caps, does not register shortcut keys, and does not participate in Tab navigation. The font size is inherited from the parent element, the text color uses theme.Muted, and the optional border uses theme.Outline (transparent by default). Switching the theme at runtime takes effect immediately.
+Kbd displays shortcut key caps, does not register shortcut keys, and does not participate in Tab navigation. The font size is inherited from the parent element, the text color uses theme.Muted, and the border uses theme.Outline (call Plain() to hide it). Switching the theme at runtime takes effect immediately.
 
 ```go
 el.Div().Row().Items(el.Center).TextSize(16).Child(

@@ -13,16 +13,16 @@ import (
 
 // Colors. Components read them at layout time.
 var (
-	Frameless    bool            // opt-in borderless controls; see Palette.Frameless
-	Bg           = RGB(0xf5f6f8) // window background
-	Surface      = RGB(0xffffff) // cards and fields
-	Border       = RGB(0xe3e5e8) // explicit borders and dividers
-	Outline      color.NRGBA     // optional component outlines; transparent by default
-	Text         = RGB(0x1f2328) // body text
-	Muted        = RGB(0x6b7280) // secondary text, hints, unchecked icons
-	Primary      = RGB(0x2563eb) // primary buttons, links, focus, checked icons
-	DangerText   = RGB(0xb91c1c) // danger text on surfaces
-	PrimaryText  = RGB(0x1d4ed8) // text on selected surfaces
+	Frameless    bool                                              // opt-in borderless controls; see Palette.Frameless
+	Bg           = RGB(0xf5f6f8)                                   // window background
+	Surface      = RGB(0xffffff)                                   // cards and fields
+	Border       = color.NRGBA{R: 0x0f, G: 0x17, B: 0x2a, A: 0x1f} // explicit borders and dividers
+	Outline      = color.NRGBA{R: 0x0f, G: 0x17, B: 0x2a, A: 0x17} // subtle default component outlines
+	Text         = RGB(0x1f2328)                                   // body text
+	Muted        = RGB(0x6b7280)                                   // secondary text, hints, unchecked icons
+	Primary      = RGB(0x2563eb)                                   // primary buttons, links, focus, checked icons
+	DangerText   = RGB(0xb91c1c)                                   // danger text on surfaces
+	PrimaryText  = RGB(0x1d4ed8)                                   // text on selected surfaces
 	CodeBg       = RGB(0xf0f1f3)
 	CodeText     = RGB(0x1f2328)
 	PrimaryHover = RGB(0x1d4ed8)

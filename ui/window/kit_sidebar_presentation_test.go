@@ -10,8 +10,42 @@ import (
 	"github.com/dyike/keel/ui/theme"
 	"image/color"
 	"image/png"
+	"math"
 	"testing"
 )
+
+// colorMatchesOver reports whether got matches fg alpha-composited over bg in
+// linear sRGB (within ±2 per channel for GPU rounding).
+func colorMatchesOver(got, fg, bg color.NRGBA) bool {
+	if fg.A == 0xff {
+		return got == fg
+	}
+	toLinear := func(u uint8) float64 {
+		x := float64(u) / 255
+		if x <= 0.04045 {
+			return x / 12.92
+		}
+		return math.Pow((x+0.055)/1.055, 2.4)
+	}
+	toSRGB := func(l float64) uint8 {
+		var s float64
+		if l <= 0.0031308 {
+			s = l * 12.92
+		} else {
+			s = 1.055*math.Pow(l, 1/2.4) - 0.055
+		}
+		return uint8(math.Round(min(1, max(0, s)) * 255))
+	}
+	a := float64(fg.A) / 255
+	blend := func(f, b uint8) uint8 {
+		return toSRGB(toLinear(f)*a + toLinear(b)*(1-a))
+	}
+	near := func(x, y uint8) bool {
+		d := int(x) - int(y)
+		return d >= -2 && d <= 2
+	}
+	return near(got.R, blend(fg.R, bg.R)) && near(got.G, blend(fg.G, bg.G)) && near(got.B, blend(fg.B, bg.B))
+}
 
 func TestSidebarDividerPixelsAndSuffixAgent(t *testing.T) {
 	old := theme.Current()
@@ -37,8 +71,8 @@ func TestSidebarDividerPixelsAndSuffixAgent(t *testing.T) {
 				x = 1
 			}
 			c := color.NRGBAModel.Convert(im.At(x, 80)).(color.NRGBA)
-			if c != theme.Border {
-				t.Fatalf("divider at %v: %v want %v", side, c, theme.Border)
+			if !colorMatchesOver(c, theme.Border, palette.Bg) {
+				t.Fatalf("divider at %v: %v want %v over %v", side, c, theme.Border, palette.Bg)
 			}
 			action := element(t, w, "Refresh")
 			if action.Role != "button" {

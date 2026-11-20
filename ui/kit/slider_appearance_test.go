@@ -104,7 +104,7 @@ func TestSliderAppearanceValidationAndTheme(t *testing.T) {
 		theme.Apply(palette)
 		v.SetDisabled(false)
 		a = v.resolveAppearance()
-		if a.TrackColor != theme.Border || a.ThumbColor != theme.Primary || a.ThumbBorderWidth != 0 {
+		if a.TrackColor != theme.SubtleHover || a.ThumbColor != theme.Primary || a.ThumbBorderWidth != 0 {
 			t.Fatal("default thumb must use a solid theme color without a border", a)
 		}
 		v.SetDisabled(true)

@@ -682,7 +682,7 @@ func (e *engine) paintBox(st Style, rect image.Rectangle, radius corners) {
 	} else if st.bg.set {
 		paint.FillShape(ops, st.bg.value, radius.rrect(rect).Op(ops))
 	}
-	if bw := e.dp(st.borderWidth); bw > 0 {
+	if bw := e.dp(st.borderWidth); bw > 0 && st.borderColor.A > 0 {
 		// Stroke centered on a rectangle inset by half the width, so the
 		// border stays inside the element.
 		h := bw / 2

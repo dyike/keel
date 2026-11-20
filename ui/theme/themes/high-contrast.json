@@ -4,6 +4,7 @@
   "colors": {
     "bg": "#ffffff",
     "surface": "#ffffff",
+    "outline": "#1a1a1a",
     "border": "#1a1a1a",
     "text": "#000000",
     "muted": "#3d3d3d",

@@ -2,7 +2,7 @@
 
 [English](kbd.md) | 简体中文
 
-Kbd 展示快捷键键帽，不注册快捷键，也不参与 Tab 导航。字号继承父元素，文字颜色使用 theme.Muted，可选边框使用 theme.Outline（默认透明），运行时切换主题立即生效。
+Kbd 展示快捷键键帽，不注册快捷键，也不参与 Tab 导航。字号继承父元素，文字颜色使用 theme.Muted，边框使用 theme.Outline（调用 Plain() 可隐藏），运行时切换主题立即生效。
 
 ```go
 el.Div().Row().Items(el.Center).TextSize(16).Child(

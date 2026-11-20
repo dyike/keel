@@ -94,7 +94,7 @@ func (d *Doc) frontMatterTable(b *block) el.Element {
 	}
 	pairs := frontMatterPairs(b.code)
 	table := el.Div().Role("table").Name("Front matter").Gap(theme.SpaceXxs).P(theme.SpaceMd).Rounded(theme.RadiusMd).
-		Border(1, theme.Border).Bg(theme.Subtle).TextSize(theme.TextSm)
+		Border(1, theme.Outline).Bg(theme.Subtle).TextSize(theme.TextSm)
 	for _, line := range strings.Split(b.code, "\n") {
 		k, _, ok := strings.Cut(line, ":")
 		k = strings.TrimSpace(k)

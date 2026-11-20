@@ -19,7 +19,7 @@ Built-in themes: `light`, `dark`, `nord`, `paper`, `solarized-dark`, `high-contr
 
 ## Palette and caching
 
-Components have no decorative outline by default. `Palette.Outline` is transparent; `Border` remains visible for dividers and explicit borders. To enable default component outlines, set `p.Outline = p.Border` and apply the palette, or use `cx.Themed(p, view)` for one subtree. Per-component `Bordered(true)`, outline variants and style callbacks such as `.Border(1, theme.Border)` remain explicit overrides. Input fields use a subtle background fill for keyboard focus; enabling Outline restores their focus border. Validation errors retain their state indicators.
+Components use a subtle translucent `Palette.Outline` by default so cards, fields and overlays stay legible across every theme and nested surface, while `Border` provides slightly stronger dividers and explicit borders. To hide default component outlines, set `p.Outline = color.NRGBA{}` and apply the palette, or use `cx.Themed(p, view)` for one subtree. Per-component `Bordered(true)`, outline variants and style callbacks such as `.Border(1, theme.Border)` remain explicit overrides. Input fields use a `Primary` border for keyboard focus when `Outline` is visible, and fall back to a subtle background fill when `Outline` is transparent. Validation errors retain their state indicators.
 
 Set `Palette.Frameless` to remove element outlines, including focus borders. Keyboard and input focus use a background fill instead; per-edge separators remain visible. This is opt-in and follows palette scopes.
 
@@ -37,8 +37,8 @@ theme.Apply(p)
 | --- | --- | --- |
 | `Bg` | `#f5f6f8` | Window background |
 | `Surface` | `#ffffff` | Card and input box background color |
-| `Outline` | transparent | Optional default component outlines |
-| `Border` | `#e3e5e8` | Borders, dividers |
+| `Outline` | `#0f172a17` | Subtle default component outlines |
+| `Border` | `#0f172a1f` | Explicit borders, dividers |
 | `Text` / `Muted` | `#1f2328` / `#6b7280` | Main text / secondary text, placeholder text |
 | `Primary` / `PrimaryHover` / `PrimaryText` | `#2563eb` / `#1d4ed8` / `#1d4ed8` | Main button, focus border/hover/link and other blue text |
 | `Danger` / `DangerHover` / `DangerText` | `#dc2626` / `#b91c1c` / `#b91c1c` | Danger Button / Hover / Wrong Text |
