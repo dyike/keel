@@ -19,8 +19,8 @@ GPUI-style elements and views: Views are ordinary structs, and each frame `Rende
 | `scrollbar.go`, `scrollbar_mode.go` | Scroll bar drawing, display strategy (including following system) and fade in and out |
 | `focus.go` | Native focus order, program focus, key bubbling and default activation, `FocusVisible` |
 | `input.go` | `Input`、`TextArea` |
-| `style.go` | `Style`, length (`Dp`, `Frac`, `Full`), alignment constants |
-| `layout.go`, `flow.go` | flexbox, line wrapping and simple grid layout |
+| `style.go` | `Style`, length (`Dp`, `Sp`, `Frac`, `Full`, `Fr`), alignment constants |
+| `layout.go`, `flow.go` | flexbox (`Self` align-self), line wrapping and 2D grid layout (`GridCols`, `ColSpan`, `RowSpan`, `ColGap`/`RowGap`) |
 | `paint.go` | Drawing, click area, scrolling, input box, semantic information |
 | `text_measure.go` | Dimensions-only text measurement with a frame-local cache; shares Gio shaping without generating drawing operations |
 | `text_paint.go` | Reuses vector glyph fragments for short, single-line numeric labels; falls back to Gio labels for complex or overlapping text |

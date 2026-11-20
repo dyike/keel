@@ -164,3 +164,106 @@ func TestWrapFitHugsContentAndHonorsWidth(t *testing.T) {
 		t.Fatal("Wrap did not clear fit", rect(flow))
 	}
 }
+
+func TestAlignSelfInFlexWrapAndGrid(t *testing.T) {
+	// Row with Items(Start): children override with Center, End, Stretch.
+	a := Div().W(Dp(30)).H(Dp(20))
+	b := Div().W(Dp(30)).H(Dp(20)).Self(Center)
+	c := Div().W(Dp(30)).H(Dp(20)).Self(End)
+	d := Div().W(Dp(30)).Self(Stretch)
+	row := Div().Row().W(Dp(200)).H(Dp(100)).Items(Start).Child(a, b, c, d)
+	render(t, Div().Items(Start).Child(row))
+	if a.n.pos.Y != 0 || b.n.pos.Y != 40 || c.n.pos.Y != 80 || d.n.size.Y != 100 || d.n.pos.Y != 0 {
+		t.Fatalf("row self: a=%v b=%v c=%v d=%v", rect(a), rect(b), rect(c), rect(d))
+	}
+
+	// Col (defaults to Stretch): child overrides with Center/End and does not stretch.
+	ca := Div().H(Dp(20))
+	cb := Div().W(Dp(40)).H(Dp(20)).Self(Center)
+	cc := Div().W(Dp(40)).H(Dp(20)).Self(End)
+	col := Div().Col().W(Dp(200)).Child(ca, cb, cc)
+	render(t, Div().Items(Start).Child(col))
+	if ca.n.size.X != 200 || cb.n.size.X != 40 || cb.n.pos.X != 80 || cc.n.pos.X != 160 {
+		t.Fatalf("col self: ca=%v cb=%v cc=%v", rect(ca), rect(cb), rect(cc))
+	}
+
+	// Wrap with Items(Start): second child overrides with End.
+	wa := Div().W(Dp(50)).H(Dp(40))
+	wb := Div().W(Dp(50)).H(Dp(20)).Self(End)
+	wrap := Div().Wrap().W(Dp(200)).Items(Start).Child(wa, wb)
+	render(t, Div().Items(Start).Child(wrap))
+	if wa.n.pos.Y != 0 || wb.n.pos.Y != 20 {
+		t.Fatalf("wrap self: wa=%v wb=%v", rect(wa), rect(wb))
+	}
+
+	// Grid with Items(Start): one child stretches, another aligns End.
+	ga := Div().H(Dp(60))
+	gb := Div().Self(Stretch)
+	gc := Div().H(Dp(20)).Self(End)
+	grid := Div().Grid(3).W(Dp(300)).Items(Start).Child(ga, gb, gc)
+	render(t, Div().Items(Start).Child(grid))
+	if gb.n.size.Y != 60 || gc.n.pos.Y != 40 {
+		t.Fatalf("grid self: ga=%v gb=%v gc=%v", rect(ga), rect(gb), rect(gc))
+	}
+}
+
+func TestGridColsTracksAndGaps(t *testing.T) {
+	// Fixed + Fr(1) + Fr(2) with separate ColGap and RowGap.
+	a := Div().H(Dp(20))
+	b := Div().H(Dp(20))
+	c := Div().H(Dp(20))
+	d := Div().H(Dp(30))
+	grid := Div().GridCols(Dp(100), Fr(1), Fr(2)).W(Dp(420)).ColGap(10).RowGap(20).Child(a, b, c, d)
+	render(t, Div().Items(Start).Child(grid))
+	// Available for tracks: 420 - 2*10 = 400. Fixed 100 -> 300 left -> Fr(1)=100, Fr(2)=200.
+	if a.n.size.X != 100 || b.n.size.X != 100 || c.n.size.X != 200 {
+		t.Fatalf("track widths: a=%v b=%v c=%v", rect(a), rect(b), rect(c))
+	}
+	if b.n.pos.X != 110 || c.n.pos.X != 220 || d.n.pos != image.Pt(0, 40) {
+		t.Fatalf("track positions: a=%v b=%v c=%v d=%v", rect(a), rect(b), rect(c), rect(d))
+	}
+
+	// Auto track sizes to intrinsic content width while Fr(1) takes the remainder.
+	x := Div().W(Dp(60)).H(Dp(20))
+	y := Div().H(Dp(20))
+	autoGrid := Div().GridCols(Auto, Fr(1)).W(Dp(200)).ColGap(10).Child(x, y)
+	render(t, Div().Items(Start).Child(autoGrid))
+	if x.n.size.X != 60 || y.n.size.X != 130 || y.n.pos.X != 70 {
+		t.Fatalf("auto+fr grid: x=%v y=%v", rect(x), rect(y))
+	}
+}
+
+func TestGridRowSpanPlacementAndHeight(t *testing.T) {
+	// 2-column grid:
+	// [ A (RowSpan 2) ] [ B (h=30) ]
+	// [ A (continued) ] [ C (h=40) ]
+	// [ D (h=20)      ] [ E (h=20) ]
+	a := Div().RowSpan(2)
+	b := Div().H(Dp(30))
+	c := Div().H(Dp(40))
+	d := Div().H(Dp(20))
+	e := Div().H(Dp(20))
+	grid := Div().Grid(2).W(Dp(210)).ColGap(10).RowGap(10).Child(a, b, c, d, e)
+	render(t, Div().Items(Start).Child(grid))
+	// Row 0 height = 30, Row 1 height = 40 -> A spans 30 + 10 + 40 = 80.
+	if a.n.pos != image.Pt(0, 0) || a.n.size != image.Pt(100, 80) {
+		t.Fatalf("a=%v", rect(a))
+	}
+	if b.n.pos != image.Pt(110, 0) || c.n.pos != image.Pt(110, 40) {
+		t.Fatalf("b=%v c=%v", rect(b), rect(c))
+	}
+	if d.n.pos != image.Pt(0, 90) || e.n.pos != image.Pt(110, 90) {
+		t.Fatalf("d=%v e=%v", rect(d), rect(e))
+	}
+
+	// Tall RowSpan item expands its spanned rows when taller than single-row siblings.
+	tall := Div().RowSpan(2).H(Dp(110))
+	r0 := Div().H(Dp(20))
+	r1 := Div().H(Dp(20))
+	g2 := Div().Grid(2).W(Dp(210)).Gap(10).Child(tall, r0, r1)
+	render(t, Div().Items(Start).Child(g2))
+	// Single-row heights 20+20+10=50, deficit 60 -> +30 each -> rows become 50 and 50.
+	if r1.n.pos.Y != 60 || g2.n.size.Y != 110 {
+		t.Fatalf("tall rowspan: g2=%v r0=%v r1=%v", rect(g2), rect(r0), rect(r1))
+	}
+}

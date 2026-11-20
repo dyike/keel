@@ -291,7 +291,7 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 	// Stretch up front when the cross size is known, so a child is laid out
 	// once, not measured and then laid out again at the stretched size.
 	preCross := func(c *Node) int {
-		if align == Stretch && crossDef >= 0 && c.crossAuto(row) {
+		if c.style.itemAlign(align) == Stretch && crossDef >= 0 && c.crossAuto(row) {
 			_, _, cs, ce := e.margins(c, row)
 			return max(crossDef-cs-ce, 0)
 		}
@@ -416,24 +416,22 @@ func (e *engine) flex(n *Node, innerW, innerH, limW, limH int) image.Point {
 	if crossDef >= 0 {
 		crossSize = crossDef
 	}
-	if align == Stretch {
-		for _, c := range kids {
-			if !c.crossAuto(row) {
-				continue
-			}
-			_, _, cs, ce := e.margins(c, row)
-			want := max(crossSize-cs-ce, 0)
-			if crossOf(c.size, row) != want {
-				main, _ := c.force(row)
-				before := mainOf(c.size, row)
-				c.setForce(main, want, row)
-				e.layoutChild(c, n, limW, limH)
-				// Stretching can change the main size too: a table whose cells
-				// grow into the width was far taller at its natural width. An
-				// automatic container must not keep the stale extent.
-				if mainDef < 0 {
-					total += mainOf(c.size, row) - before
-				}
+	for _, c := range kids {
+		if c.style.itemAlign(align) != Stretch || !c.crossAuto(row) {
+			continue
+		}
+		_, _, cs, ce := e.margins(c, row)
+		want := max(crossSize-cs-ce, 0)
+		if crossOf(c.size, row) != want {
+			main, _ := c.force(row)
+			before := mainOf(c.size, row)
+			c.setForce(main, want, row)
+			e.layoutChild(c, n, limW, limH)
+			// Stretching can change the main size too: a table whose cells
+			// grow into the width was far taller at its natural width. An
+			// automatic container must not keep the stale extent.
+			if mainDef < 0 {
+				total += mainOf(c.size, row) - before
 			}
 		}
 	}
@@ -513,7 +511,7 @@ func (e *engine) place(n *Node) {
 		}
 		ms, me, cs, ce := e.margins(c, row)
 		cross := cs
-		switch align {
+		switch c.style.itemAlign(align) {
 		case Center:
 			cross = cs + (crossInner-crossOf(c.size, row)-cs-ce)/2
 		case End:

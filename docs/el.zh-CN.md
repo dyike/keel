@@ -384,7 +384,7 @@ return el.Widget(core.ViewportFunc(func(gtx core.C, visible image.Rectangle) cor
 
 ## 已知限制
 
-- 布局是 flexbox 的子集：支持 wrap 和简单 grid；尚无 `align-self`、内容尺寸的最小值（min-content）。收缩按内容宽度比例分配。
+- 布局是 flexbox 与 grid 的实用子集：支持 `Wrap`、`Self`（`align-self`）、`Grid` / `GridCols`（`Dp`/`Sp`/`Frac`/`Auto`/`Fr`）、`ColSpan`、`RowSpan` 与 `ColGap`/`RowGap`；尚无内容尺寸最小值（min-content）和命名区域。收缩按内容宽度比例分配。
 - `ScrollY` 里的子元素每帧都布局（看不见的不绘制）。内容不变的部分用 `cx.Cache` 跳过重建和重排；几百行以上用 `kit.VirtualList` 或 `kit.Table`，只布局可见行。
 - 过渡动画实验位于 `ui/motion`，API 尚不稳定；自定义效果仍可直接使用 `Now` / `Animating`。
 - 浮层只在 `el.Root` 中完整支持，`el.Embed` 按嵌入约束尽力支持。
@@ -400,7 +400,7 @@ return el.Widget(core.ViewportFunc(func(gtx core.C, visible image.Rectangle) cor
 
 `Wrap()` 从左到右排布，宽度不足时另起一行。`Gap` 同时作用于行和行内元素；`Grow/Flex` 在各自行内分配剩余宽度，`Justify` 对齐每行，`Items` 对齐同一行内的不同高度元素。无宽度约束时不会换行。
 
-`Grid(columns)` 按行填充指定数量的列，`Gap` 设置行列间距。列默认等宽，但会先满足子元素的固定宽度及最小宽度；若所有最小宽度之和超过可用空间，保留最小宽度并溢出。每行按最高元素确定高度，自动高度的元素默认拉伸到行高。`ColSpan(n)` 让子元素跨列，限制在 1 到父网格列数，放不下时从新行开始；跨度最小宽度分配到覆盖的列。隐藏和绝对定位元素不占网格单元。不支持跨行或命名区域。`Row`、`Col`、`Wrap`、`Grid` 会切换布局模式。
+`Grid(columns)` 按行填充等宽列，`GridCols(tracks...)` 可显式声明列轨道（`Dp`、`Sp`、`Frac`、`Auto`、`Fr`）。`Gap` 同时设置行列间距，`ColGap`/`RowGap` 可分别覆盖。列先满足子元素的固定宽度及最小宽度；若最小宽度之和超过可用空间，保留最小宽度并溢出。每行按最高元素确定高度，自动高度的元素默认拉伸到行高（子元素可用 `Self(Start/Center/End/Stretch)` 覆盖）。`ColSpan(n)` 与 `RowSpan(n)` 支持二维自动排布的跨列与跨行，跨度不足的宽/高会分配到所覆盖的轨道。隐藏和绝对定位元素不占网格单元。尚不支持命名区域。`Row`、`Col`、`Wrap`、`Grid`、`GridCols` 会切换布局模式。
 
 验证：`go run ./examples/components -section layout`，调整窗口宽度检查换行和网格。
 

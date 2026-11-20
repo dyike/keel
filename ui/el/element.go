@@ -229,20 +229,20 @@ func (s *Styled[T]) When(cond bool, fn func(*T)) *T {
 
 // Row lays children out left to right. The default is top to bottom.
 func (s *Styled[T]) Row() *T {
-	s.node().style.row, s.node().style.wrap, s.node().style.grid = true, false, 0
+	s.node().style.row, s.node().style.wrap, s.node().style.grid, s.node().style.gridCols = true, false, 0, nil
 	return s.self
 }
 
 // Col lays children out top to bottom (the default).
 func (s *Styled[T]) Col() *T {
-	s.node().style.row, s.node().style.wrap, s.node().style.grid = false, false, 0
+	s.node().style.row, s.node().style.wrap, s.node().style.grid, s.node().style.gridCols = false, false, 0, nil
 	return s.self
 }
 
 // Wrap lays children left to right and starts a new line when width runs out.
 // Gap applies between items and lines; Grow distributes space within each line.
 func (s *Styled[T]) Wrap() *T {
-	s.node().style.row, s.node().style.wrap, s.node().style.grid = true, true, 0
+	s.node().style.row, s.node().style.wrap, s.node().style.grid, s.node().style.gridCols = true, true, 0, nil
 	s.node().style.wrapFit = false
 	return s.self
 }
@@ -257,18 +257,43 @@ func (s *Styled[T]) WrapFit() *T {
 
 // Grid lays children in equal-width columns (at least one), in row order.
 // Columns honor fixed/minimum child widths; rows size to their tallest child.
-// Gap applies between columns and rows. Children can span tracks with ColSpan.
+// Gap applies between columns and rows. Children can span tracks with ColSpan
+// and RowSpan.
 func (s *Styled[T]) Grid(columns int) *T {
-	s.node().style.row, s.node().style.wrap, s.node().style.grid = false, false, max(columns, 1)
+	s.node().style.row, s.node().style.wrap, s.node().style.grid, s.node().style.gridCols = false, false, max(columns, 1), nil
 	return s.self
 }
 
-// ColSpan sets how many tracks a child occupies in a Grid. Values are clamped
+// GridCols lays children in columns sized by tracks (Dp, Sp, Frac, Auto, or Fr).
+// An empty list is treated as a single flexible column.
+func (s *Styled[T]) GridCols(tracks ...Length) *T {
+	n := s.node()
+	n.style.row, n.style.wrap = false, false
+	if len(tracks) == 0 {
+		n.style.grid = 1
+		n.style.gridCols = nil
+		return s.self
+	}
+	n.style.grid = len(tracks)
+	n.style.gridCols = slices.Clone(tracks)
+	return s.self
+}
+
+// ColSpan sets how many columns a child occupies in a Grid. Values are clamped
 // to 1..the parent's column count; a cell that does not fit starts a new row.
 func (s *Styled[T]) ColSpan(columns int) *T { s.node().style.colSpan = max(1, columns); return s.self }
 
+// RowSpan sets how many rows a child occupies in a Grid (at least one).
+func (s *Styled[T]) RowSpan(rows int) *T { s.node().style.rowSpan = max(1, rows); return s.self }
+
 // Gap puts dp between children.
 func (s *Styled[T]) Gap(dp float32) *T { s.node().style.gap = dp; return s.self }
+
+// ColGap overrides the horizontal gap between columns/items in Grid and Wrap containers.
+func (s *Styled[T]) ColGap(dp float32) *T { s.node().style.colGap = some(dp); return s.self }
+
+// RowGap overrides the vertical gap between rows/lines in Grid and Wrap containers.
+func (s *Styled[T]) RowGap(dp float32) *T { s.node().style.rowGap = some(dp); return s.self }
 
 // Justify places children along the main axis: Start, Center, End, SpaceBetween, SpaceAround.
 func (s *Styled[T]) Justify(a Align) *T { s.node().style.justify = a; return s.self }
@@ -280,6 +305,13 @@ func (s *Styled[T]) Justify(a Align) *T { s.node().style.justify = a; return s.s
 // a paragraph) and centers children without text, such as icons, on it.
 func (s *Styled[T]) Items(a Align) *T {
 	s.node().style.align, s.node().style.alignSet = a, true
+	return s.self
+}
+
+// Self overrides the parent's Items cross-axis alignment for this child
+// (Start, Center, End or Stretch).
+func (s *Styled[T]) Self(a Align) *T {
+	s.node().style.selfAlign = some(a)
 	return s.self
 }
 

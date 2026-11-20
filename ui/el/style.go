@@ -24,6 +24,7 @@ const (
 	dpLen
 	fracLen
 	spLen
+	frLen
 )
 
 // Auto sizes an element to its content, or stretches it where the parent aligns
@@ -38,6 +39,15 @@ func Sp(v float32) Length { return Length{spLen, v} }
 
 // Frac is a fraction of the parent's content box: Frac(1) is the full width.
 func Frac(f float32) Length { return Length{fracLen, f} }
+
+// Fr is a flexible track weight in GridCols: Fr(2) takes twice the free space
+// of Fr(1). Outside GridCols it behaves as Auto.
+func Fr(weight float32) Length {
+	if weight < 0 {
+		weight = 0
+	}
+	return Length{frLen, weight}
+}
 
 // Full is Frac(1).
 var Full = Frac(1)
@@ -85,16 +95,20 @@ type Style struct {
 	wrap                    bool
 	wrapFit                 bool
 	grid                    int
+	gridCols                []Length
 	colSpan                 int
+	rowSpan                 int
 	row                     bool // lay children out left to right; default top to bottom
 	w, h, minW, minH        Length
 	aspectRatio             float32
 	maxW, maxH              Length
 	pad, margin             Edges
 	gap                     float32
+	colGap, rowGap          optional[float32]
 	grow, shrink            float32
 	justify, align          Align
 	alignSet                bool // align was set by Items; see crossAlign
+	selfAlign               optional[Align]
 	contentBottom           *Node
 	scrollX, scrollY        bool
 	scrollbarMode           ScrollbarMode
@@ -217,3 +231,15 @@ func (s *Style) crossAlign() Align {
 	}
 	return Stretch
 }
+
+// itemAlign returns the cross-axis alignment for a child, honoring Self over
+// the parent's Items alignment.
+func (s *Style) itemAlign(parent Align) Align {
+	if s.selfAlign.set {
+		return s.selfAlign.value
+	}
+	return parent
+}
+
+func (s *Style) colGapDp() float32 { return s.colGap.or(s.gap) }
+func (s *Style) rowGapDp() float32 { return s.rowGap.or(s.gap) }

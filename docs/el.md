@@ -416,7 +416,7 @@ Content outside the scroll container will not appear in the element list.
 
 ## Known limitations
 
-- Layout is a subset of flexbox: supports wrap and simple grid; no `align-self`, min-content yet. Shrinkage is distributed proportionally to the content width.
+- Layout is a subset of flexbox and grid: supports `Wrap`, `Self` (`align-self`), `Grid` / `GridCols` (`Dp`/`Sp`/`Frac`/`Auto`/`Fr`), `ColSpan`, `RowSpan`, and `ColGap`/`RowGap`; no `min-content` or named grid areas yet. Shrinkage is distributed proportionally to the content width.
 - The child elements in `ScrollY` are laid out every frame (those that are invisible are not drawn). For parts with unchanged content, use `cx.Cache` to skip reconstruction and rearrangement; for more than a few hundred lines, use `kit.VirtualList` or `kit.Table` to lay out only visible lines.
 - Transition experiments live in `ui/motion`; its API is not yet stable. Custom effects can still use `Now` / `Animating` directly.
 - The overlay is only fully supported in `el.Root`, and `el.Embed` is supported as best as possible according to embedding constraints.
@@ -432,7 +432,7 @@ Available within `Decorate` `cx.LayoutSize(element)` reads the final width and h
 
 `Wrap()` is arranged from left to right. If the width is insufficient, start a new line. `Gap` works on both rows and inline elements; `Grow/Flex` allocates remaining width within their respective rows, `Justify` aligns each row, and `Items` aligns elements of different heights within the same row. There will be no line wrapping when there is no width constraint.
 
-`Grid(columns)` fills the specified number of columns row by row, and `Gap` sets the spacing between rows and columns. Columns are equal-width by default, but will first satisfy the fixed width and minimum width of child elements; if the sum of all minimum widths exceeds the available space, the minimum width will be retained and overflow. The height of each row is determined by the tallest element, and elements with automatic height are stretched to the row height by default. `ColSpan(n)` allows child elements to span columns, limited to 1 to the number of parent grid columns, and starts from a new row if it cannot fit; the minimum width of the span is allocated to the covered columns. Hidden and absolutely positioned elements occupy no grid cells. Spanning rows or named ranges is not supported. `Row`, `Col`, `Wrap`, `Grid` will switch the layout mode.
+`Grid(columns)` fills the specified number of equal-width columns row by row, while `GridCols(tracks...)` defines explicit column tracks (`Dp`, `Sp`, `Frac`, `Auto`, `Fr`). `Gap` sets both spacings, and `ColGap`/`RowGap` override them independently. Columns first satisfy fixed and minimum child widths; if the sum of all minimum widths exceeds the available space, the minimum widths are retained and overflow. Each row sizes to its tallest element, and automatic-height elements stretch to the row height by default (override per child with `Self(Start/Center/End/Stretch)`). `ColSpan(n)` and `RowSpan(n)` let children span multiple columns and rows using 2D auto-placement; width/height deficits of spanning cells are distributed across their covered tracks. Hidden and absolutely positioned elements occupy no grid cells. Named grid areas are not supported. `Row`, `Col`, `Wrap`, `Grid`, and `GridCols` switch the layout mode.
 
 Verify: `go run ./examples/components -section layout`, adjust window width to check wrapping and grid.
 

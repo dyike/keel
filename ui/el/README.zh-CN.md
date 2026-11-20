@@ -19,8 +19,8 @@ GPUI 风格的元素与视图：视图是普通 struct，每帧 `Render` 返回�
 | `scrollbar.go`、`scrollbar_mode.go` | 滚动条绘制、显示策略（含跟随系统）与淡入淡出 |
 | `focus.go` | 原生焦点顺序、程序焦点、按键冒泡与默认激活、`FocusVisible` |
 | `input.go` | `Input`、`TextArea` |
-| `style.go` | `Style`、长度（`Dp`、`Frac`、`Full`）、对齐常量 |
-| `layout.go`、`flow.go` | flexbox、换行与简单网格布局 |
+| `style.go` | `Style`、长度（`Dp`、`Sp`、`Frac`、`Full`、`Fr`）、对齐常量 |
+| `layout.go`、`flow.go` | flexbox（含 `Self`）、换行与二维网格布局（`GridCols`、`ColSpan`、`RowSpan`、`ColGap`/`RowGap`） |
 | `paint.go` | 绘制、点击区域、滚动、输入框、语义信息 |
 | `text_measure.go` | 只计算文字尺寸，同帧复用测量结果；使用 Gio 排版，不生成绘制操作 |
 | `text_paint.go` | 短的单行数字标签复用矢量字形片段；复杂排版或字形重叠时回退到 Gio 标签 |
