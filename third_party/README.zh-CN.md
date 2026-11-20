@@ -408,3 +408,7 @@ EmojiPicker 目录来自 Unicode 17.0 emoji-test.txt，由 scripts/generate-emoj
 ### 共享 EGL 显示连接的生命周期
 
 `gio/internal/egl` 按 EGL 显示连接统计存活上下文，并串行化上下文的创建／销毁。重复调用 `eglInitialize` 不会产生独立的显示连接生命周期；此前关闭一个窗口就终止显示连接，使仍存活的其他窗口失效。现在仅最后一个 Keel 上下文调用 `eglTerminate`；首个上下文创建失败时清理已初始化连接，不终止其他存活上下文的连接。不增加逐帧锁、轮询或修改渲染器。`TestReleasingPeerPreservesEGLDisplay` 在修复前复现 `EGL_BAD_DISPLAY`，修复后关闭一个窗口仍可绘制并读回另一窗口的像素。原生 scaling 测试同时检查滚动和缩放尺寸，结果与无窗口像素测试分别记录。
+
+### Android Vulkan 表面结构类型
+
+purego Android 表面绑定的 `sType` 改用 `uint32`，与共享 Vulkan 结构一致。088f1e05 引入的 `vkStructureType` 未定义，导致 Android 应用无法编译。`TestAndroidSurfaceCreateInfoLayout` 按原生指针宽度检查字段宽度、偏移和结构总大小。这是本地工作区修复，设备渲染仍需运行时验证。

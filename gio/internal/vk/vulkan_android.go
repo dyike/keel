@@ -11,10 +11,10 @@ import (
 
 // The Android surface of Vulkan without cgo. Keel patch.
 
-const _VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR vkStructureType = 1000008000
+const _VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR uint32 = 1000008000
 
 type vkAndroidSurfaceCreateInfoKHR struct {
-	sType  vkStructureType
+	sType  uint32
 	pNext  unsafe.Pointer
 	flags  uint32
 	window unsafe.Pointer
