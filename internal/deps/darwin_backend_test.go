@@ -55,36 +55,52 @@ func TestDarwinDefaultBindings(t *testing.T) {
 		}
 	}
 
-	// Verify iOS uses purego for GPU/GL/CocoaInit and retains its UIKit window shell.
+	// Verify iOS selects purego everywhere with zero cgo/C/ObjC sources.
 	t.Run("ios", func(t *testing.T) {
-		ctx := build.Default
-		ctx.GOOS, ctx.GOARCH, ctx.CgoEnabled = "ios", "arm64", true
-		for _, b := range []struct{ dir, pure string }{
-			{"gio/gpu/headless", "headless_purego_darwin.go"},
-			{"gio/gpu/internal/metal", "metal_purego_darwin.go"},
-			{"gio/internal/cocoainit", "cocoa_purego_darwin.go"},
-			{"gio/internal/gl", "gl_purego_unix.go"},
+		for _, tc := range []struct {
+			name    string
+			nometal bool
+			appPure []string
+		}{
+			{"metal", false, []string{"os_darwin_purego.go", "os_ios.go", "os_ios_purego.go", "metal_darwin.go", "metal_ios.go"}},
+			{"nometal", true, []string{"os_darwin_purego.go", "os_ios.go", "os_ios_purego.go", "gl_ios.go"}},
 		} {
-			pkg, err := ctx.ImportDir(filepath.Join("..", "..", b.dir), 0)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !slices.Contains(pkg.GoFiles, b.pure) {
-				t.Errorf("%s: iOS did not select purego file %s", b.dir, b.pure)
-			}
-			if len(pkg.CgoFiles) != 0 || len(pkg.CFiles) != 0 || len(pkg.MFiles) != 0 {
-				t.Errorf("%s: unexpected iOS native sources: cgo=%v c=%v m=%v", b.dir, pkg.CgoFiles, pkg.CFiles, pkg.MFiles)
-			}
-		}
-		appPkg, err := ctx.ImportDir(filepath.Join("..", "..", "gio/app"), 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if slices.Contains(appPkg.GoFiles, "os_darwin_purego.go") {
-			t.Errorf("gio/app: iOS unexpectedly selected macOS os_darwin_purego.go")
-		}
-		if !slices.Contains(appPkg.CgoFiles, "os_darwin.go") {
-			t.Errorf("gio/app: iOS did not select UIKit os_darwin.go")
+			t.Run(tc.name, func(t *testing.T) {
+				ctx := build.Default
+				ctx.GOOS, ctx.GOARCH, ctx.CgoEnabled = "ios", "arm64", true
+				if tc.nometal {
+					ctx.BuildTags = []string{"nometal"}
+				}
+				for _, b := range []struct{ dir, pure string }{
+					{"gio/gpu/headless", "headless_purego_darwin.go"},
+					{"gio/gpu/internal/metal", "metal_purego_darwin.go"},
+					{"gio/internal/cocoainit", "cocoa_purego_darwin.go"},
+					{"gio/internal/gl", "gl_purego_unix.go"},
+				} {
+					pkg, err := ctx.ImportDir(filepath.Join("..", "..", b.dir), 0)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if !slices.Contains(pkg.GoFiles, b.pure) {
+						t.Errorf("%s: iOS did not select purego file %s", b.dir, b.pure)
+					}
+					if len(pkg.CgoFiles) != 0 || len(pkg.CFiles) != 0 || len(pkg.MFiles) != 0 {
+						t.Errorf("%s: unexpected iOS native sources: cgo=%v c=%v m=%v", b.dir, pkg.CgoFiles, pkg.CFiles, pkg.MFiles)
+					}
+				}
+				appPkg, err := ctx.ImportDir(filepath.Join("..", "..", "gio/app"), 0)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, want := range tc.appPure {
+					if !slices.Contains(appPkg.GoFiles, want) {
+						t.Errorf("gio/app: iOS did not select purego file %s", want)
+					}
+				}
+				if len(appPkg.CgoFiles) != 0 || len(appPkg.CFiles) != 0 || len(appPkg.MFiles) != 0 {
+					t.Errorf("gio/app: unexpected iOS native sources: cgo=%v c=%v m=%v", appPkg.CgoFiles, appPkg.CFiles, appPkg.MFiles)
+				}
+			})
 		}
 	})
 }

@@ -1,121 +1,166 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build nometal
+//go:build ios && nometal
 
 package app
-
-/*
-@import UIKit;
-
-#include <CoreFoundation/CoreFoundation.h>
-#include <OpenGLES/ES2/gl.h>
-#include <OpenGLES/ES2/glext.h>
-
-__attribute__ ((visibility ("hidden"))) int gio_renderbufferStorage(CFTypeRef ctx, CFTypeRef layer, GLenum buffer);
-__attribute__ ((visibility ("hidden"))) int gio_presentRenderbuffer(CFTypeRef ctx, GLenum buffer);
-__attribute__ ((visibility ("hidden"))) int gio_makeCurrent(CFTypeRef ctx);
-__attribute__ ((visibility ("hidden"))) CFTypeRef gio_createContext(void);
-__attribute__ ((visibility ("hidden"))) CFTypeRef gio_createGLLayer(void);
-
-static CFTypeRef getViewLayer(CFTypeRef viewRef) {
-	@autoreleasepool {
-		UIView *view = (__bridge UIView *)viewRef;
-		return CFBridgingRetain(view.layer);
-	}
-}
-
-*/
-import "C"
 
 import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sync"
 
 	"github.com/dyike/keel/gio/gpu"
 	"github.com/dyike/keel/gio/internal/gl"
+	"github.com/ebitengine/purego"
 )
 
-type context struct {
+// The OpenGL ES context of gl_ios.go and gl_ios.m without cgo, for nometal
+// builds. Keel patch.
+
+const kEAGLRenderingAPIOpenGLES3 = 3
+
+var (
+	selInitWithAPI         = sel("initWithAPI:")
+	selSetCurrentContext   = sel("setCurrentContext:")
+	selRenderbufferStorage = sel("renderbufferStorage:fromDrawable:")
+	selPresentRenderbuffer = sel("presentRenderbuffer:")
+	eaglOnce               sync.Once
+	eaglErr                error
+	classEAGLContext       uintptr
+)
+
+func loadOpenGLES() error {
+	eaglOnce.Do(func() {
+		if _, err := purego.Dlopen("/System/Library/Frameworks/OpenGLES.framework/OpenGLES", purego.RTLD_NOW|purego.RTLD_GLOBAL); err != nil {
+			eaglErr = err
+			return
+		}
+		classEAGLContext = class("EAGLContext")
+	})
+	return eaglErr
+}
+
+func gioLayerClass() uintptr {
+	return class("CAEAGLLayer")
+}
+
+type glContext struct {
 	owner       *window
 	c           *gl.Functions
-	ctx         C.CFTypeRef
-	layer       C.CFTypeRef
+	ctx         uintptr
+	layer       uintptr
 	init        bool
 	frameBuffer gl.Framebuffer
 	colorBuffer gl.Renderbuffer
 }
 
-func newContext(w *window) (*context, error) {
-	ctx := C.gio_createContext()
+func newContext(w *window) (*glContext, error) {
+	if err := loadOpenGLES(); err != nil {
+		return nil, err
+	}
+	var ctx, layer uintptr
+	withPool(func() {
+		ctx = send(send(classEAGLContext, selAlloc), selInitWithAPI, kEAGLRenderingAPIOpenGLES3)
+		if ctx != 0 {
+			layer = retainObject(send(w.contextView(), selLayer))
+		}
+	})
 	if ctx == 0 {
 		return nil, fmt.Errorf("failed to create EAGLContext")
 	}
 	api := contextAPI()
 	f, err := gl.NewFunctions(api.Context, api.ES)
 	if err != nil {
+		releaseObject(ctx)
+		releaseObject(layer)
 		return nil, err
 	}
-	c := &context{
+	return &glContext{
 		ctx:   ctx,
 		owner: w,
-		layer: C.getViewLayer(w.contextView()),
+		layer: layer,
 		c:     f,
-	}
-	return c, nil
+	}, nil
 }
 
 func contextAPI() gpu.OpenGL {
 	return gpu.OpenGL{}
 }
 
-func (c *context) RenderTarget() gpu.RenderTarget {
-	return gpu.OpenGLRenderTarget(c.frameBuffer)
+func (c *glContext) RenderTarget() (gpu.RenderTarget, error) {
+	return gpu.OpenGLRenderTarget(c.frameBuffer), nil
 }
 
-func (c *context) API() gpu.API {
+func (c *glContext) API() gpu.API {
 	return contextAPI()
 }
 
-func (c *context) Release() {
+func (c *glContext) makeCurrent(ctx uintptr) bool {
+	var ok bool
+	withPool(func() {
+		ok = send(classEAGLContext, selSetCurrentContext, ctx)&0xff != 0
+	})
+	return ok
+}
+
+func (c *glContext) renderbufferStorage(layer uintptr, buffer uint32) bool {
+	var ok bool
+	withPool(func() {
+		ok = send(c.ctx, selRenderbufferStorage, uintptr(buffer), layer)&0xff != 0
+	})
+	return ok
+}
+
+func (c *glContext) presentRenderbuffer(buffer uint32) bool {
+	var ok bool
+	withPool(func() {
+		ok = send(c.ctx, selPresentRenderbuffer, uintptr(buffer))&0xff != 0
+	})
+	return ok
+}
+
+func (c *glContext) Release() {
 	if c.ctx == 0 {
 		return
 	}
-	C.gio_renderbufferStorage(c.ctx, 0, C.GLenum(gl.RENDERBUFFER))
+	c.renderbufferStorage(0, gl.RENDERBUFFER)
 	c.c.DeleteFramebuffer(c.frameBuffer)
 	c.c.DeleteRenderbuffer(c.colorBuffer)
-	C.gio_makeCurrent(0)
-	C.CFRelease(c.ctx)
+	c.makeCurrent(0)
+	releaseObject(c.ctx)
+	releaseObject(c.layer)
 	c.ctx = 0
+	c.layer = 0
 }
 
-func (c *context) Present() error {
+func (c *glContext) Present() error {
 	if c.layer == 0 {
 		panic("context is not active")
 	}
 	c.c.BindRenderbuffer(gl.RENDERBUFFER, c.colorBuffer)
-	if C.gio_presentRenderbuffer(c.ctx, C.GLenum(gl.RENDERBUFFER)) == 0 {
+	if !c.presentRenderbuffer(gl.RENDERBUFFER) {
 		return errors.New("presentRenderBuffer failed")
 	}
 	return nil
 }
 
-func (c *context) Lock() error {
+func (c *glContext) Lock() error {
 	// OpenGL contexts are implicit and thread-local. Lock the OS thread.
 	runtime.LockOSThread()
 
-	if C.gio_makeCurrent(c.ctx) == 0 {
+	if !c.makeCurrent(c.ctx) {
 		return errors.New("[EAGLContext setCurrentContext] failed")
 	}
 	return nil
 }
 
-func (c *context) Unlock() {
-	C.gio_makeCurrent(0)
+func (c *glContext) Unlock() {
+	c.makeCurrent(0)
 }
 
-func (c *context) Refresh() error {
-	if C.gio_makeCurrent(c.ctx) == 0 {
+func (c *glContext) Refresh() error {
+	if !c.makeCurrent(c.ctx) {
 		return errors.New("[EAGLContext setCurrentContext] failed")
 	}
 	if !c.init {
@@ -123,14 +168,14 @@ func (c *context) Refresh() error {
 		c.frameBuffer = c.c.CreateFramebuffer()
 		c.colorBuffer = c.c.CreateRenderbuffer()
 	}
-	if !c.owner.visible {
+	if c.owner.hidden {
 		// Make sure any in-flight GL commands are complete.
 		c.c.Finish()
 		return nil
 	}
-	currentRB := gl.Renderbuffer{uint(c.c.GetInteger(gl.RENDERBUFFER_BINDING))}
+	currentRB := gl.Renderbuffer{V: uint(c.c.GetInteger(gl.RENDERBUFFER_BINDING))}
 	c.c.BindRenderbuffer(gl.RENDERBUFFER, c.colorBuffer)
-	if C.gio_renderbufferStorage(c.ctx, c.layer, C.GLenum(gl.RENDERBUFFER)) == 0 {
+	if !c.renderbufferStorage(c.layer, gl.RENDERBUFFER) {
 		return errors.New("renderbufferStorage failed")
 	}
 	c.c.BindRenderbuffer(gl.RENDERBUFFER, currentRB)
@@ -142,6 +187,6 @@ func (c *context) Refresh() error {
 	return nil
 }
 
-func (w *window) NewContext() (Context, error) {
+func (w *window) NewContext() (context, error) {
 	return newContext(w)
 }

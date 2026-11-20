@@ -22,34 +22,27 @@ import (
 // Typed messages, registered once: float and struct arguments and results
 // need the C calling convention that RegisterFunc implements.
 var (
-	msgF64          func(id, sel uintptr) float64
-	msgSetF64       func(id, sel uintptr, v float64)
 	msgPoint        func(id, sel uintptr) nsPoint
 	msgPointPoint   func(id, sel uintptr, p nsPoint) nsPoint
 	msgPointPointID func(id, sel uintptr, p nsPoint, view uintptr) nsPoint
-	msgSetSize      func(id, sel uintptr, s nsPoint)
-	msgRect         func(id, sel uintptr) nsRect
-	msgSetRect      func(id, sel uintptr, r nsRect)
 	msgSetRectBool  func(id, sel uintptr, r nsRect, display bool)
 	msgRectRect     func(id, sel uintptr, r nsRect) nsRect
 	msgRectRectID   func(id, sel uintptr, r nsRect, view uintptr) nsRect
-	msgInitRect     func(id, sel uintptr, r nsRect) uintptr
 	msgInitWindow   func(id, sel uintptr, r nsRect, style, backing uint, deferred bool) uintptr
 	msgSuperSetSize func(sup *objcSuper, sel uintptr, s nsPoint)
 )
 
+var macRT struct {
+	dlCreateActive, dlCreateDisplay      uintptr
+	dlSetCallback, dlStart, dlStop       uintptr
+	dlRelease, dlSetDisplay, mainDisplay uintptr
+}
+
 var (
-	selWindow                = sel("window")
-	selBounds                = sel("bounds")
-	selFrame                 = sel("frame")
-	selSetFrame              = sel("setFrame:")
 	selSetFrameDisplay       = sel("setFrame:display:")
-	selLayer                 = sel("layer")
 	selSetDelegate           = sel("setDelegate:")
 	selDelegate              = sel("delegate")
 	selBackingScaleFactor    = sel("backingScaleFactor")
-	selMainScreen            = sel("mainScreen")
-	selScreen                = sel("screen")
 	selSetNeedsDisplay       = sel("setNeedsDisplay:")
 	selCascade               = sel("cascadeTopLeftFromPoint:")
 	selOcclusionState        = sel("occlusionState")
@@ -83,24 +76,18 @@ var (
 	selInvalidateCharCoords  = sel("invalidateCharacterCoordinates")
 	selInterpretKeyEvents    = sel("interpretKeyEvents:")
 	selArrayWithObject       = sel("arrayWithObject:")
-	selGeneralPasteboard     = sel("generalPasteboard")
 	selDeclareTypes          = sel("declareTypes:owner:")
 	selSetStringForType      = sel("setString:forType:")
 	selStringForType         = sel("stringForType:")
-	selInitWithFrame         = sel("initWithFrame:")
 	selSetWantsLayer         = sel("setWantsLayer:")
 	selSetRedrawPolicy       = sel("setLayerContentsRedrawPolicy:")
-	selDefaultCenter         = sel("defaultCenter")
-	selAddObserver           = sel("addObserver:selector:name:object:")
 	selInitWithContentRect   = sel("initWithContentRect:styleMask:backing:defer:")
 	selSetAcceptsMouseMoved  = sel("setAcceptsMouseMovedEvents:")
 	selSetContentView        = sel("setContentView:")
-	selSetContentsScale      = sel("setContentsScale:")
 	selLocationInWindow      = sel("locationInWindow")
 	selConvertPointFromView  = sel("convertPoint:fromView:")
 	selHasPreciseScrolling   = sel("hasPreciseScrollingDeltas")
 	selButtonNumber          = sel("buttonNumber")
-	selTimestamp             = sel("timestamp")
 	selModifierFlags         = sel("modifierFlags")
 	selScrollingDeltaX       = sel("scrollingDeltaX")
 	selScrollingDeltaY       = sel("scrollingDeltaY")
@@ -110,18 +97,11 @@ var (
 	selAutorelease           = sel("autorelease")
 	selConvertRectToView     = sel("convertRect:toView:")
 	selConvertRectToScreen   = sel("convertRectToScreen:")
-	selBecomeFirstResponder  = sel("becomeFirstResponder")
-	selResignFirstResponder  = sel("resignFirstResponder")
 	selIsKeyWindow           = sel("isKeyWindow")
-	selDealloc               = sel("dealloc")
 	selObject                = sel("object")
 	selDeviceDescription     = sel("deviceDescription")
-	selObjectForKey          = sel("objectForKey:")
 	selUnsignedIntValue      = sel("unsignedIntValue")
 	selBoolValue             = sel("boolValue")
-	selCount                 = sel("count")
-	selObjectAtIndex         = sel("objectAtIndex:")
-	selAbsoluteString        = sel("absoluteString")
 	selSharedApplication     = sel("sharedApplication")
 	selMainBundle            = sel("mainBundle")
 	selObjectForInfoKey      = sel("objectForInfoDictionaryKey:")
@@ -140,6 +120,9 @@ var (
 	selApplicationWillUnhide = sel("applicationWillUnhide:")
 	selApplicationDidHide    = sel("applicationDidHide:")
 	selLaunchFinished        = sel("launchFinished:")
+	selSet                   = sel("set")
+	selHide                  = sel("hide")
+	selUnhide                = sel("unhide")
 )
 
 const (
@@ -153,9 +136,9 @@ const (
 var (
 	classGioView, classGioWindowDelegate, classGioAppDelegate, classAppListener uintptr
 
-	classNSWindow, classNSApplication, classNSPasteboard, classNSArray uintptr
-	classNSTextInputContext, classNSNotificationCenter, classNSScreen  uintptr
-	classNSBundle, classNSMenu, classNSMenuItem                        uintptr
+	classNSWindow, classNSApplication, classNSPasteboard, classNSCursor uintptr
+	classNSTextInputContext, classNSScreen                              uintptr
+	classNSBundle, classNSMenu, classNSMenuItem                         uintptr
 
 	nsApp           uintptr
 	globalWindowDel uintptr
@@ -165,6 +148,126 @@ var (
 	nsPasteboardTypeString, nsAppDidFinishLaunching uintptr
 	nsAppWillUnhide, nsAppDidHide                   uintptr
 )
+
+func loadPlatformRuntime() error {
+	if _, err := purego.Dlopen("/System/Library/Frameworks/AppKit.framework/AppKit", purego.RTLD_NOW|purego.RTLD_GLOBAL); err != nil {
+		return err
+	}
+	cv, err := purego.Dlopen("/System/Library/Frameworks/CoreVideo.framework/CoreVideo", purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	if err != nil {
+		return err
+	}
+	cg, err := purego.Dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	if err != nil {
+		return err
+	}
+	for _, s := range []struct {
+		lib  uintptr
+		name string
+		addr *uintptr
+	}{
+		{cv, "CVDisplayLinkCreateWithActiveCGDisplays", &macRT.dlCreateActive},
+		{cv, "CVDisplayLinkCreateWithCGDisplay", &macRT.dlCreateDisplay},
+		{cv, "CVDisplayLinkSetOutputCallback", &macRT.dlSetCallback},
+		{cv, "CVDisplayLinkStart", &macRT.dlStart},
+		{cv, "CVDisplayLinkStop", &macRT.dlStop},
+		{cv, "CVDisplayLinkRelease", &macRT.dlRelease},
+		{cv, "CVDisplayLinkSetCurrentCGDisplay", &macRT.dlSetDisplay},
+		{cg, "CGMainDisplayID", &macRT.mainDisplay},
+	} {
+		addr, err := purego.Dlsym(s.lib, s.name)
+		if err != nil {
+			return err
+		}
+		*s.addr = addr
+	}
+	classNSCursor = class("NSCursor")
+	return nil
+}
+
+// displayLinkCallback is the CVDisplayLink output callback for every link.
+var displayLinkCallback = purego.NewCallback(func(dl, inNow, inOutputTime uintptr, flagsIn uint64, flagsOut, ctx uintptr) int32 {
+	onFrameCallback(dl)
+	return 0 // kCVReturnSuccess
+})
+
+func createDisplayLink() uintptr {
+	// Keel patch (as in os_macos.m): with every display asleep there are no
+	// active displays and creation fails. Fall back to the main display; the
+	// window moves the link to its own display later.
+	var dl uintptr
+	if r, _, _ := purego.SyscallN(macRT.dlCreateActive, uintptr(unsafe.Pointer(&dl))); int32(r) != 0 {
+		dl = 0
+		main, _, _ := purego.SyscallN(macRT.mainDisplay)
+		if r, _, _ := purego.SyscallN(macRT.dlCreateDisplay, uintptr(uint32(main)), uintptr(unsafe.Pointer(&dl))); int32(r) != 0 {
+			return 0
+		}
+	}
+	purego.SyscallN(macRT.dlSetCallback, dl, displayLinkCallback, 0)
+	return dl
+}
+
+func releaseDisplayLink(dl uintptr) { purego.SyscallN(macRT.dlRelease, dl) }
+func startDisplayLink(dl uintptr)   { purego.SyscallN(macRT.dlStart, dl) }
+func stopDisplayLink(dl uintptr)    { purego.SyscallN(macRT.dlStop, dl) }
+
+func setDisplayLinkDisplay(dl uintptr, did uint64) {
+	purego.SyscallN(macRT.dlSetDisplay, dl, uintptr(uint32(did)))
+}
+
+func hideCursor() { withPool(func() { send(classNSCursor, selHide) }) }
+func showCursor() { withPool(func() { send(classNSCursor, selUnhide) }) }
+
+// cursorSelectors are the NSCursor class methods of os_macos.m's
+// gio_setCursor, by cursor ID. A private cursor has a public fallback.
+var cursorSelectors = [...]struct{ name, fallback string }{
+	0:  {"arrowCursor", ""},
+	2:  {"IBeamCursor", ""},
+	3:  {"IBeamCursorForVerticalLayout", ""},
+	4:  {"pointingHandCursor", ""},
+	5:  {"crosshairCursor", ""},
+	6:  {"arrowCursor", ""}, // _moveCursor fails on Monterey.
+	7:  {"resizeLeftRightCursor", ""},
+	8:  {"resizeUpDownCursor", ""},
+	9:  {"openHandCursor", ""},
+	10: {"closedHandCursor", ""},
+	11: {"operationNotAllowedCursor", ""},
+	12: {"busyButClickableCursor", "arrowCursor"},
+	13: {"busyButClickableCursor", "arrowCursor"},
+	14: {"_windowResizeNorthWestCursor", "resizeUpDownCursor"},
+	15: {"_windowResizeNorthEastCursor", "resizeUpDownCursor"},
+	16: {"_windowResizeSouthWestCursor", "resizeUpDownCursor"},
+	17: {"_windowResizeSouthEastCursor", "resizeUpDownCursor"},
+	18: {"resizeUpDownCursor", ""},
+	19: {"resizeLeftRightCursor", ""},
+	20: {"resizeLeftCursor", ""},
+	21: {"resizeRightCursor", ""},
+	22: {"resizeUpCursor", ""},
+	23: {"resizeDownCursor", ""},
+	24: {"_windowResizeNorthEastSouthWestCursor", "resizeUpDownCursor"},
+	25: {"_windowResizeNorthWestSouthEastCursor", "resizeUpDownCursor"},
+}
+
+func setCursor(id uint) {
+	withPool(func() {
+		c := struct{ name, fallback string }{"arrowCursor", ""}
+		if id < uint(len(cursorSelectors)) && cursorSelectors[id].name != "" {
+			c = cursorSelectors[id]
+		}
+		if c.fallback != "" {
+			// Some cursors are not public: use one only when NSCursor has it.
+			s := sel(c.name)
+			if send(classNSCursor, selRespondsToSel, s) != 0 {
+				if cur := send(classNSCursor, s); cur != 0 && send(cur, selIsKindOfClass, classNSCursor) != 0 {
+					send(cur, selSet)
+					return
+				}
+			}
+			c.name = c.fallback
+		}
+		send(send(classNSCursor, sel(c.name)), selSet)
+	})
+}
 
 // views maps a GioView to its window and creation options; AppKit calls
 // the view's methods on the main thread only, but deallocation order is
@@ -194,10 +297,10 @@ func windowOf(view objc.ID) *window {
 }
 
 func appInit() {
-	for _, f := range []any{&msgF64, &msgSetF64, &msgPoint, &msgPointPoint, &msgPointPointID, &msgSetSize, &msgSetRect, &msgSetRectBool, &msgInitRect, &msgInitWindow} {
+	for _, f := range []any{&msgPoint, &msgPointPoint, &msgPointPointID, &msgSetRectBool, &msgInitWindow} {
 		purego.RegisterFunc(f, rt.msg)
 	}
-	for _, f := range []any{&msgRect, &msgRectRect, &msgRectRectID} {
+	for _, f := range []any{&msgRectRect, &msgRectRectID} {
 		purego.RegisterFunc(f, rt.msgStret)
 	}
 	purego.RegisterFunc(&msgSuperSetSize, rt.msgSuper)
@@ -209,9 +312,7 @@ func appInit() {
 		{&classNSWindow, "NSWindow"},
 		{&classNSApplication, "NSApplication"},
 		{&classNSPasteboard, "NSPasteboard"},
-		{&classNSArray, "NSArray"},
 		{&classNSTextInputContext, "NSTextInputContext"},
-		{&classNSNotificationCenter, "NSNotificationCenter"},
 		{&classNSScreen, "NSScreen"},
 		{&classNSBundle, "NSBundle"},
 		{&classNSMenu, "NSMenu"},
@@ -308,11 +409,6 @@ func registerClasses() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func registerClass(name, super string, protocols []*objc.Protocol, methods []objc.MethodDef) (uintptr, error) {
-	c, err := objc.RegisterClass(name, objc.Class(class(super)), protocols, nil, methods)
-	return uintptr(c), err
 }
 
 func appDelegateMethods() []objc.MethodDef {

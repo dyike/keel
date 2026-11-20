@@ -1,50 +1,30 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build !nometal
+//go:build ios && !nometal
 
 package app
 
-/*
-#cgo CFLAGS: -Werror -xobjective-c -fmodules -fobjc-arc
+// iOS-specific Metal layer helpers for metal_darwin.go without cgo. Keel patch.
 
-@import UIKit;
-
-@import QuartzCore.CAMetalLayer;
-
-#include <CoreFoundation/CoreFoundation.h>
-
-Class gio_layerClass(void) {
-	return [CAMetalLayer class];
+func gioLayerClass() uintptr {
+	return class("CAMetalLayer")
 }
 
-static CFTypeRef getMetalLayer(CFTypeRef viewRef) {
-	@autoreleasepool {
-		UIView *view = (__bridge UIView *)viewRef;
-		CAMetalLayer *l = (CAMetalLayer *)view.layer;
-		l.needsDisplayOnBoundsChange = YES;
-		l.presentsWithTransaction = YES;
-		return CFBridgingRetain(l);
+func getMetalLayer(view uintptr) uintptr {
+	l := send(view, selLayer)
+	if l == 0 {
+		return 0
 	}
+	send(l, selSetNeedsDisplayOnBound, 1)
+	send(l, selSetPresentsWithTrans, 1)
+	return retainObject(l)
 }
 
-static void resizeDrawable(CFTypeRef viewRef, CFTypeRef layerRef) {
-	@autoreleasepool {
-		UIView *view = (__bridge UIView *)viewRef;
-		CAMetalLayer *layer = (__bridge CAMetalLayer *)layerRef;
-		layer.contentsScale = view.contentScaleFactor;
-		CGSize size = layer.bounds.size;
-		size.width *= layer.contentsScale;
-		size.height *= layer.contentsScale;
-		layer.drawableSize = size;
-	}
-}
-*/
-import "C"
-
-func getMetalLayer(view C.CFTypeRef) C.CFTypeRef {
-	return C.getMetalLayer(view)
-}
-
-func resizeDrawable(view, layer C.CFTypeRef) {
-	C.resizeDrawable(view, layer)
+func resizeDrawable(view, layer uintptr) {
+	withPool(func() {
+		scale := msgF64(view, selContentScaleFactor)
+		msgSetF64(layer, selSetContentsScale, scale)
+		size := msgRect(layer, selBounds).Size
+		msgSetSize(layer, selSetDrawableSize, nsPoint{X: size.X * scale, Y: size.Y * scale})
+	})
 }

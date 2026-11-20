@@ -412,3 +412,7 @@ EmojiPicker 目录来自 Unicode 17.0 emoji-test.txt，由 scripts/generate-emoj
 ### Android Vulkan 表面结构类型
 
 purego Android 表面绑定的 `sType` 改用 `uint32`，与共享 Vulkan 结构一致。088f1e05 引入的 `vkStructureType` 未定义，导致 Android 应用无法编译。`TestAndroidSurfaceCreateInfoLayout` 按原生指针宽度检查字段宽度、偏移和结构总大小。这是本地工作区修复，设备渲染仍需运行时验证。
+
+### iOS purego UIKit 窗口壳
+
+iOS 上的 `gio/app` 现在共用 purego Objective-C 运行时（`os_darwin_purego.go`）与 purego Metal 上下文（`metal_darwin.go`、`metal_ios.go`），移除 `os_ios.m`、`os_darwin.go`、`os_darwin.m`、`gl_ios.m` 及 iOS 上的全部 cgo 导入。`os_ios_purego.go` 在运行时以相同类名、协议和方法注册 `_gioAppDelegate`、`GioViewController` 和 `GioView`（保留 `ui/window/scene_ios.go` 依赖的 `handle`、`onSceneDidActivate:` 以及 `GioView` 元类上的 `+layerClass`、`+onFrameCallback:`），并通过 purego 实现 `CADisplayLink`、`UIApplicationMain`、触控、剪贴板和 `viewDrawParams`（`safeAreaInsets`、`UIFontMetrics`）。`gl_ios.go` 通过 purego 实现 `nometal` 的 `EAGLContext` 路径。`framework_ios.h` 保留供 `internal/gogio` 打包框架使用。已通过 `TestDarwinDefaultBindings`（Metal 与 `nometal`）、`TestBuildsForIOSSimulator`、`KEEL_IOS=1` `TestNewIOSProjectBuilds`、`GOOS=ios` `arm64`/`amd64` 及 `nometal` 编译，并在 iPhone 17 Pro iOS 模拟器上安装启动打包应用并截屏确认首帧 Metal 渲染。真机、软键盘/输入法与触控交互仍待进一步验证。

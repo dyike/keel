@@ -2,91 +2,14 @@
 
 package app
 
-/*
-#cgo CFLAGS: -DGLES_SILENCE_DEPRECATION -Werror -Wno-deprecated-declarations -fmodules -fobjc-arc -x objective-c
-
-#include <CoreGraphics/CoreGraphics.h>
-#include <UIKit/UIKit.h>
-#include <stdint.h>
-
-__attribute__ ((visibility ("hidden"))) int gio_applicationMain(int argc, char *argv[]);
-__attribute__ ((visibility ("hidden"))) void gio_viewSetHandle(CFTypeRef viewRef, uintptr_t handle);
-
-struct drawParams {
-	CGFloat dpi, sdpi;
-	CGFloat width, height;
-	CGFloat top, right, bottom, left;
-};
-
-static void writeClipboard(unichar *chars, NSUInteger length) {
-#if !TARGET_OS_TV
-	@autoreleasepool {
-		NSString *s = [NSString string];
-		if (length > 0) {
-			s = [NSString stringWithCharacters:chars length:length];
-		}
-		UIPasteboard *p = UIPasteboard.generalPasteboard;
-		p.string = s;
-	}
-#endif
-}
-
-static CFTypeRef readClipboard(void) {
-#if !TARGET_OS_TV
-	@autoreleasepool {
-		UIPasteboard *p = UIPasteboard.generalPasteboard;
-		return (__bridge_retained CFTypeRef)p.string;
-	}
-#else
-	return nil;
-#endif
-}
-
-static void showTextInput(CFTypeRef viewRef) {
-	UIView *view = (__bridge UIView *)viewRef;
-	[view becomeFirstResponder];
-}
-
-static void hideTextInput(CFTypeRef viewRef) {
-	UIView *view = (__bridge UIView *)viewRef;
-	[view resignFirstResponder];
-}
-
-static struct drawParams viewDrawParams(CFTypeRef viewRef) {
-	UIView *v = (__bridge UIView *)viewRef;
-	struct drawParams params;
-	CGFloat scale = v.layer.contentsScale;
-	// Use 163 as the standard ppi on iOS.
-	params.dpi = 163*scale;
-	params.sdpi = params.dpi;
-	UIEdgeInsets insets = v.layoutMargins;
-	if (@available(iOS 11.0, tvOS 11.0, *)) {
-		UIFontMetrics *metrics = [UIFontMetrics defaultMetrics];
-		params.sdpi = [metrics scaledValueForValue:params.sdpi];
-		insets = v.safeAreaInsets;
-	}
-	params.width = v.bounds.size.width*scale;
-	params.height = v.bounds.size.height*scale;
-	params.top = insets.top*scale;
-	params.right = insets.right*scale;
-	params.bottom = insets.bottom*scale;
-	params.left = insets.left*scale;
-	return params;
-}
-*/
-import "C"
-
 import (
 	"image"
 	"io"
 	"os"
 	"runtime"
-	"runtime/cgo"
 	"runtime/debug"
 	"strings"
 	"time"
-	"unicode/utf16"
-	"unsafe"
 
 	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/io/event"
@@ -98,13 +21,21 @@ import (
 	"github.com/dyike/keel/gio/unit"
 )
 
+// UITouchPhase values from UIKit.
+const (
+	uiTouchPhaseBegan     = 0
+	uiTouchPhaseMoved     = 1
+	uiTouchPhaseEnded     = 3
+	uiTouchPhaseCancelled = 4
+)
+
 type UIKitViewEvent struct {
 	// ViewController is a CFTypeRef for the UIViewController backing a Window.
 	ViewController uintptr
 }
 
 type window struct {
-	view        C.CFTypeRef
+	view        uintptr
 	w           *callbacks
 	displayLink *displayLink
 	loop        *eventLoop
@@ -113,7 +44,7 @@ type window struct {
 	cursor pointer.Cursor
 	config Config
 
-	pointerMap []C.CFTypeRef
+	pointerMap []uintptr
 }
 
 var mainWindow = newWindowRendezvous()
@@ -123,8 +54,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-//export onCreate
-func onCreate(view, controller C.CFTypeRef) {
+func onCreate(view, controller uintptr) {
 	wopts := <-mainWindow.out
 	w := &window{
 		view: view,
@@ -141,26 +71,16 @@ func onCreate(view, controller C.CFTypeRef) {
 		return
 	}
 	w.displayLink = dl
-	C.gio_viewSetHandle(view, C.uintptr_t(cgo.NewHandle(w)))
+	setIOSView(view, w)
 	w.Configure(wopts.options)
-	w.ProcessEvent(UIKitViewEvent{ViewController: uintptr(controller)})
-}
-
-func viewFor(h C.uintptr_t) *window {
-	return cgo.Handle(h).Value().(*window)
-}
-
-//export gio_onDraw
-func gio_onDraw(h C.uintptr_t) {
-	w := viewFor(h)
-	w.draw(true)
+	w.ProcessEvent(UIKitViewEvent{ViewController: controller})
 }
 
 func (w *window) draw(sync bool) {
 	if w.hidden {
 		return
 	}
-	params := C.viewDrawParams(w.view)
+	params := viewDrawParams(w.view)
 	if params.width == 0 || params.height == 0 {
 		return
 	}
@@ -189,105 +109,67 @@ func (w *window) draw(sync bool) {
 	})
 }
 
-//export onStop
-func onStop(h C.uintptr_t) {
-	w := viewFor(h)
+func (w *window) onStop() {
 	w.hidden = true
 }
 
-//export onStart
-func onStart(h C.uintptr_t) {
-	w := viewFor(h)
+func (w *window) onStart() {
 	w.hidden = false
 	w.draw(true)
 }
 
-//export onDestroy
-func onDestroy(h C.uintptr_t) {
-	w := viewFor(h)
+func (w *window) onDestroy() {
 	w.ProcessEvent(UIKitViewEvent{})
 	w.ProcessEvent(DestroyEvent{})
-	w.displayLink.Close()
-	w.displayLink = nil
-	cgo.Handle(h).Delete()
+	if w.displayLink != nil {
+		w.displayLink.Close()
+		w.displayLink = nil
+	}
+	deleteIOSView(w.view)
 	w.view = 0
 }
 
-//export onFocus
-func onFocus(h C.uintptr_t, focus int) {
-	w := viewFor(h)
-	w.config.Focused = focus != 0
+func (w *window) onFocus(focus bool) {
+	w.config.Focused = focus
 	w.ProcessEvent(ConfigEvent{Config: w.config})
 }
 
-//export onLowMemory
 func onLowMemory() {
 	runtime.GC()
 	debug.FreeOSMemory()
 }
 
-//export onUpArrow
-func onUpArrow(h C.uintptr_t) {
-	viewFor(h).onKeyCommand(key.NameUpArrow)
+func (w *window) onText(text string) {
+	w.w.EditorInsert(text)
 }
 
-//export onDownArrow
-func onDownArrow(h C.uintptr_t) {
-	viewFor(h).onKeyCommand(key.NameDownArrow)
-}
-
-//export onLeftArrow
-func onLeftArrow(h C.uintptr_t) {
-	viewFor(h).onKeyCommand(key.NameLeftArrow)
-}
-
-//export onRightArrow
-func onRightArrow(h C.uintptr_t) {
-	viewFor(h).onKeyCommand(key.NameRightArrow)
-}
-
-//export onDeleteBackward
-func onDeleteBackward(h C.uintptr_t) {
-	viewFor(h).onKeyCommand(key.NameDeleteBackward)
-}
-
-//export onText
-func onText(h C.uintptr_t, str C.CFTypeRef) {
-	w := viewFor(h)
-	w.w.EditorInsert(nsstringToString(str))
-}
-
-//export onTouch
-func onTouch(h C.uintptr_t, last C.int, touchRef C.CFTypeRef, phase C.NSInteger, x, y C.CGFloat, ti C.double) {
+func (w *window) onTouch(last bool, touchRef uintptr, phase int, x, y, ti float64) {
 	var kind pointer.Kind
 	switch phase {
-	case C.UITouchPhaseBegan:
+	case uiTouchPhaseBegan:
 		kind = pointer.Press
-	case C.UITouchPhaseMoved:
+	case uiTouchPhaseMoved:
 		kind = pointer.Move
-	case C.UITouchPhaseEnded:
+	case uiTouchPhaseEnded:
 		kind = pointer.Release
-	case C.UITouchPhaseCancelled:
+	case uiTouchPhaseCancelled:
 		kind = pointer.Cancel
 	default:
 		return
 	}
-	w := viewFor(h)
-	t := time.Duration(float64(ti) * float64(time.Second))
+	t := time.Duration(ti * float64(time.Second))
 	p := f32.Point{X: float32(x), Y: float32(y)}
 	w.ProcessEvent(pointer.Event{
 		Kind:      kind,
 		Source:    pointer.Touch,
-		PointerID: w.lookupTouch(last != 0, touchRef),
+		PointerID: w.lookupTouch(last, touchRef),
 		Position:  p,
 		Time:      t,
 	})
 }
 
 func (w *window) ReadClipboard() {
-	cstr := C.readClipboard()
-	defer C.CFRelease(cstr)
-	content := nsstringToString(cstr)
+	content := readClipboard()
 	w.ProcessEvent(transfer.DataEvent{
 		Type: "application/text",
 		Open: func() io.ReadCloser {
@@ -297,9 +179,7 @@ func (w *window) ReadClipboard() {
 }
 
 func (w *window) WriteClipboard(mime string, s []byte) {
-	u16 := utf16.Encode([]rune(string(s)))
-	chars := (*C.unichar)(unsafe.Pointer(unsafe.SliceData(u16)))
-	C.writeClipboard(chars, C.NSUInteger(len(u16)))
+	writeClipboard(string(s))
 }
 
 func (w *window) Configure([]Option) {
@@ -332,7 +212,7 @@ func (w *window) onKeyCommand(name key.Name) {
 
 // lookupTouch maps an UITouch pointer value to an index. If
 // last is set, the map is cleared.
-func (w *window) lookupTouch(last bool, touch C.CFTypeRef) pointer.ID {
+func (w *window) lookupTouch(last bool, touch uintptr) pointer.ID {
 	id := -1
 	for i, ref := range w.pointerMap {
 		if ref == touch {
@@ -350,15 +230,15 @@ func (w *window) lookupTouch(last bool, touch C.CFTypeRef) pointer.ID {
 	return pointer.ID(id)
 }
 
-func (w *window) contextView() C.CFTypeRef {
+func (w *window) contextView() uintptr {
 	return w.view
 }
 
 func (w *window) ShowTextInput(show bool) {
 	if show {
-		C.showTextInput(w.view)
+		showTextInput(w.view)
 	} else {
-		C.hideTextInput(w.view)
+		hideTextInput(w.view)
 	}
 }
 
@@ -406,13 +286,7 @@ func osMain() {
 		}
 
 		mainMode = mainModeExe
-		var argv []*C.char
-		for _, arg := range os.Args {
-			a := C.CString(arg)
-			defer C.free(unsafe.Pointer(a))
-			argv = append(argv, a)
-		}
-		C.gio_applicationMain(C.int(len(argv)), unsafe.SliceData(argv))
+		iosApplicationMain(os.Args)
 	case mainModeExe:
 		panic("app.Main may be called only once")
 	case mainModeLibrary:
@@ -421,17 +295,15 @@ func osMain() {
 	select {}
 }
 
-//export gio_onOpenURI
-func gio_onOpenURI(uri C.CFTypeRef) {
-	evt, err := newURLEvent(nsstringToString(uri))
+func onOpenURI(uri string) {
+	evt, err := newURLEvent(uri)
 	if err != nil {
 		return
 	}
 	processGlobalEvent(evt)
 }
 
-//export gio_runMain
-func gio_runMain() {
+func gioRunMain() {
 	if !isMainThread() {
 		panic("app.Main must be run on the main goroutine")
 	}

@@ -85,16 +85,6 @@ const (
 	mouseScroll = 4
 )
 
-type nsPoint struct {
-	_    structs.HostLayout
-	X, Y float64
-}
-
-type nsRect struct {
-	_            structs.HostLayout
-	Origin, Size nsPoint
-}
-
 type nsRange struct {
 	_                structs.HostLayout
 	Location, Length uint

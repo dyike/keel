@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build darwin && !ios
+//go:build darwin
 
 package app
 
 import (
 	"runtime"
+	"structs"
 	"sync"
 	"unicode/utf16"
 	"unsafe"
@@ -14,76 +15,85 @@ import (
 	"github.com/ebitengine/purego/objc"
 )
 
-// The darwin runtime of os_darwin.go without cgo: main-thread dispatch,
-// NSString conversion, the CVDisplayLink and cursors. Keel patch.
+// The shared Darwin runtime (macOS and iOS) without cgo: Objective-C runtime
+// messaging, autorelease pools, main-thread dispatch and NSString conversion.
+// Keel patch.
 //
 // Native callbacks are created once (purego never frees them) and route by
 // token or handle. Integer and pointer messages go through objc_msgSend by
 // address; float and struct messages use wrappers registered once.
+
+type nsPoint struct {
+	_    structs.HostLayout
+	X, Y float64
+}
+
+type nsRect struct {
+	_            structs.HostLayout
+	Origin, Size nsPoint
+}
 
 var rt struct {
 	msg, msgStret, msgSuper, msgSuperStret uintptr
 	poolPush, poolPop                      uintptr
 	retain, release                        uintptr
 	getAssoc, setAssoc                     uintptr
+	objectGetClass, classAddMethod         uintptr
 	mainThread                             uintptr
 	dispatchAsync, mainQueue               uintptr
-	dlCreateActive, dlCreateDisplay        uintptr
-	dlSetCallback, dlStart, dlStop         uintptr
-	dlRelease, dlSetDisplay, mainDisplay   uintptr
 }
+
+// Shared typed messages, registered once: float and struct arguments and
+// results need the C calling convention that RegisterFunc implements.
+var (
+	msgF64      func(id, sel uintptr) float64
+	msgSetF64   func(id, sel uintptr, v float64)
+	msgSetSize  func(id, sel uintptr, s nsPoint)
+	msgRect     func(id, sel uintptr) nsRect
+	msgSetRect  func(id, sel uintptr, r nsRect)
+	msgInitRect func(id, sel uintptr, r nsRect) uintptr
+)
 
 func init() {
 	if err := loadRuntime(); err != nil {
 		panic(err)
 	}
+	if err := loadPlatformRuntime(); err != nil {
+		panic(err)
+	}
 }
 
 func loadRuntime() error {
-	libs := map[string]uintptr{}
 	for _, path := range []string{
 		"/usr/lib/libobjc.A.dylib",
 		"/usr/lib/libSystem.B.dylib",
 		"/System/Library/Frameworks/Foundation.framework/Foundation",
-		"/System/Library/Frameworks/AppKit.framework/AppKit",
 		"/System/Library/Frameworks/QuartzCore.framework/QuartzCore",
-		"/System/Library/Frameworks/CoreVideo.framework/CoreVideo",
 		"/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
 	} {
-		h, err := purego.Dlopen(path, purego.RTLD_NOW|purego.RTLD_GLOBAL)
-		if err != nil {
+		if _, err := purego.Dlopen(path, purego.RTLD_NOW|purego.RTLD_GLOBAL); err != nil {
 			return err
 		}
-		libs[path] = h
 	}
-	cv := libs["/System/Library/Frameworks/CoreVideo.framework/CoreVideo"]
-	cg := libs["/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics"]
 	for _, s := range []struct {
-		lib  uintptr
 		name string
 		addr *uintptr
 	}{
-		{purego.RTLD_DEFAULT, "objc_msgSend", &rt.msg},
-		{purego.RTLD_DEFAULT, "objc_msgSendSuper2", &rt.msgSuper},
-		{purego.RTLD_DEFAULT, "objc_autoreleasePoolPush", &rt.poolPush},
-		{purego.RTLD_DEFAULT, "objc_autoreleasePoolPop", &rt.poolPop},
-		{purego.RTLD_DEFAULT, "objc_retain", &rt.retain},
-		{purego.RTLD_DEFAULT, "objc_release", &rt.release},
-		{purego.RTLD_DEFAULT, "objc_getAssociatedObject", &rt.getAssoc},
-		{purego.RTLD_DEFAULT, "objc_setAssociatedObject", &rt.setAssoc},
-		{purego.RTLD_DEFAULT, "pthread_main_np", &rt.mainThread},
-		{purego.RTLD_DEFAULT, "dispatch_async_f", &rt.dispatchAsync},
-		{purego.RTLD_DEFAULT, "_dispatch_main_q", &rt.mainQueue},
-		{cv, "CVDisplayLinkCreateWithActiveCGDisplays", &rt.dlCreateActive},
-		{cv, "CVDisplayLinkCreateWithCGDisplay", &rt.dlCreateDisplay},
-		{cv, "CVDisplayLinkSetOutputCallback", &rt.dlSetCallback},
-		{cv, "CVDisplayLinkStart", &rt.dlStart},
-		{cv, "CVDisplayLinkStop", &rt.dlStop},
-		{cv, "CVDisplayLinkRelease", &rt.dlRelease},
-		{cv, "CVDisplayLinkSetCurrentCGDisplay", &rt.dlSetDisplay},
-		{cg, "CGMainDisplayID", &rt.mainDisplay},
+		{"objc_msgSend", &rt.msg},
+		{"objc_msgSendSuper2", &rt.msgSuper},
+		{"objc_autoreleasePoolPush", &rt.poolPush},
+		{"objc_autoreleasePoolPop", &rt.poolPop},
+		{"objc_retain", &rt.retain},
+		{"objc_release", &rt.release},
+		{"objc_getAssociatedObject", &rt.getAssoc},
+		{"objc_setAssociatedObject", &rt.setAssoc},
+		{"object_getClass", &rt.objectGetClass},
+		{"class_addMethod", &rt.classAddMethod},
+		{"pthread_main_np", &rt.mainThread},
+		{"dispatch_async_f", &rt.dispatchAsync},
+		{"_dispatch_main_q", &rt.mainQueue},
 	} {
-		addr, err := purego.Dlsym(s.lib, s.name)
+		addr, err := purego.Dlsym(purego.RTLD_DEFAULT, s.name)
 		if err != nil {
 			return err
 		}
@@ -101,9 +111,15 @@ func loadRuntime() error {
 			return err
 		}
 	}
+	for _, f := range []any{&msgF64, &msgSetF64, &msgSetSize, &msgSetRect, &msgInitRect} {
+		purego.RegisterFunc(f, rt.msg)
+	}
+	purego.RegisterFunc(&msgRect, rt.msgStret)
+
 	classNSString = class("NSString")
 	classNSAttributedStr = class("NSAttributedString")
-	classNSCursor = class("NSCursor")
+	classNSArray = class("NSArray")
+	classNSNotificationCenter = class("NSNotificationCenter")
 	return nil
 }
 
@@ -117,6 +133,21 @@ func class(name string) uintptr {
 		panic("app: Objective-C class " + name + " not found")
 	}
 	return c
+}
+
+// registerClass registers a new Objective-C subclass with the runtime.
+func registerClass(name, super string, protocols []*objc.Protocol, methods []objc.MethodDef) (uintptr, error) {
+	c, err := objc.RegisterClass(name, objc.Class(class(super)), protocols, nil, methods)
+	return uintptr(c), err
+}
+
+// addClassMethod adds a class method (+method) to cls's metaclass.
+func addClassMethod(cls, sel uintptr, fn any, types string) {
+	meta, _, _ := purego.SyscallN(rt.objectGetClass, cls)
+	imp := objc.NewIMP(fn)
+	cTypes := append([]byte(types), 0)
+	purego.SyscallN(rt.classAddMethod, meta, sel, uintptr(imp), uintptr(unsafe.Pointer(&cTypes[0])))
+	runtime.KeepAlive(cTypes)
 }
 
 // send sends an integer or pointer message. Pointers to Go memory stay
@@ -190,21 +221,44 @@ func boolArg(b bool) uintptr {
 }
 
 var (
-	selLength        = sel("length")
-	selGetCharacters = sel("getCharacters:range:")
-	selAlloc         = sel("alloc")
-	selInit          = sel("init")
-	selInitWithChars = sel("initWithCharacters:length:")
-	selIsKindOfClass = sel("isKindOfClass:")
-	selString        = sel("string")
-	selRespondsToSel = sel("respondsToSelector:")
-	selSet           = sel("set")
-	selHide          = sel("hide")
-	selUnhide        = sel("unhide")
+	selLength               = sel("length")
+	selGetCharacters        = sel("getCharacters:range:")
+	selAlloc                = sel("alloc")
+	selInit                 = sel("init")
+	selInitWithChars        = sel("initWithCharacters:length:")
+	selInitWithFrame        = sel("initWithFrame:")
+	selIsKindOfClass        = sel("isKindOfClass:")
+	selString               = sel("string")
+	selRespondsToSel        = sel("respondsToSelector:")
+	selBounds               = sel("bounds")
+	selFrame                = sel("frame")
+	selSetFrame             = sel("setFrame:")
+	selLayer                = sel("layer")
+	selWindow               = sel("window")
+	selMainScreen           = sel("mainScreen")
+	selScreen               = sel("screen")
+	selContentsScale        = sel("contentsScale")
+	selSetContentsScale     = sel("setContentsScale:")
+	selDefaultCenter        = sel("defaultCenter")
+	selAddObserver          = sel("addObserver:selector:name:object:")
+	selBecomeFirstResponder = sel("becomeFirstResponder")
+	selResignFirstResponder = sel("resignFirstResponder")
+	selDealloc              = sel("dealloc")
+	selObjectForKey         = sel("objectForKey:")
+	selCount                = sel("count")
+	selObjectAtIndex        = sel("objectAtIndex:")
+	selAbsoluteString       = sel("absoluteString")
+	selTimestamp            = sel("timestamp")
+	selGeneralPasteboard    = sel("generalPasteboard")
 )
 
-// Classes, resolved by loadRuntime once the frameworks are loaded.
-var classNSString, classNSAttributedStr, classNSCursor uintptr
+// Shared Foundation classes, resolved by loadRuntime once Foundation is loaded.
+var (
+	classNSString             uintptr
+	classNSAttributedStr      uintptr
+	classNSArray              uintptr
+	classNSNotificationCenter uintptr
+)
 
 func isMainThread() bool {
 	r, _, _ := purego.SyscallN(rt.mainThread)
@@ -275,88 +329,4 @@ func plainString(obj uintptr) uintptr {
 		return send(obj, selString)
 	}
 	return obj
-}
-
-// displayLinkCallback is the CVDisplayLink output callback for every link.
-var displayLinkCallback = purego.NewCallback(func(dl, inNow, inOutputTime uintptr, flagsIn uint64, flagsOut, ctx uintptr) int32 {
-	onFrameCallback(dl)
-	return 0 // kCVReturnSuccess
-})
-
-func createDisplayLink() uintptr {
-	// Keel patch (as in os_macos.m): with every display asleep there are no
-	// active displays and creation fails. Fall back to the main display; the
-	// window moves the link to its own display later.
-	var dl uintptr
-	if r, _, _ := purego.SyscallN(rt.dlCreateActive, uintptr(unsafe.Pointer(&dl))); int32(r) != 0 {
-		dl = 0
-		main, _, _ := purego.SyscallN(rt.mainDisplay)
-		if r, _, _ := purego.SyscallN(rt.dlCreateDisplay, uintptr(uint32(main)), uintptr(unsafe.Pointer(&dl))); int32(r) != 0 {
-			return 0
-		}
-	}
-	purego.SyscallN(rt.dlSetCallback, dl, displayLinkCallback, 0)
-	return dl
-}
-
-func releaseDisplayLink(dl uintptr) { purego.SyscallN(rt.dlRelease, dl) }
-func startDisplayLink(dl uintptr)   { purego.SyscallN(rt.dlStart, dl) }
-func stopDisplayLink(dl uintptr)    { purego.SyscallN(rt.dlStop, dl) }
-
-func setDisplayLinkDisplay(dl uintptr, did uint64) {
-	purego.SyscallN(rt.dlSetDisplay, dl, uintptr(uint32(did)))
-}
-
-func hideCursor() { withPool(func() { send(classNSCursor, selHide) }) }
-func showCursor() { withPool(func() { send(classNSCursor, selUnhide) }) }
-
-// cursorSelectors are the NSCursor class methods of os_macos.m's
-// gio_setCursor, by cursor ID. A private cursor has a public fallback.
-var cursorSelectors = [...]struct{ name, fallback string }{
-	0:  {"arrowCursor", ""},
-	2:  {"IBeamCursor", ""},
-	3:  {"IBeamCursorForVerticalLayout", ""},
-	4:  {"pointingHandCursor", ""},
-	5:  {"crosshairCursor", ""},
-	6:  {"arrowCursor", ""}, // _moveCursor fails on Monterey.
-	7:  {"resizeLeftRightCursor", ""},
-	8:  {"resizeUpDownCursor", ""},
-	9:  {"openHandCursor", ""},
-	10: {"closedHandCursor", ""},
-	11: {"operationNotAllowedCursor", ""},
-	12: {"busyButClickableCursor", "arrowCursor"},
-	13: {"busyButClickableCursor", "arrowCursor"},
-	14: {"_windowResizeNorthWestCursor", "resizeUpDownCursor"},
-	15: {"_windowResizeNorthEastCursor", "resizeUpDownCursor"},
-	16: {"_windowResizeSouthWestCursor", "resizeUpDownCursor"},
-	17: {"_windowResizeSouthEastCursor", "resizeUpDownCursor"},
-	18: {"resizeUpDownCursor", ""},
-	19: {"resizeLeftRightCursor", ""},
-	20: {"resizeLeftCursor", ""},
-	21: {"resizeRightCursor", ""},
-	22: {"resizeUpCursor", ""},
-	23: {"resizeDownCursor", ""},
-	24: {"_windowResizeNorthEastSouthWestCursor", "resizeUpDownCursor"},
-	25: {"_windowResizeNorthWestSouthEastCursor", "resizeUpDownCursor"},
-}
-
-func setCursor(id uint) {
-	withPool(func() {
-		c := struct{ name, fallback string }{"arrowCursor", ""}
-		if id < uint(len(cursorSelectors)) && cursorSelectors[id].name != "" {
-			c = cursorSelectors[id]
-		}
-		if c.fallback != "" {
-			// Some cursors are not public: use one only when NSCursor has it.
-			s := sel(c.name)
-			if send(classNSCursor, selRespondsToSel, s) != 0 {
-				if cur := send(classNSCursor, s); cur != 0 && send(cur, selIsKindOfClass, classNSCursor) != 0 {
-					send(cur, selSet)
-					return
-				}
-			}
-			c.name = c.fallback
-		}
-		send(send(classNSCursor, sel(c.name)), selSet)
-	})
 }
