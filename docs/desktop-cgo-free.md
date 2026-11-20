@@ -8,11 +8,11 @@ approach. Complete [module unification](single-module.md) first.
 Baseline: `b2696a6`, inspected on 2026-10-12 with Go 1.26.4 on darwin/arm64.
 
 
-Linux desktop now defaults to purego with or without CGO enabled and without
-extra tags. `-tags giocgo` selects legacy bindings only when CGO is enabled
-and `purego` is absent. The transition table below still applies to macOS.
-This source-selection change does not establish untested GPU, IME or hardware
-parity; those runtime acceptance gates remain pending.
+Linux and macOS desktop now use purego exclusively regardless of `CGO_ENABLED`,
+with legacy desktop cgo bindings and the `-tags giocgo` opt-in removed. iOS,
+Android and the BSDs retain their existing bindings. This change does not
+establish untested GPU, IME or hardware parity (including Intel Mac); those
+runtime acceptance gates remain pending.
 ## Goal and boundaries
 
 Deliver reproducible applications using Keel's Gio and go-text patches, and

@@ -64,8 +64,8 @@ macOS 提供 CoreText 字形像素；Gio 基础库不导入 Keel 的 theme 或 n
 | 平台或范围 | 改动与原因 | 源码与回归测试 |
 | --- | --- | --- |
 | Darwin 帧调度 | Display-link 的 Start/Stop 只在请求状态改变时通知 goroutine，避免每个动画帧都同步切换 goroutine。 | [os_darwin.go](../gio/app/os_darwin.go)；原生空闲/缩放测试与历史 CPU 测量。 |
-| macOS 可见性与休眠 | 被遮挡、位于其他 Space 或屏幕休眠时，窗口首帧后停止动画绘制，重新可见时重绘。Display-link 创建可回退到主屏；销毁时跳过尚未关联 handle 的 view。 | [os_macos.go](../gio/app/os_macos.go)、[os_macos.m](../gio/app/os_macos.m)；原生窗口检查，休眠/Space 切换仍需人工覆盖。 |
-| macOS 缩放 | 绘制时保留三个 CAMetalLayer drawable，因为 Core Animation 在缩放时可能持有两个已提交表面。空闲时仍会缩小备用表面。 | [metal_macos.go](../gio/app/metal_macos.go)、[原生缩放测试](../gio/app/metal_resize_macos_test.go)。 |
+| macOS 可见性与休眠 | 被遮挡、位于其他 Space 或屏幕休眠时，窗口首帧后停止动画绘制，重新可见时重绘。Display-link 创建可回退到主屏；销毁时跳过尚未关联 handle 的 view。 | [os_macos.go](../gio/app/os_macos.go)、[os_macos_purego.go](../gio/app/os_macos_purego.go)；原生窗口检查，休眠/Space 切换仍需人工覆盖。 |
+| macOS 缩放 | 绘制时保留三个 CAMetalLayer drawable，因为 Core Animation 在缩放时可能持有两个已提交表面。空闲时仍会缩小备用表面。 | [metal_macos_purego.go](../gio/app/metal_macos_purego.go)、[原生缩放测试](../gio/app/metal_resize_macos_test.go)。 |
 | Wayland 销毁顺序 | 原生销毁前先返回无效 WaylandViewEvent，等待消费者下一次调用 Event 再销毁，使消费者能在连接仍有效时释放 proxy 和私有队列。 | [deferred_teardown.go](../gio/app/deferred_teardown.go)、[os_wayland.go](../gio/app/os_wayland.go)、[销毁回归测试](../gio/app/deferred_teardown_test.go)。 |
 | Wayland Window.Run | 回调排队到原生事件线程执行，不再在后台调用方直接执行。退出时停止唤醒并释放等待者，避免重置 frame ops 与 GPU 读取竞争。 | [event_funcs.go](../gio/app/event_funcs.go)、[队列测试](../gio/app/event_funcs_test.go)、[Wayland 生命周期测试](../gio/app/os_wayland_lifecycle_test.go)。 |
 | 原生 ABI 可行性 | 新增无 CGO 测试，验证 Objective-C 结构体回调、super 调用和复制 block。这些是后续绑定迁移的探针，不是替换后的 AppKit 后端。 | [ABI 探针](../gio/internal/nativeabi/abi_darwin_test.go)。 |

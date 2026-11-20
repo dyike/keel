@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build darwin && (ios || (cgo && !purego))
+//go:build ios
 
 package metal
 

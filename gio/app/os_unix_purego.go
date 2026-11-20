@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicense OR MIT
 
-//go:build linux && !android && (!cgo || !giocgo || purego)
+//go:build linux && !android
 
 package app
 

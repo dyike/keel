@@ -105,25 +105,20 @@ and performance patches; replace native bindings, not the renderers. The
 2026-10-12 darwin/arm64 dependency scan of `examples/hello` selects cgo in:
 
 - Gio: `app`, `internal/gl`, `internal/cocoainit`, `gpu/internal/metal` and
-  `gpu/headless`. Each also has a purego binding on macOS (`internal/gl` on
-  Linux desktop too), selected by `-tags purego` or `CGO_ENABLED=0`; cgo
-  stays their default and their only binding on iOS, Android and the BSDs.
-- Keel: `ui/theme/coretext_cgo_darwin.go` (CoreText/CoreGraphics). A purego
-  rasterizer, `coretext_purego_darwin.go`, is selected by `-tags purego` or
-  `CGO_ENABLED=0` and renders byte-identical masks; the cgo file stays the
-  default until the macOS default is promoted.
-- `runtime/cgo`, as a consequence of the selected bindings.
+  `gpu/headless` (plus Linux `internal/egl`, `internal/vk` and `app/internal/xkb`)
+  use purego exclusively on macOS and Linux desktop, with legacy desktop cgo
+  bindings removed. cgo stays the binding on iOS, Android and the BSDs.
+- Keel: `ui/theme/coretext_purego_darwin.go` is the sole macOS CoreText
+  rasterizer; `coretext_cgo_darwin.go` has been removed.
 
-On Linux, EGL, GL, Vulkan, xkbcommon and the X11 and Wayland windows have
-purego bindings (CI: "Linux without cgo", amd64 and arm64), so the desktop
-path builds and runs without cgo there; purego is now the Linux desktop default even with cgo enabled.
-Use `-tags giocgo` to opt into legacy Linux bindings; `purego` or
-`CGO_ENABLED=0` takes precedence. Windows already builds without cgo. iOS/Android migration is deferred.
+On macOS, Linux and Windows desktop, Keel now builds with zero cgo bindings
+regardless of `CGO_ENABLED`. iOS/Android migration is deferred.
 On the inspected Apple silicon host, `CGO_ENABLED=0 go build ./examples/hello`
 passes and `CGO_ENABLED=0 go test ./...` passes, including real windows
-(`KEEL_DESKTOP=1`). The macOS default stays cgo until the promotion gate in the
-design (amd64 runs, a real input method, GPU parity) passes. These observations
-do not establish Linux or Intel Mac runtime support.
+(`KEEL_DESKTOP=1`). Runtime acceptance gates on Intel Mac (`darwin/amd64`),
+a real Chinese input method, and native GPU parity remain pending hardware
+verification; source-selection tests (`internal/deps/darwin_backend_test.go`)
+and cross-compilation do not establish native macOS runtime acceptance.
 See [the delivery design](docs/desktop-cgo-free.md) for gates and sequencing.
 Completed Keel binding migrations, each retaining behavior and tests:
 

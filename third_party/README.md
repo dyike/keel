@@ -44,6 +44,16 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- macOS and Linux desktop bindings now use purego exclusively regardless of
+  `CGO_ENABLED`; legacy macOS desktop cgo files (`gio/app/gl_macos.{go,m}`,
+  `gio/app/metal_macos.go`, `gio/app/os_macos.{m,cgo.go}`,
+  `ui/theme/coretext_cgo_darwin.go`) and `-tags giocgo` desktop selection have
+  been removed. iOS, Android and BSD retain their existing bindings.
+  `internal/deps/darwin_backend_test.go` and `internal/deps/linux_backend_test.go`
+  verify zero native/cgo sources on desktop across `amd64`/`arm64`. Runtime
+  acceptance on Intel Mac, real Chinese IME and native GPU parity remain pending
+  on macOS hardware.
+
 - Android IME startup: retain explicit show requests until the activity is
   resumed and its window has focus, then post the IMM call after focus dispatch.
   Report window focus rather than treating `onResume` alone as focus. While a

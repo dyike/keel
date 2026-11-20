@@ -28,6 +28,14 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- macOS 与 Linux 桌面绑定现在无论是否开启 CGO 均仅使用 purego，已删除
+  macOS 桌面旧 cgo 文件（`gio/app/gl_macos.{go,m}`、`gio/app/metal_macos.go`、
+  `gio/app/os_macos.{m,cgo.go}`、`ui/theme/coretext_cgo_darwin.go`）并移除
+  桌面 `-tags giocgo` 过渡分支。iOS、Android 和 BSD 保留原有绑定。
+  `internal/deps/darwin_backend_test.go` 与 `internal/deps/linux_backend_test.go`
+  在 `amd64`/`arm64` 上验证桌面零 cgo/C/ObjC 源码。Intel Mac、真实中文输入法与
+  原生 GPU 验收仍待在 macOS 真机上完成。
+
 - Android 输入法冷启动：保留显式显示请求，等 Activity 恢复且窗口取得焦点后，
   在焦点分发结束后的消息中调用 IMM。窗口焦点不再仅由 `onResume` 决定。
   请求待处理时声明 Surface 为文本编辑器，避免 Android 初始焦点策略隐藏输入法。

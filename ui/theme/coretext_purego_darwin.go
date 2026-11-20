@@ -1,4 +1,4 @@
-//go:build darwin && !ios && (!cgo || purego)
+//go:build darwin && !ios
 
 package theme
 
