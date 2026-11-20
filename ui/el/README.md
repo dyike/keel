@@ -21,6 +21,7 @@ GPUI-style elements and views: Views are ordinary structs, and each frame `Rende
 | `input.go` | `Input`、`TextArea` |
 | `style.go` | `Style`, length (`Dp`, `Sp`, `Frac`, `Full`, `Fr`), alignment constants |
 | `layout.go`, `flow.go` | flexbox (`Self` align-self), line wrapping and 2D grid layout (`GridCols`, `ColSpan`, `RowSpan`, `ColGap`/`RowGap`) |
+| `signal.go` | Fine-grained reactive `Signal[T]`, `Computed[T]` and auto-tracked `Context.Memo` with in-place nested updates |
 | `paint.go` | Drawing, click area, scrolling, input box, semantic information |
 | `text_measure.go` | Dimensions-only text measurement with a frame-local cache; shares Gio shaping without generating drawing operations |
 | `text_paint.go` | Reuses vector glyph fragments for short, single-line numeric labels; falls back to Gio labels for complex or overlapping text |

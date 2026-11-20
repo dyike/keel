@@ -417,7 +417,7 @@ Content outside the scroll container will not appear in the element list.
 ## Known limitations
 
 - Layout is a subset of flexbox and grid: supports `Wrap`, `Self` (`align-self`), `Grid` / `GridCols` (`Dp`/`Sp`/`Frac`/`Auto`/`Fr`), `ColSpan`, `RowSpan`, and `ColGap`/`RowGap`; no `min-content` or named grid areas yet. Shrinkage is distributed proportionally to the content width.
-- The child elements in `ScrollY` are laid out every frame (those that are invisible are not drawn). For parts with unchanged content, use `cx.Cache` to skip reconstruction and rearrangement; for more than a few hundred lines, use `kit.VirtualList` or `kit.Table` to lay out only visible lines.
+- The child elements in `ScrollY` are laid out every frame (those that are invisible are not drawn). For parts with unchanged content, use `cx.Cache` (manual comparable key) or `cx.Memo` with `el.NewSignal` / `el.NewComputed` (automatic dependency tracking and in-place nested updates) to skip reconstruction and rearrangement; for more than a few hundred lines, use `kit.VirtualList` or `kit.Table` to lay out only visible lines.
 - Transition experiments live in `ui/motion`; its API is not yet stable. Custom effects can still use `Now` / `Animating` directly.
 - The overlay is only fully supported in `el.Root`, and `el.Embed` is supported as best as possible according to embedding constraints.
 - Overlays do not support cross-windows.

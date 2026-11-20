@@ -174,6 +174,8 @@ type RootWidget struct {
 	fill           bool
 	store          *store
 	cache          elementCache
+	memos          memoCache
+	memoStack      []*memoEntry
 	e              engine
 	arena          nodeArena
 	focusID        string
@@ -412,6 +414,7 @@ func (r *RootWidget) layoutViewport(gtx core.C, visible image.Rectangle, origin 
 		e.sweepContentStates()
 		e.sweepSharedLayouts()
 		r.cache.sweep(st.frame)
+		r.memos.sweep(st.frame)
 	}
 	r.retain(gtx, tree, &cx, visible, origin, parents, quiet)
 	if r.fill {
