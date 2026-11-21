@@ -125,6 +125,7 @@ type Style struct {
 	bg                      optional[color.NRGBA]
 	corners                 optional[[4]float32] // per-corner radii; overrides radius
 	gradient                *theme.Gradient      // painted instead of bg when set
+	glass                   GlassSurface         // Liquid Glass control surface
 	borderWidth, radius     float32
 	borderColor             color.NRGBA
 	borderDashed            bool
@@ -210,6 +211,19 @@ func (s *Style) BgGradient(g theme.Gradient) *Style {
 }
 func (s *Style) BorderColor(c color.NRGBA) *Style { s.borderColor = c; return s }
 func (s *Style) TextColor(c color.NRGBA) *Style   { s.text.color = some(c); return s }
+
+// GlassBoost lifts the specular luminance of a Liquid Glass surface (0..1),
+// intended for Hover and Active style callbacks.
+func (s *Style) GlassBoost(boost float32) *Style {
+	s.glass.Boost = boost
+	return s
+}
+
+// GlassTint sets the translucent tint color of a Liquid Glass surface.
+func (s *Style) GlassTint(c color.NRGBA) *Style {
+	s.glass.Tint = c
+	return s
+}
 
 func rgb(c uint32) color.NRGBA {
 	return color.NRGBA{R: uint8(c >> 16), G: uint8(c >> 8), B: uint8(c), A: 0xff}

@@ -669,7 +669,9 @@ func (c corners) max() int { return max(c[0], c[1], c[2], c[3]) }
 
 func (e *engine) paintBox(st Style, rect image.Rectangle, radius corners) {
 	ops := e.gtx.Ops
-	if g := st.sharedGradient; g != nil {
+	if st.glass.Style != GlassNone {
+		e.paintGlass(st, rect, radius)
+	} else if g := st.sharedGradient; g != nil {
 		gradientClip := radius.rrect(rect).Push(ops)
 		point := func(p f32.Point) f32.Point {
 			return f32.Pt(float32(rect.Min.X)+p.X*float32(rect.Dx()), float32(rect.Min.Y)+p.Y*float32(rect.Dy()))

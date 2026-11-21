@@ -84,9 +84,18 @@ func (d *demo) Render(cx *el.Context) el.Element {
 				el.Div().P(24).Gap(14).Rounded(16).Bg(theme.Surface).Border(1, theme.Border).Child(
 					el.Text(d.selected+" / "+d.material()).TextSize(16).Bold(),
 					el.Text(text("The sidebar and header use native glass. This card stays opaque to keep its content readable.", "左侧与顶部是原生玻璃背景。这张卡片使用实色，保持内容清晰可读。")).TextSize(14).TextColor(theme.Muted),
-					el.Div().Row().Gap(8).Child(
-						kit.Button(text("Open Clear", "打开 Clear"), func() { openDemo(window.GlassClear, true) }).Render(cx),
-						kit.Button(text("Compare Frosted", "对比毛玻璃"), func() { openDemo(window.GlassFrosted, true) }).Variant(kit.ButtonSecondary).Render(cx),
+					el.Div().Row().Gap(10).Wrap().Child(
+						kit.Button(text("Open Clear", "打开 Clear"), func() {
+							window.Haptic(window.HapticLight)
+							openDemo(window.GlassClear, true)
+						}).ID("glass-clear").Variant(kit.ButtonGlass).GlassTint(theme.Primary).Render(cx),
+						kit.Button(text("Compare Frosted", "对比毛玻璃"), func() {
+							window.Haptic(window.HapticSelection)
+							openDemo(window.GlassFrosted, true)
+						}).ID("glass-frosted").Variant(kit.ButtonGlass).Render(cx),
+						kit.Button(text("Regular Glass", "标准玻璃按钮"), func() {
+							window.Haptic(window.HapticMedium)
+						}).ID("glass-regular").Variant(kit.ButtonGlass).Render(cx),
 					),
 				),
 				el.Div().Row().Gap(16).Child(

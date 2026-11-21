@@ -21,6 +21,7 @@ const (
 	ButtonSuccess
 	ButtonWarning
 	ButtonInfo
+	ButtonGlass
 )
 
 // ButtonAppearance contains colors for a button's normal and interactive states.
@@ -81,15 +82,25 @@ type ButtonView struct {
 	selected          bool
 	content           el.View
 	appearance        func(ButtonAppearance) ButtonAppearance
+	glassTint         color.NRGBA
+	glassSpec         [2]float32
+	hasGlassSpec      bool
 }
 
 func Button(text string, onClick func()) *ButtonView {
 	return &ButtonView{text: text, onClick: onClick, height: 32}
 }
 func (v *ButtonView) Variant(variant ButtonVariant) *ButtonView {
-	if variant <= ButtonInfo {
+	if variant <= ButtonGlass {
 		v.variant = variant
 	}
+	return v
+}
+
+// GlassTint tints a ButtonGlass button with a translucent Liquid Glass color
+// (e.g. theme.Primary for a prominent Apple-style glass action).
+func (v *ButtonView) GlassTint(c color.NRGBA) *ButtonView {
+	v.glassTint = c
 	return v
 }
 
@@ -144,6 +155,9 @@ func (v *ButtonView) activate() {
 }
 
 func (v *ButtonView) Render(cx *el.Context) el.Element {
+	if v.variant == ButtonGlass {
+		return v.renderWithRadius(cx, v.height/2)
+	}
 	return v.renderWithRadius(cx, theme.RadiusMd)
 }
 
@@ -173,8 +187,17 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 		bg, hover, fg = theme.Warning, theme.Warning, theme.OnColor
 	case ButtonInfo:
 		bg, hover, fg = theme.Info, theme.Info, theme.OnColor
+	case ButtonGlass:
+		bg, hover, fg = color.NRGBA{}, color.NRGBA{}, theme.Text
+		if v.glassTint.A > 0 || v.selected {
+			tint := v.glassTint
+			if tint.A == 0 {
+				tint = theme.Primary
+			}
+			fg = contrastingText(tint)
+		}
 	}
-	if v.variant >= ButtonSuccess {
+	if v.variant >= ButtonSuccess && v.variant != ButtonGlass {
 		fg = contrastingText(bg)
 	}
 	// Active is a stronger shade of the hover background; resolve every Render.
@@ -261,7 +284,35 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 		box.W(el.Dp(v.height)).Px(0)
 	}
 
-	if !gradient.IsZero() {
+	if v.variant == ButtonGlass && !v.disabled {
+		if v.glassTint.A > 0 || v.selected {
+			tint := v.glassTint
+			if tint.A == 0 {
+				tint = theme.Primary
+			}
+			box.GlassStyle(el.GlassProminent).GlassTint(tint)
+		} else {
+			box.Glass()
+		}
+		if v.hasGlassSpec {
+			box.GlassSpecular(v.glassSpec[0], v.glassSpec[1])
+		}
+		if !v.loading {
+			box.CursorPointer().
+				Hover(func(s *el.Style) { s.GlassBoost(0.45) }).
+				Active(func(s *el.Style) { s.GlassBoost(0.9) }).
+				OnPointerMove(func(x, y float32) {
+					w, h := float32(120), v.height
+					if v.id != "" {
+						if lw, lh := cx.LastSize(v.id); lw > 0 && lh > 0 {
+							w, h = lw, lh
+						}
+					}
+					v.glassSpec = [2]float32{x / max(w, 1), y / max(h, 1)}
+					v.hasGlassSpec = true
+				})
+		}
+	} else if !gradient.IsZero() {
 		box.BgGradient(gradient)
 		if !v.loading {
 			box.CursorPointer().Hover(styles.hover).Active(styles.active)

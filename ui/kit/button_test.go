@@ -222,7 +222,7 @@ func buttonBounds(h *uitest.Harness, label string) image.Rectangle {
 }
 
 func TestButtonAdditionalVariantsCompactAndContent(t *testing.T) {
-	for _, variant := range []ButtonVariant{ButtonLink, ButtonText, ButtonSuccess, ButtonWarning, ButtonInfo} {
+	for _, variant := range []ButtonVariant{ButtonLink, ButtonText, ButtonSuccess, ButtonWarning, ButtonInfo, ButtonGlass} {
 		for _, scale := range []int{1, 2} {
 			calls := 0
 			v := Button("Action", func() { calls++ }).Variant(variant).Outline(true)

@@ -436,6 +436,33 @@ func (s *Styled[T]) Bg(c color.NRGBA) *T { s.node().style.Bg(c); return s.self }
 // BgGradient fills the background with a linear gradient; see Style.BgGradient.
 func (s *Styled[T]) BgGradient(g theme.Gradient) *T { s.node().style.BgGradient(g); return s.self }
 
+// Glass gives the element a regular Liquid Glass surface with translucent
+// luminous shading, curved upper sheen, and a directional specular rim.
+func (s *Styled[T]) Glass() *T { return s.GlassStyle(GlassRegular) }
+
+// GlassStyle selects the Liquid Glass surface style (GlassRegular, GlassClear,
+// GlassProminent, or GlassNone).
+func (s *Styled[T]) GlassStyle(style GlassStyle) *T {
+	s.node().style.glass.Style = style
+	return s.self
+}
+
+// GlassTint sets the translucent tint color of a Liquid Glass surface.
+func (s *Styled[T]) GlassTint(c color.NRGBA) *T {
+	s.node().style.glass.Tint = c
+	return s.self
+}
+
+// GlassSpecular aims the specular rim highlight at normalized coordinates
+// (0..1) inside the element, e.g. from OnPointerMove.
+func (s *Styled[T]) GlassSpecular(x, y float32) *T {
+	g := &s.node().style.glass
+	g.HasSpec = true
+	g.SpecX = min(max(x, 0), 1)
+	g.SpecY = min(max(y, 0), 1)
+	return s.self
+}
+
 // Border draws a line of width dp inside the element's edge.
 func (s *Styled[T]) Border(dp float32, c color.NRGBA) *T {
 	s.node().style.borderWidth, s.node().style.borderColor = dp, c
