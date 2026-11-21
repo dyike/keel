@@ -52,6 +52,7 @@ var (
 	MsgPointFromView func(obj ID, sel SEL, p Point, view ID) Point
 	MsgRectToView    func(obj ID, sel SEL, r Rect, view ID) Rect
 	MsgRectRect      func(obj ID, sel SEL, r Rect) Rect
+	MsgColorRGBA     func(obj ID, sel SEL, r, g, b, a float64) ID
 	MsgKeyEvent      func(cls ID, sel SEL, typ uint, loc Point, flags uint, ts float64, wn int, ctx ID, chars, charsIgnoring ID, repeat bool, keyCode uint16) ID
 )
 
@@ -92,6 +93,7 @@ func load() {
 		purego.RegisterFunc(&MsgPointFromView, msgSendAddr)
 		purego.RegisterFunc(&MsgRectToView, stret)
 		purego.RegisterFunc(&MsgRectRect, stret)
+		purego.RegisterFunc(&MsgColorRGBA, msgSendAddr)
 		purego.RegisterFunc(&MsgKeyEvent, msgSendAddr)
 	})
 }

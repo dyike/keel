@@ -51,6 +51,7 @@ type engine struct {
 	paintOffset            image.Point     // enclosing root origin for embedded widget input
 	origin                 image.Point     // absolute position of the node being painted's parent
 	visible                image.Rectangle // absolute area that can show anything
+	opaqueBackdrop         bool            // true inside an ancestor that painted an opaque background
 }
 
 func (e *engine) dp(v float32) int { return e.m.Dp(unit.Dp(v)) }

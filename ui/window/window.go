@@ -124,6 +124,9 @@ type Window struct {
 	drawsTitle                bool          // Keel draws the title bar; see decorations.go
 	shown                     chan struct{} // closed at the first frame or at destruction
 	glassRenderer             glassRenderer
+	glassRegions              []core.GlassRegion
+	lastGlassRegions          []core.GlassRegion
+	lastGlassHeight           float32
 	// axActive is set once a platform accessibility client asked about the
 	// window; axQueued while a refresh of its elements waits.
 	axActive, axQueued atomic.Bool
@@ -452,7 +455,16 @@ func (w *Window) layout(gtx core.C) {
 	defer core.SetCurrentWindow(w)()
 	w.observeSize(gtx)
 	w.titleArea = [4]float32{}
-	defer func() { syncTitleBar(w) }()
+	w.glassRegions = w.glassRegions[:0]
+	scale := gtx.Metric.PxPerDp
+	if scale <= 0 {
+		scale = 1
+	}
+	windowHeightDp := float32(gtx.Constraints.Max.Y) / scale
+	defer func() {
+		syncTitleBar(w)
+		syncGlassRegions(w, windowHeightDp)
+	}()
 	w.handleShortcuts(gtx)
 	gtx, below := w.belowTitleBar(gtx)
 	defer below()

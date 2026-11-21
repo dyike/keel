@@ -7,6 +7,7 @@ import (
 	"github.com/dyike/keel/gio/f32"
 	"github.com/dyike/keel/gio/op/clip"
 	"github.com/dyike/keel/gio/op/paint"
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/theme"
 )
 
@@ -26,9 +27,32 @@ type GlassSurface struct {
 	Style   GlassStyle
 	Tint    color.NRGBA
 	Boost   float32 // 0 normal, >0 hover/active specular lift
+	Spacing float32 // merge proximity in dp for native NSGlassEffectContainerView (0 = default)
 	HasSpec bool    // true when SpecX/SpecY carry a pointer/touch highlight focus
 	SpecX   float32 // normalized 0..1 within the element
 	SpecY   float32
+}
+
+func (e *engine) nativeGlassWindow() core.NativeGlassControls {
+	if e.opaqueBackdrop {
+		return nil
+	}
+	w, ok := core.CurrentWindow().(core.NativeGlassControls)
+	if !ok || !w.NativeGlassEnabled() {
+		return nil
+	}
+	return w
+}
+
+func (e *engine) paintGlassShadow(st Style, rect image.Rectangle, radius corners) {
+	if rect.Empty() || st.glass.Style == GlassNone {
+		return
+	}
+	shadowAlpha := uint8(24)
+	if isDarkSurface() {
+		shadowAlpha = 56
+	}
+	e.paintShadow(theme.Elevation{Blur: 10, Offset: 3}, color.NRGBA{R: 15, G: 23, B: 42, A: shadowAlpha}, 4, rect, radius)
 }
 
 func isDarkSurface() bool {
@@ -47,7 +71,7 @@ func clampByte(v int) uint8 {
 	return uint8(v)
 }
 
-func (e *engine) paintGlass(st Style, rect image.Rectangle, radius corners) {
+func (e *engine) paintGlass(st Style, rect image.Rectangle, radius corners, interactive bool) {
 	if rect.Empty() || st.glass.Style == GlassNone {
 		return
 	}
@@ -61,13 +85,46 @@ func (e *engine) paintGlass(st Style, rect image.Rectangle, radius corners) {
 		boost = 1
 	}
 
-	// 1. Subtle ambient elevation so glass controls float gently above content.
-	if st.shadow == nil {
-		shadowAlpha := uint8(24)
-		if dark {
-			shadowAlpha = 56
+	// Native macOS 26+ NSGlassEffectView + NSGlassEffectContainerView path:
+	// register the control's visible window-space rect so AppKit renders the
+	// genuine Liquid Glass lens behind the transparent Gio Metal layer.
+	if nw := e.nativeGlassWindow(); nw != nil {
+		abs := image.Rectangle{Min: e.origin, Max: e.origin.Add(rect.Size())}.Intersect(e.visible)
+		if !abs.Empty() {
+			scale := e.gtx.Metric.PxPerDp
+			if scale <= 0 {
+				scale = 1
+			}
+			regStyle := core.GlassRegionRegular
+			if g.Style == GlassClear {
+				regStyle = core.GlassRegionClear
+			}
+			tint := g.Tint
+			if g.Style == GlassProminent && tint.A == 0 {
+				tint = theme.Primary
+			}
+			nw.AddGlassRegion(core.GlassRegion{
+				X:            float32(abs.Min.X) / scale,
+				Y:            float32(abs.Min.Y) / scale,
+				Width:        float32(abs.Dx()) / scale,
+				Height:       float32(abs.Dy()) / scale,
+				CornerRadius: float32(radius.max()) / scale,
+				Style:        regStyle,
+				Tint:         tint,
+				Interactive:  interactive,
+				Spacing:      g.Spacing,
+			})
 		}
-		e.paintShadow(theme.Elevation{Blur: 10, Offset: 3}, color.NRGBA{R: 15, G: 23, B: 42, A: shadowAlpha}, 4, rect, radius)
+		// Subtle hover/active specular lift over the native glass so interactive
+		// state remains crisp on both macOS 26 and macOS 27.
+		if boost > 0 {
+			bodyClip := radius.rrect(rect).Push(ops)
+			liftA := clampByte(int(boost * 26))
+			paint.ColorOp{Color: color.NRGBA{R: 255, G: 255, B: 255, A: liftA}}.Add(ops)
+			paint.PaintOp{}.Add(ops)
+			bodyClip.Pop()
+		}
+		return
 	}
 
 	w, h := float32(rect.Dx()), float32(rect.Dy())

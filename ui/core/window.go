@@ -1,5 +1,7 @@
 package core
 
+import "image/color"
+
 // WindowControls is what UI code may ask of the window it is drawn in: a
 // custom title bar uses it for its buttons. ui/window implements it.
 type WindowControls interface {
@@ -37,4 +39,32 @@ func SetCurrentWindow(w WindowControls) (restore func()) {
 // zero means the application should draw its own controls.
 type NativeTitleBarControls interface {
 	NativeTitleBarInset() float32
+}
+
+// GlassRegionStyle selects the native Liquid Glass surface style for a control region.
+type GlassRegionStyle uint8
+
+const (
+	GlassRegionRegular GlassRegionStyle = iota
+	GlassRegionClear
+)
+
+// GlassRegion describes a control-level native Liquid Glass surface in window dp.
+type GlassRegion struct {
+	X, Y, Width, Height float32
+	CornerRadius        float32
+	Style               GlassRegionStyle
+	Tint                color.NRGBA
+	Interactive         bool
+	Spacing             float32 // NSGlassEffectContainerView merge proximity in dp (0 = default)
+}
+
+// NativeGlassControls is implemented by windows that render control-level
+// Liquid Glass with native compositor views (e.g. macOS 26+ NSGlassEffectView
+// and NSGlassEffectContainerView). Regions are cleared each frame before layout.
+type NativeGlassControls interface {
+	// NativeGlassEnabled reports whether native control-level Liquid Glass is active.
+	NativeGlassEnabled() bool
+	// AddGlassRegion registers a native glass surface for the current frame.
+	AddGlassRegion(r GlassRegion)
 }

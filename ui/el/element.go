@@ -463,6 +463,16 @@ func (s *Styled[T]) GlassSpecular(x, y float32) *T {
 	return s.self
 }
 
+// GlassMerge sets the proximity in dp at which adjacent native Liquid Glass
+// controls merge together (NSGlassEffectContainerView.spacing on macOS 26+).
+func (s *Styled[T]) GlassMerge(spacing float32) *T {
+	if spacing < 0 {
+		spacing = 0
+	}
+	s.node().style.glass.Spacing = spacing
+	return s.self
+}
+
 // Border draws a line of width dp inside the element's edge.
 func (s *Styled[T]) Border(dp float32, c color.NRGBA) *T {
 	s.node().style.borderWidth, s.node().style.borderColor = dp, c

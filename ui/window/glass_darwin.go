@@ -13,6 +13,7 @@ import (
 	gioapp "github.com/dyike/keel/gio/app"
 	"github.com/dyike/keel/gio/gpu"
 	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/ui/core"
 	"github.com/dyike/keel/ui/internal/appkit"
 )
 
@@ -25,8 +26,12 @@ func platformLiquidGlassSupported() bool { return appkit.Class("NSGlassEffectVie
 
 // The native effect is the window root, as in a standard AppKit glass
 // window. Its ordinary hit testing routes input to the full-size GioView.
-var glassClasses = sync.OnceValues(func() (frosted, liquid appkit.ID) {
-	return appkit.Class("NSVisualEffectView"), appkit.Class("NSGlassEffectView")
+var glassClasses = sync.OnceValue(func() struct{ frosted, liquid, container appkit.ID } {
+	return struct{ frosted, liquid, container appkit.ID }{
+		frosted:   appkit.Class("NSVisualEffectView"),
+		liquid:    appkit.Class("NSGlassEffectView"),
+		container: appkit.Class("NSGlassEffectContainerView"),
+	}
 })
 
 // View events and rendering run on the window goroutine, outside the frame
@@ -65,7 +70,15 @@ func platformGlassEvent(w *Window, event any) {
 type glassContext struct {
 	ready                                atomic.Int32
 	installing                           atomic.Bool
+	released                             atomic.Bool
 	view, backdrop, layer, device, queue appkit.ID
+	windowGlass                          appkit.ID   // retained NSGlassEffectView for liquid glass windows
+	controlHost                          appkit.ID   // retained NSView hosting glassContainer (below) + GioView (above)
+	glassContainer                       appkit.ID   // retained NSGlassEffectContainerView (or NSView fallback)
+	pillsHost                            appkit.ID   // retained NSView set as glassContainer.contentView
+	pills                                []appkit.ID // retained NSGlassEffectView pool
+	checkedInteractive                   bool
+	supportsInteractive                  bool
 }
 
 const (
@@ -121,7 +134,8 @@ func newGlassContext(handle uintptr, style GlassStyle, radius float64) *glassCon
 		const resize = nsViewWidthSizable | nsViewHeightSizable
 		// Behind-window sampling must live at the native window root, outside
 		// the Metal surface that draws the transparent application content.
-		frosted, liquid := glassClasses()
+		classes := glassClasses()
+		frosted, liquid := classes.frosted, classes.liquid
 		backdrop := appkit.MsgInitRect(appkit.Send(frosted, "alloc"), initWithFrame, bounds)
 		appkit.Send(backdrop, "setMaterial:", nsMaterialSidebar)
 		appkit.Send(backdrop, "setBlendingMode:", nsBlendingBehindWindow)
@@ -154,7 +168,7 @@ func newGlassContext(handle uintptr, style GlassStyle, radius float64) *glassCon
 			appkit.Send(glass, "setContentView:", uintptr(view))
 			appkit.Send(glass, "setAutoresizingMask:", resize)
 			appkit.Send(backdrop, "addSubview:", uintptr(glass))
-			appkit.Release(glass)
+			ctx.windowGlass = glass
 		} else {
 			appkit.Send(backdrop, "addSubview:", uintptr(view))
 		}
@@ -292,6 +306,149 @@ func (r *metalGlassRenderer) trimIdle() {
 	})
 }
 
+func (r *metalGlassRenderer) SyncRegions(regions []core.GlassRegion, windowHeight float32) {
+	r.mu.Lock()
+	ctx := r.context
+	r.mu.Unlock()
+	if ctx == nil || ctx.released.Load() {
+		return
+	}
+	appkit.MainAsync(func() {
+		ctx.applyRegions(regions, windowHeight)
+	})
+}
+
+func (ctx *glassContext) applyRegions(regions []core.GlassRegion, windowHeight float32) {
+	if ctx.released.Load() || ctx.ready.Load() != 1 || ctx.windowGlass == 0 {
+		return
+	}
+	classes := glassClasses()
+	liquid, containerCls := classes.liquid, classes.container
+	if liquid == 0 {
+		return
+	}
+	if len(regions) == 0 && ctx.controlHost == 0 {
+		return
+	}
+	tx := appkit.Class("CATransaction")
+	appkit.Send(tx, "begin")
+	appkit.Send(tx, "setDisableActions:", 1)
+	defer appkit.Send(tx, "commit")
+
+	initWithFrame := appkit.Sel("initWithFrame:")
+	const resize = nsViewWidthSizable | nsViewHeightSizable
+	if ctx.controlHost == 0 {
+		bounds := appkit.MsgRect(ctx.windowGlass, appkit.Sel("bounds"))
+		nsView := appkit.Class("NSView")
+
+		controlHost := appkit.MsgInitRect(appkit.Send(nsView, "alloc"), initWithFrame, bounds)
+		appkit.Send(controlHost, "setAutoresizingMask:", resize)
+
+		var glassContainer appkit.ID
+		if containerCls != 0 {
+			glassContainer = appkit.MsgInitRect(appkit.Send(containerCls, "alloc"), initWithFrame, bounds)
+		} else {
+			glassContainer = appkit.MsgInitRect(appkit.Send(nsView, "alloc"), initWithFrame, bounds)
+		}
+		appkit.Send(glassContainer, "setAutoresizingMask:", resize)
+
+		pillsHost := appkit.MsgInitRect(appkit.Send(nsView, "alloc"), initWithFrame, bounds)
+		appkit.Send(pillsHost, "setAutoresizingMask:", resize)
+		if containerCls != 0 {
+			appkit.Send(glassContainer, "setContentView:", uintptr(pillsHost))
+		} else {
+			appkit.Send(glassContainer, "addSubview:", uintptr(pillsHost))
+		}
+		appkit.Send(controlHost, "addSubview:", uintptr(glassContainer))
+
+		window := appkit.Send(ctx.view, "window")
+		ctx.installing.Store(true)
+		appkit.Send(ctx.windowGlass, "setContentView:", uintptr(controlHost))
+		appkit.MsgSetRect(ctx.view, appkit.Sel("setFrame:"), bounds)
+		appkit.Send(ctx.view, "setAutoresizingMask:", resize)
+		// GioView stays above glassContainer so it receives all input and draws
+		// crisp labels/icons over the native NSGlassEffectView capsules.
+		appkit.Send(controlHost, "addSubview:", uintptr(ctx.view))
+		if window != 0 {
+			appkit.Send(window, "makeFirstResponder:", uintptr(ctx.view))
+		}
+		ctx.installing.Store(false)
+
+		ctx.controlHost = controlHost
+		ctx.glassContainer = glassContainer
+		ctx.pillsHost = pillsHost
+	}
+
+	bounds := appkit.MsgRect(ctx.controlHost, appkit.Sel("bounds"))
+	height := bounds.Size.Height
+	if height <= 0 {
+		height = float64(windowHeight)
+	}
+
+	var maxSpacing float64
+	for _, reg := range regions {
+		if float64(reg.Spacing) > maxSpacing {
+			maxSpacing = float64(reg.Spacing)
+		}
+	}
+	if containerCls != 0 {
+		appkit.MsgSetFloat(ctx.glassContainer, appkit.Sel("setSpacing:"), maxSpacing)
+	}
+
+	for len(ctx.pills) < len(regions) {
+		pill := appkit.MsgInitRect(appkit.Send(liquid, "alloc"), initWithFrame, appkit.Rect{})
+		if !ctx.checkedInteractive {
+			ctx.checkedInteractive = true
+			ctx.supportsInteractive = appkit.SendBool(pill, "respondsToSelector:", uintptr(appkit.Sel("setEffectIsInteractive:")))
+		}
+		appkit.Send(ctx.pillsHost, "addSubview:", uintptr(pill))
+		ctx.pills = append(ctx.pills, pill)
+	}
+
+	nsColor := appkit.Class("NSColor")
+	colorSel := appkit.Sel("colorWithSRGBRed:green:blue:alpha:")
+	setFrameSel := appkit.Sel("setFrame:")
+	setRadiusSel := appkit.Sel("setCornerRadius:")
+	for i, reg := range regions {
+		pill := ctx.pills[i]
+		frame := appkit.Rect{
+			Origin: appkit.Point{
+				X: float64(reg.X),
+				Y: height - float64(reg.Y) - float64(reg.Height),
+			},
+			Size: appkit.Size{
+				Width:  float64(reg.Width),
+				Height: float64(reg.Height),
+			},
+		}
+		appkit.MsgSetRect(pill, setFrameSel, frame)
+		appkit.MsgSetFloat(pill, setRadiusSel, float64(reg.CornerRadius))
+		s := uintptr(nsGlassEffectRegular)
+		if reg.Style == core.GlassRegionClear {
+			s = nsGlassEffectClear
+		}
+		appkit.Send(pill, "setStyle:", s)
+		if reg.Tint.A > 0 {
+			c := appkit.MsgColorRGBA(nsColor, colorSel,
+				float64(reg.Tint.R)/255.0,
+				float64(reg.Tint.G)/255.0,
+				float64(reg.Tint.B)/255.0,
+				float64(reg.Tint.A)/255.0,
+			)
+			appkit.Send(pill, "setTintColor:", uintptr(c))
+		} else {
+			appkit.Send(pill, "setTintColor:", 0)
+		}
+		if ctx.supportsInteractive {
+			appkit.Send(pill, "setEffectIsInteractive:", appkit.Bool(reg.Interactive))
+		}
+		appkit.Send(pill, "setHidden:", 0)
+	}
+	for i := len(regions); i < len(ctx.pills); i++ {
+		appkit.Send(ctx.pills[i], "setHidden:", 1)
+	}
+}
+
 func (r *metalGlassRenderer) Release() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -302,14 +459,20 @@ func (r *metalGlassRenderer) Release() {
 	}
 	if ctx := r.context; ctx != nil {
 		r.context = nil
+		ctx.released.Store(true)
 		// Enqueued after installation, including when the window closes
 		// before installation finishes. Never wait for AppKit with the frame
 		// lock held.
 		appkit.MainAsync(func() {
+			for _, pill := range ctx.pills {
+				appkit.Send(pill, "removeFromSuperview")
+				appkit.Release(pill)
+			}
+			ctx.pills = nil
 			if ctx.backdrop != 0 {
 				appkit.Send(ctx.backdrop, "removeFromSuperview")
 			}
-			for _, obj := range []appkit.ID{ctx.backdrop, ctx.layer, ctx.queue, ctx.device, ctx.view} {
+			for _, obj := range []appkit.ID{ctx.pillsHost, ctx.glassContainer, ctx.controlHost, ctx.windowGlass, ctx.backdrop, ctx.layer, ctx.queue, ctx.device, ctx.view} {
 				appkit.Release(obj)
 			}
 		})

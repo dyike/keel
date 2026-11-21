@@ -3,8 +3,10 @@ package window
 import (
 	"image"
 	"math"
+	"slices"
 
 	"github.com/dyike/keel/gio/op"
+	"github.com/dyike/keel/ui/core"
 )
 
 // GlassStyle selects the macOS backdrop material.
@@ -44,5 +46,33 @@ func LiquidGlassSupported() bool { return platformLiquidGlassSupported() }
 
 type glassRenderer interface {
 	Frame(*op.Ops, image.Point) error
+	SyncRegions([]core.GlassRegion, float32)
 	Release()
+}
+
+// NativeGlassEnabled reports whether this window renders control-level Liquid
+// Glass with native macOS NSGlassEffectView instances.
+func (w *Window) NativeGlassEnabled() bool {
+	return w.opts.Glass != nil && w.opts.Glass.Style != GlassFrosted && LiquidGlassSupported() && !offScreen()
+}
+
+// AddGlassRegion registers a control-level native glass region for the current frame.
+func (w *Window) AddGlassRegion(r core.GlassRegion) {
+	if r.Width <= 0 || r.Height <= 0 || !w.NativeGlassEnabled() {
+		return
+	}
+	w.glassRegions = append(w.glassRegions, r)
+}
+
+func syncGlassRegions(w *Window, windowHeight float32) {
+	if w.glassRenderer == nil {
+		return
+	}
+	if w.lastGlassHeight == windowHeight && slices.Equal(w.glassRegions, w.lastGlassRegions) {
+		return
+	}
+	w.lastGlassHeight = windowHeight
+	w.lastGlassRegions = append(w.lastGlassRegions[:0], w.glassRegions...)
+	snapshot := append([]core.GlassRegion(nil), w.glassRegions...)
+	w.glassRenderer.SyncRegions(snapshot, windowHeight)
 }

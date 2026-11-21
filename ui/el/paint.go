@@ -378,6 +378,8 @@ func (e *engine) paintContent(n *Node) {
 	// element's own clip.
 	if shadow, color, layers, ok := e.sharedShadow(n); ok {
 		e.paintShadow(shadow, color, layers, rect, radius)
+	} else if st.glass.Style != GlassNone && st.shadow == nil && e.nativeGlassWindow() == nil {
+		e.paintGlassShadow(st, rect, radius)
 	}
 	// Elements that take input or report semantics get their own clip area;
 	// others do not, so their children can overflow them.
@@ -483,7 +485,11 @@ func (e *engine) paintContent(n *Node) {
 			state.pressFocus, state.pressEditor, state.pressable = n.focusOnPress, n.input != nil, true
 		}
 	}
-	e.paintBox(st, rect, radius)
+	e.paintBox(st, rect, radius, n.interactive())
+	if !e.opaqueBackdrop && paintsOpaqueBox(st) {
+		e.opaqueBackdrop = true
+		defer func() { e.opaqueBackdrop = false }()
+	}
 	pl, pt, pr, pb := e.edges(st.pad)
 	bw := e.dp(n.style.borderWidth) // visual focus/hover borders never move content
 	inner := image.Rectangle{Min: image.Pt(bw+pl, bw+pt), Max: image.Pt(n.size.X-bw-pr, n.size.Y-bw-pb)}
@@ -667,10 +673,23 @@ func (c corners) inset(d int) corners {
 
 func (c corners) max() int { return max(c[0], c[1], c[2], c[3]) }
 
-func (e *engine) paintBox(st Style, rect image.Rectangle, radius corners) {
+func paintsOpaqueBox(st Style) bool {
+	if st.glass.Style != GlassNone {
+		return false
+	}
+	if g := st.sharedGradient; g != nil {
+		return g.from.A == 255 && g.to.A == 255
+	}
+	if g := st.gradient; g != nil {
+		return g.From.A == 255 && g.To.A == 255
+	}
+	return st.bg.set && st.bg.value.A == 255
+}
+
+func (e *engine) paintBox(st Style, rect image.Rectangle, radius corners, interactive bool) {
 	ops := e.gtx.Ops
 	if st.glass.Style != GlassNone {
-		e.paintGlass(st, rect, radius)
+		e.paintGlass(st, rect, radius, interactive)
 	} else if g := st.sharedGradient; g != nil {
 		gradientClip := radius.rrect(rect).Push(ops)
 		point := func(p f32.Point) f32.Point {

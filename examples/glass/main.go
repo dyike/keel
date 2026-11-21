@@ -53,15 +53,26 @@ func (d *demo) Render(cx *el.Context) el.Element {
 				stack.Pop()
 				draw()
 			}),
-			kit.Button(text("Toggle appearance", "切换明暗"), func() {
-				if !dark {
-					theme.Apply(theme.Dark())
-					_ = window.SetNativeAppearance(window.AppearanceDark)
-				} else {
-					theme.Apply(theme.Light())
-					_ = window.SetNativeAppearance(window.AppearanceLight)
-				}
-			}).Variant(kit.ButtonGhost).Render(cx),
+			el.Div().Row().Items(el.Center).Gap(8).Child(
+				kit.Button(text("Open Clear", "打开 Clear"), func() {
+					window.Haptic(window.HapticLight)
+					openDemo(window.GlassClear, true)
+				}).ID("glass-clear").Variant(kit.ButtonGlass).GlassTint(theme.Primary).Render(cx),
+				kit.Button(text("Compare Frosted", "对比毛玻璃"), func() {
+					window.Haptic(window.HapticSelection)
+					openDemo(window.GlassFrosted, true)
+				}).ID("glass-frosted").Variant(kit.ButtonGlass).Render(cx),
+				kit.Button(text("Toggle appearance", "切换明暗"), func() {
+					window.Haptic(window.HapticMedium)
+					if !dark {
+						theme.Apply(theme.Dark())
+						_ = window.SetNativeAppearance(window.AppearanceDark)
+					} else {
+						theme.Apply(theme.Light())
+						_ = window.SetNativeAppearance(window.AppearanceLight)
+					}
+				}).ID("glass-appearance").Variant(kit.ButtonGlass).Render(cx),
+			),
 		),
 		el.Div().Row().Grow().H(el.Dp(0)).Items(el.Stretch).Child(
 			el.Div().W(el.Dp(236)).P(20).Gap(8).Child(
@@ -70,9 +81,9 @@ func (d *demo) Render(cx *el.Context) el.Element {
 				d.nav(text("Projects", "项目"), "02", selected, soft),
 				d.nav(text("Favorites", "收藏"), "03", selected, soft),
 				el.Div().Grow(),
-				el.Div().P(16).Gap(8).Rounded(16).Bg(soft).Child(
+				el.Div().P(16).Gap(8).Rounded(16).Glass().Child(
 					el.Text(text("Let the background through", "让背景透进来")).TextSize(13).Bold(),
-					el.Text(text("Move the window to watch the sidebar and header react to what is behind them.", "拖动窗口，观察侧栏与顶部随背后内容变化。")).TextSize(12).TextColor(theme.Muted),
+					el.Text(text("Move the window to watch the native glass pills and card react to what is behind them.", "拖动窗口，观察原生玻璃胶囊与卡片随背后内容变化。")).TextSize(12).TextColor(theme.Muted),
 				),
 				el.Text(text("KEEL · NATIVE macOS", "KEEL · 原生 macOS")).TextSize(10).TextColor(theme.Muted).Mt(12),
 			),
@@ -83,20 +94,7 @@ func (d *demo) Render(cx *el.Context) el.Element {
 				),
 				el.Div().P(24).Gap(14).Rounded(16).Bg(theme.Surface).Border(1, theme.Border).Child(
 					el.Text(d.selected+" / "+d.material()).TextSize(16).Bold(),
-					el.Text(text("The sidebar and header use native glass. This card stays opaque to keep its content readable.", "左侧与顶部是原生玻璃背景。这张卡片使用实色，保持内容清晰可读。")).TextSize(14).TextColor(theme.Muted),
-					el.Div().Row().Gap(10).Wrap().Child(
-						kit.Button(text("Open Clear", "打开 Clear"), func() {
-							window.Haptic(window.HapticLight)
-							openDemo(window.GlassClear, true)
-						}).ID("glass-clear").Variant(kit.ButtonGlass).GlassTint(theme.Primary).Render(cx),
-						kit.Button(text("Compare Frosted", "对比毛玻璃"), func() {
-							window.Haptic(window.HapticSelection)
-							openDemo(window.GlassFrosted, true)
-						}).ID("glass-frosted").Variant(kit.ButtonGlass).Render(cx),
-						kit.Button(text("Regular Glass", "标准玻璃按钮"), func() {
-							window.Haptic(window.HapticMedium)
-						}).ID("glass-regular").Variant(kit.ButtonGlass).Render(cx),
-					),
+					el.Text(text("The header pills, sidebar card, and backdrop use native NSGlassEffectView + NSGlassEffectContainerView. This card stays opaque to keep its content readable.", "顶部胶囊按钮、侧栏玻璃卡片与窗口背景均由原生 NSGlassEffectView + NSGlassEffectContainerView 渲染。这张卡片保持实色以确保内容清晰可读。")).TextSize(14).TextColor(theme.Muted),
 				),
 				el.Div().Row().Gap(16).Child(
 					d.tile("01", text("Native materials", "原生材质"), "Liquid Glass / Vibrancy"),

@@ -50,3 +50,70 @@ func TestGlassSurfaceStylesPaintInLightAndDarkThemes(t *testing.T) {
 		})
 	}
 }
+
+type fakeNativeGlassWindow struct {
+	enabled bool
+	regions []core.GlassRegion
+}
+
+func (f *fakeNativeGlassWindow) Frameless() bool                 { return false }
+func (f *fakeNativeGlassWindow) Focused() bool                   { return true }
+func (f *fakeNativeGlassWindow) TitleBarArea(_, _, _, _ float32) {}
+func (f *fakeNativeGlassWindow) Minimize()                       {}
+func (f *fakeNativeGlassWindow) ToggleMaximize()                 {}
+func (f *fakeNativeGlassWindow) Maximized() bool                 { return false }
+func (f *fakeNativeGlassWindow) Close()                          {}
+func (f *fakeNativeGlassWindow) NativeGlassEnabled() bool        { return f.enabled }
+func (f *fakeNativeGlassWindow) AddGlassRegion(r core.GlassRegion) {
+	f.regions = append(f.regions, r)
+}
+
+func TestGlassRegistersNativeRegionOnTransparentBackdrop(t *testing.T) {
+	win := &fakeNativeGlassWindow{enabled: true}
+	restore := core.SetCurrentWindow(win)
+	defer restore()
+
+	root := Root(ViewFunc(func(*Context) Element {
+		return Div().Bg(color.NRGBA{}).Pl(10).Pt(20).Child(
+			Div().W(Dp(120)).H(Dp(36)).Rounded(18).
+				GlassStyle(GlassProminent).GlassTint(theme.Primary).GlassMerge(12).
+				OnClick(func() {}).
+				Child(Text("Pill")),
+		)
+	}))
+	var ops op.Ops
+	gtx := core.C{Ops: &ops, Metric: unit.Metric{PxPerDp: 2, PxPerSp: 2}}
+	gtx.Constraints.Max = image.Pt(400, 200)
+	root.Layout(gtx)
+
+	if len(win.regions) != 1 {
+		t.Fatalf("regions = %d, want 1", len(win.regions))
+	}
+	got := win.regions[0]
+	if got.X != 10 || got.Y != 20 || got.Width != 120 || got.Height != 36 {
+		t.Fatalf("rect = (%v,%v %vx%v), want (10,20 120x36)", got.X, got.Y, got.Width, got.Height)
+	}
+	if got.CornerRadius != 18 || got.Tint != theme.Primary || !got.Interactive || got.Spacing != 12 {
+		t.Fatalf("region = %+v, unexpected fields", got)
+	}
+}
+
+func TestGlassFallsBackInsideOpaqueAncestor(t *testing.T) {
+	win := &fakeNativeGlassWindow{enabled: true}
+	restore := core.SetCurrentWindow(win)
+	defer restore()
+
+	root := Root(ViewFunc(func(*Context) Element {
+		return Div().Bg(theme.Surface).P(16).Child(
+			Div().W(Dp(120)).H(Dp(36)).Rounded(18).Glass().Child(Text("Fallback")),
+		)
+	}))
+	var ops op.Ops
+	gtx := core.C{Ops: &ops, Metric: unit.Metric{PxPerDp: 2, PxPerSp: 2}}
+	gtx.Constraints.Max = image.Pt(400, 200)
+	root.Layout(gtx)
+
+	if len(win.regions) != 0 {
+		t.Fatalf("regions = %d, want 0 inside opaque ancestor", len(win.regions))
+	}
+}

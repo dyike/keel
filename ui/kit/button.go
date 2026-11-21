@@ -290,9 +290,9 @@ func (v *ButtonView) renderCorners(cx *el.Context, corners [4]float32) *el.DivEl
 			if tint.A == 0 {
 				tint = theme.Primary
 			}
-			box.GlassStyle(el.GlassProminent).GlassTint(tint)
+			box.GlassStyle(el.GlassProminent).GlassTint(tint).GlassMerge(12)
 		} else {
-			box.Glass()
+			box.Glass().GlassMerge(12)
 		}
 		if v.hasGlassSpec {
 			box.GlassSpecular(v.glassSpec[0], v.glassSpec[1])
