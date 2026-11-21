@@ -885,9 +885,20 @@ func (e *engine) paintInput(n *Node, st *elemState, inner image.Rectangle) {
 	}
 	// A single-line box taller than its line (theme.ControlHeight) centers
 	// the line, like a native field; the editor keeps the line's height.
+	// Match the displayed text's script so Latin/Mono placeholders and values
+	// are centered by their actual line box instead of mixed CJK metrics.
 	line, textScript := spec.line, scriptMixed
-	if spec.password && ed.Len() > 0 {
-		textScript = scriptPassword
+	if !spec.multiline {
+		switch {
+		case spec.password && ed.Len() > 0:
+			textScript = scriptPassword
+		case ed.Len() > 0:
+			textScript = scriptOf(ed.Text())
+		case spec.placeholder != "":
+			textScript = scriptOf(spec.placeholder)
+		default:
+			textScript = scriptLatin
+		}
 		line = e.textLineBox(n, textScript)
 	}
 	if !spec.multiline && line > 0 && inner.Dy() > line {
