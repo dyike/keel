@@ -994,8 +994,12 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 	if n.style.scrollX {
 		dx := st.scrollHorizontal.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Horizontal,
 			pointer.ScrollRange{Min: -st.scrollX, Max: maxX - st.scrollX}, pointer.ScrollRange{})
-		st.scrollX = min(max(st.scrollX+dx+st.scrollPendingX, 0), maxX)
+		pendingX := st.scrollPendingX
+		st.scrollX = min(max(st.scrollX+dx+pendingX, 0), maxX)
 		st.scrollPendingX = 0
+		if dx != 0 && pendingX == 0 && st.scrollX == previousX && st.scrollHorizontal.State() == gesture.StateFlinging {
+			st.scrollHorizontal.Stop()
+		}
 		st.scrollMaxX, st.scrollViewX, st.scrollContentX, st.scrolledX = maxX, viewport.Dx(), totalX, true
 	} else {
 		st.scrollX = 0
@@ -1015,8 +1019,12 @@ func (e *engine) paintScroll(n *Node, st *elemState, inner image.Rectangle) {
 		st.keepVersion = n.style.keepVersion
 		dist := st.scroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Vertical,
 			pointer.ScrollRange{}, pointer.ScrollRange{Min: -st.scrollY, Max: maxScroll - st.scrollY})
-		st.scrollY = min(max(st.scrollY+dist+st.scrollPending, 0), maxScroll)
+		pending := st.scrollPending
+		st.scrollY = min(max(st.scrollY+dist+pending, 0), maxScroll)
 		st.scrollPending = 0
+		if dist != 0 && pending == 0 && st.scrollY == previousY && st.scroll.State() == gesture.StateFlinging {
+			st.scroll.Stop()
+		}
 		st.scrollMax, st.scrolled = maxScroll, true
 		st.scrollView, st.scrollContent = viewport.Dy(), total
 	} else {

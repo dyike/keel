@@ -297,7 +297,7 @@ func (s *Scroll) Update(cfg unit.Metric, q input.Source, t time.Time, axis Axis,
 			s.dragging = true
 			s.pid = e.PointerID
 		case pointer.Release:
-			if s.pid != e.PointerID {
+			if !s.dragging || s.pid != e.PointerID {
 				break
 			}
 			fling := s.estimator.Estimate()
@@ -329,7 +329,8 @@ func (s *Scroll) Update(cfg unit.Metric, q input.Source, t time.Time, axis Axis,
 			dist := s.last - v
 			if e.Priority < pointer.Grabbed {
 				slop := cfg.Dp(touchSlop)
-				if dist := dist; dist >= slop || -slop >= dist {
+				if dist >= slop || -slop >= dist {
+					s.last = v
 					q.Execute(pointer.GrabCmd{Tag: s, ID: e.PointerID})
 				}
 			} else {

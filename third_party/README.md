@@ -44,6 +44,15 @@ the prefixes above (see [docs/single-module.md](../docs/single-module.md)).
 
 ## Patches
 
+- Touch scroll & fling smoothness (`gio/internal/fling`, `gio/gesture`):
+  relax Android/default fling friction from `-4.2` to `-2.2` and fix iOS
+  detection (`runtime.GOOS == "ios"` alongside `"darwin"`); round sub-pixel
+  fling steps and scale stop velocity by DPI to avoid tail stutter on 90/120Hz
+  high-DPI screens; support 2-sample quick flicks in `Extrapolation.Estimate`
+  with a 50ms sample gap; anchor `Scroll.last` on touch-slop grab so initial
+  drag does not snap, and guard `Release` against non-dragging state. Covered
+  by `gio/internal/fling/fling_test.go`.
+
 - Unified GPU, graphics and logging bindings onto purego across macOS, Linux,
   iOS and Android: removed duplicate iOS cgo files
   (`gio/gpu/internal/metal/metal_cgo_darwin.go`,

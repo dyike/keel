@@ -28,6 +28,13 @@ Keel 自带它绘制界面所用的库的副本，这样可以直接修复和优
 
 ## 补丁
 
+- 触摸滚动与惯性流畅度（`gio/internal/fling`、`gio/gesture`）：将 Android/默认
+  惯性阻尼系数从过重的 `-4.2` 调整为 `-2.2`，修复 `GOOS == "ios"` 未命中 iOS
+  阻尼的问题；惯性步长改为四舍五入并按 DPI 缩放停止速度，避免高刷高分屏末尾抖动与
+  空转；`Extrapolation.Estimate` 补充 2 采样快速轻拂的线性速度回退并放宽采样间隔
+  至 50ms；跨越 `touchSlop` 抢占指针时重置 `Scroll.last` 消除起手跳变，并保护
+  `Release` 不在非拖动状态误触发惯性。测试见 `gio/internal/fling/fling_test.go`。
+
 - 统一 macOS、Linux、iOS 与 Android 的 GPU、图形与日志绑定到 purego：删除
   重复的 iOS cgo 文件（`gio/gpu/internal/metal/metal_cgo_darwin.go`、
   `gio/gpu/headless/headless_darwin.go`、`gio/internal/cocoainit/cocoa_darwin.go`），

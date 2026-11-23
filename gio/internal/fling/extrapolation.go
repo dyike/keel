@@ -48,7 +48,7 @@ const (
 	degree       = 2
 	historySize  = 20
 	maxAge       = 100 * time.Millisecond
-	maxSampleGap = 40 * time.Millisecond
+	maxSampleGap = 50 * time.Millisecond
 )
 
 // SampleDelta adds a relative sample to the estimation.
@@ -102,6 +102,17 @@ func (e *Extrapolation) Estimate() Estimate {
 		t = p.t
 		values = append(values, first.v-p.v)
 		times = append(times, float32((-age).Seconds()))
+	}
+	if len(times) == 2 {
+		dt := times[0] - times[1]
+		if dt == 0 {
+			return Estimate{}
+		}
+		dist := values[1] - values[0]
+		return Estimate{
+			Velocity: (values[0] - values[1]) / dt,
+			Distance: dist,
+		}
 	}
 	coef, ok := polyFit(times, values)
 	if !ok {
