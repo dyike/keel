@@ -27,6 +27,8 @@ go test -race ./...
 
 These examples default to English; pass `-lang zh-CN` to run them in Chinese.
 
+To create motion graphics in Go and export MP4 from the desktop or browser, run [Keel Motion](examples/video/README.md).
+
 Requires Go 1.26+. On macOS, install Xcode Command Line Tools. On Linux, install the Wayland/X11 development packages; `keel doctor` checks the environment. Browse the [documentation and live gallery](https://keel.dyike.com).
 
 ## Documentation

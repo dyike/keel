@@ -27,6 +27,8 @@ go test -race ./...
 
 这些示例默认使用英文；传入 `-lang zh-CN` 可切换为中文。
 
+[Keel Motion 视频工作台](examples/video/README.zh-CN.md)演示如何用 Go 编写动效，在桌面或浏览器中预览并导出 MP4。
+
 需要 Go 1.26+；macOS 上需要 Xcode Command Line Tools，Linux 上需要 Wayland/X11 的开发包（`keel doctor` 会检查）。在线文档和组件库：https://keel.dyike.com
 
 ## 文档
